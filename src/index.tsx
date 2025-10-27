@@ -399,7 +399,30 @@ app.get('/', (c) => {
                             </div>
                         </div>
                         
-                        <a href="#contact" class="text-gray-700 hover:text-primary-600 font-medium">상담 신청</a>
+                        <!-- 상담센터 드롭다운 -->
+                        <div class="relative group">
+                            <button class="text-gray-700 hover:text-primary-600 font-medium flex items-center">
+                                상담센터
+                                <i class="fas fa-chevron-down ml-1 text-xs"></i>
+                            </button>
+                            <!-- 드롭다운 메뉴 -->
+                            <div class="absolute left-0 top-full mt-2 w-64 bg-white rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                                <div class="py-2">
+                                    <a href="/online-consulting" class="block px-6 py-3 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition">
+                                        <i class="fas fa-comments mr-2"></i>
+                                        온라인상담신청
+                                    </a>
+                                    <a href="/corporate-education" class="block px-6 py-3 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition">
+                                        <i class="fas fa-building mr-2"></i>
+                                        기업단체교육
+                                    </a>
+                                    <a href="/university-education" class="block px-6 py-3 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition">
+                                        <i class="fas fa-university mr-2"></i>
+                                        대학맞춤교육
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="flex space-x-3">
                         <button onclick="showLoginModal()" class="text-primary-600 hover:text-primary-700 font-medium px-4 py-2">
@@ -2906,6 +2929,653 @@ app.get('/teacher-admin', (c) => {
                     <li><i class="fas fa-check text-green-600 mr-2"></i>출결 및 성적 입력은 매주 금요일까지 완료해 주세요.</li>
                     <li><i class="fas fa-check text-green-600 mr-2"></i>문의사항은 교무팀(02-1234-5679)으로 연락 주세요.</li>
                 </ul>
+            </div>
+        </div>
+
+        <!-- 푸터 -->
+        <footer class="bg-gray-800 text-white py-8 mt-12">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <p class="text-gray-400">&copy; 2025 와우쓰리디홍대센터. All rights reserved.</p>
+            </div>
+        </footer>
+    </body>
+    </html>
+  `);
+});
+
+// ============================================
+// 온라인상담신청 페이지
+// ============================================
+app.get('/online-consulting', (c) => {
+  return c.html(`
+    <!DOCTYPE html>
+    <html lang="ko">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>온라인상담신청 - 와우쓰리디홍대센터</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+        <script>
+          tailwind.config = {
+            theme: {
+              extend: {
+                colors: {
+                  primary: {
+                    50: '#f0f7ff',
+                    100: '#e0effe',
+                    200: '#baddfd',
+                    300: '#7dbcfb',
+                    400: '#3a9bf7',
+                    500: '#5b9bd5',
+                    600: '#4a90e2',
+                    700: '#2d5fa3',
+                    800: '#1e4278',
+                    900: '#132d54'
+                  }
+                }
+              }
+            }
+          }
+        </script>
+    </head>
+    <body class="bg-gray-50">
+        <!-- 네비게이션 -->
+        <nav class="bg-white shadow-md sticky top-0 z-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-20">
+                    <div class="flex items-center space-x-4">
+                        <a href="/" class="flex items-center space-x-4">
+                            <img src="/static/logo.png" alt="WOW 3D" class="h-12">
+                            <span class="text-xl font-bold text-gray-800">와우쓰리디홍대센터</span>
+                        </a>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <a href="/" class="text-gray-700 hover:text-primary-600 font-medium">
+                            <i class="fas fa-home mr-2"></i>홈으로
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- 헤더 -->
+        <div class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-12">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h1 class="text-4xl font-bold mb-4 flex items-center">
+                    <i class="fas fa-comments mr-4"></i>
+                    온라인 상담 신청
+                </h1>
+                <p class="text-xl text-blue-100">궁금하신 사항을 편하게 문의해주세요</p>
+            </div>
+        </div>
+
+        <!-- 메인 컨텐츠 -->
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <!-- 상담 신청 폼 -->
+            <div class="bg-white rounded-lg shadow-lg p-8 mb-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">상담 신청서</h2>
+                <form class="space-y-6">
+                    <!-- 이름 -->
+                    <div>
+                        <label class="block text-gray-700 font-semibold mb-2">
+                            이름 <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-600" placeholder="이름을 입력해주세요" required>
+                    </div>
+
+                    <!-- 연락처 -->
+                    <div>
+                        <label class="block text-gray-700 font-semibold mb-2">
+                            연락처 <span class="text-red-500">*</span>
+                        </label>
+                        <input type="tel" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-600" placeholder="010-0000-0000" required>
+                    </div>
+
+                    <!-- 이메일 -->
+                    <div>
+                        <label class="block text-gray-700 font-semibold mb-2">
+                            이메일 <span class="text-red-500">*</span>
+                        </label>
+                        <input type="email" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-600" placeholder="email@example.com" required>
+                    </div>
+
+                    <!-- 상담 유형 -->
+                    <div>
+                        <label class="block text-gray-700 font-semibold mb-2">
+                            상담 유형 <span class="text-red-500">*</span>
+                        </label>
+                        <select class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-600" required>
+                            <option value="">선택해주세요</option>
+                            <option value="course">과정 문의</option>
+                            <option value="schedule">일정 문의</option>
+                            <option value="price">수강료 문의</option>
+                            <option value="certificate">자격증 문의</option>
+                            <option value="etc">기타 문의</option>
+                        </select>
+                    </div>
+
+                    <!-- 관심 과정 -->
+                    <div>
+                        <label class="block text-gray-700 font-semibold mb-2">
+                            관심 과정
+                        </label>
+                        <select class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-600">
+                            <option value="">선택해주세요</option>
+                            <option value="basic">3D 프린팅 기초과정</option>
+                            <option value="fusion360">Fusion 360 모델링</option>
+                            <option value="industrial">산업용 3D 프린팅</option>
+                            <option value="youth">청소년 메이커 교육</option>
+                            <option value="scanning">3D 스캐닝 & 리버스 엔지니어링</option>
+                        </select>
+                    </div>
+
+                    <!-- 상담 내용 -->
+                    <div>
+                        <label class="block text-gray-700 font-semibold mb-2">
+                            상담 내용 <span class="text-red-500">*</span>
+                        </label>
+                        <textarea rows="6" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-600" placeholder="궁금하신 사항을 자유롭게 작성해주세요" required></textarea>
+                    </div>
+
+                    <!-- 개인정보 동의 -->
+                    <div class="flex items-start">
+                        <input type="checkbox" id="privacy" class="mt-1 mr-2" required>
+                        <label for="privacy" class="text-sm text-gray-600">
+                            개인정보 수집 및 이용에 동의합니다. (필수)
+                        </label>
+                    </div>
+
+                    <!-- 제출 버튼 -->
+                    <button type="submit" class="w-full bg-primary-600 text-white py-4 rounded-lg font-semibold hover:bg-primary-700 transition text-lg">
+                        상담 신청하기
+                    </button>
+                </form>
+            </div>
+
+            <!-- 안내 사항 -->
+            <div class="grid md:grid-cols-2 gap-6">
+                <div class="bg-blue-50 border-l-4 border-blue-600 p-6 rounded-lg">
+                    <h3 class="text-lg font-bold text-gray-800 mb-3 flex items-center">
+                        <i class="fas fa-clock text-blue-600 mr-2"></i>
+                        상담 시간
+                    </h3>
+                    <ul class="space-y-2 text-gray-700">
+                        <li><i class="fas fa-check text-blue-600 mr-2"></i>평일: 09:00 - 18:00</li>
+                        <li><i class="fas fa-check text-blue-600 mr-2"></i>주말: 10:00 - 17:00</li>
+                        <li><i class="fas fa-check text-blue-600 mr-2"></i>공휴일 휴무</li>
+                    </ul>
+                </div>
+
+                <div class="bg-green-50 border-l-4 border-green-600 p-6 rounded-lg">
+                    <h3 class="text-lg font-bold text-gray-800 mb-3 flex items-center">
+                        <i class="fas fa-phone text-green-600 mr-2"></i>
+                        전화 상담
+                    </h3>
+                    <ul class="space-y-2 text-gray-700">
+                        <li><i class="fas fa-check text-green-600 mr-2"></i>대표번호: 02-1234-5678</li>
+                        <li><i class="fas fa-check text-green-600 mr-2"></i>팩스: 02-1234-5679</li>
+                        <li><i class="fas fa-check text-green-600 mr-2"></i>이메일: info@wow3dcookie.kr</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- 푸터 -->
+        <footer class="bg-gray-800 text-white py-8 mt-12">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <p class="text-gray-400">&copy; 2025 와우쓰리디홍대센터. All rights reserved.</p>
+            </div>
+        </footer>
+    </body>
+    </html>
+  `);
+});
+
+// ============================================
+// 기업단체교육 페이지
+// ============================================
+app.get('/corporate-education', (c) => {
+  return c.html(`
+    <!DOCTYPE html>
+    <html lang="ko">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>기업단체교육 - 와우쓰리디홍대센터</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+        <script>
+          tailwind.config = {
+            theme: {
+              extend: {
+                colors: {
+                  primary: {
+                    50: '#f0f7ff',
+                    100: '#e0effe',
+                    200: '#baddfd',
+                    300: '#7dbcfb',
+                    400: '#3a9bf7',
+                    500: '#5b9bd5',
+                    600: '#4a90e2',
+                    700: '#2d5fa3',
+                    800: '#1e4278',
+                    900: '#132d54'
+                  }
+                }
+              }
+            }
+          }
+        </script>
+    </head>
+    <body class="bg-gray-50">
+        <!-- 네비게이션 -->
+        <nav class="bg-white shadow-md sticky top-0 z-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-20">
+                    <div class="flex items-center space-x-4">
+                        <a href="/" class="flex items-center space-x-4">
+                            <img src="/static/logo.png" alt="WOW 3D" class="h-12">
+                            <span class="text-xl font-bold text-gray-800">와우쓰리디홍대센터</span>
+                        </a>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <a href="/" class="text-gray-700 hover:text-primary-600 font-medium">
+                            <i class="fas fa-home mr-2"></i>홈으로
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- 헤더 -->
+        <div class="bg-gradient-to-r from-purple-600 to-pink-600 text-white py-12">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h1 class="text-4xl font-bold mb-4 flex items-center">
+                    <i class="fas fa-building mr-4"></i>
+                    기업단체교육
+                </h1>
+                <p class="text-xl text-purple-100">귀사의 성장을 위한 맞춤형 3D프린팅 교육 솔루션</p>
+            </div>
+        </div>
+
+        <!-- 메인 컨텐츠 -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <!-- 교육 소개 -->
+            <div class="bg-white rounded-lg shadow-lg p-8 mb-12">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6">왜 기업교육이 필요한가요?</h2>
+                <p class="text-gray-600 text-lg leading-relaxed mb-6">
+                    4차 산업혁명 시대, 3D프린팅 기술은 제조업의 혁신을 이끌고 있습니다. 
+                    와우쓰리디홍대센터는 기업의 실무에 바로 적용 가능한 실전 중심의 교육 프로그램을 제공합니다.
+                </p>
+                <div class="grid md:grid-cols-3 gap-6">
+                    <div class="text-center p-6 bg-blue-50 rounded-lg">
+                        <div class="text-4xl font-bold text-blue-600 mb-2">200+</div>
+                        <div class="text-gray-700">기업 교육 실적</div>
+                    </div>
+                    <div class="text-center p-6 bg-green-50 rounded-lg">
+                        <div class="text-4xl font-bold text-green-600 mb-2">95%</div>
+                        <div class="text-gray-700">교육 만족도</div>
+                    </div>
+                    <div class="text-center p-6 bg-purple-50 rounded-lg">
+                        <div class="text-4xl font-bold text-purple-600 mb-2">1,500+</div>
+                        <div class="text-gray-700">교육 이수 인원</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 교육 프로그램 -->
+            <div class="mb-12">
+                <h2 class="text-3xl font-bold text-gray-800 mb-8 text-center">맞춤형 교육 프로그램</h2>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition">
+                        <div class="flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+                            <i class="fas fa-cube text-3xl text-blue-600"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-800 mb-3">3D프린팅 입문</h3>
+                        <ul class="space-y-2 text-gray-600 mb-4">
+                            <li><i class="fas fa-check text-blue-600 mr-2"></i>3D프린팅 기술 이해</li>
+                            <li><i class="fas fa-check text-blue-600 mr-2"></i>실무 활용 사례 학습</li>
+                            <li><i class="fas fa-check text-blue-600 mr-2"></i>기초 모델링 실습</li>
+                        </ul>
+                        <div class="text-primary-600 font-semibold">교육기간: 2일 (16시간)</div>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition">
+                        <div class="flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
+                            <i class="fas fa-industry text-3xl text-green-600"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-800 mb-3">제조업 특화</h3>
+                        <ul class="space-y-2 text-gray-600 mb-4">
+                            <li><i class="fas fa-check text-green-600 mr-2"></i>시제품 제작 프로세스</li>
+                            <li><i class="fas fa-check text-green-600 mr-2"></i>역설계 및 3D스캐닝</li>
+                            <li><i class="fas fa-check text-green-600 mr-2"></i>품질 관리 및 후처리</li>
+                        </ul>
+                        <div class="text-primary-600 font-semibold">교육기간: 5일 (40시간)</div>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition">
+                        <div class="flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-4">
+                            <i class="fas fa-pencil-ruler text-3xl text-purple-600"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-800 mb-3">설계 전문가 과정</h3>
+                        <ul class="space-y-2 text-gray-600 mb-4">
+                            <li><i class="fas fa-check text-purple-600 mr-2"></i>Fusion 360 마스터</li>
+                            <li><i class="fas fa-check text-purple-600 mr-2"></i>파라메트릭 설계</li>
+                            <li><i class="fas fa-check text-purple-600 mr-2"></i>CAM 가공 프로그래밍</li>
+                        </ul>
+                        <div class="text-primary-600 font-semibold">교육기간: 10일 (80시간)</div>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition">
+                        <div class="flex items-center justify-center w-16 h-16 bg-orange-100 rounded-full mb-4">
+                            <i class="fas fa-chart-line text-3xl text-orange-600"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-800 mb-3">경영진 워크샵</h3>
+                        <ul class="space-y-2 text-gray-600 mb-4">
+                            <li><i class="fas fa-check text-orange-600 mr-2"></i>3D프린팅 비즈니스 전략</li>
+                            <li><i class="fas fa-check text-orange-600 mr-2"></i>디지털 전환 로드맵</li>
+                            <li><i class="fas fa-check text-orange-600 mr-2"></i>투자 수익률(ROI) 분석</li>
+                        </ul>
+                        <div class="text-primary-600 font-semibold">교육기간: 1일 (8시간)</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 교육 혜택 -->
+            <div class="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg shadow-lg p-8 mb-12 text-white">
+                <h2 class="text-3xl font-bold mb-8 text-center">기업교육 특별 혜택</h2>
+                <div class="grid md:grid-cols-4 gap-6">
+                    <div class="text-center">
+                        <i class="fas fa-percentage text-4xl mb-3"></i>
+                        <h4 class="font-bold mb-2">단체 할인</h4>
+                        <p class="text-sm text-blue-100">10명 이상 최대 30% 할인</p>
+                    </div>
+                    <div class="text-center">
+                        <i class="fas fa-map-marker-alt text-4xl mb-3"></i>
+                        <h4 class="font-bold mb-2">방문 교육</h4>
+                        <p class="text-sm text-blue-100">귀사로 직접 찾아가는 교육</p>
+                    </div>
+                    <div class="text-center">
+                        <i class="fas fa-calendar-alt text-4xl mb-3"></i>
+                        <h4 class="font-bold mb-2">유연한 일정</h4>
+                        <p class="text-sm text-blue-100">기업 일정에 맞춤 조율</p>
+                    </div>
+                    <div class="text-center">
+                        <i class="fas fa-certificate text-4xl mb-3"></i>
+                        <h4 class="font-bold mb-2">수료증 발급</h4>
+                        <p class="text-sm text-blue-100">공식 교육 이수증 제공</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 문의하기 -->
+            <div class="bg-white rounded-lg shadow-lg p-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">기업교육 문의</h2>
+                <div class="max-w-2xl mx-auto">
+                    <div class="grid md:grid-cols-2 gap-6 mb-6">
+                        <div class="text-center p-6 bg-gray-50 rounded-lg">
+                            <i class="fas fa-phone text-3xl text-primary-600 mb-3"></i>
+                            <h4 class="font-bold text-gray-800 mb-2">전화 문의</h4>
+                            <p class="text-gray-600">02-1234-5678</p>
+                            <p class="text-sm text-gray-500 mt-1">평일 09:00 - 18:00</p>
+                        </div>
+                        <div class="text-center p-6 bg-gray-50 rounded-lg">
+                            <i class="fas fa-envelope text-3xl text-primary-600 mb-3"></i>
+                            <h4 class="font-bold text-gray-800 mb-2">이메일 문의</h4>
+                            <p class="text-gray-600">corporate@wow3dcookie.kr</p>
+                            <p class="text-sm text-gray-500 mt-1">24시간 접수 가능</p>
+                        </div>
+                    </div>
+                    <a href="/online-consulting" class="block w-full bg-primary-600 text-white text-center py-4 rounded-lg font-semibold hover:bg-primary-700 transition text-lg">
+                        온라인 상담 신청하기
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 푸터 -->
+        <footer class="bg-gray-800 text-white py-8 mt-12">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <p class="text-gray-400">&copy; 2025 와우쓰리디홍대센터. All rights reserved.</p>
+            </div>
+        </footer>
+    </body>
+    </html>
+  `);
+});
+
+// ============================================
+// 대학맞춤교육 페이지
+// ============================================
+app.get('/university-education', (c) => {
+  return c.html(`
+    <!DOCTYPE html>
+    <html lang="ko">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>대학맞춤교육 - 와우쓰리디홍대센터</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+        <script>
+          tailwind.config = {
+            theme: {
+              extend: {
+                colors: {
+                  primary: {
+                    50: '#f0f7ff',
+                    100: '#e0effe',
+                    200: '#baddfd',
+                    300: '#7dbcfb',
+                    400: '#3a9bf7',
+                    500: '#5b9bd5',
+                    600: '#4a90e2',
+                    700: '#2d5fa3',
+                    800: '#1e4278',
+                    900: '#132d54'
+                  }
+                }
+              }
+            }
+          }
+        </script>
+    </head>
+    <body class="bg-gray-50">
+        <!-- 네비게이션 -->
+        <nav class="bg-white shadow-md sticky top-0 z-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-20">
+                    <div class="flex items-center space-x-4">
+                        <a href="/" class="flex items-center space-x-4">
+                            <img src="/static/logo.png" alt="WOW 3D" class="h-12">
+                            <span class="text-xl font-bold text-gray-800">와우쓰리디홍대센터</span>
+                        </a>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <a href="/" class="text-gray-700 hover:text-primary-600 font-medium">
+                            <i class="fas fa-home mr-2"></i>홈으로
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- 헤더 -->
+        <div class="bg-gradient-to-r from-teal-600 to-cyan-600 text-white py-12">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h1 class="text-4xl font-bold mb-4 flex items-center">
+                    <i class="fas fa-university mr-4"></i>
+                    대학맞춤교육
+                </h1>
+                <p class="text-xl text-teal-100">대학교와 함께하는 미래 인재 양성 프로그램</p>
+            </div>
+        </div>
+
+        <!-- 메인 컨텐츠 -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <!-- 교육 소개 -->
+            <div class="bg-white rounded-lg shadow-lg p-8 mb-12">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6">대학 특화 교육 프로그램</h2>
+                <p class="text-gray-600 text-lg leading-relaxed mb-6">
+                    와우쓰리디홍대센터는 대학교와 협력하여 학생들의 실무 역량 강화를 위한 
+                    산학협력 교육 프로그램을 운영합니다. 이론과 실습을 결합한 체계적인 커리큘럼으로 
+                    취업 경쟁력을 높이고 창의적인 메이커를 양성합니다.
+                </p>
+                <div class="grid md:grid-cols-4 gap-6">
+                    <div class="text-center p-6 bg-teal-50 rounded-lg">
+                        <div class="text-4xl font-bold text-teal-600 mb-2">30+</div>
+                        <div class="text-gray-700">협력 대학</div>
+                    </div>
+                    <div class="text-center p-6 bg-cyan-50 rounded-lg">
+                        <div class="text-4xl font-bold text-cyan-600 mb-2">2,000+</div>
+                        <div class="text-gray-700">교육 학생 수</div>
+                    </div>
+                    <div class="text-center p-6 bg-blue-50 rounded-lg">
+                        <div class="text-4xl font-bold text-blue-600 mb-2">150+</div>
+                        <div class="text-gray-700">취업 연계</div>
+                    </div>
+                    <div class="text-center p-6 bg-indigo-50 rounded-lg">
+                        <div class="text-4xl font-bold text-indigo-600 mb-2">98%</div>
+                        <div class="text-gray-700">과정 이수율</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 교육 과정 -->
+            <div class="mb-12">
+                <h2 class="text-3xl font-bold text-gray-800 mb-8 text-center">교육 과정</h2>
+                <div class="grid md:grid-cols-3 gap-6">
+                    <div class="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition">
+                        <div class="flex items-center justify-center w-16 h-16 bg-teal-100 rounded-full mb-4">
+                            <i class="fas fa-graduation-cap text-3xl text-teal-600"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-800 mb-3">정규 교과목</h3>
+                        <ul class="space-y-2 text-gray-600 mb-4">
+                            <li><i class="fas fa-check text-teal-600 mr-2"></i>학점 인정 과목 개설</li>
+                            <li><i class="fas fa-check text-teal-600 mr-2"></i>전공 연계 커리큘럼</li>
+                            <li><i class="fas fa-check text-teal-600 mr-2"></i>실습 장비 지원</li>
+                        </ul>
+                        <div class="text-primary-600 font-semibold">학기당 3학점</div>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition">
+                        <div class="flex items-center justify-center w-16 h-16 bg-cyan-100 rounded-full mb-4">
+                            <i class="fas fa-certificate text-3xl text-cyan-600"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-800 mb-3">자격증 특강</h3>
+                        <ul class="space-y-2 text-gray-600 mb-4">
+                            <li><i class="fas fa-check text-cyan-600 mr-2"></i>3D프린터운용기능사</li>
+                            <li><i class="fas fa-check text-cyan-600 mr-2"></i>오토데스크 ACU</li>
+                            <li><i class="fas fa-check text-cyan-600 mr-2"></i>합격률 95% 이상</li>
+                        </ul>
+                        <div class="text-primary-600 font-semibold">2주 집중과정</div>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition">
+                        <div class="flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+                            <i class="fas fa-project-diagram text-3xl text-blue-600"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-800 mb-3">캡스톤 디자인</h3>
+                        <ul class="space-y-2 text-gray-600 mb-4">
+                            <li><i class="fas fa-check text-blue-600 mr-2"></i>실무 프로젝트 수행</li>
+                            <li><i class="fas fa-check text-blue-600 mr-2"></i>멘토링 및 컨설팅</li>
+                            <li><i class="fas fa-check text-blue-600 mr-2"></i>작품 전시 및 발표</li>
+                        </ul>
+                        <div class="text-primary-600 font-semibold">한 학기 프로젝트</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 협력 모델 -->
+            <div class="bg-gradient-to-r from-teal-600 to-blue-600 rounded-lg shadow-lg p-8 mb-12 text-white">
+                <h2 class="text-3xl font-bold mb-8 text-center">산학협력 모델</h2>
+                <div class="grid md:grid-cols-3 gap-8">
+                    <div class="text-center">
+                        <div class="w-20 h-20 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-book text-4xl"></i>
+                        </div>
+                        <h4 class="font-bold text-xl mb-2">교육 과정 개발</h4>
+                        <p class="text-sm text-teal-100">대학 특성에 맞춘<br>맞춤형 커리큘럼 설계</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-20 h-20 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-chalkboard-teacher text-4xl"></i>
+                        </div>
+                        <h4 class="font-bold text-xl mb-2">강사 파견</h4>
+                        <p class="text-sm text-teal-100">실무 경험 풍부한<br>전문 강사진 지원</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-20 h-20 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-tools text-4xl"></i>
+                        </div>
+                        <h4 class="font-bold text-xl mb-2">장비 지원</h4>
+                        <p class="text-sm text-teal-100">최신 3D프린터 및<br>소프트웨어 제공</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 협력 대학 -->
+            <div class="bg-white rounded-lg shadow-lg p-8 mb-12">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">주요 협력 대학</h2>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="text-center p-4 bg-gray-50 rounded-lg">
+                        <div class="font-semibold text-gray-800">서울대학교</div>
+                        <div class="text-sm text-gray-500">공과대학</div>
+                    </div>
+                    <div class="text-center p-4 bg-gray-50 rounded-lg">
+                        <div class="font-semibold text-gray-800">고려대학교</div>
+                        <div class="text-sm text-gray-500">미디어학부</div>
+                    </div>
+                    <div class="text-center p-4 bg-gray-50 rounded-lg">
+                        <div class="font-semibold text-gray-800">연세대학교</div>
+                        <div class="text-sm text-gray-500">공학대학</div>
+                    </div>
+                    <div class="text-center p-4 bg-gray-50 rounded-lg">
+                        <div class="font-semibold text-gray-800">한양대학교</div>
+                        <div class="text-sm text-gray-500">디자인대학</div>
+                    </div>
+                    <div class="text-center p-4 bg-gray-50 rounded-lg">
+                        <div class="font-semibold text-gray-800">성균관대학교</div>
+                        <div class="text-sm text-gray-500">기계공학부</div>
+                    </div>
+                    <div class="text-center p-4 bg-gray-50 rounded-lg">
+                        <div class="font-semibold text-gray-800">홍익대학교</div>
+                        <div class="text-sm text-gray-500">산업디자인</div>
+                    </div>
+                    <div class="text-center p-4 bg-gray-50 rounded-lg">
+                        <div class="font-semibold text-gray-800">경희대학교</div>
+                        <div class="text-sm text-gray-500">산업경영공학</div>
+                    </div>
+                    <div class="text-center p-4 bg-gray-50 rounded-lg">
+                        <div class="font-semibold text-gray-800">중앙대학교</div>
+                        <div class="text-sm text-gray-500">예술대학</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 문의하기 -->
+            <div class="bg-white rounded-lg shadow-lg p-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">대학교육 협력 문의</h2>
+                <div class="max-w-2xl mx-auto">
+                    <div class="grid md:grid-cols-2 gap-6 mb-6">
+                        <div class="text-center p-6 bg-gray-50 rounded-lg">
+                            <i class="fas fa-phone text-3xl text-primary-600 mb-3"></i>
+                            <h4 class="font-bold text-gray-800 mb-2">전화 문의</h4>
+                            <p class="text-gray-600">02-1234-5680</p>
+                            <p class="text-sm text-gray-500 mt-1">산학협력 담당자</p>
+                        </div>
+                        <div class="text-center p-6 bg-gray-50 rounded-lg">
+                            <i class="fas fa-envelope text-3xl text-primary-600 mb-3"></i>
+                            <h4 class="font-bold text-gray-800 mb-2">이메일 문의</h4>
+                            <p class="text-gray-600">university@wow3dcookie.kr</p>
+                            <p class="text-sm text-gray-500 mt-1">24시간 접수 가능</p>
+                        </div>
+                    </div>
+                    <a href="/online-consulting" class="block w-full bg-primary-600 text-white text-center py-4 rounded-lg font-semibold hover:bg-primary-700 transition text-lg">
+                        협력 제안서 신청하기
+                    </a>
+                </div>
             </div>
         </div>
 
