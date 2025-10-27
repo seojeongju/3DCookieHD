@@ -23,7 +23,6 @@ logs/
 
 # Wrangler
 .wrangler/
-wrangler.toml
 
 # Backup files
 *.backup
