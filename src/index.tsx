@@ -166,6 +166,7 @@ app.get('/', (c) => {
             position: relative;
             height: 600px;
             overflow: hidden;
+            cursor: pointer;
           }
           .hero-slide {
             position: absolute;
@@ -174,12 +175,16 @@ app.get('/', (c) => {
             width: 100%;
             height: 100%;
             opacity: 0;
-            transition: opacity 1s ease-in-out;
+            transition: opacity 1s ease-in-out, transform 0.5s ease-out;
             background-size: cover;
             background-position: center;
+            transform: scale(1);
           }
           .hero-slide.active {
             opacity: 1;
+          }
+          .hero-slider:hover .hero-slide.active {
+            transform: scale(1.05);
           }
           .hero-overlay {
             position: absolute;
@@ -188,6 +193,10 @@ app.get('/', (c) => {
             width: 100%;
             height: 100%;
             background: linear-gradient(135deg, rgba(30, 58, 138, 0.85) 0%, rgba(37, 99, 235, 0.75) 50%, rgba(59, 130, 246, 0.65) 100%);
+            transition: background 0.4s ease;
+          }
+          .hero-slider:hover .hero-overlay {
+            background: linear-gradient(135deg, rgba(30, 58, 138, 0.65) 0%, rgba(37, 99, 235, 0.55) 50%, rgba(59, 130, 246, 0.45) 100%);
           }
           .hero-content {
             position: relative;
@@ -196,6 +205,17 @@ app.get('/', (c) => {
             display: flex;
             align-items: center;
             justify-content: center;
+            transition: transform 0.4s ease;
+          }
+          .hero-slider:hover .hero-content {
+            transform: translateY(-10px);
+          }
+          .hero-content h1 {
+            transition: all 0.4s ease;
+          }
+          .hero-slider:hover .hero-content h1 {
+            transform: scale(1.05);
+            text-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
           }
           .hero-dots {
             position: absolute;
@@ -214,10 +234,28 @@ app.get('/', (c) => {
             cursor: pointer;
             transition: all 0.3s;
           }
+          .hero-dot:hover {
+            background: rgba(255, 255, 255, 0.8);
+            transform: scale(1.3);
+          }
           .hero-dot.active {
             background: white;
             width: 32px;
             border-radius: 6px;
+          }
+          .hero-slider.paused::after {
+            content: '';
+            position: absolute;
+            bottom: 80px;
+            right: 30px;
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            z-index: 25;
+            display: flex;
+            align-items: center;
+            justify-content: center;
           }
           @media (max-height: 700px) {
             .hero-slider {
@@ -542,6 +580,24 @@ app.get('/', (c) => {
           function startSlideShow() {
             slideInterval = setInterval(nextSlide, 5000); // 5초마다 변경
           }
+          
+          // 마우스 호버 시 슬라이드쇼 일시정지
+          const heroSlider = document.querySelector('.hero-slider');
+          let isPaused = false;
+          
+          heroSlider.addEventListener('mouseenter', () => {
+            clearInterval(slideInterval);
+            isPaused = true;
+            heroSlider.classList.add('paused');
+          });
+          
+          heroSlider.addEventListener('mouseleave', () => {
+            if (isPaused) {
+              startSlideShow();
+              isPaused = false;
+              heroSlider.classList.remove('paused');
+            }
+          });
           
           // 페이지 로드 시 슬라이드쇼 시작
           document.addEventListener('DOMContentLoaded', () => {
