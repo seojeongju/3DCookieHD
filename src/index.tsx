@@ -1085,8 +1085,8 @@ app.get('/', (c) => {
                         <div class="flex-shrink-0 w-56">
                             <a href="#" target="_blank" class="block bg-white rounded-lg p-8 shadow-md hover:shadow-xl transition group/item">
                                 <div class="flex flex-col items-center">
-                                    <div class="w-24 h-24 bg-gradient-to-br from-primary-100 to-primary-200 rounded-full flex items-center justify-center mb-4 group-hover/item:scale-110 transition">
-                                        <i class="fas fa-graduation-cap text-4xl text-primary-600"></i>
+                                    <div class="w-16 h-16 bg-gradient-to-br from-primary-100 to-primary-200 rounded-full flex items-center justify-center mb-4 group-hover/item:scale-110 transition">
+                                        <i class="fas fa-graduation-cap text-2xl text-primary-600"></i>
                                     </div>
                                     <h3 class="font-bold text-gray-800 text-center mb-1">(주)한국HRD훈련지원센터</h3>
                                     <p class="text-xs text-gray-500 text-center">교육 훈련 지원</p>
@@ -1098,8 +1098,8 @@ app.get('/', (c) => {
                         <div class="flex-shrink-0 w-56">
                             <a href="#" target="_blank" class="block bg-white rounded-lg p-8 shadow-md hover:shadow-xl transition group/item">
                                 <div class="flex flex-col items-center">
-                                    <div class="w-24 h-24 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center mb-4 group-hover/item:scale-110 transition">
-                                        <i class="fas fa-industry text-4xl text-blue-600"></i>
+                                    <div class="w-16 h-16 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center mb-4 group-hover/item:scale-110 transition">
+                                        <i class="fas fa-industry text-2xl text-blue-600"></i>
                                     </div>
                                     <h3 class="font-bold text-gray-800 text-center mb-1">(사)3D프린팅산업협회</h3>
                                     <p class="text-xs text-gray-500 text-center">산업 협력</p>
@@ -1111,8 +1111,8 @@ app.get('/', (c) => {
                         <div class="flex-shrink-0 w-56">
                             <a href="#" target="_blank" class="block bg-white rounded-lg p-8 shadow-md hover:shadow-xl transition group/item">
                                 <div class="flex flex-col items-center">
-                                    <div class="w-24 h-24 bg-gradient-to-br from-green-100 to-green-200 rounded-full flex items-center justify-center mb-4 group-hover/item:scale-110 transition">
-                                        <i class="fas fa-laptop text-4xl text-green-600"></i>
+                                    <div class="w-16 h-16 bg-gradient-to-br from-green-100 to-green-200 rounded-full flex items-center justify-center mb-4 group-hover/item:scale-110 transition">
+                                        <i class="fas fa-laptop text-2xl text-green-600"></i>
                                     </div>
                                     <h3 class="font-bold text-gray-800 text-center mb-1">와우쓰리디 온라인교육</h3>
                                     <p class="text-xs text-gray-500 text-center">온라인 강좌</p>
@@ -1124,8 +1124,8 @@ app.get('/', (c) => {
                         <div class="flex-shrink-0 w-56">
                             <a href="#" target="_blank" class="block bg-white rounded-lg p-8 shadow-md hover:shadow-xl transition group/item">
                                 <div class="flex flex-col items-center">
-                                    <div class="w-24 h-24 bg-gradient-to-br from-purple-100 to-purple-200 rounded-full flex items-center justify-center mb-4 group-hover/item:scale-110 transition">
-                                        <i class="fas fa-shopping-cart text-4xl text-purple-600"></i>
+                                    <div class="w-16 h-16 bg-gradient-to-br from-purple-100 to-purple-200 rounded-full flex items-center justify-center mb-4 group-hover/item:scale-110 transition">
+                                        <i class="fas fa-shopping-cart text-2xl text-purple-600"></i>
                                     </div>
                                     <h3 class="font-bold text-gray-800 text-center mb-1">와우쓰리디 쇼핑몰</h3>
                                     <p class="text-xs text-gray-500 text-center">장비 및 소모품</p>
@@ -1137,8 +1137,8 @@ app.get('/', (c) => {
                         <div class="flex-shrink-0 w-56">
                             <a href="#" target="_blank" class="block bg-white rounded-lg p-8 shadow-md hover:shadow-xl transition group/item">
                                 <div class="flex flex-col items-center">
-                                    <div class="w-24 h-24 bg-gradient-to-br from-orange-100 to-orange-200 rounded-full flex items-center justify-center mb-4 group-hover/item:scale-110 transition">
-                                        <i class="fas fa-handshake text-4xl text-orange-600"></i>
+                                    <div class="w-16 h-16 bg-gradient-to-br from-orange-100 to-orange-200 rounded-full flex items-center justify-center mb-4 group-hover/item:scale-110 transition">
+                                        <i class="fas fa-handshake text-2xl text-orange-600"></i>
                                     </div>
                                     <h3 class="font-bold text-gray-800 text-center mb-1">협력 파트너</h3>
                                     <p class="text-xs text-gray-500 text-center">제휴 기관</p>
