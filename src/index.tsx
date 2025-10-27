@@ -269,6 +269,16 @@ app.get('/', (c) => {
           .quick-menu-item:hover {
             transform: translateY(-4px);
           }
+          .quick-menu-icon {
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+          }
+          .quick-menu-item:hover .quick-menu-icon {
+            transform: scale(1.15);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+          }
+          .quick-menu-item:active .quick-menu-icon {
+            transform: scale(0.95);
+          }
           @media (max-width: 1024px) {
             /* 태블릿: 공지사항 숨김 */
             .quick-menu-notice {
@@ -445,43 +455,43 @@ app.get('/', (c) => {
                 <div class="flex items-center justify-between gap-6">
                     <!-- 메뉴 아이템들 -->
                     <div class="flex items-center gap-6 flex-shrink-0">
-                        <a href="#courses" class="flex flex-col items-center min-w-[70px] hover:text-primary-600 transition group">
-                            <div class="w-11 h-11 bg-gray-100 rounded-full flex items-center justify-center mb-1 group-hover:bg-primary-50 transition">
+                        <a href="#courses" class="flex flex-col items-center min-w-[70px] hover:text-primary-600 transition group quick-menu-item">
+                            <div class="w-11 h-11 bg-gray-100 rounded-full flex items-center justify-center mb-1 group-hover:bg-primary-50 transition quick-menu-icon">
                                 <i class="fas fa-calendar-alt text-lg text-gray-700 group-hover:text-primary-600"></i>
                             </div>
                             <span class="text-xs font-medium text-gray-700 group-hover:text-primary-600">시간표</span>
                         </a>
                         
-                        <a href="#campuses" class="flex flex-col items-center min-w-[70px] hover:text-primary-600 transition group">
-                            <div class="w-11 h-11 bg-gray-100 rounded-full flex items-center justify-center mb-1 group-hover:bg-primary-50 transition">
+                        <a href="#campuses" class="flex flex-col items-center min-w-[70px] hover:text-primary-600 transition group quick-menu-item">
+                            <div class="w-11 h-11 bg-gray-100 rounded-full flex items-center justify-center mb-1 group-hover:bg-primary-50 transition quick-menu-icon">
                                 <i class="fas fa-map-marker-alt text-lg text-gray-700 group-hover:text-primary-600"></i>
                             </div>
                             <span class="text-xs font-medium text-gray-700 group-hover:text-primary-600">위치안내</span>
                         </a>
                         
-                        <a href="#portfolio" class="flex flex-col items-center min-w-[70px] hover:text-primary-600 transition group">
-                            <div class="w-11 h-11 bg-gray-100 rounded-full flex items-center justify-center mb-1 group-hover:bg-primary-50 transition">
+                        <a href="#portfolio" class="flex flex-col items-center min-w-[70px] hover:text-primary-600 transition group quick-menu-item">
+                            <div class="w-11 h-11 bg-gray-100 rounded-full flex items-center justify-center mb-1 group-hover:bg-primary-50 transition quick-menu-icon">
                                 <i class="fas fa-image text-lg text-gray-700 group-hover:text-primary-600"></i>
                             </div>
                             <span class="text-xs font-medium text-gray-700 group-hover:text-primary-600">포트폴리오</span>
                         </a>
                         
-                        <a href="#reviews" class="flex flex-col items-center min-w-[70px] hover:text-primary-600 transition group">
-                            <div class="w-11 h-11 bg-gray-100 rounded-full flex items-center justify-center mb-1 group-hover:bg-primary-50 transition">
+                        <a href="#reviews" class="flex flex-col items-center min-w-[70px] hover:text-primary-600 transition group quick-menu-item">
+                            <div class="w-11 h-11 bg-gray-100 rounded-full flex items-center justify-center mb-1 group-hover:bg-primary-50 transition quick-menu-icon">
                                 <i class="fas fa-pencil-alt text-lg text-gray-700 group-hover:text-primary-600"></i>
                             </div>
                             <span class="text-xs font-medium text-gray-700 group-hover:text-primary-600">수강후기</span>
                         </a>
                         
-                        <a href="#board" class="flex flex-col items-center min-w-[70px] hover:text-primary-600 transition group">
-                            <div class="w-11 h-11 bg-gray-100 rounded-full flex items-center justify-center mb-1 group-hover:bg-primary-50 transition">
+                        <a href="#board" class="flex flex-col items-center min-w-[70px] hover:text-primary-600 transition group quick-menu-item">
+                            <div class="w-11 h-11 bg-gray-100 rounded-full flex items-center justify-center mb-1 group-hover:bg-primary-50 transition quick-menu-icon">
                                 <i class="fas fa-clipboard-list text-lg text-gray-700 group-hover:text-primary-600"></i>
                             </div>
                             <span class="text-xs font-medium text-gray-700 group-hover:text-primary-600">게시판</span>
                         </a>
                         
-                        <a href="#search" class="flex flex-col items-center min-w-[70px] hover:text-primary-600 transition group">
-                            <div class="w-11 h-11 bg-primary-600 rounded-full flex items-center justify-center mb-1 group-hover:bg-primary-700 transition">
+                        <a href="#search" class="flex flex-col items-center min-w-[70px] hover:text-primary-600 transition group quick-menu-item">
+                            <div class="w-11 h-11 bg-primary-600 rounded-full flex items-center justify-center mb-1 group-hover:bg-primary-700 transition quick-menu-icon">
                                 <i class="fas fa-search text-lg text-white"></i>
                             </div>
                             <span class="text-xs font-medium text-primary-600 group-hover:text-primary-700">수강료조회</span>
