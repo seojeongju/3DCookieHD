@@ -326,6 +326,21 @@ app.get('/', (c) => {
           .scrollbar-hide::-webkit-scrollbar {
             display: none;  /* Chrome, Safari, Opera */
           }
+          /* 드롭다운 스크롤바 스타일링 */
+          #coursesDropdown::-webkit-scrollbar {
+            width: 6px;
+          }
+          #coursesDropdown::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+          }
+          #coursesDropdown::-webkit-scrollbar-thumb {
+            background: #5b9bd5;
+            border-radius: 10px;
+          }
+          #coursesDropdown::-webkit-scrollbar-thumb:hover {
+            background: #4a90e2;
+          }
         </style>
     </head>
     <body class="bg-gray-50">
@@ -337,8 +352,28 @@ app.get('/', (c) => {
                         <img src="/static/logo.png" alt="WOW 3D" class="h-12">
                         <span class="text-xl font-bold text-gray-800">와우쓰리디홍대센터</span>
                     </div>
-                    <div class="hidden md:flex space-x-8">
-                        <a href="#courses" class="text-gray-700 hover:text-primary-600 font-medium">과정 안내</a>
+                    <div class="hidden md:flex space-x-8 items-center">
+                        <!-- 과정 안내 드롭다운 -->
+                        <div class="relative group">
+                            <button class="text-gray-700 hover:text-primary-600 font-medium flex items-center">
+                                과정 안내
+                                <i class="fas fa-chevron-down ml-1 text-xs"></i>
+                            </button>
+                            <!-- 드롭다운 메뉴 -->
+                            <div id="coursesDropdown" class="absolute left-0 top-full mt-2 w-80 bg-white rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 max-h-96 overflow-y-auto">
+                                <div class="py-3">
+                                    <a href="#courses" class="block px-6 py-3 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition font-semibold border-b">
+                                        <i class="fas fa-list mr-2"></i>전체 과정 보기
+                                    </a>
+                                    <div id="coursesList" class="divide-y divide-gray-100">
+                                        <!-- 동적으로 로드될 과정 목록 -->
+                                        <div class="px-6 py-3 text-gray-400 text-sm text-center">
+                                            과정을 불러오는 중...
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         <a href="#campuses" class="text-gray-700 hover:text-primary-600 font-medium">캠퍼스</a>
                         <a href="#reviews" class="text-gray-700 hover:text-primary-600 font-medium">수강 후기</a>
                         <a href="#board" class="text-gray-700 hover:text-primary-600 font-medium">게시판</a>
@@ -1265,7 +1300,61 @@ app.get('/', (c) => {
           // 페이지 로드 시 슬라이드쇼 시작
           document.addEventListener('DOMContentLoaded', () => {
             startSlideShow();
+            loadCoursesForNav(); // 네비게이션 드롭다운용 과정 로드
           });
+          
+          // ============================================
+          // 네비게이션 드롭다운 과정 로드
+          // ============================================
+          async function loadCoursesForNav() {
+            try {
+              const response = await fetch(\`\${API_BASE}/courses\`);
+              const result = await response.json();
+              
+              if (result.success && result.data.length > 0) {
+                const coursesList = document.getElementById('coursesList');
+                const coursesHtml = result.data.map(course => \`
+                  <a href="#courses" onclick="filterCourseByTitle('\${course.title}')" class="block px-6 py-3 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition">
+                    <div class="flex items-start">
+                      <div class="flex-shrink-0">
+                        <span class="inline-block w-2 h-2 bg-primary-500 rounded-full mt-2"></span>
+                      </div>
+                      <div class="ml-3">
+                        <div class="font-medium">\${course.title}</div>
+                        <div class="text-xs text-gray-500 mt-1">\${course.category} | \${course.duration}</div>
+                      </div>
+                    </div>
+                  </a>
+                \`).join('');
+                
+                coursesList.innerHTML = coursesHtml;
+              }
+            } catch (error) {
+              console.error('Error loading courses for nav:', error);
+              document.getElementById('coursesList').innerHTML = '<div class="px-6 py-3 text-red-500 text-sm text-center">과정을 불러오지 못했습니다.</div>';
+            }
+          }
+          
+          // 과정 제목으로 필터링
+          function filterCourseByTitle(title) {
+            // 과정 섹션으로 스크롤
+            scrollToSection('courses');
+            
+            // 잠시 후 해당 과정 카드 강조
+            setTimeout(() => {
+              const cards = document.querySelectorAll('.course-card');
+              cards.forEach(card => {
+                const cardTitle = card.querySelector('h3') ? card.querySelector('h3').textContent : '';
+                if (cardTitle === title) {
+                  card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  card.classList.add('ring-4', 'ring-primary-400');
+                  setTimeout(() => {
+                    card.classList.remove('ring-4', 'ring-primary-400');
+                  }, 2000);
+                }
+              });
+            }, 500);
+          }
           
           // 과정 목록 로드
           async function loadCourses() {
