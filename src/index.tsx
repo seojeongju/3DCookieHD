@@ -348,15 +348,19 @@ app.get('/', (c) => {
         <nav class="bg-white shadow-md sticky top-0 z-50">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex justify-between items-center h-20">
-                    <div class="flex items-center space-x-4">
-                        <img src="/static/logo.png" alt="WOW 3D" class="h-12">
-                        <span class="text-xl font-bold text-gray-800">와우쓰리디홍대센터</span>
-                    </div>
-                    <div class="hidden md:flex space-x-8 items-center">
+                    <!-- 로고 및 센터명 -->
+                    <a href="/" class="flex items-center space-x-3">
+                        <div class="flex flex-col items-center">
+                            <img src="/static/logo.png" alt="WOW 3D" class="h-12">
+                            <span class="text-xs font-semibold text-gray-600 mt-1">와우쓰리디홍대센터</span>
+                        </div>
+                    </a>
+                    <!-- 메인 네비게이션 -->
+                    <div class="hidden md:flex space-x-4 lg:space-x-6 items-center text-sm">
                         <!-- 과정 안내 드롭다운 -->
                         <div class="relative group">
-                            <button class="text-gray-700 hover:text-primary-600 font-medium flex items-center">
-                                과정 안내
+                            <button class="text-gray-700 hover:text-primary-600 font-medium flex items-center whitespace-nowrap">
+                                과정안내
                                 <i class="fas fa-chevron-down ml-1 text-xs"></i>
                             </button>
                             <!-- 드롭다운 메뉴 -->
@@ -376,7 +380,7 @@ app.get('/', (c) => {
                         </div>
                         <!-- 센터소개 드롭다운 -->
                         <div class="relative group">
-                            <button class="text-gray-700 hover:text-primary-600 font-medium flex items-center">
+                            <button class="text-gray-700 hover:text-primary-600 font-medium flex items-center whitespace-nowrap">
                                 센터소개
                                 <i class="fas fa-chevron-down ml-1 text-xs"></i>
                             </button>
@@ -402,12 +406,12 @@ app.get('/', (c) => {
                                 </div>
                             </div>
                         </div>
-                        <a href="#reviews" class="text-gray-700 hover:text-primary-600 font-medium">수강 후기</a>
-                        <a href="#board" class="text-gray-700 hover:text-primary-600 font-medium">게시판</a>
+                        <a href="#reviews" class="text-gray-700 hover:text-primary-600 font-medium whitespace-nowrap">수강후기</a>
+                        <a href="#board" class="text-gray-700 hover:text-primary-600 font-medium whitespace-nowrap">게시판</a>
                         
                         <!-- 상담센터 드롭다운 -->
                         <div class="relative group">
-                            <button class="text-gray-700 hover:text-primary-600 font-medium flex items-center">
+                            <button class="text-gray-700 hover:text-primary-600 font-medium flex items-center whitespace-nowrap">
                                 상담센터
                                 <i class="fas fa-chevron-down ml-1 text-xs"></i>
                             </button>
@@ -432,10 +436,10 @@ app.get('/', (c) => {
                         
                         <!-- 학사관리시스템 드롭다운 (특별 디자인) -->
                         <div class="relative group">
-                            <button class="px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold flex items-center shadow-md hover:shadow-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-200">
-                                <i class="fas fa-graduation-cap mr-2"></i>
-                                학사관리시스템
-                                <i class="fas fa-chevron-down ml-2 text-xs"></i>
+                            <button class="px-3 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold flex items-center shadow-md hover:shadow-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 whitespace-nowrap">
+                                <i class="fas fa-graduation-cap mr-1.5"></i>
+                                학사관리
+                                <i class="fas fa-chevron-down ml-1.5 text-xs"></i>
                             </button>
                             <!-- 드롭다운 메뉴 -->
                             <div class="absolute left-0 top-full mt-2 w-64 bg-white rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 border-2 border-purple-200">
@@ -452,11 +456,12 @@ app.get('/', (c) => {
                             </div>
                         </div>
                     </div>
-                    <div class="flex space-x-3">
-                        <button onclick="showLoginModal()" class="text-primary-600 hover:text-primary-700 font-medium px-4 py-2">
+                    <!-- 로그인/회원가입 -->
+                    <div class="flex space-x-2 text-sm">
+                        <button onclick="showLoginModal()" class="text-primary-600 hover:text-primary-700 font-medium px-3 py-2 whitespace-nowrap">
                             로그인
                         </button>
-                        <button onclick="showRegisterModal()" class="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition">
+                        <button onclick="showRegisterModal()" class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition whitespace-nowrap">
                             회원가입
                         </button>
                     </div>
