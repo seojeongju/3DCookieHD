@@ -1214,15 +1214,15 @@ app.get('/', (c) => {
                             </a>
                         </div>
                         
-                        <!-- 파트너 5: 추가 파트너 -->
+                        <!-- 파트너 5: 한국산업인력공단 -->
                         <div class="flex-shrink-0 w-56">
-                            <a href="#" target="_blank" class="block bg-white rounded-lg p-8 shadow-md hover:shadow-xl transition group/item h-48">
+                            <a href="https://www.hrdkorea.or.kr/" target="_blank" rel="noopener noreferrer" class="block bg-white rounded-lg p-8 shadow-md hover:shadow-xl transition group/item h-48">
                                 <div class="flex flex-col items-center justify-center h-full">
                                     <div class="w-16 h-16 bg-gradient-to-br from-orange-100 to-orange-200 rounded-full flex items-center justify-center mb-4 group-hover/item:scale-110 transition">
-                                        <i class="fas fa-handshake text-2xl text-orange-600"></i>
+                                        <i class="fas fa-certificate text-2xl text-orange-600"></i>
                                     </div>
-                                    <h3 class="font-bold text-gray-800 text-center mb-1 text-xs leading-tight whitespace-nowrap">협력 파트너</h3>
-                                    <p class="text-xs text-gray-500 text-center">제휴 기관</p>
+                                    <h3 class="font-bold text-gray-800 text-center mb-1 text-xs leading-tight whitespace-nowrap">한국산업인력공단</h3>
+                                    <p class="text-xs text-gray-500 text-center">자격 및 훈련</p>
                                 </div>
                             </a>
                         </div>
