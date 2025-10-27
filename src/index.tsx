@@ -377,6 +377,28 @@ app.get('/', (c) => {
                         <a href="#campuses" class="text-gray-700 hover:text-primary-600 font-medium">캠퍼스</a>
                         <a href="#reviews" class="text-gray-700 hover:text-primary-600 font-medium">수강 후기</a>
                         <a href="#board" class="text-gray-700 hover:text-primary-600 font-medium">게시판</a>
+                        
+                        <!-- 학사관리시스템 드롭다운 -->
+                        <div class="relative group">
+                            <button class="text-gray-700 hover:text-primary-600 font-medium flex items-center">
+                                학사관리시스템
+                                <i class="fas fa-chevron-down ml-1 text-xs"></i>
+                            </button>
+                            <!-- 드롭다운 메뉴 -->
+                            <div class="absolute left-0 top-full mt-2 w-64 bg-white rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                                <div class="py-2">
+                                    <a href="/student-admin" class="block px-6 py-3 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition">
+                                        <i class="fas fa-user-graduate mr-2"></i>
+                                        학생학사행정시스템
+                                    </a>
+                                    <a href="/teacher-admin" class="block px-6 py-3 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition">
+                                        <i class="fas fa-chalkboard-teacher mr-2"></i>
+                                        강사학사행정시스템
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        
                         <a href="#contact" class="text-gray-700 hover:text-primary-600 font-medium">상담 신청</a>
                     </div>
                     <div class="flex space-x-3">
@@ -2435,6 +2457,460 @@ app.get('/sitemap', (c) => {
 
         <!-- 푸터 -->
         <footer class="bg-gray-800 text-white py-12 mt-16">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <p class="text-gray-400">&copy; 2025 와우쓰리디홍대센터. All rights reserved.</p>
+            </div>
+        </footer>
+    </body>
+    </html>
+  `);
+});
+
+// ============================================
+// 학생학사행정시스템 페이지
+// ============================================
+app.get('/student-admin', (c) => {
+  return c.html(`
+    <!DOCTYPE html>
+    <html lang="ko">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>학생학사행정시스템 - 와우쓰리디홍대센터</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+        <script>
+          tailwind.config = {
+            theme: {
+              extend: {
+                colors: {
+                  primary: {
+                    50: '#f0f7ff',
+                    100: '#e0effe',
+                    200: '#baddfd',
+                    300: '#7dbcfb',
+                    400: '#3a9bf7',
+                    500: '#5b9bd5',
+                    600: '#4a90e2',
+                    700: '#2d5fa3',
+                    800: '#1e4278',
+                    900: '#132d54'
+                  }
+                }
+              }
+            }
+          }
+        </script>
+    </head>
+    <body class="bg-gray-50">
+        <!-- 네비게이션 -->
+        <nav class="bg-white shadow-md sticky top-0 z-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-20">
+                    <div class="flex items-center space-x-4">
+                        <a href="/" class="flex items-center space-x-4">
+                            <img src="/static/logo.png" alt="WOW 3D" class="h-12">
+                            <span class="text-xl font-bold text-gray-800">와우쓰리디홍대센터</span>
+                        </a>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <a href="/" class="text-gray-700 hover:text-primary-600 font-medium">
+                            <i class="fas fa-home mr-2"></i>홈으로
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- 헤더 -->
+        <div class="bg-gradient-to-r from-primary-600 to-primary-800 text-white py-12">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h1 class="text-4xl font-bold mb-4 flex items-center">
+                    <i class="fas fa-user-graduate mr-4"></i>
+                    학생학사행정시스템
+                </h1>
+                <p class="text-xl text-blue-100">학생을 위한 종합 학사 관리 시스템</p>
+            </div>
+        </div>
+
+        <!-- 메인 컨텐츠 -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <!-- 메뉴 그리드 -->
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+                <!-- 수강 신청 -->
+                <div class="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition cursor-pointer">
+                    <div class="flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+                        <i class="fas fa-edit text-3xl text-blue-600"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">수강 신청</h3>
+                    <p class="text-gray-600 mb-4">개설된 과정에 수강 신청을 할 수 있습니다.</p>
+                    <button class="text-primary-600 font-semibold hover:text-primary-700">
+                        바로가기 <i class="fas fa-arrow-right ml-1"></i>
+                    </button>
+                </div>
+
+                <!-- 수강 내역 -->
+                <div class="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition cursor-pointer">
+                    <div class="flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
+                        <i class="fas fa-list-ul text-3xl text-green-600"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">수강 내역</h3>
+                    <p class="text-gray-600 mb-4">나의 수강 신청 내역과 진행 상황을 확인합니다.</p>
+                    <button class="text-primary-600 font-semibold hover:text-primary-700">
+                        바로가기 <i class="fas fa-arrow-right ml-1"></i>
+                    </button>
+                </div>
+
+                <!-- 성적 조회 -->
+                <div class="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition cursor-pointer">
+                    <div class="flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-4">
+                        <i class="fas fa-chart-line text-3xl text-purple-600"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">성적 조회</h3>
+                    <p class="text-gray-600 mb-4">수강한 과정의 성적과 평가를 확인합니다.</p>
+                    <button class="text-primary-600 font-semibold hover:text-primary-700">
+                        바로가기 <i class="fas fa-arrow-right ml-1"></i>
+                    </button>
+                </div>
+
+                <!-- 수료증 발급 -->
+                <div class="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition cursor-pointer">
+                    <div class="flex items-center justify-center w-16 h-16 bg-yellow-100 rounded-full mb-4">
+                        <i class="fas fa-certificate text-3xl text-yellow-600"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">수료증 발급</h3>
+                    <p class="text-gray-600 mb-4">과정 수료 후 수료증을 발급받을 수 있습니다.</p>
+                    <button class="text-primary-600 font-semibold hover:text-primary-700">
+                        바로가기 <i class="fas fa-arrow-right ml-1"></i>
+                    </button>
+                </div>
+
+                <!-- 학습 자료실 -->
+                <div class="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition cursor-pointer">
+                    <div class="flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4">
+                        <i class="fas fa-folder-open text-3xl text-red-600"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">학습 자료실</h3>
+                    <p class="text-gray-600 mb-4">강의 자료와 참고 자료를 다운로드합니다.</p>
+                    <button class="text-primary-600 font-semibold hover:text-primary-700">
+                        바로가기 <i class="fas fa-arrow-right ml-1"></i>
+                    </button>
+                </div>
+
+                <!-- 개인정보 수정 -->
+                <div class="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition cursor-pointer">
+                    <div class="flex items-center justify-center w-16 h-16 bg-indigo-100 rounded-full mb-4">
+                        <i class="fas fa-user-cog text-3xl text-indigo-600"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">개인정보 수정</h3>
+                    <p class="text-gray-600 mb-4">나의 개인정보와 프로필을 관리합니다.</p>
+                    <button class="text-primary-600 font-semibold hover:text-primary-700">
+                        바로가기 <i class="fas fa-arrow-right ml-1"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 공지사항 -->
+            <div class="bg-white rounded-lg shadow-lg p-8 mb-12">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                    <i class="fas fa-bullhorn text-primary-600 mr-3"></i>
+                    학사 공지사항
+                </h2>
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition cursor-pointer">
+                        <div class="flex items-center space-x-4">
+                            <span class="px-3 py-1 bg-red-100 text-red-600 text-sm font-semibold rounded-full">중요</span>
+                            <span class="text-gray-800 font-medium">2025년 1학기 수강신청 일정 안내</span>
+                        </div>
+                        <span class="text-gray-500 text-sm">2025-01-15</span>
+                    </div>
+                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition cursor-pointer">
+                        <div class="flex items-center space-x-4">
+                            <span class="px-3 py-1 bg-blue-100 text-blue-600 text-sm font-semibold rounded-full">일반</span>
+                            <span class="text-gray-800 font-medium">학사일정 변경 안내</span>
+                        </div>
+                        <span class="text-gray-500 text-sm">2025-01-10</span>
+                    </div>
+                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition cursor-pointer">
+                        <div class="flex items-center space-x-4">
+                            <span class="px-3 py-1 bg-green-100 text-green-600 text-sm font-semibold rounded-full">행사</span>
+                            <span class="text-gray-800 font-medium">수료생 작품 전시회 개최</span>
+                        </div>
+                        <span class="text-gray-500 text-sm">2025-01-05</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 도움말 -->
+            <div class="bg-blue-50 border-l-4 border-primary-600 p-6 rounded-lg">
+                <h3 class="text-lg font-bold text-gray-800 mb-2 flex items-center">
+                    <i class="fas fa-info-circle text-primary-600 mr-2"></i>
+                    시스템 이용 안내
+                </h3>
+                <ul class="space-y-2 text-gray-700">
+                    <li><i class="fas fa-check text-green-600 mr-2"></i>로그인 후 모든 기능을 이용하실 수 있습니다.</li>
+                    <li><i class="fas fa-check text-green-600 mr-2"></i>수강신청은 개강 2주 전부터 가능합니다.</li>
+                    <li><i class="fas fa-check text-green-600 mr-2"></i>문의사항은 고객센터(02-1234-5678)로 연락 주세요.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 푸터 -->
+        <footer class="bg-gray-800 text-white py-8 mt-12">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <p class="text-gray-400">&copy; 2025 와우쓰리디홍대센터. All rights reserved.</p>
+            </div>
+        </footer>
+    </body>
+    </html>
+  `);
+});
+
+// ============================================
+// 강사학사행정시스템 페이지
+// ============================================
+app.get('/teacher-admin', (c) => {
+  return c.html(`
+    <!DOCTYPE html>
+    <html lang="ko">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>강사학사행정시스템 - 와우쓰리디홍대센터</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+        <script>
+          tailwind.config = {
+            theme: {
+              extend: {
+                colors: {
+                  primary: {
+                    50: '#f0f7ff',
+                    100: '#e0effe',
+                    200: '#baddfd',
+                    300: '#7dbcfb',
+                    400: '#3a9bf7',
+                    500: '#5b9bd5',
+                    600: '#4a90e2',
+                    700: '#2d5fa3',
+                    800: '#1e4278',
+                    900: '#132d54'
+                  }
+                }
+              }
+            }
+          }
+        </script>
+    </head>
+    <body class="bg-gray-50">
+        <!-- 네비게이션 -->
+        <nav class="bg-white shadow-md sticky top-0 z-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-20">
+                    <div class="flex items-center space-x-4">
+                        <a href="/" class="flex items-center space-x-4">
+                            <img src="/static/logo.png" alt="WOW 3D" class="h-12">
+                            <span class="text-xl font-bold text-gray-800">와우쓰리디홍대센터</span>
+                        </a>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <a href="/" class="text-gray-700 hover:text-primary-600 font-medium">
+                            <i class="fas fa-home mr-2"></i>홈으로
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- 헤더 -->
+        <div class="bg-gradient-to-r from-green-600 to-teal-700 text-white py-12">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h1 class="text-4xl font-bold mb-4 flex items-center">
+                    <i class="fas fa-chalkboard-teacher mr-4"></i>
+                    강사학사행정시스템
+                </h1>
+                <p class="text-xl text-green-100">강사를 위한 종합 학사 관리 시스템</p>
+            </div>
+        </div>
+
+        <!-- 메인 컨텐츠 -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <!-- 메뉴 그리드 -->
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+                <!-- 강의 관리 -->
+                <div class="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition cursor-pointer">
+                    <div class="flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+                        <i class="fas fa-chalkboard text-3xl text-blue-600"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">강의 관리</h3>
+                    <p class="text-gray-600 mb-4">담당 강의 목록과 강의 계획을 관리합니다.</p>
+                    <button class="text-primary-600 font-semibold hover:text-primary-700">
+                        바로가기 <i class="fas fa-arrow-right ml-1"></i>
+                    </button>
+                </div>
+
+                <!-- 수강생 관리 -->
+                <div class="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition cursor-pointer">
+                    <div class="flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
+                        <i class="fas fa-users text-3xl text-green-600"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">수강생 관리</h3>
+                    <p class="text-gray-600 mb-4">수강생 명단과 출결 현황을 확인합니다.</p>
+                    <button class="text-primary-600 font-semibold hover:text-primary-700">
+                        바로가기 <i class="fas fa-arrow-right ml-1"></i>
+                    </button>
+                </div>
+
+                <!-- 성적 입력 -->
+                <div class="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition cursor-pointer">
+                    <div class="flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-4">
+                        <i class="fas fa-pencil-alt text-3xl text-purple-600"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">성적 입력</h3>
+                    <p class="text-gray-600 mb-4">수강생들의 과제 및 시험 성적을 입력합니다.</p>
+                    <button class="text-primary-600 font-semibold hover:text-primary-700">
+                        바로가기 <i class="fas fa-arrow-right ml-1"></i>
+                    </button>
+                </div>
+
+                <!-- 출결 관리 -->
+                <div class="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition cursor-pointer">
+                    <div class="flex items-center justify-center w-16 h-16 bg-yellow-100 rounded-full mb-4">
+                        <i class="fas fa-clipboard-check text-3xl text-yellow-600"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">출결 관리</h3>
+                    <p class="text-gray-600 mb-4">수강생들의 출석 상황을 기록하고 관리합니다.</p>
+                    <button class="text-primary-600 font-semibold hover:text-primary-700">
+                        바로가기 <i class="fas fa-arrow-right ml-1"></i>
+                    </button>
+                </div>
+
+                <!-- 강의 자료 -->
+                <div class="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition cursor-pointer">
+                    <div class="flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4">
+                        <i class="fas fa-file-upload text-3xl text-red-600"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">강의 자료</h3>
+                    <p class="text-gray-600 mb-4">강의 자료와 과제를 업로드하고 관리합니다.</p>
+                    <button class="text-primary-600 font-semibold hover:text-primary-700">
+                        바로가기 <i class="fas fa-arrow-right ml-1"></i>
+                    </button>
+                </div>
+
+                <!-- 강의 평가 -->
+                <div class="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition cursor-pointer">
+                    <div class="flex items-center justify-center w-16 h-16 bg-indigo-100 rounded-full mb-4">
+                        <i class="fas fa-star text-3xl text-indigo-600"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">강의 평가</h3>
+                    <p class="text-gray-600 mb-4">수강생들의 강의 평가 결과를 확인합니다.</p>
+                    <button class="text-primary-600 font-semibold hover:text-primary-700">
+                        바로가기 <i class="fas fa-arrow-right ml-1"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 강의 일정 -->
+            <div class="bg-white rounded-lg shadow-lg p-8 mb-12">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                    <i class="fas fa-calendar-alt text-primary-600 mr-3"></i>
+                    이번 주 강의 일정
+                </h2>
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                        <div class="flex items-center space-x-4">
+                            <div class="flex flex-col items-center bg-primary-600 text-white rounded-lg p-3 min-w-[60px]">
+                                <span class="text-xs font-semibold">월</span>
+                                <span class="text-2xl font-bold">27</span>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-gray-800">3D 프린팅 기초과정</h4>
+                                <p class="text-sm text-gray-600">09:00 - 12:00 | 홍대센터 A강의실</p>
+                            </div>
+                        </div>
+                        <span class="px-3 py-1 bg-green-100 text-green-600 text-sm font-semibold rounded-full">진행예정</span>
+                    </div>
+                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                        <div class="flex items-center space-x-4">
+                            <div class="flex flex-col items-center bg-primary-600 text-white rounded-lg p-3 min-w-[60px]">
+                                <span class="text-xs font-semibold">화</span>
+                                <span class="text-2xl font-bold">28</span>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-gray-800">Fusion 360 모델링</h4>
+                                <p class="text-sm text-gray-600">14:00 - 18:00 | 홍대센터 B강의실</p>
+                            </div>
+                        </div>
+                        <span class="px-3 py-1 bg-green-100 text-green-600 text-sm font-semibold rounded-full">진행예정</span>
+                    </div>
+                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                        <div class="flex items-center space-x-4">
+                            <div class="flex flex-col items-center bg-primary-600 text-white rounded-lg p-3 min-w-[60px]">
+                                <span class="text-xs font-semibold">목</span>
+                                <span class="text-2xl font-bold">30</span>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-gray-800">산업용 3D 프린팅</h4>
+                                <p class="text-sm text-gray-600">10:00 - 13:00 | 홍대센터 C강의실</p>
+                            </div>
+                        </div>
+                        <span class="px-3 py-1 bg-green-100 text-green-600 text-sm font-semibold rounded-full">진행예정</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 통계 -->
+            <div class="grid md:grid-cols-4 gap-6 mb-12">
+                <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg p-6 text-white">
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="text-lg font-semibold">진행 중인 강의</h4>
+                        <i class="fas fa-chalkboard text-2xl opacity-75"></i>
+                    </div>
+                    <p class="text-4xl font-bold">3</p>
+                    <p class="text-sm text-blue-100 mt-2">개 과정</p>
+                </div>
+                <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow-lg p-6 text-white">
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="text-lg font-semibold">총 수강생</h4>
+                        <i class="fas fa-users text-2xl opacity-75"></i>
+                    </div>
+                    <p class="text-4xl font-bold">48</p>
+                    <p class="text-sm text-green-100 mt-2">명</p>
+                </div>
+                <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg shadow-lg p-6 text-white">
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="text-lg font-semibold">평균 출석률</h4>
+                        <i class="fas fa-chart-line text-2xl opacity-75"></i>
+                    </div>
+                    <p class="text-4xl font-bold">92%</p>
+                    <p class="text-sm text-purple-100 mt-2">지난 달 기준</p>
+                </div>
+                <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg shadow-lg p-6 text-white">
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="text-lg font-semibold">강의 평가</h4>
+                        <i class="fas fa-star text-2xl opacity-75"></i>
+                    </div>
+                    <p class="text-4xl font-bold">4.8</p>
+                    <p class="text-sm text-orange-100 mt-2">/ 5.0</p>
+                </div>
+            </div>
+
+            <!-- 도움말 -->
+            <div class="bg-green-50 border-l-4 border-green-600 p-6 rounded-lg">
+                <h3 class="text-lg font-bold text-gray-800 mb-2 flex items-center">
+                    <i class="fas fa-info-circle text-green-600 mr-2"></i>
+                    시스템 이용 안내
+                </h3>
+                <ul class="space-y-2 text-gray-700">
+                    <li><i class="fas fa-check text-green-600 mr-2"></i>로그인 후 모든 기능을 이용하실 수 있습니다.</li>
+                    <li><i class="fas fa-check text-green-600 mr-2"></i>출결 및 성적 입력은 매주 금요일까지 완료해 주세요.</li>
+                    <li><i class="fas fa-check text-green-600 mr-2"></i>문의사항은 교무팀(02-1234-5679)으로 연락 주세요.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 푸터 -->
+        <footer class="bg-gray-800 text-white py-8 mt-12">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
                 <p class="text-gray-400">&copy; 2025 와우쓰리디홍대센터. All rights reserved.</p>
             </div>
