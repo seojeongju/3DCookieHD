@@ -543,7 +543,7 @@ app.get('/', (c) => {
                 <div class="hero-content">
                     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-orange-300">
                         <h1 class="text-4xl md:text-6xl font-bold mb-6 drop-shadow-lg" style="text-shadow: 3px 3px 6px rgba(0,0,0,0.5);">
-                            당신의 아이디어를 세상에!
+                            당신의 아이디어를 현실로로!
                         </h1>
                         <p class="text-xl md:text-2xl mb-8 drop-shadow-lg text-orange-100" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
                             지금 바로 와우쓰리디홍대센터에서<br>
@@ -961,7 +961,7 @@ app.get('/', (c) => {
                 <div class="flex items-center justify-between mb-8">
                     <div>
                         <h2 class="text-3xl font-bold text-gray-800 mb-2">시제품 제작 갤러리</h2>
-                        <p class="text-gray-600">수강생들이 직접 제작한 3D 프린팅 작품들</p>
+                        <p class="text-gray-600">3D프린터를 활용한 시제품제작-제품품</p>
                     </div>
                     <a href="#prototype-gallery" class="text-primary-600 hover:text-primary-700 font-medium flex items-center gap-2">
                         더보기 <i class="fas fa-arrow-right"></i>
