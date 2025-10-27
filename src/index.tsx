@@ -1064,6 +1064,97 @@ app.get('/', (c) => {
             </div>
         </section>
 
+        <!-- 협력기관 및 사이트 -->
+        <section class="py-16 bg-gray-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-2">협력기관 및 사이트</h2>
+                    <p class="text-gray-600">함께 성장하는 파트너</p>
+                </div>
+                
+                <!-- 가로 스크롤 파트너 -->
+                <div class="relative group">
+                    <!-- 왼쪽 화살표 -->
+                    <button onclick="scrollGallery('partners', -1)" class="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white shadow-lg rounded-full w-12 h-12 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                        <i class="fas fa-chevron-left text-gray-800"></i>
+                    </button>
+                    
+                    <!-- 파트너 컨테이너 -->
+                    <div id="partnersGallery" class="flex gap-8 overflow-x-auto scroll-smooth pb-4 scrollbar-hide">
+                        <!-- 파트너 1: 한국HRD훈련지원센터 -->
+                        <div class="flex-shrink-0 w-56">
+                            <a href="#" target="_blank" class="block bg-white rounded-lg p-8 shadow-md hover:shadow-xl transition group/item">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-24 h-24 bg-gradient-to-br from-primary-100 to-primary-200 rounded-full flex items-center justify-center mb-4 group-hover/item:scale-110 transition">
+                                        <i class="fas fa-graduation-cap text-4xl text-primary-600"></i>
+                                    </div>
+                                    <h3 class="font-bold text-gray-800 text-center mb-1">(주)한국HRD훈련지원센터</h3>
+                                    <p class="text-xs text-gray-500 text-center">교육 훈련 지원</p>
+                                </div>
+                            </a>
+                        </div>
+                        
+                        <!-- 파트너 2: 3D프린팅산업협회 -->
+                        <div class="flex-shrink-0 w-56">
+                            <a href="#" target="_blank" class="block bg-white rounded-lg p-8 shadow-md hover:shadow-xl transition group/item">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-24 h-24 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center mb-4 group-hover/item:scale-110 transition">
+                                        <i class="fas fa-industry text-4xl text-blue-600"></i>
+                                    </div>
+                                    <h3 class="font-bold text-gray-800 text-center mb-1">(사)3D프린팅산업협회</h3>
+                                    <p class="text-xs text-gray-500 text-center">산업 협력</p>
+                                </div>
+                            </a>
+                        </div>
+                        
+                        <!-- 파트너 3: 와우쓰리디 온라인교육 -->
+                        <div class="flex-shrink-0 w-56">
+                            <a href="#" target="_blank" class="block bg-white rounded-lg p-8 shadow-md hover:shadow-xl transition group/item">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-24 h-24 bg-gradient-to-br from-green-100 to-green-200 rounded-full flex items-center justify-center mb-4 group-hover/item:scale-110 transition">
+                                        <i class="fas fa-laptop text-4xl text-green-600"></i>
+                                    </div>
+                                    <h3 class="font-bold text-gray-800 text-center mb-1">와우쓰리디 온라인교육</h3>
+                                    <p class="text-xs text-gray-500 text-center">온라인 강좌</p>
+                                </div>
+                            </a>
+                        </div>
+                        
+                        <!-- 파트너 4: 와우쓰리디 쇼핑몰 -->
+                        <div class="flex-shrink-0 w-56">
+                            <a href="#" target="_blank" class="block bg-white rounded-lg p-8 shadow-md hover:shadow-xl transition group/item">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-24 h-24 bg-gradient-to-br from-purple-100 to-purple-200 rounded-full flex items-center justify-center mb-4 group-hover/item:scale-110 transition">
+                                        <i class="fas fa-shopping-cart text-4xl text-purple-600"></i>
+                                    </div>
+                                    <h3 class="font-bold text-gray-800 text-center mb-1">와우쓰리디 쇼핑몰</h3>
+                                    <p class="text-xs text-gray-500 text-center">장비 및 소모품</p>
+                                </div>
+                            </a>
+                        </div>
+                        
+                        <!-- 파트너 5: 추가 파트너 -->
+                        <div class="flex-shrink-0 w-56">
+                            <a href="#" target="_blank" class="block bg-white rounded-lg p-8 shadow-md hover:shadow-xl transition group/item">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-24 h-24 bg-gradient-to-br from-orange-100 to-orange-200 rounded-full flex items-center justify-center mb-4 group-hover/item:scale-110 transition">
+                                        <i class="fas fa-handshake text-4xl text-orange-600"></i>
+                                    </div>
+                                    <h3 class="font-bold text-gray-800 text-center mb-1">협력 파트너</h3>
+                                    <p class="text-xs text-gray-500 text-center">제휴 기관</p>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- 오른쪽 화살표 -->
+                    <button onclick="scrollGallery('partners', 1)" class="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white shadow-lg rounded-full w-12 h-12 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                        <i class="fas fa-chevron-right text-gray-800"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
         <!-- 푸터 -->
         <footer class="bg-gray-800 text-white py-12">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1282,7 +1373,15 @@ app.get('/', (c) => {
           
           // 갤러리 스크롤 함수
           function scrollGallery(galleryType, direction) {
-            const galleryId = galleryType === 'prototype' ? 'prototypeGallery' : 'portfolioGallery';
+            let galleryId;
+            if (galleryType === 'prototype') {
+              galleryId = 'prototypeGallery';
+            } else if (galleryType === 'portfolio') {
+              galleryId = 'portfolioGallery';
+            } else if (galleryType === 'partners') {
+              galleryId = 'partnersGallery';
+            }
+            
             const gallery = document.getElementById(galleryId);
             const scrollAmount = 300; // 한 번에 스크롤할 픽셀 수
             
