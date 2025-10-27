@@ -138,16 +138,16 @@ app.get('/', (c) => {
               extend: {
                 colors: {
                   primary: {
-                    50: '#eff6ff',
-                    100: '#dbeafe',
-                    200: '#bfdbfe',
-                    300: '#93c5fd',
-                    400: '#60a5fa',
-                    500: '#3b82f6',
-                    600: '#2563eb',
-                    700: '#1d4ed8',
-                    800: '#1e40af',
-                    900: '#1e3a8a',
+                    50: '#f0f7ff',
+                    100: '#e0effe',
+                    200: '#baddfd',
+                    300: '#7dbcfb',
+                    400: '#3a9bf7',
+                    500: '#5b9bd5',
+                    600: '#4a90e2',
+                    700: '#3b7bc9',
+                    800: '#2d5fa3',
+                    900: '#1e4175',
                   }
                 }
               }
@@ -156,7 +156,7 @@ app.get('/', (c) => {
         </script>
         <style>
           .hero-gradient {
-            background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #3b82f6 100%);
+            background: linear-gradient(135deg, #2d5fa3 0%, #4a90e2 50%, #5b9bd5 100%);
           }
           .glass-effect {
             background: rgba(255, 255, 255, 0.95);
@@ -192,11 +192,11 @@ app.get('/', (c) => {
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(135deg, rgba(30, 58, 138, 0.85) 0%, rgba(37, 99, 235, 0.75) 50%, rgba(59, 130, 246, 0.65) 100%);
+            background: linear-gradient(135deg, rgba(45, 95, 163, 0.75) 0%, rgba(74, 144, 226, 0.65) 50%, rgba(91, 155, 213, 0.55) 100%);
             transition: background 0.4s ease;
           }
           .hero-slider:hover .hero-overlay {
-            background: linear-gradient(135deg, rgba(30, 58, 138, 0.65) 0%, rgba(37, 99, 235, 0.55) 50%, rgba(59, 130, 246, 0.45) 100%);
+            background: linear-gradient(135deg, rgba(45, 95, 163, 0.55) 0%, rgba(74, 144, 226, 0.45) 50%, rgba(91, 155, 213, 0.35) 100%);
           }
           .hero-content {
             position: relative;
@@ -274,7 +274,7 @@ app.get('/', (c) => {
           }
           .quick-menu-item:hover .quick-menu-icon {
             transform: scale(1.15);
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+            box-shadow: 0 4px 12px rgba(74, 144, 226, 0.25);
           }
           .quick-menu-item:active .quick-menu-icon {
             transform: scale(0.95);
@@ -288,11 +288,11 @@ app.get('/', (c) => {
             border-radius: 10px;
           }
           .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #3b82f6;
+            background: #5b9bd5;
             border-radius: 10px;
           }
           .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #2563eb;
+            background: #4a90e2;
           }
           @media (max-width: 1024px) {
             /* 태블릿: 공지사항 숨김 */
@@ -310,7 +310,7 @@ app.get('/', (c) => {
               height: 4px;
             }
             .quick-menu-nav::-webkit-scrollbar-thumb {
-              background: #3b82f6;
+              background: #5b9bd5;
               border-radius: 4px;
             }
           }
