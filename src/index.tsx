@@ -3037,7 +3037,7 @@ app.get('/greeting', (c) => {
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
                 <h1 class="text-4xl md:text-5xl font-bold mb-4">
                     <i class="fas fa-hands-helping mr-4"></i>
-                    센터장 인사말
+                    원장 인사말
                 </h1>
                 <p class="text-xl text-blue-100">와우쓰리디홍대센터와 함께하는 미래</p>
             </div>
@@ -3054,8 +3054,8 @@ app.get('/greeting', (c) => {
                             <div class="w-48 h-48 mx-auto mb-6 rounded-full bg-white shadow-lg flex items-center justify-center">
                                 <i class="fas fa-user-tie text-7xl text-primary-600"></i>
                             </div>
-                            <h3 class="text-2xl font-bold text-gray-800 mb-2">이준우</h3>
-                            <p class="text-lg text-gray-600 font-semibold">센터장</p>
+                            <h3 class="text-2xl font-bold text-gray-800 mb-2">김순희 / 서정주</h3>
+                            <p class="text-lg text-gray-600 font-semibold">원장</p>
                             <div class="mt-6 space-y-2">
                                 <div class="flex items-center justify-center text-gray-700">
                                     <i class="fas fa-envelope mr-2 text-primary-600"></i>
@@ -3079,7 +3079,7 @@ app.get('/greeting', (c) => {
                             
                             <div class="space-y-6 text-gray-700 leading-relaxed">
                                 <p class="text-lg">
-                                    안녕하십니까. 와우쓰리디홍대센터 센터장 이준우입니다.
+                                    안녕하십니까. 와우쓰리디홍대센터 원장 김순희/서정주입니다.
                                 </p>
                                 
                                 <p>
@@ -3103,7 +3103,7 @@ app.get('/greeting', (c) => {
                                 
                                 <p class="text-right mt-8">
                                     <span class="text-gray-600">감사합니다.</span><br>
-                                    <strong class="text-xl text-gray-800">센터장 이준우</strong>
+                                    <strong class="text-xl text-gray-800">원장 김순희 / 서정주</strong>
                                 </p>
                             </div>
                         </div>
