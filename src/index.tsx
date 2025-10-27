@@ -72,7 +72,7 @@ app.get('/api', (c) => {
   return c.json({
     name: 'Education Platform API',
     version: '2.0.0',
-    description: '와우쓰리디쿠키홍대센터 교육 플랫폼',
+    description: '와우쓰리디홍대센터 교육 플랫폼',
     endpoints: {
       auth: {
         register: 'POST /api/auth/register',
@@ -133,7 +133,7 @@ app.get('/', (c) => {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>와우쓰리디쿠키홍대센터 - 3D 프린팅 교육 전문</title>
+        <title>와우쓰리디홍대센터 - 3D 프린팅 교육 전문</title>
         <script src="https://cdn.tailwindcss.com"></script>
         <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
         <script>
@@ -335,7 +335,7 @@ app.get('/', (c) => {
                 <div class="flex justify-between items-center h-20">
                     <div class="flex items-center space-x-4">
                         <img src="/static/logo.png" alt="WOW 3D" class="h-12">
-                        <span class="text-xl font-bold text-gray-800">와우쓰리디쿠키홍대센터</span>
+                        <span class="text-xl font-bold text-gray-800">와우쓰리디홍대센터</span>
                     </div>
                     <div class="hidden md:flex space-x-8">
                         <a href="#courses" class="text-gray-700 hover:text-primary-600 font-medium">과정 안내</a>
@@ -1069,7 +1069,7 @@ app.get('/', (c) => {
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="grid md:grid-cols-3 gap-8">
                     <div>
-                        <h3 class="text-lg font-bold mb-4">와우쓰리디쿠키홍대센터</h3>
+                        <h3 class="text-lg font-bold mb-4">와우쓰리디홍대센터</h3>
                         <p class="text-gray-400">3D 프린팅과 메이커 교육의 선두주자</p>
                     </div>
                     <div>
@@ -1087,7 +1087,7 @@ app.get('/', (c) => {
                     </div>
                 </div>
                 <div class="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
-                    <p>&copy; 2025 와우쓰리디쿠키홍대센터. All rights reserved.</p>
+                    <p>&copy; 2025 와우쓰리디홍대센터. All rights reserved.</p>
                 </div>
             </div>
         </footer>
@@ -1322,7 +1322,7 @@ app.get('/schedule', (c) => {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>개강 일정표 - 와우쓰리디쿠키홍대센터</title>
+        <title>개강 일정표 - 와우쓰리디홍대센터</title>
         <script src="https://cdn.tailwindcss.com"></script>
         <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
         <script>
@@ -1385,7 +1385,7 @@ app.get('/schedule', (c) => {
                     <div class="flex items-center space-x-4">
                         <a href="/" class="flex items-center space-x-4">
                             <img src="/static/logo.png" alt="WOW 3D" class="h-12">
-                            <span class="text-xl font-bold text-gray-800">와우쓰리디쿠키홍대센터</span>
+                            <span class="text-xl font-bold text-gray-800">와우쓰리디홍대센터</span>
                         </a>
                     </div>
                     <div class="flex items-center space-x-4">

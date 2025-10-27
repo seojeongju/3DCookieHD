@@ -1,7 +1,7 @@
-# 와우쓰리디쿠키홍대센터 교육 플랫폼
+# 와우쓰리디홍대센터 교육 플랫폼
 
 ## 🎓 프로젝트 개요
-- **이름**: 와우쓰리디쿠키홍대센터 교육 플랫폼
+- **이름**: 와우쓰리디홍대센터 교육 플랫폼
 - **목표**: 3D 프린팅 교육을 위한 종합 온라인 플랫폼
 - **기술 스택**: Hono + Cloudflare Workers + D1 Database + TypeScript
 
@@ -238,7 +238,7 @@ curl http://localhost:3000
 - Edge (최신)
 
 ## 📄 라이선스
-© 2025 와우쓰리디쿠키홍대센터. All rights reserved.
+© 2025 와우쓰리디홍대센터. All rights reserved.
 
 ## 👥 개발자
 - **이메일**: jayseo36@gmail.com
