@@ -1177,8 +1177,18 @@ app.get('/', (c) => {
                         </div>
                     </div>
                 </div>
-                <div class="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
-                    <p>&copy; 2025 와우쓰리디홍대센터. All rights reserved.</p>
+                <div class="border-t border-gray-700 mt-8 pt-8">
+                    <!-- 푸터 링크 -->
+                    <div class="flex justify-center items-center gap-6 mb-4 text-sm">
+                        <a href="/terms" class="text-gray-400 hover:text-white transition">이용약관</a>
+                        <span class="text-gray-600">|</span>
+                        <a href="/privacy" class="text-gray-400 hover:text-white transition">개인보호정책</a>
+                        <span class="text-gray-600">|</span>
+                        <a href="/partnership" class="text-gray-400 hover:text-white transition">제휴제안</a>
+                        <span class="text-gray-600">|</span>
+                        <a href="/sitemap" class="text-gray-400 hover:text-white transition">사이트맵</a>
+                    </div>
+                    <p class="text-center text-gray-400">&copy; 2025 와우쓰리디홍대센터. All rights reserved.</p>
                 </div>
             </div>
         </footer>
@@ -1801,6 +1811,545 @@ app.get('/schedule', (c) => {
             loadSchedules();
           });
         </script>
+    </body>
+    </html>
+  `);
+});
+
+// ============================================
+// 이용약관 페이지
+// ============================================
+app.get('/terms', (c) => {
+  return c.html(`
+    <!DOCTYPE html>
+    <html lang="ko">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>이용약관 - 와우쓰리디홍대센터</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    </head>
+    <body class="bg-gray-50">
+        <!-- 네비게이션 -->
+        <nav class="bg-white shadow-md sticky top-0 z-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-20">
+                    <div class="flex items-center space-x-4">
+                        <a href="/" class="flex items-center space-x-4">
+                            <img src="/static/logo.png" alt="WOW 3D" class="h-12">
+                            <span class="text-xl font-bold text-gray-800">와우쓰리디홍대센터</span>
+                        </a>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <a href="/" class="text-gray-700 hover:text-primary-600 font-medium">
+                            <i class="fas fa-home mr-2"></i>홈으로
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- 컨텐츠 -->
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <h1 class="text-4xl font-bold text-gray-800 mb-8">이용약관</h1>
+            
+            <div class="bg-white rounded-lg shadow-md p-8 space-y-8">
+                <section>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">제1조 (목적)</h2>
+                    <p class="text-gray-600 leading-relaxed">
+                        본 약관은 와우쓰리디홍대센터(이하 "회사")가 제공하는 교육 서비스 및 관련 제반 서비스의 이용과 관련하여 회사와 이용자의 권리, 의무 및 책임사항, 기타 필요한 사항을 규정함을 목적으로 합니다.
+                    </p>
+                </section>
+
+                <section>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">제2조 (정의)</h2>
+                    <ul class="text-gray-600 space-y-2 list-disc list-inside">
+                        <li>"서비스"란 회사가 제공하는 3D 프린팅 교육 및 관련 온라인/오프라인 서비스를 의미합니다.</li>
+                        <li>"이용자"란 본 약관에 따라 회사가 제공하는 서비스를 받는 회원 및 비회원을 말합니다.</li>
+                        <li>"회원"이란 회사와 서비스 이용계약을 체결하고 이용자 아이디를 부여받은 자를 의미합니다.</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">제3조 (약관의 효력 및 변경)</h2>
+                    <p class="text-gray-600 leading-relaxed mb-4">
+                        ① 본 약관은 서비스를 이용하고자 하는 모든 이용자에 대하여 그 효력을 발생합니다.
+                    </p>
+                    <p class="text-gray-600 leading-relaxed">
+                        ② 회사는 필요하다고 인정되는 경우 본 약관을 변경할 수 있으며, 변경된 약관은 웹사이트에 공지함으로써 효력이 발생합니다.
+                    </p>
+                </section>
+
+                <section>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">제4조 (서비스의 제공)</h2>
+                    <ul class="text-gray-600 space-y-2 list-disc list-inside">
+                        <li>3D 프린팅 교육 과정 제공</li>
+                        <li>온라인 학습 자료 제공</li>
+                        <li>수강생 포트폴리오 관리</li>
+                        <li>교육 상담 및 취업 지원</li>
+                        <li>기타 회사가 정하는 서비스</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">제5조 (이용자의 의무)</h2>
+                    <p class="text-gray-600 leading-relaxed mb-4">
+                        이용자는 다음 행위를 하여서는 안 됩니다:
+                    </p>
+                    <ul class="text-gray-600 space-y-2 list-disc list-inside">
+                        <li>허위 정보 등록 또는 타인의 정보 도용</li>
+                        <li>회사의 서비스 운영을 고의로 방해하는 행위</li>
+                        <li>타인의 명예를 손상시키거나 불이익을 주는 행위</li>
+                        <li>저작권 등 지적재산권을 침해하는 행위</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">제6조 (환불 정책)</h2>
+                    <p class="text-gray-600 leading-relaxed">
+                        수강료 환불은 평생교육법 시행령 제23조 및 학원의 설립·운영 및 과외교습에 관한 법률 시행령 제18조에 따라 처리됩니다.
+                    </p>
+                </section>
+            </div>
+        </div>
+
+        <!-- 푸터 -->
+        <footer class="bg-gray-800 text-white py-12 mt-16">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <p class="text-gray-400">&copy; 2025 와우쓰리디홍대센터. All rights reserved.</p>
+            </div>
+        </footer>
+    </body>
+    </html>
+  `);
+});
+
+// ============================================
+// 개인정보보호정책 페이지
+// ============================================
+app.get('/privacy', (c) => {
+  return c.html(`
+    <!DOCTYPE html>
+    <html lang="ko">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>개인정보보호정책 - 와우쓰리디홍대센터</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    </head>
+    <body class="bg-gray-50">
+        <!-- 네비게이션 -->
+        <nav class="bg-white shadow-md sticky top-0 z-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-20">
+                    <div class="flex items-center space-x-4">
+                        <a href="/" class="flex items-center space-x-4">
+                            <img src="/static/logo.png" alt="WOW 3D" class="h-12">
+                            <span class="text-xl font-bold text-gray-800">와우쓰리디홍대센터</span>
+                        </a>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <a href="/" class="text-gray-700 hover:text-primary-600 font-medium">
+                            <i class="fas fa-home mr-2"></i>홈으로
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- 컨텐츠 -->
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <h1 class="text-4xl font-bold text-gray-800 mb-8">개인정보보호정책</h1>
+            
+            <div class="bg-white rounded-lg shadow-md p-8 space-y-8">
+                <section>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">1. 개인정보의 수집 및 이용 목적</h2>
+                    <p class="text-gray-600 leading-relaxed mb-4">
+                        와우쓰리디홍대센터는 다음의 목적을 위하여 개인정보를 수집하고 있습니다:
+                    </p>
+                    <ul class="text-gray-600 space-y-2 list-disc list-inside">
+                        <li>회원 가입 및 관리</li>
+                        <li>교육 서비스 제공 및 상담</li>
+                        <li>수강료 결제 및 환불 처리</li>
+                        <li>교육 관련 공지사항 전달</li>
+                        <li>고객 문의 및 불만 처리</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">2. 수집하는 개인정보 항목</h2>
+                    <div class="text-gray-600 space-y-4">
+                        <div>
+                            <p class="font-semibold mb-2">필수 항목:</p>
+                            <ul class="list-disc list-inside space-y-1 ml-4">
+                                <li>이름, 생년월일, 연락처(전화번호, 이메일)</li>
+                                <li>주소</li>
+                                <li>결제정보 (계좌번호, 카드정보)</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <p class="font-semibold mb-2">선택 항목:</p>
+                            <ul class="list-disc list-inside space-y-1 ml-4">
+                                <li>학력, 경력</li>
+                                <li>관심 분야</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <section>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">3. 개인정보의 보유 및 이용기간</h2>
+                    <p class="text-gray-600 leading-relaxed mb-4">
+                        회사는 원칙적으로 개인정보 수집 및 이용목적이 달성된 후에는 해당 정보를 지체 없이 파기합니다. 단, 다음의 정보에 대해서는 아래의 이유로 명시한 기간 동안 보존합니다:
+                    </p>
+                    <ul class="text-gray-600 space-y-2 list-disc list-inside">
+                        <li>수강 관련 기록: 5년 (평생교육법)</li>
+                        <li>결제 및 환불 기록: 5년 (전자상거래법)</li>
+                        <li>소비자 불만 또는 분쟁처리 기록: 3년</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">4. 개인정보의 제3자 제공</h2>
+                    <p class="text-gray-600 leading-relaxed">
+                        회사는 이용자의 개인정보를 원칙적으로 외부에 제공하지 않습니다. 다만, 아래의 경우에는 예외로 합니다:
+                    </p>
+                    <ul class="text-gray-600 space-y-2 list-disc list-inside mt-4">
+                        <li>이용자가 사전에 동의한 경우</li>
+                        <li>법령의 규정에 의거하거나 수사 목적으로 법령에 정해진 절차와 방법에 따라 수사기관의 요구가 있는 경우</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">5. 이용자의 권리</h2>
+                    <p class="text-gray-600 leading-relaxed mb-4">
+                        이용자는 언제든지 다음의 권리를 행사할 수 있습니다:
+                    </p>
+                    <ul class="text-gray-600 space-y-2 list-disc list-inside">
+                        <li>개인정보 열람 요구</li>
+                        <li>개인정보 정정 요구</li>
+                        <li>개인정보 삭제 요구</li>
+                        <li>개인정보 처리정지 요구</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">6. 개인정보 보호책임자</h2>
+                    <div class="bg-gray-50 p-6 rounded-lg">
+                        <p class="text-gray-600 mb-2"><strong>담당부서:</strong> 고객지원팀</p>
+                        <p class="text-gray-600 mb-2"><strong>전화:</strong> 02-1234-5678</p>
+                        <p class="text-gray-600"><strong>이메일:</strong> privacy@wow3dcookie.kr</p>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <!-- 푸터 -->
+        <footer class="bg-gray-800 text-white py-12 mt-16">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <p class="text-gray-400">&copy; 2025 와우쓰리디홍대센터. All rights reserved.</p>
+            </div>
+        </footer>
+    </body>
+    </html>
+  `);
+});
+
+// ============================================
+// 제휴제안 페이지
+// ============================================
+app.get('/partnership', (c) => {
+  return c.html(`
+    <!DOCTYPE html>
+    <html lang="ko">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>제휴제안 - 와우쓰리디홍대센터</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    </head>
+    <body class="bg-gray-50">
+        <!-- 네비게이션 -->
+        <nav class="bg-white shadow-md sticky top-0 z-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-20">
+                    <div class="flex items-center space-x-4">
+                        <a href="/" class="flex items-center space-x-4">
+                            <img src="/static/logo.png" alt="WOW 3D" class="h-12">
+                            <span class="text-xl font-bold text-gray-800">와우쓰리디홍대센터</span>
+                        </a>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <a href="/" class="text-gray-700 hover:text-primary-600 font-medium">
+                            <i class="fas fa-home mr-2"></i>홈으로
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- 컨텐츠 -->
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <h1 class="text-4xl font-bold text-gray-800 mb-8">제휴제안</h1>
+            
+            <div class="bg-white rounded-lg shadow-md p-8 space-y-8">
+                <section>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">함께 성장하는 파트너를 찾습니다</h2>
+                    <p class="text-gray-600 leading-relaxed">
+                        와우쓰리디홍대센터는 3D 프린팅 교육 분야의 선도적인 기관으로서, 다양한 기업 및 기관과의 협력을 통해 더 나은 교육 서비스를 제공하고자 합니다.
+                    </p>
+                </section>
+
+                <section>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">제휴 분야</h2>
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div class="border border-gray-200 rounded-lg p-6">
+                            <div class="flex items-center mb-3">
+                                <i class="fas fa-building text-3xl text-blue-600 mr-4"></i>
+                                <h3 class="text-xl font-bold text-gray-800">기업 교육 제휴</h3>
+                            </div>
+                            <p class="text-gray-600">임직원 대상 3D 프린팅 교육 및 기술 세미나</p>
+                        </div>
+
+                        <div class="border border-gray-200 rounded-lg p-6">
+                            <div class="flex items-center mb-3">
+                                <i class="fas fa-university text-3xl text-green-600 mr-4"></i>
+                                <h3 class="text-xl font-bold text-gray-800">교육기관 제휴</h3>
+                            </div>
+                            <p class="text-gray-600">대학 및 전문학교와의 산학 협력 프로그램</p>
+                        </div>
+
+                        <div class="border border-gray-200 rounded-lg p-6">
+                            <div class="flex items-center mb-3">
+                                <i class="fas fa-handshake text-3xl text-purple-600 mr-4"></i>
+                                <h3 class="text-xl font-bold text-gray-800">장비 및 자재 제휴</h3>
+                            </div>
+                            <p class="text-gray-600">3D 프린터 및 관련 자재 공급 업체</p>
+                        </div>
+
+                        <div class="border border-gray-200 rounded-lg p-6">
+                            <div class="flex items-center mb-3">
+                                <i class="fas fa-rocket text-3xl text-orange-600 mr-4"></i>
+                                <h3 class="text-xl font-bold text-gray-800">취업 연계 제휴</h3>
+                            </div>
+                            <p class="text-gray-600">수료생 채용 및 인턴십 프로그램</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">제휴 혜택</h2>
+                    <ul class="text-gray-600 space-y-3 list-disc list-inside">
+                        <li>우수한 3D 프린팅 전문 인력 양성 및 채용 기회</li>
+                        <li>최신 3D 프린팅 기술 및 교육 노하우 공유</li>
+                        <li>공동 마케팅 및 홍보 활동</li>
+                        <li>교육 시설 및 장비 공동 활용</li>
+                        <li>산업 네트워크 확대</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">제휴 문의</h2>
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                        <p class="text-gray-700 mb-4">
+                            제휴에 관심이 있으시거나 문의사항이 있으시면 아래 연락처로 연락 주시기 바랍니다.
+                        </p>
+                        <div class="space-y-2">
+                            <p class="text-gray-700">
+                                <i class="fas fa-envelope mr-2 text-blue-600"></i>
+                                <strong>이메일:</strong> partnership@wow3dcookie.kr
+                            </p>
+                            <p class="text-gray-700">
+                                <i class="fas fa-phone mr-2 text-blue-600"></i>
+                                <strong>전화:</strong> 02-1234-5678
+                            </p>
+                            <p class="text-gray-700">
+                                <i class="fas fa-fax mr-2 text-blue-600"></i>
+                                <strong>팩스:</strong> 02-1234-5679
+                            </p>
+                        </div>
+                    </div>
+                </section>
+
+                <section>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">제휴 제안서 제출</h2>
+                    <p class="text-gray-600 mb-4">
+                        제휴 제안서는 아래 이메일로 제출해 주시기 바랍니다. 검토 후 3~5 영업일 내에 회신 드리겠습니다.
+                    </p>
+                    <div class="bg-gray-100 p-4 rounded-lg">
+                        <p class="text-gray-700 font-semibold">제출 이메일: partnership@wow3dcookie.kr</p>
+                        <p class="text-gray-600 text-sm mt-2">※ 제안서에는 기업/기관 소개, 제휴 목적, 제휴 분야, 연락처를 포함해 주세요.</p>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <!-- 푸터 -->
+        <footer class="bg-gray-800 text-white py-12 mt-16">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <p class="text-gray-400">&copy; 2025 와우쓰리디홍대센터. All rights reserved.</p>
+            </div>
+        </footer>
+    </body>
+    </html>
+  `);
+});
+
+// ============================================
+// 사이트맵 페이지
+// ============================================
+app.get('/sitemap', (c) => {
+  return c.html(`
+    <!DOCTYPE html>
+    <html lang="ko">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>사이트맵 - 와우쓰리디홍대센터</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    </head>
+    <body class="bg-gray-50">
+        <!-- 네비게이션 -->
+        <nav class="bg-white shadow-md sticky top-0 z-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-20">
+                    <div class="flex items-center space-x-4">
+                        <a href="/" class="flex items-center space-x-4">
+                            <img src="/static/logo.png" alt="WOW 3D" class="h-12">
+                            <span class="text-xl font-bold text-gray-800">와우쓰리디홍대센터</span>
+                        </a>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <a href="/" class="text-gray-700 hover:text-primary-600 font-medium">
+                            <i class="fas fa-home mr-2"></i>홈으로
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- 컨텐츠 -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <h1 class="text-4xl font-bold text-gray-800 mb-8">사이트맵</h1>
+            
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- 메인 -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-home text-blue-600 mr-2"></i>
+                        메인
+                    </h2>
+                    <ul class="space-y-2">
+                        <li><a href="/" class="text-gray-600 hover:text-blue-600 transition">홈페이지</a></li>
+                        <li><a href="/#courses" class="text-gray-600 hover:text-blue-600 transition">과정 안내</a></li>
+                        <li><a href="/#campuses" class="text-gray-600 hover:text-blue-600 transition">캠퍼스 안내</a></li>
+                        <li><a href="/#reviews" class="text-gray-600 hover:text-blue-600 transition">수강 후기</a></li>
+                    </ul>
+                </div>
+
+                <!-- 교육 과정 -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-book text-green-600 mr-2"></i>
+                        교육 과정
+                    </h2>
+                    <ul class="space-y-2">
+                        <li><a href="/#courses" class="text-gray-600 hover:text-blue-600 transition">전체 과정</a></li>
+                        <li><a href="/schedule" class="text-gray-600 hover:text-blue-600 transition">개강 일정표</a></li>
+                        <li><a href="/#courses" class="text-gray-600 hover:text-blue-600 transition">3D 프린팅</a></li>
+                        <li><a href="/#courses" class="text-gray-600 hover:text-blue-600 transition">메이커 교육</a></li>
+                        <li><a href="/#courses" class="text-gray-600 hover:text-blue-600 transition">자격증 과정</a></li>
+                    </ul>
+                </div>
+
+                <!-- 캠퍼스 -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-map-marker-alt text-red-600 mr-2"></i>
+                        캠퍼스
+                    </h2>
+                    <ul class="space-y-2">
+                        <li><a href="/#campuses" class="text-gray-600 hover:text-blue-600 transition">캠퍼스 소개</a></li>
+                        <li><a href="/#campuses" class="text-gray-600 hover:text-blue-600 transition">위치 안내</a></li>
+                        <li><a href="/#campuses" class="text-gray-600 hover:text-blue-600 transition">시설 안내</a></li>
+                    </ul>
+                </div>
+
+                <!-- 수강생 -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-users text-purple-600 mr-2"></i>
+                        수강생
+                    </h2>
+                    <ul class="space-y-2">
+                        <li><a href="/#reviews" class="text-gray-600 hover:text-blue-600 transition">수강 후기</a></li>
+                        <li><a href="/#portfolio" class="text-gray-600 hover:text-blue-600 transition">포트폴리오</a></li>
+                        <li><a href="/#prototype-gallery" class="text-gray-600 hover:text-blue-600 transition">시제품 갤러리</a></li>
+                    </ul>
+                </div>
+
+                <!-- 고객 지원 -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-headset text-orange-600 mr-2"></i>
+                        고객 지원
+                    </h2>
+                    <ul class="space-y-2">
+                        <li><a href="/#contact" class="text-gray-600 hover:text-blue-600 transition">상담 신청</a></li>
+                        <li><a href="/#board" class="text-gray-600 hover:text-blue-600 transition">게시판</a></li>
+                        <li><a href="/#search" class="text-gray-600 hover:text-blue-600 transition">수강료 조회</a></li>
+                    </ul>
+                </div>
+
+                <!-- 협력 기관 -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-handshake text-teal-600 mr-2"></i>
+                        협력 기관
+                    </h2>
+                    <ul class="space-y-2">
+                        <li><a href="/#partners" class="text-gray-600 hover:text-blue-600 transition">협력 기관 소개</a></li>
+                        <li><a href="/partnership" class="text-gray-600 hover:text-blue-600 transition">제휴 제안</a></li>
+                    </ul>
+                </div>
+
+                <!-- 정보 -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-info-circle text-gray-600 mr-2"></i>
+                        정보
+                    </h2>
+                    <ul class="space-y-2">
+                        <li><a href="/terms" class="text-gray-600 hover:text-blue-600 transition">이용약관</a></li>
+                        <li><a href="/privacy" class="text-gray-600 hover:text-blue-600 transition">개인정보보호정책</a></li>
+                        <li><a href="/sitemap" class="text-gray-600 hover:text-blue-600 transition">사이트맵</a></li>
+                    </ul>
+                </div>
+
+                <!-- API -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-code text-indigo-600 mr-2"></i>
+                        개발자
+                    </h2>
+                    <ul class="space-y-2">
+                        <li><a href="/api" class="text-gray-600 hover:text-blue-600 transition">API 문서</a></li>
+                        <li><a href="/api/health" class="text-gray-600 hover:text-blue-600 transition">헬스체크</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- 푸터 -->
+        <footer class="bg-gray-800 text-white py-12 mt-16">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <p class="text-gray-400">&copy; 2025 와우쓰리디홍대센터. All rights reserved.</p>
+            </div>
+        </footer>
     </body>
     </html>
   `);
