@@ -1,307 +1,274 @@
-# 🎓 교육 플랫폼 API
+# 교육 플랫폼 API (Education Platform)
 
-그린컴퓨터아트학원(greenart.co.kr)을 참조하여 구축한 교육 플랫폼 백엔드 API
+> greenart.co.kr 스타일의 교육 플랫폼 웹사이트
 
 ## 📋 프로젝트 개요
 
-- **프로젝트명**: webapp (교육 플랫폼)
-- **목적**: 온/오프라인 교육 플랫폼 구축
-- **기술 스택**: Hono + TypeScript + Cloudflare D1 + Cloudflare Pages
+- **프로젝트명**: 교육 플랫폼 API
+- **목표**: 국비지원 및 자비부담 교육 과정을 관리하고 수강생을 위한 종합 교육 플랫폼 구축
+- **기술 스택**: Hono + TypeScript + Cloudflare Workers + D1 Database
 
-## ✅ 현재 완료된 기능
+## 🌐 배포 URL
 
-### 1. 데이터베이스 설계
-- ✅ 12개 테이블 구조 설계 완료
-  - users (회원)
-  - campuses (캠퍼스)
-  - courses (과정)
-  - enrollments (수강신청)
-  - reviews (리뷰)
-  - posts (게시판)
-  - comments (댓글)
-  - consultations (상담예약)
-  - bookmarks (찜하기)
-  - course_materials (강의자료)
-  - assignments (과제)
-  - assignment_submissions (과제제출)
+- **Production**: https://884570b0.3dcookiehd.pages.dev
+- **GitHub**: https://github.com/3DCookieHD/education-platform (branch: education-platform)
+- **API Base**: https://884570b0.3dcookiehd.pages.dev/api
 
-### 2. 인증 API (완료)
-- ✅ `POST /api/auth/register` - 회원가입
-- ✅ `POST /api/auth/login` - 로그인 (JWT)
-- ✅ `GET /api/auth/me` - 내 정보 조회
-- ✅ `PUT /api/auth/profile` - 프로필 수정
-- ✅ `POST /api/auth/change-password` - 비밀번호 변경
+## ✅ 완료된 기능
 
-### 3. 과정(Course) API (완료)
-- ✅ `GET /api/courses` - 과정 목록 조회
-  - 필터링: 카테고리, 지역, 캠퍼스, 가격대, 검색어
-  - 정렬: 최신순, 인기순, 가격순, 평점순
-  - 페이지네이션
-- ✅ `GET /api/courses/:id` - 과정 상세 조회
-- ✅ `POST /api/courses` - 과정 생성 (관리자 전용)
-- ✅ `PUT /api/courses/:id` - 과정 수정 (관리자 전용)
-- ✅ `DELETE /api/courses/:id` - 과정 삭제 (관리자 전용)
+### 1. 인증 API (Authentication)
+- ✅ 회원가입 (이메일/비밀번호)
+- ✅ 로그인 (JWT 토큰 발급)
+- ✅ 프로필 조회 (인증 필요)
+- ✅ 프로필 수정 (인증 필요)
+- ✅ 비밀번호 변경 (인증 필요)
+- ✅ 역할 기반 접근 제어 (student, teacher, admin)
 
-### 4. 캠퍼스 API (완료)
-- ✅ `GET /api/campuses` - 캠퍼스 목록 조회
-- ✅ `GET /api/campuses/:id` - 캠퍼스 상세 조회
-- ✅ `GET /api/campuses/list/regions` - 지역 목록 조회
+### 2. 과정 API (Courses)
+- ✅ 과정 목록 조회 (필터링, 정렬, 페이지네이션)
+- ✅ 과정 상세 조회 (조회수 증가)
+- ✅ 과정 생성 (관리자 전용)
+- ✅ 과정 수정 (관리자 전용)
+- ✅ 과정 삭제 (관리자 전용)
+- ✅ 필터링: 카테고리, 지역, 가격, 검색어
+- ✅ 정렬: 최신순, 인기순, 평점순, 가격순
 
-### 5. 유틸리티 및 미들웨어
-- ✅ JWT 인증 미들웨어 (Web Crypto API)
-- ✅ 역할 기반 권한 관리 (student, teacher, admin)
-- ✅ CORS 설정
-- ✅ 에러 핸들링
-- ✅ 응답 포맷 표준화
+### 3. 캠퍼스 API (Campuses)
+- ✅ 캠퍼스 목록 조회
+- ✅ 캠퍼스 상세 조회 (관련 과정 포함)
+- ✅ 지역별 캠퍼스 목록
+- ✅ 지역 필터링 기능
 
-## 🔧 미구현 기능 (추후 개발 예정)
+## 📊 데이터 구조
 
-### 1. 수강신청 API
-- `POST /api/enrollments` - 수강신청
-- `GET /api/enrollments/my` - 내 수강 내역
-- `PUT /api/enrollments/:id` - 수강 상태 변경
+### 데이터베이스 (Cloudflare D1)
+프로덕션 D1 데이터베이스: `education-platform-db`
 
-### 2. 리뷰 API
-- `POST /api/reviews` - 리뷰 작성
-- `GET /api/reviews` - 리뷰 목록
-- `PUT /api/reviews/:id` - 리뷰 수정
+#### 핵심 테이블
+1. **users** - 회원 정보 (학생, 강사, 관리자)
+2. **campuses** - 캠퍼스 정보 (강남본점, 신도림, 인천부평, 대전둔산)
+3. **courses** - 과정 정보 (웹디자인, 프로그래밍, 영상편집, 건축CAD 등)
+4. **enrollments** - 수강 신청 정보
+5. **reviews** - 과정 리뷰
+6. **posts** - 게시판 (공지사항, FAQ, 포트폴리오, Q&A)
+7. **comments** - 댓글
+8. **consultations** - 상담 예약
+9. **bookmarks** - 찜하기
+10. **course_materials** - 강의 자료
+11. **assignments** - 과제
+12. **assignment_submissions** - 과제 제출
 
-### 3. 게시판/커뮤니티 API
-- `GET /api/posts` - 게시글 목록 (공지사항, FAQ, 포트폴리오)
-- `POST /api/posts` - 게시글 작성
-- `GET /api/posts/:id` - 게시글 상세
+### 테스트 데이터
+- **캠퍼스**: 강남본점, 신도림, 인천부평, 대전둔산 (4개)
+- **과정**: UI/UX 웹디자인, JAVA 풀스택, 영상편집, 건축CAD, Python 데이터분석 (5개)
+- **사용자**: 관리자, 강사, 학생 (3명)
 
-### 4. 상담예약 API
-- `POST /api/consultations` - 상담 예약
-- `GET /api/consultations` - 상담 내역
+## 🔌 API 엔드포인트
 
-### 5. 찜하기 API
-- `POST /api/bookmarks` - 찜하기 추가
-- `DELETE /api/bookmarks/:id` - 찜하기 제거
-- `GET /api/bookmarks/my` - 내 찜 목록
-
-## 🗄️ 데이터 모델
-
-### 주요 테이블 관계
+### 헬스 체크
 ```
-users (회원)
-  ├── enrollments (수강신청) → courses (과정)
-  ├── reviews (리뷰) → courses
-  ├── posts (게시글)
-  └── consultations (상담예약)
-
-campuses (캠퍼스)
-  ├── courses (과정)
-  └── consultations (상담예약)
-
-courses (과정)
-  ├── enrollments (수강신청)
-  ├── reviews (리뷰)
-  ├── course_materials (강의자료)
-  └── assignments (과제)
+GET /api/health
 ```
 
-## 🚀 로컬 개발 환경 실행
+### 인증 (Authentication)
+```
+POST   /api/auth/register       # 회원가입
+POST   /api/auth/login          # 로그인
+GET    /api/auth/me             # 현재 사용자 정보 (인증 필요)
+PUT    /api/auth/profile        # 프로필 수정 (인증 필요)
+POST   /api/auth/change-password # 비밀번호 변경 (인증 필요)
+```
 
-### 1. 의존성 설치
+### 과정 (Courses)
+```
+GET    /api/courses             # 과정 목록
+GET    /api/courses/:id         # 과정 상세
+POST   /api/courses             # 과정 생성 (관리자)
+PUT    /api/courses/:id         # 과정 수정 (관리자)
+DELETE /api/courses/:id         # 과정 삭제 (관리자)
+
+# 쿼리 파라미터
+?category=웹디자인              # 카테고리 필터
+?region=서울                    # 지역 필터
+?price=free|paid               # 가격 필터
+?search=자바                    # 검색어
+?sort=latest|popular|rating|price  # 정렬
+?page=1&limit=12               # 페이지네이션
+```
+
+### 캠퍼스 (Campuses)
+```
+GET    /api/campuses            # 캠퍼스 목록
+GET    /api/campuses/:id        # 캠퍼스 상세 (관련 과정 포함)
+GET    /api/campuses/list/regions # 지역 목록
+
+# 쿼리 파라미터
+?region=서울                    # 지역 필터
+```
+
+## 📝 사용 가이드
+
+### 1. 과정 검색하기
 ```bash
+# 모든 과정 조회
+curl https://884570b0.3dcookiehd.pages.dev/api/courses
+
+# 프로그래밍 카테고리 과정만 조회
+curl "https://884570b0.3dcookiehd.pages.dev/api/courses?category=프로그래밍"
+
+# 서울 지역 무료 과정 조회
+curl "https://884570b0.3dcookiehd.pages.dev/api/courses?region=서울&price=free"
+
+# 최신순 정렬
+curl "https://884570b0.3dcookiehd.pages.dev/api/courses?sort=latest"
+```
+
+### 2. 회원가입 및 로그인
+```bash
+# 회원가입
+curl -X POST https://884570b0.3dcookiehd.pages.dev/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"password123","name":"홍길동","phone":"010-1234-5678"}'
+
+# 로그인
+curl -X POST https://884570b0.3dcookiehd.pages.dev/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"password123"}'
+
+# 프로필 조회 (JWT 토큰 필요)
+curl https://884570b0.3dcookiehd.pages.dev/api/auth/me \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+### 3. 캠퍼스 정보 조회
+```bash
+# 모든 캠퍼스 조회
+curl https://884570b0.3dcookiehd.pages.dev/api/campuses
+
+# 특정 캠퍼스 상세 조회 (관련 과정 포함)
+curl https://884570b0.3dcookiehd.pages.dev/api/campuses/1
+
+# 서울 지역 캠퍼스만 조회
+curl "https://884570b0.3dcookiehd.pages.dev/api/campuses?region=서울"
+```
+
+## 🚧 미완성 기능
+
+- ⏳ 수강 신청 API (enrollments)
+- ⏳ 리뷰 작성/조회 API (reviews)
+- ⏳ 게시판 API (posts, comments)
+- ⏳ 상담 예약 API (consultations)
+- ⏳ 찜하기 API (bookmarks)
+- ⏳ 강의 자료 API (course_materials)
+- ⏳ 과제 관리 API (assignments, submissions)
+- ⏳ 소셜 로그인 (네이버, 카카오, 구글)
+- ⏳ 프론트엔드 UI 개발
+
+## 🎯 다음 개발 단계
+
+### Phase 1: 핵심 기능 완성
+1. **수강 신청 기능** - 과정 신청, 결제, 승인 관리
+2. **리뷰 시스템** - 리뷰 작성, 수정, 삭제, 관리자 승인
+3. **게시판 시스템** - 공지사항, FAQ, 포트폴리오, Q&A
+
+### Phase 2: 부가 기능
+4. **상담 예약 시스템** - 온라인 상담 예약 및 관리
+5. **찜하기 기능** - 관심 과정 저장
+6. **강의 자료 관리** - 동영상, PDF, 링크 등
+
+### Phase 3: 고급 기능
+7. **과제 제출 시스템** - 과제 등록, 제출, 채점
+8. **소셜 로그인** - 네이버, 카카오, 구글 OAuth 연동
+9. **알림 시스템** - 이메일, SMS 알림
+
+### Phase 4: 프론트엔드
+10. **반응형 웹 UI** - 데스크톱, 태블릿, 모바일 지원
+11. **관리자 대시보드** - 과정/회원/상담 관리
+12. **마이페이지** - 수강 내역, 과제, 성적 조회
+
+## 🔧 배포 상태
+
+- **플랫폼**: Cloudflare Pages
+- **상태**: ✅ Active
+- **브랜치**: `education-platform`
+- **자동 배포**: GitHub 연동 (Push 시 자동 빌드)
+- **데이터베이스**: Cloudflare D1 (프로덕션 마이그레이션 완료)
+- **마지막 업데이트**: 2025-10-27
+
+## 🛠️ 로컬 개발 환경
+
+### 설치 및 실행
+```bash
+# 의존성 설치
 npm install
-```
 
-### 2. 데이터베이스 마이그레이션
-```bash
-# 로컬 D1 데이터베이스 마이그레이션
+# 로컬 DB 마이그레이션 적용
 npm run db:migrate:local
 
 # 테스트 데이터 삽입
 npm run db:seed
-```
 
-### 3. 빌드
-```bash
+# 개발 서버 시작 (PM2)
 npm run build
-```
-
-### 4. 개발 서버 시작
-```bash
-# PM2로 시작 (권장)
 pm2 start ecosystem.config.cjs
 
-# 또는 직접 실행
-npm run dev:sandbox
-```
-
-### 5. API 테스트
-```bash
-# 헬스체크
+# 로컬 테스트
 curl http://localhost:3000/api/health
-
-# 과정 목록 조회
-curl http://localhost:3000/api/courses
-
-# 캠퍼스 목록 조회
-curl http://localhost:3000/api/campuses
 ```
 
-## 📊 초기 테스트 데이터
-
-### 사용자
-- 관리자: admin@greenart.co.kr
-- 강사: teacher1@greenart.co.kr, teacher2@greenart.co.kr
-- 학생: student1@example.com, student2@example.com
-
-### 캠퍼스 (4개)
-- 강남본점 (서울)
-- 신도림 (서울)
-- 인천(부평)
-- 대전(둔산)
-
-### 과정 (5개)
-1. UI/UX 반응형 웹디자인 & 웹퍼블리셔
-2. React 프론트엔드 개발자 양성
-3. 유튜브 크리에이터 영상편집
-4. AutoCAD & 건축설계 실무
-5. Python 데이터 분석 & 머신러닝
-
-## 📡 API 엔드포인트 목록
-
-### 인증
-```
-POST   /api/auth/register        - 회원가입
-POST   /api/auth/login           - 로그인
-GET    /api/auth/me              - 내 정보 조회 (인증 필요)
-PUT    /api/auth/profile         - 프로필 수정 (인증 필요)
-POST   /api/auth/change-password - 비밀번호 변경 (인증 필요)
-```
-
-### 과정
-```
-GET    /api/courses              - 과정 목록 조회
-GET    /api/courses/:id          - 과정 상세 조회
-POST   /api/courses              - 과정 생성 (관리자)
-PUT    /api/courses/:id          - 과정 수정 (관리자)
-DELETE /api/courses/:id          - 과정 삭제 (관리자)
-```
-
-### 캠퍼스
-```
-GET    /api/campuses             - 캠퍼스 목록 조회
-GET    /api/campuses/:id         - 캠퍼스 상세 조회
-GET    /api/campuses/list/regions - 지역 목록 조회
-```
-
-### 시스템
-```
-GET    /api                      - API 정보
-GET    /api/health               - 헬스체크
-```
-
-## 🔒 인증 방식
-
-### JWT Bearer Token
+### 프로덕션 배포
 ```bash
-# 로그인 후 받은 토큰을 Authorization 헤더에 포함
-curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  http://localhost:3000/api/auth/me
+# GitHub에 푸시 (자동 배포)
+git add .
+git commit -m "Update"
+git push origin education-platform
+
+# 또는 수동 배포
+npm run deploy
 ```
 
-## 🌐 배포
+## 📖 기술 문서
 
-### Cloudflare Pages 배포 (추후)
-```bash
-# 프로덕션 D1 데이터베이스 생성
-wrangler d1 create webapp-production
+### JWT 인증
+- Web Crypto API 기반 JWT 구현
+- Authorization 헤더: `Bearer <token>`
+- 토큰 만료: 24시간
+- 비밀번호 해싱: SHA-256
 
-# 마이그레이션 적용
-npm run db:migrate:prod
+### 데이터베이스
+- Cloudflare D1 (SQLite)
+- 마이그레이션 파일: `migrations/0001_initial_schema.sql`
+- 로컬 개발: `--local` 플래그 사용
+- 프로덕션: Cloudflare Dashboard 또는 Wrangler CLI
 
-# 배포
-npm run deploy:prod
-```
-
-## 📦 패키지 스크립트
-
+### API 응답 형식
 ```json
 {
-  "dev": "vite",
-  "dev:sandbox": "wrangler pages dev dist --d1=webapp-production --local --ip 0.0.0.0 --port 3000",
-  "build": "vite build",
-  "deploy": "npm run build && wrangler pages deploy",
-  "deploy:prod": "npm run build && wrangler pages deploy dist --project-name webapp",
-  "db:migrate:local": "wrangler d1 migrations apply webapp-production --local",
-  "db:migrate:prod": "wrangler d1 migrations apply webapp-production",
-  "db:seed": "wrangler d1 execute webapp-production --local --file=./seed.sql",
-  "db:reset": "rm -rf .wrangler/state/v3/d1 && npm run db:migrate:local && npm run db:seed",
-  "clean-port": "fuser -k 3000/tcp 2>/dev/null || true",
-  "test": "curl http://localhost:3000"
+  "success": true,
+  "data": { /* 데이터 */ },
+  "pagination": { /* 페이지네이션 정보 (목록 API만) */ }
 }
 ```
 
-## 🛠️ 기술 스택
-
-- **프레임워크**: Hono ^4.10.3
-- **런타임**: Cloudflare Workers / Pages
-- **데이터베이스**: Cloudflare D1 (SQLite)
-- **언어**: TypeScript
-- **빌드 도구**: Vite ^6.3.5
-- **배포 도구**: Wrangler ^4.4.0
-- **프로세스 관리**: PM2
-
-## 📝 다음 단계
-
-1. ✅ **백엔드 API 구축 완료**
-2. ⏳ **추가 API 구현** (수강신청, 리뷰, 게시판)
-3. ⏳ **프론트엔드 UI 개발** (React/Vue 또는 Vanilla JS + TailwindCSS)
-4. ⏳ **결제 시스템 연동** (토스페이먼츠/아임포트)
-5. ⏳ **소셜 로그인** (네이버, 카카오, 구글)
-6. ⏳ **파일 업로드** (Cloudflare R2)
-7. ⏳ **알림 시스템** (이메일/SMS)
-
-## 📞 API 테스트 예제
-
-### 1. 회원가입
-```bash
-curl -X POST http://localhost:3000/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "test@example.com",
-    "password": "password123",
-    "name": "홍길동",
-    "phone": "010-1234-5678"
-  }'
-```
-
-### 2. 로그인
-```bash
-curl -X POST http://localhost:3000/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "test@example.com",
-    "password": "password123"
-  }'
-```
-
-### 3. 과정 목록 조회 (필터링)
-```bash
-# 카테고리별
-curl "http://localhost:3000/api/courses?category=웹디자인"
-
-# 검색
-curl "http://localhost:3000/api/courses?search=React"
-
-# 지역별
-curl "http://localhost:3000/api/courses?region=서울"
-
-# 정렬
-curl "http://localhost:3000/api/courses?sort=rating"
+### 에러 응답 형식
+```json
+{
+  "success": false,
+  "error": "에러 메시지"
+}
 ```
 
 ## 📄 라이선스
 
-MIT
+MIT License
 
-## 👨‍💻 개발자
+## 👥 기여자
 
-- AI Assistant
-- 개발 기간: 2025-10-27
-- 상태: 백엔드 API 개발 완료, 프론트엔드 개발 대기 중
+- Backend API Development: AI Assistant
+- Database Design: AI Assistant
+- JWT Implementation: Web Crypto API
+
+---
+
+**Last Updated**: 2025-10-27
+**Version**: 1.0.0 (MVP)
