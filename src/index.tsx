@@ -415,7 +415,7 @@ app.get('/', (c) => {
 
         <!-- 히어로 섹션 (슬라이드쇼) -->
         <section class="hero-slider">
-            <!-- Slide 1 -->
+            <!-- Slide 1: 화이트 테마 -->
             <div class="hero-slide active" style="background-image: url('/static/hero1.jpg')">
                 <div class="hero-overlay"></div>
                 <div class="hero-content">
@@ -424,7 +424,7 @@ app.get('/', (c) => {
                             상상을 현실로, 미래를 디자인하다!
                         </h1>
                         <p class="text-xl md:text-2xl mb-8 drop-shadow-lg">
-                            3D쿠키 홍대센터에서 4차 산업혁명의 핵심 기술,<br>
+                            와우쓰리디홍대센터에서 4차 산업혁명의 핵심 기술,<br>
                             3D모델링과 프린팅을 마스터하세요.
                         </p>
                         <div class="flex justify-center gap-4">
@@ -439,20 +439,20 @@ app.get('/', (c) => {
                 </div>
             </div>
 
-            <!-- Slide 2 -->
+            <!-- Slide 2: 골드/노란색 테마 -->
             <div class="hero-slide" style="background-image: url('/static/hero2.jpg')">
                 <div class="hero-overlay"></div>
                 <div class="hero-content">
-                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white">
-                        <h1 class="text-4xl md:text-6xl font-bold mb-6 drop-shadow-lg">
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-yellow-300">
+                        <h1 class="text-4xl md:text-6xl font-bold mb-6 drop-shadow-lg" style="text-shadow: 3px 3px 6px rgba(0,0,0,0.5);">
                             국가자격증 합격의 지름길!
                         </h1>
-                        <p class="text-xl md:text-2xl mb-8 drop-shadow-lg">
+                        <p class="text-xl md:text-2xl mb-8 drop-shadow-lg text-yellow-100" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
                             3D프린터운용기능사, 오토데스크 ACU 등<br>
                             공신력 있는 교육과 자격증 시험을 한 곳에서 준비하세요.
                         </p>
                         <div class="flex justify-center gap-4">
-                            <button onclick="scrollToSection('courses')" class="bg-white text-primary-600 px-8 py-4 rounded-lg font-semibold hover:bg-blue-50 transition text-lg shadow-lg">
+                            <button onclick="scrollToSection('courses')" class="bg-yellow-400 text-gray-900 px-8 py-4 rounded-lg font-semibold hover:bg-yellow-300 transition text-lg shadow-lg">
                                 과정 둘러보기
                             </button>
                         </div>
@@ -460,20 +460,20 @@ app.get('/', (c) => {
                 </div>
             </div>
 
-            <!-- Slide 3 -->
+            <!-- Slide 3: 민트/청록색 테마 -->
             <div class="hero-slide" style="background-image: url('/static/hero3.jpg')">
                 <div class="hero-overlay"></div>
                 <div class="hero-content">
-                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white">
-                        <h1 class="text-4xl md:text-6xl font-bold mb-6 drop-shadow-lg">
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-cyan-300">
+                        <h1 class="text-4xl md:text-6xl font-bold mb-6 drop-shadow-lg" style="text-shadow: 3px 3px 6px rgba(0,0,0,0.5);">
                             초보부터 전문가까지, 맞춤 교육!
                         </h1>
-                        <p class="text-xl md:text-2xl mb-8 drop-shadow-lg">
+                        <p class="text-xl md:text-2xl mb-8 drop-shadow-lg text-cyan-100" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
                             국민내일배움카드, 재직자, 일반 등<br>
                             모두를 위한 다양한 과정을 만나보세요.
                         </p>
                         <div class="flex justify-center gap-4">
-                            <button onclick="scrollToSection('courses')" class="bg-white text-primary-600 px-8 py-4 rounded-lg font-semibold hover:bg-blue-50 transition text-lg shadow-lg">
+                            <button onclick="scrollToSection('courses')" class="bg-cyan-400 text-gray-900 px-8 py-4 rounded-lg font-semibold hover:bg-cyan-300 transition text-lg shadow-lg">
                                 과정 둘러보기
                             </button>
                         </div>
@@ -481,20 +481,20 @@ app.get('/', (c) => {
                 </div>
             </div>
 
-            <!-- Slide 4 -->
+            <!-- Slide 4: 코랄/주황색 테마 -->
             <div class="hero-slide" style="background-image: url('/static/hero4.jpg')">
                 <div class="hero-overlay"></div>
                 <div class="hero-content">
-                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white">
-                        <h1 class="text-4xl md:text-6xl font-bold mb-6 drop-shadow-lg">
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-orange-300">
+                        <h1 class="text-4xl md:text-6xl font-bold mb-6 drop-shadow-lg" style="text-shadow: 3px 3px 6px rgba(0,0,0,0.5);">
                             당신의 아이디어를 세상에!
                         </h1>
-                        <p class="text-xl md:text-2xl mb-8 drop-shadow-lg">
-                            지금 바로 3D쿠키 홍대센터에서<br>
+                        <p class="text-xl md:text-2xl mb-8 drop-shadow-lg text-orange-100" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
+                            지금 바로 와우쓰리디홍대센터에서<br>
                             혁신적인 3D프린팅 전문가의 여정을 시작하세요!
                         </p>
                         <div class="flex justify-center gap-4">
-                            <button onclick="scrollToSection('contact')" class="bg-white text-primary-600 px-8 py-4 rounded-lg font-semibold hover:bg-blue-50 transition text-lg shadow-lg">
+                            <button onclick="scrollToSection('contact')" class="bg-orange-400 text-gray-900 px-8 py-4 rounded-lg font-semibold hover:bg-orange-300 transition text-lg shadow-lg">
                                 상담 신청
                             </button>
                         </div>
@@ -502,20 +502,20 @@ app.get('/', (c) => {
                 </div>
             </div>
 
-            <!-- Slide 5 -->
+            <!-- Slide 5: 라벤더/보라색 테마 -->
             <div class="hero-slide" style="background-image: url('/static/hero5.jpg')">
                 <div class="hero-overlay"></div>
                 <div class="hero-content">
-                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white">
-                        <h1 class="text-4xl md:text-6xl font-bold mb-6 drop-shadow-lg">
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-purple-300">
+                        <h1 class="text-4xl md:text-6xl font-bold mb-6 drop-shadow-lg" style="text-shadow: 3px 3px 6px rgba(0,0,0,0.5);">
                             실무 중심의 전문 커리큘럼!
                         </h1>
-                        <p class="text-xl md:text-2xl mb-8 drop-shadow-lg">
+                        <p class="text-xl md:text-2xl mb-8 drop-shadow-lg text-purple-100" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
                             시제품 제작부터 제품화까지!<br>
                             취업과 창업에 바로 연결되는 실무 교육을 경험하세요.
                         </p>
                         <div class="flex justify-center gap-4">
-                            <button onclick="scrollToSection('courses')" class="bg-white text-primary-600 px-8 py-4 rounded-lg font-semibold hover:bg-blue-50 transition text-lg shadow-lg">
+                            <button onclick="scrollToSection('courses')" class="bg-purple-400 text-white px-8 py-4 rounded-lg font-semibold hover:bg-purple-300 transition text-lg shadow-lg">
                                 과정 둘러보기
                             </button>
                         </div>
