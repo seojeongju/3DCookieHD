@@ -232,7 +232,7 @@ app.get('/', (c) => {
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex justify-between items-center h-20">
                     <div class="flex items-center space-x-4">
-                        <img src="/logo.png" alt="WOW 3D" class="h-12">
+                        <img src="/static/logo.png" alt="WOW 3D" class="h-12">
                         <span class="text-xl font-bold text-gray-800">와우쓰리디쿠키홍대센터</span>
                     </div>
                     <div class="hidden md:flex space-x-8">
@@ -257,7 +257,7 @@ app.get('/', (c) => {
         <!-- 히어로 섹션 (슬라이드쇼) -->
         <section class="hero-slider">
             <!-- Slide 1 -->
-            <div class="hero-slide active" style="background-image: url('/hero1.jpg')">
+            <div class="hero-slide active" style="background-image: url('/static/hero1.jpg')">
                 <div class="hero-overlay"></div>
                 <div class="hero-content">
                     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white">
@@ -281,7 +281,7 @@ app.get('/', (c) => {
             </div>
 
             <!-- Slide 2 -->
-            <div class="hero-slide" style="background-image: url('/hero2.jpg')">
+            <div class="hero-slide" style="background-image: url('/static/hero2.jpg')">
                 <div class="hero-overlay"></div>
                 <div class="hero-content">
                     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white">
@@ -302,7 +302,7 @@ app.get('/', (c) => {
             </div>
 
             <!-- Slide 3 -->
-            <div class="hero-slide" style="background-image: url('/hero3.jpg')">
+            <div class="hero-slide" style="background-image: url('/static/hero3.jpg')">
                 <div class="hero-overlay"></div>
                 <div class="hero-content">
                     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white">
@@ -323,7 +323,7 @@ app.get('/', (c) => {
             </div>
 
             <!-- Slide 4 -->
-            <div class="hero-slide" style="background-image: url('/hero4.jpg')">
+            <div class="hero-slide" style="background-image: url('/static/hero4.jpg')">
                 <div class="hero-overlay"></div>
                 <div class="hero-content">
                     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white">
@@ -344,7 +344,7 @@ app.get('/', (c) => {
             </div>
 
             <!-- Slide 5 -->
-            <div class="hero-slide" style="background-image: url('/hero5.jpg')">
+            <div class="hero-slide" style="background-image: url('/static/hero5.jpg')">
                 <div class="hero-overlay"></div>
                 <div class="hero-content">
                     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white">
