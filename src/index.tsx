@@ -262,6 +262,26 @@ app.get('/', (c) => {
               height: 500px;
             }
           }
+          /* 빠른 메뉴 네비게이션 스타일 */
+          .quick-menu-item {
+            transition: all 0.3s ease;
+          }
+          .quick-menu-item:hover {
+            transform: translateY(-4px);
+          }
+          @media (max-width: 768px) {
+            .quick-menu-nav {
+              overflow-x: auto;
+              -webkit-overflow-scrolling: touch;
+            }
+            .quick-menu-nav::-webkit-scrollbar {
+              height: 4px;
+            }
+            .quick-menu-nav::-webkit-scrollbar-thumb {
+              background: #3b82f6;
+              border-radius: 4px;
+            }
+          }
         </style>
     </head>
     <body class="bg-gray-50">
@@ -409,6 +429,72 @@ app.get('/', (c) => {
                 <div class="hero-dot" onclick="goToSlide(2)"></div>
                 <div class="hero-dot" onclick="goToSlide(3)"></div>
                 <div class="hero-dot" onclick="goToSlide(4)"></div>
+            </div>
+        </section>
+
+        <!-- 빠른 메뉴 네비게이션 -->
+        <section class="bg-white border-b border-gray-200 sticky top-20 z-40 shadow-sm">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-center items-center gap-8 py-4 overflow-x-auto">
+                    <a href="#courses" class="flex flex-col items-center min-w-[80px] hover:text-primary-600 transition group">
+                        <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-2 group-hover:bg-primary-50 transition">
+                            <i class="fas fa-calendar-alt text-xl text-gray-700 group-hover:text-primary-600"></i>
+                        </div>
+                        <span class="text-sm font-medium text-gray-700 group-hover:text-primary-600">시간표</span>
+                    </a>
+                    
+                    <a href="#campuses" class="flex flex-col items-center min-w-[80px] hover:text-primary-600 transition group">
+                        <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-2 group-hover:bg-primary-50 transition">
+                            <i class="fas fa-map-marker-alt text-xl text-gray-700 group-hover:text-primary-600"></i>
+                        </div>
+                        <span class="text-sm font-medium text-gray-700 group-hover:text-primary-600">위치안내</span>
+                    </a>
+                    
+                    <a href="#portfolio" class="flex flex-col items-center min-w-[80px] hover:text-primary-600 transition group">
+                        <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-2 group-hover:bg-primary-50 transition">
+                            <i class="fas fa-image text-xl text-gray-700 group-hover:text-primary-600"></i>
+                        </div>
+                        <span class="text-sm font-medium text-gray-700 group-hover:text-primary-600">포트폴리오</span>
+                    </a>
+                    
+                    <a href="#reviews" class="flex flex-col items-center min-w-[80px] hover:text-primary-600 transition group">
+                        <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-2 group-hover:bg-primary-50 transition">
+                            <i class="fas fa-pencil-alt text-xl text-gray-700 group-hover:text-primary-600"></i>
+                        </div>
+                        <span class="text-sm font-medium text-gray-700 group-hover:text-primary-600">수강후기</span>
+                    </a>
+                    
+                    <a href="#board" class="flex flex-col items-center min-w-[80px] hover:text-primary-600 transition group">
+                        <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-2 group-hover:bg-primary-50 transition">
+                            <i class="fas fa-clipboard-list text-xl text-gray-700 group-hover:text-primary-600"></i>
+                        </div>
+                        <span class="text-sm font-medium text-gray-700 group-hover:text-primary-600">게시판</span>
+                    </a>
+                    
+                    <a href="#search" class="flex flex-col items-center min-w-[80px] hover:text-primary-600 transition group">
+                        <div class="w-12 h-12 bg-primary-600 rounded-full flex items-center justify-center mb-2 group-hover:bg-primary-700 transition">
+                            <i class="fas fa-search text-xl text-white"></i>
+                        </div>
+                        <span class="text-sm font-medium text-primary-600 group-hover:text-primary-700">수강료조회</span>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- 공지사항 배너 -->
+            <div class="bg-gray-50 border-t border-gray-200">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <span class="bg-primary-600 text-white px-3 py-1 rounded text-sm font-bold">NOTICE</span>
+                            <p class="text-sm text-gray-700">
+                                '상상'구조변대학을 등 목적분'우수프리타 산업
+                            </p>
+                        </div>
+                        <button class="text-gray-400 hover:text-gray-600">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
         </section>
 
