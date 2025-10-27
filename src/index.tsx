@@ -162,6 +162,68 @@ app.get('/', (c) => {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
           }
+          .hero-slider {
+            position: relative;
+            height: 600px;
+            overflow: hidden;
+          }
+          .hero-slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 1s ease-in-out;
+            background-size: cover;
+            background-position: center;
+          }
+          .hero-slide.active {
+            opacity: 1;
+          }
+          .hero-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(30, 58, 138, 0.85) 0%, rgba(37, 99, 235, 0.75) 50%, rgba(59, 130, 246, 0.65) 100%);
+          }
+          .hero-content {
+            position: relative;
+            z-index: 10;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          .hero-dots {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 20;
+            display: flex;
+            gap: 12px;
+          }
+          .hero-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            transition: all 0.3s;
+          }
+          .hero-dot.active {
+            background: white;
+            width: 32px;
+            border-radius: 6px;
+          }
+          @media (max-height: 700px) {
+            .hero-slider {
+              height: 500px;
+            }
+          }
         </style>
     </head>
     <body class="bg-gray-50">
@@ -192,25 +254,123 @@ app.get('/', (c) => {
             </div>
         </nav>
 
-        <!-- 히어로 섹션 -->
-        <section class="hero-gradient text-white py-20">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="text-center">
-                    <h1 class="text-5xl md:text-6xl font-bold mb-6">
-                        3D 프린팅, 메이커 교육의 중심
-                    </h1>
-                    <p class="text-xl md:text-2xl mb-8 text-blue-100">
-                        국비지원부터 자비부담까지, 실무 중심의 체계적인 교육 프로그램
-                    </p>
-                    <div class="flex justify-center gap-4">
-                        <button onclick="scrollToSection('courses')" class="bg-white text-primary-600 px-8 py-4 rounded-lg font-semibold hover:bg-blue-50 transition text-lg">
-                            과정 둘러보기
-                        </button>
-                        <button onclick="scrollToSection('contact')" class="border-2 border-white text-white px-8 py-4 rounded-lg font-semibold hover:bg-white hover:text-primary-600 transition text-lg">
-                            상담 신청
-                        </button>
+        <!-- 히어로 섹션 (슬라이드쇼) -->
+        <section class="hero-slider">
+            <!-- Slide 1 -->
+            <div class="hero-slide active" style="background-image: url('/hero1.jpg')">
+                <div class="hero-overlay"></div>
+                <div class="hero-content">
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white">
+                        <h1 class="text-4xl md:text-6xl font-bold mb-6 drop-shadow-lg">
+                            상상을 현실로, 미래를 디자인하다!
+                        </h1>
+                        <p class="text-xl md:text-2xl mb-8 drop-shadow-lg">
+                            3D쿠키 홍대센터에서 4차 산업혁명의 핵심 기술,<br>
+                            3D모델링과 프린팅을 마스터하세요.
+                        </p>
+                        <div class="flex justify-center gap-4">
+                            <button onclick="scrollToSection('courses')" class="bg-white text-primary-600 px-8 py-4 rounded-lg font-semibold hover:bg-blue-50 transition text-lg shadow-lg">
+                                과정 둘러보기
+                            </button>
+                            <button onclick="scrollToSection('contact')" class="border-2 border-white text-white px-8 py-4 rounded-lg font-semibold hover:bg-white hover:text-primary-600 transition text-lg">
+                                상담 신청
+                            </button>
+                        </div>
                     </div>
                 </div>
+            </div>
+
+            <!-- Slide 2 -->
+            <div class="hero-slide" style="background-image: url('/hero2.jpg')">
+                <div class="hero-overlay"></div>
+                <div class="hero-content">
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white">
+                        <h1 class="text-4xl md:text-6xl font-bold mb-6 drop-shadow-lg">
+                            국가자격증 합격의 지름길!
+                        </h1>
+                        <p class="text-xl md:text-2xl mb-8 drop-shadow-lg">
+                            3D프린터운용기능사, 오토데스크 ACU 등<br>
+                            공신력 있는 교육과 자격증 시험을 한 곳에서 준비하세요.
+                        </p>
+                        <div class="flex justify-center gap-4">
+                            <button onclick="scrollToSection('courses')" class="bg-white text-primary-600 px-8 py-4 rounded-lg font-semibold hover:bg-blue-50 transition text-lg shadow-lg">
+                                과정 둘러보기
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 3 -->
+            <div class="hero-slide" style="background-image: url('/hero3.jpg')">
+                <div class="hero-overlay"></div>
+                <div class="hero-content">
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white">
+                        <h1 class="text-4xl md:text-6xl font-bold mb-6 drop-shadow-lg">
+                            초보부터 전문가까지, 맞춤 교육!
+                        </h1>
+                        <p class="text-xl md:text-2xl mb-8 drop-shadow-lg">
+                            국민내일배움카드, 재직자, 일반 등<br>
+                            모두를 위한 다양한 과정을 만나보세요.
+                        </p>
+                        <div class="flex justify-center gap-4">
+                            <button onclick="scrollToSection('courses')" class="bg-white text-primary-600 px-8 py-4 rounded-lg font-semibold hover:bg-blue-50 transition text-lg shadow-lg">
+                                과정 둘러보기
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 4 -->
+            <div class="hero-slide" style="background-image: url('/hero4.jpg')">
+                <div class="hero-overlay"></div>
+                <div class="hero-content">
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white">
+                        <h1 class="text-4xl md:text-6xl font-bold mb-6 drop-shadow-lg">
+                            당신의 아이디어를 세상에!
+                        </h1>
+                        <p class="text-xl md:text-2xl mb-8 drop-shadow-lg">
+                            지금 바로 3D쿠키 홍대센터에서<br>
+                            혁신적인 3D프린팅 전문가의 여정을 시작하세요!
+                        </p>
+                        <div class="flex justify-center gap-4">
+                            <button onclick="scrollToSection('contact')" class="bg-white text-primary-600 px-8 py-4 rounded-lg font-semibold hover:bg-blue-50 transition text-lg shadow-lg">
+                                상담 신청
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 5 -->
+            <div class="hero-slide" style="background-image: url('/hero5.jpg')">
+                <div class="hero-overlay"></div>
+                <div class="hero-content">
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white">
+                        <h1 class="text-4xl md:text-6xl font-bold mb-6 drop-shadow-lg">
+                            실무 중심의 전문 커리큘럼!
+                        </h1>
+                        <p class="text-xl md:text-2xl mb-8 drop-shadow-lg">
+                            시제품 제작부터 제품화까지!<br>
+                            취업과 창업에 바로 연결되는 실무 교육을 경험하세요.
+                        </p>
+                        <div class="flex justify-center gap-4">
+                            <button onclick="scrollToSection('courses')" class="bg-white text-primary-600 px-8 py-4 rounded-lg font-semibold hover:bg-blue-50 transition text-lg shadow-lg">
+                                과정 둘러보기
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation Dots -->
+            <div class="hero-dots">
+                <div class="hero-dot active" onclick="goToSlide(0)"></div>
+                <div class="hero-dot" onclick="goToSlide(1)"></div>
+                <div class="hero-dot" onclick="goToSlide(2)"></div>
+                <div class="hero-dot" onclick="goToSlide(3)"></div>
+                <div class="hero-dot" onclick="goToSlide(4)"></div>
             </div>
         </section>
 
@@ -335,6 +495,58 @@ app.get('/', (c) => {
         <script>
           // API Base URL
           const API_BASE = '/api';
+          
+          // ============================================
+          // 히어로 슬라이드쇼
+          // ============================================
+          let currentSlide = 0;
+          const slides = document.querySelectorAll('.hero-slide');
+          const dots = document.querySelectorAll('.hero-dot');
+          const totalSlides = slides.length;
+          let slideInterval;
+          
+          // 슬라이드 변경 함수
+          function showSlide(index) {
+            // 인덱스 범위 체크
+            if (index >= totalSlides) {
+              currentSlide = 0;
+            } else if (index < 0) {
+              currentSlide = totalSlides - 1;
+            } else {
+              currentSlide = index;
+            }
+            
+            // 모든 슬라이드 숨기기
+            slides.forEach(slide => slide.classList.remove('active'));
+            dots.forEach(dot => dot.classList.remove('active'));
+            
+            // 현재 슬라이드 표시
+            slides[currentSlide].classList.add('active');
+            dots[currentSlide].classList.add('active');
+          }
+          
+          // 다음 슬라이드
+          function nextSlide() {
+            showSlide(currentSlide + 1);
+          }
+          
+          // 특정 슬라이드로 이동
+          function goToSlide(index) {
+            showSlide(index);
+            // 자동 재생 재시작
+            clearInterval(slideInterval);
+            startSlideShow();
+          }
+          
+          // 자동 슬라이드쇼 시작
+          function startSlideShow() {
+            slideInterval = setInterval(nextSlide, 5000); // 5초마다 변경
+          }
+          
+          // 페이지 로드 시 슬라이드쇼 시작
+          document.addEventListener('DOMContentLoaded', () => {
+            startSlideShow();
+          });
           
           // 과정 목록 로드
           async function loadCourses() {
