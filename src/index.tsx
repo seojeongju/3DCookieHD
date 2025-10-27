@@ -374,7 +374,34 @@ app.get('/', (c) => {
                                 </div>
                             </div>
                         </div>
-                        <a href="#campuses" class="text-gray-700 hover:text-primary-600 font-medium">캠퍼스</a>
+                        <!-- 센터소개 드롭다운 -->
+                        <div class="relative group">
+                            <button class="text-gray-700 hover:text-primary-600 font-medium flex items-center">
+                                센터소개
+                                <i class="fas fa-chevron-down ml-1 text-xs"></i>
+                            </button>
+                            <!-- 드롭다운 메뉴 -->
+                            <div class="absolute left-0 top-full mt-2 w-56 bg-white rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                                <div class="py-2">
+                                    <a href="/greeting" class="block px-6 py-3 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition">
+                                        <i class="fas fa-hands-helping mr-2"></i>
+                                        인사말
+                                    </a>
+                                    <a href="/education-photos" class="block px-6 py-3 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition">
+                                        <i class="fas fa-images mr-2"></i>
+                                        교육사진
+                                    </a>
+                                    <a href="/facilities" class="block px-6 py-3 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition">
+                                        <i class="fas fa-building mr-2"></i>
+                                        시설현황
+                                    </a>
+                                    <a href="/locations" class="block px-6 py-3 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition">
+                                        <i class="fas fa-map-marker-alt mr-2"></i>
+                                        지점안내
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
                         <a href="#reviews" class="text-gray-700 hover:text-primary-600 font-medium">수강 후기</a>
                         <a href="#board" class="text-gray-700 hover:text-primary-600 font-medium">게시판</a>
                         
@@ -2930,6 +2957,1466 @@ app.get('/teacher-admin', (c) => {
                     <li><i class="fas fa-check text-green-600 mr-2"></i>출결 및 성적 입력은 매주 금요일까지 완료해 주세요.</li>
                     <li><i class="fas fa-check text-green-600 mr-2"></i>문의사항은 교무팀(02-1234-5679)으로 연락 주세요.</li>
                 </ul>
+            </div>
+        </div>
+
+        <!-- 푸터 -->
+        <footer class="bg-gray-800 text-white py-8 mt-12">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <p class="text-gray-400">&copy; 2025 와우쓰리디홍대센터. All rights reserved.</p>
+            </div>
+        </footer>
+    </body>
+    </html>
+  `);
+});
+
+// ============================================
+// 인사말 페이지
+// ============================================
+app.get('/greeting', (c) => {
+  return c.html(`
+    <!DOCTYPE html>
+    <html lang="ko">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>인사말 - 와우쓰리디홍대센터</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+        <script>
+          tailwind.config = {
+            theme: {
+              extend: {
+                colors: {
+                  primary: {
+                    50: '#f0f7ff',
+                    100: '#e0effe',
+                    200: '#baddfd',
+                    300: '#7dbcfb',
+                    400: '#3a9bf7',
+                    500: '#5b9bd5',
+                    600: '#4a90e2',
+                    700: '#2d5fa3',
+                    800: '#1e4278',
+                    900: '#132d54'
+                  }
+                }
+              }
+            }
+          }
+        </script>
+    </head>
+    <body class="bg-gray-50">
+        <!-- 네비게이션 -->
+        <nav class="bg-white shadow-md sticky top-0 z-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-20">
+                    <div class="flex items-center space-x-4">
+                        <a href="/" class="flex items-center space-x-4">
+                            <img src="/static/logo.png" alt="WOW 3D" class="h-12">
+                            <span class="text-xl font-bold text-gray-800">와우쓰리디홍대센터</span>
+                        </a>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <a href="/" class="text-gray-700 hover:text-primary-600 font-medium">
+                            <i class="fas fa-home mr-2"></i>홈으로
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- 헤더 -->
+        <div class="bg-gradient-to-r from-primary-600 to-blue-700 text-white py-16">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <h1 class="text-4xl md:text-5xl font-bold mb-4">
+                    <i class="fas fa-hands-helping mr-4"></i>
+                    센터장 인사말
+                </h1>
+                <p class="text-xl text-blue-100">와우쓰리디홍대센터와 함께하는 미래</p>
+            </div>
+        </div>
+
+        <!-- 메인 컨텐츠 -->
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <!-- 센터장 소개 카드 -->
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden mb-12">
+                <div class="grid md:grid-cols-5 gap-0">
+                    <!-- 센터장 사진 영역 -->
+                    <div class="md:col-span-2 bg-gradient-to-br from-primary-50 to-blue-100 flex items-center justify-center p-12">
+                        <div class="text-center">
+                            <div class="w-48 h-48 mx-auto mb-6 rounded-full bg-white shadow-lg flex items-center justify-center">
+                                <i class="fas fa-user-tie text-7xl text-primary-600"></i>
+                            </div>
+                            <h3 class="text-2xl font-bold text-gray-800 mb-2">이준우</h3>
+                            <p class="text-lg text-gray-600 font-semibold">센터장</p>
+                            <div class="mt-6 space-y-2">
+                                <div class="flex items-center justify-center text-gray-700">
+                                    <i class="fas fa-envelope mr-2 text-primary-600"></i>
+                                    <span class="text-sm">director@wow3dcookie.kr</span>
+                                </div>
+                                <div class="flex items-center justify-center text-gray-700">
+                                    <i class="fas fa-phone mr-2 text-primary-600"></i>
+                                    <span class="text-sm">02-1234-5678</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 인사말 내용 -->
+                    <div class="md:col-span-3 p-8 md:p-12">
+                        <div class="prose prose-lg max-w-none">
+                            <h2 class="text-3xl font-bold text-gray-800 mb-6">
+                                미래를 함께 만들어가는<br>
+                                <span class="text-primary-600">와우쓰리디홍대센터</span>
+                            </h2>
+                            
+                            <div class="space-y-6 text-gray-700 leading-relaxed">
+                                <p class="text-lg">
+                                    안녕하십니까. 와우쓰리디홍대센터 센터장 이준우입니다.
+                                </p>
+                                
+                                <p>
+                                    4차 산업혁명 시대를 맞이하여 3D프린팅 기술은 제조업의 혁신을 이끄는 핵심 기술로 자리매김하고 있습니다. 
+                                    와우쓰리디홍대센터는 이러한 시대적 요구에 부응하여 3D프린팅 전문 인력 양성에 힘쓰고 있습니다.
+                                </p>
+                                
+                                <p>
+                                    저희 센터는 <strong class="text-primary-600">체계적인 교육 커리큘럼</strong>과 <strong class="text-primary-600">최신 장비</strong>를 갖추고 있으며, 
+                                    산업현장에서 요구하는 실무 중심의 교육을 제공합니다. 
+                                    국가자격증 취득부터 실무 프로젝트 수행까지, 학생 여러분의 성공적인 커리어를 위해 최선을 다하겠습니다.
+                                </p>
+                                
+                                <p>
+                                    또한 기업 맞춤형 교육과 대학 산학협력 프로그램을 통해 산업계와 교육계의 가교 역할을 충실히 수행하고 있습니다.
+                                </p>
+                                
+                                <p class="text-lg font-semibold text-gray-800">
+                                    와우쓰리디홍대센터가 여러분의 꿈을 현실로 만드는 든든한 동반자가 되겠습니다.
+                                </p>
+                                
+                                <p class="text-right mt-8">
+                                    <span class="text-gray-600">감사합니다.</span><br>
+                                    <strong class="text-xl text-gray-800">센터장 이준우</strong>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 센터 비전 & 목표 -->
+            <div class="grid md:grid-cols-3 gap-8 mb-12">
+                <div class="bg-white rounded-xl shadow-lg p-8 text-center border-t-4 border-primary-600">
+                    <div class="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-bullseye text-3xl text-primary-600"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-3">교육 목표</h3>
+                    <p class="text-gray-600 leading-relaxed">
+                        실무 중심의 3D프린팅 전문가 양성과 국가자격증 합격률 최고 달성
+                    </p>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-lg p-8 text-center border-t-4 border-blue-600">
+                    <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-lightbulb text-3xl text-blue-600"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-3">핵심 가치</h3>
+                    <p class="text-gray-600 leading-relaxed">
+                        혁신적인 교육 방법과 학생 중심의 맞춤형 지도로 최고의 교육 품질 제공
+                    </p>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-lg p-8 text-center border-t-4 border-indigo-600">
+                    <div class="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-rocket text-3xl text-indigo-600"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-3">미래 비전</h3>
+                    <p class="text-gray-600 leading-relaxed">
+                        대한민국 최고의 3D프린팅 교육기관으로 성장하여 산업 발전에 기여
+                    </p>
+                </div>
+            </div>
+
+            <!-- 센터 연혁 -->
+            <div class="bg-white rounded-xl shadow-lg p-8 mb-12">
+                <h2 class="text-2xl font-bold text-gray-800 mb-8 flex items-center">
+                    <i class="fas fa-history text-primary-600 mr-3"></i>
+                    센터 연혁
+                </h2>
+                <div class="space-y-6">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 w-32 font-bold text-primary-600 text-lg">2024.03</div>
+                        <div class="flex-1 border-l-4 border-primary-200 pl-6 pb-6">
+                            <div class="font-semibold text-gray-800 mb-2">전주센터 개설</div>
+                            <p class="text-gray-600">전북특별자치도 지역 3D프린팅 교육 확대</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 w-32 font-bold text-primary-600 text-lg">2023.09</div>
+                        <div class="flex-1 border-l-4 border-primary-200 pl-6 pb-6">
+                            <div class="font-semibold text-gray-800 mb-2">구미센터 개설</div>
+                            <p class="text-gray-600">경북 지역 첨단 의료기술 교육센터 설립</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 w-32 font-bold text-primary-600 text-lg">2022.05</div>
+                        <div class="flex-1 border-l-4 border-primary-200 pl-6 pb-6">
+                            <div class="font-semibold text-gray-800 mb-2">대학 산학협력 프로그램 시작</div>
+                            <p class="text-gray-600">10개 대학과 3D프린팅 교육 협력</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 w-32 font-bold text-primary-600 text-lg">2021.01</div>
+                        <div class="flex-1 border-l-4 border-primary-200 pl-6">
+                            <div class="font-semibold text-gray-800 mb-2">와우쓰리디홍대센터 설립</div>
+                            <p class="text-gray-600">서울 마포구 홍대 지역에 본점 개설</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CTA 버튼 -->
+            <div class="text-center">
+                <a href="/online-consulting" class="inline-block bg-gradient-to-r from-primary-600 to-blue-700 text-white px-8 py-4 rounded-lg font-bold text-lg hover:from-primary-700 hover:to-blue-800 transition shadow-lg hover:shadow-xl">
+                    <i class="fas fa-comments mr-2"></i>
+                    상담 신청하기
+                </a>
+            </div>
+        </div>
+
+        <!-- 푸터 -->
+        <footer class="bg-gray-800 text-white py-8 mt-12">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <p class="text-gray-400">&copy; 2025 와우쓰리디홍대센터. All rights reserved.</p>
+            </div>
+        </footer>
+    </body>
+    </html>
+  `);
+});
+
+// ============================================
+// 교육사진 갤러리 페이지
+// ============================================
+app.get('/education-photos', (c) => {
+  return c.html(`
+    <!DOCTYPE html>
+    <html lang="ko">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>교육사진 - 와우쓰리디홍대센터</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+        <script>
+          tailwind.config = {
+            theme: {
+              extend: {
+                colors: {
+                  primary: {
+                    50: '#f0f7ff',
+                    100: '#e0effe',
+                    200: '#baddfd',
+                    300: '#7dbcfb',
+                    400: '#3a9bf7',
+                    500: '#5b9bd5',
+                    600: '#4a90e2',
+                    700: '#2d5fa3',
+                    800: '#1e4278',
+                    900: '#132d54'
+                  }
+                }
+              }
+            }
+          }
+        </script>
+        <style>
+          .gallery-item {
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+          }
+          .gallery-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+          }
+          .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+          }
+          .modal.active {
+            display: flex;
+          }
+          .modal-content {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+          }
+        </style>
+    </head>
+    <body class="bg-gray-50">
+        <!-- 네비게이션 -->
+        <nav class="bg-white shadow-md sticky top-0 z-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-20">
+                    <div class="flex items-center space-x-4">
+                        <a href="/" class="flex items-center space-x-4">
+                            <img src="/static/logo.png" alt="WOW 3D" class="h-12">
+                            <span class="text-xl font-bold text-gray-800">와우쓰리디홍대센터</span>
+                        </a>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <a href="/" class="text-gray-700 hover:text-primary-600 font-medium">
+                            <i class="fas fa-home mr-2"></i>홈으로
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- 헤더 -->
+        <div class="bg-gradient-to-r from-purple-600 to-pink-600 text-white py-16">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <h1 class="text-4xl md:text-5xl font-bold mb-4">
+                    <i class="fas fa-images mr-4"></i>
+                    교육사진 갤러리
+                </h1>
+                <p class="text-xl text-purple-100">생생한 교육 현장을 만나보세요</p>
+            </div>
+        </div>
+
+        <!-- 갤러리 필터 -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="flex flex-wrap justify-center gap-4 mb-8">
+                <button onclick="filterGallery('all')" class="filter-btn px-6 py-2 rounded-full bg-primary-600 text-white font-semibold hover:bg-primary-700 transition">
+                    전체보기
+                </button>
+                <button onclick="filterGallery('class')" class="filter-btn px-6 py-2 rounded-full bg-white text-gray-700 font-semibold hover:bg-gray-100 transition border border-gray-300">
+                    수업 현장
+                </button>
+                <button onclick="filterGallery('equipment')" class="filter-btn px-6 py-2 rounded-full bg-white text-gray-700 font-semibold hover:bg-gray-100 transition border border-gray-300">
+                    장비 및 시설
+                </button>
+                <button onclick="filterGallery('projects')" class="filter-btn px-6 py-2 rounded-full bg-white text-gray-700 font-semibold hover:bg-gray-100 transition border border-gray-300">
+                    학생 작품
+                </button>
+                <button onclick="filterGallery('events')" class="filter-btn px-6 py-2 rounded-full bg-white text-gray-700 font-semibold hover:bg-gray-100 transition border border-gray-300">
+                    행사 및 이벤트
+                </button>
+            </div>
+
+            <!-- 갤러리 그리드 -->
+            <div id="galleryGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <!-- 수업 현장 사진들 -->
+                <div class="gallery-item bg-white rounded-lg overflow-hidden shadow-md" data-category="class" onclick="openModal('/static/gallery1.jpg', '3D 모델링 수업')">
+                    <div class="aspect-square bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center">
+                        <i class="fas fa-chalkboard-teacher text-6xl text-blue-600"></i>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-semibold text-gray-800 mb-1">3D 모델링 수업</h3>
+                        <p class="text-sm text-gray-600">실습 중심의 수업 진행</p>
+                    </div>
+                </div>
+
+                <div class="gallery-item bg-white rounded-lg overflow-hidden shadow-md" data-category="class" onclick="openModal('/static/gallery2.jpg', '프린팅 실습')">
+                    <div class="aspect-square bg-gradient-to-br from-green-100 to-green-200 flex items-center justify-center">
+                        <i class="fas fa-users text-6xl text-green-600"></i>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-semibold text-gray-800 mb-1">프린팅 실습</h3>
+                        <p class="text-sm text-gray-600">학생들의 실습 현장</p>
+                    </div>
+                </div>
+
+                <div class="gallery-item bg-white rounded-lg overflow-hidden shadow-md" data-category="class" onclick="openModal('/static/gallery3.jpg', '강사 시연')">
+                    <div class="aspect-square bg-gradient-to-br from-purple-100 to-purple-200 flex items-center justify-center">
+                        <i class="fas fa-user-graduate text-6xl text-purple-600"></i>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-semibold text-gray-800 mb-1">강사 시연</h3>
+                        <p class="text-sm text-gray-600">전문 강사의 실무 시연</p>
+                    </div>
+                </div>
+
+                <!-- 장비 및 시설 사진들 -->
+                <div class="gallery-item bg-white rounded-lg overflow-hidden shadow-md" data-category="equipment" onclick="openModal('/static/gallery4.jpg', '3D 프린터')">
+                    <div class="aspect-square bg-gradient-to-br from-orange-100 to-orange-200 flex items-center justify-center">
+                        <i class="fas fa-print text-6xl text-orange-600"></i>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-semibold text-gray-800 mb-1">3D 프린터</h3>
+                        <p class="text-sm text-gray-600">최신 3D 프린팅 장비</p>
+                    </div>
+                </div>
+
+                <div class="gallery-item bg-white rounded-lg overflow-hidden shadow-md" data-category="equipment" onclick="openModal('/static/gallery5.jpg', '실습실')">
+                    <div class="aspect-square bg-gradient-to-br from-cyan-100 to-cyan-200 flex items-center justify-center">
+                        <i class="fas fa-desktop text-6xl text-cyan-600"></i>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-semibold text-gray-800 mb-1">실습실</h3>
+                        <p class="text-sm text-gray-600">쾌적한 실습 환경</p>
+                    </div>
+                </div>
+
+                <div class="gallery-item bg-white rounded-lg overflow-hidden shadow-md" data-category="equipment" onclick="openModal('/static/gallery6.jpg', '3D 스캐너')">
+                    <div class="aspect-square bg-gradient-to-br from-red-100 to-red-200 flex items-center justify-center">
+                        <i class="fas fa-camera text-6xl text-red-600"></i>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-semibold text-gray-800 mb-1">3D 스캐너</h3>
+                        <p class="text-sm text-gray-600">고성능 3D 스캐닝 장비</p>
+                    </div>
+                </div>
+
+                <!-- 학생 작품 사진들 -->
+                <div class="gallery-item bg-white rounded-lg overflow-hidden shadow-md" data-category="projects" onclick="openModal('/static/gallery7.jpg', '작품 전시')">
+                    <div class="aspect-square bg-gradient-to-br from-indigo-100 to-indigo-200 flex items-center justify-center">
+                        <i class="fas fa-palette text-6xl text-indigo-600"></i>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-semibold text-gray-800 mb-1">작품 전시</h3>
+                        <p class="text-sm text-gray-600">학생들의 우수 작품</p>
+                    </div>
+                </div>
+
+                <div class="gallery-item bg-white rounded-lg overflow-hidden shadow-md" data-category="projects" onclick="openModal('/static/gallery8.jpg', '프로젝트 결과물')">
+                    <div class="aspect-square bg-gradient-to-br from-pink-100 to-pink-200 flex items-center justify-center">
+                        <i class="fas fa-cube text-6xl text-pink-600"></i>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-semibold text-gray-800 mb-1">프로젝트 결과물</h3>
+                        <p class="text-sm text-gray-600">실무 프로젝트 완성작</p>
+                    </div>
+                </div>
+
+                <!-- 행사 및 이벤트 사진들 -->
+                <div class="gallery-item bg-white rounded-lg overflow-hidden shadow-md" data-category="events" onclick="openModal('/static/gallery9.jpg', '수료식')">
+                    <div class="aspect-square bg-gradient-to-br from-yellow-100 to-yellow-200 flex items-center justify-center">
+                        <i class="fas fa-certificate text-6xl text-yellow-600"></i>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-semibold text-gray-800 mb-1">수료식</h3>
+                        <p class="text-sm text-gray-600">과정 수료 기념</p>
+                    </div>
+                </div>
+
+                <div class="gallery-item bg-white rounded-lg overflow-hidden shadow-md" data-category="events" onclick="openModal('/static/gallery10.jpg', '특강')">
+                    <div class="aspect-square bg-gradient-to-br from-teal-100 to-teal-200 flex items-center justify-center">
+                        <i class="fas fa-microphone text-6xl text-teal-600"></i>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-semibold text-gray-800 mb-1">특강</h3>
+                        <p class="text-sm text-gray-600">산업 전문가 특강</p>
+                    </div>
+                </div>
+
+                <div class="gallery-item bg-white rounded-lg overflow-hidden shadow-md" data-category="events" onclick="openModal('/static/gallery11.jpg', '워크샵')">
+                    <div class="aspect-square bg-gradient-to-br from-lime-100 to-lime-200 flex items-center justify-center">
+                        <i class="fas fa-hands-helping text-6xl text-lime-600"></i>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-semibold text-gray-800 mb-1">워크샵</h3>
+                        <p class="text-sm text-gray-600">실무 워크샵 진행</p>
+                    </div>
+                </div>
+
+                <div class="gallery-item bg-white rounded-lg overflow-hidden shadow-md" data-category="class" onclick="openModal('/static/gallery12.jpg', '그룹 스터디')">
+                    <div class="aspect-square bg-gradient-to-br from-rose-100 to-rose-200 flex items-center justify-center">
+                        <i class="fas fa-user-friends text-6xl text-rose-600"></i>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-semibold text-gray-800 mb-1">그룹 스터디</h3>
+                        <p class="text-sm text-gray-600">팀별 협업 학습</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 이미지 모달 -->
+        <div id="imageModal" class="modal" onclick="closeModal()">
+            <button class="absolute top-8 right-8 text-white text-4xl hover:text-gray-300 transition z-50" onclick="closeModal()">
+                <i class="fas fa-times"></i>
+            </button>
+            <img id="modalImage" class="modal-content" src="" alt="">
+            <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 text-white text-xl font-semibold bg-black bg-opacity-50 px-6 py-3 rounded-lg" id="modalCaption"></div>
+        </div>
+
+        <!-- 푸터 -->
+        <footer class="bg-gray-800 text-white py-8 mt-12">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <p class="text-gray-400">&copy; 2025 와우쓰리디홍대센터. All rights reserved.</p>
+            </div>
+        </footer>
+
+        <script>
+          // 갤러리 필터 함수
+          function filterGallery(category) {
+            const items = document.querySelectorAll('.gallery-item');
+            const buttons = document.querySelectorAll('.filter-btn');
+            
+            // 버튼 스타일 업데이트
+            buttons.forEach(btn => {
+              btn.classList.remove('bg-primary-600', 'text-white');
+              btn.classList.add('bg-white', 'text-gray-700', 'border', 'border-gray-300');
+            });
+            event.target.classList.remove('bg-white', 'text-gray-700', 'border', 'border-gray-300');
+            event.target.classList.add('bg-primary-600', 'text-white');
+            
+            // 아이템 필터링
+            items.forEach(item => {
+              if (category === 'all' || item.dataset.category === category) {
+                item.style.display = 'block';
+                setTimeout(() => {
+                  item.style.opacity = '1';
+                  item.style.transform = 'scale(1)';
+                }, 10);
+              } else {
+                item.style.opacity = '0';
+                item.style.transform = 'scale(0.8)';
+                setTimeout(() => {
+                  item.style.display = 'none';
+                }, 300);
+              }
+            });
+          }
+
+          // 모달 열기
+          function openModal(imageSrc, caption) {
+            const modal = document.getElementById('imageModal');
+            const modalImg = document.getElementById('modalImage');
+            const modalCaption = document.getElementById('modalCaption');
+            
+            modal.classList.add('active');
+            modalImg.src = imageSrc;
+            modalCaption.textContent = caption;
+            document.body.style.overflow = 'hidden';
+          }
+
+          // 모달 닫기
+          function closeModal() {
+            const modal = document.getElementById('imageModal');
+            modal.classList.remove('active');
+            document.body.style.overflow = 'auto';
+          }
+
+          // ESC 키로 모달 닫기
+          document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+              closeModal();
+            }
+          });
+        </script>
+    </body>
+    </html>
+  `);
+});
+
+// ============================================
+// 시설현황 페이지
+// ============================================
+app.get('/facilities', (c) => {
+  return c.html(`
+    <!DOCTYPE html>
+    <html lang="ko">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>시설현황 - 와우쓰리디홍대센터</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+        <script>
+          tailwind.config = {
+            theme: {
+              extend: {
+                colors: {
+                  primary: {
+                    50: '#f0f7ff',
+                    100: '#e0effe',
+                    200: '#baddfd',
+                    300: '#7dbcfb',
+                    400: '#3a9bf7',
+                    500: '#5b9bd5',
+                    600: '#4a90e2',
+                    700: '#2d5fa3',
+                    800: '#1e4278',
+                    900: '#132d54'
+                  }
+                }
+              }
+            }
+          }
+        </script>
+    </head>
+    <body class="bg-gray-50">
+        <!-- 네비게이션 -->
+        <nav class="bg-white shadow-md sticky top-0 z-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-20">
+                    <div class="flex items-center space-x-4">
+                        <a href="/" class="flex items-center space-x-4">
+                            <img src="/static/logo.png" alt="WOW 3D" class="h-12">
+                            <span class="text-xl font-bold text-gray-800">와우쓰리디홍대센터</span>
+                        </a>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <a href="/" class="text-gray-700 hover:text-primary-600 font-medium">
+                            <i class="fas fa-home mr-2"></i>홈으로
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- 헤더 -->
+        <div class="bg-gradient-to-r from-indigo-600 to-purple-700 text-white py-16">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <h1 class="text-4xl md:text-5xl font-bold mb-4">
+                    <i class="fas fa-building mr-4"></i>
+                    시설 현황
+                </h1>
+                <p class="text-xl text-indigo-100">최첨단 교육 시설과 장비를 갖춘 학습 환경</p>
+            </div>
+        </div>
+
+        <!-- 메인 컨텐츠 -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <!-- 시설 개요 -->
+            <div class="bg-white rounded-xl shadow-lg p-8 mb-12">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">최고의 교육 환경</h2>
+                <p class="text-lg text-gray-700 text-center leading-relaxed max-w-4xl mx-auto mb-8">
+                    와우쓰리디홍대센터는 최신 3D프린팅 장비와 쾌적한 교육 시설을 갖추고 있습니다.<br>
+                    실무 중심의 교육을 위한 최적의 학습 환경을 제공합니다.
+                </p>
+                
+                <div class="grid md:grid-cols-4 gap-6">
+                    <div class="text-center p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg">
+                        <div class="text-4xl font-bold text-primary-600 mb-2">500㎡</div>
+                        <div class="text-gray-700 font-semibold">총 교육공간</div>
+                    </div>
+                    <div class="text-center p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-lg">
+                        <div class="text-4xl font-bold text-green-600 mb-2">50대</div>
+                        <div class="text-gray-700 font-semibold">최신 PC 장비</div>
+                    </div>
+                    <div class="text-center p-6 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg">
+                        <div class="text-4xl font-bold text-purple-600 mb-2">30대</div>
+                        <div class="text-gray-700 font-semibold">3D 프린터</div>
+                    </div>
+                    <div class="text-center p-6 bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg">
+                        <div class="text-4xl font-bold text-orange-600 mb-2">10대</div>
+                        <div class="text-gray-700 font-semibold">3D 스캐너</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 주요 시설 -->
+            <h2 class="text-3xl font-bold text-gray-800 mb-8 text-center">주요 시설</h2>
+            
+            <div class="space-y-8 mb-12">
+                <!-- 실습실 -->
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                    <div class="grid md:grid-cols-2 gap-0">
+                        <div class="aspect-video bg-gradient-to-br from-blue-100 to-cyan-200 flex items-center justify-center">
+                            <i class="fas fa-desktop text-8xl text-blue-600"></i>
+                        </div>
+                        <div class="p-8">
+                            <div class="flex items-center mb-4">
+                                <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mr-4">
+                                    <i class="fas fa-desktop text-xl text-blue-600"></i>
+                                </div>
+                                <h3 class="text-2xl font-bold text-gray-800">실습실</h3>
+                            </div>
+                            <p class="text-gray-700 mb-4 leading-relaxed">
+                                최신 사양의 고성능 워크스테이션을 갖춘 실습실입니다. 
+                                각 좌석마다 듀얼 모니터가 설치되어 있어 효율적인 3D 모델링 작업이 가능합니다.
+                            </p>
+                            <ul class="space-y-2 text-gray-600">
+                                <li class="flex items-center">
+                                    <i class="fas fa-check-circle text-blue-600 mr-3"></i>
+                                    고성능 워크스테이션 50대
+                                </li>
+                                <li class="flex items-center">
+                                    <i class="fas fa-check-circle text-blue-600 mr-3"></i>
+                                    듀얼 모니터 시스템
+                                </li>
+                                <li class="flex items-center">
+                                    <i class="fas fa-check-circle text-blue-600 mr-3"></i>
+                                    최신 3D 소프트웨어 라이선스
+                                </li>
+                                <li class="flex items-center">
+                                    <i class="fas fa-check-circle text-blue-600 mr-3"></i>
+                                    개인별 독립 작업 공간
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3D 프린팅실 -->
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                    <div class="grid md:grid-cols-2 gap-0">
+                        <div class="aspect-video bg-gradient-to-br from-green-100 to-emerald-200 flex items-center justify-center md:order-2">
+                            <i class="fas fa-print text-8xl text-green-600"></i>
+                        </div>
+                        <div class="p-8 md:order-1">
+                            <div class="flex items-center mb-4">
+                                <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mr-4">
+                                    <i class="fas fa-print text-xl text-green-600"></i>
+                                </div>
+                                <h3 class="text-2xl font-bold text-gray-800">3D 프린팅실</h3>
+                            </div>
+                            <p class="text-gray-700 mb-4 leading-relaxed">
+                                다양한 방식의 3D 프린터를 보유하고 있어 여러 재료와 기술을 실습할 수 있습니다.
+                                FDM, SLA, SLS 등 산업 현장에서 사용되는 모든 방식을 경험할 수 있습니다.
+                            </p>
+                            <ul class="space-y-2 text-gray-600">
+                                <li class="flex items-center">
+                                    <i class="fas fa-check-circle text-green-600 mr-3"></i>
+                                    FDM 방식 프린터 20대
+                                </li>
+                                <li class="flex items-center">
+                                    <i class="fas fa-check-circle text-green-600 mr-3"></i>
+                                    SLA 레진 프린터 7대
+                                </li>
+                                <li class="flex items-center">
+                                    <i class="fas fa-check-circle text-green-600 mr-3"></i>
+                                    산업용 SLS 프린터 3대
+                                </li>
+                                <li class="flex items-center">
+                                    <i class="fas fa-check-circle text-green-600 mr-3"></i>
+                                    후처리 장비 완비
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3D 스캐닝실 -->
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                    <div class="grid md:grid-cols-2 gap-0">
+                        <div class="aspect-video bg-gradient-to-br from-purple-100 to-pink-200 flex items-center justify-center">
+                            <i class="fas fa-camera text-8xl text-purple-600"></i>
+                        </div>
+                        <div class="p-8">
+                            <div class="flex items-center mb-4">
+                                <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mr-4">
+                                    <i class="fas fa-camera text-xl text-purple-600"></i>
+                                </div>
+                                <h3 class="text-2xl font-bold text-gray-800">3D 스캐닝실</h3>
+                            </div>
+                            <p class="text-gray-700 mb-4 leading-relaxed">
+                                정밀한 3D 스캐닝 장비를 통해 실제 물체를 디지털 데이터로 변환하는 기술을 습득할 수 있습니다.
+                                휴대용부터 고정식 스캐너까지 다양한 장비를 보유하고 있습니다.
+                            </p>
+                            <ul class="space-y-2 text-gray-600">
+                                <li class="flex items-center">
+                                    <i class="fas fa-check-circle text-purple-600 mr-3"></i>
+                                    고정밀 데스크탑 스캐너 5대
+                                </li>
+                                <li class="flex items-center">
+                                    <i class="fas fa-check-circle text-purple-600 mr-3"></i>
+                                    휴대용 핸드헬드 스캐너 5대
+                                </li>
+                                <li class="flex items-center">
+                                    <i class="fas fa-check-circle text-purple-600 mr-3"></i>
+                                    대형 물체 스캔 가능
+                                </li>
+                                <li class="flex items-center">
+                                    <i class="fas fa-check-circle text-purple-600 mr-3"></i>
+                                    역설계 전용 소프트웨어
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 휴게실 및 편의시설 -->
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                    <div class="grid md:grid-cols-2 gap-0">
+                        <div class="aspect-video bg-gradient-to-br from-orange-100 to-yellow-200 flex items-center justify-center md:order-2">
+                            <i class="fas fa-coffee text-8xl text-orange-600"></i>
+                        </div>
+                        <div class="p-8 md:order-1">
+                            <div class="flex items-center mb-4">
+                                <div class="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mr-4">
+                                    <i class="fas fa-coffee text-xl text-orange-600"></i>
+                                </div>
+                                <h3 class="text-2xl font-bold text-gray-800">휴게실 및 편의시설</h3>
+                            </div>
+                            <p class="text-gray-700 mb-4 leading-relaxed">
+                                학습의 효율을 높이는 쾌적한 휴게 공간과 다양한 편의시설을 제공합니다.
+                                학생들이 편안하게 쉬면서 네트워킹할 수 있는 공간입니다.
+                            </p>
+                            <ul class="space-y-2 text-gray-600">
+                                <li class="flex items-center">
+                                    <i class="fas fa-check-circle text-orange-600 mr-3"></i>
+                                    넓은 휴게 라운지
+                                </li>
+                                <li class="flex items-center">
+                                    <i class="fas fa-check-circle text-orange-600 mr-3"></i>
+                                    무료 커피 & 음료
+                                </li>
+                                <li class="flex items-center">
+                                    <i class="fas fa-check-circle text-orange-600 mr-3"></i>
+                                    전자레인지, 냉장고 구비
+                                </li>
+                                <li class="flex items-center">
+                                    <i class="fas fa-check-circle text-orange-600 mr-3"></i>
+                                    사물함 및 개인 보관함
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 보유 장비 목록 -->
+            <div class="bg-white rounded-xl shadow-lg p-8 mb-12">
+                <h2 class="text-2xl font-bold text-gray-800 mb-8 flex items-center">
+                    <i class="fas fa-list-ul text-primary-600 mr-3"></i>
+                    주요 보유 장비
+                </h2>
+                
+                <div class="grid md:grid-cols-2 gap-8">
+                    <!-- 소프트웨어 -->
+                    <div>
+                        <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                            <i class="fas fa-laptop-code text-blue-600 mr-2"></i>
+                            3D 소프트웨어
+                        </h3>
+                        <ul class="space-y-3">
+                            <li class="flex items-center text-gray-700">
+                                <i class="fas fa-angle-right text-primary-600 mr-3"></i>
+                                Autodesk Fusion 360 (50 라이선스)
+                            </li>
+                            <li class="flex items-center text-gray-700">
+                                <i class="fas fa-angle-right text-primary-600 mr-3"></i>
+                                SolidWorks Professional (30 라이선스)
+                            </li>
+                            <li class="flex items-center text-gray-700">
+                                <i class="fas fa-angle-right text-primary-600 mr-3"></i>
+                                Blender (오픈소스)
+                            </li>
+                            <li class="flex items-center text-gray-700">
+                                <i class="fas fa-angle-right text-primary-600 mr-3"></i>
+                                Ultimaker Cura (슬라이싱)
+                            </li>
+                            <li class="flex items-center text-gray-700">
+                                <i class="fas fa-angle-right text-primary-600 mr-3"></i>
+                                Meshmixer (메쉬 편집)
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- 하드웨어 -->
+                    <div>
+                        <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                            <i class="fas fa-hdd text-green-600 mr-2"></i>
+                            PC 사양
+                        </h3>
+                        <ul class="space-y-3">
+                            <li class="flex items-center text-gray-700">
+                                <i class="fas fa-angle-right text-primary-600 mr-3"></i>
+                                CPU: Intel Core i7-13700K / AMD Ryzen 9
+                            </li>
+                            <li class="flex items-center text-gray-700">
+                                <i class="fas fa-angle-right text-primary-600 mr-3"></i>
+                                GPU: NVIDIA RTX 4070 이상
+                            </li>
+                            <li class="flex items-center text-gray-700">
+                                <i class="fas fa-angle-right text-primary-600 mr-3"></i>
+                                RAM: 32GB DDR5
+                            </li>
+                            <li class="flex items-center text-gray-700">
+                                <i class="fas fa-angle-right text-primary-600 mr-3"></i>
+                                Storage: 1TB NVMe SSD
+                            </li>
+                            <li class="flex items-center text-gray-700">
+                                <i class="fas fa-angle-right text-primary-600 mr-3"></i>
+                                Monitor: 27" QHD 듀얼 모니터
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- 3D 프린터 브랜드 -->
+                    <div>
+                        <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                            <i class="fas fa-print text-purple-600 mr-2"></i>
+                            3D 프린터 브랜드
+                        </h3>
+                        <ul class="space-y-3">
+                            <li class="flex items-center text-gray-700">
+                                <i class="fas fa-angle-right text-primary-600 mr-3"></i>
+                                Stratasys (산업용)
+                            </li>
+                            <li class="flex items-center text-gray-700">
+                                <i class="fas fa-angle-right text-primary-600 mr-3"></i>
+                                Ultimaker S5 (FDM)
+                            </li>
+                            <li class="flex items-center text-gray-700">
+                                <i class="fas fa-angle-right text-primary-600 mr-3"></i>
+                                Formlabs Form 3 (SLA)
+                            </li>
+                            <li class="flex items-center text-gray-700">
+                                <i class="fas fa-angle-right text-primary-600 mr-3"></i>
+                                Creality CR-10 (교육용)
+                            </li>
+                            <li class="flex items-center text-gray-700">
+                                <i class="fas fa-angle-right text-primary-600 mr-3"></i>
+                                Prusa i3 MK3S+ (오픈소스)
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- 3D 스캐너 -->
+                    <div>
+                        <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                            <i class="fas fa-camera text-orange-600 mr-2"></i>
+                            3D 스캐너 브랜드
+                        </h3>
+                        <ul class="space-y-3">
+                            <li class="flex items-center text-gray-700">
+                                <i class="fas fa-angle-right text-primary-600 mr-3"></i>
+                                Artec Eva (휴대용)
+                            </li>
+                            <li class="flex items-center text-gray-700">
+                                <i class="fas fa-angle-right text-primary-600 mr-3"></i>
+                                EinScan Pro 2X Plus (다목적)
+                            </li>
+                            <li class="flex items-center text-gray-700">
+                                <i class="fas fa-angle-right text-primary-600 mr-3"></i>
+                                Revopoint POP 2 (소형 물체)
+                            </li>
+                            <li class="flex items-center text-gray-700">
+                                <i class="fas fa-angle-right text-primary-600 mr-3"></i>
+                                Matter and Form V2 (데스크탑)
+                            </li>
+                            <li class="flex items-center text-gray-700">
+                                <i class="fas fa-angle-right text-primary-600 mr-3"></i>
+                                Creality CR-Scan 01 (입문용)
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CTA 섹션 -->
+            <div class="bg-gradient-to-r from-primary-600 to-indigo-700 rounded-xl shadow-2xl p-12 text-center text-white">
+                <h2 class="text-3xl font-bold mb-4">최고의 시설에서 배우세요!</h2>
+                <p class="text-xl mb-8 text-blue-100">직접 방문하여 시설을 둘러보실 수 있습니다</p>
+                <div class="flex flex-wrap justify-center gap-4">
+                    <a href="/locations" class="inline-block bg-white text-primary-600 px-8 py-4 rounded-lg font-bold text-lg hover:bg-gray-100 transition shadow-lg">
+                        <i class="fas fa-map-marker-alt mr-2"></i>
+                        지점 안내
+                    </a>
+                    <a href="/online-consulting" class="inline-block bg-yellow-400 text-gray-900 px-8 py-4 rounded-lg font-bold text-lg hover:bg-yellow-300 transition shadow-lg">
+                        <i class="fas fa-comments mr-2"></i>
+                        시설 견학 신청
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 푸터 -->
+        <footer class="bg-gray-800 text-white py-8 mt-12">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <p class="text-gray-400">&copy; 2025 와우쓰리디홍대센터. All rights reserved.</p>
+            </div>
+        </footer>
+    </body>
+    </html>
+  `);
+});
+
+// ============================================
+// 지점안내 페이지
+// ============================================
+app.get('/locations', (c) => {
+  return c.html(`
+    <!DOCTYPE html>
+    <html lang="ko">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>지점안내 - 와우쓰리디홍대센터</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+        <script>
+          tailwind.config = {
+            theme: {
+              extend: {
+                colors: {
+                  primary: {
+                    50: '#f0f7ff',
+                    100: '#e0effe',
+                    200: '#baddfd',
+                    300: '#7dbcfb',
+                    400: '#3a9bf7',
+                    500: '#5b9bd5',
+                    600: '#4a90e2',
+                    700: '#2d5fa3',
+                    800: '#1e4278',
+                    900: '#132d54'
+                  }
+                }
+              }
+            }
+          }
+        </script>
+    </head>
+    <body class="bg-gray-50">
+        <!-- 네비게이션 -->
+        <nav class="bg-white shadow-md sticky top-0 z-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-20">
+                    <div class="flex items-center space-x-4">
+                        <a href="/" class="flex items-center space-x-4">
+                            <img src="/static/logo.png" alt="WOW 3D" class="h-12">
+                            <span class="text-xl font-bold text-gray-800">와우쓰리디홍대센터</span>
+                        </a>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <a href="/" class="text-gray-700 hover:text-primary-600 font-medium">
+                            <i class="fas fa-home mr-2"></i>홈으로
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- 헤더 -->
+        <div class="bg-gradient-to-r from-green-600 to-teal-700 text-white py-16">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <h1 class="text-4xl md:text-5xl font-bold mb-4">
+                    <i class="fas fa-map-marker-alt mr-4"></i>
+                    지점 안내
+                </h1>
+                <p class="text-xl text-green-100">전국 3개 지점에서 최고의 교육을 제공합니다</p>
+            </div>
+        </div>
+
+        <!-- 메인 컨텐츠 -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <!-- 지점 개요 -->
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-gray-800 mb-4">전국 어디서나 만나는 와우쓰리디</h2>
+                <p class="text-lg text-gray-600 max-w-3xl mx-auto">
+                    서울, 구미, 전주 3개 지점에서 동일한 고품질 교육 서비스를 제공합니다.<br>
+                    가까운 지점을 방문하여 상담받으세요.
+                </p>
+            </div>
+
+            <!-- 지점 카드들 -->
+            <div class="space-y-8 mb-12">
+                <!-- 서울 본점 -->
+                <div class="bg-white rounded-2xl shadow-xl overflow-hidden border-t-4 border-primary-600">
+                    <div class="grid md:grid-cols-5 gap-0">
+                        <!-- 지점 정보 -->
+                        <div class="md:col-span-3 p-8">
+                            <div class="flex items-center mb-6">
+                                <div class="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mr-4">
+                                    <i class="fas fa-building text-3xl text-primary-600"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-3xl font-bold text-gray-800">서울 홍대센터</h3>
+                                    <span class="inline-block bg-primary-600 text-white text-sm px-3 py-1 rounded-full mt-2 font-semibold">본점</span>
+                                </div>
+                            </div>
+                            
+                            <div class="space-y-4 mb-6">
+                                <div class="flex items-start">
+                                    <i class="fas fa-map-marker-alt text-primary-600 text-xl mr-4 mt-1"></i>
+                                    <div>
+                                        <div class="font-semibold text-gray-800 mb-1">주소</div>
+                                        <div class="text-gray-700">서울 마포구 독막로 93 상수빌딩 4층</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-start">
+                                    <i class="fas fa-phone text-primary-600 text-xl mr-4 mt-1"></i>
+                                    <div>
+                                        <div class="font-semibold text-gray-800 mb-1">전화번호</div>
+                                        <div class="text-gray-700">02-1234-5678</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-start">
+                                    <i class="fas fa-envelope text-primary-600 text-xl mr-4 mt-1"></i>
+                                    <div>
+                                        <div class="font-semibold text-gray-800 mb-1">이메일</div>
+                                        <div class="text-gray-700">seoul@wow3dcookie.kr</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-start">
+                                    <i class="fas fa-clock text-primary-600 text-xl mr-4 mt-1"></i>
+                                    <div>
+                                        <div class="font-semibold text-gray-800 mb-1">운영시간</div>
+                                        <div class="text-gray-700">
+                                            평일 09:00 - 18:00<br>
+                                            주말 10:00 - 17:00 (일요일 휴무)
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-wrap gap-3">
+                                <a href="https://map.naver.com/p/search/서울%20마포구%20독막로%2093" target="_blank" rel="noopener noreferrer" class="inline-flex items-center bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition">
+                                    <i class="fas fa-map mr-2"></i>
+                                    네이버 지도
+                                </a>
+                                <a href="https://map.kakao.com/link/search/서울%20마포구%20독막로%2093" target="_blank" rel="noopener noreferrer" class="inline-flex items-center bg-yellow-400 text-gray-900 px-6 py-3 rounded-lg font-semibold hover:bg-yellow-500 transition">
+                                    <i class="fas fa-map-marked-alt mr-2"></i>
+                                    카카오맵
+                                </a>
+                                <a href="/online-consulting" class="inline-flex items-center bg-primary-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-primary-700 transition">
+                                    <i class="fas fa-comments mr-2"></i>
+                                    상담 신청
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- 지점 특징 -->
+                        <div class="md:col-span-2 bg-gradient-to-br from-primary-50 to-blue-100 p-8">
+                            <h4 class="text-xl font-bold text-gray-800 mb-6">센터 특징</h4>
+                            <ul class="space-y-4">
+                                <li class="flex items-start">
+                                    <div class="flex-shrink-0 w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center mr-3 mt-0.5">
+                                        <i class="fas fa-check text-white text-sm"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-gray-800">본점</div>
+                                        <div class="text-sm text-gray-600">2021년 설립, 최고 시설</div>
+                                    </div>
+                                </li>
+                                <li class="flex items-start">
+                                    <div class="flex-shrink-0 w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center mr-3 mt-0.5">
+                                        <i class="fas fa-check text-white text-sm"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-gray-800">교통 편리</div>
+                                        <div class="text-sm text-gray-600">홍대입구역 도보 10분</div>
+                                    </div>
+                                </li>
+                                <li class="flex items-start">
+                                    <div class="flex-shrink-0 w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center mr-3 mt-0.5">
+                                        <i class="fas fa-check text-white text-sm"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-gray-800">최대 규모</div>
+                                        <div class="text-sm text-gray-600">500㎡ 교육 공간</div>
+                                    </div>
+                                </li>
+                                <li class="flex items-start">
+                                    <div class="flex-shrink-0 w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center mr-3 mt-0.5">
+                                        <i class="fas fa-check text-white text-sm"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-gray-800">전 과정 운영</div>
+                                        <div class="text-sm text-gray-600">모든 교육과정 개설</div>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 구미센터 -->
+                <div class="bg-white rounded-2xl shadow-xl overflow-hidden border-t-4 border-green-600">
+                    <div class="grid md:grid-cols-5 gap-0">
+                        <!-- 지점 정보 -->
+                        <div class="md:col-span-3 p-8">
+                            <div class="flex items-center mb-6">
+                                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mr-4">
+                                    <i class="fas fa-building text-3xl text-green-600"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-3xl font-bold text-gray-800">구미센터</h3>
+                                    <span class="inline-block bg-green-600 text-white text-sm px-3 py-1 rounded-full mt-2 font-semibold">경북 지역</span>
+                                </div>
+                            </div>
+                            
+                            <div class="space-y-4 mb-6">
+                                <div class="flex items-start">
+                                    <i class="fas fa-map-marker-alt text-green-600 text-xl mr-4 mt-1"></i>
+                                    <div>
+                                        <div class="font-semibold text-gray-800 mb-1">주소</div>
+                                        <div class="text-gray-700">경북 구미시 산호대로 253 구미첨단의료기술타워 606호</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-start">
+                                    <i class="fas fa-phone text-green-600 text-xl mr-4 mt-1"></i>
+                                    <div>
+                                        <div class="font-semibold text-gray-800 mb-1">전화번호</div>
+                                        <div class="text-gray-700">054-456-7890</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-start">
+                                    <i class="fas fa-envelope text-green-600 text-xl mr-4 mt-1"></i>
+                                    <div>
+                                        <div class="font-semibold text-gray-800 mb-1">이메일</div>
+                                        <div class="text-gray-700">gumi@wow3dcookie.kr</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-start">
+                                    <i class="fas fa-clock text-green-600 text-xl mr-4 mt-1"></i>
+                                    <div>
+                                        <div class="font-semibold text-gray-800 mb-1">운영시간</div>
+                                        <div class="text-gray-700">
+                                            평일 09:00 - 18:00<br>
+                                            주말 예약제 운영
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-wrap gap-3">
+                                <a href="https://map.naver.com/p/search/경북%20구미시%20산호대로%20253" target="_blank" rel="noopener noreferrer" class="inline-flex items-center bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition">
+                                    <i class="fas fa-map mr-2"></i>
+                                    네이버 지도
+                                </a>
+                                <a href="https://map.kakao.com/link/search/경북%20구미시%20산호대로%20253" target="_blank" rel="noopener noreferrer" class="inline-flex items-center bg-yellow-400 text-gray-900 px-6 py-3 rounded-lg font-semibold hover:bg-yellow-500 transition">
+                                    <i class="fas fa-map-marked-alt mr-2"></i>
+                                    카카오맵
+                                </a>
+                                <a href="/online-consulting" class="inline-flex items-center bg-primary-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-primary-700 transition">
+                                    <i class="fas fa-comments mr-2"></i>
+                                    상담 신청
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- 지점 특징 -->
+                        <div class="md:col-span-2 bg-gradient-to-br from-green-50 to-emerald-100 p-8">
+                            <h4 class="text-xl font-bold text-gray-800 mb-6">센터 특징</h4>
+                            <ul class="space-y-4">
+                                <li class="flex items-start">
+                                    <div class="flex-shrink-0 w-8 h-8 bg-green-600 rounded-full flex items-center justify-center mr-3 mt-0.5">
+                                        <i class="fas fa-check text-white text-sm"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-gray-800">의료기술 특화</div>
+                                        <div class="text-sm text-gray-600">첨단의료 3D프린팅 교육</div>
+                                    </div>
+                                </li>
+                                <li class="flex items-start">
+                                    <div class="flex-shrink-0 w-8 h-8 bg-green-600 rounded-full flex items-center justify-center mr-3 mt-0.5">
+                                        <i class="fas fa-check text-white text-sm"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-gray-800">산업단지 인접</div>
+                                        <div class="text-sm text-gray-600">구미 국가산업단지 근처</div>
+                                    </div>
+                                </li>
+                                <li class="flex items-start">
+                                    <div class="flex-shrink-0 w-8 h-8 bg-green-600 rounded-full flex items-center justify-center mr-3 mt-0.5">
+                                        <i class="fas fa-check text-white text-sm"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-gray-800">기업 연계</div>
+                                        <div class="text-sm text-gray-600">지역 기업 맞춤 교육</div>
+                                    </div>
+                                </li>
+                                <li class="flex items-start">
+                                    <div class="flex-shrink-0 w-8 h-8 bg-green-600 rounded-full flex items-center justify-center mr-3 mt-0.5">
+                                        <i class="fas fa-check text-white text-sm"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-gray-800">주차 편리</div>
+                                        <div class="text-sm text-gray-600">무료 주차 가능</div>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 전주센터 -->
+                <div class="bg-white rounded-2xl shadow-xl overflow-hidden border-t-4 border-purple-600">
+                    <div class="grid md:grid-cols-5 gap-0">
+                        <!-- 지점 정보 -->
+                        <div class="md:col-span-3 p-8">
+                            <div class="flex items-center mb-6">
+                                <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mr-4">
+                                    <i class="fas fa-building text-3xl text-purple-600"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-3xl font-bold text-gray-800">전주센터</h3>
+                                    <span class="inline-block bg-purple-600 text-white text-sm px-3 py-1 rounded-full mt-2 font-semibold">전북특별자치도</span>
+                                </div>
+                            </div>
+                            
+                            <div class="space-y-4 mb-6">
+                                <div class="flex items-start">
+                                    <i class="fas fa-map-marker-alt text-purple-600 text-xl mr-4 mt-1"></i>
+                                    <div>
+                                        <div class="font-semibold text-gray-800 mb-1">주소</div>
+                                        <div class="text-gray-700">전북특별자치도 전주시 덕진구 반룡로 109 테크노빌 A동 207호</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-start">
+                                    <i class="fas fa-phone text-purple-600 text-xl mr-4 mt-1"></i>
+                                    <div>
+                                        <div class="font-semibold text-gray-800 mb-1">전화번호</div>
+                                        <div class="text-gray-700">063-234-5678</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-start">
+                                    <i class="fas fa-envelope text-purple-600 text-xl mr-4 mt-1"></i>
+                                    <div>
+                                        <div class="font-semibold text-gray-800 mb-1">이메일</div>
+                                        <div class="text-gray-700">jeonju@wow3dcookie.kr</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-start">
+                                    <i class="fas fa-clock text-purple-600 text-xl mr-4 mt-1"></i>
+                                    <div>
+                                        <div class="font-semibold text-gray-800 mb-1">운영시간</div>
+                                        <div class="text-gray-700">
+                                            평일 09:00 - 18:00<br>
+                                            주말 예약제 운영
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-wrap gap-3">
+                                <a href="https://map.naver.com/p/search/전북특별자치도%20전주시%20덕진구%20반룡로%20109" target="_blank" rel="noopener noreferrer" class="inline-flex items-center bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition">
+                                    <i class="fas fa-map mr-2"></i>
+                                    네이버 지도
+                                </a>
+                                <a href="https://map.kakao.com/link/search/전북특별자치도%20전주시%20덕진구%20반룡로%20109" target="_blank" rel="noopener noreferrer" class="inline-flex items-center bg-yellow-400 text-gray-900 px-6 py-3 rounded-lg font-semibold hover:bg-yellow-500 transition">
+                                    <i class="fas fa-map-marked-alt mr-2"></i>
+                                    카카오맵
+                                </a>
+                                <a href="/online-consulting" class="inline-flex items-center bg-primary-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-primary-700 transition">
+                                    <i class="fas fa-comments mr-2"></i>
+                                    상담 신청
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- 지점 특징 -->
+                        <div class="md:col-span-2 bg-gradient-to-br from-purple-50 to-pink-100 p-8">
+                            <h4 class="text-xl font-bold text-gray-800 mb-6">센터 특징</h4>
+                            <ul class="space-y-4">
+                                <li class="flex items-start">
+                                    <div class="flex-shrink-0 w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center mr-3 mt-0.5">
+                                        <i class="fas fa-check text-white text-sm"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-gray-800">신규 개설</div>
+                                        <div class="text-sm text-gray-600">2024년 최신 시설</div>
+                                    </div>
+                                </li>
+                                <li class="flex items-start">
+                                    <div class="flex-shrink-0 w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center mr-3 mt-0.5">
+                                        <i class="fas fa-check text-white text-sm"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-gray-800">대학 인접</div>
+                                        <div class="text-sm text-gray-600">전북대, 전주대 근처</div>
+                                    </div>
+                                </li>
+                                <li class="flex items-start">
+                                    <div class="flex-shrink-0 w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center mr-3 mt-0.5">
+                                        <i class="fas fa-check text-white text-sm"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-gray-800">학생 할인</div>
+                                        <div class="text-sm text-gray-600">대학생 특별 프로그램</div>
+                                    </div>
+                                </li>
+                                <li class="flex items-start">
+                                    <div class="flex-shrink-0 w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center mr-3 mt-0.5">
+                                        <i class="fas fa-check text-white text-sm"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-gray-800">지역 밀착</div>
+                                        <div class="text-sm text-gray-600">전북 지역 특화 교육</div>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 비교 표 -->
+            <div class="bg-white rounded-xl shadow-lg p-8 mb-12">
+                <h2 class="text-2xl font-bold text-gray-800 mb-8 text-center">지점별 비교</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="px-6 py-4 text-left font-bold text-gray-800">구분</th>
+                                <th class="px-6 py-4 text-center font-bold text-primary-600">서울 홍대센터</th>
+                                <th class="px-6 py-4 text-center font-bold text-green-600">구미센터</th>
+                                <th class="px-6 py-4 text-center font-bold text-purple-600">전주센터</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            <tr>
+                                <td class="px-6 py-4 font-semibold text-gray-800">교육 공간</td>
+                                <td class="px-6 py-4 text-center">500㎡</td>
+                                <td class="px-6 py-4 text-center">350㎡</td>
+                                <td class="px-6 py-4 text-center">300㎡</td>
+                            </tr>
+                            <tr class="bg-gray-50">
+                                <td class="px-6 py-4 font-semibold text-gray-800">3D 프린터</td>
+                                <td class="px-6 py-4 text-center">30대</td>
+                                <td class="px-6 py-4 text-center">20대</td>
+                                <td class="px-6 py-4 text-center">15대</td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 font-semibold text-gray-800">PC 장비</td>
+                                <td class="px-6 py-4 text-center">50대</td>
+                                <td class="px-6 py-4 text-center">35대</td>
+                                <td class="px-6 py-4 text-center">30대</td>
+                            </tr>
+                            <tr class="bg-gray-50">
+                                <td class="px-6 py-4 font-semibold text-gray-800">주차</td>
+                                <td class="px-6 py-4 text-center">유료 주차</td>
+                                <td class="px-6 py-4 text-center">무료 주차</td>
+                                <td class="px-6 py-4 text-center">무료 주차</td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 font-semibold text-gray-800">주말 운영</td>
+                                <td class="px-6 py-4 text-center text-green-600 font-semibold">토요일 정규</td>
+                                <td class="px-6 py-4 text-center text-orange-600">예약제</td>
+                                <td class="px-6 py-4 text-center text-orange-600">예약제</td>
+                            </tr>
+                            <tr class="bg-gray-50">
+                                <td class="px-6 py-4 font-semibold text-gray-800">특화 분야</td>
+                                <td class="px-6 py-4 text-center">전 분야</td>
+                                <td class="px-6 py-4 text-center">의료/산업</td>
+                                <td class="px-6 py-4 text-center">교육/문화</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- CTA 섹션 -->
+            <div class="bg-gradient-to-r from-primary-600 to-purple-700 rounded-xl shadow-2xl p-12 text-center text-white">
+                <h2 class="text-3xl font-bold mb-4">가까운 지점을 방문하세요!</h2>
+                <p class="text-xl mb-8 text-blue-100">무료 상담 및 시설 견학이 가능합니다</p>
+                <div class="flex flex-wrap justify-center gap-4">
+                    <a href="/online-consulting" class="inline-block bg-white text-primary-600 px-8 py-4 rounded-lg font-bold text-lg hover:bg-gray-100 transition shadow-lg">
+                        <i class="fas fa-comments mr-2"></i>
+                        온라인 상담 신청
+                    </a>
+                    <a href="tel:02-1234-5678" class="inline-block bg-yellow-400 text-gray-900 px-8 py-4 rounded-lg font-bold text-lg hover:bg-yellow-300 transition shadow-lg">
+                        <i class="fas fa-phone mr-2"></i>
+                        전화 문의하기
+                    </a>
+                </div>
             </div>
         </div>
 
