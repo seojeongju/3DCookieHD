@@ -279,6 +279,21 @@ app.get('/', (c) => {
           .quick-menu-item:active .quick-menu-icon {
             transform: scale(0.95);
           }
+          /* 커스텀 스크롤바 */
+          .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+          }
+          .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+          }
+          .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #3b82f6;
+            border-radius: 10px;
+          }
+          .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #2563eb;
+          }
           @media (max-width: 1024px) {
             /* 태블릿: 공지사항 숨김 */
             .quick-menu-notice {
@@ -583,6 +598,217 @@ app.get('/', (c) => {
                     <div class="col-span-3 text-center py-12">
                         <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
                         <p class="mt-4 text-gray-600">과정 정보를 불러오는 중...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 수강후기 & 빠른 수강조회 섹션 -->
+        <section class="py-16 bg-white">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="grid md:grid-cols-2 gap-8">
+                    <!-- 수강후기 (왼쪽) -->
+                    <div class="bg-gray-50 rounded-lg p-6 border border-gray-200">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-2xl font-bold text-gray-800">수강후기</h3>
+                            <a href="#reviews" class="text-primary-600 hover:text-primary-700 text-sm font-medium">
+                                더보기 <i class="fas fa-chevron-right ml-1"></i>
+                            </a>
+                        </div>
+                        
+                        <!-- 후기 목록 (스크롤) -->
+                        <div class="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                            <!-- 후기 아이템 1 -->
+                            <div class="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition">
+                                <div class="flex items-start justify-between mb-2">
+                                    <div>
+                                        <div class="flex items-center mb-1">
+                                            <span class="font-bold text-gray-800 mr-2">김민수</span>
+                                            <div class="flex text-yellow-400">
+                                                <i class="fas fa-star text-sm"></i>
+                                                <i class="fas fa-star text-sm"></i>
+                                                <i class="fas fa-star text-sm"></i>
+                                                <i class="fas fa-star text-sm"></i>
+                                                <i class="fas fa-star text-sm"></i>
+                                            </div>
+                                        </div>
+                                        <p class="text-xs text-gray-500">3D프린팅 전문가 과정</p>
+                                    </div>
+                                    <span class="text-xs text-gray-400">2024.10.15</span>
+                                </div>
+                                <p class="text-sm text-gray-700 line-clamp-3">
+                                    강사님께서 정말 친절하게 알려주셔서 3D 프린팅의 기초부터 실무까지 탄탄하게 배울 수 있었습니다. 실습 위주의 수업이라 실제 프로젝트에 바로 적용할 수 있었어요!
+                                </p>
+                            </div>
+                            
+                            <!-- 후기 아이템 2 -->
+                            <div class="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition">
+                                <div class="flex items-start justify-between mb-2">
+                                    <div>
+                                        <div class="flex items-center mb-1">
+                                            <span class="font-bold text-gray-800 mr-2">박지영</span>
+                                            <div class="flex text-yellow-400">
+                                                <i class="fas fa-star text-sm"></i>
+                                                <i class="fas fa-star text-sm"></i>
+                                                <i class="fas fa-star text-sm"></i>
+                                                <i class="fas fa-star text-sm"></i>
+                                                <i class="fas fa-star text-sm"></i>
+                                            </div>
+                                        </div>
+                                        <p class="text-xs text-gray-500">메이커 스타트업 과정</p>
+                                    </div>
+                                    <span class="text-xs text-gray-400">2024.10.10</span>
+                                </div>
+                                <p class="text-sm text-gray-700 line-clamp-3">
+                                    국비지원으로 부담 없이 수강할 수 있어서 좋았고, 소수 정예라 개인별 맞춤 지도를 받을 수 있었습니다. 포트폴리오 준비에도 큰 도움이 되었어요.
+                                </p>
+                            </div>
+                            
+                            <!-- 후기 아이템 3 -->
+                            <div class="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition">
+                                <div class="flex items-start justify-between mb-2">
+                                    <div>
+                                        <div class="flex items-center mb-1">
+                                            <span class="font-bold text-gray-800 mr-2">이준호</span>
+                                            <div class="flex text-yellow-400">
+                                                <i class="fas fa-star text-sm"></i>
+                                                <i class="fas fa-star text-sm"></i>
+                                                <i class="fas fa-star text-sm"></i>
+                                                <i class="fas fa-star text-sm"></i>
+                                                <i class="far fa-star text-sm"></i>
+                                            </div>
+                                        </div>
+                                        <p class="text-xs text-gray-500">3D모델링 기초 과정</p>
+                                    </div>
+                                    <span class="text-xs text-gray-400">2024.10.05</span>
+                                </div>
+                                <p class="text-sm text-gray-700 line-clamp-3">
+                                    처음 3D 모델링을 배우는데 걱정이 많았는데, 기초부터 차근차근 배워서 자신감이 생겼습니다. 시설도 깨끗하고 최신 장비로 실습할 수 있어 좋았어요.
+                                </p>
+                            </div>
+
+                            <!-- 후기 아이템 4 -->
+                            <div class="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition">
+                                <div class="flex items-start justify-between mb-2">
+                                    <div>
+                                        <div class="flex items-center mb-1">
+                                            <span class="font-bold text-gray-800 mr-2">최수연</span>
+                                            <div class="flex text-yellow-400">
+                                                <i class="fas fa-star text-sm"></i>
+                                                <i class="fas fa-star text-sm"></i>
+                                                <i class="fas fa-star text-sm"></i>
+                                                <i class="fas fa-star text-sm"></i>
+                                                <i class="fas fa-star text-sm"></i>
+                                            </div>
+                                        </div>
+                                        <p class="text-xs text-gray-500">3D프린팅 자격증 과정</p>
+                                    </div>
+                                    <span class="text-xs text-gray-400">2024.09.28</span>
+                                </div>
+                                <p class="text-sm text-gray-700 line-clamp-3">
+                                    자격증 합격을 목표로 수강했는데, 체계적인 커리큘럼 덕분에 한 번에 합격했습니다! 실기 준비도 철저하게 해주셔서 감사합니다.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 빠른 수강조회 (오른쪽) -->
+                    <div class="bg-gradient-to-br from-primary-50 to-blue-50 rounded-lg p-6 border border-primary-200">
+                        <h3 class="text-2xl font-bold text-gray-800 mb-2">빠른 수강료 조회</h3>
+                        <p class="text-sm text-gray-600 mb-6">수강료를 빠르게 안내해드립니다.</p>
+                        
+                        <form id="quickInquiryForm" class="space-y-4">
+                            <!-- 지점선택 -->
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2 bg-primary-600 text-white px-3 py-2 rounded">
+                                    지점선택
+                                </label>
+                                <select class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                                    <option value="">||지점선택||</option>
+                                    <option value="hongdae">홍대센터</option>
+                                    <option value="gangnam">강남센터</option>
+                                    <option value="online">온라인</option>
+                                </select>
+                            </div>
+                            
+                            <!-- 희망분야 -->
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2 bg-primary-600 text-white px-3 py-2 rounded">
+                                    희망분야
+                                </label>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <label class="flex items-center space-x-2 cursor-pointer">
+                                        <input type="checkbox" class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500">
+                                        <span class="text-sm">웹개발</span>
+                                    </label>
+                                    <label class="flex items-center space-x-2 cursor-pointer">
+                                        <input type="checkbox" class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500">
+                                        <span class="text-sm">편집디자인</span>
+                                    </label>
+                                    <label class="flex items-center space-x-2 cursor-pointer">
+                                        <input type="checkbox" class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500">
+                                        <span class="text-sm">IT개발</span>
+                                    </label>
+                                    <label class="flex items-center space-x-2 cursor-pointer">
+                                        <input type="checkbox" class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500">
+                                        <span class="text-sm">영상/게임/VR</span>
+                                    </label>
+                                    <label class="flex items-center space-x-2 cursor-pointer">
+                                        <input type="checkbox" class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500">
+                                        <span class="text-sm">세무회계 OA</span>
+                                    </label>
+                                    <label class="flex items-center space-x-2 cursor-pointer">
+                                        <input type="checkbox" class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500">
+                                        <span class="text-sm">건축 산업디자인</span>
+                                    </label>
+                                    <label class="flex items-center space-x-2 cursor-pointer">
+                                        <input type="checkbox" class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500">
+                                        <span class="text-sm">AI</span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <!-- 이름 -->
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2 bg-primary-600 text-white px-3 py-2 rounded">
+                                    이름
+                                </label>
+                                <input type="text" placeholder="이름을 입력해주세요." class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                            </div>
+                            
+                            <!-- 연락처 -->
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2 bg-primary-600 text-white px-3 py-2 rounded">
+                                    연락처
+                                </label>
+                                <div class="flex gap-2">
+                                    <select class="w-1/3 px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                                        <option>010</option>
+                                        <option>011</option>
+                                        <option>016</option>
+                                        <option>017</option>
+                                        <option>019</option>
+                                    </select>
+                                    <input type="text" placeholder="" maxlength="4" class="w-1/3 px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                                    <input type="text" placeholder="" maxlength="4" class="w-1/3 px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                                </div>
+                            </div>
+                            
+                            <!-- 개인정보 동의 -->
+                            <div class="flex items-start space-x-2">
+                                <input type="checkbox" id="privacyAgree" class="w-4 h-4 mt-1 text-primary-600 rounded focus:ring-primary-500">
+                                <label for="privacyAgree" class="text-xs text-gray-600">
+                                    개인정보 수집 이용을 동의합니다. 
+                                    <a href="#" class="text-primary-600 underline">[내용보기]</a>
+                                </label>
+                            </div>
+                            
+                            <!-- 제출 버튼 -->
+                            <button type="submit" class="w-full bg-primary-600 text-white py-4 rounded-lg font-bold text-lg hover:bg-primary-700 transition flex items-center justify-center gap-2">
+                                <i class="fas fa-search"></i>
+                                수강료조회
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>
