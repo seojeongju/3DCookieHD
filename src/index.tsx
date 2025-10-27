@@ -314,6 +314,14 @@ app.get('/', (c) => {
               border-radius: 4px;
             }
           }
+          /* 갤러리 스크롤바 숨김 */
+          .scrollbar-hide {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+          }
+          .scrollbar-hide::-webkit-scrollbar {
+            display: none;  /* Chrome, Safari, Opera */
+          }
         </style>
     </head>
     <body class="bg-gray-50">
@@ -830,6 +838,228 @@ app.get('/', (c) => {
             </div>
         </section>
 
+        <!-- 시제품 제작 갤러리 -->
+        <section class="py-16 bg-gray-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between mb-8">
+                    <div>
+                        <h2 class="text-3xl font-bold text-gray-800 mb-2">시제품 제작 갤러리</h2>
+                        <p class="text-gray-600">수강생들이 직접 제작한 3D 프린팅 작품들</p>
+                    </div>
+                    <a href="#prototype-gallery" class="text-primary-600 hover:text-primary-700 font-medium flex items-center gap-2">
+                        더보기 <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+                
+                <!-- 가로 스크롤 갤러리 -->
+                <div class="relative group">
+                    <!-- 왼쪽 화살표 -->
+                    <button onclick="scrollGallery('prototype', -1)" class="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white shadow-lg rounded-full w-12 h-12 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                        <i class="fas fa-chevron-left text-gray-800"></i>
+                    </button>
+                    
+                    <!-- 이미지 컨테이너 -->
+                    <div id="prototypeGallery" class="flex gap-6 overflow-x-auto scroll-smooth pb-4 scrollbar-hide">
+                        <!-- 갤러리 아이템 1 -->
+                        <div class="flex-shrink-0 w-72">
+                            <div class="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition group/item">
+                                <div class="relative aspect-square bg-gray-200">
+                                    <div class="absolute inset-0 flex items-center justify-center">
+                                        <i class="fas fa-cube text-6xl text-gray-300"></i>
+                                    </div>
+                                    <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover/item:opacity-100 transition"></div>
+                                </div>
+                                <div class="p-4">
+                                    <h3 class="font-bold text-gray-800 mb-1">FDM방식 3D프린터 활용...</h3>
+                                    <p class="text-sm text-gray-500">2025-08-28</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 갤러리 아이템 2 -->
+                        <div class="flex-shrink-0 w-72">
+                            <div class="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition group/item">
+                                <div class="relative aspect-square bg-gray-200">
+                                    <div class="absolute inset-0 flex items-center justify-center">
+                                        <i class="fas fa-cube text-6xl text-gray-300"></i>
+                                    </div>
+                                    <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover/item:opacity-100 transition"></div>
+                                </div>
+                                <div class="p-4">
+                                    <h3 class="font-bold text-gray-800 mb-1">네오 익셉셔널의 적용사품 가...</h3>
+                                    <p class="text-sm text-gray-500">2025-08-12</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 갤러리 아이템 3 -->
+                        <div class="flex-shrink-0 w-72">
+                            <div class="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition group/item">
+                                <div class="relative aspect-square bg-gray-200">
+                                    <div class="absolute inset-0 flex items-center justify-center">
+                                        <i class="fas fa-cube text-6xl text-gray-300"></i>
+                                    </div>
+                                    <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover/item:opacity-100 transition"></div>
+                                </div>
+                                <div class="p-4">
+                                    <h3 class="font-bold text-gray-800 mb-1">FDM방식 3D프린터 활용...</h3>
+                                    <p class="text-sm text-gray-500">2025-08-07</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 갤러리 아이템 4 -->
+                        <div class="flex-shrink-0 w-72">
+                            <div class="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition group/item">
+                                <div class="relative aspect-square bg-gray-200">
+                                    <div class="absolute inset-0 flex items-center justify-center">
+                                        <i class="fas fa-cube text-6xl text-gray-300"></i>
+                                    </div>
+                                    <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover/item:opacity-100 transition"></div>
+                                </div>
+                                <div class="p-4">
+                                    <h3 class="font-bold text-gray-800 mb-1">SLA-DLP방식 3D프린터...</h3>
+                                    <p class="text-sm text-gray-500">2025-07-16</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 갤러리 아이템 5 -->
+                        <div class="flex-shrink-0 w-72">
+                            <div class="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition group/item">
+                                <div class="relative aspect-square bg-gray-200">
+                                    <div class="absolute inset-0 flex items-center justify-center">
+                                        <i class="fas fa-cube text-6xl text-gray-300"></i>
+                                    </div>
+                                    <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover/item:opacity-100 transition"></div>
+                                </div>
+                                <div class="p-4">
+                                    <h3 class="font-bold text-gray-800 mb-1">SLA-DLP방식 3D프린터...</h3>
+                                    <p class="text-sm text-gray-500">2025-07-11</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 오른쪽 화살표 -->
+                    <button onclick="scrollGallery('prototype', 1)" class="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white shadow-lg rounded-full w-12 h-12 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                        <i class="fas fa-chevron-right text-gray-800"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 수강생 포트폴리오 갤러리 -->
+        <section class="py-16 bg-white">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between mb-8">
+                    <div>
+                        <h2 class="text-3xl font-bold text-gray-800 mb-2">수강생 포트폴리오</h2>
+                        <p class="text-gray-600">창의적인 아이디어와 기술이 결합된 작품들</p>
+                    </div>
+                    <a href="#portfolio-gallery" class="text-primary-600 hover:text-primary-700 font-medium flex items-center gap-2">
+                        더보기 <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+                
+                <!-- 가로 스크롤 갤러리 -->
+                <div class="relative group">
+                    <!-- 왼쪽 화살표 -->
+                    <button onclick="scrollGallery('portfolio', -1)" class="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white shadow-lg rounded-full w-12 h-12 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                        <i class="fas fa-chevron-left text-gray-800"></i>
+                    </button>
+                    
+                    <!-- 이미지 컨테이너 -->
+                    <div id="portfolioGallery" class="flex gap-6 overflow-x-auto scroll-smooth pb-4 scrollbar-hide">
+                        <!-- 갤러리 아이템 1 -->
+                        <div class="flex-shrink-0 w-72">
+                            <div class="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition group/item">
+                                <div class="relative aspect-square bg-gray-200">
+                                    <div class="absolute inset-0 flex items-center justify-center">
+                                        <i class="fas fa-palette text-6xl text-gray-300"></i>
+                                    </div>
+                                    <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover/item:opacity-100 transition"></div>
+                                </div>
+                                <div class="p-4">
+                                    <h3 class="font-bold text-gray-800 mb-1">[2025 0월 소상공인전문...</h3>
+                                    <p class="text-sm text-gray-500">2025-10-02</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 갤러리 아이템 2 -->
+                        <div class="flex-shrink-0 w-72">
+                            <div class="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition group/item">
+                                <div class="relative aspect-square bg-gray-200">
+                                    <div class="absolute inset-0 flex items-center justify-center">
+                                        <i class="fas fa-palette text-6xl text-gray-300"></i>
+                                    </div>
+                                    <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover/item:opacity-100 transition"></div>
+                                </div>
+                                <div class="p-4">
+                                    <h3 class="font-bold text-gray-800 mb-1">[2025 소상공인 전문가양...</h3>
+                                    <p class="text-sm text-gray-500">2025-09-26</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 갤러리 아이템 3 -->
+                        <div class="flex-shrink-0 w-72">
+                            <div class="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition group/item">
+                                <div class="relative aspect-square bg-gray-200">
+                                    <div class="absolute inset-0 flex items-center justify-center">
+                                        <i class="fas fa-palette text-6xl text-gray-300"></i>
+                                    </div>
+                                    <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover/item:opacity-100 transition"></div>
+                                </div>
+                                <div class="p-4">
+                                    <h3 class="font-bold text-gray-800 mb-1">[2025 0월 소상공인전문...</h3>
+                                    <p class="text-sm text-gray-500">2025-03-14</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 갤러리 아이템 4 -->
+                        <div class="flex-shrink-0 w-72">
+                            <div class="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition group/item">
+                                <div class="relative aspect-square bg-gray-200">
+                                    <div class="absolute inset-0 flex items-center justify-center">
+                                        <i class="fas fa-palette text-6xl text-gray-300"></i>
+                                    </div>
+                                    <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover/item:opacity-100 transition"></div>
+                                </div>
+                                <div class="p-4">
+                                    <h3 class="font-bold text-gray-800 mb-1">Fusion 활용 고급모델링...</h3>
+                                    <p class="text-sm text-gray-500">2025-06-17</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 갤러리 아이템 5 -->
+                        <div class="flex-shrink-0 w-72">
+                            <div class="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition group/item">
+                                <div class="relative aspect-square bg-gray-200">
+                                    <div class="absolute inset-0 flex items-center justify-center">
+                                        <i class="fas fa-palette text-6xl text-gray-300"></i>
+                                    </div>
+                                    <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover/item:opacity-100 transition"></div>
+                                </div>
+                                <div class="p-4">
+                                    <h3 class="font-bold text-gray-800 mb-1">[2025 7월 소상공인전문...</h3>
+                                    <p class="text-sm text-gray-500">2025-07-21</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 오른쪽 화살표 -->
+                    <button onclick="scrollGallery('portfolio', 1)" class="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white shadow-lg rounded-full w-12 h-12 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                        <i class="fas fa-chevron-right text-gray-800"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
         <!-- 푸터 -->
         <footer class="bg-gray-800 text-white py-12">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1044,6 +1274,27 @@ app.get('/', (c) => {
           
           function showRegisterModal() {
             alert('회원가입 기능은 곧 준비됩니다!');
+          }
+          
+          // 갤러리 스크롤 함수
+          function scrollGallery(galleryType, direction) {
+            const galleryId = galleryType === 'prototype' ? 'prototypeGallery' : 'portfolioGallery';
+            const gallery = document.getElementById(galleryId);
+            const scrollAmount = 300; // 한 번에 스크롤할 픽셀 수
+            
+            if (direction === -1) {
+              // 왼쪽으로 스크롤
+              gallery.scrollBy({
+                left: -scrollAmount,
+                behavior: 'smooth'
+              });
+            } else {
+              // 오른쪽으로 스크롤
+              gallery.scrollBy({
+                left: scrollAmount,
+                behavior: 'smooth'
+              });
+            }
           }
           
           // 페이지 로드 시 데이터 로드
