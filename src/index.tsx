@@ -378,27 +378,6 @@ app.get('/', (c) => {
                         <a href="#reviews" class="text-gray-700 hover:text-primary-600 font-medium">수강 후기</a>
                         <a href="#board" class="text-gray-700 hover:text-primary-600 font-medium">게시판</a>
                         
-                        <!-- 학사관리시스템 드롭다운 -->
-                        <div class="relative group">
-                            <button class="text-gray-700 hover:text-primary-600 font-medium flex items-center">
-                                학사관리시스템
-                                <i class="fas fa-chevron-down ml-1 text-xs"></i>
-                            </button>
-                            <!-- 드롭다운 메뉴 -->
-                            <div class="absolute left-0 top-full mt-2 w-64 bg-white rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-                                <div class="py-2">
-                                    <a href="/student-admin" class="block px-6 py-3 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition">
-                                        <i class="fas fa-user-graduate mr-2"></i>
-                                        학생학사행정시스템
-                                    </a>
-                                    <a href="/teacher-admin" class="block px-6 py-3 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition">
-                                        <i class="fas fa-chalkboard-teacher mr-2"></i>
-                                        강사학사행정시스템
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                        
                         <!-- 상담센터 드롭다운 -->
                         <div class="relative group">
                             <button class="text-gray-700 hover:text-primary-600 font-medium flex items-center">
@@ -419,6 +398,28 @@ app.get('/', (c) => {
                                     <a href="/university-education" class="block px-6 py-3 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition">
                                         <i class="fas fa-university mr-2"></i>
                                         대학맞춤교육
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 학사관리시스템 드롭다운 (특별 디자인) -->
+                        <div class="relative group">
+                            <button class="px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold flex items-center shadow-md hover:shadow-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-200">
+                                <i class="fas fa-graduation-cap mr-2"></i>
+                                학사관리시스템
+                                <i class="fas fa-chevron-down ml-2 text-xs"></i>
+                            </button>
+                            <!-- 드롭다운 메뉴 -->
+                            <div class="absolute left-0 top-full mt-2 w-64 bg-white rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 border-2 border-purple-200">
+                                <div class="py-2">
+                                    <a href="/student-admin" class="block px-6 py-3 text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-indigo-50 hover:text-purple-700 transition">
+                                        <i class="fas fa-user-graduate mr-2 text-purple-600"></i>
+                                        <span class="font-medium">학생학사행정시스템</span>
+                                    </a>
+                                    <a href="/teacher-admin" class="block px-6 py-3 text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-indigo-50 hover:text-purple-700 transition">
+                                        <i class="fas fa-chalkboard-teacher mr-2 text-indigo-600"></i>
+                                        <span class="font-medium">강사학사행정시스템</span>
                                     </a>
                                 </div>
                             </div>
