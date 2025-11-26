@@ -538,8 +538,8 @@ export const postsListHtml = `
         }
 
         function openWriteModal() {
-            document.getElementById('writeCategory').value = currentCategory;
             document.getElementById('writeForm').reset();
+            document.getElementById('writeCategory').value = currentCategory;
             document.getElementById('writeModal').classList.remove('hidden');
             
             if (!tinymce.get('writeContent')) {
