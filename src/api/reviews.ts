@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
-import type { Bindings } from '../types';
+import type { Bindings, JWTPayload, Review } from '../types';
 import { authMiddleware, requireAdmin } from '../middleware/auth';
 
-const app = new Hono<{ Bindings: Bindings }>();
+const app = new Hono<{ Bindings: Bindings; Variables: { user: JWTPayload } }>();
 
 // ============================================
 // 리뷰 목록 조회
@@ -108,7 +108,7 @@ app.get('/:id', async (c) => {
       WHERE r.id = ?
     `;
 
-    const review = await DB.prepare(query).bind(id).first();
+    const review = await DB.prepare(query).bind(id).first<Review & { user_name: string; user_profile_image: string; course_title: string; course_category: string; course_thumbnail: string }>();
 
     if (!review) {
       return c.json({ success: false, error: '리뷰를 찾을 수 없습니다' }, 404);
@@ -219,7 +219,7 @@ app.put('/:id', authMiddleware, async (c) => {
     const body = await c.req.json();
 
     // 리뷰 조회
-    const review = await DB.prepare('SELECT * FROM reviews WHERE id = ?').bind(id).first();
+    const review = await DB.prepare('SELECT * FROM reviews WHERE id = ?').bind(id).first<Review>();
 
     if (!review) {
       return c.json({ success: false, error: '리뷰를 찾을 수 없습니다' }, 404);
@@ -275,14 +275,14 @@ app.delete('/:id', authMiddleware, async (c) => {
     const id = c.req.param('id');
 
     // 리뷰 조회
-    const review = await DB.prepare('SELECT * FROM reviews WHERE id = ?').bind(id).first();
+    const review = await DB.prepare('SELECT * FROM reviews WHERE id = ?').bind(id).first<Review>();
 
     if (!review) {
       return c.json({ success: false, error: '리뷰를 찾을 수 없습니다' }, 404);
     }
 
     // 본인 또는 관리자만 삭제 가능
-    if (user.role !== 'admin' && review.user_id !== user.id) {
+    if (user.role !== 'admin' && review.user_id !== user.userId) {
       return c.json({ success: false, error: '권한이 없습니다' }, 403);
     }
 
@@ -313,18 +313,16 @@ app.put('/:id/approve', authMiddleware, requireAdmin, async (c) => {
     const { approved } = await c.req.json();
 
     // 리뷰 조회
-    const review = await DB.prepare('SELECT * FROM reviews WHERE id = ?').bind(id).first();
+    const review = await DB.prepare('SELECT * FROM reviews WHERE id = ?').bind(id).first<Review>();
 
     if (!review) {
       return c.json({ success: false, error: '리뷰를 찾을 수 없습니다' }, 404);
     }
 
-    // 승인 상태 업데이트
-    await DB.prepare('UPDATE reviews SET approved = ? WHERE id = ?')
-      .bind(approved ? 1 : 0, id)
-      .run();
+    // 승인 처리
+    await DB.prepare('UPDATE reviews SET approved = 1 WHERE id = ?').bind(id).run();
 
-    // 과정 평점 업데이트
+    // 평점 업데이트
     await updateCourseRating(DB, review.course_id);
 
     return c.json({

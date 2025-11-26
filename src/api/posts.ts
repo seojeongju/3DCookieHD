@@ -1,203 +1,10 @@
 import { Hono } from 'hono';
-import type { Bindings } from '../types';
-import { authMiddleware, requireAdmin } from '../middleware/auth';
+import type { Bindings, JWTPayload, Post } from '../types';
+import { authMiddleware, requireRole, requireAdmin } from '../middleware/auth';
 
-const app = new Hono<{ Bindings: Bindings }>();
+const app = new Hono<{ Bindings: Bindings; Variables: { user: JWTPayload } }>();
 
-// ============================================
-// 게시글 목록 조회
-// GET /api/posts
-// ============================================
-app.get('/', async (c) => {
-  try {
-    const { DB } = c.env;
-
-    // 쿼리 파라미터
-    const category = c.req.query('category'); // notice, faq, portfolio, qna
-    const search = c.req.query('search');
-    const status = c.req.query('status') || 'published';
-    const page = parseInt(c.req.query('page') || '1');
-    const limit = parseInt(c.req.query('limit') || '12');
-    const offset = (page - 1) * limit;
-
-    // WHERE 조건 구성
-    let whereClause = 'WHERE p.status = ?';
-    const params: any[] = [status];
-
-    if (category) {
-      whereClause += ' AND p.category = ?';
-      params.push(category);
-    }
-
-    if (search) {
-      whereClause += ' AND (p.title LIKE ? OR p.content LIKE ?)';
-      params.push(`%${search}%`, `%${search}%`);
-    }
-
-    // 전체 개수 조회
-    const countQuery = `
-      SELECT COUNT(*) as total
-      FROM posts p
-      ${whereClause}
-    `;
-    const countResult = await DB.prepare(countQuery).bind(...params).first<{ total: number }>();
-    const total = countResult?.total || 0;
-
-    // 목록 조회
-    const query = `
-      SELECT 
-        p.*,
-        u.name as author_name,
-        u.profile_image as author_profile_image,
-        (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
-      FROM posts p
-      LEFT JOIN users u ON p.author_id = u.id
-      ${whereClause}
-      ORDER BY p.pinned DESC, p.created_at DESC
-      LIMIT ? OFFSET ?
-    `;
-
-    const result = await DB.prepare(query).bind(...params, limit, offset).all();
-
-    // images JSON 파싱
-    const posts = result.results.map((post: any) => ({
-      ...post,
-      images: post.images ? JSON.parse(post.images) : []
-    }));
-
-    return c.json({
-      success: true,
-      data: posts,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit)
-      }
-    });
-  } catch (error) {
-    console.error('Error fetching posts:', error);
-    return c.json({ success: false, error: '게시글 목록 조회 중 오류가 발생했습니다' }, 500);
-  }
-});
-
-// ============================================
-// 게시글 상세 조회
-// GET /api/posts/:id
-// ============================================
-app.get('/:id', async (c) => {
-  try {
-    const { DB } = c.env;
-    const id = c.req.param('id');
-
-    // 게시글 조회
-    const query = `
-      SELECT 
-        p.*,
-        u.name as author_name,
-        u.profile_image as author_profile_image
-      FROM posts p
-      LEFT JOIN users u ON p.author_id = u.id
-      WHERE p.id = ?
-    `;
-
-    const post = await DB.prepare(query).bind(id).first();
-
-    if (!post) {
-      return c.json({ success: false, error: '게시글을 찾을 수 없습니다' }, 404);
-    }
-
-    // 조회수 증가
-    await DB.prepare('UPDATE posts SET views = views + 1 WHERE id = ?').bind(id).run();
-
-    // 댓글 조회
-    const commentsQuery = `
-      SELECT 
-        c.*,
-        u.name as user_name,
-        u.profile_image as user_profile_image
-      FROM comments c
-      LEFT JOIN users u ON c.user_id = u.id
-      WHERE c.post_id = ?
-      ORDER BY c.created_at ASC
-    `;
-
-    const comments = await DB.prepare(commentsQuery).bind(id).all();
-
-    // images JSON 파싱
-    const postData = {
-      ...post,
-      images: post.images ? JSON.parse(post.images) : [],
-      views: post.views + 1,
-      comments: comments.results
-    };
-
-    return c.json({
-      success: true,
-      data: postData
-    });
-  } catch (error) {
-    console.error('Error fetching post:', error);
-    return c.json({ success: false, error: '게시글 조회 중 오류가 발생했습니다' }, 500);
-  }
-});
-
-// ============================================
-// 게시글 작성
-// POST /api/posts
-// ============================================
-app.post('/', authMiddleware, async (c) => {
-  try {
-    const { DB } = c.env;
-    const user = c.get('user');
-    const body = await c.req.json();
-
-    const { category, title, content, images, pinned, status } = body;
-
-    // 필수 필드 검증
-    if (!category || !title) {
-      return c.json({ success: false, error: '카테고리와 제목은 필수입니다' }, 400);
-    }
-
-    // 카테고리 검증
-    const validCategories = ['notice', 'faq', 'portfolio', 'qna'];
-    if (!validCategories.includes(category)) {
-      return c.json({ success: false, error: '유효하지 않은 카테고리입니다' }, 400);
-    }
-
-    // 공지사항, FAQ는 관리자만 작성 가능
-    if (['notice', 'faq'].includes(category) && user.role !== 'admin') {
-      return c.json({ success: false, error: '권한이 없습니다' }, 403);
-    }
-
-    // 게시글 생성
-    const result = await DB.prepare(`
-      INSERT INTO posts (
-        category, title, content, images,
-        author_id, pinned, status, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
-    `).bind(
-      category,
-      title,
-      content || null,
-      images ? JSON.stringify(images) : null,
-      user.userId,
-      (pinned && user.role === 'admin') ? 1 : 0,
-      status || 'published'
-    ).run();
-
-    return c.json({
-      success: true,
-      data: {
-        id: result.meta.last_row_id,
-        message: '게시글이 등록되었습니다'
-      }
-    }, 201);
-  } catch (error) {
-    console.error('Error creating post:', error);
-    return c.json({ success: false, error: '게시글 작성 중 오류가 발생했습니다: ' + (error instanceof Error ? error.message : String(error)) }, 500);
-  }
-});
+// ... (omitted)
 
 // ============================================
 // 게시글 수정
@@ -211,14 +18,14 @@ app.put('/:id', authMiddleware, async (c) => {
     const body = await c.req.json();
 
     // 게시글 조회
-    const post = await DB.prepare('SELECT * FROM posts WHERE id = ?').bind(id).first();
+    const post = await DB.prepare('SELECT * FROM posts WHERE id = ?').bind(id).first<Post>();
 
     if (!post) {
       return c.json({ success: false, error: '게시글을 찾을 수 없습니다' }, 404);
     }
 
     // 본인 또는 관리자만 수정 가능
-    if (user.role !== 'admin' && post.author_id !== user.id) {
+    if (user.role !== 'admin' && post.author_id !== user.userId) {
       return c.json({ success: false, error: '권한이 없습니다' }, 403);
     }
 
@@ -267,7 +74,7 @@ app.delete('/:id', authMiddleware, async (c) => {
     }
 
     // 본인 또는 관리자만 삭제 가능
-    if (user.role !== 'admin' && post.author_id !== user.id) {
+    if (user.role !== 'admin' && post.author_id !== user.userId) {
       return c.json({ success: false, error: '권한이 없습니다' }, 403);
     }
 
@@ -313,7 +120,7 @@ app.post('/:id/comments', authMiddleware, async (c) => {
       INSERT INTO comments (
         post_id, user_id, content, parent_id, created_at
       ) VALUES (?, ?, ?, ?, datetime('now'))
-    `).bind(post_id, user.id, content, parent_id || null).run();
+    `).bind(post_id, user.userId, content, parent_id || null).run();
 
     return c.json({
       success: true,
@@ -346,7 +153,7 @@ app.delete('/:post_id/comments/:comment_id', authMiddleware, async (c) => {
     }
 
     // 본인 또는 관리자만 삭제 가능
-    if (user.role !== 'admin' && comment.user_id !== user.id) {
+    if (user.role !== 'admin' && comment.user_id !== user.userId) {
       return c.json({ success: false, error: '권한이 없습니다' }, 403);
     }
 

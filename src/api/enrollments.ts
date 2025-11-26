@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
-import type { Bindings } from '../types';
+import type { Bindings, JWTPayload, Course, Enrollment } from '../types';
 import { authMiddleware, requireRole, requireAdmin } from '../middleware/auth';
 
-const app = new Hono<{ Bindings: Bindings }>();
+const app = new Hono<{ Bindings: Bindings; Variables: { user: JWTPayload } }>();
 
 // ============================================
 // 수강 신청 목록 조회
@@ -45,28 +45,28 @@ app.get('/', authMiddleware, async (c) => {
       SELECT COUNT(*) as total
       FROM enrollments e
       ${whereClause}
-    `;
+`;
     const countResult = await DB.prepare(countQuery).bind(...params).first<{ total: number }>();
     const total = countResult?.total || 0;
 
     // 목록 조회
     const query = `
-      SELECT 
-        e.*,
-        u.name as user_name,
-        u.email as user_email,
-        c.title as course_title,
-        c.category as course_category,
-        c.thumbnail_url as course_thumbnail,
-        cam.name as campus_name
+SELECT
+e.*,
+  u.name as user_name,
+  u.email as user_email,
+  c.title as course_title,
+  c.category as course_category,
+  c.thumbnail_url as course_thumbnail,
+  cam.name as campus_name
       FROM enrollments e
       LEFT JOIN users u ON e.user_id = u.id
       LEFT JOIN courses c ON e.course_id = c.id
       LEFT JOIN campuses cam ON c.campus_id = cam.id
       ${whereClause}
       ORDER BY e.enrolled_at DESC
-      LIMIT ? OFFSET ?
-    `;
+LIMIT ? OFFSET ?
+  `;
 
     const result = await DB.prepare(query).bind(...params, limit, offset).all();
 
@@ -97,28 +97,28 @@ app.get('/:id', authMiddleware, async (c) => {
     const id = c.req.param('id');
 
     const query = `
-      SELECT 
-        e.*,
-        u.name as user_name,
-        u.email as user_email,
-        u.phone as user_phone,
-        c.title as course_title,
-        c.category as course_category,
-        c.description as course_description,
-        c.duration_months,
-        c.duration_hours,
-        c.price,
-        c.discount_price,
-        c.thumbnail_url as course_thumbnail,
-        cam.name as campus_name,
-        cam.address as campus_address,
-        cam.phone as campus_phone
+      SELECT
+e.*,
+  u.name as user_name,
+  u.email as user_email,
+  u.phone as user_phone,
+  c.title as course_title,
+  c.category as course_category,
+  c.description as course_description,
+  c.duration_months,
+  c.duration_hours,
+  c.price,
+  c.discount_price,
+  c.thumbnail_url as course_thumbnail,
+  cam.name as campus_name,
+  cam.address as campus_address,
+  cam.phone as campus_phone
       FROM enrollments e
       LEFT JOIN users u ON e.user_id = u.id
       LEFT JOIN courses c ON e.course_id = c.id
       LEFT JOIN campuses cam ON c.campus_id = cam.id
       WHERE e.id = ?
-    `;
+  `;
 
     const enrollment = await DB.prepare(query).bind(id).first();
 
@@ -127,7 +127,7 @@ app.get('/:id', authMiddleware, async (c) => {
     }
 
     // 본인 또는 관리자만 조회 가능
-    if (user.role !== 'admin' && enrollment.user_id !== user.id) {
+    if (user.role !== 'admin' && enrollment.user_id !== user.userId) {
       return c.json({ success: false, error: '권한이 없습니다' }, 403);
     }
 
@@ -159,7 +159,7 @@ app.post('/', authMiddleware, async (c) => {
     }
 
     // 과정 존재 여부 확인
-    const course = await DB.prepare('SELECT * FROM courses WHERE id = ?').bind(course_id).first();
+    const course = await DB.prepare('SELECT * FROM courses WHERE id = ?').bind(course_id).first<Course>();
     if (!course) {
       return c.json({ success: false, error: '존재하지 않는 과정입니다' }, 404);
     }
@@ -167,9 +167,9 @@ app.post('/', authMiddleware, async (c) => {
     // 이미 신청한 과정인지 확인 (승인/진행중인 신청만)
     const existing = await DB.prepare(`
       SELECT * FROM enrollments 
-      WHERE user_id = ? AND course_id = ? 
-      AND status IN ('pending', 'approved', 'completed')
-    `).bind(user.id, course_id).first();
+      WHERE user_id = ? AND course_id = ?
+  AND status IN('pending', 'approved', 'completed')
+    `).bind(user.userId, course_id).first();
 
     if (existing) {
       return c.json({ success: false, error: '이미 신청한 과정입니다' }, 400);
@@ -182,13 +182,13 @@ app.post('/', authMiddleware, async (c) => {
 
     // 수강 신청 생성
     const result = await DB.prepare(`
-      INSERT INTO enrollments (
-        user_id, course_id, status, 
-        payment_status, payment_method, payment_amount, 
-        enrolled_at
-      ) VALUES (?, ?, 'pending', 'unpaid', ?, ?, datetime('now'))
-    `).bind(
-      user.id,
+      INSERT INTO enrollments(
+      user_id, course_id, status,
+      payment_status, payment_method, payment_amount,
+      enrolled_at
+    ) VALUES(?, ?, 'pending', 'unpaid', ?, ?, datetime('now'))
+      `).bind(
+      user.userId,
       course_id,
       payment_method || null,
       payment_amount || course.discount_price || course.price
@@ -199,13 +199,13 @@ app.post('/', authMiddleware, async (c) => {
       UPDATE courses 
       SET current_students = current_students + 1 
       WHERE id = ?
-    `).bind(course_id).run();
+  `).bind(course_id).run();
 
     return c.json({
       success: true,
       data: {
         id: result.meta.last_row_id,
-        user_id: user.id,
+        user_id: user.userId,
         course_id,
         status: 'pending',
         message: '수강 신청이 완료되었습니다. 승인을 기다려주세요.'
@@ -242,10 +242,10 @@ app.put('/:id/status', authMiddleware, requireAdmin, async (c) => {
     // 상태 업데이트
     await DB.prepare(`
       UPDATE enrollments 
-      SET status = ?, 
-          completed_at = CASE WHEN ? = 'completed' THEN datetime('now') ELSE completed_at END
+      SET status = ?,
+  completed_at = CASE WHEN ? = 'completed' THEN datetime('now') ELSE completed_at END
       WHERE id = ?
-    `).bind(status, status, id).run();
+  `).bind(status, status, id).run();
 
     return c.json({
       success: true,
@@ -268,14 +268,14 @@ app.delete('/:id', authMiddleware, async (c) => {
     const id = c.req.param('id');
 
     // 수강 신청 조회
-    const enrollment = await DB.prepare('SELECT * FROM enrollments WHERE id = ?').bind(id).first();
+    const enrollment = await DB.prepare('SELECT * FROM enrollments WHERE id = ?').bind(id).first<Enrollment>();
 
     if (!enrollment) {
       return c.json({ success: false, error: '수강 신청을 찾을 수 없습니다' }, 404);
     }
 
     // 본인 또는 관리자만 취소 가능
-    if (user.role !== 'admin' && enrollment.user_id !== user.id) {
+    if (user.role !== 'admin' && enrollment.user_id !== user.userId) {
       return c.json({ success: false, error: '권한이 없습니다' }, 403);
     }
 
@@ -289,14 +289,14 @@ app.delete('/:id', authMiddleware, async (c) => {
       UPDATE enrollments 
       SET status = 'cancelled' 
       WHERE id = ?
-    `).bind(id).run();
+  `).bind(id).run();
 
     // 과정 수강생 수 감소
     await DB.prepare(`
       UPDATE courses 
       SET current_students = current_students - 1 
       WHERE id = ?
-    `).bind(enrollment.course_id).run();
+  `).bind(enrollment.course_id).run();
 
     return c.json({
       success: true,
