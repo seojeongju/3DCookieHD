@@ -45,10 +45,8 @@ courses.get('/', async (c) => {
     if (filter.status) {
       conditions.push('c.status = ?');
       params.push(filter.status);
-    } else {
-      conditions.push('c.status = ?');
-      params.push('active');
     }
+    // 기본값으로 status 필터링을 하지 않음 (모든 상태 조회)
 
     if (filter.campus_id) {
       conditions.push('c.campus_id = ?');

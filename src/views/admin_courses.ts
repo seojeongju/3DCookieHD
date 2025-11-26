@@ -177,8 +177,20 @@ export const adminCoursesListHtml = `
                             <textarea name="description" id="courseDescription" rows="5" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
                         </div>
                         <div>
-                            <label class="block text-gray-700 font-medium mb-2">썸네일 이미지 URL</label>
-                            <input type="text" name="thumbnail_url" id="courseThumbnail" placeholder="https://..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <label class="block text-gray-700 font-medium mb-2">썸네일 이미지</label>
+                            <div class="flex gap-2 mb-2">
+                                <input type="text" name="thumbnail_url" id="courseThumbnail" placeholder="이미지 URL 또는 파일 선택" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" onchange="updateThumbnailPreview(this.value)">
+                                <label for="thumbnailFile" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg cursor-pointer hover:bg-gray-300 transition flex items-center whitespace-nowrap">
+                                    <i class="fas fa-folder-open mr-2"></i> 파일 선택
+                                </label>
+                                <input type="file" id="thumbnailFile" accept="image/*" class="hidden" onchange="handleThumbnailFile(this)">
+                            </div>
+                            <div id="thumbnailPreview" class="hidden mt-2 w-full h-48 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center border border-gray-200 relative">
+                                <img src="" class="h-full object-contain">
+                                <button type="button" onclick="clearThumbnail()" class="absolute top-2 right-2 bg-white rounded-full p-1 shadow-md text-gray-500 hover:text-red-500">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <div class="mt-6 flex justify-end space-x-3">
@@ -212,6 +224,7 @@ export const adminCoursesListHtml = `
                 document.getElementById('courseEndDate').value = course.end_date ? course.end_date.split('T')[0] : '';
                 document.getElementById('courseDescription').value = course.description || '';
                 document.getElementById('courseThumbnail').value = course.thumbnail_url || '';
+                updateThumbnailPreview(course.thumbnail_url || '');
             } else {
                 // 등록 모드
                 title.textContent = '과정 개설';
@@ -219,16 +232,14 @@ export const adminCoursesListHtml = `
                 document.getElementById('courseId').value = '';
                 document.getElementById('courseStatus').value = 'open';
                 document.getElementById('courseCategory').value = '일반과정';
+                updateThumbnailPreview('');
             }
             
             modal.classList.remove('hidden');
 
             // TinyMCE 초기화 또는 내용 설정
-            if (tinymce.get('courseDescription')) {
-                tinymce.get('courseDescription').setContent(course ? (course.description || '') : '');
-            } else {
-                initTinyMCE(course ? (course.description || '') : '');
-            }
+            // TinyMCE 초기화 (항상 새로 초기화)
+            initTinyMCE(course ? (course.description || '') : '');
         }
 
         function initTinyMCE(initialContent) {
@@ -264,8 +275,41 @@ export const adminCoursesListHtml = `
             });
         }
 
+        function handleThumbnailFile(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('courseThumbnail').value = e.target.result;
+                    updateThumbnailPreview(e.target.result);
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function updateThumbnailPreview(src) {
+            const preview = document.getElementById('thumbnailPreview');
+            const img = preview.querySelector('img');
+            
+            if (src && src.trim() !== '') {
+                img.src = src;
+                preview.classList.remove('hidden');
+            } else {
+                preview.classList.add('hidden');
+                img.src = '';
+            }
+        }
+
+        function clearThumbnail() {
+            document.getElementById('courseThumbnail').value = '';
+            document.getElementById('thumbnailFile').value = '';
+            updateThumbnailPreview('');
+        }
+
         function closeModal(id) {
             document.getElementById(id).classList.add('hidden');
+            if (id === 'createCourseModal') {
+                tinymce.remove('#courseDescription');
+            }
         }
 
         async function loadCourses() {
