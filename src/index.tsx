@@ -168,7 +168,7 @@ app.get('/', (c) => {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>와우쓰리디홍대센터 - 3D 프린팅 교육 전문</title>
+        <title>와우쓰리디홍대센터 - 4차산업 3D프린팅 교육 전문</title>
         <script src="https://cdn.tailwindcss.com"></script>
         <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
         <script>
@@ -1519,10 +1519,17 @@ app.get('/', (c) => {
                     ? \`<img src="\${course.thumbnail_url}" alt="\${course.title}" class="w-full h-full object-cover">\`
                     : \`<div class="h-full w-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center"><i class="fas fa-cube text-white text-6xl"></i></div>\`;
                 
+                const statusBadge = course.status === 'open' 
+                    ? '<span class="absolute top-2 right-2 px-2 py-1 bg-green-500 text-white text-xs font-bold rounded shadow-md">모집중</span>'
+                    : course.status === 'closed'
+                    ? '<span class="absolute top-2 right-2 px-2 py-1 bg-red-500 text-white text-xs font-bold rounded shadow-md">마감</span>'
+                    : '<span class="absolute top-2 right-2 px-2 py-1 bg-yellow-500 text-white text-xs font-bold rounded shadow-md">준비중</span>';
+
                 return \`
               <div class="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition course-card" data-category="\${course.category}">
                 <div class="h-48 relative">
                   \${thumbnailHtml}
+                  \${statusBadge}
                 </div>
                 <div class="p-6">
                   <div class="flex items-center justify-between mb-2">
