@@ -12,22 +12,22 @@ app.get('/', authMiddleware, async (c) => {
   try {
     const { DB } = c.env;
     const user = c.get('user');
-    
+
     // 쿼리 파라미터
     const page = parseInt(c.req.query('page') || '1');
     const limit = parseInt(c.req.query('limit') || '10');
     const status = c.req.query('status'); // pending, approved, rejected, completed, cancelled
     const offset = (page - 1) * limit;
-    
+
     // WHERE 조건 구성
     let whereClause = '';
     const params: any[] = [];
-    
+
     // 관리자가 아니면 본인 신청만 조회
     if (user.role !== 'admin') {
       whereClause = 'WHERE e.user_id = ?';
-      params.push(user.id);
-      
+      params.push(user.userId);
+
       if (status) {
         whereClause += ' AND e.status = ?';
         params.push(status);
@@ -39,7 +39,7 @@ app.get('/', authMiddleware, async (c) => {
         params.push(status);
       }
     }
-    
+
     // 전체 개수 조회
     const countQuery = `
       SELECT COUNT(*) as total
@@ -48,7 +48,7 @@ app.get('/', authMiddleware, async (c) => {
     `;
     const countResult = await DB.prepare(countQuery).bind(...params).first<{ total: number }>();
     const total = countResult?.total || 0;
-    
+
     // 목록 조회
     const query = `
       SELECT 
@@ -67,9 +67,9 @@ app.get('/', authMiddleware, async (c) => {
       ORDER BY e.enrolled_at DESC
       LIMIT ? OFFSET ?
     `;
-    
+
     const result = await DB.prepare(query).bind(...params, limit, offset).all();
-    
+
     return c.json({
       success: true,
       data: result.results,
@@ -95,7 +95,7 @@ app.get('/:id', authMiddleware, async (c) => {
     const { DB } = c.env;
     const user = c.get('user');
     const id = c.req.param('id');
-    
+
     const query = `
       SELECT 
         e.*,
@@ -119,18 +119,18 @@ app.get('/:id', authMiddleware, async (c) => {
       LEFT JOIN campuses cam ON c.campus_id = cam.id
       WHERE e.id = ?
     `;
-    
+
     const enrollment = await DB.prepare(query).bind(id).first();
-    
+
     if (!enrollment) {
       return c.json({ success: false, error: '수강 신청을 찾을 수 없습니다' }, 404);
     }
-    
+
     // 본인 또는 관리자만 조회 가능
     if (user.role !== 'admin' && enrollment.user_id !== user.id) {
       return c.json({ success: false, error: '권한이 없습니다' }, 403);
     }
-    
+
     return c.json({
       success: true,
       data: enrollment
@@ -150,36 +150,36 @@ app.post('/', authMiddleware, async (c) => {
     const { DB } = c.env;
     const user = c.get('user');
     const body = await c.req.json();
-    
+
     const { course_id, payment_method, payment_amount } = body;
-    
+
     // 필수 필드 검증
     if (!course_id) {
       return c.json({ success: false, error: '과정 ID는 필수입니다' }, 400);
     }
-    
+
     // 과정 존재 여부 확인
     const course = await DB.prepare('SELECT * FROM courses WHERE id = ?').bind(course_id).first();
     if (!course) {
       return c.json({ success: false, error: '존재하지 않는 과정입니다' }, 404);
     }
-    
+
     // 이미 신청한 과정인지 확인 (승인/진행중인 신청만)
     const existing = await DB.prepare(`
       SELECT * FROM enrollments 
       WHERE user_id = ? AND course_id = ? 
       AND status IN ('pending', 'approved', 'completed')
     `).bind(user.id, course_id).first();
-    
+
     if (existing) {
       return c.json({ success: false, error: '이미 신청한 과정입니다' }, 400);
     }
-    
+
     // 정원 확인
     if (course.current_students >= course.max_students) {
       return c.json({ success: false, error: '정원이 마감되었습니다' }, 400);
     }
-    
+
     // 수강 신청 생성
     const result = await DB.prepare(`
       INSERT INTO enrollments (
@@ -193,14 +193,14 @@ app.post('/', authMiddleware, async (c) => {
       payment_method || null,
       payment_amount || course.discount_price || course.price
     ).run();
-    
+
     // 과정 수강생 수 증가
     await DB.prepare(`
       UPDATE courses 
       SET current_students = current_students + 1 
       WHERE id = ?
     `).bind(course_id).run();
-    
+
     return c.json({
       success: true,
       data: {
@@ -226,19 +226,19 @@ app.put('/:id/status', authMiddleware, requireAdmin, async (c) => {
     const { DB } = c.env;
     const id = c.req.param('id');
     const { status } = await c.req.json();
-    
+
     // 상태 검증
     const validStatuses = ['pending', 'approved', 'rejected', 'completed', 'cancelled'];
     if (!validStatuses.includes(status)) {
       return c.json({ success: false, error: '유효하지 않은 상태입니다' }, 400);
     }
-    
+
     // 수강 신청 조회
     const enrollment = await DB.prepare('SELECT * FROM enrollments WHERE id = ?').bind(id).first();
     if (!enrollment) {
       return c.json({ success: false, error: '수강 신청을 찾을 수 없습니다' }, 404);
     }
-    
+
     // 상태 업데이트
     await DB.prepare(`
       UPDATE enrollments 
@@ -246,7 +246,7 @@ app.put('/:id/status', authMiddleware, requireAdmin, async (c) => {
           completed_at = CASE WHEN ? = 'completed' THEN datetime('now') ELSE completed_at END
       WHERE id = ?
     `).bind(status, status, id).run();
-    
+
     return c.json({
       success: true,
       message: '상태가 변경되었습니다'
@@ -266,38 +266,38 @@ app.delete('/:id', authMiddleware, async (c) => {
     const { DB } = c.env;
     const user = c.get('user');
     const id = c.req.param('id');
-    
+
     // 수강 신청 조회
     const enrollment = await DB.prepare('SELECT * FROM enrollments WHERE id = ?').bind(id).first();
-    
+
     if (!enrollment) {
       return c.json({ success: false, error: '수강 신청을 찾을 수 없습니다' }, 404);
     }
-    
+
     // 본인 또는 관리자만 취소 가능
     if (user.role !== 'admin' && enrollment.user_id !== user.id) {
       return c.json({ success: false, error: '권한이 없습니다' }, 403);
     }
-    
+
     // pending 또는 approved 상태만 취소 가능
     if (!['pending', 'approved'].includes(enrollment.status)) {
       return c.json({ success: false, error: '취소할 수 없는 상태입니다' }, 400);
     }
-    
+
     // 상태를 cancelled로 변경
     await DB.prepare(`
       UPDATE enrollments 
       SET status = 'cancelled' 
       WHERE id = ?
     `).bind(id).run();
-    
+
     // 과정 수강생 수 감소
     await DB.prepare(`
       UPDATE courses 
       SET current_students = current_students - 1 
       WHERE id = ?
     `).bind(enrollment.course_id).run();
-    
+
     return c.json({
       success: true,
       message: '수강 신청이 취소되었습니다'

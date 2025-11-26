@@ -181,7 +181,7 @@ app.post('/', authMiddleware, async (c) => {
       title,
       content || null,
       images ? JSON.stringify(images) : null,
-      user.id,
+      user.userId,
       (pinned && user.role === 'admin') ? 1 : 0,
       status || 'published'
     ).run();
