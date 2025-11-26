@@ -3099,6 +3099,11 @@ app.get('/admin/reviews', (c) => {
     return c.html(adminReviewsListHtml);
 });
 
+// 관리자 - 게시판 관리 페이지
+app.get('/admin/posts', (c) => {
+    return c.html(adminPostsListHtml);
+});
+
 // ============================================
 // 인사말 페이지
 // ============================================
