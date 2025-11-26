@@ -71,25 +71,42 @@ export const adminPostsListHtml = `
 
     <!-- 메인 컨텐츠 -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <!-- 필터 및 검색 -->
-        <div class="bg-white rounded-lg shadow-sm p-4 mb-6 flex flex-wrap gap-4 items-center justify-between">
-            <div class="flex gap-4 items-center">
-                <select id="categoryFilter" onchange="loadPosts()" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    <option value="">전체 카테고리</option>
-                    <option value="notice">공지사항</option>
-                    <option value="faq">FAQ</option>
-                    <option value="portfolio">포트폴리오</option>
-                    <option value="qna">Q&A</option>
-                </select>
-                <div class="relative">
-                    <input type="text" id="searchInput" placeholder="제목/내용 검색" onkeyup="if(event.key === 'Enter') loadPosts()" class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-64">
-                    <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
-                </div>
+        <!-- 탭 네비게이션 -->
+        <div class="bg-white rounded-lg shadow-sm mb-6">
+            <div class="border-b border-gray-200">
+                <nav class="-mb-px flex" aria-label="Tabs">
+                    <button onclick="filterCategory('')" id="tab-all" class="w-1/5 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-center border-b-2 font-medium text-sm">
+                        전체
+                    </button>
+                    <button onclick="filterCategory('notice')" id="tab-notice" class="w-1/5 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-center border-b-2 font-medium text-sm">
+                        공지사항
+                    </button>
+                    <button onclick="filterCategory('faq')" id="tab-faq" class="w-1/5 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-center border-b-2 font-medium text-sm">
+                        FAQ
+                    </button>
+                    <button onclick="filterCategory('portfolio')" id="tab-portfolio" class="w-1/5 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-center border-b-2 font-medium text-sm">
+                        포트폴리오
+                    </button>
+                    <button onclick="filterCategory('qna')" id="tab-qna" class="w-1/5 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-center border-b-2 font-medium text-sm">
+                        Q&A
+                    </button>
+                </nav>
             </div>
-            <div class="flex gap-2">
-                <button onclick="loadPosts()" class="p-2 text-gray-600 hover:text-blue-600">
-                    <i class="fas fa-sync-alt"></i>
-                </button>
+            
+            <!-- 검색 및 필터 -->
+            <div class="p-4 flex flex-wrap gap-4 items-center justify-between">
+                <input type="hidden" id="currentCategory" value="">
+                <div class="flex gap-4 items-center flex-1">
+                    <div class="relative flex-1 max-w-md">
+                        <input type="text" id="searchInput" placeholder="제목/내용 검색" onkeyup="if(event.key === 'Enter') loadPosts()" class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="loadPosts()" class="p-2 text-gray-600 hover:text-blue-600">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -184,13 +201,36 @@ export const adminPostsListHtml = `
         document.addEventListener('DOMContentLoaded', () => {
             // URL 파라미터 확인 (카테고리 등)
             const urlParams = new URLSearchParams(window.location.search);
-            const category = urlParams.get('category');
-            if (category) {
-                document.getElementById('categoryFilter').value = category;
-            }
+            const category = urlParams.get('category') || '';
             
-            loadPosts();
+            filterCategory(category);
+
+            const action = urlParams.get('action');
+            if (action === 'create') {
+                openModal('createPostModal');
+            }
         });
+
+        function filterCategory(category) {
+            document.getElementById('currentCategory').value = category;
+            
+            // 탭 스타일 업데이트
+            const tabs = ['all', 'notice', 'faq', 'portfolio', 'qna'];
+            tabs.forEach(tab => {
+                const element = document.getElementById(\`tab-\${tab}\`);
+                if (!element) return;
+                
+                const isSelected = (category === '' && tab === 'all') || category === tab;
+                
+                if (isSelected) {
+                    element.className = 'w-1/5 border-blue-500 text-blue-600 py-4 px-1 text-center border-b-2 font-medium text-sm';
+                } else {
+                    element.className = 'w-1/5 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-center border-b-2 font-medium text-sm';
+                }
+            });
+            
+            loadPosts(1);
+        }
 
         function openModal(id, post = null) {
             const modal = document.getElementById(id);
@@ -213,7 +253,7 @@ export const adminPostsListHtml = `
                 document.getElementById('postStatus').value = 'published';
                 
                 // 현재 필터링된 카테고리가 있다면 기본값으로 설정
-                const currentCategory = document.getElementById('categoryFilter').value;
+                const currentCategory = document.getElementById('currentCategory').value;
                 if (currentCategory) {
                     document.getElementById('postCategory').value = currentCategory;
                 } else {
@@ -272,7 +312,7 @@ export const adminPostsListHtml = `
 
         async function loadPosts(page = 1) {
             currentPage = page;
-            const category = document.getElementById('categoryFilter').value;
+            const category = document.getElementById('currentCategory').value;
             const search = document.getElementById('searchInput').value;
             
             let url = \`/api/posts?page=\${page}&limit=\${itemsPerPage}&\`;
