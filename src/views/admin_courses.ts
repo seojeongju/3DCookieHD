@@ -275,15 +275,117 @@ export const adminCoursesListHtml = `
             });
         }
 
-        function handleThumbnailFile(input) {
+        async function handleThumbnailFile(input) {
             if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById('courseThumbnail').value = e.target.result;
-                    updateThumbnailPreview(e.target.result);
-                };
-                reader.readAsDataURL(input.files[0]);
+                const file = input.files[0];
+                
+                // 파일 크기 체크 (10MB 이상이면 경고)
+                const maxSize = 10 * 1024 * 1024; // 10MB
+                if (file.size > maxSize) {
+                    alert('파일 크기가 너무 큽니다. 10MB 이하의 이미지를 선택해주세요.');
+                    input.value = '';
+                    return;
+                }
+                
+                try {
+                    // 이미지 리사이징
+                    const resizedDataUrl = await resizeImage(file, {
+                        maxWidth: 1920,
+                        maxHeight: 1080,
+                        quality: 0.85
+                    });
+                    
+                    document.getElementById('courseThumbnail').value = resizedDataUrl;
+                    updateThumbnailPreview(resizedDataUrl);
+                    
+                    // 원본 크기와 리사이징 후 크기 비교 (선택사항)
+                    const originalSizeKB = (file.size / 1024).toFixed(2);
+                    const resizedSizeKB = ((resizedDataUrl.length * 3/4) / 1024).toFixed(2);
+                    console.log(`이미지 최적화: ${ originalSizeKB }KB → ${ resizedSizeKB }KB`);
+                } catch (error) {
+                    console.error('이미지 처리 오류:', error);
+                    alert('이미지 처리 중 오류가 발생했습니다.');
+                }
             }
+        }
+
+        /**
+         * 이미지를 리사이징하고 Data URL로 반환합니다.
+         */
+        async function resizeImage(file, options = {}) {
+            const {
+                maxWidth = 1920,
+                maxHeight = 1080,
+                quality = 0.85,
+                outputFormat = 'image/jpeg'
+            } = options;
+
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                
+                reader.onload = (e) => {
+                    const img = new Image();
+                    
+                    img.onload = () => {
+                        let width = img.width;
+                        let height = img.height;
+                        
+                        // 리사이징이 필요한지 확인
+                        if (width <= maxWidth && height <= maxHeight) {
+                            // 리사이징 불필요, 원본 반환
+                            resolve(e.target.result);
+                            return;
+                        }
+                        
+                        // 비율 유지하며 리사이징
+                        const aspectRatio = width / height;
+                        
+                        if (width > maxWidth) {
+                            width = maxWidth;
+                            height = width / aspectRatio;
+                        }
+                        
+                        if (height > maxHeight) {
+                            height = maxHeight;
+                            width = height * aspectRatio;
+                        }
+                        
+                        // Canvas를 사용해 리사이징
+                        const canvas = document.createElement('canvas');
+                        canvas.width = width;
+                        canvas.height = height;
+                        
+                        const ctx = canvas.getContext('2d');
+                        if (!ctx) {
+                            reject(new Error('Canvas context를 가져올 수 없습니다.'));
+                            return;
+                        }
+                        
+                        // 이미지 그리기
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        // Data URL로 변환
+                        try {
+                            const dataUrl = canvas.toDataURL(outputFormat, quality);
+                            resolve(dataUrl);
+                        } catch (err) {
+                            reject(new Error('이미지 변환에 실패했습니다: ' + err.message));
+                        }
+                    };
+                    
+                    img.onerror = () => {
+                        reject(new Error('이미지 로드에 실패했습니다.'));
+                    };
+                    
+                    img.src = e.target.result;
+                };
+                
+                reader.onerror = () => {
+                    reject(new Error('파일 읽기에 실패했습니다.'));
+                };
+                
+                reader.readAsDataURL(file);
+            });
         }
 
         function updateThumbnailPreview(src) {
