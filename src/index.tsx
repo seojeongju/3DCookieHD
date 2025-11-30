@@ -1417,6 +1417,51 @@ app.get('/', (c) => {
             </div>
         </footer>
 
+        <!-- 교육과정 상세 모달 -->
+        <div id="courseModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+            <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onclick="closeCourseModal()"></div>
+                <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+                <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                        <div class="sm:flex sm:items-start">
+                            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                                <h3 class="text-2xl leading-6 font-bold text-gray-900 mb-2" id="modalCourseTitle">
+                                    과정 제목
+                                </h3>
+                                <div class="flex items-center gap-2 mb-4 justify-center sm:justify-start">
+                                    <span class="px-2 py-1 bg-primary-100 text-primary-800 text-xs font-semibold rounded" id="modalCourseCategory">카테고리</span>
+                                    <span class="text-sm text-gray-500" id="modalCourseDuration">기간</span>
+                                </div>
+                                <div class="mt-2">
+                                    <img id="modalCourseImage" src="" alt="Course Image" class="w-full h-64 object-cover rounded-lg mb-4 hidden">
+                                    <div class="text-sm text-gray-500 mb-4 prose max-w-none text-left" id="modalCourseDescription">
+                                        과정 설명
+                                    </div>
+                                    <div class="bg-gray-50 p-4 rounded-lg text-left">
+                                        <h4 class="font-bold text-gray-800 mb-2">수강 정보</h4>
+                                        <ul class="text-sm text-gray-600 space-y-1">
+                                            <li><strong>수강료:</strong> <span id="modalCoursePrice"></span></li>
+                                            <li><strong>난이도:</strong> <span id="modalCourseDifficulty"></span></li>
+                                            <li><strong>정원:</strong> <span id="modalCourseCapacity"></span>명</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                        <button type="button" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary-600 text-base font-medium text-white hover:bg-primary-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm" onclick="closeCourseModal()">
+                            닫기
+                        </button>
+                        <a href="/online-consulting" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                            상담 신청
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <script>
           // API Base URL
           const API_BASE = '/api';
@@ -1683,8 +1728,56 @@ app.get('/', (c) => {
           }
           
           // 과정 상세 (임시)
-          function showCourseDetail(id) {
-            alert('과정 상세 페이지는 곧 준비됩니다!');
+          // 과정 상세 모달 열기
+          async function showCourseDetail(id) {
+            try {
+                // API 호출
+                const response = await fetch(`${ API_BASE } / courses / ${ id }`);
+                const result = await response.json();
+
+                if (result.success) {
+                    const course = result.data;
+                    
+                    // 모달 내용 채우기
+                    document.getElementById('modalCourseTitle').textContent = course.title;
+                    document.getElementById('modalCourseCategory').textContent = course.category;
+                    
+                    let durationText = '';
+                    if (course.duration_months) durationText += `${ course.duration_months }개월`;
+                    if (course.duration_hours) durationText += (durationText ? ' ' : '') + `(${ course.duration_hours }시간)`;
+                    document.getElementById('modalCourseDuration').textContent = durationText;
+                    
+                    document.getElementById('modalCourseDescription').innerHTML = course.description;
+                    
+                    const priceText = course.price === 0 ? '국비지원' : 
+                                     (course.discount_price ? Number(course.discount_price).toLocaleString() + '원' : 
+                                     (course.price ? Number(course.price).toLocaleString() + '원' : '무료'));
+                    document.getElementById('modalCoursePrice').textContent = priceText;
+                    document.getElementById('modalCourseDifficulty').textContent = course.difficulty || '정보 없음';
+                    document.getElementById('modalCourseCapacity').textContent = course.capacity || '0';
+
+                    const img = document.getElementById('modalCourseImage');
+                    if (course.thumbnail_url) {
+                        img.src = course.thumbnail_url;
+                        img.classList.remove('hidden');
+                    } else {
+                        img.classList.add('hidden');
+                    }
+
+                    // 모달 표시
+                    document.getElementById('courseModal').classList.remove('hidden');
+                } else {
+                    alert('과정 정보를 불러오지 못했습니다.');
+                }
+            } catch (e) {
+                console.error('Error fetching course detail:', e);
+                alert('오류가 발생했습니다.');
+            }
+          }
+
+          // 과정 상세 모달 닫기
+          function closeCourseModal() {
+            document.getElementById('courseModal').classList.add('hidden');
           }
           
           // 로그인/회원가입 모달 (임시)
