@@ -1,11 +1,11 @@
 
-export const adminHrdNcsPlanHtml = `
+export const adminHrdNcsExecHtml = `
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HRD 행정관리 시스템 - NCS 평가계획</title>
+    <title>HRD 행정관리 시스템 - NCS 평가실행</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <script>
@@ -104,8 +104,8 @@ export const adminHrdNcsPlanHtml = `
                 <a href="/admin/hrd/students" class="gnb-item hover:bg-gray-700 flex items-center justify-center px-6 h-full whitespace-nowrap">학생</a>
                 <a href="/admin/hrd/courses" class="gnb-item hover:bg-gray-700 flex items-center justify-center px-6 h-full whitespace-nowrap">과정</a>
                 <a href="/admin/hrd/personnel" class="gnb-item hover:bg-gray-700 flex items-center justify-center px-6 h-full whitespace-nowrap">인사</a>
-                <a href="/admin/hrd/ncs-plan" class="gnb-item active flex items-center justify-center px-6 h-full whitespace-nowrap">[NCS] 평가계획</a>
-                <a href="/admin/hrd/ncs-exec" class="gnb-item hover:bg-gray-700 flex items-center justify-center px-6 h-full whitespace-nowrap">[NCS] 평가실행</a>
+                <a href="/admin/hrd/ncs-plan" class="gnb-item hover:bg-gray-700 flex items-center justify-center px-6 h-full whitespace-nowrap">[NCS] 평가계획</a>
+                <a href="/admin/hrd/ncs-exec" class="gnb-item active flex items-center justify-center px-6 h-full whitespace-nowrap">[NCS] 평가실행</a>
                 <a href="#" class="gnb-item hover:bg-gray-700 flex items-center justify-center px-6 h-full whitespace-nowrap">[NCS] 평가결과</a>
                 <a href="#" class="gnb-item hover:bg-gray-700 flex items-center justify-center px-6 h-full whitespace-nowrap">역량평가-설문</a>
                 <a href="/" class="gnb-item hover:bg-gray-700 flex items-center justify-center px-6 h-full whitespace-nowrap ml-auto bg-gray-700">홈페이지</a>
@@ -145,37 +145,27 @@ export const adminHrdNcsPlanHtml = `
             </div>
 
             <nav class="flex flex-col mt-2">
-                <!-- 평가계획 그룹 -->
+                <!-- 사전평가 그룹 -->
                 <div class="sidebar-header hover:bg-slate-700">
                     <div class="flex items-center">
-                        <i class="fas fa-clipboard-list mr-2 w-5 text-center"></i>
-                        <span>평가계획</span>
+                        <i class="fas fa-edit mr-2 w-5 text-center"></i>
+                        <span>사전평가</span>
                     </div>
-                    <i class="fas fa-chevron-down text-xs"></i>
-                </div>
-                <div class="bg-slate-900 py-2">
-                    <a href="#" class="sidebar-item">1.사전평가 계획화의록</a>
-                    <a href="#" class="sidebar-item">2.사전평가 계획</a>
-                    <a href="#" class="sidebar-item">3.사전평가 자가진단</a>
-                    <a href="#" class="sidebar-item">4.사전평가 문항제작</a>
+                    <i class="fas fa-chevron-right text-xs"></i>
                 </div>
 
-                <!-- 평가실시계획 그룹 -->
+                <!-- NCS훈련성과평가 그룹 -->
                 <div class="sidebar-header hover:bg-slate-700 mt-2">
                     <div class="flex items-center">
-                        <i class="fas fa-calendar-alt mr-2 w-5 text-center"></i>
-                        <span>평가실시계획</span>
+                        <i class="fas fa-pen-nib mr-2 w-5 text-center"></i>
+                        <span>NCS훈련성과평가</span>
                     </div>
                     <i class="fas fa-chevron-down text-xs"></i>
                 </div>
                 <div class="bg-slate-900 py-2">
-                    <a href="#" class="sidebar-item active">1.평가계획등록</a>
-                    <a href="#" class="sidebar-item">2.평가실시일자</a>
-                    <a href="#" class="sidebar-item">3.평가실시계획</a>
-                    <a href="#" class="sidebar-item">4.평가도구제작</a>
-                    <a href="#" class="sidebar-item">5.평가도구제작(완료)</a>
-                    <a href="#" class="sidebar-item">6.평가성취수준기준표</a>
-                    <a href="#" class="sidebar-item">7.평가도구검토</a>
+                    <a href="#" class="sidebar-item active">1차 평가(본평가)</a>
+                    <a href="#" class="sidebar-item">2차 평가(재평가)</a>
+                    <a href="#" class="sidebar-item">3차 평가(재평가)</a>
                 </div>
             </nav>
         </aside>
@@ -186,7 +176,7 @@ export const adminHrdNcsPlanHtml = `
             <!-- 타이틀 및 브레드크럼 -->
             <div class="mb-4">
                 <h1 class="text-2xl font-light text-gray-800 mb-1">MAIN</h1>
-                <p class="text-xs text-gray-500">HOME / MAIN - ([NCS] 평가계획)</p>
+                <p class="text-xs text-gray-500">HOME / MAIN - ([NCS] 평가실행)</p>
             </div>
 
             <!-- 검색 바 및 액션 버튼 -->
@@ -224,23 +214,23 @@ export const adminHrdNcsPlanHtml = `
             <!-- 공지사항 바 -->
             <div class="flex items-center gap-2 mb-6 text-xs border-b border-gray-200 pb-4">
                 <span class="bg-teal-500 text-white px-2 py-0.5 rounded-sm text-[10px]">HRDMarket 공지 및 업데이트 안내</span>
-                <a href="#" class="text-blue-500 hover:underline">[공지] 연동 홈페이지 발송 문자를 받지 못하는 경우</a>
+                <a href="#" class="text-blue-500 hover:underline">[공지] 데이터 유실로 인한 보상 안내</a>
             </div>
 
-            <!-- [NCS] 평가 계획 목록 -->
+            <!-- [NCS] 평가 실행 목록 -->
             <div class="bg-white border border-gray-200 rounded-lg shadow-sm mb-6">
                 <div class="p-4 border-b border-gray-200">
-                    <h2 class="text-lg font-light text-gray-700">[NCS] 평가 계획 목록</h2>
+                    <h2 class="text-lg font-light text-gray-700">[NCS] 평가 실행 목록</h2>
                 </div>
                 
                 <!-- 안내 박스 -->
                 <div class="p-4">
                     <div class="bg-blue-50 border border-blue-100 rounded p-4 mb-4">
-                        <h3 class="text-sm font-bold text-blue-800 mb-2">NCS 훈련성과평가 진행방법</h3>
+                        <h3 class="text-sm font-bold text-blue-800 mb-2">NCS 훈련성과평가 진행방법 <span class="bg-blue-600 text-white px-1 rounded text-[10px] ml-1">사전데이터 등록바로가기</span></h3>
                         <div class="space-y-1 text-xs text-gray-600">
                             <div class="flex items-start">
                                 <span class="step-badge">Step1</span>
-                                <span>평가에 필요한 사전 데이터를 등록합니다. <span class="bg-blue-500 text-white px-1 rounded text-[10px]">사전데이터 등록바로가기</span></span>
+                                <span>평가에 필요한 사전 데이터를 등록합니다.</span>
                             </div>
                             <div class="flex items-start">
                                 <span class="step-badge">Step2</span>
