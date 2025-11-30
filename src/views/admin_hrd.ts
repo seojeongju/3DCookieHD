@@ -130,61 +130,85 @@ export const adminHrdHtml = `
     <div class="flex flex-grow max-w-[1800px] mx-auto w-full">
         
         <!-- 왼쪽 사이드바 (운영 메뉴 서브메뉴) -->
-        <aside class="w-60 bg-white border-r border-gray-200 hidden md:block flex-shrink-0 min-h-[calc(100vh-88px)]">
-            <div class="sticky top-0">
-                <!-- 기초 데이터 등록 그룹 -->
-                <div class="sidebar-header">
-                    <i class="fas fa-database mr-2 text-teal-600"></i>기초 데이터 등록
-                </div>
-                <nav class="flex flex-col">
-                    <a href="#" class="sidebar-item active">
-                        <span class="w-6 text-center mr-2 text-xs font-bold text-teal-600">01</span> 강사(직원) 관리
-                    </a>
-                    <a href="#" class="sidebar-item">
-                        <span class="w-6 text-center mr-2 text-xs font-bold text-gray-400">02</span> 훈련과정분류
-                    </a>
-                    <a href="#" class="sidebar-item">
-                        <span class="w-6 text-center mr-2 text-xs font-bold text-gray-400">03</span> 과정설정(승인과정)
-                    </a>
-                    <a href="#" class="sidebar-item">
-                        <span class="w-6 text-center mr-2 text-xs font-bold text-gray-400">04</span> 과정개설
-                    </a>
-                    <a href="#" class="sidebar-item">
-                        <span class="w-6 text-center mr-2 text-xs font-bold text-gray-400">05</span> 거래처분류
-                    </a>
-                    <a href="#" class="sidebar-item">
-                        <span class="w-6 text-center mr-2 text-xs font-bold text-gray-400">06</span> 거래처 관리
-                    </a>
-                    <a href="#" class="sidebar-item">
-                        <span class="w-6 text-center mr-2 text-xs font-bold text-gray-400">07</span> 교재 관리
-                    </a>
-                    <a href="#" class="sidebar-item">
-                        <span class="w-6 text-center mr-2 text-xs font-bold text-gray-400">08</span> 훈련생 관리
-                    </a>
-                    <a href="#" class="sidebar-item">
-                        <span class="w-6 text-center mr-2 text-xs font-bold text-gray-400">09</span> 훈련생 상담관리
-                    </a>
-                    <a href="#" class="sidebar-item">
-                        <span class="w-6 text-center mr-2 text-xs font-bold text-gray-400">10</span> 비품/장비 관리
-                    </a>
-                </nav>
-
-                <!-- 훈련 운영 그룹 -->
-                <div class="sidebar-header mt-4">
-                    <i class="fas fa-tasks mr-2 text-teal-600"></i>훈련 운영
-                </div>
-                <nav class="flex flex-col">
-                    <a href="#" class="sidebar-item">
-                        <i class="fas fa-calendar-check w-6 text-center mr-2 text-gray-400"></i> 출결 관리
-                    </a>
-                    <a href="#" class="sidebar-item">
-                        <i class="fas fa-chart-bar w-6 text-center mr-2 text-gray-400"></i> 성적 관리
-                    </a>
-                    <a href="#" class="sidebar-item">
-                        <i class="fas fa-certificate w-6 text-center mr-2 text-gray-400"></i> 수료 처리
-                    </a>
-                </nav>
+        <aside class="w-60 bg-slate-800 flex-shrink-0 overflow-y-auto text-white">
+            <div class="py-4 px-4 border-b border-slate-700">
+                <h2 class="text-lg font-bold">학사행정관리시스템</h2>
+                <p class="text-xs text-slate-400 mt-1">서정주 님 (정직원)</p>
             </div>
+
+            <nav class="flex flex-col mt-2">
+                <!-- 지원자관리 -->
+                <div class="sidebar-header hover:bg-slate-700">
+                    <div class="flex items-center">
+                        <i class="fas fa-user mr-2 w-5 text-center"></i>
+                        <span>지원자관리</span>
+                    </div>
+                    <i class="fas fa-chevron-right text-xs"></i>
+                </div>
+
+                <!-- 물품 -->
+                <div class="sidebar-header hover:bg-slate-700 mt-2">
+                    <div class="flex items-center">
+                        <i class="fas fa-box mr-2 w-5 text-center"></i>
+                        <span>물품</span>
+                    </div>
+                    <i class="fas fa-chevron-right text-xs"></i>
+                </div>
+
+                <!-- 거래처 -->
+                <div class="sidebar-header hover:bg-slate-700 mt-2">
+                    <div class="flex items-center">
+                        <i class="fas fa-handshake mr-2 w-5 text-center"></i>
+                        <span>거래처</span>
+                    </div>
+                    <i class="fas fa-chevron-right text-xs"></i>
+                </div>
+
+                <!-- 문자 -->
+                <div class="sidebar-header hover:bg-slate-700 mt-2">
+                    <div class="flex items-center">
+                        <i class="fas fa-envelope mr-2 w-5 text-center"></i>
+                        <span>문자</span>
+                    </div>
+                    <i class="fas fa-chevron-right text-xs"></i>
+                </div>
+
+                <!-- 훈련시설 -->
+                <div class="sidebar-header hover:bg-slate-700 mt-2">
+                    <div class="flex items-center">
+                        <i class="fas fa-building mr-2 w-5 text-center"></i>
+                        <span>훈련시설</span>
+                    </div>
+                    <i class="fas fa-chevron-right text-xs"></i>
+                </div>
+
+                <!-- 일정 -->
+                <div class="sidebar-header hover:bg-slate-700 mt-2">
+                    <div class="flex items-center">
+                        <i class="fas fa-calendar-alt mr-2 w-5 text-center"></i>
+                        <span>일정</span>
+                    </div>
+                    <i class="fas fa-chevron-right text-xs"></i>
+                </div>
+
+                <!-- 기초 데이터 등록 -->
+                <div class="sidebar-header hover:bg-slate-700 mt-2">
+                    <div class="flex items-center">
+                        <i class="fas fa-upload mr-2 w-5 text-center"></i>
+                        <span>기초 데이터 등록</span>
+                    </div>
+                    <i class="fas fa-chevron-right text-xs"></i>
+                </div>
+
+                <!-- 증빙자료 다운로드 -->
+                <div class="sidebar-header hover:bg-slate-700 mt-2">
+                    <div class="flex items-center">
+                        <i class="fas fa-download mr-2 w-5 text-center"></i>
+                        <span>증빙자료 다운로드</span>
+                    </div>
+                    <i class="fas fa-chevron-right text-xs"></i>
+                </div>
+            </nav>
         </aside>
 
         <!-- 메인 컨텐츠 -->
@@ -310,59 +334,6 @@ export const adminHrdHtml = `
                             </tr>
                         </tbody>
                     </table>
-                </div>
-            </div>
-
-            <!-- 모집중인 과정별 지원 현황 -->
-            <div class="mb-12">
-                <h3 class="text-sm font-bold text-gray-600 mb-2">모집중인 과정별 지원 현황</h3>
-                <div class="overflow-x-auto bg-white border-t-2 border-gray-200 shadow-sm">
-                    <table class="w-full min-w-[1000px]">
-                        <thead>
-                            <tr class="table-header h-10">
-                                <th class="w-16">회차</th>
-                                <th class="text-left pl-4">과정</th>
-                                <th class="w-40">훈련기간</th>
-                                <th class="w-20">신규</th>
-                                <th class="w-20">접수완료</th>
-                                <th class="w-20">결제완료</th>
-                                <th class="w-48">접수불가/중도포기/다른과정희망</th>
-                                <th class="w-20">총인원</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr class="table-row h-10 text-center">
-                                <td>9</td>
-                                <td class="text-left pl-4 text-blue-600 cursor-pointer hover:underline">
-                                    [소공인전문기술 12월_마감] 심화_월요반 : 3D프린팅&몰드 소상공인 ...
-                                </td>
-                                <td class="text-xs text-gray-500">2025-12-01 ~ 2025-12-08</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                            </tr>
-                            <tr class="table-row h-10 text-center">
-                                <td>10</td>
-                                <td class="text-left pl-4 text-blue-600 cursor-pointer hover:underline">
-                                    [소공인전문기술 12월_마감] 심화_일요반 : 3D프린팅&몰드 소상공인 ...
-                                </td>
-                                <td class="text-xs text-gray-500">2025-12-07 ~ 2025-12-14</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                            </tr>
-                            <tr class="table-row h-10 text-center">
-                                <td>6</td>
-                                <td class="text-left pl-4 text-blue-600 cursor-pointer hover:underline">
-                                    [소공인전문교육 12월_마감] 기초1_금요반_3D프린터 활용 소품제작
-                                </td>
-                                <td class="text-xs text-gray-500">2025-12-12 ~ 2025-12-12</td>
-                                <td>0</td>
-                                <td>0</td>
                                 <td>0</td>
                                 <td>0</td>
                                 <td>1</td>
