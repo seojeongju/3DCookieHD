@@ -1735,7 +1735,7 @@ app.get('/', (c) => {
           async function showCourseDetail(id) {
             try {
                 // API 호출
-                const response = await fetch(\`\${API_BASE}/courses/\${id}\`);
+                const response = await fetch(API_BASE + '/courses/' + id);
                 const result = await response.json();
 
                 if (result.success) {
@@ -1746,8 +1746,8 @@ app.get('/', (c) => {
                     document.getElementById('modalCourseCategory').textContent = course.category;
                     
                     let durationText = '';
-                    if (course.duration_months) durationText += \`\${course.duration_months}개월\`;
-                    if (course.duration_hours) durationText += (durationText ? ' ' : '') + \`(\${course.duration_hours}시간)\`;
+                    if (course.duration_months) durationText += course.duration_months + '개월';
+                    if (course.duration_hours) durationText += (durationText ? ' ' : '') + '(' + course.duration_hours + '시간)';
                     document.getElementById('modalCourseDuration').textContent = durationText;
                     
                     document.getElementById('modalCourseDescription').innerHTML = course.description;
