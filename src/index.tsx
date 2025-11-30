@@ -1489,7 +1489,7 @@ app.get('/', (c) => {
           // 페이지 로드 시 슬라이드쇼 시작
           document.addEventListener('DOMContentLoaded', () => {
             startSlideShow();
-            loadCoursesForNav(); // 네비게이션 드롭다운용 과정 로드
+            // loadCoursesForNav(); // 네비게이션 드롭다운용 과정 로드 (HTML 요소 부재로 인한 에러 방지)
           });
           
           // ============================================
