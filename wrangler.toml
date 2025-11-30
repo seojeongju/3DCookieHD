@@ -5,14 +5,8 @@ compatibility_date = "2024-01-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "education-platform-db"
-database_id = "YOUR_DATABASE_ID" # Cloudflare 대시보드에서 확인
+database_id = "28fc5bec-bc18-46a9-8aea-fc4a4f6e44db"
 
 [build]
 command = "npm run build"
 
-[build.upload]
-format = "service-worker"
-
-[[migrations]]
-tag = "v1"
-name = "initial_schema"
