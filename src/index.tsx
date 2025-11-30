@@ -1780,7 +1780,7 @@ app.get('/', (c) => {
                   const thumbnailUrl = portfolio.thumbnail_url || '';
                   
                   return `
-        < div class= "flex-shrink-0 w-72" >
+        <div class="flex-shrink-0 w-72" >
         <a href="/posts?category=portfolio" class="block bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition group/item cursor-pointer">
             <div class="relative aspect-square bg-gray-200">
                 ${thumbnailUrl ?
@@ -1796,7 +1796,7 @@ app.get('/', (c) => {
                 <p class="text-sm text-gray-500">${date}</p>
             </div>
         </a>
-                    </div >
+                    </div>
         `;
                 }).join('');
                 
@@ -1804,19 +1804,19 @@ app.get('/', (c) => {
               } else {
                 // 포트폴리오가 없을 때
                 document.getElementById('portfolioGallery').innerHTML = `
-        < div class= "w-full text-center py-12" >
+        <div class="w-full text-center py-12" >
                     <i class="fas fa-palette text-6xl text-gray-300 mb-4"></i>
                     <p class="text-gray-500">등록된 포트폴리오가 없습니다.</p>
-                  </div >
+                  </div>
         `;
               }
             } catch (e) {
               console.error('Failed to load portfolios:', e);
               document.getElementById('portfolioGallery').innerHTML = `
-        < div class= "w-full text-center py-12" >
+        <div class="w-full text-center py-12" >
                   <i class="fas fa-exclamation-triangle text-6xl text-gray-300 mb-4"></i>
                   <p class="text-gray-500">포트폴리오를 불러오는데 실패했습니다.</p>
-                </div >
+                </div>
         `;
             }
           }
@@ -5452,3 +5452,4 @@ app.onError((err, c) => {
 });
 
 export default app;
+
