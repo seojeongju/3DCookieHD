@@ -481,10 +481,41 @@ export const adminPostsListHtml = `
             // TinyMCE 내용 동기화
             if (tinymce.get('postContent')) {
                 tinymce.triggerSave();
-                formData.set('content', tinymce.get('postContent').getContent());
+                const content = tinymce.get('postContent').getContent();
+                formData.set('content', content);
+                
+                // 본문에서 이미지 URL 추출
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = content;
+                const imgs = tempDiv.getElementsByTagName('img');
+                const imageUrls = [];
+                for (let i = 0; i < imgs.length; i++) {
+                    imageUrls.push(imgs[i].src);
+                }
+                
+                // images 필드 추가 (JSON 문자열이 아닌 배열로 보내야 함, 하지만 FormData는 문자열만 지원하므로 JSON.stringify 필요할 수도 있음)
+                // API는 JSON body를 받으므로 formData를 Object로 변환할 때 처리됨.
+                // 하지만 여기서는 formData를 사용하고 있음.
+                // 아래에서 Object.fromEntries(formData.entries())를 사용하므로, 
+                // images를 별도로 추가해주는 것이 좋음.
             }
 
             const data = Object.fromEntries(formData.entries());
+            
+            // 이미지 배열 추가
+            if (tinymce.get('postContent')) {
+                const content = tinymce.get('postContent').getContent();
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = content;
+                const imgs = tempDiv.getElementsByTagName('img');
+                const imageUrls = [];
+                for (let i = 0; i < imgs.length; i++) {
+                    imageUrls.push(imgs[i].src);
+                }
+                data.images = imageUrls;
+            } else {
+                data.images = [];
+            }
             const id = data.id;
             
             // 체크박스 처리 (pinned)

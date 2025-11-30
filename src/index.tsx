@@ -1777,7 +1777,7 @@ app.get('/', (c) => {
                 const html = portfolios.map(portfolio => {
                   const date = new Date(portfolio.created_at).toLocaleDateString('ko-KR');
                   const title = portfolio.title.length > 25 ? portfolio.title.substring(0, 25) + '...' : portfolio.title;
-                  const thumbnailUrl = portfolio.thumbnail_url || '';
+                  const thumbnailUrl = (portfolio.images && portfolio.images.length > 0) ? portfolio.images[0] : (portfolio.thumbnail_url || '');
                   const imgHtml = thumbnailUrl 
                     ? '<img src="' + thumbnailUrl + '" alt="' + portfolio.title + '" class="w-full h-full object-cover">'
                     : '<div class="absolute inset-0 flex items-center justify-center"><i class="fas fa-palette text-6xl text-gray-300"></i></div>';
