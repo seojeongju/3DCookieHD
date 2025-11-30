@@ -140,14 +140,14 @@ exams.put('/:id', async (c) => {
     const id = c.req.param('id');
     try {
         const body = await c.req.json();
-        const { title, course_id, description, time_limit, questions } = body;
+        const { title, course_id, description, time_limit, is_active, questions } = body;
 
         // exams 테이블 사용, time_limit_minutes 사용
         await c.env.DB.prepare(`
             UPDATE exams 
-            SET title = ?, course_id = ?, description = ?, time_limit_minutes = ?, updated_at = CURRENT_TIMESTAMP
+            SET title = ?, course_id = ?, description = ?, time_limit_minutes = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
-        `).bind(title, course_id, description, time_limit, id).run();
+        `).bind(title, course_id, description, time_limit, is_active, id).run();
 
         // Update Questions if provided
         if (questions && Array.isArray(questions)) {

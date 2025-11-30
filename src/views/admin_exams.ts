@@ -493,6 +493,13 @@ export const adminExamEditHtml = `
                                 <label class="block text-sm font-medium text-gray-700 mb-1">제한 시간 (분)</label>
                                 <input type="number" name="time_limit" id="examTimeLimit" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                             </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">상태</label>
+                                <select name="is_active" id="examStatus" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                    <option value="1">활성 (진행중)</option>
+                                    <option value="0">비활성 (시험종료)</option>
+                                </select>
+                            </div>
                             <div class="col-span-2">
                                 <label class="block text-sm font-medium text-gray-700 mb-1">시험 설명</label>
                                 <textarea name="description" id="examDescription" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"></textarea>
@@ -571,6 +578,7 @@ export const adminExamEditHtml = `
                 document.getElementById('examTitle').value = exam.title;
                 document.getElementById('courseSelect').value = exam.course_id;
                 document.getElementById('examTimeLimit').value = exam.time_limit_minutes;
+                document.getElementById('examStatus').value = exam.is_active ? '1' : '0';
                 document.getElementById('examDescription').value = exam.description || '';
 
                 // Load questions
@@ -718,6 +726,7 @@ export const adminExamEditHtml = `
                 course_id: formData.get('course_id'),
                 description: formData.get('description'),
                 time_limit: formData.get('time_limit'),
+                is_active: formData.get('is_active'),
                 questions: questions
             };
 
