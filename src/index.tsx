@@ -810,20 +810,21 @@ app.get('/', (c) => {
                 </div>
 
                 <!-- 필터 -->
-                <div class="flex justify-center mb-8 gap-3 flex-wrap">
-                    <button onclick="filterCourses('all')" class="filter-btn active px-6 py-2 rounded-full bg-primary-600 text-white font-medium">
+                <!-- 필터 (심플 탭 스타일) -->
+                <div class="flex justify-center mb-10 border-b border-gray-200">
+                    <button onclick="filterCourses('all')" class="filter-btn active px-6 py-3 text-primary-600 border-b-2 border-primary-600 font-bold transition-colors focus:outline-none">
                         전체
                     </button>
-                    <button onclick="filterCourses('3D프린팅')" class="filter-btn px-6 py-2 rounded-full bg-white text-gray-700 font-medium hover:bg-primary-50">
+                    <button onclick="filterCourses('3D프린팅')" class="filter-btn px-6 py-3 text-gray-500 hover:text-primary-600 font-medium transition-colors focus:outline-none border-b-2 border-transparent hover:border-gray-300">
                         3D 프린팅
                     </button>
-                    <button onclick="filterCourses('메이커')" class="filter-btn px-6 py-2 rounded-full bg-white text-gray-700 font-medium hover:bg-primary-50">
+                    <button onclick="filterCourses('메이커')" class="filter-btn px-6 py-3 text-gray-500 hover:text-primary-600 font-medium transition-colors focus:outline-none border-b-2 border-transparent hover:border-gray-300">
                         메이커
                     </button>
-                    <button onclick="filterCourses('프로그래밍')" class="filter-btn px-6 py-2 rounded-full bg-white text-gray-700 font-medium hover:bg-primary-50">
+                    <button onclick="filterCourses('프로그래밍')" class="filter-btn px-6 py-3 text-gray-500 hover:text-primary-600 font-medium transition-colors focus:outline-none border-b-2 border-transparent hover:border-gray-300">
                         프로그래밍
                     </button>
-                    <button onclick="filterCourses('디자인')" class="filter-btn px-6 py-2 rounded-full bg-white text-gray-700 font-medium hover:bg-primary-50">
+                    <button onclick="filterCourses('디자인')" class="filter-btn px-6 py-3 text-gray-500 hover:text-primary-600 font-medium transition-colors focus:outline-none border-b-2 border-transparent hover:border-gray-300">
                         디자인
                     </button>
                 </div>
@@ -1701,17 +1702,19 @@ app.get('/', (c) => {
           }
           
           // 필터링
+          // 필터링
           function filterCourses(category) {
             const cards = document.querySelectorAll('.course-card');
             const buttons = document.querySelectorAll('.filter-btn');
             
             buttons.forEach(btn => {
-              btn.classList.remove('active', 'bg-primary-600', 'text-white');
-              btn.classList.add('bg-white', 'text-gray-700');
+              btn.classList.remove('active', 'text-primary-600', 'border-primary-600', 'font-bold');
+              btn.classList.add('text-gray-500', 'font-medium', 'border-transparent');
             });
             
-            event.target.classList.add('active', 'bg-primary-600', 'text-white');
-            event.target.classList.remove('bg-white', 'text-gray-700');
+            const target = event.target;
+            target.classList.add('active', 'text-primary-600', 'border-primary-600', 'font-bold');
+            target.classList.remove('text-gray-500', 'font-medium', 'border-transparent');
             
             cards.forEach(card => {
               if (category === 'all' || card.dataset.category === category) {
