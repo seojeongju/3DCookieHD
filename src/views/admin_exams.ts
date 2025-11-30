@@ -124,7 +124,7 @@ export const adminExamsHtml = `
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">#\${exam.id}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">\${exam.course_title || '-'}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">\${exam.title}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">\${exam.time_limit}분</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">\${exam.time_limit_minutes}분</td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full \${exam.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
                                 \${exam.is_active ? '활성' : '비활성'}
@@ -570,7 +570,7 @@ export const adminExamEditHtml = `
                 
                 document.getElementById('examTitle').value = exam.title;
                 document.getElementById('courseSelect').value = exam.course_id;
-                document.getElementById('examTimeLimit').value = exam.time_limit;
+                document.getElementById('examTimeLimit').value = exam.time_limit_minutes;
                 document.getElementById('examDescription').value = exam.description || '';
 
                 // Load questions

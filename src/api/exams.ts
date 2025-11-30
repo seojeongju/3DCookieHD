@@ -91,7 +91,7 @@ exams.post('/', async (c) => {
         const { title, course_id, description, time_limit, questions } = body;
 
         const result = await c.env.DB.prepare(`
-            INSERT INTO Exams (course_id, title, description, time_limit)
+            INSERT INTO Exams (course_id, title, description, time_limit_minutes)
             VALUES (?, ?, ?, ?)
         `).bind(course_id, title, description, time_limit).run();
 
@@ -141,7 +141,7 @@ exams.put('/:id', async (c) => {
         // Update Exam
         await c.env.DB.prepare(`
             UPDATE Exams 
-            SET title = ?, course_id = ?, description = ?, time_limit = ?, updated_at = CURRENT_TIMESTAMP
+            SET title = ?, course_id = ?, description = ?, time_limit_minutes = ?, updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
         `).bind(title, course_id, description, time_limit, id).run();
 
