@@ -503,6 +503,12 @@ export const adminPostsListHtml = `
                     },
                     body: JSON.stringify(data)
                 });
+
+                if (response.status === 401) {
+                    alert('로그인 세션이 만료되었습니다. 다시 로그인해주세요.');
+                    window.location.href = '/login';
+                    return;
+                }
                 
                 const result = await response.json();
                 
@@ -530,6 +536,12 @@ export const adminPostsListHtml = `
                         'Authorization': 'Bearer ' + token
                     }
                 });
+
+                if (response.status === 401) {
+                    alert('로그인 세션이 만료되었습니다. 다시 로그인해주세요.');
+                    window.location.href = '/login';
+                    return;
+                }
                 
                 const result = await response.json();
                 
