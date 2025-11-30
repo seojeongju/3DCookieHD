@@ -1799,21 +1799,19 @@ app.get('/', (c) => {
                 document.getElementById('portfolioGallery').innerHTML = html;
               } else {
                 // 포트폴리오가 없을 때
-                document.getElementById('portfolioGallery').innerHTML = `
-        < div class= "w-full text-center py-12" >
-                    <i class="fas fa-palette text-6xl text-gray-300 mb-4"></i>
-                    <p class="text-gray-500">등록된 포트폴리오가 없습니다.</p>
-                  </div >
-        `;
+                document.getElementById('portfolioGallery').innerHTML = 
+                  '<div class="w-full text-center py-12">' +
+                  '<i class="fas fa-palette text-6xl text-gray-300 mb-4"></i>' +
+                  '<p class="text-gray-500">등록된 포트폴리오가 없습니다.</p>' +
+                  '</div>';
               }
             } catch (e) {
               console.error('Failed to load portfolios:', e);
-              document.getElementById('portfolioGallery').innerHTML = `
-        < div class= "w-full text-center py-12" >
-                  <i class="fas fa-exclamation-triangle text-6xl text-gray-300 mb-4"></i>
-                  <p class="text-gray-500">포트폴리오를 불러오는데 실패했습니다.</p>
-                </div >
-        `;
+              document.getElementById('portfolioGallery').innerHTML = 
+                '<div class="w-full text-center py-12">' +
+                '<i class="fas fa-exclamation-triangle text-6xl text-gray-300 mb-4"></i>' +
+                '<p class="text-gray-500">포트폴리오를 불러오는데 실패했습니다.</p>' +
+                '</div>';
             }
           }
         </script>
