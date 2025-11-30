@@ -1,0 +1,18 @@
+name = "3dcookiehd-education-platform"
+main = "src/index.tsx"
+compatibility_date = "2024-01-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "education-platform-db"
+database_id = "YOUR_DATABASE_ID" # Cloudflare 대시보드에서 확인
+
+[build]
+command = "npm run build"
+
+[build.upload]
+format = "service-worker"
+
+[[migrations]]
+tag = "v1"
+name = "initial_schema"
