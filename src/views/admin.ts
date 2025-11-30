@@ -86,6 +86,12 @@ export const adminDashboardHtml = `
                                     성적/채점 관리
                                 </a>
                             </li>
+                            <li>
+                                <a href="/admin/hrd" class="flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-50 hover:text-primary-600 transition-colors">
+                                    <i class="fas fa-university w-5 h-5 mr-3 text-gray-400 group-hover:text-primary-500"></i>
+                                    HRD 행정관리
+                                </a>
+                            </li>
                         </ul>
                     </div>
 
@@ -256,6 +262,12 @@ export const adminDashboardHtml = `
                                     <i class="fas fa-bullhorn text-sm"></i>
                                 </div>
                                 <span class="font-medium">공지사항 작성</span>
+                            </button>
+                            <button id="btn-hrd-system" onclick="location.href='/admin/hrd'" class="flex items-center px-5 py-3 bg-teal-50 text-teal-700 rounded-lg hover:bg-teal-100 transition border border-teal-100">
+                                <div class="w-8 h-8 rounded-full bg-teal-200 flex items-center justify-center mr-3 text-teal-700">
+                                    <i class="fas fa-university text-sm"></i>
+                                </div>
+                                <span class="font-medium">HRD 시스템</span>
                             </button>
                         </div>
                     </div>
