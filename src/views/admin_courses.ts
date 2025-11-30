@@ -301,7 +301,7 @@ export const adminCoursesListHtml = `
                     // 원본 크기와 리사이징 후 크기 비교 (선택사항)
                     const originalSizeKB = (file.size / 1024).toFixed(2);
                     const resizedSizeKB = ((resizedDataUrl.length * 3/4) / 1024).toFixed(2);
-                    console.log(`이미지 최적화: ${ originalSizeKB }KB → ${ resizedSizeKB }KB`);
+                    console.log('이미지 최적화: ' + originalSizeKB + 'KB → ' + resizedSizeKB + 'KB');
                 } catch (error) {
                     console.error('이미지 처리 오류:', error);
                     alert('이미지 처리 중 오류가 발생했습니다.');
