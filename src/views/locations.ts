@@ -1,3 +1,4 @@
+
 export const locationsHtml = `
 <!DOCTYPE html>
 <html lang="ko">
@@ -29,6 +30,13 @@ export const locationsHtml = `
         }
       }
     </script>
+    <style>
+        .tab-btn.active {
+            background-color: #4a90e2;
+            color: white;
+            border-color: #4a90e2;
+        }
+    </style>
 </head>
 <body class="bg-gray-50">
     <!-- 네비게이션 (공통) -->
@@ -42,7 +50,7 @@ export const locationsHtml = `
                         <span class="text-sm text-gray-600 font-bold tracking-wider group-hover:text-primary-600 transition-colors">와우쓰리디홍대센터</span>
                     </a>
                 </div>
-                <!-- 우측 메뉴 (로그인/회원가입) -->
+                <!-- 우측 메뉴 -->
                 <div class="flex items-center space-x-2">
                     <a href="/" class="px-3 py-2 text-gray-500 hover:text-primary-600 font-medium text-sm transition-colors">홈으로</a>
                 </div>
@@ -54,79 +62,198 @@ export const locationsHtml = `
     <div class="bg-gradient-to-r from-gray-700 to-gray-900 text-white py-16">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h1 class="text-4xl font-bold mb-4">오시는길</h1>
-            <p class="text-xl text-gray-300">와우쓰리디홍대센터로 오시는 길을 안내해 드립니다.</p>
+            <p class="text-xl text-gray-300">전국 와우쓰리디 교육센터로 오시는 길을 안내해 드립니다.</p>
         </div>
     </div>
 
     <!-- 메인 컨텐츠 -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div class="bg-white rounded-lg shadow-lg overflow-hidden">
-            <!-- 지도 영역 (이미지 대체) -->
-            <div class="w-full h-96 bg-gray-200 flex items-center justify-center relative">
-                <!-- 실제 지도 API 연동 시 이 부분을 교체 -->
-                <div class="absolute inset-0 bg-gray-300 flex items-center justify-center">
-                    <div class="text-center">
-                        <i class="fas fa-map-marked-alt text-6xl text-gray-400 mb-4"></i>
-                        <p class="text-gray-500 font-medium">지도 API 영역</p>
-                        <p class="text-sm text-gray-400">(카카오맵/네이버맵 연동 필요)</p>
-                    </div>
-                </div>
-                <!-- 오버레이 핀 예시 -->
-                <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-full -mt-4">
-                    <div class="bg-primary-600 text-white px-3 py-1 rounded shadow-lg text-sm font-bold mb-1 whitespace-nowrap">와우쓰리디홍대센터</div>
-                    <div class="text-primary-600 text-center text-3xl drop-shadow-md"><i class="fas fa-map-marker-alt"></i></div>
-                </div>
+        
+        <!-- 탭 메뉴 -->
+        <div class="flex justify-center mb-12">
+            <div class="inline-flex rounded-md shadow-sm" role="group">
+                <button type="button" onclick="switchTab('hongdae')" id="tab-hongdae" class="tab-btn active px-6 py-3 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-l-lg hover:bg-gray-100 hover:text-primary-700 focus:z-10 focus:ring-2 focus:ring-primary-700 focus:text-primary-700">
+                    서울 홍대센터
+                </button>
+                <button type="button" onclick="switchTab('gumi')" id="tab-gumi" class="tab-btn px-6 py-3 text-sm font-medium text-gray-900 bg-white border-t border-b border-gray-200 hover:bg-gray-100 hover:text-primary-700 focus:z-10 focus:ring-2 focus:ring-primary-700 focus:text-primary-700">
+                    경북 구미센터
+                </button>
+                <button type="button" onclick="switchTab('jeonju')" id="tab-jeonju" class="tab-btn px-6 py-3 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-r-lg hover:bg-gray-100 hover:text-primary-700 focus:z-10 focus:ring-2 focus:ring-primary-700 focus:text-primary-700">
+                    전북 전주센터
+                </button>
             </div>
-            
-            <div class="p-8">
-                <div class="grid md:grid-cols-2 gap-8">
-                    <div>
-                        <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                            <i class="fas fa-building text-primary-600 mr-2"></i> 주소 및 연락처
-                        </h3>
-                        <ul class="space-y-4 text-gray-600">
-                            <li class="flex items-start">
-                                <span class="font-bold w-20 flex-shrink-0">주소</span>
-                                <span>서울 마포구 홍익로 123, 와우빌딩 3층 (홍대입구역 9번 출구 도보 5분)</span>
-                            </li>
-                            <li class="flex items-start">
-                                <span class="font-bold w-20 flex-shrink-0">전화</span>
-                                <span>02-1234-5678</span>
-                            </li>
-                            <li class="flex items-start">
-                                <span class="font-bold w-20 flex-shrink-0">이메일</span>
-                                <span>info@wow3d.com</span>
-                            </li>
-                            <li class="flex items-start">
-                                <span class="font-bold w-20 flex-shrink-0">운영시간</span>
-                                <span>평일 09:00 ~ 22:00 / 토요일 10:00 ~ 18:00 (일요일 휴무)</span>
-                            </li>
-                        </ul>
+        </div>
+
+        <!-- 홍대센터 컨텐츠 -->
+        <div id="content-hongdae" class="center-content">
+            <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+                <!-- 지도 영역 -->
+                <div class="w-full h-96 bg-gray-200 flex items-center justify-center relative">
+                    <div class="absolute inset-0 bg-gray-300 flex items-center justify-center">
+                        <div class="text-center">
+                            <i class="fas fa-map-marked-alt text-6xl text-gray-400 mb-4"></i>
+                            <p class="text-gray-500 font-medium">서울 홍대센터 지도</p>
+                        </div>
                     </div>
-                    <div>
-                        <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                            <i class="fas fa-subway text-primary-600 mr-2"></i> 대중교통 안내
-                        </h3>
-                        <ul class="space-y-4 text-gray-600">
-                            <li class="flex items-start">
-                                <span class="font-bold w-20 flex-shrink-0 text-green-600"><i class="fas fa-subway"></i> 지하철</span>
-                                <div>
-                                    <p><span class="inline-block px-2 py-0.5 bg-green-100 text-green-800 text-xs font-bold rounded mr-1">2호선</span> 홍대입구역 9번 출구 (도보 5분)</p>
-                                    <p class="mt-1"><span class="inline-block px-2 py-0.5 bg-blue-100 text-blue-800 text-xs font-bold rounded mr-1">공항철도</span> 홍대입구역 7번 출구 (도보 7분)</p>
-                                </div>
-                            </li>
-                            <li class="flex items-start">
-                                <span class="font-bold w-20 flex-shrink-0 text-blue-600"><i class="fas fa-bus"></i> 버스</span>
-                                <div>
-                                    <p>홍대입구역 정류장 하차</p>
-                                    <p class="text-sm text-gray-500 mt-1">간선: 271, 602, 603, 760 / 지선: 5712, 5714, 6712, 6716</p>
-                                </div>
-                            </li>
-                        </ul>
+                    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-full -mt-4">
+                        <div class="bg-primary-600 text-white px-3 py-1 rounded shadow-lg text-sm font-bold mb-1 whitespace-nowrap">와우쓰리디홍대센터</div>
+                        <div class="text-primary-600 text-center text-3xl drop-shadow-md"><i class="fas fa-map-marker-alt"></i></div>
+                    </div>
+                </div>
+                
+                <div class="p-8">
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                                <i class="fas fa-building text-primary-600 mr-2"></i> 주소 및 연락처
+                            </h3>
+                            <ul class="space-y-4 text-gray-600">
+                                <li class="flex items-start">
+                                    <span class="font-bold w-20 flex-shrink-0">주소</span>
+                                    <span>서울 마포구 홍익로 123, 와우빌딩 3층</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <span class="font-bold w-20 flex-shrink-0">전화</span>
+                                    <span>02-3144-3137</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <span class="font-bold w-20 flex-shrink-0">팩스</span>
+                                    <span>02-6455-3144</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <span class="font-bold w-20 flex-shrink-0">이메일</span>
+                                    <span>3dcookiehd@naver.com</span>
+                                </li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                                <i class="fas fa-subway text-primary-600 mr-2"></i> 대중교통 안내
+                            </h3>
+                            <ul class="space-y-4 text-gray-600">
+                                <li class="flex items-start">
+                                    <span class="font-bold w-20 flex-shrink-0 text-green-600"><i class="fas fa-subway"></i> 지하철</span>
+                                    <div>
+                                        <p><span class="inline-block px-2 py-0.5 bg-green-100 text-green-800 text-xs font-bold rounded mr-1">2호선</span> 홍대입구역 9번 출구 (도보 5분)</p>
+                                    </div>
+                                </li>
+                                <li class="flex items-start">
+                                    <span class="font-bold w-20 flex-shrink-0 text-blue-600"><i class="fas fa-bus"></i> 버스</span>
+                                    <div>
+                                        <p>홍대입구역 정류장 하차</p>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- 구미센터 컨텐츠 -->
+        <div id="content-gumi" class="center-content hidden">
+            <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+                <!-- 지도 영역 -->
+                <div class="w-full h-96 bg-gray-200 flex items-center justify-center relative">
+                    <div class="absolute inset-0 bg-gray-300 flex items-center justify-center">
+                        <div class="text-center">
+                            <i class="fas fa-map-marked-alt text-6xl text-gray-400 mb-4"></i>
+                            <p class="text-gray-500 font-medium">경북 구미센터 지도</p>
+                        </div>
+                    </div>
+                    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-full -mt-4">
+                        <div class="bg-green-600 text-white px-3 py-1 rounded shadow-lg text-sm font-bold mb-1 whitespace-nowrap">와우쓰리디구미센터</div>
+                        <div class="text-green-600 text-center text-3xl drop-shadow-md"><i class="fas fa-map-marker-alt"></i></div>
+                    </div>
+                </div>
+                
+                <div class="p-8">
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                                <i class="fas fa-building text-green-600 mr-2"></i> 주소 및 연락처
+                            </h3>
+                            <ul class="space-y-4 text-gray-600">
+                                <li class="flex items-start">
+                                    <span class="font-bold w-20 flex-shrink-0">주소</span>
+                                    <span>경북 구미시 산호대로 253 구미첨단의료기술타워606호</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <span class="font-bold w-20 flex-shrink-0">전화</span>
+                                    <span>054-464-3137</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <span class="font-bold w-20 flex-shrink-0">이메일</span>
+                                    <span>3dcookiehd@naver.com</span>
+                                </li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                                <i class="fas fa-info-circle text-green-600 mr-2"></i> 센터 소개
+                            </h3>
+                            <p class="text-gray-600 leading-relaxed">
+                                경북 지역의 첨단 의료기술 교육을 선도하는 구미센터입니다. 
+                                최신 3D 프린팅 장비와 전문 강사진을 통해 실무 중심의 교육을 제공합니다.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 전주센터 컨텐츠 -->
+        <div id="content-jeonju" class="center-content hidden">
+            <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+                <!-- 지도 영역 -->
+                <div class="w-full h-96 bg-gray-200 flex items-center justify-center relative">
+                    <div class="absolute inset-0 bg-gray-300 flex items-center justify-center">
+                        <div class="text-center">
+                            <i class="fas fa-map-marked-alt text-6xl text-gray-400 mb-4"></i>
+                            <p class="text-gray-500 font-medium">전북 전주센터 지도</p>
+                        </div>
+                    </div>
+                    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-full -mt-4">
+                        <div class="bg-orange-600 text-white px-3 py-1 rounded shadow-lg text-sm font-bold mb-1 whitespace-nowrap">와우쓰리디전주센터</div>
+                        <div class="text-orange-600 text-center text-3xl drop-shadow-md"><i class="fas fa-map-marker-alt"></i></div>
+                    </div>
+                </div>
+                
+                <div class="p-8">
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                                <i class="fas fa-building text-orange-600 mr-2"></i> 주소 및 연락처
+                            </h3>
+                            <ul class="space-y-4 text-gray-600">
+                                <li class="flex items-start">
+                                    <span class="font-bold w-20 flex-shrink-0">주소</span>
+                                    <span>전북특별자치도 전주시 덕진구 반룡로 109 A동 207호</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <span class="font-bold w-20 flex-shrink-0">전화</span>
+                                    <span>063-XXX-XXXX</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <span class="font-bold w-20 flex-shrink-0">이메일</span>
+                                    <span>3dcookiehd@naver.com</span>
+                                </li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                                <i class="fas fa-info-circle text-orange-600 mr-2"></i> 센터 소개
+                            </h3>
+                            <p class="text-gray-600 leading-relaxed">
+                                전북특별자치도 지역의 3D 프린팅 교육 거점, 전주센터입니다.
+                                지역 산업과 연계한 맞춤형 교육 프로그램을 운영하고 있습니다.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <!-- 푸터 -->
@@ -135,6 +262,29 @@ export const locationsHtml = `
             <p class="text-gray-400">&copy; 2025 와우쓰리디홍대센터. All rights reserved.</p>
         </div>
     </footer>
+
+    <script>
+        function switchTab(center) {
+            // 모든 탭 버튼 비활성화
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+                btn.classList.remove('bg-primary-600', 'text-white');
+                btn.classList.add('bg-white', 'text-gray-900');
+            });
+            
+            // 선택된 탭 활성화
+            const activeBtn = document.getElementById('tab-' + center);
+            activeBtn.classList.add('active');
+            
+            // 모든 컨텐츠 숨기기
+            document.querySelectorAll('.center-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            
+            // 선택된 컨텐츠 표시
+            document.getElementById('content-' + center).classList.remove('hidden');
+        }
+    </script>
 </body>
 </html>
 `;
