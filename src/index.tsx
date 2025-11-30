@@ -500,6 +500,7 @@ app.get('/', (c) => {
         <script>
             // 로그인 상태 확인 및 메뉴 업데이트
             document.addEventListener('DOMContentLoaded', () => {
+                loadLatestNotice();
                 const token = localStorage.getItem('token');
                 const userStr = localStorage.getItem('user');
                 const authMenu = document.getElementById('authMenu');
@@ -534,6 +535,27 @@ app.get('/', (c) => {
                     authMenu.innerHTML = menuHtml;
                 }
             });
+
+            async function loadLatestNotice() {
+                try {
+                    const response = await fetch('/api/posts?category=notice&limit=1');
+                    const result = await response.json();
+                    if (result.success && result.data.length > 0) {
+                        const notice = result.data[0];
+                        const noticeElement = document.getElementById('latestNoticeTitle');
+                        if (noticeElement) {
+                            noticeElement.textContent = notice.title;
+                            noticeElement.parentElement.onclick = () => location.href = '/posts?category=notice';
+                            noticeElement.parentElement.style.cursor = 'pointer';
+                        }
+                    } else {
+                         const noticeElement = document.getElementById('latestNoticeTitle');
+                         if (noticeElement) noticeElement.textContent = '등록된 공지사항이 없습니다.';
+                    }
+                } catch (e) {
+                    console.error('Failed to load notice:', e);
+                }
+            }
 
             function logout() {
                 localStorage.removeItem('token');
@@ -717,8 +739,8 @@ app.get('/', (c) => {
                     <div class="hidden lg:flex items-center flex-1 min-w-0 pl-6 border-l border-gray-200 quick-menu-notice">
                         <span class="bg-primary-600 text-white px-3 py-1 rounded text-xs font-bold flex-shrink-0">NOTICE</span>
                         <div class="flex items-center justify-between flex-1 ml-3 min-w-0">
-                            <p class="text-sm text-gray-700 truncate">
-                                '상상'구조변대학을 등 목적분'우수프리타 산업
+                            <p class="text-sm text-gray-700 truncate" id="latestNoticeTitle">
+                                공지사항을 불러오는 중...
                             </p>
                             <button class="text-gray-400 hover:text-gray-600 ml-2 flex-shrink-0">
                                 <i class="fas fa-chevron-right text-sm"></i>
