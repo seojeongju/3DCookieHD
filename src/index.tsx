@@ -42,6 +42,7 @@ import { adminHrdHtml } from './views/admin_hrd';
 import { adminHrdStudentsHtml } from './views/admin_hrd_students';
 import { adminHrdCoursesHtml } from './views/admin_hrd_courses';
 import { adminHrdPersonnelHtml } from './views/admin_hrd_personnel';
+import { adminHrdNcsPlanHtml } from './views/admin_hrd_ncs_plan';
 
 const app = new Hono<{ Bindings: Bindings }>();
 
@@ -110,6 +111,7 @@ app.get('/admin/hrd', (c) => c.html(adminHrdHtml));
 app.get('/admin/hrd/students', (c) => c.html(adminHrdStudentsHtml));
 app.get('/admin/hrd/courses', (c) => c.html(adminHrdCoursesHtml));
 app.get('/admin/hrd/personnel', (c) => c.html(adminHrdPersonnelHtml));
+app.get('/admin/hrd/ncs-plan', (c) => c.html(adminHrdNcsPlanHtml));
 
 // ============================================
 // 헬스체크 엔드포인트
