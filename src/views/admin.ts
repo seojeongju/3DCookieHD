@@ -263,6 +263,13 @@ export const adminDashboardHtml = `
                                 </div>
                                 <span class="font-medium">공지사항 작성</span>
                             </button>
+
+                            <button id="btn-create-prototype" onclick="location.href='/admin/posts?category=prototype&action=create'" class="flex items-center px-5 py-3 bg-orange-50 text-orange-700 rounded-lg hover:bg-orange-100 transition border border-orange-100">
+                                <div class="w-8 h-8 rounded-full bg-orange-200 flex items-center justify-center mr-3 text-orange-700">
+                                    <i class="fas fa-cube text-sm"></i>
+                                </div>
+                                <span class="font-medium">시제품 등록</span>
+                            </button>
                             <button id="btn-hrd-system" onclick="location.href='/admin/hrd'" class="flex items-center px-5 py-3 bg-teal-50 text-teal-700 rounded-lg hover:bg-teal-100 transition border border-teal-100">
                                 <div class="w-8 h-8 rounded-full bg-teal-200 flex items-center justify-center mr-3 text-teal-700">
                                     <i class="fas fa-university text-sm"></i>
