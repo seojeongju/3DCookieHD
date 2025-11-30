@@ -47,12 +47,26 @@ app.get('/', async (c) => {
 
     const { results } = await DB.prepare(query).bind(...params).all();
 
-    // 이미지 JSON 파싱
-    const posts = results.map((post: any) => ({
-      ...post,
-      images: post.images ? JSON.parse(post.images as string) : [],
-      pinned: Boolean(post.pinned)
-    }));
+    // 이미지 JSON 파싱 및 본문에서 이미지 추출
+    const posts = results.map((post: any) => {
+      let images = post.images ? JSON.parse(post.images as string) : [];
+
+      // 이미지가 없고 본문이 있다면 본문에서 추출 시도
+      if ((!images || images.length === 0) && post.content) {
+        // 간단한 정규식으로 img 태그의 src 속성 추출
+        const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/i;
+        const match = post.content.match(imgRegex);
+        if (match && match[1]) {
+          images = [match[1]];
+        }
+      }
+
+      return {
+        ...post,
+        images: images,
+        pinned: Boolean(post.pinned)
+      };
+    });
 
     return c.json({
       success: true,
