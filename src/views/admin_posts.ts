@@ -87,6 +87,9 @@ export const adminPostsListHtml = `
                     <button onclick="filterCategory('portfolio')" id="tab-portfolio" class="w-1/5 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-center border-b-2 font-medium text-sm">
                         포트폴리오
                     </button>
+                    <button onclick="filterCategory('prototype')" id="tab-prototype" class="w-1/5 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-center border-b-2 font-medium text-sm">
+                        시제품
+                    </button>
                     <button onclick="filterCategory('qna')" id="tab-qna" class="w-1/5 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-center border-b-2 font-medium text-sm">
                         Q&A
                     </button>
@@ -159,6 +162,7 @@ export const adminPostsListHtml = `
                                     <option value="notice">공지사항</option>
                                     <option value="faq">FAQ</option>
                                     <option value="portfolio">포트폴리오</option>
+                                    <option value="prototype">시제품</option>
                                     <option value="qna">Q&A</option>
                                 </select>
                             </div>
@@ -215,7 +219,7 @@ export const adminPostsListHtml = `
             document.getElementById('currentCategory').value = category;
             
             // 탭 스타일 업데이트
-            const tabs = ['all', 'notice', 'faq', 'portfolio', 'qna'];
+            const tabs = ['all', 'notice', 'faq', 'portfolio', 'prototype', 'qna'];
             tabs.forEach(tab => {
                 const element = document.getElementById(\`tab-\${tab}\`);
                 if (!element) return;
@@ -415,6 +419,7 @@ export const adminPostsListHtml = `
                 'notice': '공지사항',
                 'faq': 'FAQ',
                 'portfolio': '포트폴리오',
+                'prototype': '시제품',
                 'qna': 'Q&A'
             };
             return names[category] || category;

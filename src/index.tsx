@@ -1105,85 +1105,7 @@ app.get('/', (c) => {
                     
                     <!-- 이미지 컨테이너 -->
                     <div id="prototypeGallery" class="flex gap-6 overflow-x-auto scroll-smooth pb-4 scrollbar-hide">
-                        <!-- 갤러리 아이템 1 -->
-                        <div class="flex-shrink-0 w-72">
-                            <div class="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition group/item">
-                                <div class="relative aspect-square bg-gray-200">
-                                    <div class="absolute inset-0 flex items-center justify-center">
-                                        <i class="fas fa-cube text-6xl text-gray-300"></i>
-                                    </div>
-                                    <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover/item:opacity-100 transition"></div>
-                                </div>
-                                <div class="p-4">
-                                    <h3 class="font-bold text-gray-800 mb-1">FDM방식 3D프린터 활용...</h3>
-                                    <p class="text-sm text-gray-500">2025-08-28</p>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- 갤러리 아이템 2 -->
-                        <div class="flex-shrink-0 w-72">
-                            <div class="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition group/item">
-                                <div class="relative aspect-square bg-gray-200">
-                                    <div class="absolute inset-0 flex items-center justify-center">
-                                        <i class="fas fa-cube text-6xl text-gray-300"></i>
-                                    </div>
-                                    <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover/item:opacity-100 transition"></div>
-                                </div>
-                                <div class="p-4">
-                                    <h3 class="font-bold text-gray-800 mb-1">네오 익셉셔널의 적용사품 가...</h3>
-                                    <p class="text-sm text-gray-500">2025-08-12</p>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- 갤러리 아이템 3 -->
-                        <div class="flex-shrink-0 w-72">
-                            <div class="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition group/item">
-                                <div class="relative aspect-square bg-gray-200">
-                                    <div class="absolute inset-0 flex items-center justify-center">
-                                        <i class="fas fa-cube text-6xl text-gray-300"></i>
-                                    </div>
-                                    <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover/item:opacity-100 transition"></div>
-                                </div>
-                                <div class="p-4">
-                                    <h3 class="font-bold text-gray-800 mb-1">FDM방식 3D프린터 활용...</h3>
-                                    <p class="text-sm text-gray-500">2025-08-07</p>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- 갤러리 아이템 4 -->
-                        <div class="flex-shrink-0 w-72">
-                            <div class="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition group/item">
-                                <div class="relative aspect-square bg-gray-200">
-                                    <div class="absolute inset-0 flex items-center justify-center">
-                                        <i class="fas fa-cube text-6xl text-gray-300"></i>
-                                    </div>
-                                    <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover/item:opacity-100 transition"></div>
-                                </div>
-                                <div class="p-4">
-                                    <h3 class="font-bold text-gray-800 mb-1">SLA-DLP방식 3D프린터...</h3>
-                                    <p class="text-sm text-gray-500">2025-07-16</p>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- 갤러리 아이템 5 -->
-                        <div class="flex-shrink-0 w-72">
-                            <div class="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition group/item">
-                                <div class="relative aspect-square bg-gray-200">
-                                    <div class="absolute inset-0 flex items-center justify-center">
-                                        <i class="fas fa-cube text-6xl text-gray-300"></i>
-                                    </div>
-                                    <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover/item:opacity-100 transition"></div>
-                                </div>
-                                <div class="p-4">
-                                    <h3 class="font-bold text-gray-800 mb-1">SLA-DLP방식 3D프린터...</h3>
-                                    <p class="text-sm text-gray-500">2025-07-11</p>
-                                </div>
-                            </div>
-                        </div>
+                        <!-- JavaScript로 동적 로드 -->
                     </div>
                     
                     <!-- 오른쪽 화살표 -->
@@ -1473,6 +1395,8 @@ app.get('/', (c) => {
           // 페이지 로드 시 슬라이드쇼 시작
           document.addEventListener('DOMContentLoaded', () => {
             startSlideShow();
+            loadPortfolios();
+            loadPrototypes();
             // loadCoursesForNav(); // 네비게이션 드롭다운용 과정 로드 (HTML 요소 부재로 인한 에러 방지)
           });
           
@@ -1811,6 +1735,55 @@ app.get('/', (c) => {
                 '<div class="w-full text-center py-12">' +
                 '<i class="fas fa-exclamation-triangle text-6xl text-gray-300 mb-4"></i>' +
                 '<p class="text-gray-500">포트폴리오를 불러오는데 실패했습니다.</p>' +
+                '</div>';
+            }
+          }
+
+          // 시제품 갤러리 로드 함수
+          async function loadPrototypes() {
+            try {
+              const response = await fetch(API_BASE + '/posts?category=prototype&limit=10');
+              const result = await response.json();
+              
+              if (result.success && result.data.length > 0) {
+                const prototypes = result.data;
+                const html = prototypes.map(prototype => {
+                  const date = new Date(prototype.created_at).toLocaleDateString('ko-KR');
+                  const title = prototype.title.length > 25 ? prototype.title.substring(0, 25) + '...' : prototype.title;
+                  const thumbnailUrl = (prototype.images && prototype.images.length > 0) ? prototype.images[0] : (prototype.thumbnail_url || '');
+                  const imgHtml = thumbnailUrl 
+                    ? '<img src="' + thumbnailUrl + '" alt="' + prototype.title + '" class="w-full h-full object-cover">'
+                    : '<div class="absolute inset-0 flex items-center justify-center"><i class="fas fa-cube text-6xl text-gray-300"></i></div>';
+                  
+                  return '<div class="flex-shrink-0 w-72">' +
+                    '<a href="/posts?category=prototype" class="block bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition group/item cursor-pointer">' +
+                    '<div class="relative aspect-square bg-gray-200">' +
+                    imgHtml +
+                    '<div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover/item:opacity-100 transition"></div>' +
+                    '</div>' +
+                    '<div class="p-4">' +
+                    '<h3 class="font-bold text-gray-800 mb-1">' + title + '</h3>' +
+                    '<p class="text-sm text-gray-500">' + date + '</p>' +
+                    '</div>' +
+                    '</a>' +
+                    '</div>';
+                }).join('');
+                
+                document.getElementById('prototypeGallery').innerHTML = html;
+              } else {
+                // 시제품이 없을 때
+                document.getElementById('prototypeGallery').innerHTML = 
+                  '<div class="w-full text-center py-12">' +
+                  '<i class="fas fa-cube text-6xl text-gray-300 mb-4"></i>' +
+                  '<p class="text-gray-500">등록된 시제품이 없습니다.</p>' +
+                  '</div>';
+              }
+            } catch (e) {
+              console.error('Failed to load prototypes:', e);
+              document.getElementById('prototypeGallery').innerHTML = 
+                '<div class="w-full text-center py-12">' +
+                '<i class="fas fa-exclamation-triangle text-6xl text-gray-300 mb-4"></i>' +
+                '<p class="text-gray-500">시제품을 불러오는데 실패했습니다.</p>' +
                 '</div>';
             }
           }
