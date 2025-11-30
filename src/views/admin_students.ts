@@ -69,10 +69,10 @@ export const adminStudentsListHtml = `
                 </div>
                 <div class="flex space-x-2">
                     <button onclick="switchTab('students')" id="tab-students" class="tab-btn px-4 py-2 bg-white border-b-2 border-blue-500 text-blue-600 font-medium focus:outline-none">
-                        <i class="fas fa-users mr-2"></i>수강생 목록
+                        <i class="fas fa-users mr-2"></i>수강생 조회 (개별 관리)
                     </button>
                     <button onclick="switchTab('consultations')" id="tab-consultations" class="tab-btn px-4 py-2 bg-white border-b-2 border-transparent text-gray-500 font-medium hover:text-gray-700 focus:outline-none">
-                        <i class="fas fa-comments mr-2"></i>상담 관리
+                        <i class="fas fa-list-alt mr-2"></i>전체 상담 내역 (업무 현황)
                     </button>
                 </div>
             </div>
