@@ -31,6 +31,7 @@ import { postsListHtml } from './views/posts';
 import { scheduleHtml } from './views/schedule';
 import { locationsHtml } from './views/locations';
 import { coursesListHtml } from './views/courses';
+import { achievementsHtml } from './views/achievements';
 
 const app = new Hono<{ Bindings: Bindings }>();
 
@@ -87,6 +88,7 @@ app.get('/courses', (c) => c.html(coursesListHtml));
 app.get('/posts', (c) => c.html(postsListHtml));
 app.get('/schedule', (c) => c.html(scheduleHtml));
 app.get('/locations', (c) => c.html(locationsHtml));
+app.get('/achievements', (c) => c.html(achievementsHtml));
 app.get('/reviews', (c) => c.html(reviewsListHtml));
 
 // ============================================
@@ -420,6 +422,7 @@ app.get('/', (c) => {
                                 <div class="py-1">
                                     <a href="/greeting" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">인사말</a>
                                     <a href="/education-photos" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">교육사진</a>
+                                    <a href="/achievements" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">교육실적</a>
                                     <a href="/facilities" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">시설안내</a>
                                     <a href="/locations" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">오시는길</a>
                                 </div>
