@@ -1216,85 +1216,7 @@ app.get('/', (c) => {
                     
                     <!-- 이미지 컨테이너 -->
                     <div id="portfolioGallery" class="flex gap-6 overflow-x-auto scroll-smooth pb-4 scrollbar-hide">
-                        <!-- 갤러리 아이템 1 -->
-                        <div class="flex-shrink-0 w-72">
-                            <div class="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition group/item">
-                                <div class="relative aspect-square bg-gray-200">
-                                    <div class="absolute inset-0 flex items-center justify-center">
-                                        <i class="fas fa-palette text-6xl text-gray-300"></i>
-                                    </div>
-                                    <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover/item:opacity-100 transition"></div>
-                                </div>
-                                <div class="p-4">
-                                    <h3 class="font-bold text-gray-800 mb-1">[2025 0월 소상공인전문...</h3>
-                                    <p class="text-sm text-gray-500">2025-10-02</p>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- 갤러리 아이템 2 -->
-                        <div class="flex-shrink-0 w-72">
-                            <div class="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition group/item">
-                                <div class="relative aspect-square bg-gray-200">
-                                    <div class="absolute inset-0 flex items-center justify-center">
-                                        <i class="fas fa-palette text-6xl text-gray-300"></i>
-                                    </div>
-                                    <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover/item:opacity-100 transition"></div>
-                                </div>
-                                <div class="p-4">
-                                    <h3 class="font-bold text-gray-800 mb-1">[2025 소상공인 전문가양...</h3>
-                                    <p class="text-sm text-gray-500">2025-09-26</p>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- 갤러리 아이템 3 -->
-                        <div class="flex-shrink-0 w-72">
-                            <div class="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition group/item">
-                                <div class="relative aspect-square bg-gray-200">
-                                    <div class="absolute inset-0 flex items-center justify-center">
-                                        <i class="fas fa-palette text-6xl text-gray-300"></i>
-                                    </div>
-                                    <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover/item:opacity-100 transition"></div>
-                                </div>
-                                <div class="p-4">
-                                    <h3 class="font-bold text-gray-800 mb-1">[2025 0월 소상공인전문...</h3>
-                                    <p class="text-sm text-gray-500">2025-03-14</p>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- 갤러리 아이템 4 -->
-                        <div class="flex-shrink-0 w-72">
-                            <div class="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition group/item">
-                                <div class="relative aspect-square bg-gray-200">
-                                    <div class="absolute inset-0 flex items-center justify-center">
-                                        <i class="fas fa-palette text-6xl text-gray-300"></i>
-                                    </div>
-                                    <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover/item:opacity-100 transition"></div>
-                                </div>
-                                <div class="p-4">
-                                    <h3 class="font-bold text-gray-800 mb-1">Fusion 활용 고급모델링...</h3>
-                                    <p class="text-sm text-gray-500">2025-06-17</p>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- 갤러리 아이템 5 -->
-                        <div class="flex-shrink-0 w-72">
-                            <div class="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition group/item">
-                                <div class="relative aspect-square bg-gray-200">
-                                    <div class="absolute inset-0 flex items-center justify-center">
-                                        <i class="fas fa-palette text-6xl text-gray-300"></i>
-                                    </div>
-                                    <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover/item:opacity-100 transition"></div>
-                                </div>
-                                <div class="p-4">
-                                    <h3 class="font-bold text-gray-800 mb-1">[2025 7월 소상공인전문...</h3>
-                                    <p class="text-sm text-gray-500">2025-07-21</p>
-                                </div>
-                            </div>
-                        </div>
+                        <!-- JavaScript로 동적 로드 -->
                     </div>
                     
                     <!-- 오른쪽 화살표 -->
@@ -1841,7 +1763,63 @@ app.get('/', (c) => {
           document.addEventListener('DOMContentLoaded', () => {
             loadCourses();
             loadCampuses();
+            loadPortfolios();
           });
+          
+          // 포트폴리오 로드 함수
+          async function loadPortfolios() {
+            try {
+              const response = await fetch(API_BASE + '/posts?category=portfolio&limit=10');
+              const result = await response.json();
+              
+              if (result.success && result.data.length > 0) {
+                const portfolios = result.data;
+                const html = portfolios.map(portfolio => {
+                  const date = new Date(portfolio.created_at).toLocaleDateString('ko-KR');
+                  const title = portfolio.title.length > 25 ? portfolio.title.substring(0, 25) + '...' : portfolio.title;
+                  const thumbnailUrl = portfolio.thumbnail_url || '';
+                  
+                  return `
+        < div class= "flex-shrink-0 w-72" >
+        <a href="/posts?category=portfolio" class="block bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition group/item cursor-pointer">
+            <div class="relative aspect-square bg-gray-200">
+                ${thumbnailUrl ?
+                    `<img src="${thumbnailUrl}" alt="${portfolio.title}" class="w-full h-full object-cover">` :
+                    `<div class="absolute inset-0 flex items-center justify-center">
+                              <i class="fas fa-palette text-6xl text-gray-300"></i>
+                            </div>`
+                }
+                <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover/item:opacity-100 transition"></div>
+            </div>
+            <div class="p-4">
+                <h3 class="font-bold text-gray-800 mb-1">${title}</h3>
+                <p class="text-sm text-gray-500">${date}</p>
+            </div>
+        </a>
+                    </div >
+        `;
+                }).join('');
+                
+                document.getElementById('portfolioGallery').innerHTML = html;
+              } else {
+                // 포트폴리오가 없을 때
+                document.getElementById('portfolioGallery').innerHTML = `
+        < div class= "w-full text-center py-12" >
+                    <i class="fas fa-palette text-6xl text-gray-300 mb-4"></i>
+                    <p class="text-gray-500">등록된 포트폴리오가 없습니다.</p>
+                  </div >
+        `;
+              }
+            } catch (e) {
+              console.error('Failed to load portfolios:', e);
+              document.getElementById('portfolioGallery').innerHTML = `
+        < div class= "w-full text-center py-12" >
+                  <i class="fas fa-exclamation-triangle text-6xl text-gray-300 mb-4"></i>
+                  <p class="text-gray-500">포트폴리오를 불러오는데 실패했습니다.</p>
+                </div >
+        `;
+            }
+          }
         </script>
     </body>
     </html>
