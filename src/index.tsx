@@ -442,7 +442,21 @@ app.get('/', (c) => {
                         </div>
 
                         <a href="/reviews" class="px-3 py-2 text-gray-600 hover:text-primary-600 font-medium text-sm transition-colors">수강후기</a>
-                        <a href="/posts" class="px-3 py-2 text-gray-600 hover:text-primary-600 font-medium text-sm transition-colors">게시판</a>
+                        <!-- 게시판 (드롭다운) -->
+                        <div class="relative group">
+                            <button class="px-3 py-2 text-gray-600 hover:text-primary-600 font-medium text-sm flex items-center transition-colors">
+                                게시판
+                                <i class="fas fa-chevron-down ml-1 text-[10px] text-gray-400"></i>
+                            </button>
+                            <div class="absolute left-0 top-full mt-0 w-48 bg-white rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 border border-gray-100 overflow-hidden z-50">
+                                <div class="py-1">
+                                    <a href="/posts?category=notice" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">공지사항</a>
+                                    <a href="/posts?category=faq" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">FAQ</a>
+                                    <a href="/posts?category=portfolio" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">포트폴리오</a>
+                                    <a href="/posts?category=qna" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">Q&A</a>
+                                </div>
+                            </div>
+                        </div>
                         <!-- 채용정보 (드롭다운) -->
                         <div class="relative group">
                             <button class="px-3 py-2 text-gray-600 hover:text-primary-600 font-medium text-sm flex items-center transition-colors">
