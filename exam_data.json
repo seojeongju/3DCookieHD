@@ -1,0 +1,30 @@
+{
+    "title": "Test Exam 1",
+    "course_id": 1,
+    "description": "This is a test exam.",
+    "time_limit": 30,
+    "questions": [
+        {
+            "question_text": "What is 1+1?",
+            "options": [
+                "1",
+                "2",
+                "3",
+                "4"
+            ],
+            "correct_answer": "2",
+            "points": 10
+        },
+        {
+            "question_text": "What is the capital of Korea?",
+            "options": [
+                "Seoul",
+                "Busan",
+                "Incheon",
+                "Daegu"
+            ],
+            "correct_answer": "1",
+            "points": 10
+        }
+    ]
+}

@@ -368,12 +368,17 @@ export const adminCoursesListHtml = `
                             \${new Date(course.created_at).toLocaleDateString()}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <button onclick='editCourse(\${JSON.stringify(course).replace(/'/g, "&#39;")})' class="text-blue-600 hover:text-blue-900 mr-3">
-                                <i class="fas fa-edit"></i> 수정
-                            </button>
-                            <button onclick="deleteCourse(\${course.id})" class="text-red-600 hover:text-red-900">
-                                <i class="fas fa-trash"></i> 삭제
-                            </button>
+                            <div class="flex items-center justify-end space-x-2">
+                                <a href="/admin/courses/\${course.id}/lms" class="text-purple-600 hover:text-purple-900 px-3 py-1 bg-purple-50 rounded-md transition flex items-center">
+                                    <i class="fas fa-graduation-cap mr-1"></i> 학사관리
+                                </a>
+                                <button onclick='editCourse(\${JSON.stringify(course).replace(/'/g, "&#39;")})' class="text-blue-600 hover:text-blue-900 px-2 py-1">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button onclick="deleteCourse(\${course.id})" class="text-red-600 hover:text-red-900 px-2 py-1">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
                         </td>
                     </tr>
                 \`).join('');

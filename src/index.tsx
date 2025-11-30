@@ -1,4 +1,4 @@
-import { Hono } from 'hono';
+﻿import { Hono } from 'hono';
 import { logger } from 'hono/logger';
 import { serveStatic } from 'hono/cloudflare-workers';
 import type { Bindings } from './types';
@@ -15,6 +15,8 @@ import posts from './api/posts';
 import schedules from './api/schedules';
 import jobs from './api/jobs';
 import jobseekers from './api/jobseekers';
+import exams from './api/exams';
+import students from './api/students';
 import { adminDashboardHtml } from './views/admin';
 import { adminJobsListHtml } from './views/admin_jobs';
 import { adminJobseekersListHtml } from './views/admin_jobseekers';
@@ -22,6 +24,10 @@ import { jobsListHtml } from './views/jobs';
 import { jobseekersListHtml } from './views/jobseekers';
 import { adminCoursesListHtml } from './views/admin_courses';
 import { adminStudentsListHtml } from './views/admin_students';
+import { adminExamsHtml, adminExamCreateHtml, adminExamEditHtml } from './views/admin_exams';
+import { studentExamHtml } from './views/student_exam';
+import { studentDashboardHtml } from './views/student_dashboard';
+import { adminGradesHtml } from './views/admin_grades';
 import { reviewsListHtml } from './views/reviews';
 import { loginHtml } from './views/login';
 import { registerHtml } from './views/register';
@@ -78,6 +84,12 @@ app.route('/api/jobs', jobs);
 
 // 구직자 API
 app.route('/api/jobseekers', jobseekers);
+
+// 시험 API
+app.route('/api/exams', exams);
+
+// 학생 관리 API
+app.route('/api/students', students);
 
 // ============================================
 // 페이지 라우트
@@ -500,6 +512,12 @@ app.get('/', (c) => {
                         menuHtml += \`
                             <a href="/admin" class="text-purple-600 hover:text-purple-700 font-bold whitespace-nowrap mr-4">
                                 <i class="fas fa-cog mr-1"></i> 관리자
+                            </a>
+                        \`;
+                    } else {
+                        menuHtml += \`
+                            <a href="/my-classroom" class="text-blue-600 hover:text-blue-700 font-bold whitespace-nowrap mr-4">
+                                <i class="fas fa-chalkboard-teacher mr-1"></i> 나의 강의실
                             </a>
                         \`;
                     }
@@ -3095,6 +3113,34 @@ app.get('/admin/courses', (c) => {
 // 관리자 - 수강생 관리 페이지
 app.get('/admin/students', (c) => {
     return c.html(adminStudentsListHtml);
+});
+
+// 관리자 - 시험/문제 관리 페이지
+app.get('/admin/exams', (c) => {
+    return c.html(adminExamsHtml);
+});
+
+app.get('/admin/exams/create', (c) => {
+    return c.html(adminExamCreateHtml);
+});
+
+app.get('/admin/exams/:id/edit', (c) => {
+    return c.html(adminExamEditHtml);
+});
+
+// 관리자 - 성적 관리 페이지
+app.get('/admin/grades', (c) => {
+    return c.html(adminGradesHtml);
+});
+
+// 학생 - 시험 응시 페이지
+app.get('/student/exam/:id', (c) => {
+    return c.html(studentExamHtml);
+});
+
+// 학생 - 나의 강의실 (대시보드)
+app.get('/my-classroom', (c) => {
+    return c.html(studentDashboardHtml);
 });
 
 // 관리자 - 리뷰 관리 페이지

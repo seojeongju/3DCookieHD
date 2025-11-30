@@ -372,3 +372,111 @@ courses.delete('/:id', async (c) => {
 });
 
 export default courses;
+
+/**
+ * GET /api/courses/:id/attendance
+ * 특정 날짜의 출결 현황 조회
+ */
+courses.get('/:id/attendance', async (c) => {
+  try {
+    const courseId = c.req.param('id');
+    const date = c.req.query('date'); // YYYY-MM-DD
+
+    if (!date) {
+      return errorResponse(c, '날짜(date) 파라미터가 필요합니다', 400);
+    }
+
+    // 1. 해당 과정의 수강생 목록 조회 (승인된 수강생만)
+    const studentsQuery = `
+      SELECT 
+        u.id, u.name, u.phone, e.id as enrollment_id
+      FROM enrollments e
+      JOIN users u ON e.user_id = u.id
+      WHERE e.course_id = ? AND e.status = 'approved'
+    `;
+    const students = await getAll<any>(c.env.DB, studentsQuery, [courseId]);
+
+    // 2. 해당 날짜의 출결 기록 조회
+    const attendanceQuery = `
+      SELECT * FROM attendance_logs 
+      WHERE enrollment_id IN (
+        SELECT id FROM enrollments WHERE course_id = ?
+      ) AND date = ?
+    `;
+    const attendanceLogs = await getAll<any>(c.env.DB, attendanceQuery, [courseId, date]);
+
+    // 3. 데이터 병합
+    const result = students.map(student => {
+      const log = attendanceLogs.find(l => l.enrollment_id === student.enrollment_id);
+      return {
+        id: student.id,
+        enrollment_id: student.enrollment_id,
+        name: student.name,
+        phone: student.phone,
+        check_in: log ? log.check_in_time : null,
+        check_out: log ? log.check_out_time : null,
+        status: log ? log.status : 'absent', // 기본값은 결석(또는 미처리)
+        note: log ? log.note : null
+      };
+    });
+
+    return successResponse(c, { date, students: result });
+
+  } catch (error) {
+    console.error('Get attendance error:', error);
+    return errorResponse(c, '출결 조회 중 오류가 발생했습니다', 500);
+  }
+});
+
+/**
+ * POST /api/courses/:id/attendance
+ * 출결 기록 저장
+ */
+courses.post('/:id/attendance', async (c) => {
+  try {
+    const courseId = c.req.param('id');
+    const body = await c.req.json();
+    const { date, records } = body;
+
+    if (!date || !records || !Array.isArray(records)) {
+      return errorResponse(c, '유효하지 않은 데이터입니다', 400);
+    }
+
+    // 트랜잭션 처리가 이상적이나, D1은 아직 완벽한 트랜잭션을 지원하지 않을 수 있음 (배치 실행 권장)
+    // 여기서는 루프를 돌며 처리 (성능 개선 필요 시 배치 쿼리로 변경)
+
+    for (const record of records) {
+      // 기존 기록 확인
+      const existingLog = await getOne<any>(
+        c.env.DB,
+        'SELECT id FROM attendance_logs WHERE enrollment_id = ? AND date = ?',
+        [record.enrollment_id, date]
+      );
+
+      if (existingLog) {
+        // 업데이트
+        await execute(
+          c.env.DB,
+          `UPDATE attendance_logs SET 
+            check_in_time = ?, check_out_time = ?, status = ?, note = ?, updated_at = CURRENT_TIMESTAMP
+           WHERE id = ?`,
+          [record.check_in || null, record.check_out || null, record.status, record.note || null, existingLog.id]
+        );
+      } else {
+        // 신규 등록
+        await execute(
+          c.env.DB,
+          `INSERT INTO attendance_logs (enrollment_id, date, check_in_time, check_out_time, status, note)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [record.enrollment_id, date, record.check_in || null, record.check_out || null, record.status, record.note || null]
+        );
+      }
+    }
+
+    return successResponse(c, null, '출결 기록이 저장되었습니다');
+
+  } catch (error) {
+    console.error('Save attendance error:', error);
+    return errorResponse(c, '출결 저장 중 오류가 발생했습니다', 500);
+  }
+});
