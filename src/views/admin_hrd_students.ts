@@ -9,28 +9,27 @@ export const adminHrdStudentsHtml = `
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              teal: {
-                400: '#2dd4bf',
-                500: '#14b8a6',
-                600: '#0d9488',
-              },
-              rose: {
-                400: '#fb7185',
-                500: '#f43f5e',
-                600: '#e11d48',
-              },
-              slate: {
-                800: '#1e293b',
-                900: '#0f172a',
-              }
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        teal: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                        },
+                        rose: {
+                            400: '#fb7185',
+                            500: '#f43f5e',
+                            600: '#e11d48',
+                        }
+                    }
+                }
             }
-          }
         }
-      }
     </script>
     <style>
         .gnb-item.active {
@@ -39,28 +38,37 @@ export const adminHrdStudentsHtml = `
         .sidebar-item {
             display: flex;
             align-items: center;
-            padding: 0.75rem 1.5rem;
+            padding: 0.75rem 1rem;
             font-size: 0.875rem;
-            color: #94a3b8; /* slate-400 */
+            color: #9ca3af; /* gray-400 */
             transition: all 0.2s;
+            cursor: pointer;
         }
         .sidebar-item:hover {
             background-color: #334155; /* slate-700 */
             color: white;
+            padding-left: 1.25rem;
         }
         .sidebar-item.active {
             background-color: #334155;
             color: white;
+            font-weight: 600;
             border-left: 3px solid #14b8a6; /* teal-500 */
         }
-        .sidebar-header {
-            padding: 1rem 1.5rem;
-            font-weight: 700;
-            color: white;
+        .sidebar-subitem {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            cursor: pointer;
+            padding: 0.5rem 1rem 0.5rem 2.5rem;
+            font-size: 0.8rem;
+            color: #9ca3af;
+            transition: all 0.2s;
+        }
+        .sidebar-subitem:hover {
+            color: white;
+        }
+        .sidebar-subitem.active {
+            color: #14b8a6;
+            font-weight: 600;
         }
         .table-header {
             background-color: #f9fafb;
@@ -98,139 +106,156 @@ export const adminHrdStudentsHtml = `
             color: #374151;
             border-bottom-color: #374151;
         }
+        /* Hide scrollbar for Chrome, Safari and Opera */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        /* Hide scrollbar for IE, Edge and Firefox */
+        .no-scrollbar {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen flex flex-col font-sans">
-    <!-- 메인 네비게이션 (GNB) -->
-    <nav class="bg-gray-800 text-white z-20 relative h-12 flex-shrink-0">
-        <div class="max-w-[1800px] mx-auto px-4 h-full">
-            <div class="flex items-center h-full text-sm font-medium overflow-x-auto">
-                <a href="/admin/hrd" class="gnb-item hover:bg-gray-700 flex items-center justify-center px-6 h-full whitespace-nowrap">운영</a>
-                <a href="/admin/hrd/students" class="gnb-item active flex items-center justify-center px-6 h-full whitespace-nowrap">학생</a>
-                <a href="/admin/hrd/courses" class="gnb-item hover:bg-gray-700 flex items-center justify-center px-6 h-full whitespace-nowrap">과정</a>
-                <a href="/admin/hrd/personnel" class="gnb-item hover:bg-gray-700 flex items-center justify-center px-6 h-full whitespace-nowrap">인사</a>
-                <a href="/admin/hrd/ncs-plan" class="gnb-item hover:bg-gray-700 flex items-center justify-center px-6 h-full whitespace-nowrap">[NCS] 평가계획</a>
-                <a href="/admin/hrd/ncs-exec" class="gnb-item hover:bg-gray-700 flex items-center justify-center px-6 h-full whitespace-nowrap">[NCS] 평가실행</a>
-                <a href="/admin/hrd/ncs-result" class="gnb-item hover:bg-gray-700 flex items-center justify-center px-6 h-full whitespace-nowrap">[NCS] 평가결과</a>
-                <a href="/admin/hrd/evaluation" class="gnb-item hover:bg-gray-700 flex items-center justify-center px-6 h-full whitespace-nowrap">역량평가-설문</a>
-                <a href="/" class="gnb-item hover:bg-gray-700 flex items-center justify-center px-6 h-full whitespace-nowrap ml-auto bg-gray-700">홈페이지</a>
+<body class="bg-gray-50 min-h-screen flex font-sans">
+
+    <!-- 왼쪽 사이드바 (전체 높이) -->
+    <aside class="w-64 bg-slate-800 flex-shrink-0 flex flex-col text-white transition-all duration-300 z-20">
+        <div class="h-16 flex items-center px-6 bg-slate-900 border-b border-slate-700">
+            <div>
+                <h2 class="text-lg font-bold tracking-tight">학사행정관리시스템</h2>
+                <p class="text-xs text-slate-400 mt-0.5">서정주 님(정직원)</p>
             </div>
         </div>
-    </nav>
 
-    <!-- 상단 유틸리티 바 (GNB 아래 배치) -->
-    <div class="bg-white border-b border-gray-200 z-10 relative h-10 flex-shrink-0">
-        <div class="max-w-[1800px] mx-auto px-4 h-full">
-            <div class="flex justify-between items-center h-full text-xs text-gray-500">
-                <div class="flex items-center gap-2">
-                    <button class="bg-teal-500 text-white px-2 py-0.5 rounded-sm"><i class="fas fa-bars"></i></button>
-                </div>
-                <div class="flex items-center gap-4">
-                    <a href="#" class="hover:text-gray-800"><i class="fas fa-list mr-1"></i>사전등록</a>
-                    <a href="#" class="hover:text-gray-800"><i class="fas fa-envelope mr-1"></i>문자발송</a>
-                    <a href="#" class="hover:text-gray-800"><i class="fas fa-user-lock mr-1"></i>학생로그인인증</a>
-                    <div class="flex items-center gap-1">
-                        <i class="fas fa-toggle-off text-lg text-gray-400 cursor-pointer"></i>
-                        <span>접속유지</span>
-                    </div>
-                    <a href="/logout" class="hover:text-gray-800 ml-2"><i class="fas fa-sign-out-alt mr-1"></i>Logout</a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 메인 컨테이너 (사이드바 + 컨텐츠) -->
-    <div class="flex flex-grow w-full h-[calc(100vh-88px)] overflow-hidden">
-        
-        <!-- 왼쪽 사이드바 (학생 메뉴 서브메뉴) - 어두운 테마 -->
-        <aside class="w-60 bg-slate-800 flex-shrink-0 overflow-y-auto text-white">
-            <div class="py-4 px-4 border-b border-slate-700">
-                <h2 class="text-lg font-bold">학사행정관리시스템</h2>
-                <p class="text-xs text-slate-400 mt-1">서정주 님 (정직원)</p>
-            </div>
-
-            <nav class="flex flex-col mt-2">
-                <!-- 훈련생·수료·취업생 그룹 -->
-                <div class="sidebar-header hover:bg-slate-700">
-                    <div class="flex items-center">
-                        <i class="fas fa-user-graduate mr-2 w-5 text-center"></i>
-                        <span>훈련생·수료·취업생</span>
-                    </div>
+        <nav class="flex-grow overflow-y-auto py-4">
+            <!-- 훈련생·수료·취업생 그룹 -->
+            <div class="group">
+                <div class="flex items-center px-6 py-3 text-gray-300 hover:bg-slate-700 hover:text-white cursor-pointer transition-colors bg-slate-700">
+                    <i class="fas fa-user-graduate w-6 text-center mr-3"></i>
+                    <span class="text-sm font-medium flex-grow">훈련생·수료·취업생</span>
                     <i class="fas fa-chevron-down text-xs"></i>
                 </div>
                 <div class="bg-slate-900 py-2">
-                    <a href="#" class="sidebar-item active">훈련생</a>
-                    <a href="#" class="sidebar-item">수료생</a>
-                    <a href="#" class="sidebar-item">중도탈락생</a>
-                    <a href="#" class="sidebar-item">학생 이동 복사</a>
+                    <a href="#" class="sidebar-subitem active">훈련생</a>
+                    <a href="#" class="sidebar-subitem">수료생</a>
+                    <a href="#" class="sidebar-subitem">중도탈락생</a>
+                    <a href="#" class="sidebar-subitem">학생 이동 복사</a>
                 </div>
+            </div>
 
-                <!-- 학생로그인인증 -->
-                <a href="#" class="sidebar-item mt-2">
-                    <i class="fas fa-key mr-2 w-5 text-center"></i>
-                    <span>학생로그인인증</span>
+            <!-- 학생로그인인증 -->
+            <div class="group">
+                <div class="flex items-center px-6 py-3 text-gray-300 hover:bg-slate-700 hover:text-white cursor-pointer transition-colors">
+                    <i class="fas fa-key w-6 text-center mr-3"></i>
+                    <span class="text-sm font-medium flex-grow">학생로그인인증</span>
+                    <i class="fas fa-chevron-right text-xs opacity-50 group-hover:opacity-100"></i>
+                </div>
+            </div>
+        </nav>
+    </aside>
+
+    <!-- 우측 메인 영역 -->
+    <div class="flex-grow flex flex-col h-screen overflow-hidden">
+
+        <!-- 상단 탭 네비게이션 -->
+        <header class="bg-gray-800 text-white h-16 flex items-center shadow-md z-10">
+            <div class="flex h-full overflow-x-auto no-scrollbar">
+                <a href="/admin/hrd" class="flex items-center justify-center px-8 h-full hover:bg-gray-700 text-gray-300 hover:text-white transition-colors min-w-[100px]">
+                    운영
                 </a>
-            </nav>
-        </aside>
+                <a href="#" class="flex items-center justify-center px-8 h-full bg-teal-500 font-bold text-white transition-colors min-w-[100px]">
+                    학생
+                </a>
+                <a href="/admin/hrd/courses" class="flex items-center justify-center px-8 h-full hover:bg-gray-700 text-gray-300 hover:text-white transition-colors min-w-[100px]">
+                    과정
+                </a>
+                <a href="/admin/hrd/personnel" class="flex items-center justify-center px-8 h-full hover:bg-gray-700 text-gray-300 hover:text-white transition-colors min-w-[100px]">
+                    인사
+                </a>
+                <a href="/admin/hrd/ncs-plan" class="flex items-center justify-center px-8 h-full hover:bg-gray-700 text-gray-300 hover:text-white transition-colors min-w-[140px]">
+                    [NCS] 평가계획
+                </a>
+                <a href="/admin/hrd/ncs-exec" class="flex items-center justify-center px-8 h-full hover:bg-gray-700 text-gray-300 hover:text-white transition-colors min-w-[140px]">
+                    [NCS] 평가실행
+                </a>
+                <a href="/admin/hrd/ncs-result" class="flex items-center justify-center px-8 h-full hover:bg-gray-700 text-gray-300 hover:text-white transition-colors min-w-[140px]">
+                    [NCS] 평가결과
+                </a>
+                <a href="/admin/hrd/evaluation" class="flex items-center justify-center px-8 h-full hover:bg-gray-700 text-gray-300 hover:text-white transition-colors min-w-[140px]">
+                    역량평가 - 설문
+                </a>
+            </div>
+            <div class="ml-auto px-6 flex items-center gap-4 text-sm">
+                <button class="text-gray-400 hover:text-white"><i class="fas fa-bell"></i></button>
+                <button class="text-gray-400 hover:text-white"><i class="fas fa-cog"></i></button>
+                <a href="/admin" class="text-gray-400 hover:text-white flex items-center gap-2">
+                    <i class="fas fa-tachometer-alt"></i> 관리자 대시보드
+                </a>
+                <a href="/" class="text-gray-400 hover:text-white flex items-center gap-2">
+                    <i class="fas fa-home"></i> 홈페이지
+                </a>
+            </div>
+        </header>
 
-        <!-- 메인 컨텐츠 -->
-        <main class="flex-grow px-6 py-6 w-full overflow-y-auto bg-gray-50">
-            
+        <!-- 메인 컨텐츠 영역 -->
+        <main class="flex-grow overflow-y-auto bg-gray-50 p-8">
+
             <!-- 타이틀 및 브레드크럼 -->
-            <div class="mb-4">
-                <h1 class="text-2xl font-light text-gray-800 mb-1">MAIN</h1>
-                <p class="text-xs text-gray-500">HOME / MAIN - (학생)</p>
+            <div class="mb-6">
+                <h1 class="text-3xl font-light text-gray-800 mb-2">MAIN</h1>
+                <p class="text-sm text-gray-500">HOME / MAIN - (학생)</p>
             </div>
 
             <!-- 검색 바 및 액션 버튼 -->
-            <div class="flex flex-col xl:flex-row gap-4 mb-4 items-start xl:items-center">
+            <div class="flex flex-col xl:flex-row gap-4 mb-6 items-start xl:items-center">
                 <!-- 검색 바 -->
-                <div class="flex-grow flex flex-wrap items-center bg-white border border-teal-500 min-h-[40px] w-full xl:w-auto">
-                    <div class="bg-teal-500 text-white px-4 py-2 h-full flex items-center justify-center font-medium text-sm whitespace-nowrap">
+                <div class="flex-grow flex flex-wrap items-center bg-white border border-teal-500 min-h-[46px] w-full xl:w-auto shadow-sm">
+                    <div class="bg-teal-500 text-white px-6 py-3 h-full flex items-center justify-center font-bold text-sm whitespace-nowrap">
                         통합검색
                     </div>
-                    <input type="text" placeholder="검색단어 관련있는 지원자, 학생, 과정, 거래처가 검색됩니다." class="flex-grow px-4 py-2 text-sm outline-none min-w-[200px]">
-                    <div class="bg-teal-500 text-white px-4 py-2 h-full flex items-center justify-center font-medium text-sm whitespace-nowrap border-l border-teal-600">
+                    <input type="text" placeholder="검색단어 관련있는 지원자, 학생, 과정, 거래처가 검색됩니다." class="flex-grow px-4 py-2 text-sm outline-none min-w-[200px] h-full">
+                    <div class="bg-teal-500 text-white px-6 py-3 h-full flex items-center justify-center font-bold text-sm whitespace-nowrap border-l border-teal-600">
                         검색기간
                     </div>
-                    <select class="px-2 py-2 text-sm outline-none text-gray-600 bg-white border-l border-gray-200 min-w-[100px]">
+                    <select class="px-3 py-2 text-sm outline-none text-gray-600 bg-white border-l border-gray-200 min-w-[120px] h-full">
                         <option>::전체기간::</option>
                         <option>최근 1개월</option>
                         <option>최근 3개월</option>
                         <option>최근 6개월</option>
                         <option>최근 1년</option>
                     </select>
-                    <button class="bg-teal-500 text-white w-12 py-2 flex items-center justify-center hover:bg-teal-600 transition">
-                        <i class="fas fa-search"></i>
+                    <button class="bg-teal-500 text-white w-14 h-full flex items-center justify-center hover:bg-teal-600 transition">
+                        <i class="fas fa-search text-lg"></i>
                     </button>
                 </div>
 
                 <!-- 진행 상황 버튼 -->
                 <div class="flex items-center gap-2 w-full xl:w-auto">
-                    <div class="flex gap-1 text-xs">
+                    <div class="flex gap-1 text-xs hidden xl:flex">
                         <button class="bg-teal-500 text-white px-2 py-1 rounded hover:bg-teal-600">패키지명</button>
                         <button class="bg-white border border-gray-300 text-gray-600 px-2 py-1 rounded hover:bg-gray-50">실소패키지 신청</button>
                         <button class="bg-rose-500 text-white px-2 py-1 rounded hover:bg-rose-600">장애발생 52일</button>
                         <button class="bg-teal-400 text-white px-2 py-1 rounded hover:bg-teal-500">전송데이터 바로가기</button>
                         <button class="bg-orange-400 text-white px-2 py-1 rounded hover:bg-orange-500">동영상 메뉴얼 바로가기</button>
                     </div>
-                    <button class="bg-rose-500 hover:bg-rose-600 text-white px-6 py-2 h-[42px] text-sm font-medium shadow-sm transition whitespace-nowrap rounded-sm ml-auto xl:ml-0">
+                    <button class="bg-rose-500 hover:bg-rose-600 text-white px-8 py-3 h-[46px] text-sm font-bold shadow-md transition whitespace-nowrap rounded-sm ml-auto xl:ml-0">
                         진행 상황 한눈에 보기
                     </button>
                 </div>
             </div>
             
             <!-- 공지사항 바 -->
-            <div class="flex items-center gap-2 mb-6 text-xs border-b border-gray-200 pb-4">
-                <span class="bg-teal-500 text-white px-2 py-0.5 rounded-sm text-[10px]">HRDMarket 공지 및 업데이트 안내</span>
-                <a href="#" class="text-blue-500 hover:underline">[공지] 전송 홈페이지 발송 문자 등 공지사항 확인 요망</a>
+            <div class="flex items-center gap-3 mb-8 text-sm bg-white p-3 border border-gray-200 rounded-sm shadow-sm">
+                <span class="bg-teal-500 text-white px-3 py-1 rounded-sm text-xs font-bold">HRDMarket 공지 및 업데이트 안내</span>
+                <a href="#" class="text-gray-700 hover:text-blue-600 hover:underline font-medium">[공지] 전송 홈페이지 발송 문자 등 공지사항 확인 요망</a>
             </div>
 
             <!-- 종합 분류별 현황 -->
-            <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-6">
-                <div class="flex items-center gap-3 mb-4">
-                    <h2 class="text-xl font-light text-gray-700">종합 분류별 현황</h2>
-                    <div class="flex gap-1">
+            <div class="bg-white p-8 rounded-lg shadow-sm border border-gray-200 mb-8">
+                <div class="flex items-center gap-4 mb-6">
+                    <h2 class="text-2xl font-light text-gray-700">종합 분류별 현황</h2>
+                    <div class="flex gap-2">
                         <span class="badge bg-blue-500">진행중인 과정 : 2</span>
                         <span class="badge bg-orange-400">2025 년 수료된 과정 : 37</span>
                     </div>
@@ -240,14 +265,14 @@ export const adminHrdStudentsHtml = `
                 <div class="flex border-b border-gray-200 mb-6">
                     <button class="tab-btn active">훈련생 현황</button>
                     <button class="tab-btn">수료생 현황</button>
-                    <select class="ml-2 text-sm border border-gray-300 rounded px-2 py-1">
+                    <select class="ml-auto text-sm border border-gray-300 rounded px-2 py-1 mb-1">
                         <option>2025 년</option>
                     </select>
                 </div>
 
                 <!-- 진행중인 과정 현황 -->
                 <div class="mb-8">
-                    <div class="flex items-center gap-3 mb-2">
+                    <div class="flex items-center gap-3 mb-4">
                         <h3 class="text-lg font-light text-gray-700">진행중인 과정 현황</h3>
                         <div class="flex gap-1">
                             <span class="badge bg-gray-400">진행중인과정 : 2</span>
@@ -255,7 +280,7 @@ export const adminHrdStudentsHtml = `
                             <span class="badge bg-rose-500">중도탈락 : 0</span>
                         </div>
                     </div>
-                    <p class="text-xs font-bold text-gray-600 mb-2">진행중인 과정별 훈련생현황</p>
+                    <p class="text-xs font-bold text-gray-600 mb-2 pl-2 border-l-4 border-teal-500">진행중인 과정별 훈련생현황</p>
                     
                     <div class="overflow-x-auto border-t-2 border-gray-200">
                         <table class="w-full min-w-[800px]">
@@ -294,19 +319,19 @@ export const adminHrdStudentsHtml = `
                         </table>
                     </div>
                     <!-- 페이지네이션 -->
-                    <div class="flex justify-end mt-2 gap-1">
-                        <button class="w-6 h-6 border border-gray-300 rounded bg-white text-gray-500 hover:bg-gray-50 text-xs"><i class="fas fa-angle-left"></i></button>
-                        <button class="w-6 h-6 border border-gray-300 rounded bg-white text-gray-500 hover:bg-gray-50 text-xs">1</button>
-                        <button class="w-6 h-6 border border-gray-300 rounded bg-white text-gray-500 hover:bg-gray-50 text-xs"><i class="fas fa-angle-right"></i></button>
+                    <div class="flex justify-end mt-4 gap-1">
+                        <button class="w-8 h-8 border border-gray-300 rounded-sm bg-white text-gray-500 hover:bg-gray-50 text-xs flex items-center justify-center transition-colors"><i class="fas fa-angle-left"></i></button>
+                        <button class="w-8 h-8 border border-teal-500 rounded-sm bg-teal-500 text-white text-xs font-bold shadow-sm">1</button>
+                        <button class="w-8 h-8 border border-gray-300 rounded-sm bg-white text-gray-500 hover:bg-gray-50 text-xs flex items-center justify-center transition-colors"><i class="fas fa-angle-right"></i></button>
                     </div>
                 </div>
 
                 <!-- 하단 2단 그리드 (훈련생 상담관리 / 수료생 취업관리) -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     <!-- 훈련생 상담관리 -->
                     <div>
-                        <div class="flex justify-between items-center mb-2 border-b border-gray-200 pb-2">
-                            <h3 class="text-sm font-bold text-gray-700">훈련생 상담관리</h3>
+                        <div class="flex justify-between items-center mb-3 border-b border-gray-200 pb-2">
+                            <h3 class="text-sm font-bold text-gray-700 border-l-4 border-teal-500 pl-2">훈련생 상담관리</h3>
                             <i class="fas fa-chevron-up text-gray-400 cursor-pointer"></i>
                         </div>
                         <div class="overflow-x-auto">
@@ -351,8 +376,8 @@ export const adminHrdStudentsHtml = `
 
                     <!-- 수료생 취업관리 -->
                     <div>
-                        <div class="flex justify-between items-center mb-2 border-b border-gray-200 pb-2">
-                            <h3 class="text-sm font-bold text-gray-700">수료생 취업관리</h3>
+                        <div class="flex justify-between items-center mb-3 border-b border-gray-200 pb-2">
+                            <h3 class="text-sm font-bold text-gray-700 border-l-4 border-teal-500 pl-2">수료생 취업관리</h3>
                             <i class="fas fa-chevron-up text-gray-400 cursor-pointer"></i>
                         </div>
                         <div class="overflow-x-auto">
@@ -410,7 +435,7 @@ export const adminHrdStudentsHtml = `
         const sidebarItems = document.querySelectorAll('.sidebar-item');
         sidebarItems.forEach(item => {
             item.addEventListener('click', (e) => {
-                e.preventDefault();
+                // e.preventDefault(); // 링크가 없으므로 필요 없음
                 sidebarItems.forEach(si => si.classList.remove('active'));
                 item.classList.add('active');
             });
