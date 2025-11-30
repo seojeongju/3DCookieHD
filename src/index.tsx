@@ -1566,23 +1566,23 @@ app.get('/', (c) => {
                 {
                     name: '홍대센터',
                     description: '3D프린팅/모델링 전문 교육의 중심, 와우쓰리디 홍대센터입니다.',
-                    address: '서울특별시 마포구 양화로 123 (홍대입구역 1번 출구)',
-                    phone: '02-1234-5678',
-                    email: 'hongdae@wow3dcookie.kr'
+                    address: '서울 마포구 홍익로 123, 와우빌딩 3층',
+                    phone: '02-3144-3137',
+                    email: '3dcookiehd@naver.com'
                 },
                 {
-                    name: '강남센터',
-                    description: '강남의 중심에서 만나는 프리미엄 3D 교육 공간입니다.',
-                    address: '서울특별시 강남구 강남대로 456 (강남역 11번 출구)',
-                    phone: '02-5678-1234',
-                    email: 'gangnam@wow3dcookie.kr'
+                    name: '구미센터',
+                    description: '경북 지역 첨단 의료기술 교육센터, 와우쓰리디 구미센터입니다.',
+                    address: '경북 구미시',
+                    phone: '054-464-3137',
+                    email: '3dcookiehd@naver.com'
                 },
                 {
-                    name: '온라인 교육',
-                    description: '시간과 장소의 제약 없이, 최고의 강사진을 온라인에서 만나보세요.',
-                    address: '온라인 강의실 (LMS)',
-                    phone: '1588-9999',
-                    email: 'online@wow3dcookie.kr'
+                    name: '전주센터',
+                    description: '전북특별자치도 지역 3D프린팅 교육의 거점, 와우쓰리디 전주센터입니다.',
+                    address: '전북특별자치도 전주시 덕진구 반룡로 109 A동 207호',
+                    phone: '063-XXX-XXXX',
+                    email: '3dcookiehd@naver.com'
                 }
             ];
 
