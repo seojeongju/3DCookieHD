@@ -1779,7 +1779,7 @@ app.get('/', (c) => {
                   const title = portfolio.title.length > 25 ? portfolio.title.substring(0, 25) + '...' : portfolio.title;
                   const thumbnailUrl = portfolio.thumbnail_url || '';
                   
-                  return `< div class= "flex-shrink-0 w-72" >
+                  return `<div class="flex-shrink-0 w-72" >
     <a href="/posts?category=portfolio" class="block bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition group/item cursor-pointer">
         <div class="relative aspect-square bg-gray-200">
             ${thumbnailUrl ? `<img src="${thumbnailUrl}" alt="${portfolio.title}" class="w-full h-full object-cover">` : `<div class="absolute inset-0 flex items-center justify-center"><i class="fas fa-palette text-6xl text-gray-300"></i></div>`}
