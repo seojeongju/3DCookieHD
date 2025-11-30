@@ -91,17 +91,22 @@ async function sign(data: string, secret: string): Promise<string> {
  * Base64URL 인코딩
  */
 function base64UrlEncode(data: string | ArrayBuffer): string {
-  let base64: string;
-  
+  let bytes: Uint8Array;
+
   if (typeof data === 'string') {
-    base64 = btoa(data);
+    const encoder = new TextEncoder();
+    bytes = encoder.encode(data);
   } else {
-    const bytes = new Uint8Array(data);
-    const binary = Array.from(bytes)
-      .map(byte => String.fromCharCode(byte))
-      .join('');
-    base64 = btoa(binary);
+    bytes = new Uint8Array(data);
   }
+
+  let binary = '';
+  const len = bytes.byteLength;
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+
+  const base64 = btoa(binary);
 
   return base64
     .replace(/\+/g, '-')
@@ -117,7 +122,13 @@ function base64UrlDecode(str: string): string {
   while (str.length % 4) {
     str += '=';
   }
-  return atob(str);
+  const binary = atob(str);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  const decoder = new TextDecoder();
+  return decoder.decode(bytes);
 }
 
 /**
