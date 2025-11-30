@@ -1573,7 +1573,7 @@ app.get('/', (c) => {
                 {
                     name: '구미센터',
                     description: '경북 지역 첨단 의료기술 교육센터, 와우쓰리디 구미센터입니다.',
-                    address: '경북 구미시',
+                    address: '경북 구미시 산호대로 253 구미첨단의료기술타워606호',
                     phone: '054-464-3137',
                     email: '3dcookiehd@naver.com'
                 },

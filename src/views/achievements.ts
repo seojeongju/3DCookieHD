@@ -114,6 +114,7 @@ export const achievementsHtml = `
             </h2>
             <div class="grid md:grid-cols-3 gap-6">
                 <!-- 서울 홍대센터 -->
+                <!-- 서울 홍대센터 -->
                 <div class="border border-gray-200 rounded-lg p-6 hover:shadow-md transition">
                     <div class="flex items-center mb-4">
                         <div class="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center mr-3">
@@ -122,7 +123,9 @@ export const achievementsHtml = `
                         <h3 class="text-lg font-bold text-gray-800">홍대 본점</h3>
                     </div>
                     <p class="text-gray-600 text-sm mb-2"><i class="fas fa-phone-alt mr-2 text-gray-400"></i>02-3144-3137</p>
-                    <p class="text-gray-600 text-sm"><i class="fas fa-map-marker-alt mr-2 text-gray-400"></i>서울 마포구 홍익로</p>
+                    <p class="text-gray-600 text-sm mb-2"><i class="fas fa-fax mr-2 text-gray-400"></i>02-6455-3144</p>
+                    <p class="text-gray-600 text-sm mb-2"><i class="fas fa-envelope mr-2 text-gray-400"></i>3dcookiehd@naver.com</p>
+                    <p class="text-gray-600 text-sm"><i class="fas fa-map-marker-alt mr-2 text-gray-400"></i>서울 마포구 홍익로 123, 와우빌딩 3층</p>
                 </div>
 
                 <!-- 경북 구미센터 -->
@@ -134,7 +137,7 @@ export const achievementsHtml = `
                         <h3 class="text-lg font-bold text-gray-800">구미 센터</h3>
                     </div>
                     <p class="text-gray-600 text-sm mb-2"><i class="fas fa-phone-alt mr-2 text-gray-400"></i>054-464-3137</p>
-                    <p class="text-gray-600 text-sm"><i class="fas fa-map-marker-alt mr-2 text-gray-400"></i>경북 구미시</p>
+                    <p class="text-gray-600 text-sm"><i class="fas fa-map-marker-alt mr-2 text-gray-400"></i>경북 구미시 산호대로 253 구미첨단의료기술타워606호</p>
                 </div>
 
                 <!-- 전북 전주센터 -->
@@ -146,7 +149,7 @@ export const achievementsHtml = `
                         <h3 class="text-lg font-bold text-gray-800">전주 센터</h3>
                     </div>
                     <p class="text-gray-600 text-sm mb-2"><i class="fas fa-phone-alt mr-2 text-gray-400"></i>063-XXX-XXXX</p>
-                    <p class="text-gray-600 text-sm"><i class="fas fa-map-marker-alt mr-2 text-gray-400"></i>전북 전주시 덕진구 반룡로 109</p>
+                    <p class="text-gray-600 text-sm"><i class="fas fa-map-marker-alt mr-2 text-gray-400"></i>전북특별자치도 전주시 덕진구 반룡로 109 A동 207호</p>
                 </div>
             </div>
         </div>
