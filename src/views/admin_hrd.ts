@@ -114,7 +114,7 @@ export const adminHrdHtml = `
         <div class="max-w-[1800px] mx-auto px-4">
             <div class="flex items-center h-12 text-sm font-medium overflow-x-auto">
                 <a href="#" class="gnb-item active flex items-center justify-center px-6 h-full whitespace-nowrap">운영</a>
-                <a href="#" class="gnb-item hover:bg-gray-700 flex items-center justify-center px-6 h-full whitespace-nowrap">학생</a>
+                <a href="/admin/hrd/students" class="gnb-item hover:bg-gray-700 flex items-center justify-center px-6 h-full whitespace-nowrap">학생</a>
                 <a href="#" class="gnb-item hover:bg-gray-700 flex items-center justify-center px-6 h-full whitespace-nowrap">과정</a>
                 <a href="#" class="gnb-item hover:bg-gray-700 flex items-center justify-center px-6 h-full whitespace-nowrap">인사</a>
                 <a href="#" class="gnb-item hover:bg-gray-700 flex items-center justify-center px-6 h-full whitespace-nowrap">[NCS] 평가계획</a>

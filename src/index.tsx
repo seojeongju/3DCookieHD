@@ -39,6 +39,7 @@ import { locationsHtml } from './views/locations';
 import { coursesListHtml } from './views/courses';
 import { achievementsHtml } from './views/achievements';
 import { adminHrdHtml } from './views/admin_hrd';
+import { adminHrdStudentsHtml } from './views/admin_hrd_students';
 
 const app = new Hono<{ Bindings: Bindings }>();
 
@@ -104,6 +105,7 @@ app.get('/locations', (c) => c.html(locationsHtml));
 app.get('/achievements', (c) => c.html(achievementsHtml));
 app.get('/reviews', (c) => c.html(reviewsListHtml));
 app.get('/admin/hrd', (c) => c.html(adminHrdHtml));
+app.get('/admin/hrd/students', (c) => c.html(adminHrdStudentsHtml));
 
 // ============================================
 // 헬스체크 엔드포인트
