@@ -4,7 +4,173 @@ import { authMiddleware, requireRole, requireAdmin } from '../middleware/auth';
 
 const app = new Hono<{ Bindings: Bindings; Variables: { user: JWTPayload } }>();
 
-// ... (omitted)
+// ============================================
+// 게시글 목록 조회
+// GET /api/posts
+// ============================================
+app.get('/', async (c) => {
+  try {
+    const { DB } = c.env;
+    const page = Number(c.req.query('page')) || 1;
+    const limit = Number(c.req.query('limit')) || 10;
+    const category = c.req.query('category');
+    const search = c.req.query('search');
+    const offset = (page - 1) * limit;
+
+    let query = `
+      SELECT p.*, u.name as author_name, 
+      (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
+      FROM posts p
+      LEFT JOIN users u ON p.author_id = u.id
+      WHERE 1=1
+    `;
+    const params: any[] = [];
+
+    if (category && category !== 'all') {
+      query += ' AND p.category = ?';
+      params.push(category);
+    }
+
+    if (search) {
+      query += ' AND (p.title LIKE ? OR p.content LIKE ?)';
+      params.push(`%${search}%`, `%${search}%`);
+    }
+
+    // 전체 개수 조회
+    const countQuery = query.replace('SELECT p.*, u.name as author_name, (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count', 'SELECT COUNT(*) as total');
+    const totalResult = await DB.prepare(countQuery).bind(...params).first<{ total: number }>();
+    const total = totalResult?.total || 0;
+
+    // 데이터 조회 (상단 고정 우선, 그 다음 최신순)
+    query += ' ORDER BY p.pinned DESC, p.created_at DESC LIMIT ? OFFSET ?';
+    params.push(limit, offset);
+
+    const { results } = await DB.prepare(query).bind(...params).all();
+
+    // 이미지 JSON 파싱
+    const posts = results.map((post: any) => ({
+      ...post,
+      images: post.images ? JSON.parse(post.images as string) : [],
+      pinned: Boolean(post.pinned)
+    }));
+
+    return c.json({
+      success: true,
+      data: posts,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching posts:', error);
+    return c.json({ success: false, error: '게시글 목록을 불러오는 중 오류가 발생했습니다' }, 500);
+  }
+});
+
+// ============================================
+// 게시글 상세 조회
+// GET /api/posts/:id
+// ============================================
+app.get('/:id', async (c) => {
+  try {
+    const { DB } = c.env;
+    const id = c.req.param('id');
+
+    // 조회수 증가
+    await DB.prepare('UPDATE posts SET views = views + 1 WHERE id = ?').bind(id).run();
+
+    // 게시글 조회
+    const post = await DB.prepare(`
+      SELECT p.*, u.name as author_name
+      FROM posts p
+      LEFT JOIN users u ON p.author_id = u.id
+      WHERE p.id = ?
+    `).bind(id).first();
+
+    if (!post) {
+      return c.json({ success: false, error: '게시글을 찾을 수 없습니다' }, 404);
+    }
+
+    // 댓글 조회
+    const { results: comments } = await DB.prepare(`
+      SELECT c.*, u.name as author_name
+      FROM comments c
+      LEFT JOIN users u ON c.user_id = u.id
+      WHERE c.post_id = ?
+      ORDER BY c.created_at ASC
+    `).bind(id).all();
+
+    return c.json({
+      success: true,
+      data: {
+        ...post,
+        images: post.images ? JSON.parse(post.images as string) : [],
+        pinned: Boolean(post.pinned),
+        comments: comments
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching post:', error);
+    return c.json({ success: false, error: '게시글을 불러오는 중 오류가 발생했습니다' }, 500);
+  }
+});
+
+// ============================================
+// 게시글 작성
+// POST /api/posts
+// ============================================
+app.post('/', authMiddleware, async (c) => {
+  try {
+    const { DB } = c.env;
+    const user = c.get('user');
+    const body = await c.req.json();
+
+    const { title, content, category, images, pinned, status } = body;
+
+    // 필수 필드 검증
+    if (!title || !content || !category) {
+      return c.json({ success: false, error: '제목, 내용, 카테고리는 필수입니다' }, 400);
+    }
+
+    // 관리자만 공지사항 작성 및 상단 고정 가능
+    if (category === 'notice' && user.role !== 'admin') {
+      return c.json({ success: false, error: '공지사항은 관리자만 작성할 수 있습니다' }, 403);
+    }
+
+    if (pinned && user.role !== 'admin') {
+      return c.json({ success: false, error: '상단 고정은 관리자만 설정할 수 있습니다' }, 403);
+    }
+
+    const result = await DB.prepare(`
+      INSERT INTO posts (
+        author_id, title, content, category, images, 
+        views, likes, pinned, status, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, 0, 0, ?, ?, datetime('now'), datetime('now'))
+    `).bind(
+      user.userId,
+      title,
+      content,
+      category,
+      images ? JSON.stringify(images) : '[]',
+      pinned ? 1 : 0,
+      status || 'published'
+    ).run();
+
+    return c.json({
+      success: true,
+      data: {
+        id: result.meta.last_row_id,
+        message: '게시글이 등록되었습니다'
+      }
+    }, 201);
+  } catch (error) {
+    console.error('Error creating post:', error);
+    return c.json({ success: false, error: '게시글 작성 중 오류가 발생했습니다' }, 500);
+  }
+});
 
 // ============================================
 // 게시글 수정
