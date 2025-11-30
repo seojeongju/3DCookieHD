@@ -94,8 +94,8 @@ exams.post('/', async (c) => {
 
         // exams 테이블 사용, time_limit_minutes 사용
         const result = await c.env.DB.prepare(`
-            INSERT INTO exams (course_id, title, description, time_limit_minutes)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO exams (course_id, title, description, time_limit_minutes, is_active)
+            VALUES (?, ?, ?, ?, 1)
         `).bind(course_id, title, description, time_limit).run();
 
         const examId = result.meta.last_row_id;
