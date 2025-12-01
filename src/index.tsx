@@ -827,22 +827,32 @@ app.get('/', (c) => {
 
                 <!-- 필터 -->
                 <!-- 필터 (심플 탭 스타일) -->
-                <div class="flex justify-center mb-10 border-b border-gray-200">
-                    <button onclick="filterCourses('all')" class="filter-btn active px-6 py-3 text-primary-600 border-b-2 border-primary-600 font-bold transition-colors focus:outline-none">
-                        전체
-                    </button>
-                    <button onclick="filterCourses('3D프린팅')" class="filter-btn px-6 py-3 text-gray-500 hover:text-primary-600 font-medium transition-colors focus:outline-none border-b-2 border-transparent hover:border-gray-300">
-                        3D 프린팅
-                    </button>
-                    <button onclick="filterCourses('메이커')" class="filter-btn px-6 py-3 text-gray-500 hover:text-primary-600 font-medium transition-colors focus:outline-none border-b-2 border-transparent hover:border-gray-300">
-                        메이커
-                    </button>
-                    <button onclick="filterCourses('프로그래밍')" class="filter-btn px-6 py-3 text-gray-500 hover:text-primary-600 font-medium transition-colors focus:outline-none border-b-2 border-transparent hover:border-gray-300">
-                        프로그래밍
-                    </button>
-                    <button onclick="filterCourses('디자인')" class="filter-btn px-6 py-3 text-gray-500 hover:text-primary-600 font-medium transition-colors focus:outline-none border-b-2 border-transparent hover:border-gray-300">
-                        디자인
-                    </button>
+                <!-- 필터 및 검색 -->
+                <div class="flex flex-col md:flex-row justify-between items-center mb-10 border-b border-gray-200 pb-4 gap-4">
+                    <!-- 유형 필터 -->
+                    <div class="flex space-x-2 overflow-x-auto w-full md:w-auto no-scrollbar">
+                        <button onclick="filterCourses('all')" class="filter-btn active px-4 py-2 text-primary-600 font-bold border-b-2 border-primary-600 transition-colors focus:outline-none whitespace-nowrap" data-filter="all">
+                            전체
+                        </button>
+                        <button onclick="filterCourses('national')" class="filter-btn px-4 py-2 text-gray-500 font-medium hover:text-primary-600 border-b-2 border-transparent hover:border-gray-300 transition-colors focus:outline-none whitespace-nowrap" data-filter="national">
+                            국비지원
+                        </button>
+                        <button onclick="filterCourses('general')" class="filter-btn px-4 py-2 text-gray-500 font-medium hover:text-primary-600 border-b-2 border-transparent hover:border-gray-300 transition-colors focus:outline-none whitespace-nowrap" data-filter="general">
+                            일반과정
+                        </button>
+                        <button onclick="filterCourses('special')" class="filter-btn px-4 py-2 text-gray-500 font-medium hover:text-primary-600 border-b-2 border-transparent hover:border-gray-300 transition-colors focus:outline-none whitespace-nowrap" data-filter="special">
+                            특강
+                        </button>
+                        <button onclick="filterCourses('online')" class="filter-btn px-4 py-2 text-gray-500 font-medium hover:text-primary-600 border-b-2 border-transparent hover:border-gray-300 transition-colors focus:outline-none whitespace-nowrap" data-filter="online">
+                            온라인
+                        </button>
+                    </div>
+                    
+                    <!-- 검색창 -->
+                    <div class="relative w-full md:w-64">
+                        <input type="text" id="courseSearch" placeholder="과정명 검색" onkeyup="searchCourses()" class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm">
+                        <i class="fas fa-search absolute left-3 top-2.5 text-gray-400"></i>
+                    </div>
                 </div>
 
                 <!-- 과정 카드 목록 -->
@@ -1491,7 +1501,10 @@ app.get('/', (c) => {
                     : '<span class="absolute top-2 right-2 px-2 py-1 bg-yellow-500 text-white text-xs font-bold rounded shadow-md">준비중</span>';
 
                 return \`
-              <div class="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition course-card" data-category="\${course.category}">
+              <div class="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition course-card" 
+                   data-category="\${course.category}" 
+                   data-title="\${course.title}" 
+                   data-price="\${course.price || 0}">
                 <div class="h-48 relative">
                   \${thumbnailHtml}
                   \${statusBadge}
@@ -1564,22 +1577,59 @@ app.get('/', (c) => {
           }
           
           // 필터링
-          // 필터링
-          function filterCourses(category) {
-            const cards = document.querySelectorAll('.course-card');
-            const buttons = document.querySelectorAll('.filter-btn');
+          // 필터링 상태
+          let currentFilter = 'all';
+
+          function filterCourses(filterType) {
+            currentFilter = filterType;
             
-            buttons.forEach(btn => {
-              btn.classList.remove('active', 'text-primary-600', 'border-primary-600', 'font-bold');
-              btn.classList.add('text-gray-500', 'font-medium', 'border-transparent');
+            // 버튼 스타일 업데이트
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+              if (btn.dataset.filter === filterType) {
+                btn.classList.add('active', 'text-primary-600', 'font-bold', 'border-primary-600');
+                btn.classList.remove('text-gray-500', 'font-medium', 'border-transparent');
+              } else {
+                btn.classList.remove('active', 'text-primary-600', 'font-bold', 'border-primary-600');
+                btn.classList.add('text-gray-500', 'font-medium', 'border-transparent');
+              }
             });
             
-            const target = event.target;
-            target.classList.add('active', 'text-primary-600', 'border-primary-600', 'font-bold');
-            target.classList.remove('text-gray-500', 'font-medium', 'border-transparent');
+            applyFilters();
+          }
+
+          function searchCourses() {
+            applyFilters();
+          }
+
+          function applyFilters() {
+            const searchInput = document.getElementById('courseSearch');
+            const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+            const cards = document.querySelectorAll('.course-card');
             
             cards.forEach(card => {
-              if (category === 'all' || card.dataset.category === category) {
+              const title = (card.dataset.title || '').toLowerCase();
+              const price = parseInt(card.dataset.price || '0');
+              const category = (card.dataset.category || '');
+              
+              // 1. 검색어 필터
+              const matchesSearch = title.includes(searchTerm);
+              
+              // 2. 유형 필터
+              let matchesType = false;
+              if (currentFilter === 'all') {
+                matchesType = true;
+              } else if (currentFilter === 'national') {
+                matchesType = (price === 0);
+              } else if (currentFilter === 'general') {
+                // 일반과정: 유료이면서 특강/온라인이 아닌 것
+                matchesType = (price > 0 && !title.includes('특강') && category !== '온라인');
+              } else if (currentFilter === 'special') {
+                matchesType = (title.includes('특강') || category === '특강');
+              } else if (currentFilter === 'online') {
+                matchesType = (title.includes('온라인') || category === '온라인');
+              }
+              
+              if (matchesSearch && matchesType) {
                 card.style.display = 'block';
               } else {
                 card.style.display = 'none';
