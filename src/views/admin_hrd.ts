@@ -33,41 +33,13 @@ export const adminHrdHtml = `
         }
     </script>
     <style>
-        .gnb-item.active {
-            background-color: #14b8a6;
-        }
-        .sidebar-item {
-            display: flex;
-            align-items: center;
-            padding: 0.75rem 1rem;
-            font-size: 0.875rem;
-            color: #4b5563;
-            border-bottom: 1px solid #f3f4f6;
-            transition: all 0.2s;
-        }
-        .sidebar-item:hover {
-            background-color: #f0fdfa;
-            color: #0f766e;
-            padding-left: 1.25rem;
-        }
-        .sidebar-item.active {
-            background-color: #f0fdfa;
-            color: #0d9488;
-            font-weight: 600;
-            border-left: 3px solid #0d9488;
-        }
-        .sidebar-subitem {
-            color: #9ca3af;
-            transition: all 0.2s;
-        }
-        .sidebar-subitem:hover {
-            color: white;
-        }
-        .sidebar-subitem.active {
-            color: #14b8a6;
-            font-weight: 600;
-        }
-        /* Hide scrollbar */
+        .gnb-item.active { background-color: #14b8a6; }
+        .sidebar-item { display: flex; align-items: center; padding: 0.75rem 1rem; font-size: 0.875rem; color: #4b5563; border-bottom: 1px solid #f3f4f6; transition: all 0.2s; }
+        .sidebar-item:hover { background-color: #f0fdfa; color: #0f766e; padding-left: 1.25rem; }
+        .sidebar-item.active { background-color: #f0fdfa; color: #0d9488; font-weight: 600; border-left: 3px solid #0d9488; }
+        .sidebar-subitem { color: #9ca3af; transition: all 0.2s; }
+        .sidebar-subitem:hover { color: white; }
+        .sidebar-subitem.active { color: #14b8a6; font-weight: 600; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
@@ -84,16 +56,17 @@ export const adminHrdHtml = `
         </div>
 
         <nav class="flex-grow overflow-y-auto py-4">
-            <!-- 지원자관리 -->
+            <!-- 학생/지원자 관리 -->
             <div class="group">
                 <div class="flex items-center px-6 py-3 text-gray-300 hover:bg-slate-700 hover:text-white cursor-pointer transition-colors bg-slate-700">
-                    <i class="fas fa-user w-6 text-center mr-3"></i>
-                    <span class="text-sm font-medium flex-grow">지원자관리</span>
+                    <i class="fas fa-user-graduate w-6 text-center mr-3"></i>
+                    <span class="text-sm font-medium flex-grow">학생/지원자 관리</span>
                     <i class="fas fa-chevron-down text-xs"></i>
                 </div>
                 <div class="bg-slate-900 py-2">
-                    <div onclick="showSection('applicantList')" class="sidebar-subitem cursor-pointer pl-12 py-2 text-sm" id="menu-applicant-list">지원자 목록</div>
+                    <div onclick="showSection('applicantList')" class="sidebar-subitem cursor-pointer pl-12 py-2 text-sm" id="menu-applicant-list">지원자 목록 (상담)</div>
                     <div onclick="showSection('applicantForm')" class="sidebar-subitem cursor-pointer pl-12 py-2 text-sm" id="menu-applicant-create">지원자 등록</div>
+                    <div onclick="showSection('studentList')" class="sidebar-subitem cursor-pointer pl-12 py-2 text-sm" id="menu-student-list">수강생 목록 (등록)</div>
                 </div>
             </div>
 
@@ -104,7 +77,6 @@ export const adminHrdHtml = `
                     <span class="text-sm font-medium flex-grow">물품</span>
                 </div>
             </div>
-            <!-- ... (기타 메뉴 생략 가능하지만 UI 유지 위해 둠) ... -->
         </nav>
     </aside>
 
@@ -136,22 +108,12 @@ export const adminHrdHtml = `
         <!-- 메인 컨텐츠 영역 -->
         <main class="flex-grow overflow-y-auto bg-gray-50 p-8">
 
-            <!-- 대시보드 섹션 (기본) -->
+            <!-- 대시보드 섹션 -->
             <div id="dashboardSection">
                 <div class="mb-6">
                     <h1 class="text-3xl font-light text-gray-800 mb-2">MAIN</h1>
                     <p class="text-sm text-gray-500">HOME / MAIN - (운영)</p>
                 </div>
-                
-                <!-- 기존 대시보드 내용 유지 -->
-                <div class="flex flex-col xl:flex-row gap-4 mb-6 items-start xl:items-center">
-                    <div class="flex-grow flex flex-wrap items-center bg-white border border-teal-500 min-h-[46px] w-full xl:w-auto shadow-sm">
-                        <div class="bg-teal-500 text-white px-6 py-3 h-full flex items-center justify-center font-bold text-sm whitespace-nowrap">통합검색</div>
-                        <input type="text" placeholder="검색단어 입력" class="flex-grow px-4 py-2 text-sm outline-none min-w-[200px] h-full">
-                        <button class="bg-teal-500 text-white w-14 h-full flex items-center justify-center hover:bg-teal-600 transition"><i class="fas fa-search text-lg"></i></button>
-                    </div>
-                </div>
-
                 <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-8 mb-8">
                     <h2 class="text-2xl font-light text-gray-700 mb-4">모집중인 과정 지원자 현황</h2>
                     <div class="overflow-x-auto">
@@ -176,9 +138,8 @@ export const adminHrdHtml = `
             <div id="applicantListSection" class="hidden">
                 <div class="mb-6">
                     <h1 class="text-3xl font-light text-gray-800 mb-2">지원자 목록</h1>
-                    <p class="text-sm text-gray-500">HOME / 운영 / 지원자관리 / 지원자 목록</p>
+                    <p class="text-sm text-gray-500">HOME / 운영 / 학생/지원자 관리 / 지원자 목록</p>
                 </div>
-
                 <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
                     <div class="flex justify-between items-center mb-4">
                         <div class="flex gap-2">
@@ -215,9 +176,8 @@ export const adminHrdHtml = `
             <div id="applicantFormSection" class="hidden">
                 <div class="mb-6">
                     <h1 class="text-3xl font-light text-gray-800 mb-2" id="pageTitle">지원자 등록</h1>
-                    <p class="text-sm text-gray-500">HOME / 운영 / 지원자관리 / <span id="pageSubtitle">지원자 등록</span></p>
+                    <p class="text-sm text-gray-500">HOME / 운영 / 학생/지원자 관리 / <span id="pageSubtitle">지원자 등록</span></p>
                 </div>
-
                 <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-8 max-w-3xl mx-auto">
                     <form onsubmit="handleApplicantSave(event)">
                         <input type="hidden" id="applicantId">
@@ -232,7 +192,6 @@ export const adminHrdHtml = `
                                     <input type="text" id="applicantPhone" required class="w-full border border-gray-300 px-3 py-2 rounded focus:outline-none focus:border-teal-500" placeholder="010-0000-0000">
                                 </div>
                             </div>
-                            
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label class="block text-sm font-bold text-gray-700 mb-2">이메일</label>
@@ -248,13 +207,11 @@ export const adminHrdHtml = `
                                     </select>
                                 </div>
                             </div>
-
                             <div>
                                 <label class="block text-sm font-bold text-gray-700 mb-2">상담 메모</label>
                                 <textarea id="applicantMemo" class="w-full border border-gray-300 px-3 py-2 rounded h-32 focus:outline-none focus:border-teal-500 resize-none"></textarea>
                             </div>
                         </div>
-
                         <div class="mt-8 flex justify-end gap-3 pt-6 border-t border-gray-100">
                             <button type="button" onclick="showSection('applicantList')" class="bg-gray-100 text-gray-700 px-5 py-2.5 rounded hover:bg-gray-200 transition font-medium">취소</button>
                             <button type="button" id="deleteApplicantBtn" onclick="deleteApplicant()" class="hidden bg-rose-100 text-rose-600 px-5 py-2.5 rounded hover:bg-rose-200 transition font-medium">삭제</button>
@@ -264,13 +221,86 @@ export const adminHrdHtml = `
                 </div>
             </div>
 
+            <!-- 수강생 목록 섹션 -->
+            <div id="studentListSection" class="hidden">
+                <div class="mb-6">
+                    <h1 class="text-3xl font-light text-gray-800 mb-2">수강생 목록</h1>
+                    <p class="text-sm text-gray-500">HOME / 운영 / 학생/지원자 관리 / 수강생 목록</p>
+                </div>
+                <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="flex gap-2">
+                            <input type="text" id="studentSearchInput" placeholder="이름, 이메일, 전화번호 검색" class="border border-gray-300 px-3 py-2 rounded text-sm w-64 focus:outline-none focus:border-teal-500">
+                            <button onclick="loadStudents()" class="bg-teal-500 text-white px-4 py-2 rounded text-sm hover:bg-teal-600">검색</button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left border-t border-gray-200">
+                            <thead class="bg-gray-50 text-gray-700 border-b border-gray-200">
+                                <tr>
+                                    <th class="py-3 px-4">이름</th>
+                                    <th class="py-3 px-4">연락처</th>
+                                    <th class="py-3 px-4">이메일</th>
+                                    <th class="py-3 px-4">수강현황</th>
+                                    <th class="py-3 px-4">가입일</th>
+                                    <th class="py-3 px-4">관리</th>
+                                </tr>
+                            </thead>
+                            <tbody id="studentTableBody" class="text-gray-600">
+                                <tr><td colspan="6" class="text-center py-8">데이터를 불러오는 중...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
         </main>
+    </div>
+
+    <!-- 수강생 상세 모달 -->
+    <div id="studentDetailModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 hidden">
+        <div class="relative top-10 mx-auto p-5 border w-11/12 max-w-5xl shadow-lg rounded-xl bg-white mb-20">
+            <div class="flex justify-between items-center mb-6 pb-4 border-b">
+                <h3 class="text-2xl font-bold text-gray-900" id="modalStudentName">수강생 상세</h3>
+                <button onclick="closeStudentModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-2xl"></i>
+                </button>
+            </div>
+            <div class="grid grid-cols-3 gap-6 mb-6">
+                <!-- 기본 정보 -->
+                <div class="col-span-1 bg-gray-50 p-6 rounded-lg">
+                    <h4 class="font-bold text-gray-700 mb-4 flex items-center">
+                        <i class="fas fa-user mr-2 text-blue-500"></i>기본 정보
+                    </h4>
+                    <div class="space-y-3 text-sm">
+                        <div><span class="text-gray-500">이메일:</span> <span id="detailEmail" class="font-medium"></span></div>
+                        <div><span class="text-gray-500">연락처:</span> <span id="detailPhone" class="font-medium"></span></div>
+                        <div><span class="text-gray-500">가입일:</span> <span id="detailCreatedAt" class="font-medium"></span></div>
+                    </div>
+                </div>
+                <!-- 수강 현황 -->
+                <div class="col-span-2 bg-blue-50 p-6 rounded-lg">
+                    <h4 class="font-bold text-gray-700 mb-4 flex items-center">
+                        <i class="fas fa-graduation-cap mr-2 text-blue-500"></i>수강 현황
+                    </h4>
+                    <div id="detailEnrollments" class="space-y-2"></div>
+                </div>
+            </div>
+            <!-- 상담/관리 이력 -->
+            <div class="mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h4 class="font-bold text-gray-700 flex items-center">
+                        <i class="fas fa-book mr-2 text-green-500"></i>상담 다이어리
+                    </h4>
+                </div>
+                <div id="detailConsultations" class="space-y-4 max-h-96 overflow-y-auto"></div>
+            </div>
+        </div>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // 초기 로드 시 대시보드 표시 (또는 URL 파라미터에 따라 분기 가능)
-            // loadApplicants(); // 대시보드에도 일부 데이터가 필요할 수 있음
+            // 초기 로드 시 대시보드 표시
         });
 
         function showSection(sectionId, data = null) {
@@ -278,10 +308,12 @@ export const adminHrdHtml = `
             document.getElementById('dashboardSection').classList.add('hidden');
             document.getElementById('applicantListSection').classList.add('hidden');
             document.getElementById('applicantFormSection').classList.add('hidden');
+            document.getElementById('studentListSection').classList.add('hidden');
 
             // 메뉴 활성화 상태 초기화
             document.getElementById('menu-applicant-list').classList.remove('active');
             document.getElementById('menu-applicant-create').classList.remove('active');
+            document.getElementById('menu-student-list').classList.remove('active');
 
             // 선택된 섹션 표시
             if (sectionId === 'applicantList') {
@@ -290,39 +322,40 @@ export const adminHrdHtml = `
                 loadApplicants();
             } else if (sectionId === 'applicantForm') {
                 document.getElementById('applicantFormSection').classList.remove('hidden');
-                
                 const form = document.querySelector('#applicantFormSection form');
                 form.reset();
-                
                 if (data) {
                     // 수정 모드
                     document.getElementById('pageTitle').textContent = '지원자 정보 수정';
                     document.getElementById('pageSubtitle').textContent = '지원자 수정';
-                    document.getElementById('menu-applicant-list').classList.add('active'); // 목록 메뉴 유지
-                    
+                    document.getElementById('menu-applicant-list').classList.add('active');
                     document.getElementById('applicantId').value = data.id;
                     document.getElementById('applicantName').value = data.name;
                     document.getElementById('applicantPhone').value = data.phone;
                     document.getElementById('applicantEmail').value = data.email || '';
                     document.getElementById('applicantStatus').value = data.status || 'pending';
                     document.getElementById('applicantMemo').value = data.memo || '';
-                    
                     document.getElementById('deleteApplicantBtn').classList.remove('hidden');
                 } else {
                     // 등록 모드
                     document.getElementById('pageTitle').textContent = '지원자 등록';
                     document.getElementById('pageSubtitle').textContent = '지원자 등록';
                     document.getElementById('menu-applicant-create').classList.add('active');
-                    
                     document.getElementById('applicantId').value = '';
                     document.getElementById('deleteApplicantBtn').classList.add('hidden');
                 }
+            } else if (sectionId === 'studentList') {
+                document.getElementById('studentListSection').classList.remove('hidden');
+                document.getElementById('menu-student-list').classList.add('active');
+                loadStudents();
             } else {
-                // 기본 대시보드
                 document.getElementById('dashboardSection').classList.remove('hidden');
             }
         }
 
+        // ==========================================
+        // 지원자 관리 (Applicants)
+        // ==========================================
         async function loadApplicants() {
             try {
                 const token = localStorage.getItem('token');
@@ -332,12 +365,7 @@ export const adminHrdHtml = `
                 const result = await response.json();
                 const tbody = document.getElementById('applicantTableBody');
 
-                if (!result.success) {
-                    tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-red-500">데이터 로드 실패</td></tr>';
-                    return;
-                }
-
-                if (result.data.length === 0) {
+                if (!result.success || result.data.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-500">등록된 지원자가 없습니다.</td></tr>';
                     return;
                 }
@@ -351,7 +379,6 @@ export const adminHrdHtml = `
                         case 'cancelled': statusBadge = '<span class="bg-red-100 text-red-600 px-2 py-1 rounded text-xs">취소/포기</span>'; break;
                         default: statusBadge = '<span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">' + item.status + '</span>';
                     }
-
                     return \`
                     <tr class="border-b border-gray-100 hover:bg-gray-50 cursor-pointer" onclick='editApplicant(\${JSON.stringify(item).replace(/'/g, "&#39;")})'>
                         <td class="py-3 px-4 text-center text-gray-400">\${result.data.length - index}</td>
@@ -362,16 +389,12 @@ export const adminHrdHtml = `
                         <td class="py-3 px-4 text-center">\${statusBadge}</td>
                         <td class="py-3 px-4 text-center text-gray-500">\${new Date(item.created_at).toLocaleDateString()}</td>
                         <td class="py-3 px-4 text-center">
-                            <button onclick='event.stopPropagation(); editApplicant(\${JSON.stringify(item).replace(/'/g, "&#39;")})' class="text-blue-600 hover:text-blue-800">
-                                <i class="fas fa-edit"></i>
-                            </button>
+                            <button onclick='event.stopPropagation(); editApplicant(\${JSON.stringify(item).replace(/'/g, "&#39;")})' class="text-blue-600 hover:text-blue-800"><i class="fas fa-edit"></i></button>
                         </td>
                     </tr>
                 \`}).join('');
-
             } catch (error) {
                 console.error('Error:', error);
-                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-red-500">오류 발생</td></tr>';
             }
         }
 
@@ -396,14 +419,10 @@ export const adminHrdHtml = `
                 const token = localStorage.getItem('token');
                 const response = await fetch(url, {
                     method: method,
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + token
-                    },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
                     body: JSON.stringify(data)
                 });
                 const result = await response.json();
-
                 if (result.success) {
                     alert(id ? '수정되었습니다.' : '등록되었습니다.');
                     showSection('applicantList');
@@ -419,7 +438,6 @@ export const adminHrdHtml = `
         async function deleteApplicant() {
             const id = document.getElementById('applicantId').value;
             if (!id || !confirm('정말 삭제하시겠습니까?')) return;
-
             try {
                 const token = localStorage.getItem('token');
                 const response = await fetch('/api/hrd/applicants/' + id, {
@@ -427,7 +445,6 @@ export const adminHrdHtml = `
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
                 const result = await response.json();
-
                 if (result.success) {
                     alert('삭제되었습니다.');
                     showSection('applicantList');
@@ -438,6 +455,103 @@ export const adminHrdHtml = `
                 console.error('Error:', error);
                 alert('삭제 중 오류가 발생했습니다.');
             }
+        }
+
+        // ==========================================
+        // 수강생 관리 (Students)
+        // ==========================================
+        async function loadStudents() {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/students', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const result = await response.json();
+                const tbody = document.getElementById('studentTableBody');
+
+                if (!result.success || !result.data || result.data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-500">등록된 수강생이 없습니다.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = result.data.map(s => \`
+                    <tr class="border-b border-gray-100 hover:bg-gray-50 cursor-pointer" onclick="viewStudentDetail(\${s.id})">
+                        <td class="py-3 px-4 font-medium text-gray-900">\${s.name}</td>
+                        <td class="py-3 px-4 text-gray-600">\${s.phone || '-'}</td>
+                        <td class="py-3 px-4 text-gray-500">\${s.email}</td>
+                        <td class="py-3 px-4">
+                            <span class="text-blue-600 font-bold">\${s.enrollment_count || 0}</span>건
+                        </td>
+                        <td class="py-3 px-4 text-gray-500">\${new Date(s.created_at).toLocaleDateString()}</td>
+                        <td class="py-3 px-4">
+                            <button class="text-blue-600 hover:text-blue-800" onclick="event.stopPropagation(); viewStudentDetail(\${s.id})">
+                                <i class="fas fa-eye"></i> 상세보기
+                            </button>
+                        </td>
+                    </tr>
+                \`).join('');
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('studentTableBody').innerHTML = '<tr><td colspan="6" class="text-center py-8 text-red-500">오류가 발생했습니다.</td></tr>';
+            }
+        }
+
+        async function viewStudentDetail(studentId) {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(\`/api/students/\${studentId}\`, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const result = await response.json();
+                if (!result.success) {
+                    alert('학생 정보를 불러올 수 없습니다.');
+                    return;
+                }
+                const student = result.data;
+
+                document.getElementById('modalStudentName').textContent = student.name;
+                document.getElementById('detailEmail').textContent = student.email;
+                document.getElementById('detailPhone').textContent = student.phone || '-';
+                document.getElementById('detailCreatedAt').textContent = new Date(student.created_at).toLocaleDateString();
+
+                const enrollmentsHtml = student.enrollments.length > 0 ? student.enrollments.map(e => \`
+                    <div class="bg-white p-3 rounded border border-blue-200">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <div class="font-bold text-sm text-gray-800">\${e.course_title}</div>
+                                <div class="text-xs text-gray-500 mt-1">
+                                    진도: \${e.progress || 0}% / 출석: \${e.attendance || 0}%
+                                </div>
+                            </div>
+                            <span class="px-2 py-1 text-xs rounded \${
+                                e.status === 'completed' ? 'bg-green-100 text-green-800' :
+                                e.status === 'approved' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
+                            }">\${e.status}</span>
+                        </div>
+                    </div>
+                \`).join('') : '<div class="text-sm text-gray-500">수강 이력이 없습니다.</div>';
+                document.getElementById('detailEnrollments').innerHTML = enrollmentsHtml;
+
+                const consultationsHtml = student.consultations.length > 0 ? student.consultations.map(c => \`
+                    <div class="bg-white border border-gray-200 rounded-lg p-3">
+                        <div class="flex justify-between items-start mb-1">
+                            <span class="px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-700">\${c.consultation_type}</span>
+                            <span class="text-xs text-gray-400">\${new Date(c.created_at).toLocaleDateString()}</span>
+                        </div>
+                        <div class="text-sm text-gray-700">\${c.memo}</div>
+                    </div>
+                \`).join('') : '<div class="text-sm text-gray-500 text-center py-4">상담 이력이 없습니다.</div>';
+                document.getElementById('detailConsultations').innerHTML = consultationsHtml;
+
+                document.getElementById('studentDetailModal').classList.remove('hidden');
+            } catch (e) {
+                console.error(e);
+                alert('오류가 발생했습니다.');
+            }
+        }
+
+        function closeStudentModal() {
+            document.getElementById('studentDetailModal').classList.add('hidden');
         }
     </script>
 </body>
