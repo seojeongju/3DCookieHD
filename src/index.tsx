@@ -2095,9 +2095,15 @@ app.get('/schedule', (c) => {
                   <div class="font-bold text-sm mb-1 \${isToday ? 'text-primary-600' : 'text-gray-700'}">\${day}</div>
                   <div class="space-y-1">
                     \${daySchedules.slice(0, 3).map(s => \`
-                      <div onclick="showScheduleDetail(\${s.id})" class="schedule-item bg-primary-100 text-primary-800 hover:bg-primary-200">
-                        <div class="font-semibold truncate">\${s.course_name}</div>
-                        <div class="text-[0.6rem] text-primary-600">\${s.start_time || ''} ~ \${s.end_time || ''}</div>
+                      <div onclick="goToCourseDetail('\${s.course_name}')" class="schedule-item bg-primary-50 text-primary-900 hover:bg-primary-100 border border-primary-100">
+                        <div class="font-bold text-xs truncate">\${s.course_name}</div>
+                        <div class="flex items-center text-[0.65rem] text-primary-700 mt-0.5">
+                            <i class="far fa-clock mr-1 text-[0.6rem]"></i>
+                            \${s.start_time || ''} ~ \${s.end_time || ''}
+                        </div>
+                        <div class="text-[0.65rem] text-gray-500 mt-0.5 pl-0.5">
+                            \${s.days_of_week ? '(' + s.days_of_week + ')' : ''}
+                        </div>
                       </div>
                     \`).join('')}
                     \${daySchedules.length > 3 ? \`<div class="text-xs text-gray-500 text-center">+\${daySchedules.length - 3}개 더보기</div>\` : ''}
@@ -2116,7 +2122,7 @@ app.get('/schedule', (c) => {
               : allSchedules.filter(s => s.category === currentFilter);
 
             const html = filteredSchedules.map(s => \`
-              <tr class="hover:bg-gray-50 cursor-pointer" onclick="showScheduleDetail(\${s.id})">
+              <tr class="hover:bg-gray-50 cursor-pointer" onclick="goToCourseDetail('\${s.course_name}')">
                 <td class="px-6 py-4 whitespace-nowrap">
                   <span class="schedule-badge bg-primary-100 text-primary-800">\${s.category}</span>
                 </td>
@@ -2175,7 +2181,15 @@ app.get('/schedule', (c) => {
             renderTable();
           }
 
-          // 스케줄 상세 보기
+          // 과정 상세로 이동
+          function goToCourseDetail(courseName) {
+            // 과정명으로 검색하여 이동
+            // 괄호나 특수문자가 있을 경우 검색이 잘 안될 수 있으므로 정제할 수도 있지만, 
+            // 일단 그대로 검색어로 사용합니다.
+            location.href = '/courses?search=' + encodeURIComponent(courseName);
+          }
+
+          // 스케줄 상세 보기 (사용 안함)
           async function showScheduleDetail(id) {
             try {
               const response = await fetch(\`\${API_BASE}/schedules/\${id}\`);
