@@ -10,6 +10,30 @@ const hrd = new Hono<{ Bindings: Bindings }>();
 // 모든 라우트에 관리자 권한 필요
 hrd.use('*', authMiddleware, requireAdmin);
 
+// 테이블 생성 (임시)
+hrd.get('/setup', async (c) => {
+    try {
+        const { DB } = c.env;
+        await execute(DB, `
+      CREATE TABLE IF NOT EXISTS consultations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        phone TEXT NOT NULL,
+        email TEXT,
+        course_id INTEGER,
+        status TEXT DEFAULT 'pending',
+        memo TEXT,
+        preferred_date TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+        return successResponse(c, null, 'Consultations table created');
+    } catch (error) {
+        return errorResponse(c, 'Table creation failed', 500);
+    }
+});
+
 // ============================================
 // 교직원 관리 API
 // ============================================
