@@ -334,7 +334,9 @@ export const scheduleHtml = `
       }
 
       // 과정 상세로 이동
-      function goToCourseDetail(courseName) {
+      window.goToCourseDetail = function(courseName) {
+        console.log('Navigating to course:', courseName);
+        if (!courseName) return;
         // 과정명으로 검색하여 이동
         location.href = '/courses?search=' + encodeURIComponent(courseName);
       }
