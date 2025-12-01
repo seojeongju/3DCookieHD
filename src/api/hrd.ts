@@ -7,10 +7,7 @@ import { hashPassword } from '../utils/jwt';
 
 const hrd = new Hono<{ Bindings: Bindings }>();
 
-// 모든 라우트에 관리자 권한 필요
-hrd.use('*', authMiddleware, requireAdmin);
-
-// 테이블 생성 (임시)
+// 테이블 생성 (임시 - 인증 없이 허용)
 hrd.get('/setup', async (c) => {
     try {
         const { DB } = c.env;
@@ -33,6 +30,9 @@ hrd.get('/setup', async (c) => {
         return errorResponse(c, 'Table creation failed', 500);
     }
 });
+
+// 모든 라우트에 관리자 권한 필요
+hrd.use('*', authMiddleware, requireAdmin);
 
 // ============================================
 // 교직원 관리 API
