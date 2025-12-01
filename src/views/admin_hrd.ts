@@ -67,6 +67,7 @@ export const adminHrdHtml = `
                     <div onclick="showSection('applicantList')" class="sidebar-subitem cursor-pointer pl-12 py-2 text-sm" id="menu-applicant-list">지원자 목록 (상담)</div>
                     <div onclick="showSection('applicantForm')" class="sidebar-subitem cursor-pointer pl-12 py-2 text-sm" id="menu-applicant-create">지원자/수강생 상담관리</div>
                     <div onclick="showSection('studentList')" class="sidebar-subitem cursor-pointer pl-12 py-2 text-sm" id="menu-student-list">수강생 목록 (등록)</div>
+                    <div onclick="showSection('traineeDashboard')" class="sidebar-subitem cursor-pointer pl-12 py-2 text-sm" id="menu-trainee-dashboard">훈련생/수료생/취업생 현황</div>
                 </div>
             </div>
 
@@ -86,14 +87,14 @@ export const adminHrdHtml = `
         <!-- 상단 탭 네비게이션 -->
         <header class="bg-gray-800 text-white h-16 flex items-center shadow-md z-10">
             <div class="flex h-full overflow-x-auto no-scrollbar">
-                <a href="/admin/hrd" class="flex items-center justify-center px-8 h-full bg-teal-500 font-bold text-white transition-colors min-w-[100px]">운영</a>
-                <a href="/admin/hrd/students" class="flex items-center justify-center px-8 h-full hover:bg-gray-700 text-gray-300 hover:text-white transition-colors min-w-[100px]">학생</a>
-                <a href="/admin/hrd/courses" class="flex items-center justify-center px-8 h-full hover:bg-gray-700 text-gray-300 hover:text-white transition-colors min-w-[100px]">과정</a>
-                <a href="/admin/hrd/personnel" class="flex items-center justify-center px-8 h-full hover:bg-gray-700 text-gray-300 hover:text-white transition-colors min-w-[100px]">인사</a>
+                <a href="/admin/hrd" class="flex items-center justify-center px-8 h-full bg-teal-500 font-bold text-white transition-colors min-w-[100px]">수강생관리</a>
+                <a href="/admin/hrd/students" class="flex items-center justify-center px-8 h-full hover:bg-gray-700 text-gray-300 hover:text-white transition-colors min-w-[100px]">운영관리</a>
+                <a href="/admin/hrd/courses" class="flex items-center justify-center px-8 h-full hover:bg-gray-700 text-gray-300 hover:text-white transition-colors min-w-[100px]">과정관리</a>
+                <a href="/admin/hrd/personnel" class="flex items-center justify-center px-8 h-full hover:bg-gray-700 text-gray-300 hover:text-white transition-colors min-w-[100px]">강사관리</a>
                 <a href="/admin/hrd/ncs-plan" class="flex items-center justify-center px-8 h-full hover:bg-gray-700 text-gray-300 hover:text-white transition-colors min-w-[140px]">[NCS] 평가계획</a>
                 <a href="/admin/hrd/ncs-exec" class="flex items-center justify-center px-8 h-full hover:bg-gray-700 text-gray-300 hover:text-white transition-colors min-w-[140px]">[NCS] 평가실행</a>
                 <a href="/admin/hrd/ncs-result" class="flex items-center justify-center px-8 h-full hover:bg-gray-700 text-gray-300 hover:text-white transition-colors min-w-[140px]">[NCS] 평가결과</a>
-                <a href="/admin/hrd/evaluation" class="flex items-center justify-center px-8 h-full hover:bg-gray-700 text-gray-300 hover:text-white transition-colors min-w-[140px]">역량평가 - 설문</a>
+                <a href="/admin/hrd/evaluation" class="flex items-center justify-center px-8 h-full hover:bg-gray-700 text-gray-300 hover:text-white transition-colors min-w-[140px]">역량평가-설문</a>
             </div>
             <div class="ml-auto px-6 flex items-center gap-4 text-sm">
                 <a href="/admin" class="text-gray-400 hover:text-white flex items-center gap-2">
@@ -423,6 +424,137 @@ export const adminHrdHtml = `
                 </div>
             </div>
 
+            <!-- 훈련생/수료생/취업생 현황 섹션 -->
+            <div id="traineeDashboardSection" class="hidden">
+                <div class="mb-6">
+                    <h1 class="text-3xl font-light text-gray-800 mb-2">훈련생/수료생/취업생 현황</h1>
+                    <p class="text-sm text-gray-500">HOME / 운영 / 학생/지원자 관리 / 현황</p>
+                </div>
+
+                <!-- 검색 바 및 액션 버튼 -->
+                <div class="flex flex-col xl:flex-row gap-4 mb-6 items-start xl:items-center">
+                    <div class="flex-grow flex flex-wrap items-center bg-white border border-teal-500 min-h-[46px] w-full xl:w-auto shadow-sm">
+                        <div class="bg-teal-500 text-white px-6 py-3 h-full flex items-center justify-center font-bold text-sm whitespace-nowrap">통합검색</div>
+                        <input type="text" placeholder="검색단어 관련있는 지원자, 학생, 과정, 거래처가 검색됩니다." class="flex-grow px-4 py-2 text-sm outline-none min-w-[200px] h-full">
+                        <div class="bg-teal-500 text-white px-6 py-3 h-full flex items-center justify-center font-bold text-sm whitespace-nowrap border-l border-teal-600">검색기간</div>
+                        <select class="px-3 py-2 text-sm outline-none text-gray-600 bg-white border-l border-gray-200 min-w-[120px] h-full">
+                            <option>::전체기간::</option>
+                            <option>최근 1개월</option>
+                        </select>
+                        <button class="bg-teal-500 text-white w-14 h-full flex items-center justify-center hover:bg-teal-600 transition"><i class="fas fa-search text-lg"></i></button>
+                    </div>
+                </div>
+                
+                <!-- 종합 분류별 현황 -->
+                <div class="bg-white p-8 rounded-lg shadow-sm border border-gray-200 mb-8">
+                    <div class="flex items-center gap-4 mb-6">
+                        <h2 class="text-2xl font-light text-gray-700">종합 분류별 현황</h2>
+                        <div class="flex gap-2">
+                            <span class="bg-blue-500 text-white px-2 py-1 rounded text-xs font-bold">진행중인 과정 : 2</span>
+                            <span class="bg-orange-400 text-white px-2 py-1 rounded text-xs font-bold">2025 년 수료된 과정 : 37</span>
+                        </div>
+                    </div>
+
+                    <!-- 탭 메뉴 -->
+                    <div class="flex border-b border-gray-200 mb-6">
+                        <button class="px-4 py-2 text-sm font-bold text-gray-700 border-b-2 border-gray-700">훈련생 현황</button>
+                        <button class="px-4 py-2 text-sm font-bold text-gray-500 border-b-2 border-transparent hover:text-gray-700">수료생 현황</button>
+                    </div>
+
+                    <!-- 진행중인 과정 현황 -->
+                    <div class="mb-8">
+                        <div class="flex items-center gap-3 mb-4">
+                            <h3 class="text-lg font-light text-gray-700">진행중인 과정 현황</h3>
+                        </div>
+                        <div class="overflow-x-auto border-t-2 border-gray-200">
+                            <table class="w-full min-w-[800px] text-sm text-center">
+                                <thead class="bg-gray-50 text-gray-700 font-bold border-b border-gray-200">
+                                    <tr>
+                                        <th class="py-2 w-16">회차</th>
+                                        <th class="py-2 text-left pl-4">과정명</th>
+                                        <th class="py-2 w-48">훈련기간</th>
+                                        <th class="py-2 w-24">총인원</th>
+                                        <th class="py-2 w-24">훈련생</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="text-gray-600">
+                                    <tr class="border-b border-gray-100 hover:bg-gray-50">
+                                        <td class="py-2">3</td>
+                                        <td class="py-2 text-left pl-4 text-blue-600">[토요반] Fusion 활용 3D모델링 고급심화</td>
+                                        <td class="py-2 text-xs text-gray-500">2025-10-25 ~ 2025-12-06</td>
+                                        <td class="py-2">8</td>
+                                        <td class="py-2">8</td>
+                                    </tr>
+                                    <tr class="border-b border-gray-100 hover:bg-gray-50">
+                                        <td class="py-2">8</td>
+                                        <td class="py-2 text-left pl-4 text-blue-600">[토,일 주말반] 3D프린터운용기능사 실기대비</td>
+                                        <td class="py-2 text-xs text-gray-500">2025-11-23 ~ 2025-12-13</td>
+                                        <td class="py-2">7</td>
+                                        <td class="py-2">7</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- 하단 2단 그리드 -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <!-- 훈련생 상담관리 -->
+                        <div>
+                            <div class="flex justify-between items-center mb-3 border-b border-gray-200 pb-2">
+                                <h3 class="text-sm font-bold text-gray-700 border-l-4 border-teal-500 pl-2">훈련생 상담관리</h3>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-xs text-center">
+                                    <thead class="bg-gray-50 border-b border-gray-200 text-gray-600">
+                                        <tr>
+                                            <th class="py-2 w-16">학생</th>
+                                            <th class="py-2 w-16">분류</th>
+                                            <th class="py-2 text-left pl-2">과정</th>
+                                            <th class="py-2 w-24">일자</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr class="border-b border-gray-100 hover:bg-gray-50">
+                                            <td class="py-2 text-blue-600">김진수</td>
+                                            <td class="py-2">일반</td>
+                                            <td class="py-2 text-left pl-2 text-gray-500 truncate max-w-[150px]">[토,일 주말반] 3D프린터운용...</td>
+                                            <td class="py-2 text-gray-400">2025-11-29</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <!-- 수료생 취업관리 -->
+                        <div>
+                            <div class="flex justify-between items-center mb-3 border-b border-gray-200 pb-2">
+                                <h3 class="text-sm font-bold text-gray-700 border-l-4 border-teal-500 pl-2">수료생 취업관리</h3>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-xs text-center">
+                                    <thead class="bg-gray-50 border-b border-gray-200 text-gray-600">
+                                        <tr>
+                                            <th class="py-2 w-16">학생</th>
+                                            <th class="py-2 w-16">분류</th>
+                                            <th class="py-2 text-left pl-2">업체</th>
+                                            <th class="py-2 w-24">일자</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr class="border-b border-gray-100 hover:bg-gray-50">
+                                            <td class="py-2 text-blue-600">이명재</td>
+                                            <td class="py-2">취업</td>
+                                            <td class="py-2 text-left pl-2 text-gray-500 truncate max-w-[150px]">(사)대한노인회중랑구지회</td>
+                                            <td class="py-2 text-gray-400"></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </main>
     </div>
 
@@ -499,17 +631,22 @@ export const adminHrdHtml = `
             document.getElementById('applicantListSection').classList.add('hidden');
             document.getElementById('applicantFormSection').classList.add('hidden');
             document.getElementById('studentListSection').classList.add('hidden');
+            document.getElementById('traineeDashboardSection').classList.add('hidden');
 
             // 메뉴 활성화 상태 초기화
             document.getElementById('menu-applicant-list').classList.remove('active');
             document.getElementById('menu-applicant-create').classList.remove('active');
             document.getElementById('menu-student-list').classList.remove('active');
+            document.getElementById('menu-trainee-dashboard').classList.remove('active');
 
             // 선택된 섹션 표시
             if (sectionId === 'applicantList') {
                 document.getElementById('applicantListSection').classList.remove('hidden');
                 document.getElementById('menu-applicant-list').classList.add('active');
                 loadApplicants();
+            } else if (sectionId === 'traineeDashboard') {
+                document.getElementById('traineeDashboardSection').classList.remove('hidden');
+                document.getElementById('menu-trainee-dashboard').classList.add('active');
             } else if (sectionId === 'applicantForm') {
                 document.getElementById('applicantFormSection').classList.remove('hidden');
                 const form = document.querySelector('#applicantFormSection form');
