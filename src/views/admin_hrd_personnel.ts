@@ -220,42 +220,179 @@ export const adminHrdPersonnelHtml = `
 
             <!-- 등록/수정 섹션 -->
             <div id="formSection" class="hidden">
-                <div class="bg-white rounded-lg shadow-md max-w-4xl mx-auto border border-gray-200">
-                    <div class="p-6 border-b border-gray-200 bg-gray-50 rounded-t-lg">
-                        <h2 id="formTitle" class="text-xl font-bold text-gray-800">교직원 등록</h2>
-                        <p class="text-sm text-gray-500 mt-1">교직원 정보를 입력해주세요.</p>
-                    </div>
-                    <div class="p-8">
-                        <form onsubmit="handleSave(event)">
-                            <input type="hidden" id="personnelId">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                                <div>
-                                    <label class="block text-gray-700 font-bold mb-2">이름 <span class="text-red-500">*</span></label>
-                                    <input type="text" id="name" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500">
-                                </div>
-                                <div>
-                                    <label class="block text-gray-700 font-bold mb-2">전화번호</label>
-                                    <input type="text" id="phone" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500" placeholder="010-0000-0000">
-                                </div>
-                                <div>
-                                    <label class="block text-gray-700 font-bold mb-2">이메일 (아이디) <span class="text-red-500">*</span></label>
-                                    <input type="email" id="email" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500">
-                                </div>
-                                <div>
-                                    <label class="block text-gray-700 font-bold mb-2">비밀번호 <span id="pwRequired" class="text-red-500">*</span></label>
-                                    <input type="password" id="password" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500" placeholder="비밀번호 입력">
-                                    <p class="text-xs text-gray-500 mt-1" id="pwHelp">수정 시에는 변경할 경우에만 입력하세요.</p>
-                                </div>
-                            </div>
+                <form onsubmit="handleSave(event)">
+                    <input type="hidden" id="personnelId">
+                    
+                    <div class="flex flex-col lg:flex-row gap-6">
+                        <!-- 좌측: 기본정보 -->
+                        <div class="flex-1 bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+                            <h3 class="text-sm font-bold text-gray-700 border-b pb-2 mb-4 flex justify-between items-center">
+                                기본정보 
+                                <span class="text-red-500 text-xs font-normal"><i class="fas fa-exclamation-circle mr-1"></i>필수입력</span>
+                            </h3>
                             
-                            <div class="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-100">
-                                <button type="button" onclick="showList()" class="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium transition">취소</button>
-                                <button type="button" id="deleteBtn" onclick="deletePersonnel()" class="hidden px-6 py-2.5 bg-rose-100 text-rose-600 rounded-lg hover:bg-rose-200 font-medium transition">삭제</button>
-                                <button type="submit" class="px-6 py-2.5 bg-teal-600 text-white rounded-lg hover:bg-teal-700 font-medium transition shadow-sm">저장하기</button>
+                            <div class="flex gap-6">
+                                <!-- 사진 영역 -->
+                                <div class="w-32 flex flex-col items-center gap-2">
+                                    <div class="w-32 h-40 bg-gray-100 border border-gray-300 flex items-center justify-center text-gray-400 overflow-hidden relative group">
+                                        <img id="previewImage" src="" class="w-full h-full object-cover hidden">
+                                        <i id="defaultProfileIcon" class="fas fa-user text-4xl"></i>
+                                    </div>
+                                    <div class="flex gap-1 w-full">
+                                        <button type="button" class="flex-1 text-[10px] border border-gray-300 px-1 py-1 bg-white hover:bg-gray-50">문자</button>
+                                        <label for="profileImage" class="flex-1 text-[10px] border border-gray-300 px-1 py-1 bg-white hover:bg-gray-50 text-center cursor-pointer">
+                                            사진첨부
+                                        </label>
+                                        <input type="file" id="profileImage" class="hidden" accept="image/*" onchange="handleImagePreview(this)">
+                                    </div>
+                                    <p class="text-[10px] text-gray-400 text-center leading-tight">사진첨부 버튼을 클릭하시면 증명사진을 등록 하실 수 있습니다.</p>
+                                </div>
+
+                                <!-- 입력 필드 영역 -->
+                                <div class="flex-1 space-y-3">
+                                    <!-- 성명 -->
+                                    <div class="flex items-center">
+                                        <label class="w-24 text-sm text-gray-600 font-medium"><span class="text-red-500 mr-1">!</span>성명</label>
+                                        <input type="text" id="name" required class="flex-1 border border-gray-300 px-2 py-1.5 text-sm rounded-sm focus:border-teal-500 outline-none">
+                                    </div>
+                                    <!-- 생년월일 -->
+                                    <div class="flex items-center">
+                                        <label class="w-24 text-sm text-gray-600 font-medium"><span class="text-red-500 mr-1">!</span>생년월일</label>
+                                        <input type="date" id="birthdate" class="flex-1 border border-gray-300 px-2 py-1.5 text-sm rounded-sm focus:border-teal-500 outline-none">
+                                    </div>
+                                    <!-- 휴대전화 -->
+                                    <div class="flex items-center">
+                                        <label class="w-24 text-sm text-gray-600 font-medium"><span class="text-red-500 mr-1">!</span>휴대전화</label>
+                                        <div class="flex flex-1 gap-1">
+                                            <input type="text" id="phone1" class="w-1/3 border border-gray-300 px-2 py-1.5 text-sm text-center rounded-sm focus:border-teal-500 outline-none" value="010" maxlength="3">
+                                            <input type="text" id="phone2" class="w-1/3 border border-gray-300 px-2 py-1.5 text-sm text-center rounded-sm focus:border-teal-500 outline-none" maxlength="4">
+                                            <input type="text" id="phone3" class="w-1/3 border border-gray-300 px-2 py-1.5 text-sm text-center rounded-sm focus:border-teal-500 outline-none" maxlength="4">
+                                        </div>
+                                    </div>
+                                    <!-- 전화번호 -->
+                                    <div class="flex items-center">
+                                        <label class="w-24 text-sm text-gray-600 font-medium"><span class="text-red-500 mr-1">!</span>전화번호</label>
+                                        <div class="flex flex-1 gap-1">
+                                            <input type="text" id="tel1" class="w-1/3 border border-gray-300 px-2 py-1.5 text-sm text-center rounded-sm focus:border-teal-500 outline-none" maxlength="3">
+                                            <input type="text" id="tel2" class="w-1/3 border border-gray-300 px-2 py-1.5 text-sm text-center rounded-sm focus:border-teal-500 outline-none" maxlength="4">
+                                            <input type="text" id="tel3" class="w-1/3 border border-gray-300 px-2 py-1.5 text-sm text-center rounded-sm focus:border-teal-500 outline-none" maxlength="4">
+                                        </div>
+                                    </div>
+                                    <!-- 이메일 -->
+                                    <div class="flex items-center">
+                                        <label class="w-24 text-sm text-gray-600 font-medium"><span class="text-red-500 mr-1">!</span>이메일</label>
+                                        <input type="email" id="email" required class="flex-1 border border-gray-300 px-2 py-1.5 text-sm rounded-sm focus:border-teal-500 outline-none">
+                                    </div>
+                                    <!-- 비밀번호 -->
+                                    <div class="flex items-center">
+                                        <label class="w-24 text-sm text-gray-600 font-medium"><span class="text-red-500 mr-1" id="pwRequired">!</span>비밀번호</label>
+                                        <input type="password" id="password" class="flex-1 border border-gray-300 px-2 py-1.5 text-sm rounded-sm focus:border-teal-500 outline-none" placeholder="변경시에만 입력">
+                                    </div>
+                                    <!-- 주소 -->
+                                    <div class="flex items-center">
+                                        <label class="w-24 text-sm text-gray-600 font-medium"><span class="text-red-500 mr-1">!</span>주소</label>
+                                        <div class="flex-1 flex gap-1">
+                                            <input type="text" id="address" class="flex-1 border border-gray-300 px-2 py-1.5 text-sm rounded-sm focus:border-teal-500 outline-none">
+                                            <button type="button" class="bg-slate-600 text-white text-xs px-3 py-1 rounded-sm hover:bg-slate-700">주소검색</button>
+                                        </div>
+                                    </div>
+                                    <!-- 성별 -->
+                                    <div class="flex items-center">
+                                        <label class="w-24 text-sm text-gray-600 font-medium"><span class="text-red-500 mr-1">!</span>성별</label>
+                                        <div class="flex gap-4">
+                                            <label class="flex items-center text-sm cursor-pointer"><input type="radio" name="gender" value="M" class="mr-1"> 남성</label>
+                                            <label class="flex items-center text-sm cursor-pointer"><input type="radio" name="gender" value="F" class="mr-1"> 여성</label>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                        </form>
+                        </div>
+
+                        <!-- 우측: 상세정보 -->
+                        <div class="flex-1 bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+                            <h3 class="text-sm font-bold text-gray-700 border-b pb-2 mb-4 flex justify-between items-center">
+                                상세정보 
+                                <span class="text-red-500 text-xs font-normal"><i class="fas fa-exclamation-circle mr-1"></i>필수입력</span>
+                            </h3>
+                            
+                            <div class="space-y-4">
+                                <!-- 로그인 아이디 / 교직원 분류 -->
+                                <div>
+                                    <label class="block text-xs text-gray-500 mb-1 font-medium">로그인 아이디 / 교직원 분류</label>
+                                    <div class="flex gap-2 items-center bg-gray-50 p-3 border border-gray-200 rounded-sm">
+                                        <span class="text-sm font-bold text-gray-600 w-16">Login Id</span>
+                                        <input type="text" id="loginIdDisplay" class="flex-1 bg-gray-100 border border-gray-300 px-2 py-1 text-sm text-gray-500 rounded-sm" readonly value="아이디가 없습니다.">
+                                        <span class="text-red-500 mx-2">!</span>
+                                        <select id="position" class="flex-1 border border-gray-300 px-2 py-1 text-sm rounded-sm focus:border-teal-500 outline-none">
+                                            <option value="">= 직원분류 =</option>
+                                            <option value="정직원">정직원</option>
+                                            <option value="계약직">계약직</option>
+                                            <option value="강사">강사</option>
+                                            <option value="퇴사">퇴사</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- 퇴사일 -->
+                                <div>
+                                    <label class="block text-xs text-gray-500 mb-1 font-medium">퇴사일</label>
+                                    <div class="flex items-center">
+                                        <input type="date" id="resignedAt" class="border border-gray-300 px-2 py-1.5 text-sm w-40 rounded-sm focus:border-teal-500 outline-none">
+                                        <span class="text-[10px] text-gray-400 ml-2">* 직원 분류가 '퇴사' 일시 활성화</span>
+                                    </div>
+                                </div>
+
+                                <!-- 조직도 정보 -->
+                                <div>
+                                    <label class="block text-xs text-gray-500 mb-1 font-medium">조직도 정보</label>
+                                    <div class="bg-green-50 border border-green-100 p-3 flex items-center justify-between rounded-sm">
+                                        <span class="text-sm text-gray-600">조직도 정보가 없습니다.</span>
+                                        <button type="button" class="bg-teal-500 text-white text-xs px-2 py-1 rounded-sm hover:bg-teal-600">조직도 관리 바로가기</button>
+                                    </div>
+                                    <p class="text-[10px] text-gray-400 mt-1 text-right">* 조직도 메뉴에서 지급, 직책, 직무 관리합니다.</p>
+                                </div>
+
+                                <!-- 비고 -->
+                                <div>
+                                    <label class="block text-xs text-gray-500 mb-1 font-medium">비고</label>
+                                    <textarea id="memo" class="w-full border border-gray-300 px-2 py-1 text-sm h-24 rounded-sm focus:border-teal-500 outline-none resize-none"></textarea>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
+
+                    <!-- 하단 탭 -->
+                    <div class="mt-6 bg-white border border-gray-200 rounded-lg shadow-sm">
+                        <div class="flex border-b bg-gray-50 rounded-t-lg overflow-hidden">
+                            <button type="button" class="px-6 py-3 text-sm font-bold text-gray-800 bg-white border-r border-t-2 border-t-teal-500">최종학력</button>
+                            <button type="button" class="px-6 py-3 text-sm text-gray-500 border-r hover:bg-gray-100 transition">경력사항</button>
+                            <button type="button" class="px-6 py-3 text-sm text-gray-500 border-r hover:bg-gray-100 transition">자격증</button>
+                        </div>
+                        <div class="p-8 text-center text-gray-500 text-sm">
+                            회원정보 등록이 완료되면 추가정보 등록이 가능해집니다.
+                        </div>
+                    </div>
+
+                    <!-- 버튼 영역 -->
+                    <div class="mt-6 flex justify-between items-center">
+                        <div class="flex gap-2">
+                            <button type="button" onclick="showList()" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-sm hover:bg-gray-50 text-sm font-medium">
+                                <i class="fas fa-list mr-1"></i> 목록
+                            </button>
+                            <button type="button" onclick="showForm('create')" class="px-4 py-2 bg-teal-500 text-white rounded-sm hover:bg-teal-600 text-sm font-medium">
+                                <i class="fas fa-pen mr-1"></i> 새로작성
+                            </button>
+                        </div>
+                        <div class="flex gap-2">
+                            <button type="button" id="deleteBtn" onclick="deletePersonnel()" class="hidden px-4 py-2 bg-rose-500 text-white rounded-sm hover:bg-rose-600 text-sm font-medium">
+                                <i class="fas fa-trash mr-1"></i> 삭제
+                            </button>
+                            <button type="submit" class="px-6 py-2 bg-teal-600 text-white rounded-sm hover:bg-teal-700 text-sm font-bold shadow-sm">
+                                등록
+                            </button>
+                        </div>
+                    </div>
+                </form>
             </div>
 
         </main>
@@ -285,20 +422,29 @@ export const adminHrdPersonnelHtml = `
                     return;
                 }
 
-                tbody.innerHTML = result.data.map((user, index) => \`
-                    <tr class="table-row h-10 text-center hover:bg-gray-50 cursor-pointer" onclick="editPersonnel(\${user.id}, '\${user.name}', '\${user.email}', '\${user.phone || ''}')">
+                tbody.innerHTML = result.data.map((user, index) => {
+                    // JSON 데이터 파싱 (info 컬럼이 있다고 가정하거나 phone 필드 등을 활용)
+                    let info = {};
+                    try {
+                        if (user.phone && user.phone.startsWith('{')) {
+                            info = JSON.parse(user.phone);
+                        }
+                    } catch(e) {}
+
+                    return \`
+                    <tr class="table-row h-10 text-center hover:bg-gray-50 cursor-pointer" onclick='editPersonnel(\${JSON.stringify(user).replace(/'/g, "&#39;")})'>
                         <td>\${result.data.length - index}</td>
                         <td class="text-left pl-4 font-medium text-gray-900">\${user.name}</td>
                         <td class="text-left pl-4 text-gray-600">\${user.email}</td>
-                        <td class="text-gray-600">\${user.phone || '-'}</td>
+                        <td class="text-gray-600">\${info.phone || user.phone || '-'}</td>
                         <td class="text-gray-500">\${new Date(user.created_at).toLocaleDateString()}</td>
                         <td>
-                            <button onclick="event.stopPropagation(); editPersonnel(\${user.id}, '\${user.name}', '\${user.email}', '\${user.phone || ''}')" class="text-blue-600 hover:text-blue-800 mr-2">
+                            <button onclick='event.stopPropagation(); editPersonnel(\${JSON.stringify(user).replace(/'/g, "&#39;")})' class="text-blue-600 hover:text-blue-800 mr-2">
                                 <i class="fas fa-edit"></i>
                             </button>
                         </td>
                     </tr>
-                \`).join('');
+                \`}).join('');
 
             } catch (error) {
                 console.error('Error:', error);
@@ -319,9 +465,10 @@ export const adminHrdPersonnelHtml = `
             
             const form = document.querySelector('form');
             form.reset();
+            document.getElementById('previewImage').classList.add('hidden');
+            document.getElementById('defaultProfileIcon').classList.remove('hidden');
             
             if (mode === 'create') {
-                document.getElementById('formTitle').textContent = '교직원 등록';
                 document.getElementById('personnelId').value = '';
                 document.getElementById('email').disabled = false;
                 document.getElementById('password').required = true;
@@ -330,35 +477,143 @@ export const adminHrdPersonnelHtml = `
                 document.getElementById('menu-create').classList.add('active');
                 document.getElementById('menu-list').classList.remove('active');
                 document.getElementById('pageSubtitle').textContent = '교직원 등록';
+                document.getElementById('loginIdDisplay').value = '아이디가 없습니다.';
             } else {
-                document.getElementById('formTitle').textContent = '교직원 정보 수정';
                 document.getElementById('personnelId').value = data.id;
                 document.getElementById('name').value = data.name;
                 document.getElementById('email').value = data.email;
-                document.getElementById('email').disabled = true; // 이메일 수정 불가
-                document.getElementById('phone').value = data.phone;
+                document.getElementById('email').disabled = true;
+                document.getElementById('loginIdDisplay').value = data.email;
                 document.getElementById('password').required = false;
                 document.getElementById('pwRequired').classList.add('hidden');
                 document.getElementById('deleteBtn').classList.remove('hidden');
-                document.getElementById('menu-list').classList.add('active'); // 수정은 목록 메뉴 활성화 유지
+                document.getElementById('menu-list').classList.add('active');
                 document.getElementById('menu-create').classList.remove('active');
                 document.getElementById('pageSubtitle').textContent = '교직원 수정';
+
+                // 상세 데이터 파싱 및 바인딩
+                try {
+                    // phone 필드에 JSON이 저장되어 있다고 가정 (임시)
+                    // 실제로는 별도 컬럼이나 API 구조에 맞춰야 함
+                    if (data.phone && data.phone.startsWith('{')) {
+                        const info = JSON.parse(data.phone);
+                        
+                        // 휴대전화
+                        if (info.phone) {
+                            const parts = info.phone.split('-');
+                            if (parts.length === 3) {
+                                document.getElementById('phone1').value = parts[0];
+                                document.getElementById('phone2').value = parts[1];
+                                document.getElementById('phone3').value = parts[2];
+                            }
+                        }
+                        
+                        // 전화번호
+                        if (info.tel) {
+                            const parts = info.tel.split('-');
+                            if (parts.length === 3) {
+                                document.getElementById('tel1').value = parts[0];
+                                document.getElementById('tel2').value = parts[1];
+                                document.getElementById('tel3').value = parts[2];
+                            }
+                        }
+
+                        document.getElementById('birthdate').value = info.birthdate || '';
+                        document.getElementById('address').value = info.address || '';
+                        document.getElementById('position').value = info.position || '';
+                        document.getElementById('resignedAt').value = info.resignedAt || '';
+                        document.getElementById('memo').value = info.memo || '';
+                        
+                        if (info.gender) {
+                            const radio = document.querySelector(\`input[name="gender"][value="\${info.gender}"]\`);
+                            if (radio) radio.checked = true;
+                        }
+
+                        if (info.profileImage) {
+                            document.getElementById('previewImage').src = info.profileImage;
+                            document.getElementById('previewImage').classList.remove('hidden');
+                            document.getElementById('defaultProfileIcon').classList.add('hidden');
+                        }
+                    } else {
+                        // 기존 단순 전화번호 데이터 처리
+                        document.getElementById('phone2').value = data.phone || '';
+                    }
+                } catch (e) {
+                    console.error('Data parse error:', e);
+                }
             }
         }
 
-        function editPersonnel(id, name, email, phone) {
-            showForm('edit', { id, name, email, phone });
+        function editPersonnel(user) {
+            showForm('edit', user);
+        }
+
+        function handleImagePreview(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('previewImage').src = e.target.result;
+                    document.getElementById('previewImage').classList.remove('hidden');
+                    document.getElementById('defaultProfileIcon').classList.add('hidden');
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
         }
 
         async function handleSave(e) {
             e.preventDefault();
             const id = document.getElementById('personnelId').value;
+            
+            // 데이터 수집
             const name = document.getElementById('name').value;
             const email = document.getElementById('email').value;
-            const phone = document.getElementById('phone').value;
             const password = document.getElementById('password').value;
+            
+            const phone1 = document.getElementById('phone1').value;
+            const phone2 = document.getElementById('phone2').value;
+            const phone3 = document.getElementById('phone3').value;
+            const phone = \`\${phone1}-\${phone2}-\${phone3}\`;
 
-            const data = { name, email, phone, password };
+            const tel1 = document.getElementById('tel1').value;
+            const tel2 = document.getElementById('tel2').value;
+            const tel3 = document.getElementById('tel3').value;
+            const tel = \`\${tel1}-\${tel2}-\${tel3}\`;
+
+            const birthdate = document.getElementById('birthdate').value;
+            const address = document.getElementById('address').value;
+            const position = document.getElementById('position').value;
+            const resignedAt = document.getElementById('resignedAt').value;
+            const memo = document.getElementById('memo').value;
+            const gender = document.querySelector('input[name="gender"]:checked')?.value;
+
+            // 이미지 처리 (Base64)
+            let profileImage = null;
+            const imageInput = document.getElementById('profileImage');
+            if (imageInput.files && imageInput.files[0]) {
+                profileImage = await new Promise(resolve => {
+                    const reader = new FileReader();
+                    reader.onload = e => resolve(e.target.result);
+                    reader.readAsDataURL(imageInput.files[0]);
+                });
+            } else if (document.getElementById('previewImage').src && !document.getElementById('previewImage').classList.contains('hidden')) {
+                profileImage = document.getElementById('previewImage').src;
+            }
+
+            // 추가 정보를 JSON으로 묶음 (DB 스키마 한계로 phone 필드에 저장하거나 별도 처리가 필요)
+            // 여기서는 API가 알아서 처리하도록 JSON 객체를 보냄
+            const detailedInfo = {
+                phone, tel, birthdate, address, position, resignedAt, memo, gender, profileImage
+            };
+
+            // API 전송 데이터 구성
+            // phone 필드에 JSON 문자열을 저장하는 꼼수를 사용 (임시)
+            const data = {
+                name,
+                email,
+                password,
+                phone: JSON.stringify(detailedInfo) 
+            };
+
             const method = id ? 'PUT' : 'POST';
             const url = id ? '/api/hrd/personnel/' + id : '/api/hrd/personnel';
 
