@@ -9,7 +9,7 @@ const app = new Hono<{ Bindings: Bindings }>();
 // ============================================
 app.get('/', async (c) => {
   const { DB } = c.env;
-  
+
   try {
     // 쿼리 파라미터
     const category = c.req.query('category'); // 분류 필터
@@ -274,39 +274,98 @@ app.delete('/:id', authMiddleware, requireAdmin, async (c) => {
 });
 
 // ============================================
-// 달력용 스케줄 데이터 (월별)
+// 달력용 스케줄 데이터 (월별) - courses 테이블 기반
 // ============================================
 app.get('/calendar/:year/:month', async (c) => {
   const { DB } = c.env;
-  const year = c.req.param('year');
-  const month = c.req.param('month');
+  const year = parseInt(c.req.param('year'));
+  const month = parseInt(c.req.param('month'));
 
   try {
-    const startDate = `${year}-${month.padStart(2, '0')}-01`;
-    const endDate = `${year}-${month.padStart(2, '0')}-31`;
+    // 해당 월의 시작일과 종료일
+    const startDateStr = `${year}-${String(month).padStart(2, '0')}-01`;
+    const lastDay = new Date(year, month, 0).getDate();
+    const endDateStr = `${year}-${String(month).padStart(2, '0')}-${lastDay}`;
 
+    // 기간이 겹치는 과정 조회 (status가 open인 것만)
     const { results } = await DB.prepare(`
-      SELECT * FROM schedules
+      SELECT * FROM courses
       WHERE status = 'open'
       AND (
-        (start_date BETWEEN ? AND ?)
-        OR (end_date BETWEEN ? AND ?)
-        OR (start_date <= ? AND end_date >= ?)
+        (start_date <= ? AND end_date >= ?)
       )
-      ORDER BY start_date ASC, start_time ASC
-    `).bind(startDate, endDate, startDate, endDate, startDate, endDate).all();
+    `).bind(endDateStr, startDateStr).all();
+
+    const schedules = [];
+
+    for (const course of results) {
+      if (!course.start_date || !course.end_date || !course.schedule) continue;
+
+      let scheduleData;
+      try {
+        // JSON 파싱 시도
+        if (typeof course.schedule === 'string' && course.schedule.startsWith('{')) {
+          scheduleData = JSON.parse(course.schedule);
+        } else {
+          // 기존 텍스트 형식일 경우 처리하지 않음 (또는 필요한 경우 파싱 로직 추가)
+          continue;
+        }
+      } catch (e) {
+        continue;
+      }
+
+      if (!scheduleData.days) continue;
+
+      const targetDays = scheduleData.days.split(',').map((d: string) => d.trim());
+      const courseStart = new Date(course.start_date as string);
+      const courseEnd = new Date(course.end_date as string);
+
+      // 해당 월의 날짜 순회
+      for (let day = 1; day <= lastDay; day++) {
+        const currentDateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const currentDate = new Date(currentDateStr);
+
+        // 과정 기간 내인지 확인
+        if (currentDate >= courseStart && currentDate <= courseEnd) {
+          // 요일 확인 (0: 일, 1: 월, ...)
+          const dayOfWeek = currentDate.getDay();
+          const dayName = ['일', '월', '화', '수', '목', '금', '토'][dayOfWeek];
+
+          if (targetDays.includes(dayName)) {
+            schedules.push({
+              id: `course-${course.id}-${currentDateStr}`, // 고유 ID
+              course_id: course.id,
+              course_name: course.title,
+              category: course.category,
+              target_audience: '전체', // 기본값
+              start_date: currentDateStr,
+              end_date: currentDateStr,
+              start_time: scheduleData.startTime || '',
+              end_time: scheduleData.endTime || '',
+              days_of_week: scheduleData.days,
+              max_students: course.max_students
+            });
+          }
+        }
+      }
+    }
+
+    // 날짜/시간순 정렬
+    schedules.sort((a, b) => {
+      if (a.start_date !== b.start_date) return a.start_date.localeCompare(b.start_date);
+      return (a.start_time || '').localeCompare(b.start_time || '');
+    });
 
     return c.json({
       success: true,
-      data: results || [],
-      year: parseInt(year),
-      month: parseInt(month)
+      data: schedules
     });
+
   } catch (error: any) {
     console.error('Error fetching calendar schedules:', error);
     return c.json({
       success: false,
-      error: 'Failed to fetch calendar schedules',
+      error: 'Failed to fetch schedules',
       message: error.message
     }, 500);
   }

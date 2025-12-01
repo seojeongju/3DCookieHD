@@ -172,6 +172,27 @@ export const adminCoursesListHtml = `
                                 <input type="date" name="end_date" id="courseEndDate" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                             </div>
                         </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-gray-700 font-medium mb-2">수업 시간</label>
+                                <div class="flex gap-2 items-center">
+                                    <input type="time" id="courseStartTime" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    <span>~</span>
+                                    <input type="time" id="courseEndTime" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 font-medium mb-2">수업 요일</label>
+                                <div class="flex gap-2">
+                                    <select id="courseType" onchange="updateDaysOfWeek()" class="w-1/3 px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                        <option value="custom">직접입력</option>
+                                        <option value="weekday">주간반</option>
+                                        <option value="weekend">주말반</option>
+                                    </select>
+                                    <input type="text" id="courseDays" placeholder="예: 월,수,금" class="w-2/3 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                </div>
+                            </div>
+                        </div>
                         <div>
                             <label class="block text-gray-700 font-medium mb-2">과정 설명</label>
                             <textarea name="description" id="courseDescription" rows="5" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
@@ -225,6 +246,36 @@ export const adminCoursesListHtml = `
                 document.getElementById('courseDescription').value = course.description || '';
                 document.getElementById('courseThumbnail').value = course.thumbnail_url || '';
                 updateThumbnailPreview(course.thumbnail_url || '');
+
+                // 스케줄 데이터 파싱
+                try {
+                    if (course.schedule) {
+                        // JSON 형식이면 파싱, 아니면 텍스트로 처리
+                        if (course.schedule.startsWith('{')) {
+                            const schedule = JSON.parse(course.schedule);
+                            document.getElementById('courseStartTime').value = schedule.startTime || '';
+                            document.getElementById('courseEndTime').value = schedule.endTime || '';
+                            document.getElementById('courseDays').value = schedule.days || '';
+                            
+                            // 요일 패턴에 따라 타입 선택
+                            if (schedule.days === '월,화,수,목,금') {
+                                document.getElementById('courseType').value = 'weekday';
+                            } else if (schedule.days === '토,일') {
+                                document.getElementById('courseType').value = 'weekend';
+                            } else {
+                                document.getElementById('courseType').value = 'custom';
+                            }
+                        } else {
+                            document.getElementById('courseDays').value = course.schedule;
+                            document.getElementById('courseType').value = 'custom';
+                        }
+                    } else {
+                        resetScheduleFields();
+                    }
+                } catch (e) {
+                    console.error('Schedule parse error:', e);
+                    resetScheduleFields();
+                }
             } else {
                 // 등록 모드
                 title.textContent = '과정 개설';
@@ -233,6 +284,7 @@ export const adminCoursesListHtml = `
                 document.getElementById('courseStatus').value = 'open';
                 document.getElementById('courseCategory').value = '일반과정';
                 updateThumbnailPreview('');
+                resetScheduleFields();
             }
             
             modal.classList.remove('hidden');
@@ -507,6 +559,14 @@ export const adminCoursesListHtml = `
                 formData.set('description', tinymce.get('courseDescription').getContent());
             }
 
+            // 스케줄 데이터 JSON 변환
+            const scheduleData = {
+                startTime: document.getElementById('courseStartTime').value,
+                endTime: document.getElementById('courseEndTime').value,
+                days: document.getElementById('courseDays').value
+            };
+            formData.set('schedule', JSON.stringify(scheduleData));
+
             const data = Object.fromEntries(formData.entries());
             const id = data.id;
             
@@ -563,6 +623,26 @@ export const adminCoursesListHtml = `
                 console.error('Error:', error);
                 alert('삭제 중 오류가 발생했습니다.');
             }
+        }
+
+        function updateDaysOfWeek() {
+            const type = document.getElementById('courseType').value;
+            const daysInput = document.getElementById('courseDays');
+            
+            if (type === 'weekday') {
+                daysInput.value = '월,화,수,목,금';
+            } else if (type === 'weekend') {
+                daysInput.value = '토,일';
+            } else {
+                daysInput.value = '';
+            }
+        }
+
+        function resetScheduleFields() {
+            document.getElementById('courseStartTime').value = '';
+            document.getElementById('courseEndTime').value = '';
+            document.getElementById('courseDays').value = '';
+            document.getElementById('courseType').value = 'custom';
         }
     </script>
 </body>
