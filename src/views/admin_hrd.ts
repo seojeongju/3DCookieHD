@@ -178,40 +178,190 @@ export const adminHrdHtml = `
                     <h1 class="text-3xl font-light text-gray-800 mb-2" id="pageTitle">지원자 등록</h1>
                     <p class="text-sm text-gray-500">HOME / 운영 / 학생/지원자 관리 / <span id="pageSubtitle">지원자 등록</span></p>
                 </div>
-                <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-8 max-w-3xl mx-auto">
+                <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-8 max-w-5xl mx-auto">
                     <form onsubmit="handleApplicantSave(event)">
                         <input type="hidden" id="applicantId">
-                        <div class="space-y-6">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label class="block text-sm font-bold text-gray-700 mb-2">이름 <span class="text-red-500">*</span></label>
-                                    <input type="text" id="applicantName" required class="w-full border border-gray-300 px-3 py-2 rounded focus:outline-none focus:border-teal-500">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-bold text-gray-700 mb-2">연락처 <span class="text-red-500">*</span></label>
-                                    <input type="text" id="applicantPhone" required class="w-full border border-gray-300 px-3 py-2 rounded focus:outline-none focus:border-teal-500" placeholder="010-0000-0000">
-                                </div>
-                            </div>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label class="block text-sm font-bold text-gray-700 mb-2">이메일</label>
-                                    <input type="email" id="applicantEmail" class="w-full border border-gray-300 px-3 py-2 rounded focus:outline-none focus:border-teal-500">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-bold text-gray-700 mb-2">진행상태</label>
-                                    <select id="applicantStatus" class="w-full border border-gray-300 px-3 py-2 rounded focus:outline-none focus:border-teal-500">
-                                        <option value="pending">상담대기</option>
-                                        <option value="contacted">상담완료</option>
-                                        <option value="registered">등록완료</option>
-                                        <option value="cancelled">취소/포기</option>
-                                    </select>
-                                </div>
-                            </div>
+                        
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <!-- 왼쪽: 상담 및 현황 정보 -->
                             <div>
-                                <label class="block text-sm font-bold text-gray-700 mb-2">상담 메모</label>
-                                <textarea id="applicantMemo" class="w-full border border-gray-300 px-3 py-2 rounded h-32 focus:outline-none focus:border-teal-500 resize-none"></textarea>
+                                <h3 class="text-lg font-bold text-gray-700 mb-4 border-b pb-2">1. 상담 및 현황 정보</h3>
+                                <div class="space-y-4">
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-xs font-bold text-gray-600 mb-1">상담일자</label>
+                                            <input type="date" id="app_created_at" class="w-full border border-gray-300 px-3 py-2 rounded text-sm" disabled>
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-gray-600 mb-1">상담자</label>
+                                            <input type="text" class="w-full border border-gray-300 px-3 py-2 rounded text-sm bg-gray-50" value="관리자" disabled>
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-xs font-bold text-gray-600 mb-1">상담유형</label>
+                                            <select id="app_consultation_type" class="w-full border border-gray-300 px-3 py-2 rounded text-sm">
+                                                <option value="online">온라인상담</option>
+                                                <option value="visit">방문상담</option>
+                                                <option value="phone">전화상담</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-gray-600 mb-1">진행상태</label>
+                                            <select id="app_status" class="w-full border border-gray-300 px-3 py-2 rounded text-sm">
+                                                <option value="pending">상담대기</option>
+                                                <option value="contacted">상담완료</option>
+                                                <option value="registered">등록완료</option>
+                                                <option value="completed">수료</option>
+                                                <option value="dropped">중도탈락</option>
+                                                <option value="cancelled">취소</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-gray-600 mb-1">과정명</label>
+                                        <select id="app_course_id" class="w-full border border-gray-300 px-3 py-2 rounded text-sm">
+                                            <option value="">과정 선택</option>
+                                            <!-- 동적 로드 -->
+                                        </select>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-xs font-bold text-gray-600 mb-1">회차</label>
+                                            <input type="text" id="app_course_round" class="w-full border border-gray-300 px-3 py-2 rounded text-sm" placeholder="예: 1회차">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-gray-600 mb-1">개강공지문자</label>
+                                            <select id="app_is_sms_sent" class="w-full border border-gray-300 px-3 py-2 rounded text-sm">
+                                                <option value="false">발송전</option>
+                                                <option value="true">발송완료</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-xs font-bold text-gray-600 mb-1">고용형태</label>
+                                            <select id="app_employment_type" class="w-full border border-gray-300 px-3 py-2 rounded text-sm">
+                                                <option value="">선택</option>
+                                                <option value="employed">재직자</option>
+                                                <option value="unemployed">구직자</option>
+                                                <option value="self_employed">자영업자</option>
+                                                <option value="student">학생</option>
+                                                <option value="other">기타</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-gray-600 mb-1">지원유형</label>
+                                            <select id="app_support_type" class="w-full border border-gray-300 px-3 py-2 rounded text-sm">
+                                                <option value="">선택</option>
+                                                <option value="hrd_card">국민내일배움카드</option>
+                                                <option value="general">일반</option>
+                                                <option value="company">사업주위탁</option>
+                                                <option value="other">기타</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-xs font-bold text-gray-600 mb-1">취업성공패키지</label>
+                                            <select id="app_tsp_type" class="w-full border border-gray-300 px-3 py-2 rounded text-sm">
+                                                <option value="">해당없음</option>
+                                                <option value="type1">1유형</option>
+                                                <option value="type2">2유형</option>
+                                                <option value="kua">국민취업지원제도</option>
+                                            </select>
+                                        </div>
+                                        <div class="flex items-end gap-4 pb-2">
+                                            <label class="flex items-center text-xs text-gray-700">
+                                                <input type="checkbox" id="app_has_hrd_card" class="mr-1"> 내일배움카드 소지
+                                            </label>
+                                            <label class="flex items-center text-xs text-gray-700">
+                                                <input type="checkbox" id="app_is_hrd_net_registered" class="mr-1"> 고용24 입력
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-3 gap-2">
+                                        <div>
+                                            <label class="block text-xs font-bold text-gray-600 mb-1">수납방법</label>
+                                            <select id="app_payment_method" class="w-full border border-gray-300 px-2 py-2 rounded text-sm">
+                                                <option value="">미수납</option>
+                                                <option value="card">카드</option>
+                                                <option value="cash">현금</option>
+                                                <option value="transfer">계좌이체</option>
+                                                <option value="online">온라인결제</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-gray-600 mb-1">수납일자</label>
+                                            <input type="date" id="app_payment_date" class="w-full border border-gray-300 px-2 py-2 rounded text-sm">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-gray-600 mb-1">자비부담금</label>
+                                            <input type="number" id="app_payment_amount" class="w-full border border-gray-300 px-2 py-2 rounded text-sm" placeholder="원">
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-gray-600 mb-1">진행상황/메모</label>
+                                        <textarea id="app_memo" class="w-full border border-gray-300 px-3 py-2 rounded text-sm h-24 resize-none"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 오른쪽: 개인 정보 -->
+                            <div>
+                                <h3 class="text-lg font-bold text-gray-700 mb-4 border-b pb-2">2. 개인 정보</h3>
+                                <div class="space-y-4">
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-xs font-bold text-gray-600 mb-1">이름 <span class="text-red-500">*</span></label>
+                                            <input type="text" id="app_name" required class="w-full border border-gray-300 px-3 py-2 rounded text-sm">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-gray-600 mb-1">연락처 <span class="text-red-500">*</span></label>
+                                            <input type="text" id="app_phone" required class="w-full border border-gray-300 px-3 py-2 rounded text-sm" placeholder="010-0000-0000">
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-gray-600 mb-1">이메일</label>
+                                        <input type="email" id="app_email" class="w-full border border-gray-300 px-3 py-2 rounded text-sm">
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-xs font-bold text-gray-600 mb-1">생년월일</label>
+                                            <input type="date" id="app_birth_date" class="w-full border border-gray-300 px-3 py-2 rounded text-sm">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-gray-600 mb-1">성별</label>
+                                            <select id="app_gender" class="w-full border border-gray-300 px-3 py-2 rounded text-sm">
+                                                <option value="">선택</option>
+                                                <option value="male">남</option>
+                                                <option value="female">여</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-gray-600 mb-1">주소</label>
+                                        <input type="text" id="app_address" class="w-full border border-gray-300 px-3 py-2 rounded text-sm" placeholder="전체 주소 입력">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-gray-600 mb-1">최종학력</label>
+                                        <select id="app_education_level" class="w-full border border-gray-300 px-3 py-2 rounded text-sm">
+                                            <option value="">선택</option>
+                                            <option value="high_school">고졸</option>
+                                            <option value="college">초대졸</option>
+                                            <option value="university">대졸</option>
+                                            <option value="graduate">대학원졸</option>
+                                            <option value="other">기타</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-gray-600 mb-1">자격증 취득 현황</label>
+                                        <textarea id="app_certificates" class="w-full border border-gray-300 px-3 py-2 rounded text-sm h-24 resize-none" placeholder="보유 자격증 입력"></textarea>
+                                    </div>
+                                </div>
                             </div>
                         </div>
+
                         <div class="mt-8 flex justify-end gap-3 pt-6 border-t border-gray-100">
                             <button type="button" onclick="showSection('applicantList')" class="bg-gray-100 text-gray-700 px-5 py-2.5 rounded hover:bg-gray-200 transition font-medium">취소</button>
                             <button type="button" id="deleteApplicantBtn" onclick="deleteApplicant()" class="hidden bg-rose-100 text-rose-600 px-5 py-2.5 rounded hover:bg-rose-200 transition font-medium">삭제</button>
@@ -301,7 +451,28 @@ export const adminHrdHtml = `
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // 초기 로드 시 대시보드 표시
+            loadCoursesForApplicantForm();
         });
+
+        async function loadCoursesForApplicantForm() {
+            try {
+                const response = await fetch('/api/courses');
+                const result = await response.json();
+                if (result.success) {
+                    const select = document.getElementById('app_course_id');
+                    // 기존 옵션 초기화 (첫번째 '과정 선택'만 남김)
+                    select.innerHTML = '<option value="">과정 선택</option>';
+                    result.data.forEach(course => {
+                        const option = document.createElement('option');
+                        option.value = course.id;
+                        option.textContent = course.title;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
 
         function showSection(sectionId, data = null) {
             // 모든 섹션 숨김
@@ -324,18 +495,42 @@ export const adminHrdHtml = `
                 document.getElementById('applicantFormSection').classList.remove('hidden');
                 const form = document.querySelector('#applicantFormSection form');
                 form.reset();
+                
                 if (data) {
                     // 수정 모드
                     document.getElementById('pageTitle').textContent = '지원자 정보 수정';
                     document.getElementById('pageSubtitle').textContent = '지원자 수정';
                     document.getElementById('menu-applicant-list').classList.add('active');
+                    
                     document.getElementById('applicantId').value = data.id;
-                    document.getElementById('applicantName').value = data.name;
-                    document.getElementById('applicantPhone').value = data.phone;
-                    document.getElementById('applicantEmail').value = data.email || '';
-                    document.getElementById('applicantStatus').value = data.status || 'pending';
-                    document.getElementById('applicantMemo').value = data.memo || '';
                     document.getElementById('deleteApplicantBtn').classList.remove('hidden');
+                    
+                    // 필드 값 채우기
+                    document.getElementById('app_created_at').value = data.created_at ? data.created_at.split('T')[0] : '';
+                    document.getElementById('app_consultation_type').value = data.consultation_type || 'online';
+                    document.getElementById('app_status').value = data.status || 'pending';
+                    document.getElementById('app_course_id').value = data.course_id || '';
+                    document.getElementById('app_course_round').value = data.course_round || '';
+                    document.getElementById('app_is_sms_sent').value = data.is_sms_sent ? 'true' : 'false';
+                    document.getElementById('app_employment_type').value = data.employment_type || '';
+                    document.getElementById('app_support_type').value = data.support_type || '';
+                    document.getElementById('app_tsp_type').value = data.tsp_type || '';
+                    document.getElementById('app_has_hrd_card').checked = !!data.has_hrd_card;
+                    document.getElementById('app_is_hrd_net_registered').checked = !!data.is_hrd_net_registered;
+                    document.getElementById('app_payment_method').value = data.payment_method || '';
+                    document.getElementById('app_payment_date').value = data.payment_date || '';
+                    document.getElementById('app_payment_amount').value = data.payment_amount || '';
+                    document.getElementById('app_memo').value = data.memo || '';
+                    
+                    document.getElementById('app_name').value = data.name;
+                    document.getElementById('app_phone').value = data.phone;
+                    document.getElementById('app_email').value = data.email || '';
+                    document.getElementById('app_birth_date').value = data.birth_date || '';
+                    document.getElementById('app_gender').value = data.gender || '';
+                    document.getElementById('app_address').value = data.address || '';
+                    document.getElementById('app_education_level').value = data.education_level || '';
+                    document.getElementById('app_certificates').value = data.certificates || '';
+
                 } else {
                     // 등록 모드
                     document.getElementById('pageTitle').textContent = '지원자 등록';
@@ -343,6 +538,9 @@ export const adminHrdHtml = `
                     document.getElementById('menu-applicant-create').classList.add('active');
                     document.getElementById('applicantId').value = '';
                     document.getElementById('deleteApplicantBtn').classList.add('hidden');
+                    
+                    // 오늘 날짜 설정
+                    document.getElementById('app_created_at').value = new Date().toISOString().split('T')[0];
                 }
             } else if (sectionId === 'studentList') {
                 document.getElementById('studentListSection').classList.remove('hidden');
@@ -405,13 +603,33 @@ export const adminHrdHtml = `
         async function handleApplicantSave(e) {
             e.preventDefault();
             const id = document.getElementById('applicantId').value;
-            const name = document.getElementById('applicantName').value;
-            const phone = document.getElementById('applicantPhone').value;
-            const email = document.getElementById('applicantEmail').value;
-            const status = document.getElementById('applicantStatus').value;
-            const memo = document.getElementById('applicantMemo').value;
+            
+            const data = {
+                name: document.getElementById('app_name').value,
+                phone: document.getElementById('app_phone').value,
+                email: document.getElementById('app_email').value,
+                birth_date: document.getElementById('app_birth_date').value,
+                gender: document.getElementById('app_gender').value,
+                address: document.getElementById('app_address').value,
+                education_level: document.getElementById('app_education_level').value,
+                certificates: document.getElementById('app_certificates').value,
+                
+                consultation_type: document.getElementById('app_consultation_type').value,
+                status: document.getElementById('app_status').value,
+                course_id: document.getElementById('app_course_id').value || null,
+                course_round: document.getElementById('app_course_round').value,
+                is_sms_sent: document.getElementById('app_is_sms_sent').value === 'true',
+                employment_type: document.getElementById('app_employment_type').value,
+                support_type: document.getElementById('app_support_type').value,
+                tsp_type: document.getElementById('app_tsp_type').value,
+                has_hrd_card: document.getElementById('app_has_hrd_card').checked,
+                is_hrd_net_registered: document.getElementById('app_is_hrd_net_registered').checked,
+                payment_method: document.getElementById('app_payment_method').value,
+                payment_date: document.getElementById('app_payment_date').value,
+                payment_amount: document.getElementById('app_payment_amount').value ? parseInt(document.getElementById('app_payment_amount').value) : null,
+                memo: document.getElementById('app_memo').value
+            };
 
-            const data = { name, phone, email, status, memo };
             const method = id ? 'PUT' : 'POST';
             const url = id ? '/api/hrd/applicants/' + id : '/api/hrd/applicants';
 

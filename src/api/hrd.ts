@@ -7,10 +7,12 @@ import { hashPassword } from '../utils/jwt';
 
 const hrd = new Hono<{ Bindings: Bindings }>();
 
-// 테이블 생성 (임시 - 인증 없이 허용)
+// 테이블 생성 및 마이그레이션 (임시 - 인증 없이 허용)
 hrd.get('/setup', async (c) => {
     try {
         const { DB } = c.env;
+
+        // 1. 기본 테이블 생성
         await execute(DB, `
       CREATE TABLE IF NOT EXISTS consultations (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -25,9 +27,39 @@ hrd.get('/setup', async (c) => {
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
-        return successResponse(c, null, 'Consultations table created');
+
+        // 2. 컬럼 추가 (존재하지 않을 경우를 대비해 try-catch로 감싸서 실행)
+        const columnsToAdd = [
+            "ALTER TABLE consultations ADD COLUMN consultation_type TEXT",
+            "ALTER TABLE consultations ADD COLUMN course_round TEXT",
+            "ALTER TABLE consultations ADD COLUMN employment_type TEXT",
+            "ALTER TABLE consultations ADD COLUMN support_type TEXT",
+            "ALTER TABLE consultations ADD COLUMN tsp_type TEXT",
+            "ALTER TABLE consultations ADD COLUMN payment_method TEXT",
+            "ALTER TABLE consultations ADD COLUMN payment_date TEXT",
+            "ALTER TABLE consultations ADD COLUMN payment_amount INTEGER",
+            "ALTER TABLE consultations ADD COLUMN has_hrd_card BOOLEAN",
+            "ALTER TABLE consultations ADD COLUMN is_hrd_net_registered BOOLEAN",
+            "ALTER TABLE consultations ADD COLUMN is_sms_sent BOOLEAN",
+            "ALTER TABLE consultations ADD COLUMN birth_date TEXT",
+            "ALTER TABLE consultations ADD COLUMN gender TEXT",
+            "ALTER TABLE consultations ADD COLUMN address TEXT",
+            "ALTER TABLE consultations ADD COLUMN education_level TEXT",
+            "ALTER TABLE consultations ADD COLUMN certificates TEXT"
+        ];
+
+        for (const sql of columnsToAdd) {
+            try {
+                await execute(DB, sql);
+            } catch (e) {
+                // 컬럼이 이미 존재하면 에러가 발생할 수 있으므로 무시
+                console.log(`Column add skipped or failed: ${sql}`);
+            }
+        }
+
+        return successResponse(c, null, 'Consultations table updated successfully');
     } catch (error) {
-        return errorResponse(c, 'Table creation failed', 500);
+        return errorResponse(c, 'Table setup failed', 500);
     }
 });
 
@@ -42,7 +74,6 @@ hrd.use('*', authMiddleware, requireAdmin);
 hrd.get('/personnel', async (c) => {
     try {
         const { DB } = c.env;
-        // role이 teacher인 사용자 조회
         const users = await getAll<User>(
             DB,
             "SELECT id, email, name, phone, role, created_at FROM users WHERE role = 'teacher' ORDER BY created_at DESC"
@@ -64,7 +95,6 @@ hrd.post('/personnel', async (c) => {
             return errorResponse(c, '이메일, 비밀번호, 이름은 필수입니다', 400);
         }
 
-        // 이메일 중복 확인
         const existing = await getOne(DB, 'SELECT id FROM users WHERE email = ?', [email]);
         if (existing) {
             return errorResponse(c, '이미 존재하는 이메일입니다', 409);
@@ -143,7 +173,6 @@ hrd.delete('/personnel/:id', async (c) => {
 hrd.get('/applicants', async (c) => {
     try {
         const { DB } = c.env;
-        // consultations 테이블 조회 (course 정보 조인)
         const query = `
       SELECT c.*, co.title as course_name 
       FROM consultations c
@@ -162,17 +191,28 @@ hrd.get('/applicants', async (c) => {
 hrd.post('/applicants', async (c) => {
     try {
         const { DB } = c.env;
-        const { name, phone, email, course_id, status, memo, preferred_date } = await c.req.json();
+        const body = await c.req.json();
 
-        if (!name || !phone) {
+        // 필수 필드 체크
+        if (!body.name || !body.phone) {
             return errorResponse(c, '이름과 전화번호는 필수입니다', 400);
         }
 
+        const keys = [
+            'name', 'phone', 'email', 'course_id', 'status', 'memo', 'preferred_date',
+            'consultation_type', 'course_round', 'employment_type', 'support_type', 'tsp_type',
+            'payment_method', 'payment_date', 'payment_amount', 'has_hrd_card', 'is_hrd_net_registered', 'is_sms_sent',
+            'birth_date', 'gender', 'address', 'education_level', 'certificates'
+        ];
+
+        const columns = keys.join(', ');
+        const placeholders = keys.map(() => '?').join(', ');
+        const values = keys.map(key => body[key] !== undefined ? body[key] : null);
+
         const result = await execute(
             DB,
-            `INSERT INTO consultations (name, phone, email, course_id, status, memo, preferred_date) 
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-            [name, phone, email || null, course_id || null, status || 'pending', memo || null, preferred_date || null]
+            `INSERT INTO consultations (${columns}) VALUES (${placeholders})`,
+            values
         );
 
         if (!result.success) {
@@ -191,18 +231,24 @@ hrd.put('/applicants/:id', async (c) => {
     try {
         const { DB } = c.env;
         const id = c.req.param('id');
-        const { name, phone, email, course_id, status, memo, preferred_date } = await c.req.json();
+        const body = await c.req.json();
+
+        const keys = [
+            'name', 'phone', 'email', 'course_id', 'status', 'memo', 'preferred_date',
+            'consultation_type', 'course_round', 'employment_type', 'support_type', 'tsp_type',
+            'payment_method', 'payment_date', 'payment_amount', 'has_hrd_card', 'is_hrd_net_registered', 'is_sms_sent',
+            'birth_date', 'gender', 'address', 'education_level', 'certificates'
+        ];
 
         const updates: string[] = [];
         const params: any[] = [];
 
-        if (name) { updates.push('name = ?'); params.push(name); }
-        if (phone) { updates.push('phone = ?'); params.push(phone); }
-        if (email !== undefined) { updates.push('email = ?'); params.push(email); }
-        if (course_id !== undefined) { updates.push('course_id = ?'); params.push(course_id); }
-        if (status) { updates.push('status = ?'); params.push(status); }
-        if (memo !== undefined) { updates.push('memo = ?'); params.push(memo); }
-        if (preferred_date !== undefined) { updates.push('preferred_date = ?'); params.push(preferred_date); }
+        keys.forEach(key => {
+            if (body[key] !== undefined) {
+                updates.push(`${key} = ?`);
+                params.push(body[key]);
+            }
+        });
 
         if (updates.length === 0) return errorResponse(c, '수정할 내용이 없습니다', 400);
 
