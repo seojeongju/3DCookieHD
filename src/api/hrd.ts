@@ -57,7 +57,19 @@ hrd.get('/setup', async (c) => {
             }
         }
 
-        return successResponse(c, null, 'Consultations table updated successfully');
+        // 3. 상담 로그 테이블 생성
+        await execute(DB, `
+      CREATE TABLE IF NOT EXISTS consultation_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        consultation_id INTEGER NOT NULL,
+        content TEXT NOT NULL,
+        writer TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (consultation_id) REFERENCES consultations(id) ON DELETE CASCADE
+      )
+    `);
+
+        return successResponse(c, null, 'Database schema updated successfully');
     } catch (error) {
         return errorResponse(c, 'Table setup failed', 500);
     }
@@ -274,6 +286,64 @@ hrd.delete('/applicants/:id', async (c) => {
     } catch (error) {
         console.error('Delete applicant error:', error);
         return errorResponse(c, '삭제 중 오류 발생', 500);
+    }
+});
+
+// ============================================
+// 상담 다이어리 (Consultation Logs) API
+// ============================================
+
+// 상담 로그 조회
+hrd.get('/applicants/:id/logs', async (c) => {
+    try {
+        const { DB } = c.env;
+        const consultationId = c.req.param('id');
+        const logs = await getAll(
+            DB,
+            "SELECT * FROM consultation_logs WHERE consultation_id = ? ORDER BY created_at DESC",
+            [consultationId]
+        );
+        return successResponse(c, logs || []);
+    } catch (error) {
+        console.error('Fetch logs error:', error);
+        return errorResponse(c, '상담 로그 조회 실패', 500);
+    }
+});
+
+// 상담 로그 추가
+hrd.post('/applicants/:id/logs', async (c) => {
+    try {
+        const { DB } = c.env;
+        const consultationId = c.req.param('id');
+        const { content, writer } = await c.req.json();
+
+        if (!content) return errorResponse(c, '내용을 입력해주세요', 400);
+
+        const result = await execute(
+            DB,
+            "INSERT INTO consultation_logs (consultation_id, content, writer) VALUES (?, ?, ?)",
+            [consultationId, content, writer || '관리자']
+        );
+
+        if (!result.success) return errorResponse(c, '로그 저장 실패', 500);
+
+        return createdResponse(c, { id: result.meta.last_row_id }, '상담 내용이 저장되었습니다');
+    } catch (error) {
+        console.error('Create log error:', error);
+        return errorResponse(c, '로그 저장 중 오류 발생', 500);
+    }
+});
+
+// 상담 로그 삭제
+hrd.delete('/applicants/logs/:logId', async (c) => {
+    try {
+        const { DB } = c.env;
+        const logId = c.req.param('logId');
+        await execute(DB, "DELETE FROM consultation_logs WHERE id = ?", [logId]);
+        return successResponse(c, null, '삭제되었습니다');
+    } catch (error) {
+        console.error('Delete log error:', error);
+        return errorResponse(c, '로그 삭제 중 오류 발생', 500);
     }
 });
 

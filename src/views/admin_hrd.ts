@@ -65,7 +65,7 @@ export const adminHrdHtml = `
                 </div>
                 <div class="bg-slate-900 py-2">
                     <div onclick="showSection('applicantList')" class="sidebar-subitem cursor-pointer pl-12 py-2 text-sm" id="menu-applicant-list">지원자 목록 (상담)</div>
-                    <div onclick="showSection('applicantForm')" class="sidebar-subitem cursor-pointer pl-12 py-2 text-sm" id="menu-applicant-create">지원자 등록</div>
+                    <div onclick="showSection('applicantForm')" class="sidebar-subitem cursor-pointer pl-12 py-2 text-sm" id="menu-applicant-create">지원자/수강생 상담관리</div>
                     <div onclick="showSection('studentList')" class="sidebar-subitem cursor-pointer pl-12 py-2 text-sm" id="menu-student-list">수강생 목록 (등록)</div>
                 </div>
             </div>
@@ -301,8 +301,8 @@ export const adminHrdHtml = `
                                         </div>
                                     </div>
                                     <div>
-                                        <label class="block text-xs font-bold text-gray-600 mb-1">진행상황/메모</label>
-                                        <textarea id="app_memo" class="w-full border border-gray-300 px-3 py-2 rounded text-sm h-24 resize-none"></textarea>
+                                        <label class="block text-xs font-bold text-gray-600 mb-1">특이사항/비고 (요약)</label>
+                                        <textarea id="app_memo" class="w-full border border-gray-300 px-3 py-2 rounded text-sm h-16 resize-none" placeholder="전체적인 특이사항이나 요약 내용을 입력하세요."></textarea>
                                     </div>
                                 </div>
                             </div>
@@ -359,6 +359,25 @@ export const adminHrdHtml = `
                                         <textarea id="app_certificates" class="w-full border border-gray-300 px-3 py-2 rounded text-sm h-24 resize-none" placeholder="보유 자격증 입력"></textarea>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+
+                        <!-- 상담 다이어리 섹션 -->
+                        <div class="mt-8 border-t border-gray-100 pt-6">
+                            <h3 class="text-lg font-bold text-gray-700 mb-4">3. 상담 다이어리</h3>
+                            <div id="diarySection" class="bg-gray-50 rounded-lg p-6 hidden">
+                                <div id="diaryInputArea" class="mb-6">
+                                    <div class="flex gap-2 mb-2">
+                                        <input type="text" id="logContent" class="flex-grow border border-gray-300 px-3 py-2 rounded text-sm" placeholder="상담 내용을 입력하세요...">
+                                        <button type="button" onclick="saveApplicantLog()" class="bg-teal-500 text-white px-4 py-2 rounded text-sm hover:bg-teal-600">기록</button>
+                                    </div>
+                                </div>
+                                <div id="diaryList" class="space-y-3 max-h-60 overflow-y-auto">
+                                    <!-- 로그 목록 동적 생성 -->
+                                </div>
+                            </div>
+                            <div id="diaryPlaceholder" class="text-center text-gray-500 py-8 bg-gray-50 rounded-lg">
+                                지원자 정보를 먼저 저장한 후 상담 다이어리를 작성할 수 있습니다.
                             </div>
                         </div>
 
@@ -531,6 +550,11 @@ export const adminHrdHtml = `
                     document.getElementById('app_education_level').value = data.education_level || '';
                     document.getElementById('app_certificates').value = data.certificates || '';
 
+                    // 다이어리 섹션 활성화 및 로그 로드
+                    document.getElementById('diarySection').classList.remove('hidden');
+                    document.getElementById('diaryPlaceholder').classList.add('hidden');
+                    loadApplicantLogs(data.id);
+
                 } else {
                     // 등록 모드
                     document.getElementById('pageTitle').textContent = '지원자 등록';
@@ -541,6 +565,10 @@ export const adminHrdHtml = `
                     
                     // 오늘 날짜 설정
                     document.getElementById('app_created_at').value = new Date().toISOString().split('T')[0];
+
+                    // 다이어리 섹션 비활성화
+                    document.getElementById('diarySection').classList.add('hidden');
+                    document.getElementById('diaryPlaceholder').classList.remove('hidden');
                 }
             } else if (sectionId === 'studentList') {
                 document.getElementById('studentListSection').classList.remove('hidden');
@@ -643,7 +671,13 @@ export const adminHrdHtml = `
                 const result = await response.json();
                 if (result.success) {
                     alert(id ? '수정되었습니다.' : '등록되었습니다.');
-                    showSection('applicantList');
+                    if (!id) {
+                        // 새로 등록한 경우, 수정 모드로 전환하여 다이어리 입력 가능하게 함
+                        showSection('applicantList'); // 목록으로 이동 (간단하게)
+                    } else {
+                        // 수정인 경우 그대로 유지하거나 목록으로
+                        showSection('applicantList');
+                    }
                 } else {
                     alert('오류: ' + result.error);
                 }
@@ -672,6 +706,95 @@ export const adminHrdHtml = `
             } catch (error) {
                 console.error('Error:', error);
                 alert('삭제 중 오류가 발생했습니다.');
+            }
+        }
+
+        // ==========================================
+        // 상담 다이어리 (Consultation Logs)
+        // ==========================================
+        async function loadApplicantLogs(applicantId) {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(\`/api/hrd/applicants/\${applicantId}/logs\`, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const result = await response.json();
+                const list = document.getElementById('diaryList');
+                
+                if (!result.success || result.data.length === 0) {
+                    list.innerHTML = '<div class="text-center text-gray-400 text-sm py-4">저장된 상담 기록이 없습니다.</div>';
+                    return;
+                }
+
+                list.innerHTML = result.data.map(log => \`
+                    <div class="bg-white border border-gray-200 rounded p-3 shadow-sm">
+                        <div class="flex justify-between items-start mb-1">
+                            <span class="text-xs font-bold text-gray-700">\${log.writer || '관리자'}</span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs text-gray-400">\${new Date(log.created_at).toLocaleString()}</span>
+                                <button onclick="deleteApplicantLog(\${log.id}, \${applicantId})" class="text-gray-400 hover:text-red-500">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="text-sm text-gray-800 whitespace-pre-wrap">\${log.content}</div>
+                    </div>
+                \`).join('');
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        async function saveApplicantLog() {
+            const applicantId = document.getElementById('applicantId').value;
+            const content = document.getElementById('logContent').value;
+            
+            if (!applicantId) {
+                alert('지원자 정보가 없습니다.');
+                return;
+            }
+            if (!content.trim()) {
+                alert('내용을 입력해주세요.');
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(\`/api/hrd/applicants/\${applicantId}/logs\`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({ content })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    document.getElementById('logContent').value = '';
+                    loadApplicantLogs(applicantId);
+                } else {
+                    alert('저장 실패: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('오류가 발생했습니다.');
+            }
+        }
+
+        async function deleteApplicantLog(logId, applicantId) {
+            if (!confirm('삭제하시겠습니까?')) return;
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(\`/api/hrd/applicants/logs/\${logId}\`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const result = await response.json();
+                if (result.success) {
+                    loadApplicantLogs(applicantId);
+                } else {
+                    alert('삭제 실패: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('오류가 발생했습니다.');
             }
         }
 
