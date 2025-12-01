@@ -2095,14 +2095,15 @@ app.get('/schedule', (c) => {
                   <div class="font-bold text-sm mb-1 \${isToday ? 'text-primary-600' : 'text-gray-700'}">\${day}</div>
                   <div class="space-y-1">
                     \${daySchedules.slice(0, 3).map(s => \`
-                      <div onclick="goToCourseDetail('\${s.course_name}')" class="schedule-item bg-primary-50 text-primary-900 hover:bg-primary-100 border border-primary-100">
-                        <div class="font-bold text-xs truncate">\${s.course_name}</div>
-                        <div class="flex items-center text-[0.65rem] text-primary-700 mt-0.5">
-                            <i class="far fa-clock mr-1 text-[0.6rem]"></i>
-                            \${s.start_time || ''} ~ \${s.end_time || ''}
+                      <div onclick="goToCourseDetail('\${s.course_name}')" class="schedule-item bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded p-1.5 cursor-pointer transition shadow-sm mb-1">
+                        <div class="font-bold text-xs text-blue-900 truncate mb-1">\${s.course_name}</div>
+                        <div class="flex items-center text-xs text-blue-800 mb-0.5">
+                            <i class="far fa-clock mr-1.5 text-blue-600 text-[0.7rem]"></i>
+                            <span>\${s.start_time || ''} ~ \${s.end_time || ''}</span>
                         </div>
-                        <div class="text-[0.65rem] text-gray-500 mt-0.5 pl-0.5">
-                            \${s.days_of_week ? '(' + s.days_of_week + ')' : ''}
+                        <div class="flex items-center text-xs text-gray-600">
+                            <i class="far fa-calendar-check mr-1.5 text-gray-400 text-[0.7rem]"></i>
+                            <span>\${s.days_of_week ? s.days_of_week : '-'}</span>
                         </div>
                       </div>
                     \`).join('')}
