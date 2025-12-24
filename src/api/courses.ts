@@ -7,6 +7,8 @@ import type { Bindings, Course, CourseFilter } from '../types';
 import { successResponse, errorResponse, notFoundResponse, paginatedResponse } from '../utils/response';
 import { verifyToken } from '../utils/jwt';
 import { getOne, getAll, execute, calculatePagination } from '../utils/database';
+import { requireTeacher } from '../middleware/auth';
+import { verifyCourseOwnership } from '../middleware/ownership';
 
 const courses = new Hono<{ Bindings: Bindings }>();
 
@@ -272,9 +274,9 @@ courses.post('/', async (c) => {
 
 /**
  * PUT /api/courses/:id
- * 과정 수정 (관리자 전용)
+ * 과정 수정 (관리자 및 담당 강사)
  */
-courses.put('/:id', async (c) => {
+courses.put('/:id', requireTeacher, verifyCourseOwnership, async (c) => {
   try {
     const id = c.req.param('id');
     const body = await c.req.json();
