@@ -118,9 +118,9 @@ export const coursesListHtml = `
                             <i class="fas fa-chevron-down ml-1.5 text-[10px] text-purple-200"></i>
                         </button>
                         <div class="absolute left-0 top-full mt-1 w-48 bg-white rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 border border-gray-100 overflow-hidden z-50">
-                            <div class="py-1">
-                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600">학생학사관리</a>
-                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600">강사학사관리</a>
+                            <div class="py-1 academic-menu-dropdown">
+                                <a href="/login" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600"><i class="fas fa-sign-in-alt mr-2"></i>로그인하기</a>
+                                <a href="/register" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600"><i class="fas fa-user-plus mr-2"></i>회원가입</a>
                             </div>
                         </div>
                     </div>
@@ -173,6 +173,7 @@ export const coursesListHtml = `
             location.href = '/';
         }
     </script>
+    <script src="/static/academic-menu.js"></script>
 
     <!-- 헤더 -->
     <div class="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-16">
