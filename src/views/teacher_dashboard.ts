@@ -63,7 +63,7 @@ export const teacherDashboardHtml = `
                             </div>
                         </div>
                         <div class="flex items-baseline">
-                            <span class="text-2xl font-bold text-gray-800">2</span>
+                            <span id="myCourses" class="text-2xl font-bold text-gray-800">-</span>
                             <span class="ml-2 text-sm text-gray-500">개 과정 진행 중</span>
                         </div>
                     </div>
@@ -76,7 +76,7 @@ export const teacherDashboardHtml = `
                             </div>
                         </div>
                         <div class="flex items-baseline">
-                            <span class="text-2xl font-bold text-gray-800">45</span>
+                            <span id="totalStudents" class="text-2xl font-bold text-gray-800">-</span>
                             <span class="ml-2 text-sm text-gray-500">명</span>
                         </div>
                     </div>
@@ -89,7 +89,7 @@ export const teacherDashboardHtml = `
                             </div>
                         </div>
                         <div class="flex items-baseline">
-                            <span class="text-2xl font-bold text-gray-800">5</span>
+                            <span id="pendingGrading" class="text-2xl font-bold text-gray-800">-</span>
                             <span class="ml-2 text-sm text-red-500">건 대기 중</span>
                         </div>
                     </div>
@@ -126,34 +126,29 @@ export const teacherDashboardHtml = `
                     </div>
                 </div>
 
-                <!-- 오늘의 일정 (예시) -->
+                <!-- 담당 과정 목록 -->
+                <div class="mb-8">
+                    <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-chalkboard-teacher text-blue-500 mr-2"></i> 담당 과정
+                    </h2>
+                    <div id="recentCoursesContainer" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="text-center py-8 col-span-3">
+                            <i class="fas fa-spinner fa-spin text-2xl text-gray-400"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 채점 대기 목록 -->
                 <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                     <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-                        <h3 class="font-bold text-gray-800">오늘의 수업 일정</h3>
-                        <span class="text-sm text-blue-600 font-medium">2025년 12월 01일 (월)</span>
+                        <h3 class="font-bold text-gray-800 flex items-center">
+                            <i class="fas fa-clipboard-check text-indigo-500 mr-2"></i> 채점 대기 목록
+                        </h3>
+                        <a href="/teacher/exams" class="text-sm text-blue-600 hover:text-blue-800 font-medium">전체 보기 →</a>
                     </div>
-                    <div class="divide-y divide-gray-100">
-                        <div class="px-6 py-4 flex items-center hover:bg-gray-50 transition">
-                            <div class="w-16 text-center mr-4">
-                                <span class="block text-sm font-bold text-gray-800">09:00</span>
-                                <span class="block text-xs text-gray-500">~ 13:00</span>
-                            </div>
-                            <div class="flex-1">
-                                <h4 class="text-sm font-bold text-gray-800">3D 프린터 운용기능사 실기 과정 (A반)</h4>
-                                <p class="text-xs text-gray-500"><i class="fas fa-map-marker-alt mr-1"></i> 제 1 강의실</p>
-                            </div>
-                            <button class="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-medium hover:bg-green-200">출석부</button>
-                        </div>
-                        <div class="px-6 py-4 flex items-center hover:bg-gray-50 transition">
-                            <div class="w-16 text-center mr-4">
-                                <span class="block text-sm font-bold text-gray-800">14:00</span>
-                                <span class="block text-xs text-gray-500">~ 18:00</span>
-                            </div>
-                            <div class="flex-1">
-                                <h4 class="text-sm font-bold text-gray-800">Fusion 360 모델링 심화 (B반)</h4>
-                                <p class="text-xs text-gray-500"><i class="fas fa-map-marker-alt mr-1"></i> 제 2 강의실</p>
-                            </div>
-                            <button class="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-medium hover:bg-green-200">출석부</button>
+                    <div id="pendingGradingListContainer">
+                        <div class="px-6 py-8 text-center">
+                            <i class="fas fa-spinner fa-spin text-2xl text-gray-400"></i>
                         </div>
                     </div>
                 </div>
@@ -161,29 +156,7 @@ export const teacherDashboardHtml = `
         </main>
     </div>
 
-    <script>
-        // 권한 체크
-        document.addEventListener('DOMContentLoaded', () => {
-            const token = localStorage.getItem('token');
-            const userStr = localStorage.getItem('user');
-            
-            if (!token || !userStr) {
-                alert('로그인이 필요합니다.');
-                location.href = '/login';
-                return;
-            }
-
-            try {
-                const user = JSON.parse(userStr);
-                if (user.role !== 'teacher' && user.role !== 'admin') {
-                    alert('접근 권한이 없습니다.');
-                    location.href = '/';
-                }
-            } catch (e) {
-                location.href = '/login';
-            }
-        });
-    </script>
+    <script src="/static/teacher-dashboard.js"></script>
 </body>
 </html>
 `;
