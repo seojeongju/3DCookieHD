@@ -153,6 +153,7 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses')) => `
         </div>
     </div>
 
+    <script src="/static/admin-courses.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => { 
             const user = JSON.parse(localStorage.getItem('user') || '{}');
