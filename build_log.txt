@@ -4,15 +4,15 @@
 
 [36mvite v6.4.1 [32mbuilding SSR bundle for production...[36m[39m
 transforming...
-[32m✓[39m 69 modules transformed.
-node.exe : [31m✗[39m Build failed in 216ms
+[32m✓[39m 36 modules transformed.
+node.exe : [31m✗[39m Build failed in 184ms
 위치 줄:1 문자:1
 + & "C:\Program Files\nodejs/node.exe" "C:\Users\jayse\AppData\Roami
 ng\ ...
 + ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ~~~
     + CategoryInfo          : NotSpecified: ([31m✗[39m Build fail 
-   ed in 216ms:String) [], RemoteException
+   ed in 184ms:String) [], RemoteException
     + FullyQualifiedErrorId : NativeCommandError
  
 [31merror during build:
