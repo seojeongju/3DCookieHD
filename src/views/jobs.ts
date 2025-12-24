@@ -1,3 +1,4 @@
+import { footerHtml } from './footer';
 export const jobsListHtml = `
 <!DOCTYPE html>
 <html lang="ko">
@@ -270,11 +271,8 @@ export const jobsListHtml = `
     </div>
 
     <!-- 푸터 -->
-    <footer class="bg-gray-800 text-white py-12 mt-12">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <p class="text-gray-400">&copy; 2025 와우쓰리디홍대센터. All rights reserved.</p>
-        </div>
-    </footer>
+    <!-- 푸터 -->
+    ${footerHtml()}
 
     <script>
         document.addEventListener('DOMContentLoaded', loadJobs);

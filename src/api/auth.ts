@@ -3,12 +3,12 @@
 // ============================================
 
 import { Hono } from 'hono';
-import type { Bindings, LoginRequest, RegisterRequest, User } from '../types';
+import type { Bindings, LoginRequest, RegisterRequest, User, JWTPayload } from '../types';
 import { successResponse, errorResponse, createdResponse } from '../utils/response';
 import { getOne, execute } from '../utils/database';
 import { generateToken, hashPassword, verifyPassword } from '../utils/jwt';
 
-const auth = new Hono<{ Bindings: Bindings }>();
+const auth = new Hono<{ Bindings: Bindings, Variables: { user: JWTPayload } }>();
 
 /**
  * POST /api/auth/register
@@ -17,12 +17,18 @@ const auth = new Hono<{ Bindings: Bindings }>();
 auth.post('/register', async (c) => {
   try {
     const body: RegisterRequest = await c.req.json();
-    const { email, password, name, phone } = body;
+    const { email, password, name, phone, role } = body;
 
     // 유효성 검증
     if (!email || !password || !name) {
       return errorResponse(c, '이메일, 비밀번호, 이름은 필수입니다', 400);
     }
+
+    // Role 및 Status 설정
+    const allowedRoles = ['student', 'teacher'];
+    const userRole = (role && allowedRoles.includes(role)) ? role : 'student';
+    const status = userRole === 'teacher' ? 'pending' : 'active';
+
 
     // 이메일 형식 검증
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -52,9 +58,9 @@ auth.post('/register', async (c) => {
     // 사용자 생성
     const result = await execute(
       c.env.DB,
-      `INSERT INTO users (email, password, name, phone, role) 
-       VALUES (?, ?, ?, ?, 'student')`,
-      [email, hashedPassword, name, phone || null]
+      `INSERT INTO users (email, password, name, phone, role, status) 
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [email, hashedPassword, name, phone || null, userRole, status]
     );
 
     if (!result.success) {
@@ -64,7 +70,7 @@ auth.post('/register', async (c) => {
     // 생성된 사용자 조회
     const newUser = await getOne<User>(
       c.env.DB,
-      'SELECT id, email, name, phone, role, created_at FROM users WHERE id = ?',
+      'SELECT id, email, name, phone, role, status, created_at FROM users WHERE id = ?',
       [result.meta.last_row_id]
     );
 
@@ -111,6 +117,14 @@ auth.post('/login', async (c) => {
       return errorResponse(c, '이메일 또는 비밀번호가 잘못되었습니다', 401);
     }
 
+    // 계정 상태 확인
+    if (user.status === 'pending') {
+      return errorResponse(c, '관리자 승인 대기 중인 계정입니다.', 403);
+    }
+    if (user.status === 'suspended') {
+      return errorResponse(c, '이용이 정지된 계정입니다. 관리자에게 문의하세요.', 403);
+    }
+
     // 비밀번호 검증
     if (!user.password) {
       return errorResponse(c, '소셜 로그인 사용자는 일반 로그인을 할 수 없습니다', 400);
@@ -149,7 +163,7 @@ auth.post('/login', async (c) => {
 auth.get('/me', async (c) => {
   try {
     const user = c.get('user');
-    
+
     if (!user) {
       return errorResponse(c, '인증이 필요합니다', 401);
     }
@@ -157,7 +171,7 @@ auth.get('/me', async (c) => {
     // 사용자 정보 조회
     const userInfo = await getOne<User>(
       c.env.DB,
-      'SELECT id, email, name, phone, role, profile_image, created_at, updated_at FROM users WHERE id = ?',
+      'SELECT id, email, name, phone, role, status, profile_image, created_at, updated_at FROM users WHERE id = ?',
       [user.userId]
     );
 
@@ -180,7 +194,7 @@ auth.get('/me', async (c) => {
 auth.put('/profile', async (c) => {
   try {
     const user = c.get('user');
-    
+
     if (!user) {
       return errorResponse(c, '인증이 필요합니다', 401);
     }
@@ -241,7 +255,7 @@ auth.put('/profile', async (c) => {
 auth.post('/change-password', async (c) => {
   try {
     const user = c.get('user');
-    
+
     if (!user) {
       return errorResponse(c, '인증이 필요합니다', 401);
     }

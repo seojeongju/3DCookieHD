@@ -1,4 +1,4 @@
-export const adminPostsListHtml = `
+export const adminPostsListHtml = (sidebar: string | null = null) => `
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -14,16 +14,8 @@ export const adminPostsListHtml = `
           extend: {
             colors: {
               primary: {
-                50: '#f0f7ff',
-                100: '#e0effe',
-                200: '#baddfd',
-                300: '#7dbcfb',
-                400: '#3a9bf7',
-                500: '#5b9bd5',
-                600: '#4a90e2',
-                700: '#2d5fa3',
-                800: '#1e4278',
-                900: '#132d54'
+                50: '#f0f7ff', 100: '#e0effe', 200: '#baddfd', 300: '#7dbcfb', 400: '#3a9bf7',
+                500: '#5b9bd5', 600: '#4a90e2', 700: '#2d5fa3', 800: '#1e4278', 900: '#132d54'
               }
             }
           }
@@ -32,7 +24,14 @@ export const adminPostsListHtml = `
     </script>
 </head>
 <body class="bg-gray-50">
-    <!-- 네비게이션 -->
+    ${sidebar ? `
+    <div class="flex h-screen overflow-hidden">
+        ${sidebar}
+        <div class="flex-1 flex flex-col overflow-hidden bg-gray-50">
+    ` : ''}
+
+    ${!sidebar ? `
+    <!-- 기존 네비게이션 (사이드바 없을 때) -->
     <nav class="bg-white shadow-md sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-20">
@@ -45,18 +44,15 @@ export const adminPostsListHtml = `
                         <span class="text-sm text-gray-600 font-bold tracking-wider group-hover:text-primary-600 transition-colors">와우쓰리디홍대센터</span>
                     </a>
                 </div>
-                <div class="flex items-center space-x-4">
-                    <a href="/admin" class="text-gray-700 hover:text-primary-600 font-medium">
-                        <i class="fas fa-arrow-left mr-2"></i>대시보드로 돌아가기
-                    </a>
-                </div>
+                <!-- ... -->
             </div>
         </div>
     </nav>
+    ` : ''}
 
     <!-- 헤더 -->
     <div class="bg-white border-b border-gray-200">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="${sidebar ? 'px-8 py-6' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'}">
             <div class="flex justify-between items-center">
                 <div>
                     <h1 class="text-2xl font-bold text-gray-800">게시판 관리</h1>
@@ -68,6 +64,10 @@ export const adminPostsListHtml = `
             </div>
         </div>
     </div>
+    
+    <!-- 메인 컨텐츠 래퍼 -->
+    ${sidebar ? `<main class="flex-1 overflow-y-auto p-8 custom-scrollbar">` : ''}
+
 
     <!-- 메인 컨텐츠 -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

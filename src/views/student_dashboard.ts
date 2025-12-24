@@ -123,25 +123,86 @@ export const studentDashboardHtml = `
                 loadExams();
             } else if (tab === 'lectures') {
                 title.innerHTML = '<i class="fas fa-video mr-3 text-blue-600"></i> 수강 중인 강의';
-                content.innerHTML = '<div class="text-center py-12 text-gray-500">수강 중인 강의가 없습니다.</div>';
+                loadLectures();
             } else if (tab === 'grades') {
                 title.innerHTML = '<i class="fas fa-history mr-3 text-blue-600"></i> 성적/결과';
                 loadGrades();
             }
         }
 
+        async function loadLectures() {
+            try {
+                const token = localStorage.getItem('token');
+                // Fetch approved enrollments
+                const response = await fetch('/api/enrollments?status=approved', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const result = await response.json();
+                
+                const container = document.getElementById('contentArea');
+                
+                if (!result.success || result.data.length === 0) {
+                    container.innerHTML = `
+    < div class="bg-white rounded-xl shadow-sm p-8 text-center" >
+        <i class="fas fa-chalkboard text-4xl text-gray-300 mb-3" > </i>
+            < p class="text-gray-500" > 수강 중인 강의가 없습니다.</p>
+                < a href = "/courses" class="inline-block mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm" > 과정 둘러보기 </a>
+                    </div>
+                        `;
+                    return;
+                }
+
+                container.innerHTML = result.data.map(item => `
+                    < div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition" >
+                        <div class="flex flex-col md:flex-row gap-6" >
+                            <div class="w-full md:w-48 h-32 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0" >
+                                <img src="${item.course_thumbnail || '/static/images/default-course.jpg'}" class="w-full h-full object-cover" alt = "${item.course_title}" >
+                                    </div>
+                                    < div class="flex-1 flex flex-col justify-between" >
+                                        <div>
+                                        <div class="flex items-center gap-2 mb-2" >
+                                            <span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-bold rounded" > ${ item.course_category || '일반' } </span>
+                                                < span class="text-xs text-gray-500" > <i class="far fa-calendar-alt mr-1" > </i> ${new Date(item.enrolled_at).toLocaleDateString()} 등록</span >
+                                                    </div>
+                                                    < h3 class="text-xl font-bold text-gray-800 mb-2" > ${ item.course_title } </h3>
+                                                        < p class="text-sm text-gray-600 mb-4 line-clamp-2" > ${ item.course_category === '국비지원' ? '국비지원 과정입니다.' : '일반 과정입니다.' } </p>
+                                                            </div>
+                                                            < div class="flex items-center justify-between mt-auto" >
+                                                                <div class="flex items-center gap-4 text-sm text-gray-500" >
+                                                                    <span><i class="fas fa-check-circle text-green-500 mr-1" > </i>승인됨</span >
+                                                                        <span><i class="fas fa-school mr-1" > </i>${item.campus_name || '홍대센터'}</span >
+                                                                            </div>
+                                                                            < a href = "/courses/${item.course_id}" class="text-blue-600 hover:text-blue-800 font-medium text-sm" >
+                                                                                과정 상세 < i class="fas fa-chevron-right ml-1" > </i>
+                                                                                    </a>
+                                                                                    </div>
+                                                                                    </div>
+                                                                                    </div>
+                                                                                    </div>
+                                                                                        `).join('');
+
+            } catch (e) {
+                console.error(e);
+                document.getElementById('contentArea').innerHTML = '<div class="text-center text-red-500">강의 목록을 불러오는데 실패했습니다.</div>';
+            }
+        }
+
         async function loadExams() {
             try {
                 const token = localStorage.getItem('token');
+                // Use the consolidated exam API
                 const response = await fetch('/api/exams', {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
                 const exams = await response.json();
                 
+                // Wrap in success check if API returns wrapped response
+                const examList = Array.isArray(exams) ? exams : (exams.data || []);
+                
                 const container = document.getElementById('contentArea');
                 
                 // 활성화된 시험만 필터링
-                const activeExams = exams.filter(e => e.is_active);
+                const activeExams = examList.filter(e => e.is_active);
 
                 if (activeExams.length === 0) {
                     container.innerHTML = \`
@@ -158,7 +219,7 @@ export const studentDashboardHtml = `
                         <div>
                             <div class="flex items-center gap-2 mb-1">
                                 <span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-bold rounded">\${exam.course_title || '일반'}</span>
-                                <span class="text-sm text-gray-500"><i class="far fa-clock mr-1"></i> \${exam.time_limit}분</span>
+                                <span class="text-sm text-gray-500"><i class="far fa-clock mr-1"></i> \${exam.time_limit_minutes || exam.time_limit}분</span>
                             </div>
                             <h3 class="text-lg font-bold text-gray-800">\${exam.title}</h3>
                             <p class="text-sm text-gray-600 mt-1">\${exam.description || '설명 없음'}</p>
@@ -182,7 +243,8 @@ export const studentDashboardHtml = `
                 const response = await fetch('/api/exams/my-results?student_id=' + user.id, {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
-                const results = await response.json();
+                const result = await response.json();
+                const results = Array.isArray(result) ? result : (result.data || []);
                 
                 const container = document.getElementById('contentArea');
 

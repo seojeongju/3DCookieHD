@@ -23,6 +23,7 @@ export interface User {
   social_provider?: SocialProvider;
   social_id?: string;
   profile_image?: string;
+  status: 'active' | 'pending' | 'suspended';
   created_at: string;
   updated_at: string;
 }
@@ -215,6 +216,7 @@ export interface RegisterRequest {
   password: string;
   name: string;
   phone?: string;
+  role?: UserRole;
 }
 
 export interface CourseFilter {

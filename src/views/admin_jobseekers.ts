@@ -264,7 +264,9 @@ export const adminJobseekersListHtml = `
                 const tbody = document.getElementById('jobseekersTableBody');
                 
                 if (!result.success) {
-                    tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-red-500">데이터를 불러오는데 실패했습니다.</td></tr>';
+                    // API 오류 발생 시에도 빈 목록으로 표시 (사용자 요청 사항 반영)
+                    console.warn('구직자 목록 조회 실패:', result.error);
+                    tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-12 text-center text-gray-500">등록된 구직자가 없습니다.</td></tr>';
                     return;
                 }
 

@@ -1,26 +1,51 @@
 import { Hono } from 'hono';
 import type { Bindings } from '../types';
 
+import { verifyToken } from '../utils/jwt';
+
 const students = new Hono<{ Bindings: Bindings }>();
 
 // GET /api/students - 전체 학생 목록 조회
 students.get('/', async (c) => {
     try {
         const { search, status } = c.req.query();
+        const params: any[] = [];
+
+        // 권한 확인
+        let teacherId: number | null = null;
+        const authHeader = c.req.header('Authorization');
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            const token = authHeader.substring(7);
+            const payload = await verifyToken(token);
+            if (payload && payload.role === 'teacher') {
+                teacherId = payload.userId;
+            }
+        }
 
         let query = `
             SELECT 
                 u.id, u.name, u.email, u.phone, u.created_at,
                 COUNT(DISTINCT e.id) as enrollment_count,
                 COUNT(DISTINCT CASE WHEN e.status = 'completed' THEN e.id END) as completed_count,
-                MAX(c.created_at) as last_contact_date
+                MAX(con.created_at) as last_contact_date
             FROM users u
-            LEFT JOIN enrollments e ON u.id = e.user_id
-            LEFT JOIN consultations c ON u.id = c.user_id
-            WHERE u.role = 'student'
         `;
 
-        const params: any[] = [];
+        if (teacherId) {
+            query += `
+                JOIN enrollments e ON u.id = e.user_id
+                JOIN courses co ON e.course_id = co.id
+                LEFT JOIN consultations con ON u.id = con.user_id
+                WHERE u.role = 'student' AND co.teacher_id = ?
+            `;
+            params.push(teacherId);
+        } else {
+            query += `
+                LEFT JOIN enrollments e ON u.id = e.user_id
+                LEFT JOIN consultations con ON u.id = con.user_id
+                WHERE u.role = 'student'
+            `;
+        }
 
         if (search) {
             query += ` AND (u.name LIKE ? OR u.email LIKE ? OR u.phone LIKE ?)`;

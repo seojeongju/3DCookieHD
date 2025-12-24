@@ -1,10 +1,12 @@
-export const adminCoursesListHtml = `
+import { hrdSidebar } from './components/hrd_sidebar';
+
+export const adminCoursesListHtml = (sidebar = hrdSidebar('courses')) => `
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>교육과정 관리 - 와우쓰리디홍대센터</title>
+    <title>교육과정 관리 - 통합 교육행정 시스템</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.tiny.cloud/1/mvw2dv577uz6ru7oboooo1vpsgfgtj25kfa5sci9bblekdy3/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
@@ -14,16 +16,8 @@ export const adminCoursesListHtml = `
           extend: {
             colors: {
               primary: {
-                50: '#f0f7ff',
-                100: '#e0effe',
-                200: '#baddfd',
-                300: '#7dbcfb',
-                400: '#3a9bf7',
-                500: '#5b9bd5',
-                600: '#4a90e2',
-                700: '#2d5fa3',
-                800: '#1e4278',
-                900: '#132d54'
+                50: '#f0f7ff', 100: '#e0effe', 200: '#baddfd', 300: '#7dbcfb', 400: '#3a9bf7',
+                500: '#5b9bd5', 600: '#4a90e2', 700: '#2d5fa3', 800: '#1e4278', 900: '#132d54'
               }
             }
           }
@@ -31,618 +25,263 @@ export const adminCoursesListHtml = `
       }
     </script>
 </head>
-<body class="bg-gray-50">
-    <!-- 네비게이션 -->
-    <nav class="bg-white shadow-md sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-20">
-                <div class="flex items-center space-x-4">
-                    <a href="/admin" class="flex flex-col items-start group">
-                        <div class="flex items-center gap-2">
-                            <img src="/static/logo.png" alt="WOW 3D" class="h-9 w-auto object-contain mb-0.5">
-                            <span class="px-1.5 py-0.5 bg-red-100 text-red-600 text-[10px] font-bold rounded-full">ADMIN</span>
+<body class="bg-gray-50 font-sans">
+    <div class="flex h-screen overflow-hidden">
+        ${sidebar}
+        <div class="flex-1 flex flex-col overflow-hidden bg-gray-50">
+            <div class="bg-white border-b border-gray-200 flex-shrink-0">
+                <div class="px-8 py-6">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h1 class="text-2xl font-bold text-gray-800">교육과정 관리</h1>
+                            <p class="text-gray-600 mt-1">교육 과정을 개설하고 관리합니다.</p>
                         </div>
-                        <span class="text-sm text-gray-600 font-bold tracking-wider group-hover:text-primary-600 transition-colors">와우쓰리디홍대센터</span>
-                    </a>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <a href="/admin" class="text-gray-700 hover:text-primary-600 font-medium">
-                        <i class="fas fa-arrow-left mr-2"></i>대시보드로 돌아가기
-                    </a>
+                        <button id="btnCreateCourse" onclick="openModal('createCourseModal')" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center shadow-sm">
+                            <i class="fas fa-plus mr-2"></i> 과정 개설
+                        </button>
+                    </div>
                 </div>
             </div>
-        </div>
-    </nav>
-
-    <!-- 헤더 -->
-    <div class="bg-white border-b border-gray-200">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div class="flex justify-between items-center">
-                <div>
-                    <h1 class="text-2xl font-bold text-gray-800">교육과정 관리</h1>
-                    <p class="text-gray-600 mt-1">교육 과정을 개설하고 관리합니다.</p>
+            <main class="flex-1 overflow-y-auto p-8 custom-scrollbar">
+                <div class="bg-white rounded-lg shadow-sm p-4 mb-6 flex flex-wrap gap-4 items-center justify-between">
+                    <div class="flex gap-4 items-center">
+                        <select id="categoryFilter" onchange="loadCourses()" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">전체 카테고리</option>
+                            <option value="국비지원">국비지원</option>
+                            <option value="일반과정">일반과정</option>
+                            <option value="특강">특강</option>
+                        </select>
+                        <div class="relative">
+                            <input type="text" id="searchInput" placeholder="과정명 검색" onkeyup="if(event.key === 'Enter') loadCourses()" class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-64">
+                            <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <button onclick="loadCourses()" class="p-2 text-gray-600 hover:text-blue-600" title="새로고침">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
                 </div>
-                <button onclick="openModal('createCourseModal')" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center">
-                    <i class="fas fa-plus mr-2"></i> 과정 개설
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 메인 컨텐츠 -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <!-- 필터 및 검색 -->
-        <div class="bg-white rounded-lg shadow-sm p-4 mb-6 flex flex-wrap gap-4 items-center justify-between">
-            <div class="flex gap-4 items-center">
-                <select id="categoryFilter" onchange="loadCourses()" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    <option value="">전체 카테고리</option>
-                    <option value="국비지원">국비지원</option>
-                    <option value="일반과정">일반과정</option>
-                    <option value="특강">특강</option>
-                </select>
-                <div class="relative">
-                    <input type="text" id="searchInput" placeholder="과정명 검색" onkeyup="if(event.key === 'Enter') loadCourses()" class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-64">
-                    <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                <div class="bg-white rounded-lg shadow overflow-hidden">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">상태</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">과정명 / 기간</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">수강료</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">정원</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">등록일</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">관리</th>
+                            </tr>
+                        </thead>
+                        <tbody id="coursesTableBody" class="bg-white divide-y divide-gray-200 text-sm">
+                            <tr><td colspan="6" class="px-6 py-12 text-center text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i> 로딩중...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
-            </div>
-            <div class="flex gap-2">
-                <button onclick="loadCourses()" class="p-2 text-gray-600 hover:text-blue-600">
-                    <i class="fas fa-sync-alt"></i>
-                </button>
-            </div>
-        </div>
-
-        <!-- 목록 테이블 -->
-        <div class="bg-white rounded-lg shadow overflow-hidden">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">상태</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">과정명 / 기간</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">수강료</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">정원</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">등록일</th>
-                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">관리</th>
-                    </tr>
-                </thead>
-                <tbody id="coursesTableBody" class="bg-white divide-y divide-gray-200">
-                    <!-- 데이터가 로드되면 여기에 표시됩니다 -->
-                    <tr>
-                        <td colspan="6" class="px-6 py-12 text-center text-gray-500">
-                            <i class="fas fa-spinner fa-spin mr-2"></i> 데이터를 불러오는 중...
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+            </main>
         </div>
     </div>
 
-    <!-- 과정 등록/수정 모달 -->
+    <!-- 모달 등 생략 -->
     <div id="createCourseModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
-            <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+            <div class="p-6 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white z-10">
                 <h3 class="text-xl font-bold text-gray-800" id="modalTitle">과정 개설</h3>
-                <button onclick="closeModal('createCourseModal')" class="text-gray-500 hover:text-gray-700">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
+                <button onclick="closeModal('createCourseModal')" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times"></i></button>
             </div>
             <div class="p-6">
                 <form id="createCourseForm" onsubmit="handleSaveCourse(event)">
                     <input type="hidden" name="id" id="courseId">
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-gray-700 font-medium mb-2">과정명</label>
-                            <input type="text" name="title" id="courseTitle" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <label class="block text-gray-700 font-medium mb-1">과정명 *</label>
+                            <input type="text" name="title" id="courseTitle" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
                         </div>
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-gray-700 font-medium mb-2">카테고리</label>
-                                <select name="category" id="courseCategory" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                    <option value="국비지원">국비지원</option>
-                                    <option value="일반과정">일반과정</option>
-                                    <option value="특강">특강</option>
+                                <label class="block text-gray-700 font-medium mb-1">카테고리</label>
+                                <select name="category" id="courseCategory" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                                    <option value="국비지원">국비지원</option><option value="일반과정">일반과정</option><option value="특강">특강</option>
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-gray-700 font-medium mb-2">상태</label>
-                                <select name="status" id="courseStatus" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                    <option value="open">모집중 (Open)</option>
-                                    <option value="closed">마감 (Closed)</option>
-                                    <option value="preparing">준비중 (Preparing)</option>
+                                <label class="block text-gray-700 font-medium mb-1">상태</label>
+                                <select name="status" id="courseStatus" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                                    <option value="open">모집중</option><option value="closed">마감</option><option value="preparing">준비중</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 font-medium mb-1">교강사</label>
+                                <select name="instructor_id" id="courseInstructor" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                                    <option value="">교강사 선택</option>
+                                    <!-- API로 로드됨 -->
                                 </select>
                             </div>
                         </div>
                         <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-gray-700 font-medium mb-2">수강료</label>
-                                <input type="number" name="price" id="coursePrice" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            </div>
-                            <div>
-                                <label class="block text-gray-700 font-medium mb-2">모집 정원</label>
-                                <input type="number" name="max_students" id="courseMaxStudents" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            </div>
+                            <div><label class="block text-gray-700 font-medium mb-1">수강료</label><input type="number" name="price" id="coursePrice" class="w-full px-4 py-2 border border-gray-300 rounded-lg"></div>
+                            <div><label class="block text-gray-700 font-medium mb-1">정원</label><input type="number" name="max_students" id="courseMaxStudents" class="w-full px-4 py-2 border border-gray-300 rounded-lg"></div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div><label class="block text-gray-700 font-medium mb-1">시작일</label><input type="date" name="start_date" id="courseStartDate" class="w-full px-4 py-2 border border-gray-300 rounded-lg"></div>
+                            <div><label class="block text-gray-700 font-medium mb-1">종료일</label><input type="date" name="end_date" id="courseEndDate" class="w-full px-4 py-2 border border-gray-300 rounded-lg"></div>
                         </div>
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-gray-700 font-medium mb-2">시작일</label>
-                                <input type="date" name="start_date" id="courseStartDate" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <label class="block text-gray-700 font-medium mb-1">수업 시간</label>
+                                <div class="flex gap-2 items-center"><input type="time" id="courseStartTime" class="w-full px-4 py-2 border border-gray-300 rounded-lg"><span>~</span><input type="time" id="courseEndTime" class="w-full px-4 py-2 border border-gray-300 rounded-lg"></div>
                             </div>
                             <div>
-                                <label class="block text-gray-700 font-medium mb-2">종료일</label>
-                                <input type="date" name="end_date" id="courseEndDate" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-gray-700 font-medium mb-2">수업 시간</label>
-                                <div class="flex gap-2 items-center">
-                                    <input type="time" id="courseStartTime" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                    <span>~</span>
-                                    <input type="time" id="courseEndTime" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                </div>
-                            </div>
-                            <div>
-                                <label class="block text-gray-700 font-medium mb-2">수업 요일</label>
+                                <label class="block text-gray-700 font-medium mb-1">수업 요일</label>
                                 <div class="flex gap-2">
-                                    <select id="courseType" onchange="updateDaysOfWeek()" class="w-1/3 px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
-                                        <option value="custom">직접입력</option>
-                                        <option value="weekday">주간반</option>
-                                        <option value="weekend">주말반</option>
-                                    </select>
-                                    <input type="text" id="courseDays" placeholder="예: 월,수,금" class="w-2/3 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    <select id="courseType" onchange="updateDaysOfWeek()" class="border border-gray-300 rounded-lg px-2"><option value="custom">직접</option><option value="weekday">주간</option><option value="weekend">주말</option></select>
+                                    <input type="text" id="courseDays" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg">
                                 </div>
                             </div>
                         </div>
+                        <div><label class="block text-gray-700 font-medium mb-1">과정 설명</label><textarea id="courseDescription" rows="5" class="w-full px-4 py-2 border border-gray-300 rounded-lg"></textarea></div>
                         <div>
-                            <label class="block text-gray-700 font-medium mb-2">과정 설명</label>
-                            <textarea name="description" id="courseDescription" rows="5" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
-                        </div>
-                        <div>
-                            <label class="block text-gray-700 font-medium mb-2">썸네일 이미지</label>
-                            <div class="flex gap-2 mb-2">
-                                <input type="text" name="thumbnail_url" id="courseThumbnail" placeholder="이미지 URL 또는 파일 선택" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" onchange="updateThumbnailPreview(this.value)">
-                                <label for="thumbnailFile" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg cursor-pointer hover:bg-gray-300 transition flex items-center whitespace-nowrap">
-                                    <i class="fas fa-folder-open mr-2"></i> 파일 선택
-                                </label>
-                                <input type="file" id="thumbnailFile" accept="image/*" class="hidden" onchange="handleThumbnailFile(this)">
-                            </div>
-                            <div id="thumbnailPreview" class="hidden mt-2 w-full h-48 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center border border-gray-200 relative">
-                                <img src="" class="h-full object-contain">
-                                <button type="button" onclick="clearThumbnail()" class="absolute top-2 right-2 bg-white rounded-full p-1 shadow-md text-gray-500 hover:text-red-500">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            </div>
+                            <label class="block text-gray-700 font-medium mb-1">썸네일</label>
+                            <div class="flex gap-2"><input type="text" name="thumbnail_url" id="courseThumbnail" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg"><input type="file" id="thumbnailFile" accept="image/*" class="hidden" onchange="handleThumbnailFile(this)"><button type="button" onclick="document.getElementById('thumbnailFile').click()" class="px-4 py-2 bg-gray-200 rounded-lg">파일</button></div>
+                            <div id="thumbnailPreview" class="hidden mt-2 relative"><img src="" class="max-h-40 mx-auto"><button type="button" onclick="clearThumbnail()" class="absolute top-0 right-0 p-1 bg-white rounded-full shadow"><i class="fas fa-times"></i></button></div>
                         </div>
                     </div>
-                    <div class="mt-6 flex justify-end space-x-3">
-                        <button type="button" onclick="closeModal('createCourseModal')" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">취소</button>
-                        <button type="submit" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">저장하기</button>
-                    </div>
+                    <div class="mt-6 flex justify-end space-x-3 pt-4 border-t"><button type="button" onclick="closeModal('createCourseModal')" class="px-4 py-2 text-gray-600">취소</button><button type="submit" class="px-6 py-2 bg-purple-600 text-white rounded-lg shadow-sm">저장하기</button></div>
                 </form>
             </div>
         </div>
     </div>
 
     <script>
-        // 페이지 로드 시 목록 조회
-        document.addEventListener('DOMContentLoaded', loadCourses);
+        document.addEventListener('DOMContentLoaded', () => { 
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            if (user.role === 'teacher') {
+                const btn = document.getElementById('btnCreateCourse');
+                if (btn) btn.style.display = 'none';
+            }
+            loadCourses(); 
+            loadInstructors(); 
+        });
+        
+        async function loadInstructors() {
+            try {
+                const res = await fetch('/api/hrd/personnel');
+                const result = await res.json();
+                if (result.success) {
+                    const select = document.getElementById('courseInstructor');
+                    result.data.forEach(p => {
+                        const opt = document.createElement('option');
+                        opt.value = p.id; // user_id (not instructor table id) might be better depending on schema, assuming p.id is user_id from query
+                        opt.textContent = p.name + ' (' + p.position + ')';
+                        select.appendChild(opt);
+                    });
+                }
+            } catch (e) {
+                console.error('Failed to load instructors:', e);
+            }
+        }
 
         function openModal(id, course = null) {
-            const modal = document.getElementById(id);
-            const form = document.getElementById('createCourseForm');
-            const title = document.getElementById('modalTitle');
-            
+            const m = document.getElementById(id); const f = document.getElementById('createCourseForm');
             if (course) {
-                // 수정 모드
-                title.textContent = '과정 수정';
+                document.getElementById('modalTitle').textContent = '과정 수정';
                 document.getElementById('courseId').value = course.id;
                 document.getElementById('courseTitle').value = course.title;
                 document.getElementById('courseCategory').value = course.category || '일반과정';
                 document.getElementById('courseStatus').value = course.status || 'open';
+                document.getElementById('courseInstructor').value = course.instructor_id || '';
                 document.getElementById('coursePrice').value = course.price || '';
                 document.getElementById('courseMaxStudents').value = course.max_students || '';
                 document.getElementById('courseStartDate').value = course.start_date ? course.start_date.split('T')[0] : '';
                 document.getElementById('courseEndDate').value = course.end_date ? course.end_date.split('T')[0] : '';
-                document.getElementById('courseDescription').value = course.description || '';
                 document.getElementById('courseThumbnail').value = course.thumbnail_url || '';
                 updateThumbnailPreview(course.thumbnail_url || '');
-
-                // 스케줄 데이터 파싱
                 try {
-                    if (course.schedule) {
-                        // JSON 형식이면 파싱, 아니면 텍스트로 처리
-                        if (course.schedule.startsWith('{')) {
-                            const schedule = JSON.parse(course.schedule);
-                            document.getElementById('courseStartTime').value = schedule.startTime || '';
-                            document.getElementById('courseEndTime').value = schedule.endTime || '';
-                            document.getElementById('courseDays').value = schedule.days || '';
-                            
-                            // 요일 패턴에 따라 타입 선택
-                            if (schedule.days === '월,화,수,목,금') {
-                                document.getElementById('courseType').value = 'weekday';
-                            } else if (schedule.days === '토,일') {
-                                document.getElementById('courseType').value = 'weekend';
-                            } else {
-                                document.getElementById('courseType').value = 'custom';
-                            }
-                        } else {
-                            document.getElementById('courseDays').value = course.schedule;
-                            document.getElementById('courseType').value = 'custom';
-                        }
-                    } else {
-                        resetScheduleFields();
-                    }
-                } catch (e) {
-                    console.error('Schedule parse error:', e);
-                    resetScheduleFields();
-                }
+                    if (course.schedule && course.schedule.startsWith('{')) {
+                        const s = JSON.parse(course.schedule);
+                        document.getElementById('courseStartTime').value = s.startTime || '';
+                        document.getElementById('courseEndTime').value = s.endTime || '';
+                        document.getElementById('courseDays').value = s.days || '';
+                    } else { document.getElementById('courseDays').value = course.schedule || ''; }
+                } catch(e) { console.error(e); }
             } else {
-                // 등록 모드
-                title.textContent = '과정 개설';
-                form.reset();
-                document.getElementById('courseId').value = '';
-                document.getElementById('courseStatus').value = 'open';
-                document.getElementById('courseCategory').value = '일반과정';
-                updateThumbnailPreview('');
-                resetScheduleFields();
+                document.getElementById('modalTitle').textContent = '과정 개설'; f.reset(); document.getElementById('courseId').value = ''; updateThumbnailPreview('');
             }
-            
-            modal.classList.remove('hidden');
-
-            // TinyMCE 초기화 또는 내용 설정
-            // TinyMCE 초기화 (항상 새로 초기화)
-            initTinyMCE(course ? (course.description || '') : '');
+            m.classList.remove('hidden'); initTinyMCE(course ? (course.description || '') : '');
         }
-
-        function initTinyMCE(initialContent) {
+        function initTinyMCE(content) {
+            if (tinymce.get('courseDescription')) tinymce.get('courseDescription').remove();
             tinymce.init({
-                selector: '#courseDescription',
-                height: 400,
-                menubar: false,
-                plugins: [
-                    'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
-                    'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
-                    'insertdatetime', 'media', 'table', 'help', 'wordcount'
-                ],
-                toolbar: 'undo redo | blocks | ' +
-                    'bold italic backcolor | alignleft aligncenter ' +
-                    'alignright alignjustify | bullist numlist outdent indent | ' +
-                    'removeformat | image code | help',
-                content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:14px }',
-                images_upload_handler: (blobInfo, progress) => new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = () => {
-                        resolve(reader.result);
-                    };
-                    reader.onerror = () => {
-                        reject('Image upload failed');
-                    };
-                    reader.readAsDataURL(blobInfo.blob());
-                }),
-                setup: function(editor) {
-                    editor.on('init', function(e) {
-                        editor.setContent(initialContent);
-                    });
-                }
+                selector: '#courseDescription', height: 300, menubar: false,
+                plugins: ['advlist', 'autolink', 'lists', 'link', 'image', 'code', 'help', 'wordcount'],
+                toolbar: 'undo redo | bold italic | alignleft aligncenter alignright | bullist numlist | code help',
+                setup: function(ed) { ed.on('init', function() { ed.setContent(content); }); }
             });
         }
-
         async function handleThumbnailFile(input) {
             if (input.files && input.files[0]) {
-                const file = input.files[0];
-                
-                // 파일 크기 체크 (10MB 이상이면 경고)
-                const maxSize = 10 * 1024 * 1024; // 10MB
-                if (file.size > maxSize) {
-                    alert('파일 크기가 너무 큽니다. 10MB 이하의 이미지를 선택해주세요.');
-                    input.value = '';
-                    return;
-                }
-                
-                try {
-                    // 이미지 리사이징
-                    const resizedDataUrl = await resizeImage(file, {
-                        maxWidth: 1920,
-                        maxHeight: 1080,
-                        quality: 0.85
-                    });
-                    
-                    document.getElementById('courseThumbnail').value = resizedDataUrl;
-                    updateThumbnailPreview(resizedDataUrl);
-                    
-                    // 원본 크기와 리사이징 후 크기 비교 (선택사항)
-                    const originalSizeKB = (file.size / 1024).toFixed(2);
-                    const resizedSizeKB = ((resizedDataUrl.length * 3/4) / 1024).toFixed(2);
-                    console.log('이미지 최적화: ' + originalSizeKB + 'KB → ' + resizedSizeKB + 'KB');
-                } catch (error) {
-                    console.error('이미지 처리 오류:', error);
-                    alert('이미지 처리 중 오류가 발생했습니다.');
-                }
-            }
-        }
-
-        /**
-         * 이미지를 리사이징하고 Data URL로 반환합니다.
-         */
-        async function resizeImage(file, options = {}) {
-            const {
-                maxWidth = 1920,
-                maxHeight = 1080,
-                quality = 0.85,
-                outputFormat = 'image/jpeg'
-            } = options;
-
-            return new Promise((resolve, reject) => {
                 const reader = new FileReader();
-                
-                reader.onload = (e) => {
-                    const img = new Image();
-                    
-                    img.onload = () => {
-                        let width = img.width;
-                        let height = img.height;
-                        
-                        // 리사이징이 필요한지 확인
-                        if (width <= maxWidth && height <= maxHeight) {
-                            // 리사이징 불필요, 원본 반환
-                            resolve(e.target.result);
-                            return;
-                        }
-                        
-                        // 비율 유지하며 리사이징
-                        const aspectRatio = width / height;
-                        
-                        if (width > maxWidth) {
-                            width = maxWidth;
-                            height = width / aspectRatio;
-                        }
-                        
-                        if (height > maxHeight) {
-                            height = maxHeight;
-                            width = height * aspectRatio;
-                        }
-                        
-                        // Canvas를 사용해 리사이징
-                        const canvas = document.createElement('canvas');
-                        canvas.width = width;
-                        canvas.height = height;
-                        
-                        const ctx = canvas.getContext('2d');
-                        if (!ctx) {
-                            reject(new Error('Canvas context를 가져올 수 없습니다.'));
-                            return;
-                        }
-                        
-                        // 이미지 그리기
-                        ctx.drawImage(img, 0, 0, width, height);
-                        
-                        // Data URL로 변환
-                        try {
-                            const dataUrl = canvas.toDataURL(outputFormat, quality);
-                            resolve(dataUrl);
-                        } catch (err) {
-                            reject(new Error('이미지 변환에 실패했습니다: ' + err.message));
-                        }
-                    };
-                    
-                    img.onerror = () => {
-                        reject(new Error('이미지 로드에 실패했습니다.'));
-                    };
-                    
-                    img.src = e.target.result;
-                };
-                
-                reader.onerror = () => {
-                    reject(new Error('파일 읽기에 실패했습니다.'));
-                };
-                
-                reader.readAsDataURL(file);
-            });
+                reader.onload = function(e) { document.getElementById('courseThumbnail').value = e.target.result; updateThumbnailPreview(e.target.result); };
+                reader.readAsDataURL(input.files[0]);
+            }
         }
-
         function updateThumbnailPreview(src) {
-            const preview = document.getElementById('thumbnailPreview');
-            const img = preview.querySelector('img');
-            
-            if (src && src.trim() !== '') {
-                img.src = src;
-                preview.classList.remove('hidden');
-            } else {
-                preview.classList.add('hidden');
-                img.src = '';
-            }
+            const p = document.getElementById('thumbnailPreview'); const img = p.querySelector('img');
+            if (src) { img.src = src; p.classList.remove('hidden'); } else { p.classList.add('hidden'); }
         }
-
-        function clearThumbnail() {
-            document.getElementById('courseThumbnail').value = '';
-            document.getElementById('thumbnailFile').value = '';
-            updateThumbnailPreview('');
-        }
-
-        function closeModal(id) {
-            document.getElementById(id).classList.add('hidden');
-            if (id === 'createCourseModal') {
-                tinymce.remove('#courseDescription');
-            }
-        }
-
+        function clearThumbnail() { document.getElementById('courseThumbnail').value = ''; updateThumbnailPreview(''); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); if(tinymce.get('courseDescription')) tinymce.get('courseDescription').remove(); }
         async function loadCourses() {
-            const category = document.getElementById('categoryFilter').value;
-            const search = document.getElementById('searchInput').value;
-            
-            let url = '/api/courses?';
-            if (category) url += 'category=' + encodeURIComponent(category) + '&';
-            if (search) url += 'search=' + encodeURIComponent(search);
-
+            const cat = document.getElementById('categoryFilter').value; const s = document.getElementById('searchInput').value;
+            let url = '/api/courses?'; if(cat) url += 'category=' + encodeURIComponent(cat) + '&'; if(s) url += 'search=' + encodeURIComponent(s);
             try {
-                const token = localStorage.getItem('token');
-                const response = await fetch(url, {
-                    headers: {
-                        'Authorization': 'Bearer ' + token
-                    }
-                });
-                const result = await response.json();
-                
+                const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
+                const r = await res.json();
                 const tbody = document.getElementById('coursesTableBody');
-                
-                if (!result.success) {
-                    tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-red-500">데이터를 불러오는데 실패했습니다.</td></tr>';
-                    return;
-                }
-
-                if (result.data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-12 text-center text-gray-500">등록된 과정이 없습니다.</td></tr>';
-                    return;
-                }
-
-                tbody.innerHTML = result.data.map(course => \`
-                    <tr class="hover:bg-gray-50 transition">
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full \${
-                                course.status === 'open' ? 'bg-green-100 text-green-800' : 
-                                course.status === 'closed' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'
-                            }">
-                                \${course.status === 'open' ? '모집중' : course.status === 'closed' ? '마감' : '준비중'}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4">
-                            <div class="text-sm font-medium text-gray-900">\${course.title}</div>
-                            <div class="text-xs text-gray-500 mt-1">
-                                \${course.start_date ? new Date(course.start_date).toLocaleDateString() : '미정'} ~ 
-                                \${course.end_date ? new Date(course.end_date).toLocaleDateString() : '미정'}
-                            </div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            \${course.price ? Number(course.price).toLocaleString() + '원' : '무료'}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            \${course.max_students || '-'}명
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            \${new Date(course.created_at).toLocaleDateString()}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <div class="flex items-center justify-end space-x-2">
-                                <a href="/admin/courses/\${course.id}/lms" class="text-purple-600 hover:text-purple-900 px-3 py-1 bg-purple-50 rounded-md transition flex items-center">
-                                    <i class="fas fa-graduation-cap mr-1"></i> 학사관리
-                                </a>
-                                <button onclick='editCourse(\${JSON.stringify(course).replace(/'/g, "&#39;")})' class="text-blue-600 hover:text-blue-900 px-2 py-1">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button onclick="deleteCourse(\${course.id})" class="text-red-600 hover:text-red-900 px-2 py-1">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
+                if (!r.success || r.data.length === 0) { tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-12 text-center text-gray-500">데이터가 없습니다.</td></tr>'; return; }
+                tbody.innerHTML = r.data.map(c => \`
+                    <tr class="hover:bg-gray-100 transition">
+                        <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 py-1 rounded-full text-xs font-bold \${c.status === 'open' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">\${c.status === 'open' ? '모집중' : '마감'}</span></td>
+                        <td class="px-6 py-4"><div class="font-bold">\${c.title}</div><div class="text-xs text-gray-500">\${c.start_date?.split('T')[0]} ~ \${c.end_date?.split('T')[0]}</div></td>
+                        <td class="px-6 py-4">\${Number(c.price || 0).toLocaleString()}원</td>
+                        <td class="px-6 py-4">\${c.max_students || 0}명</td>
+                        <td class="px-6 py-4">\${c.created_at?.split('T')[0]}</td>
+                        <td class="px-6 py-4 text-right space-x-2">
+                            <a href="/admin/courses/\${c.id}/lms" class="text-purple-600 hover:underline">관리</a>
+                            <button onclick='editCourse(\${JSON.stringify(c).replace(/'/g, "&#39;")})' class="text-blue-600"><i class="fas fa-edit"></i></button>
+                            \${JSON.parse(localStorage.getItem('user') || '{}').role !== 'teacher' ? \`<button onclick="deleteCourse(\${c.id})" class="text-red-600"><i class="fas fa-trash"></i></button>\` : ''}
                         </td>
                     </tr>
                 \`).join('');
-                
-            } catch (error) {
-                console.error('Error:', error);
-                document.getElementById('coursesTableBody').innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-red-500">오류가 발생했습니다.</td></tr>';
-            }
+            } catch(e) { console.error(e); }
         }
-
-        function editCourse(course) {
-            openModal('createCourseModal', course);
-        }
-
         async function handleSaveCourse(e) {
-            e.preventDefault();
-            
-            const form = e.target;
-            const formData = new FormData(form);
-
-            // TinyMCE 내용 동기화
-            if (tinymce.get('courseDescription')) {
-                tinymce.triggerSave();
-                formData.set('description', tinymce.get('courseDescription').getContent());
-            }
-
-            // 스케줄 데이터 JSON 변환
-            const scheduleData = {
-                startTime: document.getElementById('courseStartTime').value,
-                endTime: document.getElementById('courseEndTime').value,
-                days: document.getElementById('courseDays').value
-            };
-            formData.set('schedule', JSON.stringify(scheduleData));
-
-            const data = Object.fromEntries(formData.entries());
-            const id = data.id;
-            
+            e.preventDefault(); const f = e.target; const fd = new FormData(f);
+            if (tinymce.get('courseDescription')) { tinymce.triggerSave(); fd.set('description', tinymce.get('courseDescription').getContent()); }
+            const sch = { startTime: document.getElementById('courseStartTime').value, endTime: document.getElementById('courseEndTime').value, days: document.getElementById('courseDays').value };
+            fd.set('schedule', JSON.stringify(sch));
+            const data = Object.fromEntries(fd.entries()); const id = data.id;
             try {
-                const token = localStorage.getItem('token');
-                const url = id ? '/api/courses/' + id : '/api/courses';
-                const method = id ? 'PUT' : 'POST';
-
-                const response = await fetch(url, {
-                    method: method,
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + token
-                    },
+                const res = await fetch(id ? '/api/courses/'+id : '/api/courses', {
+                    method: id ? 'PUT' : 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
                     body: JSON.stringify(data)
                 });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    alert(id ? '수정되었습니다.' : '개설되었습니다.');
-                    closeModal('createCourseModal');
-                    loadCourses(); // 목록 새로고침
-                } else {
-                    alert('오류: ' + result.error);
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('저장 중 오류가 발생했습니다.');
-            }
+                const r = await res.json();
+                if (r.success) { alert('성공'); closeModal('createCourseModal'); loadCourses(); } else { alert(r.error); }
+            } catch(err) { console.error(err); }
         }
-
         async function deleteCourse(id) {
-            if (!confirm('정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return;
-
+            if(!confirm('삭제하시겠습니까?')) return;
             try {
-                const token = localStorage.getItem('token');
-                const response = await fetch('/api/courses/' + id, {
-                    method: 'DELETE',
-                    headers: {
-                        'Authorization': 'Bearer ' + token
-                    }
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    alert('삭제되었습니다.');
-                    loadCourses(); // 목록 새로고침
-                } else {
-                    alert('오류: ' + result.error);
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('삭제 중 오류가 발생했습니다.');
-            }
+                const res = await fetch('/api/courses/'+id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
+                const r = await res.json(); if (r.success) { alert('삭제됨'); loadCourses(); } else { alert(r.error); }
+            } catch(e) { console.error(e); }
         }
-
         function updateDaysOfWeek() {
-            const type = document.getElementById('courseType').value;
-            const daysInput = document.getElementById('courseDays');
-            
-            if (type === 'weekday') {
-                daysInput.value = '월,화,수,목,금';
-            } else if (type === 'weekend') {
-                daysInput.value = '토,일';
-            } else {
-                daysInput.value = '';
-            }
-        }
-
-        function resetScheduleFields() {
-            document.getElementById('courseStartTime').value = '';
-            document.getElementById('courseEndTime').value = '';
-            document.getElementById('courseDays').value = '';
-            document.getElementById('courseType').value = 'custom';
+            const t = document.getElementById('courseType').value; const d = document.getElementById('courseDays');
+            if(t==='weekday') d.value='월,화,수,목,금'; else if(t==='weekend') d.value='토,일'; else d.value='';
         }
     </script>
 </body>

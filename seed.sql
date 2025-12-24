@@ -8,7 +8,12 @@ INSERT OR IGNORE INTO users (id, email, password, name, phone, role) VALUES
   (2, 'teacher1@greenart.co.kr', '$2a$10$hash...', '김강사', '010-1111-2222', 'teacher'),
   (3, 'teacher2@greenart.co.kr', '$2a$10$hash...', '이강사', '010-3333-4444', 'teacher'),
   (4, 'student1@example.com', '$2a$10$hash...', '홍길동', '010-1234-5678', 'student'),
-  (5, 'student2@example.com', '$2a$10$hash...', '김영희', '010-8765-4321', 'student');
+  (5, 'student2@example.com', '$2a$10$hash...', '김영희', '010-8765-4321', 'student'),
+  (6, 'minsu@example.com', '$2a$10$hash...', '김민수', '010-1111-2222', 'student'),
+  (7, 'jieun@example.com', '$2a$10$hash...', '이지은', '010-3333-4444', 'student'),
+  (8, 'junhyung@example.com', '$2a$10$hash...', '박준형', '010-5555-6666', 'student'),
+  (9, 'sujin@example.com', '$2a$10$hash...', '최수진', '010-7777-8888', 'student'),
+  (10, 'woosung@example.com', '$2a$10$hash...', '정우성', '010-9999-0000', 'student');
 
 -- 2. 캠퍼스 추가
 INSERT OR IGNORE INTO campuses (id, name, region, address, phone, email, lat, lng, description, certifications) VALUES 
@@ -73,15 +78,16 @@ INSERT OR IGNORE INTO enrollments (user_id, course_id, status, payment_status, p
   (5, 3, 'pending', 'unpaid', 3000000, 0);
 
 -- 5. 리뷰 추가
-INSERT OR IGNORE INTO reviews (user_id, course_id, rating, title, content, approved) VALUES 
-  (4, 1, 5, '정말 실무에 도움이 많이 됐어요!', 
-   '웹디자인 기초부터 실전까지 체계적으로 배울 수 있었습니다. 강사님이 친절하시고 포트폴리오 지도도 꼼꼼하게 해주셔서 좋았어요.', 1),
+DELETE FROM reviews;
+INSERT INTO reviews (user_id, course_id, rating, title, content, approved, created_at) VALUES 
+  (6, 1, 5, '비전공자도 쉽게 따라갈 수 있어요', 
+   '처음에는 걱정이 많았는데 강사님이 기초부터 차근차근 알려주셔서 끝까지 잘 마칠 수 있었습니다. 포트폴리오 완성도가 높아서 취업에도 큰 도움이 될 것 같아요.', 1, datetime('now', '-2 days')),
   
-  (5, 1, 5, '국비지원 과정 중 최고입니다', 
-   '무료로 이렇게 퀄리티 높은 수업을 들을 수 있다니 정말 감사합니다. 취업까지 연계해주셔서 더욱 만족스러웠습니다.', 1),
+  (7, 2, 5, '실무 중심의 커리큘럼이 좋았습니다', 
+   '이론보다는 실제 프로젝트를 진행하면서 배우는 방식이라 실력 향상에 큰 도움이 되었습니다. 특히 현업에서 쓰는 툴과 방식을 배울 수 있어서 좋았어요.', 1, datetime('now', '-5 days')),
   
-  (4, 2, 5, 'React 마스터 완료!', 
-   'React 기초부터 TypeScript까지 완벽하게 배웠습니다. 실무 프로젝트를 통해 실력이 많이 늘었어요.', 1);
+  (8, 3, 4, '영상 편집의 기초를 확실히 다졌습니다', 
+   '프리미어 프로와 애프터 이펙트를 처음 다뤄봤는데, 이제는 웬만한 영상은 혼자서 만들 수 있게 되었습니다. 유튜브 채널 운영에 큰 도움이 되고 있어요.', 1, datetime('now', '-10 days'));
 
 -- 6. 공지사항 추가
 INSERT OR IGNORE INTO posts (category, title, content, author_id, pinned) VALUES 

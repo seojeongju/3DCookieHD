@@ -1,0 +1,87 @@
+export const teacherSidebar = (activeMenu: string) => `
+<aside class="w-64 bg-slate-800 text-white flex flex-col shadow-xl z-20 flex-shrink-0">
+    <!-- 로고 영역 -->
+    <div class="h-16 flex items-center px-6 bg-slate-900 border-b border-slate-700">
+        <i class="fas fa-chalkboard-teacher text-blue-400 mr-3 text-xl"></i>
+        <span class="font-bold text-lg tracking-tight">강사 전용 시스템</span>
+    </div>
+
+    <!-- 메뉴 영역 -->
+    <nav class="flex-1 py-6 space-y-1 overflow-y-auto custom-scrollbar">
+        <div class="px-4 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">메인</div>
+        <a href="/teacher" class="flex items-center px-6 py-3 ${activeMenu === 'dashboard' ? 'bg-slate-700 border-r-4 border-blue-500 text-white' : 'text-slate-300 hover:bg-slate-700 hover:text-white transition-colors'} group">
+            <i class="fas fa-chart-pie w-6 ${activeMenu === 'dashboard' ? 'text-blue-400' : 'text-slate-400 group-hover:text-white transition-colors'}"></i>
+            <span class="font-medium">대시보드</span>
+        </a>
+
+        <!-- 학사 관리 -->
+        <div class="px-4 mt-8 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">학사 관리</div>
+        <a href="/teacher/courses" class="flex items-center px-6 py-3 ${activeMenu === 'courses' ? 'bg-slate-700 border-r-4 border-blue-500 text-white' : 'text-slate-300 hover:bg-slate-700 hover:text-white transition-colors'} group">
+            <i class="fas fa-book w-6 ${activeMenu === 'courses' ? 'text-blue-400' : 'text-slate-400 group-hover:text-white transition-colors'}"></i>
+            <span class="font-medium">나의 강의 관리</span>
+        </a>
+        <a href="/teacher/students" class="flex items-center px-6 py-3 ${activeMenu === 'students' ? 'bg-slate-700 border-r-4 border-blue-500 text-white' : 'text-slate-300 hover:bg-slate-700 hover:text-white transition-colors'} group">
+            <i class="fas fa-user-graduate w-6 ${activeMenu === 'students' ? 'text-blue-400' : 'text-slate-400 group-hover:text-white transition-colors'}"></i>
+            <span class="font-medium">수강생 관리</span>
+        </a>
+        <a href="/teacher/attendance" class="flex items-center px-6 py-3 ${activeMenu === 'attendance' ? 'bg-slate-700 border-r-4 border-blue-500 text-white' : 'text-slate-300 hover:bg-slate-700 hover:text-white transition-colors'} group">
+            <i class="fas fa-clock w-6 ${activeMenu === 'attendance' ? 'text-blue-400' : 'text-slate-400 group-hover:text-white transition-colors'}"></i>
+            <span class="font-medium">출석 관리</span>
+        </a>
+        <a href="/teacher/exams" class="flex items-center px-6 py-3 ${activeMenu === 'exams' ? 'bg-slate-700 border-r-4 border-blue-500 text-white' : 'text-slate-300 hover:bg-slate-700 hover:text-white transition-colors'} group">
+            <i class="fas fa-file-alt w-6 ${activeMenu === 'exams' ? 'text-blue-400' : 'text-slate-400 group-hover:text-white transition-colors'}"></i>
+            <span class="font-medium">시험 출제/채점</span>
+        </a>
+
+        <!-- 커뮤니티 -->
+        <div class="px-4 mt-8 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">커뮤니티</div>
+        <a href="/teacher/posts" class="flex items-center px-6 py-3 ${activeMenu === 'posts' ? 'bg-slate-700 border-r-4 border-blue-500 text-white' : 'text-slate-300 hover:bg-slate-700 hover:text-white transition-colors'} group">
+            <i class="fas fa-comments w-6 ${activeMenu === 'posts' ? 'text-blue-400' : 'text-slate-400 group-hover:text-white transition-colors'}"></i>
+            <span class="font-medium">게시판/공지</span>
+        </a>
+
+        <div class="h-10"></div>
+    </nav>
+    
+    <!-- 하단 프로필 -->
+    <div class="p-4 bg-slate-900 border-t border-slate-700 shadow-inner">
+        <div class="flex items-center px-2">
+            <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-sm shadow-md">T</div>
+            <div class="ml-3">
+                <p id="sidebar-teacher-name" class="text-sm font-medium text-white">강사</p>
+                <p class="text-xs text-slate-400">Teacher</p>
+            </div>
+        </div>
+    </div>
+</aside>
+<style>
+/* 커스텀 스크롤바 */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: #1e293b; 
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #475569; 
+    border-radius: 3px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #64748b; 
+}
+</style>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+            try {
+                const user = JSON.parse(userStr);
+                const nameEl = document.getElementById('sidebar-teacher-name');
+                if (nameEl && user.name) {
+                    nameEl.textContent = user.name;
+                }
+            } catch(e) {}
+        }
+    });
+</script>
+`;

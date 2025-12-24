@@ -178,6 +178,10 @@ export const loginHtml = `
                         
                         if (user.role === 'admin') {
                             location.href = '/admin';
+                        } else if (user.role === 'teacher') {
+                            location.href = '/teacher';
+                        } else if (user.role === 'student') {
+                            location.href = '/student';
                         } else {
                             location.href = '/';
                         }

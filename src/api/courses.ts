@@ -5,6 +5,7 @@
 import { Hono } from 'hono';
 import type { Bindings, Course, CourseFilter } from '../types';
 import { successResponse, errorResponse, notFoundResponse, paginatedResponse } from '../utils/response';
+import { verifyToken } from '../utils/jwt';
 import { getOne, getAll, execute, calculatePagination } from '../utils/database';
 
 const courses = new Hono<{ Bindings: Bindings }>();
@@ -36,6 +37,21 @@ courses.get('/', async (c) => {
     // WHERE 조건 구성
     const conditions: string[] = [];
     const params: any[] = [];
+
+    // 역할 기반 필터링 (강사는 본인 과정만)
+    const authHeader = c.req.header('Authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      try {
+        const payload = await verifyToken(token);
+        if (payload && payload.role === 'teacher') {
+          conditions.push('c.teacher_id = ?');
+          params.push(payload.userId);
+        }
+      } catch (e) {
+        // 토큰 오류 무시 (비로그인 처리)
+      }
+    }
 
     if (filter.category) {
       conditions.push('c.category = ?');

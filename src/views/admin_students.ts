@@ -1,4 +1,6 @@
-export const adminStudentsListHtml = `
+import { hrdSidebar } from './components/hrd_sidebar';
+
+export const adminStudentsListHtml = (sidebar = hrdSidebar('students')) => `
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -39,25 +41,11 @@ export const adminStudentsListHtml = `
         ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
     </style>
 </head>
-<body class="bg-gray-50">
-    <!-- 네비게이션 -->
-    <nav class="bg-white shadow-md sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-20">
-                <div class="flex items-center space-x-4">
-                    <a href="/admin" class="flex items-center space-x-4">
-                        <img src="/static/logo.png" alt="WOW 3D" class="h-12">
-                        <span class="text-xl font-bold text-gray-800">관리자 대시보드</span>
-                    </a>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <a href="/admin" class="text-gray-700 hover:text-primary-600 font-medium">
-                        <i class="fas fa-arrow-left mr-2"></i>대시보드로 돌아가기
-                    </a>
-                </div>
-            </div>
-        </div>
-    </nav>
+<body class="bg-gray-50 font-sans">
+    <div class="flex h-screen overflow-hidden">
+        ${sidebar}
+        <div class="flex-1 flex flex-col overflow-hidden bg-gray-50">
+            <main class="flex-1 overflow-y-auto custom-scrollbar">
 
     <!-- 헤더 -->
     <div class="bg-white border-b border-gray-200">
@@ -165,7 +153,9 @@ export const adminStudentsListHtml = `
                 </table>
             </div>
         </div>
+        </main>
     </div>
+</div>
 
     <!-- 학생 상세 모달 -->
     <div id="studentDetailModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 hidden">
@@ -256,6 +246,11 @@ export const adminStudentsListHtml = `
         let allStudents = [];
 
         document.addEventListener('DOMContentLoaded', () => {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            if (user.role === 'teacher') {
+                const tab = document.getElementById('tab-consultations');
+                if (tab) tab.style.display = 'none';
+            }
             loadStudents();
             loadCoursesForDropdown();
         });

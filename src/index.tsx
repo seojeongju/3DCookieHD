@@ -12,12 +12,16 @@ import campuses from './api/campuses';
 import enrollments from './api/enrollments';
 import reviews from './api/reviews';
 import posts from './api/posts';
-import hrd from './api/hrd';
+
 import schedules from './api/schedules';
 import jobs from './api/jobs';
 import jobseekers from './api/jobseekers';
 import exams from './api/exams';
 import students from './api/students';
+import consultations from './api/consultations';
+import hrd from './api/hrd';
+import dashboard from './api/dashboard';
+import { setupApi } from './api/setup';
 import { adminDashboardHtml } from './views/admin';
 import { adminJobsListHtml } from './views/admin_jobs';
 import { adminJobseekersListHtml } from './views/admin_jobseekers';
@@ -25,9 +29,19 @@ import { jobsListHtml } from './views/jobs';
 import { jobseekersListHtml } from './views/jobseekers';
 import { adminCoursesListHtml } from './views/admin_courses';
 import { adminStudentsListHtml } from './views/admin_students';
+import { adminHrdHtml } from './views/admin_hrd';
+import { adminHrdPersonnelHtml } from './views/admin_hrd_personnel';
+import { adminHrdItemsHtml } from './views/admin_hrd_items';
+import { adminHrdStudentsHtml } from './views/admin_hrd_students';
+import { adminHrdFacilitiesHtml } from './views/admin_hrd_facilities';
+import { adminHrdAttendanceHtml } from './views/admin_hrd_attendance';
+import { adminHrdAttendancePrintHtml } from './views/admin_hrd_attendance_print';
+import { adminHrdCounselingHtml } from './views/admin_hrd_counseling';
 import { adminExamsHtml, adminExamCreateHtml, adminExamEditHtml } from './views/admin_exams';
 import { studentExamHtml } from './views/student_exam';
 import { studentDashboardHtml } from './views/student_dashboard';
+import { teacherDashboardHtml } from './views/teacher_dashboard';
+import { teacherSidebar } from './views/components/teacher_sidebar';
 import { adminGradesHtml } from './views/admin_grades';
 import { reviewsListHtml } from './views/reviews';
 import { loginHtml } from './views/login';
@@ -39,14 +53,8 @@ import { scheduleHtml } from './views/schedule';
 import { locationsHtml } from './views/locations';
 import { coursesListHtml } from './views/courses';
 import { achievementsHtml } from './views/achievements';
-import { adminHrdHtml } from './views/admin_hrd';
-import { adminHrdStudentsHtml } from './views/admin_hrd_students';
-import { adminHrdCoursesHtml } from './views/admin_hrd_courses';
-import { adminHrdPersonnelHtml } from './views/admin_hrd_personnel';
-import { adminHrdNcsPlanHtml } from './views/admin_hrd_ncs_plan';
-import { adminHrdNcsExecHtml } from './views/admin_hrd_ncs_exec';
-import { adminHrdNcsResultHtml } from './views/admin_hrd_ncs_result';
-import { adminHrdEvaluationHtml } from './views/admin_hrd_evaluation';
+import { footerHtml } from './views/footer';
+
 
 const app = new Hono<{ Bindings: Bindings }>();
 
@@ -84,7 +92,7 @@ app.route('/api/reviews', reviews);
 
 // 게시판 API
 app.route('/api/posts', posts);
-app.route('/api/hrd', hrd);
+
 
 // 스케줄 API
 app.route('/api/schedules', schedules);
@@ -99,7 +107,37 @@ app.route('/api/jobseekers', jobseekers);
 app.route('/api/exams', exams);
 
 // 학생 관리 API
+// 학생 관리 API
 app.route('/api/students', students);
+
+// HRD 행정 API
+app.route('/api/hrd', hrd);
+app.route('/api/dashboard', dashboard);
+app.route('/api/consultations', consultations);
+app.route('/api/setup', setupApi);
+
+app.get('/admin', (c) => c.html(adminDashboardHtml));
+app.get('/admin/jobs', (c) => c.html(adminJobsListHtml));
+app.get('/admin/jobseekers', (c) => c.html(adminJobseekersListHtml));
+app.get('/admin/courses', (c) => c.html(adminCoursesListHtml()));
+app.get('/admin/users', (c) => c.html(adminStudentsListHtml()));
+app.get('/admin/hrd', (c) => c.html(adminHrdHtml()));
+app.get('/admin/personnel', (c) => c.html(adminHrdPersonnelHtml()));
+app.get('/admin/items', (c) => c.html(adminHrdItemsHtml()));
+app.get('/admin/students', (c) => c.html(adminHrdStudentsHtml()));
+app.get('/admin/facilities', (c) => c.html(adminHrdFacilitiesHtml()));
+app.get('/admin/attendance', (c) => c.html(adminHrdAttendanceHtml()));
+app.get('/admin/attendance/print', (c) => c.html(adminHrdAttendancePrintHtml));
+app.get('/admin/counseling', (c) => c.html(adminHrdCounselingHtml));
+app.get('/admin/exams', (c) => c.html(adminExamsHtml()));
+
+// Teacher Dashboard
+app.get('/teacher', (c) => c.html(teacherDashboardHtml));
+app.get('/teacher/courses', (c) => c.html(adminCoursesListHtml(teacherSidebar('courses')))); // Reusing admin views for now or TODO: create teacher specific views
+app.get('/teacher/students', (c) => c.html(adminStudentsListHtml(teacherSidebar('students'))));
+app.get('/teacher/attendance', (c) => c.html(adminHrdAttendanceHtml(teacherSidebar('attendance'))));
+app.get('/teacher/exams', (c) => c.html(adminExamsHtml(teacherSidebar('exams'))));
+app.get('/teacher/posts', (c) => c.html(adminPostsListHtml(teacherSidebar('posts'))));
 
 // ============================================
 // 페이지 라우트
@@ -112,14 +150,6 @@ app.get('/schedule', (c) => c.html(scheduleHtml));
 app.get('/locations', (c) => c.html(locationsHtml));
 app.get('/achievements', (c) => c.html(achievementsHtml));
 app.get('/reviews', (c) => c.html(reviewsListHtml));
-app.get('/admin/hrd', (c) => c.html(adminHrdHtml));
-app.get('/admin/hrd/students', (c) => c.html(adminHrdStudentsHtml));
-app.get('/admin/hrd/courses', (c) => c.html(adminHrdCoursesHtml));
-app.get('/admin/hrd/personnel', (c) => c.html(adminHrdPersonnelHtml));
-app.get('/admin/hrd/ncs-plan', (c) => c.html(adminHrdNcsPlanHtml));
-app.get('/admin/hrd/ncs-exec', (c) => c.html(adminHrdNcsExecHtml));
-app.get('/admin/hrd/ncs-result', (c) => c.html(adminHrdNcsResultHtml));
-app.get('/admin/hrd/evaluation', (c) => c.html(adminHrdEvaluationHtml));
 
 // ============================================
 // 헬스체크 엔드포인트
@@ -497,7 +527,7 @@ app.get('/', (c) => {
                             </button>
                             <div class="absolute left-0 top-full mt-0 w-48 bg-white rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 border border-gray-100 overflow-hidden z-50">
                                 <div class="py-1">
-                                    <a href="/online-consulting" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">온라인상담신청</a>
+                                    <a href="/#contact" onclick="if(typeof scrollToSection === 'function') { event.preventDefault(); scrollToSection('contact'); }" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">온라인상담신청</a>
                                     <a href="/corporate-education" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">기업단체교육</a>
                                     <a href="/university-education" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">대학맞춤교육</a>
                                 </div>
@@ -977,60 +1007,40 @@ app.get('/', (c) => {
                         </div>
                     </div>
                     
-                    <!-- 빠른 수강조회 (오른쪽) -->
-                    <div class="bg-gradient-to-br from-primary-50 to-blue-50 rounded-lg p-6 border border-primary-200">
-                        <h3 class="text-2xl font-bold text-gray-800 mb-2">빠른 수강료 조회</h3>
-                        <p class="text-sm text-gray-600 mb-6">수강료를 빠르게 안내해드립니다.</p>
+                    <!-- 온라인 상담 신청 (오른쪽) -->
+                    <div id="contact" class="bg-gradient-to-br from-primary-50 to-blue-50 rounded-lg p-6 border border-primary-200">
+                        <h3 class="text-2xl font-bold text-gray-800 mb-2">온라인 상담 신청</h3>
+                        <p class="text-sm text-gray-600 mb-6">궁금하신 점을 남겨주시면 친절하게 상담해 드립니다.</p>
                         
-                        <form id="quickInquiryForm" class="space-y-4">
-                            <!-- 지점선택 -->
+                        <form id="consultationForm" class="space-y-4" onsubmit="submitConsultation(event)">
+                            <!-- 센터선택 -->
                             <div>
                                 <label class="block text-sm font-bold text-gray-700 mb-2 bg-primary-600 text-white px-3 py-2 rounded">
-                                    지점선택
+                                    센터선택
                                 </label>
-                                <select class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
-                                    <option value="">||지점선택||</option>
-                                    <option value="hongdae">홍대센터</option>
-                                    <option value="gangnam">강남센터</option>
-                                    <option value="online">온라인</option>
+                                <select name="campus_name" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                                    <option value="">||센터선택||</option>
+                                    <option value="홍대센터">홍대센터</option>
+                                    <option value="구미센터">구미센터</option>
+                                    <option value="전주센터">전주센터</option>
                                 </select>
                             </div>
                             
-                            <!-- 희망분야 -->
+                            <!-- 개설과정 -->
                             <div>
                                 <label class="block text-sm font-bold text-gray-700 mb-2 bg-primary-600 text-white px-3 py-2 rounded">
-                                    희망분야
+                                    개설과정
                                 </label>
-                                <div class="grid grid-cols-2 gap-3">
-                                    <label class="flex items-center space-x-2 cursor-pointer">
-                                        <input type="checkbox" class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500">
-                                        <span class="text-sm">웹개발</span>
-                                    </label>
-                                    <label class="flex items-center space-x-2 cursor-pointer">
-                                        <input type="checkbox" class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500">
-                                        <span class="text-sm">편집디자인</span>
-                                    </label>
-                                    <label class="flex items-center space-x-2 cursor-pointer">
-                                        <input type="checkbox" class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500">
-                                        <span class="text-sm">IT개발</span>
-                                    </label>
-                                    <label class="flex items-center space-x-2 cursor-pointer">
-                                        <input type="checkbox" class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500">
-                                        <span class="text-sm">영상/게임/VR</span>
-                                    </label>
-                                    <label class="flex items-center space-x-2 cursor-pointer">
-                                        <input type="checkbox" class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500">
-                                        <span class="text-sm">세무회계 OA</span>
-                                    </label>
-                                    <label class="flex items-center space-x-2 cursor-pointer">
-                                        <input type="checkbox" class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500">
-                                        <span class="text-sm">건축 산업디자인</span>
-                                    </label>
-                                    <label class="flex items-center space-x-2 cursor-pointer">
-                                        <input type="checkbox" class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500">
-                                        <span class="text-sm">AI</span>
-                                    </label>
-                                </div>
+                                <select name="category" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                                    <option value="">||과정선택||</option>
+                                    <option value="웹개발">웹개발</option>
+                                    <option value="편집디자인">편집디자인</option>
+                                    <option value="IT개발">IT개발</option>
+                                    <option value="영상/게임/VR">영상/게임/VR</option>
+                                    <option value="세무회계 OA">세무회계 OA</option>
+                                    <option value="건축 산업디자인">건축 산업디자인</option>
+                                    <option value="AI">AI</option>
+                                </select>
                             </div>
                             
                             <!-- 이름 -->
@@ -1038,7 +1048,7 @@ app.get('/', (c) => {
                                 <label class="block text-sm font-bold text-gray-700 mb-2 bg-primary-600 text-white px-3 py-2 rounded">
                                     이름
                                 </label>
-                                <input type="text" placeholder="이름을 입력해주세요." class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                                <input type="text" name="name" placeholder="이름을 입력해주세요." class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" required>
                             </div>
                             
                             <!-- 연락처 -->
@@ -1047,21 +1057,29 @@ app.get('/', (c) => {
                                     연락처
                                 </label>
                                 <div class="flex gap-2">
-                                    <select class="w-1/3 px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
-                                        <option>010</option>
-                                        <option>011</option>
-                                        <option>016</option>
-                                        <option>017</option>
-                                        <option>019</option>
+                                    <select name="phone1" class="w-1/3 px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                                        <option value="010">010</option>
+                                        <option value="011">011</option>
+                                        <option value="016">016</option>
+                                        <option value="017">017</option>
+                                        <option value="019">019</option>
                                     </select>
-                                    <input type="text" placeholder="" maxlength="4" class="w-1/3 px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
-                                    <input type="text" placeholder="" maxlength="4" class="w-1/3 px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                                    <input type="text" name="phone2" placeholder="" maxlength="4" class="w-1/3 px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500" required>
+                                    <input type="text" name="phone3" placeholder="" maxlength="4" class="w-1/3 px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500" required>
                                 </div>
+                            </div>
+
+                            <!-- 문의내용 -->
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2 bg-primary-600 text-white px-3 py-2 rounded">
+                                    문의내용
+                                </label>
+                                <textarea name="message" rows="3" placeholder="궁금하신 점을 자유롭게 적어주세요." class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"></textarea>
                             </div>
                             
                             <!-- 개인정보 동의 -->
                             <div class="flex items-start space-x-2">
-                                <input type="checkbox" id="privacyAgree" class="w-4 h-4 mt-1 text-primary-600 rounded focus:ring-primary-500">
+                                <input type="checkbox" id="privacyAgree" name="privacy_agree" class="w-4 h-4 mt-1 text-primary-600 rounded focus:ring-primary-500" required>
                                 <label for="privacyAgree" class="text-xs text-gray-600">
                                     개인정보 수집 이용을 동의합니다. 
                                     <a href="#" class="text-primary-600 underline">[내용보기]</a>
@@ -1070,8 +1088,8 @@ app.get('/', (c) => {
                             
                             <!-- 제출 버튼 -->
                             <button type="submit" class="w-full bg-primary-600 text-white py-4 rounded-lg font-bold text-lg hover:bg-primary-700 transition flex items-center justify-center gap-2">
-                                <i class="fas fa-search"></i>
-                                수강료조회
+                                <i class="fas fa-paper-plane"></i>
+                                상담 신청하기
                             </button>
                         </form>
                     </div>
@@ -1253,42 +1271,8 @@ app.get('/', (c) => {
         </section>
 
         <!-- 푸터 -->
-        <footer class="bg-gray-800 text-white py-12">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="grid md:grid-cols-3 gap-8">
-                    <div>
-                        <h3 class="text-lg font-bold mb-4">와우쓰리디홍대센터</h3>
-                        <p class="text-gray-400">3D 프린팅과 메이커 교육의 선두주자</p>
-                    </div>
-                    <div>
-                        <h3 class="text-lg font-bold mb-4">문의</h3>
-                        <p class="text-gray-400">전화: 02-1234-5678</p>
-                        <p class="text-gray-400">이메일: info@wow3dcookie.kr</p>
-                    </div>
-                    <div>
-                        <h3 class="text-lg font-bold mb-4">SNS</h3>
-                        <div class="flex space-x-4">
-                            <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-facebook text-2xl"></i></a>
-                            <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-instagram text-2xl"></i></a>
-                            <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-youtube text-2xl"></i></a>
-                        </div>
-                    </div>
-                </div>
-                <div class="border-t border-gray-700 mt-8 pt-8">
-                    <!-- 푸터 링크 -->
-                    <div class="flex justify-center items-center gap-6 mb-4 text-sm">
-                        <a href="/terms" class="text-gray-400 hover:text-white transition">이용약관</a>
-                        <span class="text-gray-600">|</span>
-                        <a href="/privacy" class="text-gray-400 hover:text-white transition">개인보호정책</a>
-                        <span class="text-gray-600">|</span>
-                        <a href="/partnership" class="text-gray-400 hover:text-white transition">제휴제안</a>
-                        <span class="text-gray-600">|</span>
-                        <a href="/sitemap" class="text-gray-400 hover:text-white transition">사이트맵</a>
-                    </div>
-                    <p class="text-center text-gray-400">&copy; 2025 와우쓰리디홍대센터. All rights reserved.</p>
-                </div>
-            </div>
-        </footer>
+        <!-- 푸터 -->
+        ${footerHtml()}
 
         <!-- 교육과정 상세 모달 -->
         <div id="courseModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
@@ -1327,7 +1311,7 @@ app.get('/', (c) => {
                         <button type="button" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary-600 text-base font-medium text-white hover:bg-primary-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm" onclick="closeCourseModal()">
                             닫기
                         </button>
-                        <a href="/online-consulting" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        <a href="/#contact" onclick="closeCourseModal(); scrollToSection('contact'); return false;" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
                             상담 신청
                         </a>
                     </div>
@@ -1473,6 +1457,7 @@ app.get('/', (c) => {
               
               if (result.success) {
                 displayCourses(result.data);
+                populateCourseDropdown(result.data);
               }
             } catch (error) {
               console.error('Error loading courses:', error);
@@ -1535,31 +1520,54 @@ app.get('/', (c) => {
             
             document.getElementById('courseList').innerHTML = html;
           }
+
+          // 과정 드롭다운 채우기
+          function populateCourseDropdown(courses) {
+            const select = document.querySelector('select[name="category"]');
+            if (!select) return;
+
+            // 기존 옵션 초기화
+            select.innerHTML = '<option value="">||과정선택||</option>';
+
+            // 과정명으로 옵션 추가
+            courses.forEach(course => {
+                const option = document.createElement('option');
+                option.value = course.title;
+                option.textContent = course.title;
+                select.appendChild(option);
+            });
+
+            // 기타 항목 추가
+            const otherOption = document.createElement('option');
+            otherOption.value = '기타';
+            otherOption.textContent = '기타';
+            select.appendChild(otherOption);
+          }
           
           // 캠퍼스 목록 로드
           async function loadCampuses() {
-            // 하드코딩된 캠퍼스 데이터 (홍대, 강남, 온라인)
+            // 하드코딩된 캠퍼스 데이터 (홍대, 구미, 전주)
             const campuses = [
                 {
                     name: '홍대센터',
-                    description: '3D프린팅/모델링 전문 교육의 중심, 와우쓰리디 홍대센터입니다.',
-                    address: '서울 마포구 홍익로 123, 와우빌딩 3층',
+                    description: '3D프린팅/모델링 전문 교육의 중심, 3D쿠키 홍대센터입니다.',
+                    address: '서울시 마포구 독막로 93 상수빌딩 4층',
                     phone: '02-3144-3137',
-                    email: '3dcookiehd@naver.com'
+                    email: '3dcookidhd@naver.com'
                 },
                 {
                     name: '구미센터',
-                    description: '경북 지역 첨단 의료기술 교육센터, 와우쓰리디 구미센터입니다.',
-                    address: '경북 구미시 산호대로 253 구미첨단의료기술타워606호',
+                    description: '경북 지역 첨단 의료기술 교육센터, 3D쿠키 구미센터입니다.',
+                    address: '경북 구미시 산호대로 253 구미첨단의료기술타워 606호',
                     phone: '054-464-3137',
-                    email: '3dcookiehd@naver.com'
+                    email: '3dcookidhd@naver.com'
                 },
                 {
                     name: '전주센터',
-                    description: '전북특별자치도 지역 3D프린팅 교육의 거점, 와우쓰리디 전주센터입니다.',
-                    address: '전북특별자치도 전주시 덕진구 반룡로 109 A동 207호',
+                    description: '전북특별자치도 지역 3D프린팅 교육의 거점, 3D쿠키 전주센터입니다.',
+                    address: '전북특별자치도 전주시 덕진구 반룡로 109 테크노빌A동 207호',
                     phone: '063-XXX-XXXX',
-                    email: '3dcookiehd@naver.com'
+                    email: '3dcookidhd@naver.com'
                 }
             ];
 
@@ -1839,11 +1847,56 @@ app.get('/', (c) => {
                 '</div>';
             }
           }
+          // 상담 신청 폼 제출
+          async function submitConsultation(event) {
+            event.preventDefault();
+            const form = event.target;
+            const formData = new FormData(form);
+            const data = {
+                campus_name: formData.get('campus_name'),
+                category: formData.get('category'),
+                name: formData.get('name'),
+                phone: formData.get('phone1') + '-' + formData.get('phone2') + '-' + formData.get('phone3'),
+                message: formData.get('message'),
+                privacy_agree: formData.get('privacy_agree') === 'on'
+            };
+
+            if (!data.name || !data.phone || !data.privacy_agree) {
+                alert('필수 항목을 입력해주세요.');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/consultations', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('상담 신청이 접수되었습니다. 담당자가 확인 후 연락드리겠습니다.');
+                    form.reset();
+                } else {
+                    alert('상담 신청에 실패했습니다: ' + (result.error || '알 수 없는 오류'));
+                }
+            } catch (e) {
+                console.error('Consultation submit error:', e);
+                alert('오류가 발생했습니다.');
+            }
+          }
         </script>
     </body>
     </html>
   `);
 });
+
+// ============================================
+// 온라인 상담 신청 리다이렉트
+// ============================================
+app.get('/online-consulting', (c) => c.redirect('/#contact'));
 
 // ============================================
 // 이용약관 페이지
@@ -2857,17 +2910,17 @@ app.get('/admin/jobseekers', (c) => {
 
 // 관리자 - 교육과정 관리 페이지
 app.get('/admin/courses', (c) => {
-    return c.html(adminCoursesListHtml);
+    return c.html(adminCoursesListHtml());
 });
 
 // 관리자 - 수강생 관리 페이지
 app.get('/admin/students', (c) => {
-    return c.html(adminStudentsListHtml);
+    return c.html(adminStudentsListHtml());
 });
 
 // 관리자 - 시험/문제 관리 페이지
 app.get('/admin/exams', (c) => {
-    return c.html(adminExamsHtml);
+    return c.html(adminExamsHtml());
 });
 
 app.get('/admin/exams/create', (c) => {
@@ -2900,7 +2953,7 @@ app.get('/admin/reviews', (c) => {
 
 // 관리자 - 게시판 관리 페이지
 app.get('/admin/posts', (c) => {
-    return c.html(adminPostsListHtml);
+    return c.html(adminPostsListHtml());
 });
 
 // ============================================
@@ -3111,7 +3164,7 @@ app.get('/greeting', (c) => {
 
                                                                                                         <!-- CTA 버튼 -->
                                                                                                         <div class="text-center">
-                                                                                                            <a href="/online-consulting" class="inline-block bg-gradient-to-r from-primary-600 to-blue-700 text-white px-8 py-4 rounded-lg font-bold text-lg hover:from-primary-700 hover:to-blue-800 transition shadow-lg hover:shadow-xl">
+                                                                                                            <a href="/#contact" class="inline-block bg-gradient-to-r from-primary-600 to-blue-700 text-white px-8 py-4 rounded-lg font-bold text-lg hover:from-primary-700 hover:to-blue-800 transition shadow-lg hover:shadow-xl">
                                                                                                                 <i class="fas fa-comments mr-2"></i>
                                                                                                                 상담 신청하기
                                                                                                             </a>
@@ -5017,19 +5070,15 @@ app.get('/university-education', (c) => {
                                                                                                                                                                                                 <p class="text-sm text-gray-500 mt-1">24시간 접수 가능</p>
                                                                                                                                                                                             </div>
                                                                                                                                                                                         </div>
-                                                                                                                                                                                        <a href="/online-consulting" class="block w-full bg-primary-600 text-white text-center py-4 rounded-lg font-semibold hover:bg-primary-700 transition text-lg">
-                                                                                                                                                                                            협력 제안서 신청하기
-                                                                                                                                                                                        </a>
+                                                                                                                                                                                         <a href="/#contact" class="block w-full bg-primary-600 text-white text-center py-4 rounded-lg font-semibold hover:bg-primary-700 transition text-lg">
+                                                                                                                                                                                             협력 제안서 신청하기
+                                                                                                                                                                                         </a>
                                                                                                                                                                                     </div>
                                                                                                                                                                                 </div>
                                                                                                                                                                             </div>
 
                                                                                                                                                                             <!-- 푸터 -->
-                                                                                                                                                                            <footer class="bg-gray-800 text-white py-8 mt-12">
-                                                                                                                                                                                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                                                                                                                                                                                    <p class="text-gray-400">&copy; 2025 와우쓰리디홍대센터. All rights reserved.</p>
-                                                                                                                                                                                </div>
-                                                                                                                                                                            </footer>
+                                                                                                                                                                            ${footerHtml()}
                                                                                                                                                                         </body>
                                                                                                                                                                     </html>
                                                                                                                                                                     `);
@@ -5047,10 +5096,15 @@ app.get('/register', (c) => c.html(registerHtml));
 app.get('/admin', (c) => c.html(adminDashboardHtml));
 app.get('/admin/jobs', (c) => c.html(adminJobsListHtml));
 app.get('/admin/jobseekers', (c) => c.html(adminJobseekersListHtml));
-app.get('/admin/courses', (c) => c.html(adminCoursesListHtml));
-app.get('/admin/students', (c) => c.html(adminStudentsListHtml));
+app.get('/admin/courses', (c) => c.html(adminCoursesListHtml()));
+app.get('/admin/students', (c) => c.html(adminStudentsListHtml()));
 app.get('/admin/reviews', (c) => c.html(adminReviewsListHtml));
-app.get('/admin/posts', (c) => c.html(adminPostsListHtml));
+app.get('/admin/posts', (c) => c.html(adminPostsListHtml()));
+app.get('/admin/hrd', (c) => c.html(adminHrdHtml()));
+app.get('/admin/hrd/personnel', (c) => c.html(adminHrdPersonnelHtml()));
+app.get('/admin/hrd/items', (c) => c.html(adminHrdItemsHtml()));
+app.get('/admin/hrd/students', (c) => c.html(adminHrdStudentsHtml()));
+app.get('/admin/hrd/facilities', (c) => c.html(adminHrdFacilitiesHtml()));
 
 // ============================================
 // 404 핸들러

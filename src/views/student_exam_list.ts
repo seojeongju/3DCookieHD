@@ -97,7 +97,7 @@ export const studentExamListHtml = `
             try {
                 const token = localStorage.getItem('token');
                 // 학생용 시험 목록 조회 API (응시 여부 포함)
-                const response = await fetch(\`/api/cbt/student/exams?course_id=\${courseId}\`, {
+                const response = await fetch(\`/api/exams/student/exams?course_id=\${courseId}\`, {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
                 const result = await response.json();

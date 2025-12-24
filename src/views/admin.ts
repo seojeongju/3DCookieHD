@@ -1,3 +1,5 @@
+import { hrdSidebar } from './components/hrd_sidebar';
+
 export const adminDashboardHtml = `
 <!DOCTYPE html>
 <html lang="ko">
@@ -40,111 +42,7 @@ export const adminDashboardHtml = `
 <body class="bg-gray-50 font-sans">
     <div class="flex h-screen overflow-hidden">
         <!-- 사이드바 -->
-        <aside class="w-64 bg-white border-r border-gray-200 flex flex-col z-20">
-            <!-- 로고 영역 -->
-            <div class="h-16 flex items-center px-6 border-b border-gray-200">
-                <img src="/static/logo.png" alt="WOW 3D" class="h-8 w-auto mr-2">
-                <span class="font-bold text-gray-800 tracking-tight">관리자 시스템</span>
-            </div>
-
-            <!-- 메뉴 영역 -->
-            <div class="flex-1 overflow-y-auto py-4">
-                <nav class="px-4 space-y-6">
-                    <!-- 대시보드 -->
-                    <div>
-                        <a href="/admin" class="sidebar-menu-item active flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                            <i class="fas fa-home w-5 h-5 mr-3 text-gray-400"></i>
-                            대시보드
-                        </a>
-                    </div>
-
-                    <!-- 학사 관리 (LMS) -->
-                    <div>
-                        <h3 class="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">학사 관리</h3>
-                        <ul class="space-y-1">
-                            <li>
-                                <a href="/admin/courses" class="flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-50 hover:text-primary-600 transition-colors">
-                                    <i class="fas fa-book w-5 h-5 mr-3 text-gray-400 group-hover:text-primary-500"></i>
-                                    교육과정 관리
-                                </a>
-                            </li>
-
-                            <li>
-                                <a href="/admin/exams" class="flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-50 hover:text-primary-600 transition-colors">
-                                    <i class="fas fa-file-alt w-5 h-5 mr-3 text-gray-400 group-hover:text-primary-500"></i>
-                                    시험/문제 관리
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/admin/grades" class="flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-50 hover:text-primary-600 transition-colors">
-                                    <i class="fas fa-chart-line w-5 h-5 mr-3 text-gray-400 group-hover:text-primary-500"></i>
-                                    성적/채점 관리
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/admin/hrd" class="flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-50 hover:text-primary-600 transition-colors">
-                                    <i class="fas fa-university w-5 h-5 mr-3 text-gray-400 group-hover:text-primary-500"></i>
-                                    HRD 행정관리
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-
-                    <!-- 운영 관리 (관리자 전용) -->
-                    <div id="group-operation">
-                        <h3 class="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">운영 관리</h3>
-                        <ul class="space-y-1">
-                            <li id="menu-jobs">
-                                <a href="/admin/jobs" class="flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-50 hover:text-primary-600 transition-colors">
-                                    <i class="fas fa-briefcase w-5 h-5 mr-3 text-gray-400 group-hover:text-primary-500"></i>
-                                    채용공고 관리
-                                </a>
-                            </li>
-                            <li id="menu-jobseekers">
-                                <a href="/admin/jobseekers" class="flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-50 hover:text-primary-600 transition-colors">
-                                    <i class="fas fa-user-tie w-5 h-5 mr-3 text-gray-400 group-hover:text-primary-500"></i>
-                                    인재풀 관리
-                                </a>
-                            </li>
-                            <li id="menu-posts">
-                                <a href="/admin/posts" class="flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-50 hover:text-primary-600 transition-colors">
-                                    <i class="fas fa-comments w-5 h-5 mr-3 text-gray-400 group-hover:text-primary-500"></i>
-                                    게시판 관리
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-
-                    <!-- 시스템 (관리자 전용) -->
-                    <div id="group-system">
-                        <h3 class="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">시스템</h3>
-                        <ul class="space-y-1">
-                            <li id="menu-settings">
-                                <a href="/admin/settings" class="flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-50 hover:text-primary-600 transition-colors">
-                                    <i class="fas fa-cog w-5 h-5 mr-3 text-gray-400 group-hover:text-primary-500"></i>
-                                    사이트 설정
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                </nav>
-            </div>
-
-            <!-- 하단 프로필 영역 -->
-            <div class="p-4 border-t border-gray-200">
-                <div class="flex items-center">
-                    <div class="flex-shrink-0">
-                        <div class="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-bold">
-                            <i class="fas fa-user"></i>
-                        </div>
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-sm font-medium text-gray-700" id="user-name">관리자</p>
-                        <p class="text-xs text-gray-500 cursor-pointer hover:text-red-600" onclick="logout()">로그아웃</p>
-                    </div>
-                </div>
-            </div>
-        </aside>
+        ${hrdSidebar('dashboard')}
 
         <!-- 메인 컨텐츠 영역 -->
         <main class="flex-1 overflow-y-auto bg-gray-50">
@@ -172,8 +70,8 @@ export const adminDashboardHtml = `
                             </div>
                         </div>
                         <div class="flex items-baseline">
-                            <span class="text-2xl font-bold text-gray-800">1,234</span>
-                            <span class="ml-2 text-sm text-green-500"><i class="fas fa-arrow-up"></i> 12%</span>
+                            <span id="stat-total-students" class="text-2xl font-bold text-gray-800">-</span>
+                            <span class="ml-2 text-sm text-green-500"><i class="fas fa-arrow-up"></i> <span id="stat-student-growth">0</span>%</span>
                         </div>
                     </div>
                     
@@ -185,7 +83,7 @@ export const adminDashboardHtml = `
                             </div>
                         </div>
                         <div class="flex items-baseline">
-                            <span class="text-2xl font-bold text-gray-800">8</span>
+                            <span id="stat-active-courses" class="text-2xl font-bold text-gray-800">-</span>
                             <span class="ml-2 text-sm text-gray-500">개설 강좌</span>
                         </div>
                     </div>
@@ -198,7 +96,7 @@ export const adminDashboardHtml = `
                             </div>
                         </div>
                         <div class="flex items-baseline">
-                            <span class="text-2xl font-bold text-gray-800">15</span>
+                            <span id="stat-new-inquiries" class="text-2xl font-bold text-gray-800">-</span>
                             <span class="ml-2 text-sm text-red-500">미답변</span>
                         </div>
                     </div>
@@ -211,8 +109,8 @@ export const adminDashboardHtml = `
                             </div>
                         </div>
                         <div class="flex items-baseline">
-                            <span class="text-2xl font-bold text-gray-800">92%</span>
-                            <span class="ml-2 text-sm text-green-500"><i class="fas fa-arrow-up"></i> 3%</span>
+                            <span id="stat-avg-attendance" class="text-2xl font-bold text-gray-800">-%</span>
+                            <span class="ml-2 text-sm text-green-500"><i class="fas fa-arrow-up"></i> <span id="stat-attendance-growth">0</span>%</span>
                         </div>
                     </div>
                 </div>
@@ -271,6 +169,7 @@ export const adminDashboardHtml = `
                                 </div>
                                 <span class="font-medium">HRD 시스템</span>
                             </button>
+
                         </div>
                     </div>
                 </div>
@@ -491,11 +390,38 @@ export const adminDashboardHtml = `
                             badge.classList.add('bg-blue-100', 'text-blue-600');
                         }
                     }
+    loadDashboardStats();
                 } catch (e) {
                     console.error('User parse error', e);
                 }
             }
         });
+
+        async function loadDashboardStats() {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/dashboard/stats', {
+                    headers: {
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    const data = result.data;
+                    document.getElementById('stat-total-students').textContent = data.totalStudents.toLocaleString();
+                    document.getElementById('stat-active-courses').textContent = data.activeCourses;
+                    document.getElementById('stat-new-inquiries').textContent = data.newInquiries;
+                    document.getElementById('stat-avg-attendance').textContent = data.avgAttendance + '%';
+                    
+                    // 성장률 (선택적)
+                    if (data.studentGrowth) document.getElementById('stat-student-growth').textContent = data.studentGrowth;
+                    if (data.attendanceGrowth) document.getElementById('stat-attendance-growth').textContent = data.attendanceGrowth;
+                }
+            } catch (error) {
+                console.error('Failed to load dashboard stats:', error);
+            }
+        }
 
         async function handleCreateJob(e) {
             e.preventDefault();

@@ -107,7 +107,7 @@ export const studentExamTakeHtml = `
         async function loadExamData() {
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch(\`/api/cbt/student/exams/\${examId}/take\`, {
+                const response = await fetch(\`/api/exams/\${examId}/take\`, {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
                 const result = await response.json();
@@ -253,7 +253,7 @@ export const studentExamTakeHtml = `
 
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch(\`/api/cbt/student/exams/\${examId}/submit\`, {
+                const response = await fetch(\`/api/exams/\${examId}/submit\`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

@@ -1,3 +1,5 @@
+import { hrdSidebar } from './components/hrd_sidebar';
+
 export const adminGradesHtml = `
 <!DOCTYPE html>
 <html lang="ko">
@@ -11,36 +13,8 @@ export const adminGradesHtml = `
 <body class="bg-gray-50 font-sans">
     <div class="flex h-screen overflow-hidden">
         <!-- 사이드바 -->
-        <aside class="w-64 bg-white border-r border-gray-200 flex flex-col z-20">
-            <div class="h-16 flex items-center px-6 border-b border-gray-200">
-                <img src="/static/logo.png" alt="WOW 3D" class="h-8 w-auto mr-2">
-                <span class="font-bold text-gray-800 tracking-tight">관리자 시스템</span>
-            </div>
-            <div class="flex-1 overflow-y-auto py-4">
-                <nav class="px-4 space-y-6">
-                    <div>
-                        <a href="/admin" class="flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                            <i class="fas fa-home w-5 h-5 mr-3 text-gray-400"></i>
-                            대시보드
-                        </a>
-                    </div>
-                    <div>
-                        <h3 class="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">학사 관리</h3>
-                        <ul class="space-y-1">
-                            <li><a href="/admin/courses" class="flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"><i class="fas fa-book w-5 h-5 mr-3 text-gray-400"></i>교육과정 관리</a></li>
-                            <li><a href="/admin/students" class="flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"><i class="fas fa-users w-5 h-5 mr-3 text-gray-400"></i>수강생 관리</a></li>
-                            <li><a href="/admin/exams" class="flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"><i class="fas fa-file-alt w-5 h-5 mr-3 text-gray-400"></i>시험/문제 관리</a></li>
-                            <li>
-                                <a href="/admin/grades" class="flex items-center px-4 py-2.5 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg transition-colors">
-                                    <i class="fas fa-chart-line w-5 h-5 mr-3 text-blue-500"></i>
-                                    성적/채점 관리
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                </nav>
-            </div>
-        </aside>
+        <!-- 사이드바 -->
+        ${hrdSidebar('grades')}
 
         <!-- 메인 컨텐츠 -->
         <main class="flex-1 overflow-y-auto bg-gray-50">
@@ -104,19 +78,30 @@ export const adminGradesHtml = `
         async function loadGrades() {
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch('/api/exams/results', {
+                const searchQuery = document.getElementById('searchInput').value;
+                const courseId = document.getElementById('courseFilter').value;
+                
+                let url = '/api/exams/results?';
+                if (searchQuery) url += \`query=\${encodeURIComponent(searchQuery)}&\`;
+                if (courseId) url += \`course_id=\${courseId}\`;
+
+                const response = await fetch(url, {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
-                const results = await response.json();
+                const result = await response.json();
                 
+                // Handle wrapped response
+                const results = result.success ? result.data : (Array.isArray(result) ? result : []);
+
                 const tbody = document.getElementById('gradeList');
                 if (results.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-10 text-center text-gray-500">제출된 성적 데이터가 없습니다.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-10 text-center text-gray-500">조건에 맞는 성적 데이터가 없습니다.</td></tr>';
                     return;
                 }
 
                 tbody.innerHTML = results.map(r => {
-                    const scorePercent = (r.score / r.total_points) * 100;
+                    const totalPoints = r.total_points || 100; // Default if null
+                    const scorePercent = (r.score / totalPoints) * 100;
                     let badgeClass = 'bg-gray-100 text-gray-800';
                     let statusText = '완료';
                     
@@ -144,7 +129,7 @@ export const adminGradesHtml = `
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">\${r.course_title || '-'}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">\${r.exam_title}</td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm text-gray-900 font-bold">\${r.score} / \${r.total_points}</div>
+                                <div class="text-sm text-gray-900 font-bold">\${r.score} / \${totalPoints}</div>
                                 <div class="text-xs text-gray-500">(\${scorePercent.toFixed(1)}%)</div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -163,6 +148,12 @@ export const adminGradesHtml = `
                 document.getElementById('gradeList').innerHTML = '<tr><td colspan="6" class="px-6 py-10 text-center text-red-500">데이터 로드 실패</td></tr>';
             }
         }
+
+        // Add event listeners for Enter key and Change
+        document.getElementById('searchInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') loadGrades();
+        });
+        document.getElementById('courseFilter').addEventListener('change', loadGrades);
 
         async function loadCoursesForFilter() {
             try {
