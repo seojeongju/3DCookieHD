@@ -34,12 +34,32 @@ function updateAcademicMenu() {
                         break;
 
                     case 'admin':
+                        // 관리자는 모든 페이지 접근 가능
                         menuHTML = `
+                            <div class="px-2 py-1">
+                                <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">대시보드</p>
+                            </div>
                             <a href="/admin" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600">
-                                <i class="fas fa-user-shield mr-2"></i>관리자 대시보드
+                                <i class="fas fa-user-shield mr-2 text-purple-600"></i>관리자 대시보드
                             </a>
+                            <a href="/teacher" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600">
+                                <i class="fas fa-chalkboard-teacher mr-2 text-blue-600"></i>강사 대시보드
+                            </a>
+                            <a href="/student" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600">
+                                <i class="fas fa-user-graduate mr-2 text-green-600"></i>학생 대시보드
+                            </a>
+                            <div class="border-t border-gray-100 my-1"></div>
+                            <div class="px-2 py-1">
+                                <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">HRD 시스템</p>
+                            </div>
                             <a href="/admin/hrd" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600">
-                                <i class="fas fa-building mr-2"></i>HRD 시스템
+                                <i class="fas fa-building mr-2 text-orange-600"></i>HRD 메인
+                            </a>
+                            <a href="/admin/personnel" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600">
+                                <i class="fas fa-users mr-2"></i>인원 관리
+                            </a>
+                            <a href="/admin/attendance" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600">
+                                <i class="fas fa-clipboard-check mr-2"></i>출결 관리
                             </a>
                         `;
                         break;
