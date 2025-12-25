@@ -208,7 +208,18 @@ app.post('/items', async (c) => {
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(category, name, model, parseInt(quantity), location, status, memo, image_url || null).run();
 
-        return c.json({ success: true, data: { id: result.meta.last_row_id } });
+        const newItemId = result.meta.last_row_id;
+
+        // Automatically add to facility items if location matches a facility name
+        if (location) {
+            const facility: any = await c.env.DB.prepare("SELECT id FROM hrd_facilities WHERE name = ?").bind(location).first();
+            if (facility) {
+                await c.env.DB.prepare("INSERT INTO hrd_facility_items (facility_id, item_id, quantity) VALUES (?, ?, ?)")
+                    .bind(facility.id, newItemId, parseInt(quantity)).run();
+            }
+        }
+
+        return c.json({ success: true, data: { id: newItemId } });
     } catch (e) {
         console.error('Failed to create item:', e);
         return c.json({ success: false, error: '물품 등록 실패' }, 500);
@@ -227,6 +238,19 @@ app.put('/items/:id', async (c) => {
             SET category = ?, name = ?, model = ?, quantity = ?, location = ?, status = ?, memo = ?, image_url = ?
             WHERE id = ?
         `).bind(category, name, model, parseInt(quantity), location, status, memo, image_url || null, id).run();
+
+        // Update facility items mapping
+        // 1. Remove existing mapping for this item
+        await c.env.DB.prepare("DELETE FROM hrd_facility_items WHERE item_id = ?").bind(id).run();
+
+        // 2. Add new mapping if location matches a facility name
+        if (location) {
+            const facility: any = await c.env.DB.prepare("SELECT id FROM hrd_facilities WHERE name = ?").bind(location).first();
+            if (facility) {
+                await c.env.DB.prepare("INSERT INTO hrd_facility_items (facility_id, item_id, quantity) VALUES (?, ?, ?)")
+                    .bind(facility.id, id, parseInt(quantity)).run();
+            }
+        }
 
         return c.json({ success: true });
     } catch (e) {
@@ -1605,7 +1629,18 @@ app.post('/items', async (c) => {
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(category, name, model, quantity || 0, location, status || 'good', memo, image_url || null).run();
 
-        return c.json({ success: true, data: { id: result.meta.last_row_id } });
+        const newItemId = result.meta.last_row_id;
+
+        // Automatically add to facility items if location matches a facility name
+        if (location) {
+            const facility: any = await c.env.DB.prepare("SELECT id FROM hrd_facilities WHERE name = ?").bind(location).first();
+            if (facility) {
+                await c.env.DB.prepare("INSERT INTO hrd_facility_items (facility_id, item_id, quantity) VALUES (?, ?, ?)")
+                    .bind(facility.id, newItemId, quantity || 0).run();
+            }
+        }
+
+        return c.json({ success: true, data: { id: newItemId } });
     } catch (e: any) {
         return errorResponse(c, e.message, 500);
     }
