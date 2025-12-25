@@ -177,9 +177,9 @@ app.get('/items', async (c) => {
         }
 
         if (search) {
-            whereClause += " AND (name LIKE ? OR model LIKE ?)";
+            whereClause += " AND (name LIKE ? OR model LIKE ? OR location LIKE ?)";
             const searchParam = `%${search}%`;
-            params.push(searchParam, searchParam);
+            params.push(searchParam, searchParam, searchParam);
         }
 
         // Total count
@@ -197,16 +197,29 @@ app.get('/items', async (c) => {
     }
 });
 
+// 물품 상세 조회
+app.get('/items/:id', async (c) => {
+    try {
+        const id = c.req.param('id');
+        const item = await c.env.DB.prepare('SELECT * FROM hrd_items WHERE id = ?').bind(id).first();
+        if (!item) return c.json({ success: false, error: '물품을 찾을 수 없습니다.' }, 404);
+        return c.json({ success: true, data: item });
+    } catch (e: any) {
+        return c.json({ success: false, error: '물품 상세 조회 실패' }, 500);
+    }
+});
+
 // 물품 등록
 app.post('/items', async (c) => {
     try {
         const body = await c.req.json();
         const { category, name, model, quantity, location, status, memo, image_url } = body;
+        const qty = Number(quantity) || 0;
 
         const result = await c.env.DB.prepare(`
             INSERT INTO hrd_items (category, name, model, quantity, location, status, memo, image_url)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `).bind(category, name, model, parseInt(quantity), location, status, memo, image_url || null).run();
+        `).bind(category, name, model, qty, location, status || 'good', memo, image_url || null).run();
 
         const newItemId = result.meta.last_row_id;
 
@@ -215,7 +228,7 @@ app.post('/items', async (c) => {
             const facility: any = await c.env.DB.prepare("SELECT id FROM hrd_facilities WHERE name = ?").bind(location).first();
             if (facility) {
                 await c.env.DB.prepare("INSERT INTO hrd_facility_items (facility_id, item_id, quantity) VALUES (?, ?, ?)")
-                    .bind(facility.id, newItemId, parseInt(quantity)).run();
+                    .bind(facility.id, newItemId, qty).run();
             }
         }
 
@@ -232,12 +245,13 @@ app.put('/items/:id', async (c) => {
         const id = c.req.param('id');
         const body = await c.req.json();
         const { category, name, model, quantity, location, status, memo, image_url } = body;
+        const qty = Number(quantity) || 0;
 
         await c.env.DB.prepare(`
             UPDATE hrd_items 
             SET category = ?, name = ?, model = ?, quantity = ?, location = ?, status = ?, memo = ?, image_url = ?
             WHERE id = ?
-        `).bind(category, name, model, parseInt(quantity), location, status, memo, image_url || null, id).run();
+        `).bind(category, name, model, qty, location, status, memo, image_url || null, id).run();
 
         // Update facility items mapping
         // 1. Remove existing mapping for this item
@@ -248,7 +262,7 @@ app.put('/items/:id', async (c) => {
             const facility: any = await c.env.DB.prepare("SELECT id FROM hrd_facilities WHERE name = ?").bind(location).first();
             if (facility) {
                 await c.env.DB.prepare("INSERT INTO hrd_facility_items (facility_id, item_id, quantity) VALUES (?, ?, ?)")
-                    .bind(facility.id, id, parseInt(quantity)).run();
+                    .bind(facility.id, id, qty).run();
             }
         }
 
@@ -302,6 +316,27 @@ app.get('/items/:id/rentals', async (c) => {
         return c.json({ success: true, data: results });
     } catch (e) {
         return c.json({ success: false, error: '이력 조회 실패' }, 500);
+    }
+});
+
+// 특정 물품이 배정된 시설 목록
+app.get('/items/:id/facilities', async (c) => {
+    try {
+        const itemId = c.req.param('id');
+
+        const { results } = await c.env.DB.prepare(`
+            SELECT 
+                f.id, f.name, f.status, f.manager_main,
+                fi.quantity, fi.assigned_at
+            FROM hrd_facility_items fi
+            JOIN hrd_facilities f ON fi.facility_id = f.id
+            WHERE fi.item_id = ?
+            ORDER BY f.name
+        `).bind(itemId).all();
+
+        return c.json({ success: true, data: results });
+    } catch (e: any) {
+        return c.json({ success: false, error: '시설 목록 조회 실패' }, 500);
     }
 });
 
@@ -1569,131 +1604,5 @@ app.post('/facilities/:id/images', async (c) => {
     }
 });
 
-// ============================================
-// 물품 관리 API
-// ============================================
-
-// 물품 목록 조회
-app.get('/items', async (c) => {
-    try {
-        const search = c.req.query('search');
-        const category = c.req.query('category');
-
-        let query = 'SELECT * FROM hrd_items WHERE 1=1';
-        const params: any[] = [];
-
-        if (search) {
-            query += ' AND (name LIKE ? OR model LIKE ? OR location LIKE ?)';
-            const searchPattern = `%${search}%`;
-            params.push(searchPattern, searchPattern, searchPattern);
-        }
-
-        if (category) {
-            query += ' AND category = ?';
-            params.push(category);
-        }
-
-        query += ' ORDER BY category, name';
-
-        const { results } = await c.env.DB.prepare(query).bind(...params).all();
-        return c.json({ success: true, data: results });
-    } catch (e: any) {
-        return errorResponse(c, e.message, 500);
-    }
-});
-
-// 물품 상세 조회
-app.get('/items/:id', async (c) => {
-    try {
-        const id = c.req.param('id');
-        const item = await c.env.DB.prepare('SELECT * FROM hrd_items WHERE id = ?').bind(id).first();
-
-        if (!item) {
-            return errorResponse(c, '물품을 찾을 수 없습니다.', 404);
-        }
-
-        return c.json({ success: true, data: item });
-    } catch (e: any) {
-        return errorResponse(c, e.message, 500);
-    }
-});
-
-// 물품 등록
-app.post('/items', async (c) => {
-    try {
-        const body = await c.req.json();
-        const { category, name, model, quantity, location, status, memo, image_url } = body;
-
-        const result = await c.env.DB.prepare(`
-            INSERT INTO hrd_items (category, name, model, quantity, location, status, memo, image_url)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `).bind(category, name, model, quantity || 0, location, status || 'good', memo, image_url || null).run();
-
-        const newItemId = result.meta.last_row_id;
-
-        // Automatically add to facility items if location matches a facility name
-        if (location) {
-            const facility: any = await c.env.DB.prepare("SELECT id FROM hrd_facilities WHERE name = ?").bind(location).first();
-            if (facility) {
-                await c.env.DB.prepare("INSERT INTO hrd_facility_items (facility_id, item_id, quantity) VALUES (?, ?, ?)")
-                    .bind(facility.id, newItemId, quantity || 0).run();
-            }
-        }
-
-        return c.json({ success: true, data: { id: newItemId } });
-    } catch (e: any) {
-        return errorResponse(c, e.message, 500);
-    }
-});
-
-// 물품 수정
-app.put('/items', async (c) => {
-    try {
-        const body = await c.req.json();
-        const { id, category, name, model, quantity, location, status, memo, image_url } = body;
-
-        await c.env.DB.prepare(`
-            UPDATE hrd_items 
-            SET category = ?, name = ?, model = ?, quantity = ?, location = ?, status = ?, memo = ?, image_url = ?
-            WHERE id = ?
-        `).bind(category, name, model, quantity, location, status, memo, image_url || null, id).run();
-
-        return c.json({ success: true });
-    } catch (e: any) {
-        return errorResponse(c, e.message, 500);
-    }
-});
-
-// 물품 삭제
-app.delete('/items/:id', async (c) => {
-    try {
-        const id = c.req.param('id');
-        await c.env.DB.prepare('DELETE FROM hrd_items WHERE id = ?').bind(id).run();
-        return c.json({ success: true });
-    } catch (e: any) {
-        return errorResponse(c, e.message, 500);
-    }
-});
-
-// 특정 물품이 배정된 시설 목록
-app.get('/items/:id/facilities', async (c) => {
-    try {
-        const itemId = c.req.param('id');
-
-        const { results } = await c.env.DB.prepare(`
-            SELECT 
-                f.id, f.name, f.status, f.manager_main,
-                fi.quantity, fi.assigned_at
-            FROM hrd_facility_items fi
-            JOIN hrd_facilities f ON fi.facility_id = f.id
-            WHERE fi.item_id = ?
-            ORDER BY f.name
-        `).bind(itemId).all();
-
-        return c.json({ success: true, data: results });
-    } catch (e: any) {
-        return errorResponse(c, e.message, 500);
-    }
-});
-
+// End of HRD API
 export default app;
