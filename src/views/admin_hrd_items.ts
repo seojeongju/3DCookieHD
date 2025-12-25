@@ -279,25 +279,28 @@ export const adminHrdItemsHtml = () => `
             
             // 시설 목록 추가
             facilitiesData.forEach(facility => {
-                options += '<option value="' + facility.name + '">' + facility.name + '</option>';
+                options += '<option value="' + facility.name + '">' + facility.name + '</option>';
+
             });
 
-// 직접 입력 옵션
-options += '<option value="__custom__">🖊️ 직접 입력</option>';
+            // 직접 입력 옵션
+            options += '<option value="__custom__">🖊️ 직접 입력</option>';
 
-select.innerHTML = options;
+            select.innerHTML = options;
 
-// 선택 변경 이벤트
-select.onchange = function () {
-    const customInput = document.getElementById('itemLocationCustom');
-    if (this.value === '__custom__') {
-        customInput.classList.remove('hidden');
-        customInput.focus();
-    } else {
-        customInput.classList.add('hidden');
-        customInput.value = '';
-    }
-};
+            // 선택 변경 이벤트
+            select.onchange = function () {
+                const customInput = document.getElementById('itemLocationCustom');
+                if (customInput) {
+                    if (this.value === '__custom__') {
+                        customInput.classList.remove('hidden');
+                        (customInput as HTMLInputElement).focus();
+                    } else {
+                        customInput.classList.add('hidden');
+                        (customInput as HTMLInputElement).value = '';
+                    }
+                }
+            };
         }
 
 function filterCategory(category) {
