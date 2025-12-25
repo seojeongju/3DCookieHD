@@ -294,10 +294,10 @@ export const adminHrdItemsHtml = () => `
                 if (customInput) {
                     if (this.value === '__custom__') {
                         customInput.classList.remove('hidden');
-                        (customInput as HTMLInputElement).focus();
+                        customInput.focus();
                     } else {
                         customInput.classList.add('hidden');
-                        (customInput as HTMLInputElement).value = '';
+                        customInput.value = '';
                     }
                 }
             };
@@ -521,8 +521,8 @@ async function handleSaveItem(e) {
     const data = Object.fromEntries(formData.entries());
 
     // handle custom location input
-    const locationSelect = document.getElementById('itemLocation') as HTMLSelectElement;
-    const customLocationInput = document.getElementById('itemLocationCustom') as HTMLInputElement;
+    const locationSelect = document.getElementById('itemLocation');
+    const customLocationInput = document.getElementById('itemLocationCustom');
     if (locationSelect \u0026\u0026 locationSelect.value === '__custom__' \u0026\u0026 customLocationInput) {
         data.location = customLocationInput.value;
     }
