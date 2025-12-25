@@ -158,7 +158,10 @@ export const adminHrdItemsHtml = () => `
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">보관 장소</label>
-                        <input type="text" name="location" id="itemLocation" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="예: 제1강의실">
+                        <select name="location" id="itemLocation" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                            <option value="">장소 선택 (또는 직접 입력)</option>
+                        </select>
+                        <input type="text" id="itemLocationCustom" class="hidden w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none mt-2" placeholder="직접 입력">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">상태</label>
@@ -245,69 +248,116 @@ export const adminHrdItemsHtml = () => `
     <script>
         let currentCategory = 'all';
         let currentPage = 1;
+        let facilitiesData = [];
 
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadFacilities();
             loadItems();
         });
 
-        function filterCategory(category) {
-            currentCategory = category;
-            
-            document.querySelectorAll('[id^="tab-"]').forEach(el => {
-                el.className = 'px-4 py-2 text-sm font-medium rounded-md text-gray-500 hover:text-gray-700 transition-all';
-            });
-            const activeTab = document.getElementById('tab-' + category);
-            if (activeTab) {
-                activeTab.className = 'px-4 py-2 text-sm font-medium rounded-md bg-white text-blue-600 shadow-sm transition-all';
+        // 시설 목록 불러오기
+        async function loadFacilities() {
+            try {
+                const response = await fetch('/api/hrd/facilities');
+                const result = await response.json();
+                if (result.success) {
+                    facilitiesData = result.data || [];
+                    populateFacilitySelect();
+                }
+            } catch (e) {
+                console.error('시설 목록 로딩 실패:', e);
             }
-
-            loadItems();
         }
 
-        async function loadItems(page = 1) {
-            currentPage = page;
-            try {
-                const search = document.getElementById('searchInput').value;
-                let url = '/api/hrd/items?';
-                if (currentCategory !== 'all') url += 'category=' + currentCategory + '&';
-                if (search) url += 'search=' + encodeURIComponent(search);
-                url += '&page=' + page + '&limit=10';
+        // 시설 선택 드롭다운 채우기
+        function populateFacilitySelect() {
+            const select = document.getElementById('itemLocation');
+            if (!select) return;
 
-                const response = await fetch(url);
-                const result = await response.json();
-                const tbody = document.getElementById('itemsTableBody');
-                
-                if (!result.success) {
-                    tbody.innerHTML = '<tr><td colspan="9" class="px-6 py-10 text-center text-red-500">데이터 로드 실패</td></tr>';
-                    return;
-                }
+            // 기본 옵션 유지
+            let options = '<option value="">장소 선택</option>';
+            
+            // 시설 목록 추가
+            facilitiesData.forEach(facility => {
+                options += `< option value = "${facility.name}" > ${ facility.name }</option>`;
+            });
 
-                if (result.data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="9" class="px-6 py-10 text-center text-gray-500">등록된 물품이 없습니다.</td></tr>';
-                    document.getElementById('paginationContainer').innerHTML = '';
-                    return;
-                }
+// 직접 입력 옵션
+options += '<option value="__custom__">🖊️ 직접 입력</option>';
 
-                tbody.innerHTML = result.data.map(item => {
-                    const itemData = JSON.stringify(item).replace(/"/g, '&quot;');
-                    
-                    const categoryLabel = item.category === 'textbook' ? '교재' : item.category === 'equipment' ? '비품/장비' : '소모품';
-                    const categoryClass = item.category === 'textbook' ? 'bg-green-100 text-green-800' :
-                                        item.category === 'equipment' ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800';
-                    
-                    const statusLabel = item.status === 'good' ? '양호' :
-                                      item.status === 'repair' ? '수리필요' :
-                                      item.status === 'discard' ? '폐기예정' :
-                                      item.status === 'shortage' ? '부족' : '-';
-                    
-                    const statusClass = item.status === 'good' ? 'text-green-700 bg-green-50' :
-                                      item.status === 'repair' ? 'text-red-700 bg-red-50' :
-                                      item.status === 'shortage' ? 'text-orange-700 bg-orange-50' : 'text-gray-700 bg-gray-50';
-                    const statusDotClass = item.status === 'good' ? 'bg-green-500' :
-                                         item.status === 'repair' ? 'bg-red-500' :
-                                         item.status === 'shortage' ? 'bg-orange-500' : 'bg-gray-500';
+select.innerHTML = options;
 
-                    return \`
+// 선택 변경 이벤트
+select.onchange = function () {
+    const customInput = document.getElementById('itemLocationCustom');
+    if (this.value === '__custom__') {
+        customInput.classList.remove('hidden');
+        customInput.focus();
+    } else {
+        customInput.classList.add('hidden');
+        customInput.value = '';
+    }
+};
+        }
+
+function filterCategory(category) {
+    currentCategory = category;
+
+    document.querySelectorAll('[id^="tab-"]').forEach(el => {
+        el.className = 'px-4 py-2 text-sm font-medium rounded-md text-gray-500 hover:text-gray-700 transition-all';
+    });
+    const activeTab = document.getElementById('tab-' + category);
+    if (activeTab) {
+        activeTab.className = 'px-4 py-2 text-sm font-medium rounded-md bg-white text-blue-600 shadow-sm transition-all';
+    }
+
+    loadItems();
+}
+
+async function loadItems(page = 1) {
+    currentPage = page;
+    try {
+        const search = document.getElementById('searchInput').value;
+        let url = '/api/hrd/items?';
+        if (currentCategory !== 'all') url += 'category=' + currentCategory + '&';
+        if (search) url += 'search=' + encodeURIComponent(search);
+        url += '&page=' + page + '&limit=10';
+
+        const response = await fetch(url);
+        const result = await response.json();
+        const tbody = document.getElementById('itemsTableBody');
+
+        if (!result.success) {
+            tbody.innerHTML = '<tr><td colspan="9" class="px-6 py-10 text-center text-red-500">데이터 로드 실패</td></tr>';
+            return;
+        }
+
+        if (result.data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="9" class="px-6 py-10 text-center text-gray-500">등록된 물품이 없습니다.</td></tr>';
+            document.getElementById('paginationContainer').innerHTML = '';
+            return;
+        }
+
+        tbody.innerHTML = result.data.map(item => {
+            const itemData = JSON.stringify(item).replace(/"/g, '&quot;');
+
+            const categoryLabel = item.category === 'textbook' ? '교재' : item.category === 'equipment' ? '비품/장비' : '소모품';
+            const categoryClass = item.category === 'textbook' ? 'bg-green-100 text-green-800' :
+                item.category === 'equipment' ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800';
+
+            const statusLabel = item.status === 'good' ? '양호' :
+                item.status === 'repair' ? '수리필요' :
+                    item.status === 'discard' ? '폐기예정' :
+                        item.status === 'shortage' ? '부족' : '-';
+
+            const statusClass = item.status === 'good' ? 'text-green-700 bg-green-50' :
+                item.status === 'repair' ? 'text-red-700 bg-red-50' :
+                    item.status === 'shortage' ? 'text-orange-700 bg-orange-50' : 'text-gray-700 bg-gray-50';
+            const statusDotClass = item.status === 'good' ? 'bg-green-500' :
+                item.status === 'repair' ? 'bg-red-500' :
+                    item.status === 'shortage' ? 'bg-orange-500' : 'bg-gray-500';
+
+            return \`
                         <tr class="hover:bg-gray-50 transition-colors">
                             <td class="px-6 py-4"><input type="checkbox" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"></td>
                             <td class="px-6 py-4">
@@ -466,6 +516,13 @@ async function handleSaveItem(e) {
     e.preventDefault();
     const formData = new FormData(e.target);
     const data = Object.fromEntries(formData.entries());
+
+    // handle custom location input
+    const locationSelect = document.getElementById('itemLocation') as HTMLSelectElement;
+    const customLocationInput = document.getElementById('itemLocationCustom') as HTMLInputElement;
+    if (locationSelect \u0026\u0026 locationSelect.value === '__custom__' \u0026\u0026 customLocationInput) {
+        data.location = customLocationInput.value;
+    }
 
     try {
         let url = '/api/hrd/items';
