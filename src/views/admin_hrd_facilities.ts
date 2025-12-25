@@ -110,6 +110,7 @@ export const adminHrdFacilitiesHtml = () => `
         <div class="h-16 flex items-center justify-between px-6 border-b border-gray-100 bg-white z-10">
             <h2 class="text-lg font-bold text-gray-900">시설 상세 정보</h2>
             <div class="flex items-center gap-2">
+                <button onclick="openEditModalFromDrawer()" class="text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"><i class="fas fa-edit mr-1"></i>수정</button>
                 <button onclick="deleteFacility()" class="text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"><i class="fas fa-trash-alt mr-1"></i>삭제</button>
                 <button onclick="closeDrawer()" class="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100 transition-colors"><i class="fas fa-times text-xl"></i></button>
             </div>
@@ -124,14 +125,15 @@ export const adminHrdFacilitiesHtml = () => `
         </div>
     </div>
 
-    <!-- Create Modal -->
+    <!-- Create/Edit Modal -->
     <div id="createModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center backdrop-blur-sm">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all scale-100">
             <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                <h3 class="text-lg font-bold text-gray-900">새 훈련시설 등록</h3>
+                <h3 class="text-lg font-bold text-gray-900" id="modalTitle">새 훈련시설 등록</h3>
                 <button onclick="closeCreateModal()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
             </div>
             <div class="p-6 space-y-4">
+                <input type="hidden" id="editFacilityId">
                 <div>
                     <label class="block text-sm font-bold text-gray-700 mb-1">시설명 <span class="text-red-500">*</span></label>
                     <input type="text" id="newFacName" class="w-full border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" placeholder="예: 제1강의실">
@@ -173,7 +175,7 @@ export const adminHrdFacilitiesHtml = () => `
             </div>
             <div class="px-6 py-4 bg-gray-50 flex justify-end gap-2">
                 <button onclick="closeCreateModal()" class="px-4 py-2 text-gray-600 font-bold text-sm hover:bg-gray-200 rounded-lg transition-colors">취소</button>
-                <button onclick="createFacility()" class="px-4 py-2 bg-blue-600 text-white font-bold text-sm rounded-lg hover:bg-blue-700 shadow-md transition-all">등록하기</button>
+                <button onclick="handleModalSave()" id="modalSaveBtn" class="px-4 py-2 bg-blue-600 text-white font-bold text-sm rounded-lg hover:bg-blue-700 shadow-md transition-all">등록하기</button>
             </div>
         </div>
     </div>
@@ -503,6 +505,10 @@ export const adminHrdFacilitiesHtml = () => `
         }
 
         function openCreateModal() {
+            document.getElementById('editFacilityId').value = '';
+            document.getElementById('modalTitle').textContent = '새 훈련시설 등록';
+            document.getElementById('modalSaveBtn').textContent = '등록하기';
+            
             document.getElementById('createModal').classList.remove('hidden');
             document.getElementById('newFacName').value = '';
             document.getElementById('newFacArea').value = '';
@@ -511,53 +517,35 @@ export const adminHrdFacilitiesHtml = () => `
             clearNewFacImage();
         }
 
-        function closeCreateModal() {
-            document.getElementById('createModal').classList.add('hidden');
-        }
-
-        function handleNewFacImage(input) {
-            if(!input.files || !input.files[0]) return;
-            const file = input.files[0];
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = function(e) {
-                const img = new Image();
-                img.src = e.target.result;
-                img.onload = function() {
-                    const canvas = document.createElement('canvas');
-                    let width = img.width;
-                    let height = img.height;
-                    const MAX_WIDTH = 800;
-                    const MAX_HEIGHT = 600;
-
-                    if (width > height) {
-                        if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
-                    } else {
-                        if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
-                    }
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-                    
-                    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-                    document.getElementById('newFacImageUrl').value = dataUrl;
-                    document.getElementById('newFacImagePreview').src = dataUrl;
-                    document.getElementById('newFacImagePreview').classList.remove('hidden');
-                    document.getElementById('newFacImagePlaceholder').classList.add('hidden');
-                }
+        function openEditModalFromDrawer() {
+            if (currentDetailId) {
+                const facility = facilities.find(f => f.id === currentDetailId);
+                if (facility) openEditModal(facility);
             }
         }
 
-        function clearNewFacImage() {
-            document.getElementById('newFacImageUrl').value = '';
-            document.getElementById('newFacImagePreview').src = '';
-            document.getElementById('newFacImagePreview').classList.add('hidden');
-            document.getElementById('newFacImagePlaceholder').classList.remove('hidden');
-            document.getElementById('newFacImageFile').value = '';
+        function openEditModal(facility) {
+            document.getElementById('editFacilityId').value = facility.id;
+            document.getElementById('modalTitle').textContent = '시설 정보 수정';
+            document.getElementById('modalSaveBtn').textContent = '수정 완료';
+            
+            document.getElementById('createModal').classList.remove('hidden');
+            document.getElementById('newFacName').value = facility.name;
+            document.getElementById('newFacArea').value = facility.area || '';
+            document.getElementById('newFacManager').value = facility.manager_main || '';
+            document.getElementById('newFacDesc').value = facility.description || '';
+            
+            clearNewFacImage();
+            if (facility.image_url) {
+                document.getElementById('newFacImageUrl').value = facility.image_url;
+                document.getElementById('newFacImagePreview').src = facility.image_url;
+                document.getElementById('newFacImagePreview').classList.remove('hidden');
+                document.getElementById('newFacImagePlaceholder').classList.add('hidden');
+            }
         }
 
-        async function createFacility() {
+        async function handleModalSave() {
+            const id = document.getElementById('editFacilityId').value;
             const name = document.getElementById('newFacName').value;
             const area = document.getElementById('newFacArea').value;
             const managerMain = document.getElementById('newFacManager').value;
@@ -566,23 +554,36 @@ export const adminHrdFacilitiesHtml = () => `
             
             if(!name) { alert('시설명을 입력해주세요.'); return; }
 
+            const method = id ? 'PUT' : 'POST';
+            const body = { name, area, managerMain, description, image_url };
+            if (id) body.id = id;
+
             try {
                 const res = await fetch('/api/hrd/facilities', {
-                    method: 'POST',
+                    method: method,
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ name, area, managerMain, description, image_url })
+                    body: JSON.stringify(body)
                 });
                 const result = await res.json();
                 if(result.success) {
                     closeCreateModal();
+                    if (id && currentDetailId === parseInt(id)) {
+                        openDrawer(parseInt(id)); // Drawer 리로드
+                    }
                     loadFacilities();
                 } else {
-                    alert('등록 실패: ' + result.error);
+                    alert((id ? '수정' : '등록') + ' 실패: ' + result.error);
                 }
             } catch(e) {
                 console.error(e);
                 alert('오류가 발생했습니다.');
             }
+        }
+
+        // Keep createFacility for backward compatibility or if referenced elsewhere, 
+        // but handleModalSave replaces it. Redefining it to redirect to handleModalSave just in case.
+        function createFacility() {
+            handleModalSave();
         }
         async function deleteFacility() {
             if(!currentDetailId || !confirm('정말 삭제하시겠습니까? 삭제된 데이터는 복구할 수 없습니다.')) return;
