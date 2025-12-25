@@ -1,4 +1,4 @@
-import { hrdSidebar } from './components/hrd_sidebar';
+﻿import { hrdSidebar } from './components/hrd_sidebar';
 
 export const adminHrdItemsHtml = () => `
 <!DOCTYPE html>
@@ -279,7 +279,7 @@ export const adminHrdItemsHtml = () => `
             
             // 시설 목록 추가
             facilitiesData.forEach(facility => {
-                options += `< option value = "${facility.name}" > ${ facility.name }</option>`;
+                options += '<option value="' + facility.name + '">' + facility.name + '</option>';
             });
 
 // 직접 입력 옵션
@@ -662,3 +662,4 @@ async function loadRentals(itemId) {
 </body>
 </html>
 `;
+
