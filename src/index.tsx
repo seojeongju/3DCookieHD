@@ -18,6 +18,7 @@ import jobs from './api/jobs';
 import jobseekers from './api/jobseekers';
 import exams from './api/exams';
 import students from './api/students';
+import users from './api/users';
 import consultations from './api/consultations';
 import hrd from './api/hrd';
 import ncs from './api/ncs';
@@ -39,6 +40,7 @@ import { adminHrdHtml } from './views/admin_hrd';
 import { adminHrdPersonnelHtml } from './views/admin_hrd_personnel';
 import { adminHrdItemsHtml } from './views/admin_hrd_items';
 import { adminHrdStudentsHtml } from './views/admin_hrd_students';
+import { adminUsersHtml } from './views/admin_users';
 import { adminHrdFacilitiesHtml } from './views/admin_hrd_facilities';
 import { adminHrdAttendanceHtml } from './views/admin_hrd_attendance';
 import { adminHrdAttendancePrintHtml } from './views/admin_hrd_attendance_print';
@@ -141,8 +143,10 @@ app.route('/api/exams', exams);
 app.route('/api/portfolios', portfolios);
 
 // 학생 관리 API
-// 학생 관리 API
 app.route('/api/students', students);
+
+// 회원 관리 API (역할 및 권한)
+app.route('/api/users', users);
 
 // HRD 행정 API
 app.route('/api/hrd', hrd);
@@ -155,7 +159,7 @@ app.get('/admin', (c) => c.html(adminDashboardHtml));
 app.get('/admin/jobs', (c) => c.html(adminJobsListHtml));
 app.get('/admin/jobseekers', (c) => c.html(adminJobseekersListHtml));
 app.get('/admin/courses', (c) => c.html(adminCoursesListHtml()));
-app.get('/admin/users', (c) => c.html(adminHrdStudentsHtml('users'))); // 회원관리도 훈련생 관리 화면을 쓰되, 메뉴는 '회원관리' 활성화
+app.get('/admin/users', (c) => c.html(adminUsersHtml())); // 회원관리 - 역할 및 권한 관리
 app.get('/admin/hrd', (c) => c.html(adminHrdHtml()));
 app.get('/admin/personnel', (c) => c.html(adminHrdPersonnelHtml()));
 app.get('/admin/items', (c) => c.html(adminHrdItemsHtml()));
