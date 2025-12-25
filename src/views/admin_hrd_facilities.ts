@@ -555,8 +555,27 @@ export const adminHrdFacilitiesHtml = () => `
             if(!name) { alert('시설명을 입력해주세요.'); return; }
 
             const method = id ? 'PUT' : 'POST';
-            const body = { name, area, managerMain, description, image_url };
-            if (id) body.id = id;
+            
+            // Prepare body with correct field names for backend
+            const body = { 
+                name, 
+                area, 
+                manager_main: managerMain, 
+                description, 
+                image_url 
+            };
+
+            if (id) {
+                body.id = id;
+                // Preserve existing status and other fields not in form
+                const original = facilities.find(f => f.id == id);
+                if (original) {
+                    body.status = original.status;
+                    body.manager_sub = original.manager_sub;
+                }
+            } else {
+                body.status = '양호'; // Default status for new
+            }
 
             try {
                 const res = await fetch('/api/hrd/facilities', {
