@@ -1340,4 +1340,325 @@ app.post('/my-employment', authMiddleware, async (c) => {
     }
 });
 
+// ============================================
+// 시설 관리 API
+// ============================================
+
+// 시설 목록 조회
+app.get('/facilities', async (c) => {
+    try {
+        const search = c.req.query('search');
+        let query = 'SELECT * FROM hrd_facilities';
+        const params: any[] = [];
+
+        if (search) {
+            query += ' WHERE name LIKE ? OR manager_main LIKE ? OR description LIKE ?';
+            const searchPattern = `%${search}%`;
+            params.push(searchPattern, searchPattern, searchPattern);
+        }
+
+        query += ' ORDER BY created_at DESC';
+
+        const { results } = await c.env.DB.prepare(query).bind(...params).all();
+        return c.json({ success: true, data: results });
+    } catch (e: any) {
+        return errorResponse(c, e.message, 500);
+    }
+});
+
+// 시설 상세 조회
+app.get('/facilities/:id', async (c) => {
+    try {
+        const id = c.req.param('id');
+        const facility = await c.env.DB.prepare('SELECT * FROM hrd_facilities WHERE id = ?').bind(id).first();
+
+        if (!facility) {
+            return errorResponse(c, '시설을 찾을 수 없습니다.', 404);
+        }
+
+        return c.json({ success: true, data: facility });
+    } catch (e: any) {
+        return errorResponse(c, e.message, 500);
+    }
+});
+
+// 시설 등록
+app.post('/facilities', async (c) => {
+    try {
+        const body = await c.req.json();
+        const { name, status, area, manager_main, manager_sub, description, image_url } = body;
+
+        const result = await c.env.DB.prepare(`
+            INSERT INTO hrd_facilities (name, status, area, manager_main, manager_sub, description, image_url, last_check)
+            VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+        `).bind(name, status || '양호', area, manager_main, manager_sub, description, image_url || null).run();
+
+        return c.json({ success: true, data: { id: result.meta.last_row_id } });
+    } catch (e: any) {
+        return errorResponse(c, e.message, 500);
+    }
+});
+
+// 시설 수정
+app.put('/facilities', async (c) => {
+    try {
+        const body = await c.req.json();
+        const { id, name, status, area, manager_main, manager_sub, description, image_url } = body;
+
+        await c.env.DB.prepare(`
+            UPDATE hrd_facilities 
+            SET name = ?, status = ?, area = ?, manager_main = ?, manager_sub = ?, description = ?, image_url = ?, last_check = datetime('now')
+            WHERE id = ?
+        `).bind(name, status, area, manager_main, manager_sub, description, image_url || null, id).run();
+
+        return c.json({ success: true });
+    } catch (e: any) {
+        return errorResponse(c, e.message, 500);
+    }
+});
+
+// 시설 삭제
+app.delete('/facilities/:id', async (c) => {
+    try {
+        const id = c.req.param('id');
+        await c.env.DB.prepare('DELETE FROM hrd_facilities WHERE id = ?').bind(id).run();
+        return c.json({ success: true });
+    } catch (e: any) {
+        return errorResponse(c, e.message, 500);
+    }
+});
+
+// 시설 보유 비품 목록 조회 (중요!)
+app.get('/facilities/:id/items', async (c) => {
+    try {
+        const facilityId = c.req.param('id');
+
+        const { results } = await c.env.DB.prepare(`
+            SELECT 
+                i.id, i.category, i.name, i.model, i.status, i.location, i.memo,
+                fi.quantity, fi.assigned_at
+            FROM hrd_facility_items fi
+            JOIN hrd_items i ON fi.item_id = i.id
+            WHERE fi.facility_id = ?
+            ORDER BY i.category, i.name
+        `).bind(facilityId).all();
+
+        return c.json({ success: true, data: results });
+    } catch (e: any) {
+        return errorResponse(c, e.message, 500);
+    }
+});
+
+// 시설에 물품 배정
+app.post('/facilities/:id/items', async (c) => {
+    try {
+        const facilityId = c.req.param('id');
+        const body = await c.req.json();
+        const { item_id, quantity } = body;
+
+        await c.env.DB.prepare(`
+            INSERT OR REPLACE INTO hrd_facility_items (facility_id, item_id, quantity)
+            VALUES (?, ?, ?)
+        `).bind(facilityId, item_id, quantity || 1).run();
+
+        return c.json({ success: true });
+    } catch (e: any) {
+        return errorResponse(c, e.message, 500);
+    }
+});
+
+// 시설에서 물품 제거
+app.delete('/facilities/:facilityId/items/:itemId', async (c) => {
+    try {
+        const facilityId = c.req.param('facilityId');
+        const itemId = c.req.param('itemId');
+
+        await c.env.DB.prepare('DELETE FROM hrd_facility_items WHERE facility_id = ? AND item_id = ?')
+            .bind(facilityId, itemId).run();
+
+        return c.json({ success: true });
+    } catch (e: any) {
+        return errorResponse(c, e.message, 500);
+    }
+});
+
+// 시설 유지보수 이력
+app.get('/facilities/:id/maintenance', async (c) => {
+    try {
+        const facilityId = c.req.param('id');
+        const { results } = await c.env.DB.prepare(`
+            SELECT * FROM hrd_facility_maintenance 
+            WHERE facility_id = ? 
+            ORDER BY date DESC, created_at DESC
+        `).bind(facilityId).all();
+
+        return c.json({ success: true, data: results });
+    } catch (e: any) {
+        return errorResponse(c, e.message, 500);
+    }
+});
+
+// 유지보수 이력 추가
+app.post('/facilities/:id/maintenance', async (c) => {
+    try {
+        const facilityId = c.req.param('id');
+        const body = await c.req.json();
+        const { status, title, price, vendor, manager, memo, date } = body;
+
+        await c.env.DB.prepare(`
+            INSERT INTO hrd_facility_maintenance (facility_id, status, title, price, vendor, manager, memo, date)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `).bind(facilityId, status, title, price || 0, vendor, manager, memo, date).run();
+
+        return c.json({ success: true });
+    } catch (e: any) {
+        return errorResponse(c, e.message, 500);
+    }
+});
+
+// 시설 이미지 목록
+app.get('/facilities/:id/images', async (c) => {
+    try {
+        const facilityId = c.req.param('id');
+        const { results } = await c.env.DB.prepare('SELECT * FROM hrd_facility_images WHERE facility_id = ? ORDER BY created_at DESC')
+            .bind(facilityId).all();
+
+        return c.json({ success: true, data: results });
+    } catch (e: any) {
+        return errorResponse(c, e.message, 500);
+    }
+});
+
+// 시설 이미지 추가
+app.post('/facilities/:id/images', async (c) => {
+    try {
+        const facilityId = c.req.param('id');
+        const body = await c.req.json();
+        const { name, size, url } = body;
+
+        await c.env.DB.prepare('INSERT INTO hrd_facility_images (facility_id, name, size, url) VALUES (?, ?, ?, ?)')
+            .bind(facilityId, name, size, url).run();
+
+        return c.json({ success: true });
+    } catch (e: any) {
+        return errorResponse(c, e.message, 500);
+    }
+});
+
+// ============================================
+// 물품 관리 API
+// ============================================
+
+// 물품 목록 조회
+app.get('/items', async (c) => {
+    try {
+        const search = c.req.query('search');
+        const category = c.req.query('category');
+
+        let query = 'SELECT * FROM hrd_items WHERE 1=1';
+        const params: any[] = [];
+
+        if (search) {
+            query += ' AND (name LIKE ? OR model LIKE ? OR location LIKE ?)';
+            const searchPattern = `%${search}%`;
+            params.push(searchPattern, searchPattern, searchPattern);
+        }
+
+        if (category) {
+            query += ' AND category = ?';
+            params.push(category);
+        }
+
+        query += ' ORDER BY category, name';
+
+        const { results } = await c.env.DB.prepare(query).bind(...params).all();
+        return c.json({ success: true, data: results });
+    } catch (e: any) {
+        return errorResponse(c, e.message, 500);
+    }
+});
+
+// 물품 상세 조회
+app.get('/items/:id', async (c) => {
+    try {
+        const id = c.req.param('id');
+        const item = await c.env.DB.prepare('SELECT * FROM hrd_items WHERE id = ?').bind(id).first();
+
+        if (!item) {
+            return errorResponse(c, '물품을 찾을 수 없습니다.', 404);
+        }
+
+        return c.json({ success: true, data: item });
+    } catch (e: any) {
+        return errorResponse(c, e.message, 500);
+    }
+});
+
+// 물품 등록
+app.post('/items', async (c) => {
+    try {
+        const body = await c.req.json();
+        const { category, name, model, quantity, location, status, memo, image_url } = body;
+
+        const result = await c.env.DB.prepare(`
+            INSERT INTO hrd_items (category, name, model, quantity, location, status, memo, image_url)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `).bind(category, name, model, quantity || 0, location, status || 'good', memo, image_url || null).run();
+
+        return c.json({ success: true, data: { id: result.meta.last_row_id } });
+    } catch (e: any) {
+        return errorResponse(c, e.message, 500);
+    }
+});
+
+// 물품 수정
+app.put('/items', async (c) => {
+    try {
+        const body = await c.req.json();
+        const { id, category, name, model, quantity, location, status, memo, image_url } = body;
+
+        await c.env.DB.prepare(`
+            UPDATE hrd_items 
+            SET category = ?, name = ?, model = ?, quantity = ?, location = ?, status = ?, memo = ?, image_url = ?
+            WHERE id = ?
+        `).bind(category, name, model, quantity, location, status, memo, image_url || null, id).run();
+
+        return c.json({ success: true });
+    } catch (e: any) {
+        return errorResponse(c, e.message, 500);
+    }
+});
+
+// 물품 삭제
+app.delete('/items/:id', async (c) => {
+    try {
+        const id = c.req.param('id');
+        await c.env.DB.prepare('DELETE FROM hrd_items WHERE id = ?').bind(id).run();
+        return c.json({ success: true });
+    } catch (e: any) {
+        return errorResponse(c, e.message, 500);
+    }
+});
+
+// 특정 물품이 배정된 시설 목록
+app.get('/items/:id/facilities', async (c) => {
+    try {
+        const itemId = c.req.param('id');
+
+        const { results } = await c.env.DB.prepare(`
+            SELECT 
+                f.id, f.name, f.status, f.manager_main,
+                fi.quantity, fi.assigned_at
+            FROM hrd_facility_items fi
+            JOIN hrd_facilities f ON fi.facility_id = f.id
+            WHERE fi.item_id = ?
+            ORDER BY f.name
+        `).bind(itemId).all();
+
+        return c.json({ success: true, data: results });
+    } catch (e: any) {
+        return errorResponse(c, e.message, 500);
+    }
+});
+
 export default app;
