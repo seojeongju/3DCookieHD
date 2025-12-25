@@ -1,4 +1,5 @@
 
+import { lmsHeaderHtml } from './components/lms_header';
 export const adminLmsDashboardHtml = `
 <!DOCTYPE html>
 <html lang="ko">
@@ -15,16 +16,8 @@ export const adminLmsDashboardHtml = `
           extend: {
             colors: {
               primary: {
-                50: '#f0f7ff',
-                100: '#e0effe',
-                200: '#baddfd',
-                300: '#7dbcfb',
-                400: '#3a9bf7',
-                500: '#5b9bd5',
-                600: '#4a90e2',
-                700: '#2d5fa3',
-                800: '#1e4278',
-                900: '#132d54'
+                50: '#f0f7ff', 100: '#e0effe', 200: '#baddfd', 300: '#7dbcfb', 400: '#3a9bf7',
+                500: '#5b9bd5', 600: '#4a90e2', 700: '#2d5fa3', 800: '#1e4278', 900: '#132d54'
               }
             }
           }
@@ -33,71 +26,8 @@ export const adminLmsDashboardHtml = `
     </script>
 </head>
 <body class="bg-gray-50">
-    <!-- 네비게이션 -->
-    <nav class="bg-white shadow-md sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-20">
-                <div class="flex items-center space-x-4">
-                    <a href="/admin" class="flex flex-col items-start group">
-                        <div class="flex items-center gap-2">
-                            <img src="/static/logo.png" alt="WOW 3D" class="h-9 w-auto object-contain mb-0.5">
-                            <span class="px-1.5 py-0.5 bg-purple-100 text-purple-600 text-[10px] font-bold rounded-full">LMS</span>
-                        </div>
-                        <span class="text-sm text-gray-600 font-bold tracking-wider group-hover:text-primary-600 transition-colors">학사관리 시스템</span>
-                    </a>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <a href="/admin/courses" class="text-gray-700 hover:text-primary-600 font-medium">
-                        <i class="fas fa-arrow-left mr-2"></i>과정 목록으로
-                    </a>
-                </div>
-            </div>
-        </div>
-    </nav>
-
-    <!-- 과정 헤더 -->
-    <div class="bg-gradient-to-r from-purple-700 to-indigo-800 text-white">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div class="flex justify-between items-start">
-                <div>
-                    <div class="flex items-center gap-2 mb-2">
-                        <span class="px-2 py-1 bg-white/20 rounded text-xs font-semibold" id="courseCategory">카테고리</span>
-                        <span class="px-2 py-1 bg-green-500 rounded text-xs font-semibold" id="courseStatus">진행중</span>
-                    </div>
-                    <h1 class="text-3xl font-bold mb-2" id="courseTitle">과정명 로딩중...</h1>
-                    <p class="text-purple-100 flex items-center gap-4 text-sm">
-                        <span id="coursePeriod"><i class="far fa-calendar-alt mr-1"></i> 2024.01.01 ~ 2024.06.30</span>
-                        <span id="courseSchedule"><i class="far fa-clock mr-1"></i> 월~금 09:00-18:00</span>
-                    </p>
-                </div>
-                <div class="text-right">
-                    <div class="text-3xl font-bold mb-1" id="studentCount">0</div>
-                    <div class="text-sm text-purple-200">수강생 수</div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- 탭 메뉴 -->
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex space-x-1">
-                <a href="#" class="px-6 py-3 bg-white text-purple-700 font-bold rounded-t-lg border-b-2 border-purple-700">
-                    <i class="fas fa-tachometer-alt mr-2"></i>대시보드
-                </a>
-                <a href="attendance" class="px-6 py-3 text-purple-100 hover:bg-white/10 hover:text-white font-medium rounded-t-lg transition">
-                    <i class="fas fa-user-clock mr-2"></i>출결관리
-                </a>
-                <a href="cbt" class="px-6 py-3 text-purple-100 hover:bg-white/10 hover:text-white font-medium rounded-t-lg transition">
-                    <i class="fas fa-laptop-code mr-2"></i>CBT/시험
-                </a>
-                <a href="grades" class="px-6 py-3 text-purple-100 hover:bg-white/10 hover:text-white font-medium rounded-t-lg transition">
-                    <i class="fas fa-chart-bar mr-2"></i>성적관리
-                </a>
-                <a href="counseling" class="px-6 py-3 text-purple-100 hover:bg-white/10 hover:text-white font-medium rounded-t-lg transition">
-                    <i class="fas fa-comments mr-2"></i>상담일지
-                </a>
-            </div>
-        </div>
-    </div>
+    <!-- LMS Shared Header -->
+    ${lmsHeaderHtml('dashboard')}
 
     <!-- 메인 컨텐츠 -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -195,59 +125,55 @@ export const adminLmsDashboardHtml = `
                 </div>
             </div>
         </div>
+
+        <!-- NCS 진행 현황 (Full Width) -->
+        <div class="mt-8 bg-white rounded-lg shadow p-6 border-t-4 border-blue-600">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg font-bold text-gray-800">NCS 능력단위별 이수 현황 (훈련시간 기준)</h3>
+                <div class="flex gap-4 text-xs font-semibold">
+                    <span class="flex items-center gap-1.5"><span class="w-3 h-3 bg-blue-500 rounded-sm"></span> 이수시간</span>
+                    <span class="flex items-center gap-1.5"><span class="w-3 h-3 bg-gray-100 rounded-sm"></span> 남은시간</span>
+                </div>
+            </div>
+            <div id="ncsProgressRows" class="space-y-5">
+                <!-- JS Load -->
+                <div class="py-10 text-center text-gray-400">NCS 데이터를 불러오는 중...</div>
+            </div>
+        </div>
     </div>
 
     <script>
         const courseId = window.location.pathname.split('/')[3];
 
         document.addEventListener('DOMContentLoaded', () => {
-            loadCourseInfo();
             loadDashboardStats();
             initChart();
-            
-            // 링크 href 업데이트
-            const links = document.querySelectorAll('a[href]');
-            links.forEach(link => {
-                const href = link.getAttribute('href');
-                if (['attendance', 'cbt', 'grades', 'counseling'].includes(href)) {
-                    link.setAttribute('href', \`/admin/courses/\${courseId}/lms/\${href}\`);
-                }
-            });
+            loadNcsSummary();
         });
 
-        async function loadCourseInfo() {
-            try {
-                const token = localStorage.getItem('token');
-                const response = await fetch(\`/api/courses/\${courseId}\`, {
-                    headers: { 'Authorization': 'Bearer ' + token }
-                });
-                const result = await response.json();
-                
-                if (result.success) {
-                    const course = result.data;
-                    document.getElementById('courseTitle').textContent = course.title;
-                    document.getElementById('courseCategory').textContent = course.category;
-                    document.getElementById('courseStatus').textContent = course.status === 'open' ? '진행중' : '마감';
-                    document.getElementById('coursePeriod').innerHTML = \`<i class="far fa-calendar-alt mr-1"></i> \${course.start_date.split('T')[0]} ~ \${course.end_date.split('T')[0]}\`;
-                    document.getElementById('courseSchedule').innerHTML = \`<i class="far fa-clock mr-1"></i> \${course.schedule || '시간표 미정'}\`;
-                    document.getElementById('studentCount').textContent = course.max_students || 0; // 실제 수강생 수로 교체 필요
-                }
-            } catch (error) {
-                console.error('Error loading course info:', error);
-            }
-        }
+        // loadCourseInfo removed (handled by shared header)
 
         async function loadDashboardStats() {
-            // TODO: 실제 API 연동
-            // 임시 데이터
-            document.getElementById('todayAttendanceRate').textContent = '92%';
-            document.getElementById('todayAttendanceCount').textContent = '(23/25명)';
-            document.getElementById('courseProgress').textContent = '45%';
-            document.getElementById('courseDayCount').textContent = '(45/100일)';
-            document.getElementById('counselingRequiredCount').textContent = '2';
-            document.getElementById('averageScore').textContent = '85.4';
-        }
+            try {
+                // NCS 전체 진도율 계산
+                const res = await fetch(\`/api/hrd/courses/\${courseId}/ncs-summary\`);
+                const result = await res.json();
+                if (result.success && result.data.length > 0) {
+                    const totalTarget = result.data.reduce((sum, item) => sum + item.target_hours, 0);
+                    const totalCurrent = result.data.reduce((sum, item) => sum + item.current_hours, 0);
+                    const overallPercent = totalTarget > 0 ? Math.round((totalCurrent / totalTarget) * 100) : 0;
+                    
+                    document.getElementById('courseProgress').textContent = overallPercent + '%';
+                    document.getElementById('courseDayCount').textContent = \`(\${totalCurrent}/\${totalTarget}시간)\`;
+                }
 
+                // TODO: 다른 통계들도 추후 API 연결
+                document.getElementById('todayAttendanceRate').textContent = '100%';
+                document.getElementById('todayAttendanceCount').textContent = '(출석부 연동 중)';
+                document.getElementById('counselingRequiredCount').textContent = '0';
+                document.getElementById('averageScore').textContent = '-';
+            } catch (e) { console.error(e); }
+        }
         function initChart() {
             const ctx = document.getElementById('attendanceChart').getContext('2d');
             new Chart(ctx, {
@@ -257,8 +183,8 @@ export const adminLmsDashboardHtml = `
                     datasets: [{
                         label: '출석률 (%)',
                         data: [95, 88, 92, 96, 90],
-                        backgroundColor: 'rgba(124, 58, 237, 0.6)',
-                        borderColor: 'rgba(124, 58, 237, 1)',
+                        backgroundColor: 'rgba(58, 155, 247, 0.6)',
+                        borderColor: 'rgba(58, 155, 247, 1)',
                         borderWidth: 1
                     }]
                 },
@@ -272,6 +198,37 @@ export const adminLmsDashboardHtml = `
                     }
                 }
             });
+        }
+
+        async function loadNcsSummary() {
+            try {
+                const res = await fetch(\`/api/hrd/courses/\${courseId}/ncs-summary\`);
+                const result = await res.json();
+                
+                if (result.success) {
+                    const container = document.getElementById('ncsProgressRows');
+                    if (result.data.length === 0) {
+                        container.innerHTML = '<div class="py-10 text-center text-gray-400">배정된 NCS 능력단위가 없습니다.</div>';
+                        return;
+                    }
+
+                    container.innerHTML = result.data.map(item => {
+                        const percent = item.target_hours > 0 ? (item.current_hours / item.target_hours * 100) : 0;
+                        const limitedPercent = Math.min(percent, 100);
+                        return \`
+                            <div class="group">
+                                <div class="flex justify-between text-sm mb-1.5">
+                                    <span class="font-medium text-gray-700">[\${item.unit_code}] \${item.unit_name}</span>
+                                    <span class="text-xs text-gray-500 font-bold">\${item.current_hours} / \${item.target_hours}시간 (\${percent.toFixed(1)}%)</span>
+                                </div>
+                                <div class="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                                    <div class="bg-blue-500 h-full rounded-full transition-all duration-1000" style="width: \${limitedPercent}%"></div>
+                                </div>
+                            </div>
+                        \`;
+                    }).join('');
+                }
+            } catch (e) { console.error(e); }
         }
     </script>
 </body>

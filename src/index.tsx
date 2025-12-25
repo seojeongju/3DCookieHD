@@ -20,7 +20,13 @@ import exams from './api/exams';
 import students from './api/students';
 import consultations from './api/consultations';
 import hrd from './api/hrd';
+import ncs from './api/ncs';
 import dashboard from './api/dashboard';
+import portfolios from './api/portfolios';
+import surveys from './api/surveys';
+import assignments from './api/assignments';
+import progress from './api/progress';
+import attendance_qr from './api/attendance_qr';
 import { setupApi } from './api/setup';
 import { adminDashboardHtml } from './views/admin';
 import { adminJobsListHtml } from './views/admin_jobs';
@@ -37,23 +43,44 @@ import { adminHrdFacilitiesHtml } from './views/admin_hrd_facilities';
 import { adminHrdAttendanceHtml } from './views/admin_hrd_attendance';
 import { adminHrdAttendancePrintHtml } from './views/admin_hrd_attendance_print';
 import { adminHrdCounselingHtml } from './views/admin_hrd_counseling';
+import { adminNcsHtml } from './views/admin_ncs';
+import { adminLmsDashboardHtml } from './views/admin_lms_dashboard';
+import { adminLmsAttendanceHtml } from './views/admin_lms_attendance';
+import { adminLmsNcsHtml } from './views/admin_lms_ncs';
+import { adminLmsTrainingLogsHtml } from './views/admin_lms_training_logs';
+import { adminLmsNcsReportHtml } from './views/admin_lms_ncs_report';
+import { adminLmsNcsStudentReportHtml } from './views/admin_lms_ncs_student_report';
+import { adminLmsEmploymentHtml } from './views/admin_lms_employment';
+import { adminLmsGradesHtml } from './views/admin_lms_grades';
+import { adminLmsCounselingHtml } from './views/admin_lms_counseling';
+import { adminLmsCbtHtml } from './views/admin_lms_cbt';
+import { adminLmsSurveysHtml } from './views/admin_lms_surveys';
+import { adminLmsAssignmentsHtml } from './views/admin_lms_assignments';
+import { adminLmsQrAttendanceHtml } from './views/admin_lms_qr_attendance';
 import { adminExamsHtml, adminExamCreateHtml, adminExamEditHtml } from './views/admin_exams';
+import { adminExamResultsHtml } from './views/admin_exam_results';
 import { studentExamHtml } from './views/student_exam';
 import { studentDashboardHtml } from './views/student_dashboard';
 import { teacherDashboardHtml } from './views/teacher_dashboard';
+import { teacherPortfoliosHtml } from './views/teacher_portfolios';
+import { teacherSurveysHtml } from './views/teacher_surveys';
 import { teacherSidebar } from './views/components/teacher_sidebar';
+import { hrdSidebar } from './views/components/hrd_sidebar';
 import { adminGradesHtml } from './views/admin_grades';
 import { reviewsListHtml } from './views/reviews';
 import { loginHtml } from './views/login';
 import { registerHtml } from './views/register';
 import { adminReviewsListHtml } from './views/admin_reviews';
 import { adminPostsListHtml } from './views/admin_posts';
+// import { adminPortfoliosHtml } from './views/admin_portfolios'; // 게시판 관리에서 통합 관리
+import { portfoliosListHtml } from './views/portfolios';
 import { postsListHtml } from './views/posts';
 import { scheduleHtml } from './views/schedule';
 import { locationsHtml } from './views/locations';
 import { coursesListHtml } from './views/courses';
 import { achievementsHtml } from './views/achievements';
 import { footerHtml } from './views/footer';
+import { navigationHtml } from './views/components/navigation';
 
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -80,6 +107,10 @@ app.route('/api/auth', auth);
 
 // 과정 API
 app.route('/api/courses', courses);
+app.route('/api/surveys', surveys);
+app.route('/api/assignments', assignments);
+app.route('/api/progress', progress);
+app.route('/api/attendance-qr', attendance_qr);
 
 // 캠퍼스 API
 app.route('/api/campuses', campuses);
@@ -106,6 +137,9 @@ app.route('/api/jobseekers', jobseekers);
 // 시험 API
 app.route('/api/exams', exams);
 
+// 포트폴리오 API
+app.route('/api/portfolios', portfolios);
+
 // 학생 관리 API
 // 학생 관리 API
 app.route('/api/students', students);
@@ -114,13 +148,14 @@ app.route('/api/students', students);
 app.route('/api/hrd', hrd);
 app.route('/api/dashboard', dashboard);
 app.route('/api/consultations', consultations);
+app.route('/api/ncs', ncs);
 app.route('/api/setup', setupApi);
 
 app.get('/admin', (c) => c.html(adminDashboardHtml));
 app.get('/admin/jobs', (c) => c.html(adminJobsListHtml));
 app.get('/admin/jobseekers', (c) => c.html(adminJobseekersListHtml));
 app.get('/admin/courses', (c) => c.html(adminCoursesListHtml()));
-app.get('/admin/users', (c) => c.html(adminStudentsListHtml()));
+app.get('/admin/users', (c) => c.html(adminHrdStudentsHtml('users'))); // 회원관리도 훈련생 관리 화면을 쓰되, 메뉴는 '회원관리' 활성화
 app.get('/admin/hrd', (c) => c.html(adminHrdHtml()));
 app.get('/admin/personnel', (c) => c.html(adminHrdPersonnelHtml()));
 app.get('/admin/items', (c) => c.html(adminHrdItemsHtml()));
@@ -129,10 +164,35 @@ app.get('/admin/facilities', (c) => c.html(adminHrdFacilitiesHtml()));
 app.get('/admin/attendance', (c) => c.html(adminHrdAttendanceHtml()));
 app.get('/admin/attendance/print', (c) => c.html(adminHrdAttendancePrintHtml));
 app.get('/admin/counseling', (c) => c.html(adminHrdCounselingHtml));
+app.get('/admin/ncs', (c) => c.html(adminNcsHtml));
 app.get('/admin/exams', (c) => c.html(adminExamsHtml()));
+app.get('/admin/exams/:id/results', (c) => c.html(adminExamResultsHtml()));
+// app.get('/admin/portfolios', (c) => c.html(adminPortfoliosHtml)); // 게시판 관리에서 통합 관리
+app.get('/admin/reviews', (c) => c.html(adminReviewsListHtml(hrdSidebar('reviews'))));
+app.get('/admin/posts', (c) => c.html(adminPostsListHtml(hrdSidebar('posts'))));
+
+// 과정별 LMS 상세 관리 (LMS Dashboard & Inner Pages)
+app.get('/admin/courses/:id/lms', (c) => c.html(adminLmsDashboardHtml));
+app.get('/admin/courses/:id/lms/attendance', (c) => c.html(adminLmsAttendanceHtml));
+app.get('/admin/courses/:id/lms/ncs-eval', (c) => c.html(adminLmsNcsHtml));
+app.get('/admin/courses/:id/lms/ncs-report', (c) => c.html(adminLmsNcsReportHtml));
+app.get('/admin/courses/:id/lms/ncs-report/:studentId', (c) => c.html(adminLmsNcsStudentReportHtml));
+app.get('/admin/courses/:id/lms/employment', (c) => c.html(adminLmsEmploymentHtml));
+app.get('/admin/courses/:id/lms/training-logs', (c) => c.html(adminLmsTrainingLogsHtml));
+app.get('/admin/courses/:id/lms/cbt', (c) => c.html(adminLmsCbtHtml));
+app.get('/admin/courses/:id/lms/grades', (c) => c.html(adminLmsGradesHtml));
+app.get('/admin/courses/:id/lms/counseling', (c) => c.html(adminLmsCounselingHtml));
+app.get('/admin/courses/:id/lms/surveys', (c) => c.html(adminLmsSurveysHtml));
+app.get('/admin/courses/:id/lms/assignments', (c) => c.html(adminLmsAssignmentsHtml));
+app.get('/admin/courses/:id/lms/qr-attendance', (c) => c.html(adminLmsQrAttendanceHtml));
+
+// Student Dashboard
+app.get('/student', (c) => c.html(studentDashboardHtml()));
 
 // Teacher Dashboard
 app.get('/teacher', (c) => c.html(teacherDashboardHtml));
+app.get('/teacher/portfolios', (c) => c.html(teacherPortfoliosHtml));
+app.get('/teacher/surveys', (c) => c.html(teacherSurveysHtml));
 app.get('/teacher/courses', (c) => c.html(adminCoursesListHtml(teacherSidebar('courses')))); // Reusing admin views for now or TODO: create teacher specific views
 app.get('/teacher/students', (c) => c.html(adminStudentsListHtml(teacherSidebar('students'))));
 app.get('/teacher/attendance', (c) => c.html(adminHrdAttendanceHtml(teacherSidebar('attendance'))));
@@ -142,9 +202,12 @@ app.get('/teacher/posts', (c) => c.html(adminPostsListHtml(teacherSidebar('posts
 // ============================================
 // 페이지 라우트
 // ============================================
+app.get('/login', (c) => c.html(loginHtml));
+app.get('/register', (c) => c.html(registerHtml));
 app.get('/jobs', (c) => c.html(jobsListHtml));
 app.get('/jobseekers', (c) => c.html(jobseekersListHtml));
 app.get('/courses', (c) => c.html(coursesListHtml));
+app.get('/portfolios', (c) => c.html(portfoliosListHtml));
 app.get('/posts', (c) => c.html(postsListHtml));
 app.get('/schedule', (c) => c.html(scheduleHtml));
 app.get('/locations', (c) => c.html(locationsHtml));
@@ -442,160 +505,11 @@ app.get('/', (c) => {
     </head>
     <body class="bg-gray-50">
         <!-- 네비게이션 -->
-        <nav class="bg-white shadow-sm sticky top-0 z-50 border-b border-gray-100">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="flex justify-between items-center h-16">
-                    <!-- 로고 -->
-                    <!-- 로고 -->
-                    <div class="flex-shrink-0 flex items-center">
-                        <a href="/" class="flex flex-col items-start group">
-                        <img src="/static/logo.png" alt="WOW 3D" class="h-9 w-auto object-contain mb-0.5">
-                        <span class="text-sm text-gray-600 font-bold tracking-wider group-hover:text-primary-600 transition-colors">와우쓰리디홍대센터</span>
-                    </a>
-                    </div>
-
-                    <!-- 메인 메뉴 (중앙) -->
-                    <div class="hidden lg:flex space-x-1 items-center">
-                        <!-- 과정안내 -->
-                        <div class="relative group">
-                            <button class="px-3 py-2 text-gray-600 hover:text-primary-600 font-medium text-sm flex items-center transition-colors">
-                                과정안내
-                                <i class="fas fa-chevron-down ml-1 text-[10px] text-gray-400"></i>
-                            </button>
-                            <div class="absolute left-0 top-full mt-0 w-48 bg-white rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 border border-gray-100 overflow-hidden z-50">
-                                <div class="py-1">
-                                    <a href="/courses" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">전체 과정 보기</a>
-                                    <a href="/courses?category=gukbi" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">국비지원과정</a>
-                                    <a href="/courses?category=general" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">일반과정</a>
-                                    <a href="/courses?category=student" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">학생/진학 과정</a>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 센터소개 -->
-                        <div class="relative group">
-                            <button class="px-3 py-2 text-gray-600 hover:text-primary-600 font-medium text-sm flex items-center transition-colors">
-                                센터소개
-                                <i class="fas fa-chevron-down ml-1 text-[10px] text-gray-400"></i>
-                            </button>
-                            <div class="absolute left-0 top-full mt-0 w-48 bg-white rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 border border-gray-100 overflow-hidden z-50">
-                                <div class="py-1">
-                                    <a href="/greeting" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">인사말</a>
-                                    <a href="/education-photos" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">교육사진</a>
-                                    <a href="/achievements" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">교육실적</a>
-                                    <a href="/facilities" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">시설안내</a>
-                                    <a href="/locations" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">오시는길</a>
-                                </div>
-                            </div>
-                        </div>
-
-                        <a href="/reviews" class="px-3 py-2 text-gray-600 hover:text-primary-600 font-medium text-sm transition-colors">수강후기</a>
-                        <!-- 게시판 (드롭다운) -->
-                        <div class="relative group">
-                            <button class="px-3 py-2 text-gray-600 hover:text-primary-600 font-medium text-sm flex items-center transition-colors">
-                                게시판
-                                <i class="fas fa-chevron-down ml-1 text-[10px] text-gray-400"></i>
-                            </button>
-                            <div class="absolute left-0 top-full mt-0 w-48 bg-white rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 border border-gray-100 overflow-hidden z-50">
-                                <div class="py-1">
-                                    <a href="/posts?category=notice" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">공지사항</a>
-                                    <a href="/posts?category=faq" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">FAQ</a>
-                                    <a href="/posts?category=portfolio" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">포트폴리오</a>
-                                    <a href="/posts?category=qna" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">Q&A</a>
-                                </div>
-                            </div>
-                        </div>
-                        <!-- 채용정보 (드롭다운) -->
-                        <div class="relative group">
-                            <button class="px-3 py-2 text-gray-600 hover:text-primary-600 font-medium text-sm flex items-center transition-colors">
-                                채용정보
-                                <i class="fas fa-chevron-down ml-1 text-[10px] text-gray-400"></i>
-                            </button>
-                            <div class="absolute left-0 top-full mt-0 w-48 bg-white rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 border border-gray-100 overflow-hidden z-50">
-                                <div class="py-1">
-                                    <a href="/jobs" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">구인정보 (채용공고)</a>
-                                    <a href="/jobseekers" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">구직정보 (인재풀)</a>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 상담센터 -->
-                        <div class="relative group">
-                            <button class="px-3 py-2 text-gray-600 hover:text-primary-600 font-medium text-sm flex items-center transition-colors">
-                                상담센터
-                                <i class="fas fa-chevron-down ml-1 text-[10px] text-gray-400"></i>
-                            </button>
-                            <div class="absolute left-0 top-full mt-0 w-48 bg-white rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 border border-gray-100 overflow-hidden z-50">
-                                <div class="py-1">
-                                    <a href="/#contact" onclick="if(typeof scrollToSection === 'function') { event.preventDefault(); scrollToSection('contact'); }" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">온라인상담신청</a>
-                                    <a href="/corporate-education" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">기업단체교육</a>
-                                    <a href="/university-education" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">대학맞춤교육</a>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 학사관리 (보라색 버튼) -->
-                        <div class="relative group ml-2">
-                            <button class="px-4 py-1.5 bg-purple-600 hover:bg-purple-700 text-white font-medium text-sm rounded flex items-center transition-colors shadow-sm">
-                                <i class="fas fa-graduation-cap mr-1.5 text-xs"></i>
-                                학사관리
-                                <i class="fas fa-chevron-down ml-1.5 text-[10px] text-purple-200"></i>
-                            </button>
-                            <div class="absolute left-0 top-full mt-1 w-48 bg-white rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 border border-gray-100 overflow-hidden z-50">
-                            <div class="py-1">
-                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600">학생학사관리</a>
-                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600">강사학사관리</a>
-                            </div>
-                        </div>
-                        </div>
-                    </div>
-
-                    <!-- 우측 메뉴 (로그인/회원가입) -->
-                    <div class="flex items-center space-x-2" id="authMenu">
-                        <a href="/login" class="px-3 py-2 text-gray-500 hover:text-primary-600 font-medium text-sm transition-colors">로그인</a>
-                        <a href="/register" class="px-4 py-1.5 bg-primary-500 hover:bg-primary-600 text-white text-sm font-medium rounded transition-colors shadow-sm">회원가입</a>
-                    </div>
-                </div>
-            </div>
-        </nav>
+        ${navigationHtml('')}
 
         <script>
-            // 로그인 상태 확인 및 메뉴 업데이트
             document.addEventListener('DOMContentLoaded', () => {
                 loadLatestNotice();
-                const token = localStorage.getItem('token');
-                const userStr = localStorage.getItem('user');
-                const authMenu = document.getElementById('authMenu');
-                
-                if (token && userStr && authMenu) {
-                    const user = JSON.parse(userStr);
-                    let menuHtml = '';
-                    
-                    if (user.role === 'admin') {
-                        menuHtml += \`
-                            <a href="/admin" class="text-purple-600 hover:text-purple-700 font-bold whitespace-nowrap mr-4">
-                                <i class="fas fa-cog mr-1"></i> 관리자
-                            </a>
-                        \`;
-                    } else {
-                        menuHtml += \`
-                            <a href="/my-classroom" class="text-blue-600 hover:text-blue-700 font-bold whitespace-nowrap mr-4">
-                                <i class="fas fa-chalkboard-teacher mr-1"></i> 나의 강의실
-                            </a>
-                        \`;
-                    }
-                    
-                    menuHtml += \`
-                        <span class="text-gray-700 mr-2">
-                            <span class="font-bold">\${user.name}</span>님
-                        </span>
-                        <button onclick="logout()" class="text-gray-500 hover:text-red-600 font-medium whitespace-nowrap">
-                            <i class="fas fa-sign-out-alt mr-1"></i> 로그아웃
-                        </button>
-                    \`;
-                    
-                    authMenu.innerHTML = menuHtml;
-                }
             });
 
             async function loadLatestNotice() {
@@ -617,12 +531,6 @@ app.get('/', (c) => {
                 } catch (e) {
                     console.error('Failed to load notice:', e);
                 }
-            }
-
-            function logout() {
-                localStorage.removeItem('token');
-                localStorage.removeItem('user');
-                location.href = '/';
             }
         </script>
                         
@@ -2914,9 +2822,8 @@ app.get('/admin/courses', (c) => {
 });
 
 // 관리자 - 수강생 관리 페이지
-app.get('/admin/students', (c) => {
-    return c.html(adminStudentsListHtml());
-});
+// 관리자 - 훈련생 관리 페이지 (161번 라인으로 이동됨 - adminHrdStudentsHtml 사용)
+
 
 // 관리자 - 시험/문제 관리 페이지
 app.get('/admin/exams', (c) => {
@@ -2943,18 +2850,14 @@ app.get('/student/exam/:id', (c) => {
 
 // 학생 - 나의 강의실 (대시보드)
 app.get('/my-classroom', (c) => {
-    return c.html(studentDashboardHtml);
+    return c.html(studentDashboardHtml());
 });
 
-// 관리자 - 리뷰 관리 페이지
-app.get('/admin/reviews', (c) => {
-    return c.html(adminReviewsListHtml);
-});
+// 관리자 - 리뷰 관리 페이지 (4988번 라인으로 이동됨 - hrdSidebar 포함)
 
-// 관리자 - 게시판 관리 페이지
-app.get('/admin/posts', (c) => {
-    return c.html(adminPostsListHtml());
-});
+
+// 관리자 - 게시판 관리 페이지 (4989번 라인으로 이동됨 - hrdSidebar 포함)
+
 
 // ============================================
 // 인사말 페이지
@@ -5084,27 +4987,9 @@ app.get('/university-education', (c) => {
                                                                                                                                                                     `);
 });
 
-// ============================================
-// 뷰 라우팅
-// ============================================
-app.get('/jobs', (c) => c.html(jobsListHtml));
-app.get('/reviews', (c) => c.html(reviewsListHtml));
-app.get('/login', (c) => c.html(loginHtml));
-app.get('/register', (c) => c.html(registerHtml));
 
-// 관리자 페이지 라우팅
-app.get('/admin', (c) => c.html(adminDashboardHtml));
-app.get('/admin/jobs', (c) => c.html(adminJobsListHtml));
-app.get('/admin/jobseekers', (c) => c.html(adminJobseekersListHtml));
-app.get('/admin/courses', (c) => c.html(adminCoursesListHtml()));
-app.get('/admin/students', (c) => c.html(adminStudentsListHtml()));
-app.get('/admin/reviews', (c) => c.html(adminReviewsListHtml));
-app.get('/admin/posts', (c) => c.html(adminPostsListHtml()));
-app.get('/admin/hrd', (c) => c.html(adminHrdHtml()));
-app.get('/admin/hrd/personnel', (c) => c.html(adminHrdPersonnelHtml()));
-app.get('/admin/hrd/items', (c) => c.html(adminHrdItemsHtml()));
-app.get('/admin/hrd/students', (c) => c.html(adminHrdStudentsHtml()));
-app.get('/admin/hrd/facilities', (c) => c.html(adminHrdFacilitiesHtml()));
+
+
 
 // ============================================
 // 404 핸들러

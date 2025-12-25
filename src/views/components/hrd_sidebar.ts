@@ -20,6 +20,10 @@ export const hrdSidebar = (activeMenu: string) => `
             <i class="fas fa-book w-6 ${activeMenu === 'courses' ? 'text-blue-400' : 'text-slate-400 group-hover:text-white transition-colors'}"></i>
             <span class="font-medium">교육과정 관리</span>
         </a>
+        <a href="/admin/ncs" class="flex items-center px-6 py-3 ${activeMenu === 'ncs' ? 'bg-slate-700 border-r-4 border-blue-500 text-white' : 'text-slate-300 hover:bg-slate-700 hover:text-white transition-colors'} group">
+            <i class="fas fa-tasks w-6 ${activeMenu === 'ncs' ? 'text-blue-400' : 'text-slate-400 group-hover:text-white transition-colors'}"></i>
+            <span class="font-medium">NCS 능력단위 관리</span>
+        </a>
         <a href="/admin/students" class="flex items-center px-6 py-3 ${activeMenu === 'students' ? 'bg-slate-700 border-r-4 border-blue-500 text-white' : 'text-slate-300 hover:bg-slate-700 hover:text-white transition-colors'} group">
             <i class="fas fa-user-graduate w-6 ${activeMenu === 'students' ? 'text-blue-400' : 'text-slate-400 group-hover:text-white transition-colors'}"></i>
             <span class="font-medium">훈련생 관리</span>
@@ -69,8 +73,8 @@ export const hrdSidebar = (activeMenu: string) => `
 
         <!-- 홈페이지 관리 -->
         <div class="px-4 mt-8 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">홈페이지 관리 (CMS)</div>
-        <a href="/admin/users" class="flex items-center px-6 py-3 ${activeMenu === 'web-users' ? 'bg-slate-700 border-r-4 border-blue-500 text-white' : 'text-slate-300 hover:bg-slate-700 hover:text-white transition-colors'} group">
-            <i class="fas fa-users w-6 ${activeMenu === 'web-users' ? 'text-blue-400' : 'text-slate-400 group-hover:text-white transition-colors'}"></i>
+        <a href="/admin/users" class="flex items-center px-6 py-3 ${activeMenu === 'users' ? 'bg-slate-700 border-r-4 border-blue-500 text-white' : 'text-slate-300 hover:bg-slate-700 hover:text-white transition-colors'} group">
+            <i class="fas fa-users w-6 ${activeMenu === 'users' ? 'text-blue-400' : 'text-slate-400 group-hover:text-white transition-colors'}"></i>
             <span class="font-medium">회원 관리</span>
         </a>
         <a href="/admin/reviews" class="flex items-center px-6 py-3 ${activeMenu === 'reviews' ? 'bg-slate-700 border-r-4 border-blue-500 text-white' : 'text-slate-300 hover:bg-slate-700 hover:text-white transition-colors'} group">
@@ -101,7 +105,29 @@ export const hrdSidebar = (activeMenu: string) => `
             </div>
         </div>
     </div>
+
 </aside>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const sidebarNav = document.querySelector('aside nav');
+        if (sidebarNav) {
+            /* 1. 이전에 저장된 스크롤 위치가 있으면 즉시 복원 */
+            const savedScrollTop = sessionStorage.getItem('sidebarScrollTop');
+            if (savedScrollTop) {
+                sidebarNav.scrollTop = parseInt(savedScrollTop, 10);
+            }
+
+            /* 2. 메뉴 링크 클릭 시 현재 스크롤 위치 저장 */
+            /* (페이지 이동 후에도 위치를 유지하기 위함) */
+            const links = sidebarNav.querySelectorAll('a');
+            links.forEach(link => {
+                link.addEventListener('click', () => {
+                    sessionStorage.setItem('sidebarScrollTop', sidebarNav.scrollTop);
+                });
+            });
+        }
+    });
+</script>
 <style>
 /* 커스텀 스크롤바 */
 .custom-scrollbar::-webkit-scrollbar {

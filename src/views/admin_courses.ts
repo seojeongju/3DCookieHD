@@ -94,9 +94,12 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses')) => `
                 <form id="createCourseForm" onsubmit="handleSaveCourse(event)">
                     <input type="hidden" name="id" id="courseId">
                     <div class="space-y-4">
-                        <div>
                             <label class="block text-gray-700 font-medium mb-1">과정명 *</label>
                             <input type="text" name="title" id="courseTitle" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 font-medium mb-1">교육과목</label>
+                            <input type="text" name="subject" id="courseSubject" class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="예: Java 프로그래밍, 3D 모델링">
                         </div>
                         <div class="grid grid-cols-2 gap-4">
                             <div>
@@ -124,8 +127,8 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses')) => `
                             <div><label class="block text-gray-700 font-medium mb-1">정원</label><input type="number" name="max_students" id="courseMaxStudents" class="w-full px-4 py-2 border border-gray-300 rounded-lg"></div>
                         </div>
                         <div class="grid grid-cols-2 gap-4">
-                            <div><label class="block text-gray-700 font-medium mb-1">시작일</label><input type="date" name="start_date" id="courseStartDate" class="w-full px-4 py-2 border border-gray-300 rounded-lg"></div>
-                            <div><label class="block text-gray-700 font-medium mb-1">종료일</label><input type="date" name="end_date" id="courseEndDate" class="w-full px-4 py-2 border border-gray-300 rounded-lg"></div>
+                            <div><label class="block text-gray-700 font-medium mb-1">시작일</label><input type="date" name="start_date" id="courseStartDate" onchange="renderCalendar()" class="w-full px-4 py-2 border border-gray-300 rounded-lg"></div>
+                            <div><label class="block text-gray-700 font-medium mb-1">종료일</label><input type="date" name="end_date" id="courseEndDate" onchange="renderCalendar()" class="w-full px-4 py-2 border border-gray-300 rounded-lg"></div>
                         </div>
                         <div class="grid grid-cols-2 gap-4">
                             <div>
@@ -133,12 +136,27 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses')) => `
                                 <div class="flex gap-2 items-center"><input type="time" id="courseStartTime" class="w-full px-4 py-2 border border-gray-300 rounded-lg"><span>~</span><input type="time" id="courseEndTime" class="w-full px-4 py-2 border border-gray-300 rounded-lg"></div>
                             </div>
                             <div>
-                                <label class="block text-gray-700 font-medium mb-1">수업 요일</label>
-                                <div class="flex gap-2">
-                                    <select id="courseType" onchange="updateDaysOfWeek()" class="border border-gray-300 rounded-lg px-2"><option value="custom">직접</option><option value="weekday">주간</option><option value="weekend">주말</option></select>
-                                    <input type="text" id="courseDays" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg">
-                                </div>
+                                <label class="block text-gray-700 font-medium mb-1">수업 요일(요약)</label>
+                                <input type="text" id="courseDays" placeholder="일정이 선택되면 자동 입력됨" class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50" readonly>
                             </div>
+                        </div>
+                        <!-- 캘린더 영역 -->
+                        <div class="col-span-2 mt-2">
+                             <label class="block text-gray-700 font-medium mb-1">상세 수업 일정 <span class="text-xs text-gray-500 font-normal ml-1">📅 달력을 클릭하여 수업일을 추가하세요</span></label>
+                             <div class="flex flex-wrap gap-2 mb-3">
+                                <button type="button" onclick="presetDays([1,3])" class="px-3 py-1.5 text-xs font-medium bg-blue-50 text-blue-700 rounded-md border border-blue-200 hover:bg-blue-100 transition">월/수</button>
+                                <button type="button" onclick="presetDays([2,4])" class="px-3 py-1.5 text-xs font-medium bg-blue-50 text-blue-700 rounded-md border border-blue-200 hover:bg-blue-100 transition">화/목</button>
+                                <button type="button" onclick="presetDays([1,3,5])" class="px-3 py-1.5 text-xs font-medium bg-blue-50 text-blue-700 rounded-md border border-blue-200 hover:bg-blue-100 transition">월/수/금</button>
+                                <button type="button" onclick="presetDays([0,6])" class="px-3 py-1.5 text-xs font-medium bg-green-50 text-green-700 rounded-md border border-green-200 hover:bg-green-100 transition">주말(토/일)</button>
+                                <button type="button" onclick="presetDays([1,2,3,4,5])" class="px-3 py-1.5 text-xs font-medium bg-indigo-50 text-indigo-700 rounded-md border border-indigo-200 hover:bg-indigo-100 transition">평일 매일</button>
+                                <button type="button" onclick="clearCalendarSelection()" class="px-3 py-1.5 text-xs font-medium bg-gray-100 text-gray-600 rounded-md border border-gray-200 hover:bg-gray-200 transition ml-auto">선택 초기화</button>
+                             </div>
+                             <div id="calendarContainer" class="border rounded-lg bg-white p-4 max-h-96 overflow-y-auto custom-scrollbar select-none">
+                                <div class="text-center text-gray-400 py-8 flex flex-col items-center">
+                                    <i class="fas fa-calendar-alt text-4xl mb-3 text-gray-300"></i>
+                                    <span>시작일과 종료일을 설정하면 전체 달력이 표시됩니다.</span>
+                                </div>
+                             </div>
                         </div>
                         <div><label class="block text-gray-700 font-medium mb-1">과정 설명</label><textarea id="courseDescription" rows="5" class="w-full px-4 py-2 border border-gray-300 rounded-lg"></textarea></div>
                         <div>
@@ -185,10 +203,13 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses')) => `
 
         function openModal(id, course = null) {
             const m = document.getElementById(id); const f = document.getElementById('createCourseForm');
+            selectedDates.clear();
+
             if (course) {
                 document.getElementById('modalTitle').textContent = '과정 수정';
                 document.getElementById('courseId').value = course.id;
                 document.getElementById('courseTitle').value = course.title;
+                document.getElementById('courseSubject').value = course.subject || '';
                 document.getElementById('courseCategory').value = course.category || '일반과정';
                 document.getElementById('courseStatus').value = course.status || 'open';
                 document.getElementById('courseInstructor').value = course.instructor_id || '';
@@ -205,11 +226,18 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses')) => `
                         document.getElementById('courseEndTime').value = s.endTime || '';
                         document.getElementById('courseDays').value = s.days || '';
                     } else { document.getElementById('courseDays').value = course.schedule || ''; }
+
+                    if (course.class_days) {
+                        const days = typeof course.class_days === 'string' ? JSON.parse(course.class_days) : course.class_days;
+                        if(Array.isArray(days)) days.forEach(d => selectedDates.add(d));
+                    }
                 } catch(e) { console.error(e); }
             } else {
                 document.getElementById('modalTitle').textContent = '과정 개설'; f.reset(); document.getElementById('courseId').value = ''; updateThumbnailPreview('');
+                selectedDates.clear();
             }
             m.classList.remove('hidden'); initTinyMCE(course ? (course.description || '') : '');
+            setTimeout(renderCalendar, 100);
         }
         function initTinyMCE(content) {
             if (tinymce.get('courseDescription')) tinymce.get('courseDescription').remove();
@@ -260,9 +288,18 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses')) => `
         async function handleSaveCourse(e) {
             e.preventDefault(); const f = e.target; const fd = new FormData(f);
             if (tinymce.get('courseDescription')) { tinymce.triggerSave(); fd.set('description', tinymce.get('courseDescription').getContent()); }
-            const sch = { startTime: document.getElementById('courseStartTime').value, endTime: document.getElementById('courseEndTime').value, days: document.getElementById('courseDays').value };
+            
+            const sch = { 
+                startTime: document.getElementById('courseStartTime').value, 
+                endTime: document.getElementById('courseEndTime').value, 
+                days: document.getElementById('courseDays').value 
+            };
             fd.set('schedule', JSON.stringify(sch));
-            const data = Object.fromEntries(fd.entries()); const id = data.id;
+            
+            const data = Object.fromEntries(fd.entries());
+            data.class_days = Array.from(selectedDates).sort();
+
+            const id = data.id;
             try {
                 const res = await fetch(id ? '/api/courses/'+id : '/api/courses', {
                     method: id ? 'PUT' : 'POST',
@@ -270,7 +307,7 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses')) => `
                     body: JSON.stringify(data)
                 });
                 const r = await res.json();
-                if (r.success) { alert('성공'); closeModal('createCourseModal'); loadCourses(); } else { alert(r.error); }
+                if (r.success) { alert('저장되었습니다.'); closeModal('createCourseModal'); loadCourses(); } else { alert(r.error); }
             } catch(err) { console.error(err); }
         }
         async function deleteCourse(id) {
@@ -280,9 +317,141 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses')) => `
                 const r = await res.json(); if (r.success) { alert('삭제됨'); loadCourses(); } else { alert(r.error); }
             } catch(e) { console.error(e); }
         }
-        function updateDaysOfWeek() {
-            const t = document.getElementById('courseType').value; const d = document.getElementById('courseDays');
-            if(t==='weekday') d.value='월,화,수,목,금'; else if(t==='weekend') d.value='토,일'; else d.value='';
+        function editCourse(course) {
+            openModal('createCourseModal', course);
+        }
+        // 캘린더 및 날짜 선택 로직
+        let selectedDates = new Set();
+        
+        function renderCalendar() {
+            const startStr = document.getElementById('courseStartDate').value;
+            const endStr = document.getElementById('courseEndDate').value;
+            const container = document.getElementById('calendarContainer');
+            
+            if (!startStr || !endStr) {
+                container.innerHTML = '<div class="text-center text-gray-400 py-8 flex flex-col items-center"><i class="fas fa-calendar-alt text-4xl mb-3 text-gray-300"></i><span>시작일과 종료일을 설정하면 전체 달력이 표시됩니다.</span></div>';
+                return;
+            }
+
+            const start = new Date(startStr);
+            const end = new Date(endStr);
+            
+            if (start > end) {
+                container.innerHTML = '<div class="text-center text-red-500 py-8">종료일은 시작일보다 뒤여야 합니다.</div>';
+                return;
+            }
+
+            let html = '<div class="space-y-6">';
+            let curr = new Date(startStr);
+            curr.setDate(1); 
+            
+            while (curr <= end || (curr.getMonth() === end.getMonth() && curr.getFullYear() === end.getFullYear())) {
+                const year = curr.getFullYear();
+                const month = curr.getMonth();
+                
+                html += '<div class="border rounded-lg overflow-hidden bg-white shadow-sm">';
+                html += '<div class="bg-gray-100 px-4 py-2 font-bold text-center border-b flex justify-between items-center"><span>' + year + '년 ' + (month + 1) + '월</span></div>';
+                html += '<div class="grid grid-cols-7 gap-px bg-gray-200 text-sm border-b">';
+                html += '<div class="bg-red-50 p-2 text-center text-red-500 font-bold">일</div><div class="bg-gray-50 p-2 text-center font-bold">월</div><div class="bg-gray-50 p-2 text-center font-bold">화</div><div class="bg-gray-50 p-2 text-center font-bold">수</div><div class="bg-gray-50 p-2 text-center font-bold">목</div><div class="bg-gray-50 p-2 text-center font-bold">금</div><div class="bg-blue-50 p-2 text-center text-blue-500 font-bold">토</div>';
+                html += '</div><div class="grid grid-cols-7 gap-px bg-gray-200 text-sm">';
+
+                const firstDay = new Date(year, month, 1);
+                const lastDay = new Date(year, month + 1, 0);
+                const firstDayOfWeek = firstDay.getDay();
+                
+                for (let i = 0; i < firstDayOfWeek; i++) {
+                    html += '<div class="bg-white p-2 min-h-[3rem]"></div>';
+                }
+
+                for (let d = 1; d <= lastDay.getDate(); d++) {
+                    const dateObj = new Date(year, month, d);
+                    const y = dateObj.getFullYear();
+                    const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+                    const day = String(dateObj.getDate()).padStart(2, '0');
+                    const dateStr = y + '-' + m + '-' + day;
+                    
+                    const isInRange = dateStr >= startStr && dateStr <= endStr;
+                    const isSelected = selectedDates.has(dateStr);
+                    const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
+                    
+                    let classes = "bg-white p-1 min-h-[3rem] cursor-pointer hover:bg-purple-50 flex flex-col items-center justify-center transition relative";
+                    let textClass = "font-medium";
+                    
+                    if (!isInRange) {
+                        classes = "bg-gray-50 p-1 min-h-[3rem] text-gray-300 cursor-not-allowed";
+                    } else if (isSelected) {
+                        classes = "bg-purple-600 text-white p-1 min-h-[3rem] cursor-pointer shadow-inner";
+                    } else if (isWeekend) {
+                        textClass = "font-medium text-red-500";
+                        classes += " bg-red-50 hover:bg-red-100";
+                    }
+
+                    const onClick = isInRange ? 'onclick="toggleDate(\\'' + dateStr + '\\')"' : '';
+                    
+                    html += '<div class="' + classes + '" ' + onClick + '><span class="' + textClass + '">' + d + '</span>' + (isSelected ? '<i class="fas fa-check text-xs mt-1"></i>' : '') + '</div>';
+                }
+                
+                const lastDayOfWeek = lastDay.getDay();
+                for (let i = lastDayOfWeek; i < 6; i++) {
+                     html += '<div class="bg-white p-2 min-h-[3rem]"></div>';
+                }
+                
+                html += '</div></div>';
+
+                curr.setMonth(curr.getMonth() + 1);
+                if (curr > end && curr.getMonth() !== end.getMonth()) break;
+                if (curr.getFullYear() > end.getFullYear()) break;
+            }
+            html += '</div>';
+            container.innerHTML = html;
+            updateCourseDaysSummary();
+        }
+
+        function toggleDate(dateStr) {
+            if (selectedDates.has(dateStr)) {
+                selectedDates.delete(dateStr);
+            } else {
+                selectedDates.add(dateStr);
+            }
+            renderCalendar();
+        }
+
+        function presetDays(days) {
+            const startStr = document.getElementById('courseStartDate').value;
+            const endStr = document.getElementById('courseEndDate').value;
+            if (!startStr || !endStr) { alert('기간을 먼저 설정하세요.'); return; }
+            
+            const start = new Date(startStr);
+            const end = new Date(endStr);
+            const targetDays = new Set(days);
+
+            let curr = new Date(startStr);
+            while (curr <= end) {
+                if (targetDays.has(curr.getDay())) {
+                     const y = curr.getFullYear();
+                     const m = String(curr.getMonth() + 1).padStart(2, '0');
+                     const d = String(curr.getDate()).padStart(2, '0');
+                     const dateStr = y + '-' + m + '-' + d;
+                     selectedDates.add(dateStr);
+                }
+                curr.setDate(curr.getDate() + 1);
+            }
+            renderCalendar();
+        }
+
+        function clearCalendarSelection() {
+            selectedDates.clear();
+            renderCalendar();
+        }
+
+        function updateCourseDaysSummary() {
+            const count = selectedDates.size;
+            const input = document.getElementById('courseDays');
+            if (count === 0) {
+                input.value = '';
+            } else {
+                input.value = '총 ' + count + '일 선택됨';
+            }
         }
     </script>
 </body>

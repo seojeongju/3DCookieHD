@@ -11,36 +11,77 @@ app.get('/stats', async (c) => {
         const { DB } = c.env;
 
         // 1. 전체 수강생 (Total Students)
-        // role이 'student'인 사용자 수
         const studentsResult = await DB.prepare(
             "SELECT count(*) as count FROM users WHERE role = 'student'"
         ).first<{ count: number }>();
         const totalStudents = studentsResult?.count || 0;
 
-        // 지난 달 수강생 수 (성장률 계산용 - 임시로 이번 달 가입자 기반으로 계산하거나 생략)
-        // 여기서는 간단히 전체 수강생 수만 반환하고, 성장률은 0으로 설정하거나 프론트에서 처리
-        // 만약 성장률을 계산하려면 created_at을 기준으로 지난달 가입자 수를 구해야 함.
-
-        // 2. 진행 중인 과정 (Ongoing Courses)
-        // status가 'active'인 과정 수
+        // 2. 진행 중인 과정 (Active Courses)
         const coursesResult = await DB.prepare(
             "SELECT count(*) as count FROM courses WHERE status = 'active'"
         ).first<{ count: number }>();
         const activeCourses = coursesResult?.count || 0;
 
-        // 3. 신규 문의 (New Inquiries)
-        // status가 'pending'인 상담 신청 수
+        // 3. 신규 문의 (New Inquiries - pending consultations)
         const consultationsResult = await DB.prepare(
             "SELECT count(*) as count FROM consultations WHERE status = 'pending'"
         ).first<{ count: number }>();
         const newInquiries = consultationsResult?.count || 0;
 
         // 4. 평균 출석률 (Average Attendance)
-        // enrollments 테이블의 attendance 평균
         const attendanceResult = await DB.prepare(
             "SELECT avg(attendance) as avg FROM enrollments"
         ).first<{ avg: number }>();
         const avgAttendance = Math.round(attendanceResult?.avg || 0);
+
+        // 5. 이번 달 매출 (Monthly Revenue)
+        // SQLite: strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now')
+        // enrollments table needs payment_amount and payment_status='paid'
+        // We assume enrollments has created_at default current_timestamp
+        const revenueResult = await DB.prepare(`
+                SELECT sum(payment_amount) as total 
+                FROM enrollments 
+                WHERE payment_status = 'paid' 
+                AND strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now')
+            `).first<{ total: number }>();
+        const monthlyRevenue = revenueResult?.total || 0;
+
+        // 6. 월별 가입자 추이 (최근 6개월)
+        const growthTrendResult = await DB.prepare(`
+                SELECT strftime('%Y-%m', created_at) as month, count(*) as count
+                FROM users
+                WHERE created_at >= date('now', '-5 months', 'start of month')
+                GROUP BY month
+                ORDER BY month ASC
+            `).all<{ month: string, count: number }>();
+        const monthlyGrowth = growthTrendResult.results || [];
+
+        // 7. 인기 과정 TOP 5 (수강생 순)
+        const popularCoursesResult = await DB.prepare(`
+                SELECT c.title, count(e.id) as student_count
+                FROM courses c
+                LEFT JOIN enrollments e ON c.id = e.course_id AND e.status = 'approved'
+                WHERE c.status = 'active'
+                GROUP BY c.id
+                ORDER BY student_count DESC
+                LIMIT 5
+            `).all<{ title: string, student_count: number }>();
+        const popularCourses = popularCoursesResult.results || [];
+
+        // 8. 승인 대기 목록 (최근 5건)
+        // users (approved=0 or 0 is false? Assuming pending users logic if any. 
+        // If no explicit pending field, we can use enrollments pending as a proxy for action items)
+        // Let's use Enrollments Pending for now as it makes sense for 'Approval'.
+        const pendingApprovalsResult = await DB.prepare(`
+                SELECT e.id, u.name as user_name, c.title as course_title, e.created_at
+                FROM enrollments e
+                JOIN users u ON e.user_id = u.id
+                JOIN courses c ON e.course_id = c.id
+                WHERE e.status = 'pending'
+                ORDER BY e.created_at DESC
+                LIMIT 5
+            `).all<{ id: number, user_name: string, course_title: string, created_at: string }>();
+        const pendingApprovals = pendingApprovalsResult.results || [];
 
         return c.json({
             success: true,
@@ -49,7 +90,12 @@ app.get('/stats', async (c) => {
                 activeCourses,
                 newInquiries,
                 avgAttendance,
-                // 성장률은 일단 0이나 임의의 값으로 두거나, 추후 구현
+                monthlyRevenue,
+                monthlyGrowth, // Array of { month, count }
+                popularCourses, // Array of { title, student_count }
+                pendingApprovals, // Array of pending items
+
+                // Legacy placeholders if needed
                 studentGrowth: 0,
                 attendanceGrowth: 0
             }

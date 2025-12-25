@@ -1,4 +1,6 @@
 
+import { lmsHeaderHtml } from './components/lms_header';
+
 export const adminLmsCbtHtml = `
 <!DOCTYPE html>
 <html lang="ko">
@@ -14,16 +16,8 @@ export const adminLmsCbtHtml = `
           extend: {
             colors: {
               primary: {
-                50: '#f0f7ff',
-                100: '#e0effe',
-                200: '#baddfd',
-                300: '#7dbcfb',
-                400: '#3a9bf7',
-                500: '#5b9bd5',
-                600: '#4a90e2',
-                700: '#2d5fa3',
-                800: '#1e4278',
-                900: '#132d54'
+                50: '#f0f7ff', 100: '#e0effe', 200: '#baddfd', 300: '#7dbcfb', 400: '#3a9bf7',
+                500: '#5b9bd5', 600: '#4a90e2', 700: '#2d5fa3', 800: '#1e4278', 900: '#132d54'
               }
             }
           }
@@ -39,36 +33,14 @@ export const adminLmsCbtHtml = `
     </style>
 </head>
 <body class="bg-gray-50">
-    <!-- 네비게이션 -->
-    <nav class="bg-white shadow-md sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-20">
-                <div class="flex items-center space-x-4">
-                    <a href="/admin" class="flex flex-col items-start group">
-                        <div class="flex items-center gap-2">
-                            <img src="/static/logo.png" alt="WOW 3D" class="h-9 w-auto object-contain mb-0.5">
-                            <span class="px-1.5 py-0.5 bg-purple-100 text-purple-600 text-[10px] font-bold rounded-full">LMS</span>
-                        </div>
-                        <span class="text-sm text-gray-600 font-bold tracking-wider group-hover:text-primary-600 transition-colors">학사관리 시스템</span>
-                    </a>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <a href="#" id="backToDashboard" class="text-gray-700 hover:text-primary-600 font-medium">
-                        <i class="fas fa-arrow-left mr-2"></i>대시보드로
-                    </a>
-                </div>
-            </div>
-        </div>
-    </nav>
+    <!-- LMS Shared Header -->
+    ${lmsHeaderHtml('cbt')}
 
-    <!-- 헤더 -->
+    <!-- 서브 헤더 (CBT 전용) -->
     <div class="bg-white border-b border-gray-200">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div class="flex justify-between items-center">
-                <div>
-                    <h1 class="text-2xl font-bold text-gray-800">CBT / 시험 관리</h1>
-                    <p class="text-gray-600 mt-1" id="courseTitle">과정명 로딩중...</p>
-                </div>
+                <h2 class="text-xl font-bold text-gray-800">CBT / 시험 관리</h2>
                 <div class="flex gap-2">
                     <button onclick="openExamModal()" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center shadow-sm">
                         <i class="fas fa-plus mr-2"></i> 시험 생성
@@ -288,8 +260,6 @@ export const adminLmsCbtHtml = `
         const courseId = window.location.pathname.split('/')[3];
 
         document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('backToDashboard').href = \`/admin/courses/\${courseId}/lms\`;
-            loadCourseInfo();
             loadExams();
             loadQuestions();
         });
@@ -325,20 +295,7 @@ export const adminLmsCbtHtml = `
             }
         }
 
-        async function loadCourseInfo() {
-            try {
-                const token = localStorage.getItem('token');
-                const response = await fetch(\`/api/courses/\${courseId}\`, {
-                    headers: { 'Authorization': 'Bearer ' + token }
-                });
-                const result = await response.json();
-                if (result.success) {
-                    document.getElementById('courseTitle').textContent = result.data.title;
-                }
-            } catch (error) {
-                console.error('Error:', error);
-            }
-        }
+
 
         async function loadExams() {
             try {

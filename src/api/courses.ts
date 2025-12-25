@@ -221,10 +221,10 @@ courses.post('/', async (c) => {
   try {
     const body = await c.req.json();
     const {
-      title, subtitle, category, description, curriculum,
+      title, subtitle, subject, category, description, curriculum,
       duration_months, duration_hours, price, discount_price,
       thumbnail_url, detail_images, campus_id, teacher_id,
-      max_students, start_date, end_date, schedule, tags
+      max_students, start_date, end_date, schedule, tags, class_days
     } = body;
 
     // 필수 필드 검증
@@ -236,20 +236,21 @@ courses.post('/', async (c) => {
     const result = await execute(
       c.env.DB,
       `INSERT INTO courses (
-        title, subtitle, category, description, curriculum,
+        title, subtitle, subject, category, description, curriculum,
         duration_months, duration_hours, price, discount_price,
         thumbnail_url, detail_images, campus_id, teacher_id,
-        max_students, start_date, end_date, schedule, tags
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        max_students, start_date, end_date, schedule, tags, class_days
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        title, subtitle || null, category, description || null,
+        title, subtitle || null, subject || null, category, description || null,
         curriculum ? JSON.stringify(curriculum) : null,
         duration_months || null, duration_hours || null, price || 0, discount_price || null,
         thumbnail_url || null,
         detail_images ? JSON.stringify(detail_images) : null,
         campus_id || null, teacher_id || null, max_students || 20,
         start_date || null, end_date || null, schedule || null,
-        tags ? JSON.stringify(tags) : null
+        tags ? JSON.stringify(tags) : null,
+        class_days ? JSON.stringify(class_days) : null
       ]
     );
 
@@ -292,7 +293,7 @@ courses.put('/:id', requireTeacher, verifyCourseOwnership, async (c) => {
     const params: any[] = [];
 
     const fields = [
-      'title', 'subtitle', 'category', 'description',
+      'title', 'subtitle', 'subject', 'category', 'description',
       'duration_months', 'duration_hours', 'price', 'discount_price',
       'thumbnail_url', 'campus_id', 'teacher_id', 'status',
       'max_students', 'start_date', 'end_date', 'schedule'
@@ -309,6 +310,11 @@ courses.put('/:id', requireTeacher, verifyCourseOwnership, async (c) => {
         }
       }
     });
+
+    if (body.class_days !== undefined) {
+      updates.push('class_days = ?');
+      params.push(JSON.stringify(body.class_days));
+    }
 
     // JSON 필드 처리
     if (body.curriculum !== undefined) {
@@ -386,6 +392,79 @@ courses.delete('/:id', async (c) => {
   } catch (error) {
     console.error('Delete course error:', error);
     return errorResponse(c, '과정 삭제 중 오류가 발생했습니다', 500);
+  }
+});
+
+// GET /api/courses/:id/grades - Get course gradebook (matrix)
+courses.get('/:id/grades', async (c) => {
+  const courseId = c.req.param('id');
+  try {
+    // 1. 과정의 모든 시험 목록 조회
+    const { results: exams } = await c.env.DB.prepare(`
+            SELECT id, title, time_limit_minutes, is_active,
+            (SELECT SUM(points) FROM exam_questions WHERE exam_id = exams.id) as total_points
+            FROM exams 
+            WHERE course_id = ? 
+            ORDER BY created_at ASC
+        `).bind(courseId).all();
+
+    // 2. 과정의 모든 수강생(Approved) 조회
+    const { results: students } = await c.env.DB.prepare(`
+            SELECT u.id, u.name, u.email, u.phone
+            FROM enrollments e
+            JOIN users u ON e.user_id = u.id
+            WHERE e.course_id = ? AND e.status = 'approved'
+            ORDER BY u.name ASC
+        `).bind(courseId).all();
+
+    // 3. 해당 수강생들의 모든 시험 제출 내역 조회
+    const { results: submissions } = await c.env.DB.prepare(`
+            SELECT s.exam_id, s.student_id, s.total_score, s.status
+            FROM exam_submissions s
+            JOIN exams e ON s.exam_id = e.id
+            WHERE e.course_id = ?
+        `).bind(courseId).all();
+
+    // 4. 데이터 매핑 (Matrix 구조 생성)
+    const studentGrades = students.map((std: any) => {
+      const scores: any = {};
+      let totalScore = 0;
+      let examCount = 0;
+
+      exams.forEach((exam: any) => {
+        const sub = submissions.find((s: any) => s.exam_id === exam.id && s.student_id === std.id);
+        if (sub) {
+          scores[exam.id] = sub.total_score;
+          totalScore += sub.total_score;
+          examCount++;
+        } else {
+          scores[exam.id] = null; // 미응시
+        }
+      });
+
+      const average = examCount > 0 ? (totalScore / examCount) : 0;
+
+      return {
+        ...std,
+        scores,
+        totalScore,
+        average: Math.round(average * 10) / 10
+      };
+    });
+
+    // 5. 등수 계산 (총점 기준)
+    studentGrades.sort((a: any, b: any) => b.totalScore - a.totalScore);
+    studentGrades.forEach((std: any, index: number) => {
+      std.rank = index + 1;
+    });
+
+    return successResponse(c, {
+      exams,
+      students: studentGrades
+    });
+
+  } catch (e: any) {
+    return errorResponse(c, e.message, 500);
   }
 });
 

@@ -1,29 +1,30 @@
 import { Hono } from 'hono';
-import { Bindings } from '../types';
-import { successResponse, errorResponse } from '../utils/response';
+import { Bindings, JWTPayload, Variables } from '../types';
+import { successResponse, errorResponse, forbiddenResponse } from '../utils/response';
+import { authMiddleware } from '../middleware/auth';
 
-const app = new Hono<{ Bindings: Bindings }>();
+const app = new Hono<{ Bindings: Bindings, Variables: Variables }>();
 
 // ============================================
 // 교강사 관리 API
 // ============================================
 
-// 교강사 목록 조회
+// 교강사 목록 조회 (교강사 정보 + 유저명/사진 등)
 app.get('/personnel', async (c) => {
     try {
         const { results } = await c.env.DB.prepare(`
             SELECT 
-                u.id, u.name, u.phone, u.email, u.role, u.status as user_status,
-                i.position, i.subject, i.type, i.status as instructor_status, i.joined_at
+                u.id, u.name, u.email, u.phone, u.role, u.status as user_status, u.profile_image,
+                i.position, i.subject, i.type, i.status as instructor_status, i.joined_at, u.created_at
             FROM users u
             LEFT JOIN hrd_instructors i ON u.id = i.user_id
-            WHERE u.role = 'teacher' OR u.role = 'admin'
+            WHERE u.role = 'teacher' OR i.user_id IS NOT NULL
+            ORDER BY u.created_at DESC
         `).all();
-
         return c.json({ success: true, data: results });
     } catch (e) {
         console.error('Failed to fetch personnel:', e);
-        return c.json({ success: false, error: '교강사 목록을 불러오는데 실패했습니다.' }, 500);
+        return c.json({ success: false, error: '교강사 목록 조회 실패' }, 500);
     }
 });
 
@@ -31,7 +32,7 @@ app.get('/personnel', async (c) => {
 app.post('/personnel', async (c) => {
     try {
         const body = await c.req.json();
-        const { email, name, phone, position, subject, type, joined_at } = body;
+        const { email, name, phone, position, subject, type, joined_at, profile_image } = body;
 
         // 1. 사용자 테이블에 있는지 확인
         let user: any = await c.env.DB.prepare("SELECT id FROM users WHERE email = ?").bind(email).first();
@@ -40,13 +41,13 @@ app.post('/personnel', async (c) => {
         if (!user) {
             // 새 사용자 생성 (비밀번호는 기본값으로 설정 - 추후 변경 필요)
             const result = await c.env.DB.prepare(
-                "INSERT INTO users (email, password, name, phone, role, status) VALUES (?, ?, ?, ?, 'teacher', 'active')"
-            ).bind(email, 'temp_password', name, phone).run();
+                "INSERT INTO users (email, password, name, phone, role, status, profile_image) VALUES (?, ?, ?, ?, 'teacher', 'active', ?)"
+            ).bind(email, 'temp_password', name, phone, profile_image || null).run();
             userId = result.meta.last_row_id as number;
         } else {
             userId = user.id;
-            // 역할 업데이트
-            await c.env.DB.prepare("UPDATE users SET role = 'teacher' WHERE id = ?").bind(userId).run();
+            // 역할 및 이미지 업데이트
+            await c.env.DB.prepare("UPDATE users SET role = 'teacher', profile_image = ? WHERE id = ?").bind(profile_image || null, userId).run();
         }
 
         // 2. 강사 상세 정보 등록
@@ -59,6 +60,61 @@ app.post('/personnel', async (c) => {
     } catch (e) {
         console.error('Failed to register personnel:', e);
         return c.json({ success: false, error: '교강사 등록 실패' }, 500);
+    }
+});
+
+// 교강사 정보 수정
+app.put('/personnel/:id', async (c) => {
+    try {
+        const userId = c.req.param('id');
+        const body = await c.req.json();
+        const { name, phone, email, position, subject, type, joined_at, instructor_status, profile_image } = body;
+
+        // 1. users 테이블 업데이트 (기본 정보)
+        await c.env.DB.prepare(
+            "UPDATE users SET name = ?, phone = ?, email = ?, profile_image = ? WHERE id = ?"
+        ).bind(name, phone, email, profile_image || null, userId).run();
+
+        // 2. hrd_instructors 테이블 업데이트 (상세 정보)
+        const exists = await c.env.DB.prepare("SELECT user_id FROM hrd_instructors WHERE user_id = ?").bind(userId).first();
+
+        if (exists) {
+            let query = `UPDATE hrd_instructors SET position = ?, subject = ?, type = ?, joined_at = ?`;
+            const params = [position, subject, type, joined_at];
+
+            if (instructor_status) {
+                query += `, status = ?`;
+                params.push(instructor_status);
+            }
+
+            query += ` WHERE user_id = ?`;
+            params.push(userId);
+
+            await c.env.DB.prepare(query).bind(...params).run();
+        } else {
+            await c.env.DB.prepare(`
+                INSERT INTO hrd_instructors (user_id, position, subject, type, joined_at, status) 
+                VALUES (?, ?, ?, ?, ?, ?)
+            `).bind(userId, position, subject, type, joined_at, instructor_status || 'active').run();
+        }
+
+        return c.json({ success: true, message: '정보가 수정되었습니다.' });
+    } catch (e) {
+        console.error('Failed to update personnel:', e);
+        return c.json({ success: false, error: '수정 실패' }, 500);
+    }
+});
+
+// 교강사 삭제 (퇴직 처리)
+app.delete('/personnel/:id', async (c) => {
+    try {
+        const userId = c.req.param('id');
+        // soft delete: hrd_instructors.status = 'retired'
+        await c.env.DB.prepare("UPDATE hrd_instructors SET status = 'retired' WHERE user_id = ?").bind(userId).run();
+        return c.json({ success: true, message: '퇴직(삭제) 처리되었습니다.' });
+    } catch (e) {
+        console.error('Failed to delete personnel:', e);
+        return c.json({ success: false, error: '삭제 실패' }, 500);
     }
 });
 
@@ -108,26 +164,33 @@ app.get('/items', async (c) => {
     try {
         const category = c.req.query('category');
         const search = c.req.query('search');
+        const page = parseInt(c.req.query('page') || '1');
+        const limit = parseInt(c.req.query('limit') || '10');
+        const offset = (page - 1) * limit;
 
-        let query = "SELECT * FROM hrd_items WHERE 1=1";
+        let whereClause = "WHERE 1=1";
         const params: any[] = [];
 
         if (category && category !== 'all') {
-            query += " AND category = ?";
+            whereClause += " AND category = ?";
             params.push(category);
         }
 
         if (search) {
-            query += " AND (name LIKE ? OR model LIKE ?)";
+            whereClause += " AND (name LIKE ? OR model LIKE ?)";
             const searchParam = `%${search}%`;
             params.push(searchParam, searchParam);
         }
 
-        query += " ORDER BY created_at DESC";
+        // Total count
+        const countRes = await c.env.DB.prepare(`SELECT COUNT(*) as total FROM hrd_items ${whereClause}`).bind(...params).first();
+        const total = countRes ? countRes.total : 0;
 
-        const { results } = await c.env.DB.prepare(query).bind(...params).all();
+        // Data
+        const query = `SELECT * FROM hrd_items ${whereClause} ORDER BY created_at DESC LIMIT ? OFFSET ?`;
+        const { results } = await c.env.DB.prepare(query).bind(...params, limit, offset).all();
 
-        return c.json({ success: true, data: results });
+        return c.json({ success: true, data: results, total, page, limit });
     } catch (e) {
         console.error('Failed to fetch items:', e);
         return c.json({ success: false, error: '물품 목록 조회 실패' }, 500);
@@ -138,12 +201,12 @@ app.get('/items', async (c) => {
 app.post('/items', async (c) => {
     try {
         const body = await c.req.json();
-        const { category, name, model, quantity, location, status, memo } = body;
+        const { category, name, model, quantity, location, status, memo, image_url } = body;
 
         const result = await c.env.DB.prepare(`
-            INSERT INTO hrd_items (category, name, model, quantity, location, status, memo)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        `).bind(category, name, model, parseInt(quantity), location, status, memo).run();
+            INSERT INTO hrd_items (category, name, model, quantity, location, status, memo, image_url)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `).bind(category, name, model, parseInt(quantity), location, status, memo, image_url || null).run();
 
         return c.json({ success: true, data: { id: result.meta.last_row_id } });
     } catch (e) {
@@ -153,21 +216,68 @@ app.post('/items', async (c) => {
 });
 
 // 물품 수정
-app.put('/items', async (c) => {
+app.put('/items/:id', async (c) => {
     try {
+        const id = c.req.param('id');
         const body = await c.req.json();
-        const { id, category, name, model, quantity, location, status, memo } = body;
+        const { category, name, model, quantity, location, status, memo, image_url } = body;
 
         await c.env.DB.prepare(`
             UPDATE hrd_items 
-            SET category = ?, name = ?, model = ?, quantity = ?, location = ?, status = ?, memo = ?
+            SET category = ?, name = ?, model = ?, quantity = ?, location = ?, status = ?, memo = ?, image_url = ?
             WHERE id = ?
-        `).bind(category, name, model, parseInt(quantity), location, status, memo, id).run();
+        `).bind(category, name, model, parseInt(quantity), location, status, memo, image_url || null, id).run();
 
         return c.json({ success: true });
     } catch (e) {
         console.error('Failed to update item:', e);
         return c.json({ success: false, error: '물품 수정 실패' }, 500);
+    }
+});
+
+// 대여 등록
+app.post('/items/:id/rent', async (c) => {
+    try {
+        const id = c.req.param('id');
+        const body = await c.req.json();
+        const { user_name, phone, memo } = body;
+
+        await c.env.DB.prepare(`
+            INSERT INTO hrd_item_rentals (item_id, user_name, phone, memo, status)
+            VALUES (?, ?, ?, ?, 'rented')
+        `).bind(id, user_name, phone, memo).run();
+
+        return c.json({ success: true });
+    } catch (e) {
+        console.error(e);
+        return c.json({ success: false, error: '대여 처리 실패' }, 500);
+    }
+});
+
+// 반납 처리
+app.put('/rentals/:id/return', async (c) => {
+    try {
+        const id = c.req.param('id');
+        await c.env.DB.prepare(`
+            UPDATE hrd_item_rentals SET status = 'returned', returned_at = CURRENT_TIMESTAMP WHERE id = ?
+        `).bind(id).run();
+        return c.json({ success: true });
+    } catch (e) {
+        console.error(e);
+        return c.json({ success: false, error: '반납 처리 실패' }, 500);
+    }
+});
+
+// 대여 이력 조회
+app.get('/items/:id/rentals', async (c) => {
+    try {
+        const id = c.req.param('id');
+        const { results } = await c.env.DB.prepare(`
+            SELECT * FROM hrd_item_rentals WHERE item_id = ? ORDER BY rented_at DESC
+        `).bind(id).all();
+        return c.json({ success: true, data: results });
+    } catch (e) {
+        return c.json({ success: false, error: '이력 조회 실패' }, 500);
     }
 });
 
@@ -194,91 +304,147 @@ app.get('/students', async (c) => {
         const status = c.req.query('status');
         const type = c.req.query('type');
 
+        // === [최종 정상 버전] ===
+        // DB 마이그레이션 완료: birthdate, gender, address, education, certifications 컬럼 사용 가능
+
         let query = `
             SELECT 
-                u.id, u.name, u.phone, u.email, 
-                p.birthdate, p.gender, p.address, p.education, p.certifications,
-                p.type, p.status, p.package_type, p.payment_method, p.payment_date,
-                p.self_pay_amount, p.has_application, p.has_card, p.is_hrd_net_registered,
-                p.status_memo, p.created_at,
-                (SELECT date FROM consultations WHERE user_id = u.id ORDER BY date DESC LIMIT 1) as last_consult
+                u.id, u.name, u.phone, u.email, u.created_at,
+                u.address, u.birthdate, u.gender, u.education, u.certifications, u.profile_image,
+                d.course_id, d.status, d.type, d.last_consult,
+                d.package_type, d.payment_method, d.payment_date, d.self_pay_amount,
+                d.has_application, d.has_card, d.is_hrd_net_registered, d.status_memo
             FROM users u
-            LEFT JOIN hrd_student_profiles p ON u.id = p.user_id
+            LEFT JOIN hrd_student_details d ON u.id = d.user_id
             WHERE u.role = 'student'
         `;
         const params: any[] = [];
 
         if (search) {
-            query += " AND (u.name LIKE ? OR u.phone LIKE ? OR p.birthdate LIKE ?)";
+            query += " AND (u.name LIKE ? OR u.phone LIKE ?)";
             const searchParam = `%${search}%`;
-            params.push(searchParam, searchParam, searchParam);
+            params.push(searchParam, searchParam);
         }
 
         if (status) {
-            query += " AND p.status = ?";
+            query += " AND d.status = ?";
             params.push(status);
         }
 
         if (type) {
-            query += " AND p.type = ?";
+            query += " AND d.type = ?";
             params.push(type);
         }
 
-        query += " ORDER BY p.created_at DESC";
+        query += " ORDER BY u.created_at DESC";
 
-        const { results } = await c.env.DB.prepare(query).bind(...params).all();
+        const stmt = c.env.DB.prepare(query);
+        const { results } = params.length > 0 ? await stmt.bind(...params).all() : await stmt.all();
 
-        return c.json({ success: true, data: results });
-    } catch (e) {
+        // 데이터 매핑
+        const safeResults = (results || []).map((r: any) => ({
+            ...r,
+            // 상세 정보가 없을 경우를 대비한 기본값 처리
+            course_id: r.course_id || null,
+            status: r.status || 'consulting',
+            type: r.type || 'jobseeker',
+            last_consult: r.last_consult || null,
+            // boolean 변환 등 필요한 추가 가공
+            has_application: !!r.has_application,
+            has_card: !!r.has_card,
+            is_hrd_net_registered: !!r.is_hrd_net_registered
+        }));
+
+        return c.json({ success: true, data: safeResults });
+
+    } catch (e: any) {
         console.error('Failed to fetch students:', e);
-        return c.json({ success: false, error: '훈련생 목록 조회 실패' }, 500);
+        // 이제는 진짜 서버 에러(500)를 반환해도 됨 (원인을 다 잡았으므로)
+        return c.json({ success: false, error: e.message }, 500);
     }
 });
 
+// DB 연결 테스트용 엔드포인트
+app.get('/db-check', async (c) => {
+    try {
+        const { results } = await c.env.DB.prepare("SELECT 1 as val").all();
+        return c.json({ success: true, message: "DB Connection OK", val: results[0].val });
+    } catch (e: any) {
+        return c.json({ success: false, error: e.message, stack: e.stack }, 500);
+    }
+});
+
+// 훈련생 등록
 // 훈련생 등록
 app.post('/students', async (c) => {
     try {
         const body = await c.req.json();
         const {
             name, email, phone, birthdate, gender, address, education,
-            certifications, type, status, package_type, payment_method,
+            certifications, type, status, course_id, package_type, payment_method,
             payment_date, self_pay_amount, has_application, has_card,
-            is_hrd_net_registered, status_memo
+            is_hrd_net_registered, status_memo, profile_image
         } = body;
 
+        if (!name || !phone) {
+            return c.json({ success: false, error: '이름과 연락처는 필수항목입니다.' }, 400);
+        }
+
         // 1. 사용자 확인/생성
-        let user: any = await c.env.DB.prepare("SELECT id FROM users WHERE email = ?").bind(email || `${Date.now()}@temp.com`).first();
+        let user: any = await c.env.DB.prepare("SELECT id FROM users WHERE phone = ?").bind(phone).first();
         let userId: number;
 
+        const valEmail = email || `${phone}@temp.com`;
+        const valBirthdate = birthdate || null;
+        const valGender = gender || 'M';
+        const valAddress = address || null;
+        const valEducation = education || null;
+        const valCertifications = certifications || null;
+        const valProfileImage = profile_image || null;
+
         if (!user) {
+            // 신규 회원 생성
             const result = await c.env.DB.prepare(
-                "INSERT INTO users (email, password, name, phone, role, status) VALUES (?, ?, ?, ?, 'student', 'active')"
-            ).bind(email || `${Date.now()}@temp.com`, 'temp_password', name, phone).run();
+                "INSERT INTO users (email, password, name, phone, role, status, birthdate, gender, address, education, certifications, profile_image) VALUES (?, ?, ?, ?, 'student', 'active', ?, ?, ?, ?, ?, ?)"
+            ).bind(valEmail, 'temp_password', name, phone, valBirthdate, valGender, valAddress, valEducation, valCertifications, valProfileImage).run();
             userId = result.meta.last_row_id as number;
         } else {
             userId = user.id;
-            await c.env.DB.prepare("UPDATE users SET role = 'student', name = ?, phone = ? WHERE id = ?")
-                .bind(name, phone, userId).run();
+            // 기존 회원 정보 업데이트
+            await c.env.DB.prepare("UPDATE users SET role = 'student', name = ?, phone = ?, email = ?, birthdate = ?, gender = ?, address = ?, education = ?, certifications = ?, profile_image = ? WHERE id = ?")
+                .bind(name, phone, valEmail, valBirthdate, valGender, valAddress, valEducation, valCertifications, valProfileImage, userId).run();
         }
 
-        // 2. 프로필 등록
+        const hrdCourseId = course_id ? parseInt(course_id) : null;
+
+        // 2. HRD 상세 정보 등록/업데이트
+        // users 테이블로 옮겨간 정보들은 여기서 관리하지 않아도 되지만, 하위 호환성을 위해 유지하거나 제거 가능.
+        // 여기서는 일단 유지하되 users 테이블 데이터를 우선시합니다.
         await c.env.DB.prepare(`
-            INSERT OR REPLACE INTO hrd_student_profiles (
-                user_id, birthdate, gender, address, education, certifications,
-                type, status, package_type, payment_method, payment_date,
-                self_pay_amount, has_application, has_card, is_hrd_net_registered, status_memo
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO hrd_student_details (
+                user_id, course_id, status, type, package_type, payment_method, payment_date,
+                self_pay_amount, has_application, has_card, is_hrd_net_registered, 
+                status_memo
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(user_id) DO UPDATE SET
+                course_id = ?, status = ?, type = ?, package_type = ?, payment_method = ?, 
+                payment_date = ?, self_pay_amount = ?, has_application = ?, has_card = ?, 
+                is_hrd_net_registered = ?, status_memo = ?,
+                updated_at = CURRENT_TIMESTAMP
         `).bind(
-            userId, birthdate, gender, address, education, certifications,
-            type, status, package_type, payment_method, payment_date,
+            userId, hrdCourseId, status, type, package_type, payment_method, payment_date,
+            parseInt(self_pay_amount || 0), has_application ? 1 : 0, has_card ? 1 : 0,
+            is_hrd_net_registered ? 1 : 0, status_memo,
+            // UPDATE values
+            hrdCourseId, status, type, package_type, payment_method, payment_date,
             parseInt(self_pay_amount || 0), has_application ? 1 : 0, has_card ? 1 : 0,
             is_hrd_net_registered ? 1 : 0, status_memo
         ).run();
 
         return c.json({ success: true, data: { id: userId } });
-    } catch (e) {
+    } catch (e: any) {
         console.error('Failed to register student:', e);
-        return c.json({ success: false, error: '훈련생 등록 실패' }, 500);
+        return c.json({ success: false, error: '훈련생 등록 실패: ' + e.message }, 500);
     }
 });
 
@@ -288,68 +454,134 @@ app.put('/students', async (c) => {
         const body = await c.req.json();
         const {
             id, name, email, phone, birthdate, gender, address, education,
-            certifications, type, status, package_type, payment_method,
+            certifications, type, status, course_id, package_type, payment_method,
             payment_date, self_pay_amount, has_application, has_card,
-            is_hrd_net_registered, status_memo
+            is_hrd_net_registered, status_memo, profile_image
         } = body;
 
-        // 1. 사용자 업데이트
-        await c.env.DB.prepare("UPDATE users SET name = ?, phone = ?, email = ? WHERE id = ?")
-            .bind(name, phone, email, id).run();
+        if (!id) return c.json({ success: false, error: 'ID가 필요합니다.' }, 400);
 
-        // 2. 프로필 업데이트
+        const valEmail = email || null;
+        const valBirthdate = birthdate || null;
+        const valGender = gender || 'M';
+        const valAddress = address || null;
+        const valEducation = education || null;
+        const valCertifications = certifications || null;
+        const valProfileImage = profile_image || null;
+
+        // 1. 사용자 기본 정보 업데이트 (profile_image 포함)
+        await c.env.DB.prepare("UPDATE users SET name = ?, phone = ?, email = ?, birthdate = ?, gender = ?, address = ?, education = ?, certifications = ?, profile_image = ? WHERE id = ?")
+            .bind(name, phone, valEmail, valBirthdate, valGender, valAddress, valEducation, valCertifications, valProfileImage, id).run();
+
+        const hrdCourseId = course_id ? parseInt(course_id) : null;
+
+        // 2. HRD 상세 정보 업데이트 (레코드가 없을 경우를 대비해 UPSERT 수행)
         await c.env.DB.prepare(`
-            UPDATE hrd_student_profiles SET
-                birthdate = ?, gender = ?, address = ?, education = ?, certifications = ?,
-                type = ?, status = ?, package_type = ?, payment_method = ?, payment_date = ?,
-                self_pay_amount = ?, has_application = ?, has_card = ?, 
-                is_hrd_net_registered = ?, status_memo = ?
-            WHERE user_id = ?
+            INSERT INTO hrd_student_details (
+                user_id, course_id, status, type, package_type, payment_method, 
+                payment_date, self_pay_amount, has_application, has_card, 
+                is_hrd_net_registered, status_memo
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(user_id) DO UPDATE SET
+                course_id = ?, status = ?, type = ?, package_type = ?, payment_method = ?, 
+                payment_date = ?, self_pay_amount = ?, has_application = ?, has_card = ?, 
+                is_hrd_net_registered = ?, status_memo = ?,
+                updated_at = CURRENT_TIMESTAMP
         `).bind(
-            birthdate, gender, address, education, certifications,
-            type, status, package_type, payment_method, payment_date,
+            id, hrdCourseId, status || 'consulting', type || 'jobseeker', package_type || null, payment_method || null, payment_date || null,
             parseInt(self_pay_amount || 0), has_application ? 1 : 0, has_card ? 1 : 0,
-            is_hrd_net_registered ? 1 : 0, status_memo, id
+            is_hrd_net_registered ? 1 : 0, status_memo || null,
+            // UPDATE values
+            hrdCourseId, status || 'consulting', type || 'jobseeker', package_type || null, payment_method || null, payment_date || null,
+            parseInt(self_pay_amount || 0), has_application ? 1 : 0, has_card ? 1 : 0,
+            is_hrd_net_registered ? 1 : 0, status_memo || null
         ).run();
 
         return c.json({ success: true });
-    } catch (e) {
+    } catch (e: any) {
         console.error('Failed to update student:', e);
-        return c.json({ success: false, error: '훈련생 수정 실패' }, 500);
+        return c.json({ success: false, error: '훈련생 수정 실패: ' + e.message }, 500);
     }
 });
 
-// 상담 이력 조회
-app.get('/students/:id/consultations', async (c) => {
+// 상담 이력 조회 (상담일지 통합 및 권한 필터링)
+app.get('/students/:id/consultations', authMiddleware, async (c) => {
     try {
         const id = c.req.param('id');
-        const { results } = await c.env.DB.prepare(`
-            SELECT * FROM consultations WHERE user_id = ? ORDER BY created_at DESC
-        `).bind(id).all();
+        const user = c.get('user'); // JWTPayload
+
+        let query = `
+            SELECT 
+                cl.id,
+                cl.content as message,
+                cl.counseling_date as consult_date,
+                u.name as memo,
+                u.role as counselor_role,
+                cl.category,
+                cl.method,
+                cl.created_at
+            FROM hrd_counseling_logs cl
+            LEFT JOIN users u ON cl.counselor_id = u.id
+            WHERE cl.student_id = ? 
+        `;
+
+        const params: any[] = [id];
+
+        // 권한 필터링: 선생(teacher)은 본인이 작성한 상담만 조회 (admin은 전체 조회)
+        if (user.role === 'teacher') {
+            query += " AND cl.counselor_id = ? ";
+            params.push(user.userId);
+        }
+
+        query += " ORDER BY cl.counseling_date DESC, cl.created_at DESC";
+
+        const { results } = await c.env.DB.prepare(query).bind(...params).all();
 
         return c.json({ success: true, data: results });
-    } catch (e) {
+    } catch (e: any) {
         console.error('Failed to fetch consultations:', e);
-        return c.json({ success: false, error: '상담 이력 조회 실패' }, 500);
+        return c.json({ success: false, error: '상담 이력 조회 실패: ' + e.message }, 500);
     }
 });
 
-// 상담 이력 추가
+// 상담 이력 추가 (상담일지 통합)
 app.post('/students/:id/consultations', async (c) => {
     try {
         const userId = c.req.param('id');
         const body = await c.req.json();
-        const { content, manager, date } = body;
+        const { content, manager, date, category, method, course_id } = body;
 
+        // 상담자 ID 찾기 (관리자 우선, 없으면 1번)
+        let counselorId = 1;
+        if (manager) {
+            const admin = await c.env.DB.prepare("SELECT id FROM users WHERE name = ? AND role = 'admin'").bind(manager).first();
+            if (admin) counselorId = (admin as any).id;
+        }
+
+        // hrd_counseling_logs 에 저장
         await c.env.DB.prepare(`
-            INSERT INTO consultations (user_id, message, memo, status, created_at, name, phone)
-            SELECT ?, ?, ?, 'completed', ?, name, phone FROM users WHERE id = ?
-        `).bind(userId, content, manager || '관리자', date || new Date().toISOString(), userId).run();
+            INSERT INTO hrd_counseling_logs (
+                student_id, counselor_id, course_id, counseling_date, 
+                category, method, content, created_at, updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        `).bind(
+            userId, counselorId, course_id || null,
+            date || new Date().toISOString().split('T')[0],
+            category || 'academic', method || 'face_to_face', content
+        ).run();
+
+        // last_consult 업데이트
+        await c.env.DB.prepare(`
+            UPDATE hrd_student_details 
+            SET last_consult = ?
+            WHERE user_id = ?
+        `).bind(date || new Date().toISOString().split('T')[0], userId).run();
 
         return c.json({ success: true });
-    } catch (e) {
+    } catch (e: any) {
         console.error('Failed to add consultation:', e);
-        return c.json({ success: false, error: '상담 이력 추가 실패' }, 500);
+        return c.json({ success: false, error: '상담 이력 추가 실패: ' + e.message }, 500);
     }
 });
 
@@ -361,7 +593,12 @@ app.post('/students/:id/consultations', async (c) => {
 app.get('/facilities', async (c) => {
     try {
         const search = c.req.query('search');
-        let query = "SELECT * FROM hrd_facilities WHERE 1=1";
+        let query = `
+            SELECT f.*, 
+            (SELECT url FROM hrd_facility_images WHERE facility_id = f.id ORDER BY created_at DESC LIMIT 1) as image_url
+            FROM hrd_facilities f 
+            WHERE 1=1
+        `;
         const params: any[] = [];
 
         if (search) {
@@ -383,14 +620,24 @@ app.get('/facilities', async (c) => {
 app.post('/facilities', async (c) => {
     try {
         const body = await c.req.json();
-        const { name, area, managerMain, managerSub, description } = body;
+        const { name, area, managerMain, managerSub, description, image_url } = body;
 
         const result = await c.env.DB.prepare(`
             INSERT INTO hrd_facilities (name, area, manager_main, manager_sub, description, status)
             VALUES (?, ?, ?, ?, ?, '양호')
-        `).bind(name, parseFloat(area), managerMain, managerSub, description).run();
+        `).bind(name, area ? parseFloat(area) : null, managerMain || null, managerSub || null, description || null).run();
 
-        return c.json({ success: true, data: { id: result.meta.last_row_id } });
+        const facilityId = result.meta.last_row_id;
+
+        // 초기 이미지가 있는 경우 이미지 테이블에도 등록
+        if (image_url) {
+            await c.env.DB.prepare(`
+                INSERT INTO hrd_facility_images (facility_id, name, size, url)
+                VALUES (?, ?, ?, ?)
+            `).bind(facilityId, 'initial_photo.jpg', Math.round(image_url.length * 0.75), image_url).run();
+        }
+
+        return c.json({ success: true, data: { id: facilityId } });
     } catch (e) {
         console.error('Failed to create facility:', e);
         return c.json({ success: false, error: '훈련시설 등록 실패' }, 500);
@@ -401,13 +648,20 @@ app.post('/facilities', async (c) => {
 app.put('/facilities', async (c) => {
     try {
         const body = await c.req.json();
-        const { id, name, area, managerMain, managerSub, description, status } = body;
+        const { id, name, area, managerMain, managerSub, description, status, image_url } = body;
 
         await c.env.DB.prepare(`
             UPDATE hrd_facilities 
             SET name = ?, area = ?, manager_main = ?, manager_sub = ?, description = ?, status = ?
             WHERE id = ?
-        `).bind(name, parseFloat(area), managerMain, managerSub, description, status, id).run();
+        `).bind(name, area ? parseFloat(area) : null, managerMain || null, managerSub || null, description || null, status, id).run();
+
+        if (image_url) {
+            await c.env.DB.prepare(`
+                INSERT INTO hrd_facility_images (facility_id, name, size, url)
+                VALUES (?, ?, ?, ?)
+            `).bind(id, 'manual_update.jpg', Math.round(image_url.length * 0.75), image_url).run();
+        }
 
         return c.json({ success: true });
     } catch (e) {
@@ -536,8 +790,9 @@ app.get('/facilities/:id/items', async (c) => {
 // ============================================
 
 // 출석 현황 조회 (특정 날짜, 특정 과정)
-app.get('/attendance', async (c) => {
+app.get('/attendance', authMiddleware, async (c) => {
     try {
+        const user = c.get('user') as JWTPayload;
         const courseId = c.req.query('courseId');
         const date = c.req.query('date');
 
@@ -545,19 +800,27 @@ app.get('/attendance', async (c) => {
             return c.json({ success: false, error: '과정과 날짜를 선택해주세요.' }, 400);
         }
 
+        // 강사인 경우 권한 확인
+        if (user.role === 'teacher') {
+            const course: any = await c.env.DB.prepare("SELECT teacher_id FROM courses WHERE id = ?").bind(courseId).first();
+            if (!course || course.teacher_id !== user.userId) {
+                return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
+            }
+        }
+
         // 1. 해당 과정의 수강생 목록 및 출석 정보 조회 (통합된 attendance_logs 테이블 사용)
         // HRD 뷰 호환성을 위해 필드명 매핑 (check_in_time -> in_time 등)
         const query = `
             SELECT 
                 u.id, u.name, u.phone,
-                p.package_type,
+                d.package_type,
                 e.id as enrollment_id,
                 al.status,
                 al.check_in_time as in_time,
                 al.check_out_time as out_time,
                 al.note as memo
             FROM users u
-            JOIN hrd_student_profiles p ON u.id = p.user_id
+            JOIN hrd_student_details d ON u.id = d.user_id
             JOIN enrollments e ON u.id = e.user_id
             LEFT JOIN attendance_logs al ON e.id = al.enrollment_id AND al.date = ?
             WHERE e.course_id = ? AND u.role = 'student'
@@ -747,6 +1010,7 @@ app.get('/counseling', async (c) => {
             SELECT 
                 cl.*,
                 u_student.name as student_name,
+                u_student.profile_image as student_image,
                 u_counselor.name as counselor_name,
                 c.title as course_title
             FROM hrd_counseling_logs cl
@@ -830,6 +1094,247 @@ app.delete('/counseling/:id', async (c) => {
     try {
         await c.env.DB.prepare('DELETE FROM hrd_counseling_logs WHERE id = ?').bind(id).run();
         return successResponse(c, { success: true }, '상담 일지가 삭제되었습니다.');
+    } catch (e: any) {
+        return errorResponse(c, e.message, 500);
+    }
+});
+
+// ============================================
+// 훈련 일지 (Training Logs) API - NCS 연동
+// ============================================
+
+// 훈련 일지 목록 조회
+app.get('/training-logs', async (c) => {
+    try {
+        const courseId = c.req.query('courseId');
+        const startDate = c.req.query('startDate');
+        const endDate = c.req.query('endDate');
+
+        let query = `
+            SELECT t.*, u.name as ncs_unit_name, u.code as ncs_unit_code
+            FROM training_logs t
+            LEFT JOIN ncs_units u ON t.ncs_unit_id = u.id
+            WHERE t.course_id = ?
+        `;
+        const params: any[] = [courseId];
+
+        if (startDate && endDate) {
+            query += " AND t.date BETWEEN ? AND ?";
+            params.push(startDate, endDate);
+        }
+
+        query += " ORDER BY t.date DESC";
+
+        const { results } = await c.env.DB.prepare(query).bind(...params).all();
+        return c.json({ success: true, data: results });
+    } catch (e: any) {
+        return errorResponse(c, e.message, 500);
+    }
+});
+
+// 훈련 일지 상세 조회
+app.get('/training-logs/:id', async (c) => {
+    try {
+        const id = c.req.param('id');
+        const result = await c.env.DB.prepare(`
+            SELECT t.*, u.name as ncs_unit_name, u.code as ncs_unit_code
+            FROM training_logs t
+            LEFT JOIN ncs_units u ON t.ncs_unit_id = u.id
+            WHERE t.id = ?
+        `).bind(id).first();
+        return c.json({ success: true, data: result });
+    } catch (e: any) {
+        return errorResponse(c, e.message, 500);
+    }
+});
+
+// 훈련 일지 등록/수정
+app.post('/training-logs', async (c) => {
+    try {
+        const body = await c.req.json();
+        const { id, course_id, instructor_id, date, topic, content, teaching_method, ncs_unit_id, training_hours, ncs_elements_json } = body;
+
+        if (id) {
+            // 수정
+            await c.env.DB.prepare(`
+                UPDATE training_logs 
+                SET topic = ?, content = ?, teaching_method = ?, ncs_unit_id = ?, training_hours = ?, ncs_elements_json = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            `).bind(topic, content, teaching_method, ncs_unit_id, training_hours, ncs_elements_json, id).run();
+        } else {
+            // 등록
+            await c.env.DB.prepare(`
+                INSERT INTO training_logs (course_id, instructor_id, date, topic, content, teaching_method, ncs_unit_id, training_hours, ncs_elements_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `).bind(course_id, instructor_id, date, topic, content, teaching_method, ncs_unit_id, training_hours, ncs_elements_json).run();
+        }
+
+        return c.json({ success: true, message: id ? '일지가 수정되었습니다.' : '일지가 등록되었습니다.' });
+    } catch (e: any) {
+        return errorResponse(c, e.message, 500);
+    }
+});
+
+// 훈련 일지 삭제
+app.delete('/training-logs/:id', async (c) => {
+    try {
+        const id = c.req.param('id');
+        await c.env.DB.prepare('DELETE FROM training_logs WHERE id = ?').bind(id).run();
+        return c.json({ success: true, message: '일지가 삭제되었습니다.' });
+    } catch (e: any) {
+        return errorResponse(c, e.message, 500);
+    }
+});
+
+// NCS 이수 현황 요약 조회 (대시보드 차트용)
+app.get('/courses/:courseId/ncs-summary', async (c) => {
+    try {
+        const courseId = c.req.param('courseId');
+
+        const query = `
+            SELECT 
+                u.id as unit_id, u.name as unit_name, u.code as unit_code,
+                cnu.training_hours as target_hours,
+                COALESCE(SUM(tl.training_hours), 0) as current_hours
+            FROM course_ncs_units cnu
+            JOIN ncs_units u ON cnu.ncs_unit_id = u.id
+            LEFT JOIN training_logs tl ON tl.course_id = cnu.course_id AND tl.ncs_unit_id = cnu.ncs_unit_id
+            WHERE cnu.course_id = ?
+            GROUP BY u.id, u.name, u.code, cnu.training_hours
+            ORDER BY u.code ASC
+        `;
+        const { results } = await c.env.DB.prepare(query).bind(courseId).all();
+
+        return c.json({ success: true, data: results });
+    } catch (e: any) {
+        return errorResponse(c, e.message, 500);
+    }
+});
+
+// 수료생 취업 현황 조회
+app.get('/courses/:courseId/employment', authMiddleware, async (c) => {
+    try {
+        const user = c.get('user') as JWTPayload;
+        const courseId = c.req.param('courseId');
+
+        // 강사인 경우 권한 확인
+        if (user.role === 'teacher') {
+            const course: any = await c.env.DB.prepare("SELECT teacher_id FROM courses WHERE id = ?").bind(courseId).first();
+            if (!course || course.teacher_id !== user.userId) {
+                return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
+            }
+        }
+        const query = `
+            SELECT 
+                u.id as student_id, u.name, u.phone,
+                es.id as employment_id, es.status, es.company_name, es.job_title, 
+                es.employment_date, es.insurance_covered, es.notes
+            FROM users u
+            JOIN enrollments e ON u.id = e.user_id
+            LEFT JOIN employment_status es ON es.student_id = u.id AND es.course_id = ?
+            WHERE e.course_id = ? AND u.role = 'student'
+            ORDER BY u.name ASC
+        `;
+        const { results } = await c.env.DB.prepare(query).bind(courseId, courseId).all();
+        return c.json({ success: true, data: results });
+    } catch (e: any) {
+        return errorResponse(c, e.message, 500);
+    }
+});
+
+// 취업 현황 저장/수정
+app.post('/employment', authMiddleware, async (c) => {
+    try {
+        const user = c.get('user') as JWTPayload;
+        const body = await c.req.json();
+        const { student_id, course_id, status, company_name, job_title, employment_date, insurance_covered, notes } = body;
+
+        // 강사인 경우 권한 확인
+        if (user.role === 'teacher') {
+            const course: any = await c.env.DB.prepare("SELECT teacher_id FROM courses WHERE id = ?").bind(course_id).first();
+            if (!course || course.teacher_id !== user.userId) {
+                return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
+            }
+        }
+
+        // UPSERT logic using INSERT OR REPLACE (works in SQLite/D1 if there's a unique constraint, but we'll use conditional check)
+        const existing = await c.env.DB.prepare("SELECT id FROM employment_status WHERE student_id = ? AND course_id = ?")
+            .bind(student_id, course_id).first();
+
+        if (existing) {
+            await c.env.DB.prepare(`
+                UPDATE employment_status 
+                SET status = ?, company_name = ?, job_title = ?, employment_date = ?, insurance_covered = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            `).bind(status, company_name, job_title, employment_date, insurance_covered ? 1 : 0, notes, existing.id).run();
+        } else {
+            await c.env.DB.prepare(`
+                INSERT INTO employment_status (student_id, course_id, status, company_name, job_title, employment_date, insurance_covered, notes)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            `).bind(student_id, course_id, status, company_name, job_title, employment_date, insurance_covered ? 1 : 0, notes).run();
+        }
+
+        return c.json({ success: true });
+    } catch (e: any) {
+        return errorResponse(c, e.message, 500);
+    }
+});
+
+
+// 학생 자신의 취업 현황 조회
+app.get('/my-employment', authMiddleware, async (c) => {
+    try {
+        const user = c.get('user') as JWTPayload;
+        const query = `
+            SELECT 
+                c.id as course_id, c.title as course_title,
+                es.status, es.company_name, es.job_title, 
+                es.employment_date, es.insurance_covered, es.notes
+            FROM enrollments e
+            JOIN courses c ON e.course_id = c.id
+            LEFT JOIN employment_status es ON es.student_id = ? AND es.course_id = c.id
+            WHERE e.user_id = ? AND e.status = 'approved'
+            ORDER BY c.start_date DESC
+        `;
+        const { results } = await c.env.DB.prepare(query).bind(user.userId, user.userId).all();
+        return c.json({ success: true, data: results });
+    } catch (e: any) {
+        return errorResponse(c, e.message, 500);
+    }
+});
+
+// 학생 자신의 취업 현황 업데이트
+app.post('/my-employment', authMiddleware, async (c) => {
+    try {
+        const user = c.get('user') as JWTPayload;
+        const body = await c.req.json();
+        const { course_id, status, company_name, job_title, employment_date, insurance_covered, notes } = body;
+
+        // Check if student is actually enrolled in this course
+        const enrollment = await c.env.DB.prepare("SELECT id FROM enrollments WHERE user_id = ? AND course_id = ? AND status = 'approved'")
+            .bind(user.userId, course_id).first();
+
+        if (!enrollment) {
+            return errorResponse(c, '해당 과정에 대한 수강 기록이 없습니다.', 403);
+        }
+
+        const existing = await c.env.DB.prepare("SELECT id FROM employment_status WHERE student_id = ? AND course_id = ?")
+            .bind(user.userId, course_id).first();
+
+        if (existing) {
+            await c.env.DB.prepare(`
+                UPDATE employment_status 
+                SET status = ?, company_name = ?, job_title = ?, employment_date = ?, insurance_covered = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            `).bind(status, company_name, job_title, employment_date, insurance_covered ? 1 : 0, notes, existing.id).run();
+        } else {
+            await c.env.DB.prepare(`
+                INSERT INTO employment_status (student_id, course_id, status, company_name, job_title, employment_date, insurance_covered, notes)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            `).bind(user.userId, course_id, status, company_name, job_title, employment_date, insurance_covered ? 1 : 0, notes).run();
+        }
+
+        return c.json({ success: true, message: '취업 정보가 업데이트되었습니다.' });
     } catch (e: any) {
         return errorResponse(c, e.message, 500);
     }

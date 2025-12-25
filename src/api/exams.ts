@@ -147,6 +147,64 @@ exams.get('/:id', async (c) => {
     }
 });
 
+// GET /api/exams/:id/status - Get exam stats and student submission status
+exams.get('/:id/status', async (c) => {
+    const examId = c.req.param('id');
+    try {
+        // 1. 시험 정보 및 과정 ID 조회
+        const exam = await c.env.DB.prepare('SELECT * FROM exams WHERE id = ?').bind(examId).first();
+        if (!exam) return notFoundResponse(c, 'Exam not found');
+
+        // 2. 전체 수강생 목록 조회 (해당 과정의 approved된 수강생)
+        const { results: students } = await c.env.DB.prepare(`
+            SELECT u.id, u.name, u.email, u.phone 
+            FROM enrollments e
+            JOIN users u ON e.user_id = u.id
+            WHERE e.course_id = ? AND e.status = 'approved'
+        `).bind(exam.course_id).all();
+
+        // 3. 제출 내역 조회
+        const { results: submissions } = await c.env.DB.prepare(`
+            SELECT id, student_id, total_score, submitted_at, status
+            FROM exam_submissions
+            WHERE exam_id = ?
+        `).bind(examId).all();
+
+        // 4. 데이터 병합
+        const studentStatus = students.map((std: any) => {
+            const sub = submissions.find((s: any) => s.student_id === std.id);
+            return {
+                ...std,
+                has_submitted: !!sub,
+                submission_id: sub ? sub.id : null,
+                score: sub ? sub.total_score : null,
+                submitted_at: sub ? sub.submitted_at : null,
+                status: sub ? sub.status : 'missing'
+            };
+        });
+
+        // 통계 계산
+        const submittedCount = submissions.length;
+        const totalStudents = students.length;
+        const averageScore = submittedCount > 0
+            ? submissions.reduce((acc: number, curr: any) => acc + (curr.total_score || 0), 0) / submittedCount
+            : 0;
+
+        return successResponse(c, {
+            exam,
+            stats: {
+                total_students: totalStudents,
+                submitted_count: submittedCount,
+                average_score: Math.round(averageScore * 10) / 10 // 소수점 1자리
+            },
+            students: studentStatus
+        });
+
+    } catch (e: any) {
+        return errorResponse(c, e.message, 500);
+    }
+});
+
 // POST /api/exams - Create new exam
 exams.post('/', async (c) => {
     try {

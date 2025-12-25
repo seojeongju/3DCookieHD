@@ -1,3 +1,5 @@
+import { hrdSidebar } from './components/hrd_sidebar';
+
 export const adminPostsListHtml = (sidebar: string | null = null) => `
 <!DOCTYPE html>
 <html lang="ko">

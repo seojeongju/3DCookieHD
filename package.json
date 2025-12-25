@@ -10,7 +10,7 @@
     "deploy:prod": "npm run build && wrangler pages deploy dist --project-name 3dcookiehd --branch education-platform",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings",
     "db:migrate:local": "wrangler d1 migrations apply education-platform-db --local",
-    "db:migrate:prod": "wrangler d1 migrations apply education-platform-db",
+    "db:migrate:prod": "wrangler d1 migrations apply education-platform-db --remote",
     "db:seed": "wrangler d1 execute education-platform-db --local --file=./seed.sql",
     "db:reset": "rm -rf .wrangler/state/v3/d1 && npm run db:migrate:local && npm run db:seed",
     "db:console:local": "wrangler d1 execute education-platform-db --local",

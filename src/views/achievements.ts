@@ -1,6 +1,8 @@
 
 import { footerHtml } from './footer';
 
+import { navigationHtml } from './components/navigation';
+
 export const achievementsHtml = `
 <!DOCTYPE html>
 <html lang="ko">
@@ -35,23 +37,8 @@ export const achievementsHtml = `
 </head>
 <body class="bg-gray-50">
     <!-- 네비게이션 (공통) -->
-    <nav class="bg-white shadow-sm sticky top-0 z-50 border-b border-gray-100">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <!-- 로고 -->
-                <div class="flex-shrink-0 flex items-center">
-                    <a href="/" class="flex flex-col items-start group">
-                        <img src="/static/logo.png" alt="WOW 3D" class="h-9 w-auto object-contain mb-0.5">
-                        <span class="text-sm text-gray-600 font-bold tracking-wider group-hover:text-primary-600 transition-colors">와우쓰리디홍대센터</span>
-                    </a>
-                </div>
-                <!-- 우측 메뉴 -->
-                <div class="flex items-center space-x-2">
-                    <a href="/" class="px-3 py-2 text-gray-500 hover:text-primary-600 font-medium text-sm transition-colors">홈으로</a>
-                </div>
-            </div>
-        </div>
-    </nav>
+    ${navigationHtml('')}
+
 
     <!-- 헤더 -->
     <div class="bg-gradient-to-r from-blue-800 to-indigo-900 text-white py-16">

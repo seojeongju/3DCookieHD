@@ -1,0 +1,183 @@
+import { Hono } from 'hono';
+import { Bindings, Variables } from '../types';
+
+const app = new Hono<{ Bindings: Bindings, Variables: Variables }>();
+
+// 과제 목록 조회 (과정별)
+app.get('/courses/:courseId', async (c) => {
+    try {
+        const courseId = c.req.param('courseId');
+        const { results } = await c.env.DB.prepare(`
+            SELECT a.*, u.name as teacher_name,
+                   COUNT(DISTINCT s.id) as submission_count,
+                   COUNT(DISTINCT CASE WHEN s.status = 'graded' THEN s.id END) as graded_count
+            FROM assignments a
+            LEFT JOIN users u ON a.teacher_id = u.id
+            LEFT JOIN assignment_submissions s ON a.id = s.assignment_id
+            WHERE a.course_id = ?
+            GROUP BY a.id
+            ORDER BY a.due_date DESC
+        `).bind(courseId).all();
+
+        return c.json({ success: true, data: results });
+    } catch (e) {
+        console.error('Failed to fetch assignments:', e);
+        return c.json({ success: false, error: 'Failed to fetch assignments' }, 500);
+    }
+});
+
+// 학생별 과제 목록 조회
+app.get('/student/:studentId', async (c) => {
+    try {
+        const studentId = c.req.param('studentId');
+        const { results } = await c.env.DB.prepare(`
+            SELECT a.*, c.title as course_title,
+                   s.id as submission_id, s.submitted_at, s.score, s.status, s.feedback
+            FROM assignments a
+            JOIN courses c ON a.course_id = c.id
+            JOIN course_enrollments e ON c.id = e.course_id
+            LEFT JOIN assignment_submissions s ON a.id = s.assignment_id AND s.student_id = ?
+            WHERE e.student_id = ? AND e.status = 'approved'
+            ORDER BY a.due_date DESC
+        `).bind(studentId, studentId).all();
+
+        return c.json({ success: true, data: results });
+    } catch (e) {
+        console.error('Failed to fetch student assignments:', e);
+        return c.json({ success: false, error: 'Failed to fetch assignments' }, 500);
+    }
+});
+
+// 과제 등록
+app.post('/', async (c) => {
+    try {
+        const body = await c.req.json();
+        const { course_id, teacher_id, title, description, due_date, max_score, attachment_url } = body;
+
+        const result = await c.env.DB.prepare(`
+            INSERT INTO assignments (course_id, teacher_id, title, description, due_date, max_score, attachment_url)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        `).bind(course_id, teacher_id, title, description, due_date, max_score || 100, attachment_url).run();
+
+        return c.json({ success: true, data: { id: result.meta.last_row_id } });
+    } catch (e) {
+        console.error('Failed to create assignment:', e);
+        return c.json({ success: false, error: 'Failed to create assignment' }, 500);
+    }
+});
+
+// 과제 수정
+app.put('/:id', async (c) => {
+    try {
+        const id = c.req.param('id');
+        const body = await c.req.json();
+        const { title, description, due_date, max_score, attachment_url } = body;
+
+        await c.env.DB.prepare(`
+            UPDATE assignments 
+            SET title = ?, description = ?, due_date = ?, max_score = ?, attachment_url = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        `).bind(title, description, due_date, max_score, attachment_url, id).run();
+
+        return c.json({ success: true });
+    } catch (e) {
+        console.error('Failed to update assignment:', e);
+        return c.json({ success: false, error: 'Failed to update assignment' }, 500);
+    }
+});
+
+// 과제 삭제
+app.delete('/:id', async (c) => {
+    try {
+        const id = c.req.param('id');
+        await c.env.DB.prepare('DELETE FROM assignments WHERE id = ?').bind(id).run();
+        return c.json({ success: true });
+    } catch (e) {
+        console.error('Failed to delete assignment:', e);
+        return c.json({ success: false, error: 'Failed to delete assignment' }, 500);
+    }
+});
+
+// 과제 제출
+app.post('/:assignmentId/submit', async (c) => {
+    try {
+        const assignmentId = c.req.param('assignmentId');
+        const body = await c.req.json();
+        const { student_id, content, attachment_url } = body;
+
+        // 마감일 확인
+        const assignment = await c.env.DB.prepare('SELECT due_date FROM assignments WHERE id = ?')
+            .bind(assignmentId).first();
+
+        const isLate = new Date() > new Date(assignment.due_date as string);
+        const status = isLate ? 'late' : 'submitted';
+
+        // 기존 제출 확인
+        const existing = await c.env.DB.prepare(
+            'SELECT id FROM assignment_submissions WHERE assignment_id = ? AND student_id = ?'
+        ).bind(assignmentId, student_id).first();
+
+        if (existing) {
+            // 업데이트
+            await c.env.DB.prepare(`
+                UPDATE assignment_submissions 
+                SET content = ?, attachment_url = ?, submitted_at = CURRENT_TIMESTAMP, status = ?
+                WHERE id = ?
+            `).bind(content, attachment_url, status, existing.id).run();
+
+            return c.json({ success: true, data: { id: existing.id } });
+        } else {
+            // 신규 제출
+            const result = await c.env.DB.prepare(`
+                INSERT INTO assignment_submissions (assignment_id, student_id, content, attachment_url, status)
+                VALUES (?, ?, ?, ?, ?)
+            `).bind(assignmentId, student_id, content, attachment_url, status).run();
+
+            return c.json({ success: true, data: { id: result.meta.last_row_id } });
+        }
+    } catch (e) {
+        console.error('Failed to submit assignment:', e);
+        return c.json({ success: false, error: 'Failed to submit assignment' }, 500);
+    }
+});
+
+// 과제 제출 목록 조회
+app.get('/:assignmentId/submissions', async (c) => {
+    try {
+        const assignmentId = c.req.param('assignmentId');
+        const { results } = await c.env.DB.prepare(`
+            SELECT s.*, u.name as student_name, u.email as student_email
+            FROM assignment_submissions s
+            JOIN users u ON s.student_id = u.id
+            WHERE s.assignment_id = ?
+            ORDER BY s.submitted_at DESC
+        `).bind(assignmentId).all();
+
+        return c.json({ success: true, data: results });
+    } catch (e) {
+        console.error('Failed to fetch submissions:', e);
+        return c.json({ success: false, error: 'Failed to fetch submissions' }, 500);
+    }
+});
+
+// 과제 채점
+app.post('/submissions/:submissionId/grade', async (c) => {
+    try {
+        const submissionId = c.req.param('submissionId');
+        const body = await c.req.json();
+        const { score, feedback, graded_by } = body;
+
+        await c.env.DB.prepare(`
+            UPDATE assignment_submissions 
+            SET score = ?, feedback = ?, graded_at = CURRENT_TIMESTAMP, graded_by = ?, status = 'graded'
+            WHERE id = ?
+        `).bind(score, feedback, graded_by, submissionId).run();
+
+        return c.json({ success: true });
+    } catch (e) {
+        console.error('Failed to grade submission:', e);
+        return c.json({ success: false, error: 'Failed to grade submission' }, 500);
+    }
+});
+
+export default app;

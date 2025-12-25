@@ -1,4 +1,6 @@
 ﻿import { footerHtml } from './footer';
+import { navigationHtml } from './components/navigation';
+
 export const reviewsListHtml = `
 <!DOCTYPE html>
 <html lang="ko">
@@ -33,39 +35,8 @@ export const reviewsListHtml = `
 </head>
 <body class="bg-gray-50">
     <!-- 네비게이션 -->
-    <nav class="bg-white shadow-sm sticky top-0 z-50 border-b border-gray-100">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <!-- 로고 -->
-                <div class="flex-shrink-0 flex items-center">
-                    <a href="/" class="flex flex-col items-start group">
-                        <img src="/static/logo.png" alt="WOW 3D" class="h-9 w-auto object-contain mb-0.5">
-                        <span class="text-sm text-gray-600 font-bold tracking-wider group-hover:text-primary-600 transition-colors">와우쓰리디홍대센터</span>
-                    </a>
-                </div>
+    ${navigationHtml('reviews')}
 
-                <!-- 메인 메뉴 (중앙) -->
-                <div class="hidden lg:flex space-x-1 items-center">
-                    <!-- 과정안내 -->
-                    <div class="relative group">
-                        <button class="px-3 py-2 text-gray-600 hover:text-primary-600 font-medium text-sm flex items-center transition-colors">
-                            과정안내
-                            <i class="fas fa-chevron-down ml-1 text-[10px] text-gray-400"></i>
-                        </button>
-                        <div class="absolute left-0 top-full mt-0 w-48 bg-white rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 border border-gray-100 overflow-hidden z-50">
-                            <div class="py-1 academic-menu-dropdown"><a href="/login" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600"><i class="fas fa-sign-in-alt mr-2"></i>로그인하기</a><a href="/register" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600"><i class="fas fa-user-plus mr-2"></i>회원가입</a></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 우측 메뉴 (로그인/회원가입) -->
-                <div class="flex items-center space-x-2" id="authMenu">
-                    <a href="/login" class="px-3 py-2 text-gray-500 hover:text-primary-600 font-medium text-sm transition-colors">로그인</a>
-                    <a href="/register" class="px-4 py-1.5 bg-primary-500 hover:bg-primary-600 text-white text-sm font-medium rounded transition-colors shadow-sm">회원가입</a>
-                </div>
-            </div>
-        </div>
-    </nav>
 
     <script>
         // 로그인 상태 확인 및 메뉴 업데이트

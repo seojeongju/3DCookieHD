@@ -32,12 +32,21 @@ export const teacherSidebar = (activeMenu: string) => `
             <i class="fas fa-file-alt w-6 ${activeMenu === 'exams' ? 'text-blue-400' : 'text-slate-400 group-hover:text-white transition-colors'}"></i>
             <span class="font-medium">시험 출제/채점</span>
         </a>
+        <a href="/teacher/surveys" class="flex items-center px-6 py-3 ${activeMenu === 'surveys' ? 'bg-slate-700 border-r-4 border-blue-500 text-white' : 'text-slate-300 hover:bg-slate-700 hover:text-white transition-colors'} group">
+            <i class="fas fa-poll w-6 ${activeMenu === 'surveys' ? 'text-blue-400' : 'text-slate-400 group-hover:text-white transition-colors'}"></i>
+            <span class="font-medium">설문 및 역량평가</span>
+        </a>
 
-        <!-- 커뮤니티 -->
-        <div class="px-4 mt-8 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">커뮤니티</div>
         <a href="/teacher/posts" class="flex items-center px-6 py-3 ${activeMenu === 'posts' ? 'bg-slate-700 border-r-4 border-blue-500 text-white' : 'text-slate-300 hover:bg-slate-700 hover:text-white transition-colors'} group">
             <i class="fas fa-comments w-6 ${activeMenu === 'posts' ? 'text-blue-400' : 'text-slate-400 group-hover:text-white transition-colors'}"></i>
             <span class="font-medium">게시판/공지</span>
+        </a>
+
+        <!-- 성과 관리 -->
+        <div class="px-4 mt-8 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">성과 관리</div>
+        <a href="/teacher/portfolios" class="flex items-center px-6 py-3 ${activeMenu === 'portfolios' ? 'bg-slate-700 border-r-4 border-blue-500 text-white' : 'text-slate-300 hover:bg-slate-700 hover:text-white transition-colors'} group">
+            <i class="fas fa-briefcase w-6 ${activeMenu === 'portfolios' ? 'text-blue-400' : 'text-slate-400 group-hover:text-white transition-colors'}"></i>
+            <span class="font-medium">포트폴리오 관리</span>
         </a>
 
         <div class="h-10"></div>

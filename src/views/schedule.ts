@@ -1,3 +1,5 @@
+import { navigationHtml } from './components/navigation';
+
 export const scheduleHtml = `
 <!DOCTYPE html>
 <html lang="ko">
@@ -61,23 +63,8 @@ export const scheduleHtml = `
 </head>
 <body class="bg-gray-50">
     <!-- 네비게이션 -->
-    <nav class="bg-white shadow-md sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-20">
-                <div class="flex items-center space-x-4">
-                    <a href="/" class="flex items-center space-x-4">
-                        <img src="/static/logo.png" alt="WOW 3D" class="h-12">
-                        <span class="text-xl font-bold text-gray-800">와우쓰리디홍대센터</span>
-                    </a>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <a href="/" class="text-gray-700 hover:text-primary-600 font-medium">
-                        <i class="fas fa-home mr-2"></i>홈으로
-                    </a>
-                </div>
-            </div>
-        </div>
-    </nav>
+    ${navigationHtml('schedule')}
+
 
     <!-- 헤더 -->
     <section class="bg-gradient-to-r from-primary-600 to-primary-700 text-white py-12">

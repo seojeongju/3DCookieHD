@@ -85,10 +85,22 @@ export const adminExamsHtml = (sidebar = hrdSidebar('exams')) => `
                 const response = await fetch('/api/exams', {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
-                const exams = await response.json();
+                const result = await response.json();
                 
                 const tbody = document.getElementById('examList');
-                if (exams.length === 0) {
+                
+                let exams = [];
+                // API 응답 호환성 처리: 배열 또는 { success, data: [] } 구조 지원
+                if (Array.isArray(result)) {
+                    exams = result;
+                } else if (result && result.success && Array.isArray(result.data)) {
+                    exams = result.data;
+                } else if (result && Array.isArray(result.data)) {
+                    // success 필드가 없더라도 data가 배열이면 사용
+                    exams = result.data;
+                }
+
+                if (!exams || exams.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-10 text-center text-gray-500">등록된 시험이 없습니다.</td></tr>';
                     return;
                 }
@@ -105,6 +117,7 @@ export const adminExamsHtml = (sidebar = hrdSidebar('exams')) => `
                             </span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button onclick="location.href='/admin/exams/' + \${exam.id} + '/results'" class="text-green-600 hover:text-green-900 mr-3" title="응시 현황 및 채점"><i class="fas fa-chart-bar"></i></button>
                             <button onclick="location.href='/admin/exams/' + \${exam.id} + '/edit'" class="text-blue-600 hover:text-blue-900"><i class="fas fa-edit"></i></button>
                             <button onclick="deleteExam(\${exam.id})" class="text-red-600 hover:text-red-900 ml-3"><i class="fas fa-trash"></i></button>
                         </td>
@@ -547,7 +560,14 @@ export const adminExamEditHtml = `
                 const response = await fetch('/api/exams/' + examId, {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
-                const exam = await response.json();
+                const result = await response.json();
+                
+                if (!result.success) {
+                    alert('데이터 로드 실패: ' + (result.error || '알 수 없는 오류'));
+                    return;
+                }
+
+                const exam = result.data;
                 
                 document.getElementById('examTitle').value = exam.title;
                 document.getElementById('courseSelect').value = exam.course_id;
@@ -556,6 +576,9 @@ export const adminExamEditHtml = `
                 document.getElementById('examDescription').value = exam.description || '';
 
                 // Load questions
+                const container = document.getElementById('questionsContainer');
+                container.innerHTML = ''; // 기존(기본 1개) 초기화
+                
                 if (exam.questions && exam.questions.length > 0) {
                     exam.questions.forEach(q => {
                         addQuestion(q.question_type, q);

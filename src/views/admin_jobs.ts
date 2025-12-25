@@ -1,3 +1,5 @@
+import { hrdSidebar } from './components/hrd_sidebar';
+
 export const adminJobsListHtml = `
 <!DOCTYPE html>
 <html lang="ko">
@@ -7,69 +9,22 @@ export const adminJobsListHtml = `
     <title>채용공고 관리 - 와우쓰리디홍대센터</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              primary: {
-                50: '#f0f7ff',
-                100: '#e0effe',
-                200: '#baddfd',
-                300: '#7dbcfb',
-                400: '#3a9bf7',
-                500: '#5b9bd5',
-                600: '#4a90e2',
-                700: '#2d5fa3',
-                800: '#1e4278',
-                900: '#132d54'
-              }
-            }
-          }
-        }
-      }
-    </script>
 </head>
-<body class="bg-gray-50">
-    <!-- 네비게이션 -->
-    <nav class="bg-white shadow-md sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-20">
-                <div class="flex items-center space-x-4">
-                    <a href="/admin" class="flex flex-col items-start group">
-                        <div class="flex items-center gap-2">
-                            <img src="/static/logo.png" alt="WOW 3D" class="h-9 w-auto object-contain mb-0.5">
-                            <span class="px-1.5 py-0.5 bg-red-100 text-red-600 text-[10px] font-bold rounded-full">ADMIN</span>
-                        </div>
-                        <span class="text-sm text-gray-600 font-bold tracking-wider group-hover:text-primary-600 transition-colors">와우쓰리디홍대센터</span>
-                    </a>
+<body class="bg-gray-50 font-sans">
+    <div class="flex h-screen overflow-hidden">
+        ${hrdSidebar('jobs')}
+        <div class="flex-1 flex flex-col overflow-hidden bg-gray-50">
+            <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 shadow-sm z-10">
+                <div class="flex items-center">
+                    <h2 class="text-xl font-bold text-gray-800">채용공고 관리</h2>
+                    <span class="ml-4 text-sm text-gray-500">등록된 채용공고를 조회하고 관리합니다.</span>
                 </div>
-                <div class="flex items-center space-x-4">
-                    <a href="/admin" class="text-gray-700 hover:text-primary-600 font-medium">
-                        <i class="fas fa-arrow-left mr-2"></i>대시보드로 돌아가기
-                    </a>
-                </div>
-            </div>
-        </div>
-    </nav>
-
-    <!-- 헤더 -->
-    <div class="bg-white border-b border-gray-200">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div class="flex justify-between items-center">
-                <div>
-                    <h1 class="text-2xl font-bold text-gray-800">채용공고 관리</h1>
-                    <p class="text-gray-600 mt-1">등록된 채용공고를 조회하고 관리합니다.</p>
-                </div>
-                <button onclick="openModal('createJobModal')" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center">
+                <button onclick="openModal('createJobModal')" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center shadow-sm font-medium">
                     <i class="fas fa-plus mr-2"></i> 새 공고 등록
                 </button>
-            </div>
-        </div>
-    </div>
+            </header>
 
-    <!-- 메인 컨텐츠 -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <main class="flex-1 overflow-y-auto p-8">
         <!-- 필터 및 검색 -->
         <div class="bg-white rounded-lg shadow-sm p-4 mb-6 flex flex-wrap gap-4 items-center justify-between">
             <div class="flex gap-4">
@@ -353,6 +308,9 @@ export const adminJobsListHtml = `
             }
         }
     </script>
+        </main>
+    </div>
+</div>
 </body>
 </html>
 `;

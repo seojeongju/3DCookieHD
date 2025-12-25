@@ -156,7 +156,89 @@ export const teacherDashboardHtml = `
         </main>
     </div>
 
-    <script src="/static/teacher-dashboard.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            checkLogin();
+            loadDashboardData();
+        });
+
+        function checkLogin() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                alert('로그인이 필요합니다.');
+                window.location.href = '/login';
+            }
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            // Admins are also allowed to view the Teacher Dashboard
+            if (user.role !== 'teacher' && user.role !== 'admin') {
+                alert('강사 권한이 필요합니다.');
+                window.location.href = '/';
+            }
+        }
+
+        async function loadDashboardData() {
+            try {
+                const token = localStorage.getItem('token');
+                
+                // 1. 담당 과정 목록 조회 (API가 토큰 기반으로 필터링)
+                const response = await fetch('/api/courses?limit=100', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    const courses = result.data;
+                    updateStats(courses);
+                    renderRecentCourses(courses);
+                } else {
+                    console.error('Failed to load courses:', result.error);
+                }
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+            }
+        }
+
+        function updateStats(courses) {
+            // 담당 과정 수
+            document.getElementById('myCourses').textContent = courses.length;
+            
+            // 총 수강생 수 (각 과정의 current_students 합계)
+            const totalStudents = courses.reduce((sum, course) => sum + (course.current_students || 0), 0);
+            document.getElementById('totalStudents').textContent = totalStudents;
+            
+            // 채점 대기 (임시: 0으로 표시하거나 추후 API 연동)
+            document.getElementById('pendingGrading').textContent = '0'; 
+        }
+
+        function renderRecentCourses(courses) {
+            const container = document.getElementById('recentCoursesContainer');
+            
+            if (courses.length === 0) {
+                container.innerHTML = 
+                    '<div class="col-span-3 text-center py-10 bg-white rounded-xl border border-dashed border-gray-300">' +
+                        '<p class="text-gray-500 mb-2">담당하는 과정이 없습니다.</p>' +
+                        '<p class="text-sm text-gray-400">관리자에게 과정 배정을 요청하세요.</p>' +
+                    '</div>';
+                return;
+            }
+
+            container.innerHTML = courses.slice(0, 6).map(course => 
+                '<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition group">' +
+                    '<div class="flex justify-between items-start mb-3">' +
+                        '<span class="px-2 py-1 bg-blue-50 text-blue-600 text-xs font-bold rounded">' + course.category + '</span>' +
+                        '<span class="text-xs text-gray-400 font-mono">' + (course.start_date || '일정 미정') + '</span>' +
+                    '</div>' +
+                    '<h3 class="font-bold text-gray-800 mb-2 line-clamp-1 group-hover:text-blue-600 transition">' + course.title + '</h3>' +
+                    '<div class="flex justify-between items-end">' +
+                        '<div class="text-sm text-gray-500">' +
+                            '<i class="fas fa-user-graduate mr-1"></i> ' + course.current_students + '명 수강중' +
+                        '</div>' +
+                        '<a href="/teacher/courses" class="text-sm text-blue-600 font-medium hover:underline">관리하기</a>' +
+                    '</div>' +
+                '</div>'
+            ).join('');
+        }
+    </script>
 </body>
 </html>
 `;

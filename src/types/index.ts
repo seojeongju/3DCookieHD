@@ -9,6 +9,10 @@ export type Bindings = {
   // R2: R2Bucket; // 추후 추가
 };
 
+export type Variables = {
+  user: JWTPayload;
+};
+
 // User 관련 타입
 export type UserRole = 'student' | 'teacher' | 'admin';
 export type SocialProvider = 'naver' | 'kakao' | 'google' | null;

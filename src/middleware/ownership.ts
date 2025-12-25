@@ -38,15 +38,15 @@ export async function verifyCourseOwnership(c: AuthContext, next: Next) {
         try {
             const db = c.env.DB;
             const course = await db.prepare(
-                'SELECT instructor_id FROM courses WHERE id = ?'
+                'SELECT teacher_id FROM courses WHERE id = ?'
             ).bind(courseId).first();
 
             if (!course) {
                 return notFoundResponse(c, '강의를 찾을 수 없습니다');
             }
 
-            // instructor_id가 현재 사용자 ID와 일치하는지 확인
-            if (course.instructor_id !== user.userId) {
+            // teacher_id가 현재 사용자 ID와 일치하는지 확인
+            if (course.teacher_id !== user.userId) {
                 return forbiddenResponse(c, '이 강의에 대한 권한이 없습니다');
             }
 
@@ -175,7 +175,7 @@ export async function verifyEnrollmentManagement(c: AuthContext, next: Next) {
         try {
             const db = c.env.DB;
             const enrollment = await db.prepare(`
-        SELECT e.id, c.instructor_id 
+        SELECT e.id, c.teacher_id 
         FROM enrollments e
         JOIN courses c ON e.course_id = c.id
         WHERE e.id = ?
@@ -185,7 +185,7 @@ export async function verifyEnrollmentManagement(c: AuthContext, next: Next) {
                 return notFoundResponse(c, '수강 신청을 찾을 수 없습니다');
             }
 
-            if (enrollment.instructor_id !== user.userId) {
+            if (enrollment.teacher_id !== user.userId) {
                 return forbiddenResponse(c, '본인 강의의 수강생만 관리할 수 있습니다');
             }
 
