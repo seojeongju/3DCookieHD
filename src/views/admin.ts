@@ -80,94 +80,94 @@ export const adminDashboardHtml = `
 
             <div class="p-8 max-w-7xl mx-auto">
                 <!-- 1. 핵심 지표 카드 섹션 -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
                     <!-- 회원 카드 -->
-                    <div onclick="location.href='/admin/users'" class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 cursor-pointer hover:shadow-md hover:border-blue-200 transition-all duration-200 group">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-gray-500 text-sm font-medium group-hover:text-blue-600 transition-colors">전체 회원</h3>
-                            <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 group-hover:bg-blue-100 transition-colors">
-                                <i class="fas fa-users"></i>
+                    <div onclick="location.href='/admin/users'" class="bg-white rounded-xl shadow-sm p-4 border border-gray-100 cursor-pointer hover:shadow-md hover:border-blue-200 transition-all duration-200 group">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-gray-500 text-xs font-medium group-hover:text-blue-600 transition-colors">전체 회원</h3>
+                            <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 group-hover:bg-blue-100 transition-colors">
+                                <i class="fas fa-users text-sm"></i>
                             </div>
                         </div>
                         <div class="flex items-baseline">
-                            <span id="stat-total-students" class="text-2xl font-bold text-gray-800">-</span>
-                            <span class="ml-2 text-sm text-gray-500">명</span>
+                            <span id="stat-total-students" class="text-xl font-bold text-gray-800">-</span>
+                            <span class="ml-1 text-xs text-gray-500">명</span>
                         </div>
                     </div>
                     
                     <!-- 운영 과정 카드 -->
-                    <div onclick="location.href='/admin/courses'" class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 cursor-pointer hover:shadow-md hover:border-purple-200 transition-all duration-200 group">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-gray-500 text-sm font-medium group-hover:text-purple-600 transition-colors">교육과정</h3>
-                            <div class="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center text-purple-600 group-hover:bg-purple-100 transition-colors">
-                                <i class="fas fa-book-open"></i>
+                    <div onclick="location.href='/admin/courses'" class="bg-white rounded-xl shadow-sm p-4 border border-gray-100 cursor-pointer hover:shadow-md hover:border-purple-200 transition-all duration-200 group">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-gray-500 text-xs font-medium group-hover:text-purple-600 transition-colors">교육과정</h3>
+                            <div class="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center text-purple-600 group-hover:bg-purple-100 transition-colors">
+                                <i class="fas fa-book-open text-sm"></i>
                             </div>
                         </div>
-                        <div class="flex items-baseline mb-2">
-                            <span id="stat-active-courses" class="text-2xl font-bold text-gray-800">-</span>
-                            <span class="ml-2 text-sm text-gray-500">개</span>
+                        <div class="flex items-baseline mb-1">
+                            <span id="stat-active-courses" class="text-xl font-bold text-gray-800">-</span>
+                            <span class="ml-1 text-xs text-gray-500">개</span>
                         </div>
-                        <div class="flex items-center gap-3 text-xs text-gray-500">
-                            <span class="flex items-center" title="운영중"><span class="w-2 h-2 rounded-full bg-green-500 mr-1.5"></span>운영 <b id="stat-c-active" class="ml-1 text-gray-700">0</b></span>
-                            <span class="flex items-center" title="모집중"><span class="w-2 h-2 rounded-full bg-blue-500 mr-1.5"></span>모집 <b id="stat-c-recruiting" class="ml-1 text-gray-700">0</b></span>
-                            <span class="flex items-center" title="종료/마감"><span class="w-2 h-2 rounded-full bg-gray-400 mr-1.5"></span>종료 <b id="stat-c-closed" class="ml-1 text-gray-700">0</b></span>
+                        <div class="flex items-center gap-2 text-[10px] text-gray-500">
+                            <span class="flex items-center" title="운영중"><span class="w-1.5 h-1.5 rounded-full bg-green-500 mr-1"></span><b id="stat-c-active" class="text-gray-700">0</b></span>
+                            <span class="flex items-center" title="모집중"><span class="w-1.5 h-1.5 rounded-full bg-blue-500 mr-1"></span><b id="stat-c-recruiting" class="text-gray-700">0</b></span>
+                            <span class="flex items-center" title="종료/마감"><span class="w-1.5 h-1.5 rounded-full bg-gray-400 mr-1"></span><b id="stat-c-closed" class="text-gray-700">0</b></span>
                         </div>
                     </div>
 
                     <!-- 매출 카드 -->
-                    <div onclick="location.href='/admin/enrollments'" class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 cursor-pointer hover:shadow-md hover:border-green-200 transition-all duration-200 group">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-gray-500 text-sm font-medium group-hover:text-green-600 transition-colors">이번 달 매출</h3>
-                            <div class="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center text-green-600 group-hover:bg-green-100 transition-colors">
-                                <i class="fas fa-won-sign"></i>
+                    <div onclick="location.href='/admin/enrollments'" class="bg-white rounded-xl shadow-sm p-4 border border-gray-100 cursor-pointer hover:shadow-md hover:border-green-200 transition-all duration-200 group">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-gray-500 text-xs font-medium group-hover:text-green-600 transition-colors">이번 달 매출</h3>
+                            <div class="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center text-green-600 group-hover:bg-green-100 transition-colors">
+                                <i class="fas fa-won-sign text-sm"></i>
                             </div>
                         </div>
-                        <div class="flex items-baseline mb-2">
-                            <span id="stat-monthly-revenue" class="text-2xl font-bold text-gray-800">-</span>
-                            <span class="ml-2 text-sm text-gray-500">원</span>
+                        <div class="flex items-baseline mb-1">
+                            <span id="stat-monthly-revenue" class="text-xl font-bold text-gray-800">-</span>
+                            <span class="ml-1 text-xs text-gray-500">원</span>
                         </div>
-                        <div class="flex flex-wrap gap-2 text-[10px] text-gray-500">
-                             <span class="px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded">카드 <b id="stat-rev-card">0</b></span>
-                             <span class="px-1.5 py-0.5 bg-green-50 text-green-600 rounded">계좌 <b id="stat-rev-transfer">0</b></span>
-                             <span class="px-1.5 py-0.5 bg-purple-50 text-purple-600 rounded">국비 <b id="stat-rev-gov">0</b></span>
+                        <div class="flex flex-wrap gap-1 text-[9px] text-gray-500">
+                             <span class="px-1 py-0.5 bg-blue-50 text-blue-600 rounded">카드 <b id="stat-rev-card">0</b></span>
+                             <span class="px-1 py-0.5 bg-green-50 text-green-600 rounded">계좌 <b id="stat-rev-transfer">0</b></span>
+                             <span class="px-1 py-0.5 bg-purple-50 text-purple-600 rounded">국비 <b id="stat-rev-gov">0</b></span>
                         </div>
                     </div>
 
                     <!-- 문의 카드 -->
-                    <div onclick="location.href='/admin/inquiries'" class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 cursor-pointer hover:shadow-md hover:border-red-200 transition-all duration-200 group">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-gray-500 text-sm font-medium group-hover:text-red-600 transition-colors">온라인문의</h3>
-                            <div class="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center text-red-600 group-hover:bg-red-100 transition-colors">
-                                <i class="fas fa-comment-dots"></i>
+                    <div onclick="location.href='/admin/inquiries'" class="bg-white rounded-xl shadow-sm p-4 border border-gray-100 cursor-pointer hover:shadow-md hover:border-red-200 transition-all duration-200 group">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-gray-500 text-xs font-medium group-hover:text-red-600 transition-colors">온라인문의</h3>
+                            <div class="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center text-red-600 group-hover:bg-red-100 transition-colors">
+                                <i class="fas fa-comment-dots text-sm"></i>
                             </div>
                         </div>
-                        <div class="flex items-baseline mb-2">
-                            <span id="stat-new-inquiries" class="text-2xl font-bold text-gray-800">-</span>
-                            <span class="ml-2 text-sm text-red-500">건</span>
+                        <div class="flex items-baseline mb-1">
+                            <span id="stat-new-inquiries" class="text-xl font-bold text-gray-800">-</span>
+                            <span class="ml-1 text-xs text-red-500">건</span>
                         </div>
-                        <div class="flex items-center gap-3 text-xs text-gray-500">
-                             <span class="flex items-center"><span class="w-1.5 h-1.5 rounded-full bg-yellow-400 mr-1.5"></span>신규 <b id="stat-inq-pending" class="ml-1 text-gray-700">0</b></span>
-                             <span class="flex items-center"><span class="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5"></span>완료 <b id="stat-inq-completed" class="ml-1 text-gray-700">0</b></span>
+                        <div class="flex items-center gap-2 text-[10px] text-gray-500">
+                             <span class="flex items-center"><span class="w-1.5 h-1.5 rounded-full bg-yellow-400 mr-1"></span>신규 <b id="stat-inq-pending" class="text-gray-700">0</b></span>
+                             <span class="flex items-center"><span class="w-1.5 h-1.5 rounded-full bg-green-500 mr-1"></span>완료 <b id="stat-inq-completed" class="text-gray-700">0</b></span>
                         </div>
                     </div>
 
-                    <!-- 사이트 접속 통계 카드 (New) -->
-                    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-all duration-200 group">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-gray-500 text-sm font-medium group-hover:text-indigo-600 transition-colors">사이트 접속 (오늘)</h3>
-                            <div class="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 group-hover:bg-indigo-100 transition-colors">
-                                <i class="fas fa-chart-line"></i>
+                    <!-- 사이트 접속 통계 카드 -->
+                    <div class="bg-white rounded-xl shadow-sm p-4 border border-gray-100 hover:shadow-md transition-all duration-200 group">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-gray-500 text-xs font-medium group-hover:text-indigo-600 transition-colors">사이트 접속</h3>
+                            <div class="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 group-hover:bg-indigo-100 transition-colors">
+                                <i class="fas fa-chart-line text-sm"></i>
                             </div>
                         </div>
-                        <div class="flex items-baseline mb-2">
-                            <span id="stat-today-pv" class="text-2xl font-bold text-gray-800">-</span>
-                            <span class="ml-2 text-sm text-gray-500">PV</span>
-                            <span class="mx-2 text-gray-300">/</span>
-                            <span id="stat-today-uv" class="text-xl font-bold text-gray-600">-</span>
-                            <span class="ml-1 text-xs text-gray-400 font-normal">UV</span>
+                        <div class="flex items-baseline mb-1">
+                            <span id="stat-today-pv" class="text-xl font-bold text-gray-800">-</span>
+                            <span class="ml-1 text-xs text-gray-500">PV</span>
+                            <span class="mx-1 text-gray-300">/</span>
+                            <span id="stat-today-uv" class="text-lg font-bold text-gray-600">-</span>
+                            <span class="ml-0.5 text-[10px] text-gray-400">UV</span>
                         </div>
-                        <div class="text-xs text-gray-400">
-                            최근 7일 접속 트렌드 분석 중...
+                        <div class="text-[10px] text-gray-400">
+                            오늘 접속 통계
                         </div>
                     </div>
                 </div>
