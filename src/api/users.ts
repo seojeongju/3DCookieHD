@@ -1,28 +1,20 @@
 import { Hono } from 'hono';
-import type { Bindings } from '../types';
-import { authMiddleware } from '../middleware/auth';
+import type { Bindings, JWTPayload } from '../types';
+import { authMiddleware, requireAdmin } from '../middleware/auth';
+import { hashPassword } from '../utils/jwt';
 
 type Variables = {
-    user: {
-        id: number;
-        email: string;
-        name: string;
-        role: string;
-    } | null;
+    user: JWTPayload;
 };
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
-// 모든 엔드포인트에 인증 미들웨어 적용
+// 모든 엔드포인트에 인증 및 관리자 권한 미들웨어 적용
 app.use('*', authMiddleware);
+app.use('*', requireAdmin);
 
 // 사용자 목록 조회 (관리자 전용)
 app.get('/', async (c) => {
-    const user = c.get('user');
-    if (user?.role !== 'admin') {
-        return c.json({ success: false, error: 'Unauthorized' }, 403);
-    }
-
     const db = c.env.DB;
     const { search, role, status } = c.req.query();
 
@@ -68,11 +60,6 @@ app.get('/', async (c) => {
 
 // 사용자 생성/등록 (관리자 전용)
 app.post('/', async (c) => {
-    const user = c.get('user');
-    if (user?.role !== 'admin') {
-        return c.json({ success: false, error: 'Unauthorized' }, 403);
-    }
-
     const db = c.env.DB;
     const body = await c.req.json();
     const { name, email, phone, birthdate, role, status, password } = body;
@@ -92,12 +79,12 @@ app.post('/', async (c) => {
             return c.json({ success: false, error: 'Email already exists' }, 409);
         }
 
-        // 비밀번호 해싱 (실제 프로덕션에서는 bcrypt 등 사용)
-        const hashedPassword = password ? await hashPassword(password) : await hashPassword('changeme123');
+        // 비밀번호 해싱 (기본 비밀번호: changeme123)
+        const hashedPassword = await hashPassword(password || 'changeme123');
 
         const result = await db
             .prepare(`
-                INSERT INTO users (name, email, phone, birthdate, role, status, password_hash, created_at)
+                INSERT INTO users (name, email, phone, birthdate, role, status, password, created_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
             `)
             .bind(
@@ -123,11 +110,6 @@ app.post('/', async (c) => {
 
 // 사용자 정보 수정 (관리자 전용)
 app.put('/', async (c) => {
-    const user = c.get('user');
-    if (user?.role !== 'admin') {
-        return c.json({ success: false, error: 'Unauthorized' }, 403);
-    }
-
     const db = c.env.DB;
     const body = await c.req.json();
     const { id, name, email, phone, birthdate, role, status, password } = body;
@@ -145,7 +127,7 @@ app.put('/', async (c) => {
 
         // 비밀번호가 제공된 경우에만 업데이트
         if (password) {
-            query += `, password_hash = ?`;
+            query += `, password = ?`;
             params.push(await hashPassword(password));
         }
 
@@ -164,10 +146,6 @@ app.put('/', async (c) => {
 // 사용자 삭제 (관리자 전용)
 app.delete('/:id', async (c) => {
     const user = c.get('user');
-    if (user?.role !== 'admin') {
-        return c.json({ success: false, error: 'Unauthorized' }, 403);
-    }
-
     const db = c.env.DB;
     const userId = parseInt(c.req.param('id'));
 
@@ -177,7 +155,7 @@ app.delete('/:id', async (c) => {
 
     try {
         // 자기 자신은 삭제할 수 없도록 보호
-        if (user.id === userId) {
+        if (user.userId === userId) {
             return c.json({ success: false, error: 'Cannot delete your own account' }, 400);
         }
 
@@ -189,15 +167,5 @@ app.delete('/:id', async (c) => {
         return c.json({ success: false, error: 'Failed to delete user' }, 500);
     }
 });
-
-// 간단한 비밀번호 해싱 함수 (실제로는 bcrypt 같은 라이브러리 사용 권장)
-async function hashPassword(password: string): Promise<string> {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(password);
-    const hash = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hash));
-    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    return hashHex;
-}
 
 export default app;
