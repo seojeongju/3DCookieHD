@@ -231,9 +231,21 @@ export const adminUsersHtml = (activeMenu: string = 'users') => `
                 if (status) url += \`status=\${status}\`;
 
                 const token = localStorage.getItem('token');
+                if (!token) {
+                    location.href = '/login';
+                    return;
+                }
+
                 const response = await fetch(url, {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
+
+                if (response.status === 401 || response.status === 403) {
+                    alert('인증이 만료되었거나 권한이 없습니다. 다시 로그인해주세요.');
+                    location.href = '/login';
+                    return;
+                }
+
                 const result = await response.json();
 
                 if (result.success) {

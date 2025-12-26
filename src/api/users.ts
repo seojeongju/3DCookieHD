@@ -9,14 +9,16 @@ type Variables = {
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
-// 모든 엔드포인트에 인증 및 관리자 권한 미들웨어 적용
-app.use('*', authMiddleware);
-app.use('*', requireAdmin);
-
 // 사용자 목록 조회 (관리자 전용)
-app.get('/', async (c) => {
+app.get('/', authMiddleware, requireAdmin, async (c) => {
     const db = c.env.DB;
     const { search, role, status } = c.req.query();
+    const currentUser = c.get('user');
+
+    if (!currentUser) {
+        console.error('Users API: Current user not found in context even after authMiddleware');
+        return c.json({ success: false, error: 'User context missing' }, 401);
+    }
 
     try {
         let query = `
@@ -59,7 +61,7 @@ app.get('/', async (c) => {
 });
 
 // 사용자 생성/등록 (관리자 전용)
-app.post('/', async (c) => {
+app.post('/', authMiddleware, requireAdmin, async (c) => {
     const db = c.env.DB;
     const body = await c.req.json();
     const { name, email, phone, birthdate, role, status, password } = body;
@@ -109,7 +111,7 @@ app.post('/', async (c) => {
 });
 
 // 사용자 정보 수정 (관리자 전용)
-app.put('/', async (c) => {
+app.put('/', authMiddleware, requireAdmin, async (c) => {
     const db = c.env.DB;
     const body = await c.req.json();
     const { id, name, email, phone, birthdate, role, status, password } = body;
@@ -144,7 +146,7 @@ app.put('/', async (c) => {
 });
 
 // 사용자 삭제 (관리자 전용)
-app.delete('/:id', async (c) => {
+app.delete('/:id', authMiddleware, requireAdmin, async (c) => {
     const user = c.get('user');
     const db = c.env.DB;
     const userId = parseInt(c.req.param('id'));
