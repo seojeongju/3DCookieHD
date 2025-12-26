@@ -453,6 +453,15 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses')) => `
                 input.value = '총 ' + count + '일 선택됨';
             }
         }
+        document.addEventListener('DOMContentLoaded', () => {
+             // Check if loadCourses exists/is called separately, but we add our check here
+             if(typeof loadCourses === 'function') loadCourses();
+
+             const urlParams = new URLSearchParams(window.location.search);
+             if (urlParams.get('action') === 'create') {
+                 setTimeout(() => openModal('createCourseModal'), 100);
+             }
+        });
     </script>
 </body>
 </html>

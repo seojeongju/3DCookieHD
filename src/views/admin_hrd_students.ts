@@ -39,7 +39,7 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
                     <p class="text-xs text-gray-400 mt-0.5">상담부터 취업까지, 훈련생의 전 생애주기를 관리합니다.</p>
                 </div>
                 <div class="flex gap-3">
-                    <button onclick="openStudentModal()" class="px-5 py-2.5 bg-gray-900 text-white rounded-xl hover:bg-black transition flex items-center shadow-lg shadow-gray-200 font-semibold text-sm">
+                    <button onclick="openNewStudentModal()" class="px-5 py-2.5 bg-gray-900 text-white rounded-xl hover:bg-black transition flex items-center shadow-lg shadow-gray-200 font-semibold text-sm">
                         <i class="fas fa-plus mr-2"></i> 신규 훈련생 등록
                     </button>
                 </div>
@@ -87,6 +87,108 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
                     </div>
                 </div>
             </main>
+        </div>
+    </div>
+
+    <!-- 신규 훈련생 등록 모달 (간단한 폼) -->
+    <div id="newStudentModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+        <div id="newModalBackdrop" class="fixed inset-0 bg-gray-900/40 backdrop-filter backdrop-blur-sm transition-opacity opacity-0 duration-300" onclick="closeNewStudentModal()"></div>
+        
+        <div id="newModalPanel" class="relative bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden transform scale-95 opacity-0 transition-all duration-300">
+            <!-- 모달 헤더 -->
+            <div class="bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-6">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-white">
+                            <i class="fas fa-user-plus text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-white">신규 훈련생 등록</h3>
+                            <p class="text-xs text-white/70">기본 정보를 입력해주세요</p>
+                        </div>
+                    </div>
+                    <button onclick="closeNewStudentModal()" class="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-white/10 text-white/80 transition">
+                        <i class="fas fa-times text-lg"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 모달 바디: 폼 -->
+            <form id="newStudentForm" onsubmit="handleNewStudentSubmit(event)" class="p-8 space-y-6">
+                <!-- 이름 -->
+                <div>
+                    <label class="text-xs font-bold text-gray-500 mb-2 block uppercase tracking-wider">이름 <span class="text-red-500">*</span></label>
+                    <input type="text" id="newStdName" required class="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition" placeholder="훈련생 이름">
+                </div>
+
+                <!-- 연락처 & 이메일 -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-xs font-bold text-gray-500 mb-2 block uppercase tracking-wider">연락처 <span class="text-red-500">*</span></label>
+                        <input type="text" id="newStdPhone" required class="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 transition" placeholder="010-0000-0000">
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-gray-500 mb-2 block uppercase tracking-wider">이메일</label>
+                        <input type="email" id="newStdEmail" class="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 transition" placeholder="example@email.com">
+                    </div>
+                </div>
+
+                <!-- 생년월일 & 성별 -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-xs font-bold text-gray-500 mb-2 block uppercase tracking-wider">생년월일</label>
+                        <input type="date" id="newStdBirthdate" class="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 transition">
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-gray-500 mb-2 block uppercase tracking-wider">성별 <span class="text-red-500">*</span></label>
+                        <select id="newStdGender" required class="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm outline-none cursor-pointer">
+                            <option value="M">남성</option>
+                            <option value="F">여성</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 교육 과정 선택 -->
+                <div>
+                    <label class="text-xs font-bold text-gray-500 mb-2 block uppercase tracking-wider">수강 과정</label>
+                    <select id="newStdCourse" class="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm outline-none cursor-pointer">
+                        <option value="">과정 선택 (선택사항)</option>
+                    </select>
+                </div>
+
+                <!-- 훈련생 유형 -->
+                <div>
+                    <label class="text-xs font-bold text-gray-500 mb-2 block uppercase tracking-wider">훈련생 유형 <span class="text-red-500">*</span></label>
+                    <div class="grid grid-cols-4 gap-2">
+                        <label class="flex items-center justify-center p-3 bg-gray-50 border border-gray-100 rounded-xl cursor-pointer hover:border-blue-300 transition has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500 has-[:checked]:text-blue-600">
+                            <input type="radio" name="newStdType" value="jobseeker" checked class="sr-only">
+                            <span class="text-xs font-bold">구직자</span>
+                        </label>
+                        <label class="flex items-center justify-center p-3 bg-gray-50 border border-gray-100 rounded-xl cursor-pointer hover:border-blue-300 transition has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500 has-[:checked]:text-blue-600">
+                            <input type="radio" name="newStdType" value="worker" class="sr-only">
+                            <span class="text-xs font-bold">재직자</span>
+                        </label>
+                        <label class="flex items-center justify-center p-3 bg-gray-50 border border-gray-100 rounded-xl cursor-pointer hover:border-blue-300 transition has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500 has-[:checked]:text-blue-600">
+                            <input type="radio" name="newStdType" value="general" class="sr-only">
+                            <span class="text-xs font-bold">일반</span>
+                        </label>
+                        <label class="flex items-center justify-center p-3 bg-gray-50 border border-gray-100 rounded-xl cursor-pointer hover:border-blue-300 transition has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500 has-[:checked]:text-blue-600">
+                            <input type="radio" name="newStdType" value="student" class="sr-only">
+                            <span class="text-xs font-bold">학생</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 버튼 영역 -->
+                <div class="flex gap-3 pt-4">
+                    <button type="button" onclick="closeNewStudentModal()" class="flex-1 py-3 px-4 bg-gray-100 text-gray-600 rounded-xl font-bold text-sm hover:bg-gray-200 transition">
+                        취소
+                    </button>
+                    <button type="submit" class="flex-1 py-3 px-4 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
+                        <i class="fas fa-check"></i> 등록하기
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -406,9 +508,17 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
                 const result = await response.json();
                 if (result.success) {
                     coursesData = result.data;
+                    // 여정관리 모달의 과정 선택
                     const select = document.getElementById('stdCourseId');
                     if (select) {
                         select.innerHTML = '<option value="">교육 과정 선택</option>' + coursesData.map(c => 
+                            \`<option value="\${c.id}">\${c.title}</option>\`
+                        ).join('');
+                    }
+                    // 신규 등록 모달의 과정 선택
+                    const newSelect = document.getElementById('newStdCourse');
+                    if (newSelect) {
+                        newSelect.innerHTML = '<option value="">과정 선택 (선택사항)</option>' + coursesData.map(c => 
                             \`<option value="\${c.id}">\${c.title}</option>\`
                         ).join('');
                     }
@@ -780,6 +890,100 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
                     document.getElementById('stdProfileImage').value = dataUrl;
                     document.getElementById('modalStdImage').src = dataUrl;
                 }
+            }
+        }
+
+        // ========== 신규 훈련생 등록 모달 함수 ==========
+        
+        function openNewStudentModal() {
+            const modal = document.getElementById('newStudentModal');
+            const backdrop = document.getElementById('newModalBackdrop');
+            const panel = document.getElementById('newModalPanel');
+            
+            if(!modal || !backdrop || !panel) return;
+            
+            // 폼 리셋
+            const form = document.getElementById('newStudentForm');
+            if (form) form.reset();
+            
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                backdrop.classList.add('opacity-100');
+                backdrop.classList.remove('opacity-0');
+                panel.classList.remove('scale-95', 'opacity-0');
+                panel.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        function closeNewStudentModal() {
+            const modal = document.getElementById('newStudentModal');
+            const backdrop = document.getElementById('newModalBackdrop');
+            const panel = document.getElementById('newModalPanel');
+
+            if(!backdrop || !panel) return;
+
+            backdrop.classList.remove('opacity-100');
+            backdrop.classList.add('opacity-0');
+            panel.classList.remove('scale-100', 'opacity-100');
+            panel.classList.add('scale-95', 'opacity-0');
+
+            setTimeout(() => { modal.classList.add('hidden'); }, 300);
+        }
+
+        async function handleNewStudentSubmit(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('newStdName').value.trim();
+            const phone = document.getElementById('newStdPhone').value.trim();
+            const email = document.getElementById('newStdEmail').value.trim();
+            const birthdate = document.getElementById('newStdBirthdate').value || null;
+            const gender = document.getElementById('newStdGender').value;
+            const course_id = document.getElementById('newStdCourse').value || null;
+            const type = document.querySelector('input[name="newStdType"]:checked')?.value || 'jobseeker';
+            
+            if (!name || !phone) {
+                alert('이름과 연락처는 필수 입력 항목입니다.');
+                return;
+            }
+            
+            const formData = {
+                name,
+                phone,
+                email: email || null,
+                birthdate,
+                gender,
+                course_id,
+                type,
+                status: 'consulting' // 신규 등록 시 기본 상태는 '상담중'
+            };
+            
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/hrd/students', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify(formData)
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    closeNewStudentModal();
+                    await loadStudents();
+                    
+                    // 등록 완료 후 여정관리 모달 열지 물어보기
+                    const newId = result.data?.id;
+                    if (newId && confirm('훈련생이 등록되었습니다.\\n\\n상세 정보를 편집하시겠습니까?\\n(여정관리 화면으로 이동)')) {
+                        editStudent(newId);
+                    }
+                } else {
+                    alert('등록 실패: ' + (result.error || '알 수 없는 오류'));
+                }
+            } catch (err) {
+                console.error('Error creating student:', err);
+                alert('등록 중 오류가 발생했습니다.');
             }
         }
     </script>

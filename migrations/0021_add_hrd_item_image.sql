@@ -1,1 +1,2 @@
-ALTER TABLE hrd_items ADD COLUMN image_url TEXT;
+-- ALTER TABLE hrd_items ADD COLUMN image_url TEXT;
+SELECT 1;

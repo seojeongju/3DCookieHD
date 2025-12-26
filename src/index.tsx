@@ -4,6 +4,7 @@ import { serveStatic } from 'hono/cloudflare-workers';
 import type { Bindings } from './types';
 import { corsMiddleware } from './middleware/cors';
 import { authMiddleware, requireAdmin } from './middleware/auth';
+import { trackingMiddleware } from './middleware/tracking';
 
 // API 라우트 임포트
 import auth from './api/auth';
@@ -57,6 +58,7 @@ import { adminLmsGradesHtml } from './views/admin_lms_grades';
 import { adminLmsCounselingHtml } from './views/admin_lms_counseling';
 import { adminLmsCbtHtml } from './views/admin_lms_cbt';
 import { adminLmsSurveysHtml } from './views/admin_lms_surveys';
+import { adminScheduleHtml } from './views/admin_schedule';
 import { adminLmsAssignmentsHtml } from './views/admin_lms_assignments';
 import { adminLmsQrAttendanceHtml } from './views/admin_lms_qr_attendance';
 import { adminExamsHtml, adminExamCreateHtml, adminExamEditHtml } from './views/admin_exams';
@@ -74,6 +76,7 @@ import { loginHtml } from './views/login';
 import { registerHtml } from './views/register';
 import { adminReviewsListHtml } from './views/admin_reviews';
 import { adminPostsListHtml } from './views/admin_posts';
+import { adminInquiriesHtml } from './views/admin_inquiries';
 // import { adminPortfoliosHtml } from './views/admin_portfolios'; // 게시판 관리에서 통합 관리
 import { portfoliosListHtml } from './views/portfolios';
 import { postsListHtml } from './views/posts';
@@ -91,6 +94,7 @@ const app = new Hono<{ Bindings: Bindings }>();
 // 글로벌 미들웨어
 // ============================================
 app.use('*', logger());
+app.use('*', trackingMiddleware);
 
 // CORS 설정 (API에만 적용)
 app.use('/api/*', corsMiddleware);
@@ -99,6 +103,18 @@ app.use('/api/*', corsMiddleware);
 // 정적 파일 서빙
 // ============================================
 app.use('/static/*', serveStatic({ root: './public', manifest: {} as any }));
+
+// Favicon 핸들러 (404 에러 방지)
+app.get('/favicon.ico', (c) => {
+    // 빈 SVG 아이콘 반환
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🍪</text></svg>`;
+    return new Response(svg, {
+        headers: {
+            'Content-Type': 'image/svg+xml',
+            'Cache-Control': 'public, max-age=86400'
+        }
+    });
+});
 
 // ============================================
 // API 라우트
@@ -151,6 +167,54 @@ app.route('/api/users', users);
 // HRD 행정 API
 app.route('/api/hrd', hrd);
 app.route('/api/dashboard', dashboard);
+app.get('/api/dashboard/website-stats', authMiddleware, requireAdmin, async (c) => {
+    try {
+        const { DB } = c.env;
+
+        // 1. Total PV Today
+        const todayPV = await DB.prepare(`
+            SELECT count(*) as count FROM website_visits 
+            WHERE date(timestamp) = date('now')
+        `).first<{ count: number }>();
+
+        // 2. Unique UV Today
+        const todayUV = await DB.prepare(`
+            SELECT count(DISTINCT ip_address) as count FROM website_visits 
+            WHERE date(timestamp) = date('now')
+        `).first<{ count: number }>();
+
+        // 3. Weekly PV Trend (Last 7 days)
+        const weeklyTrend = await DB.prepare(`
+            SELECT date(timestamp) as date, count(*) as count 
+            FROM website_visits 
+            WHERE timestamp >= date('now', '-6 days')
+            GROUP BY date
+            ORDER BY date ASC
+        `).all<{ date: string, count: number }>();
+
+        // 4. Most Visited Pages
+        const topPages = await DB.prepare(`
+            SELECT page_visited, count(*) as count 
+            FROM website_visits 
+            GROUP BY page_visited 
+            ORDER BY count DESC 
+            LIMIT 5
+        `).all<{ page_visited: string, count: number }>();
+
+        return c.json({
+            success: true,
+            data: {
+                todayPV: todayPV?.count || 0,
+                todayUV: todayUV?.count || 0,
+                weeklyTrend: weeklyTrend.results || [],
+                topPages: topPages.results || []
+            }
+        });
+    } catch (e) {
+        console.error('Failed to fetch website stats:', e);
+        return c.json({ success: false, error: 'Failed to fetch website stats' }, 500);
+    }
+});
 app.route('/api/consultations', consultations);
 app.route('/api/ncs', ncs);
 app.route('/api/setup', setupApi);
@@ -165,6 +229,7 @@ app.get('/admin/personnel', (c) => c.html(adminHrdPersonnelHtml()));
 app.get('/admin/items', (c) => c.html(adminHrdItemsHtml()));
 app.get('/admin/students', (c) => c.html(adminHrdStudentsHtml()));
 app.get('/admin/facilities', (c) => c.html(adminHrdFacilitiesHtml()));
+app.get('/admin/schedule', (c) => c.html(adminScheduleHtml));
 app.get('/admin/attendance', (c) => c.html(adminHrdAttendanceHtml()));
 app.get('/admin/attendance/print', (c) => c.html(adminHrdAttendancePrintHtml));
 app.get('/admin/counseling', (c) => c.html(adminHrdCounselingHtml));
@@ -174,6 +239,7 @@ app.get('/admin/exams/:id/results', (c) => c.html(adminExamResultsHtml()));
 // app.get('/admin/portfolios', (c) => c.html(adminPortfoliosHtml)); // 게시판 관리에서 통합 관리
 app.get('/admin/reviews', (c) => c.html(adminReviewsListHtml(hrdSidebar('reviews'))));
 app.get('/admin/posts', (c) => c.html(adminPostsListHtml(hrdSidebar('posts'))));
+app.get('/admin/inquiries', (c) => c.html(adminInquiriesHtml(hrdSidebar('inquiries'))));
 
 // 과정별 LMS 상세 관리 (LMS Dashboard & Inner Pages)
 app.get('/admin/courses/:id/lms', (c) => c.html(adminLmsDashboardHtml));

@@ -7,7 +7,7 @@ import type { Bindings, Course, CourseFilter } from '../types';
 import { successResponse, errorResponse, notFoundResponse, paginatedResponse } from '../utils/response';
 import { verifyToken } from '../utils/jwt';
 import { getOne, getAll, execute, calculatePagination } from '../utils/database';
-import { requireTeacher } from '../middleware/auth';
+import { authMiddleware, requireAdmin, requireTeacher } from '../middleware/auth';
 import { verifyCourseOwnership } from '../middleware/ownership';
 
 const courses = new Hono<{ Bindings: Bindings }>();
@@ -217,7 +217,7 @@ courses.get('/:id', async (c) => {
  * POST /api/courses
  * 과정 생성 (관리자 전용)
  */
-courses.post('/', async (c) => {
+courses.post('/', authMiddleware, requireAdmin, async (c) => {
   try {
     const body = await c.req.json();
     const {
@@ -277,7 +277,7 @@ courses.post('/', async (c) => {
  * PUT /api/courses/:id
  * 과정 수정 (관리자 및 담당 강사)
  */
-courses.put('/:id', requireTeacher, verifyCourseOwnership, async (c) => {
+courses.put('/:id', authMiddleware, requireTeacher, verifyCourseOwnership, async (c) => {
   try {
     const id = c.req.param('id');
     const body = await c.req.json();
@@ -363,7 +363,7 @@ courses.put('/:id', requireTeacher, verifyCourseOwnership, async (c) => {
  * DELETE /api/courses/:id
  * 과정 삭제 (관리자 전용)
  */
-courses.delete('/:id', async (c) => {
+courses.delete('/:id', authMiddleware, requireAdmin, async (c) => {
   try {
     const id = c.req.param('id');
 

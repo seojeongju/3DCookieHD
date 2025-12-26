@@ -24,6 +24,10 @@ export const hrdSidebar = (activeMenu: string) => `
             <i class="fas fa-tasks w-6 ${activeMenu === 'ncs' ? 'text-blue-400' : 'text-slate-400 group-hover:text-white transition-colors'}"></i>
             <span class="font-medium">NCS 능력단위 관리</span>
         </a>
+        <a href="/admin/schedule" class="flex items-center px-6 py-3 ${activeMenu === 'schedule' ? 'bg-slate-700 border-r-4 border-blue-500 text-white' : 'text-slate-300 hover:bg-slate-700 hover:text-white transition-colors'} group">
+            <i class="fas fa-calendar-alt w-6 ${activeMenu === 'schedule' ? 'text-blue-400' : 'text-slate-400 group-hover:text-white transition-colors'}"></i>
+            <span class="font-medium">통합 일정 관리</span>
+        </a>
         <a href="/admin/students" class="flex items-center px-6 py-3 ${activeMenu === 'students' ? 'bg-slate-700 border-r-4 border-blue-500 text-white' : 'text-slate-300 hover:bg-slate-700 hover:text-white transition-colors'} group">
             <i class="fas fa-user-graduate w-6 ${activeMenu === 'students' ? 'text-blue-400' : 'text-slate-400 group-hover:text-white transition-colors'}"></i>
             <span class="font-medium">훈련생 관리</span>
@@ -85,12 +89,10 @@ export const hrdSidebar = (activeMenu: string) => `
             <i class="fas fa-newspaper w-6 ${activeMenu === 'posts' ? 'text-blue-400' : 'text-slate-400 group-hover:text-white transition-colors'}"></i>
             <span class="font-medium">게시판 관리</span>
         </a>
-        <!--
-        <a href="/admin/qna" class="flex items-center px-6 py-3 ${activeMenu === 'qna' ? 'bg-slate-700 border-r-4 border-blue-500 text-white' : 'text-slate-300 hover:bg-slate-700 hover:text-white transition-colors'} group">
-            <i class="fas fa-comments w-6 ${activeMenu === 'qna' ? 'text-blue-400' : 'text-slate-400 group-hover:text-white transition-colors'}"></i>
-            <span class="font-medium">문의 관리</span>
+        <a href="/admin/inquiries" class="flex items-center px-6 py-3 ${activeMenu === 'inquiries' ? 'bg-slate-700 border-r-4 border-blue-500 text-white' : 'text-slate-300 hover:bg-slate-700 hover:text-white transition-colors'} group">
+            <i class="fas fa-comment-alt w-6 ${activeMenu === 'inquiries' ? 'text-blue-400' : 'text-slate-400 group-hover:text-white transition-colors'}"></i>
+            <span class="font-medium">온라인 문의 관리</span>
         </a>
-         -->
 
         <div class="h-10"></div>
     </nav>

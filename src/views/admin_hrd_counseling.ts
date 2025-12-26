@@ -15,6 +15,7 @@ export const adminHrdCounselingHtml = `
         .glass-effect { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); }
         .active-tab { border-bottom: 2px solid #3b82f6; color: #3b82f6; }
         .gradient-blue { background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); }
+        .gradient-green { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
         
         /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 6px; }
@@ -35,6 +36,16 @@ export const adminHrdCounselingHtml = `
         
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        
+        /* 아코디언 스타일 */
+        .history-accordion { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; }
+        .history-accordion.open { max-height: 2000px; }
+        .history-toggle-icon { transition: transform 0.3s ease; }
+        .history-toggle-icon.open { transform: rotate(180deg); }
+        
+        /* 인라인 추가 상담 폼 */
+        .inline-add-form { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out, opacity 0.3s ease; opacity: 0; }
+        .inline-add-form.open { max-height: 500px; opacity: 1; }
     </style>
 </head>
 <body class="bg-[#f8fafc] text-[#1e293b]">
@@ -120,13 +131,26 @@ export const adminHrdCounselingHtml = `
                         </div>
                     </div>
 
-                    <div id="counselingList" class="space-y-4">
+                    <div id="counselingList" class="space-y-4 max-h-[600px] overflow-y-auto pr-2" onscroll="handleScroll(event)">
                         <!-- 타임라인 아이템들이 여기에 렌더링됨 -->
                         <div class="bg-white p-12 rounded-3xl border border-gray-100 text-center animate-fade-in">
                             <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <i class="fas fa-cloud-download-alt text-gray-300 text-2xl"></i>
                             </div>
                             <p class="text-gray-400 text-sm">데이터를 안전하게 불러오고 있습니다...</p>
+                        </div>
+                    </div>
+                    
+                    <!-- 페이지네이션 정보 및 더보기 버튼 -->
+                    <div id="paginationInfo" class="hidden mt-4 text-center">
+                        <div class="inline-flex items-center gap-3 bg-white rounded-2xl px-6 py-3 shadow-sm border border-gray-100">
+                            <span class="text-sm text-gray-500">
+                                전체 <span id="totalLogsCount" class="font-bold text-gray-800">0</span>건 중 
+                                <span id="displayedCount" class="font-bold text-blue-600">0</span>건 표시
+                            </span>
+                            <button id="loadMoreBtn" onclick="loadMoreLogs()" class="px-4 py-1.5 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 transition hidden">
+                                <i class="fas fa-arrow-down mr-1"></i>더 보기
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -225,15 +249,92 @@ export const adminHrdCounselingHtml = `
         </div>
     </div>
 
+    <!-- 추가 상담 모달 -->
+    <div id="appendModal" class="fixed inset-0 bg-gray-900/40 backdrop-blur-sm hidden overflow-y-auto h-full w-full z-50 flex items-center justify-center px-4">
+        <div class="relative bg-white w-full max-w-lg shadow-2xl rounded-[2rem] overflow-hidden animate-fade-in">
+            <div class="bg-gradient-to-r from-green-500 to-emerald-600 px-8 py-6">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h3 class="text-xl font-bold text-white">추가 상담 기록</h3>
+                        <p class="text-xs text-white/80 mt-1">기존 상담 내용에 새로운 상담 기록을 추가합니다.</p>
+                    </div>
+                    <button onclick="closeAppendModal()" class="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-white/10 text-white/80 transition">
+                        <i class="fas fa-times text-lg"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <form id="appendForm" onsubmit="handleAppendSave(event)" class="p-8">
+                <input type="hidden" id="appendLogId">
+                
+                <div class="mb-4">
+                    <div class="bg-gray-50 rounded-xl p-4 text-sm text-gray-600">
+                        <strong class="text-gray-800" id="appendStudentName">-</strong> 훈련생의 상담 기록에 내용을 추가합니다.
+                    </div>
+                </div>
+                
+                <div class="space-y-1.5 mb-6">
+                    <label class="block text-sm font-semibold text-gray-700">추가 상담 일자</label>
+                    <input type="date" id="appendDate" required class="w-full px-4 py-2.5 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-green-500/20 text-sm outline-none">
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="space-y-1.5">
+                        <label class="block text-sm font-semibold text-gray-700">상담 방식</label>
+                        <select id="appendMethod" class="w-full px-4 py-2.5 bg-gray-50 border-none rounded-xl text-sm outline-none cursor-pointer">
+                            <option value="face_to_face">대면 상담</option>
+                            <option value="phone">유선 상담</option>
+                            <option value="online">온라인</option>
+                            <option value="other">기타</option>
+                        </select>
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="block text-sm font-semibold text-gray-700">상담자</label>
+                        <input type="text" id="appendCounselor" class="w-full px-4 py-2.5 bg-gray-50 border-none rounded-xl text-sm outline-none" placeholder="상담자 이름">
+                    </div>
+                </div>
+
+                <div class="space-y-1.5 mb-6">
+                    <label class="block text-sm font-semibold text-gray-700">추가 상담 내용 <span class="text-red-500">*</span></label>
+                    <textarea id="appendContent" rows="4" required class="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-green-500/20 text-sm outline-none resize-none" placeholder="새로운 상담 내용을 입력하세요..."></textarea>
+                </div>
+
+                <div class="space-y-1.5 mb-6">
+                    <label class="block text-sm font-semibold text-gray-700">조치 결과 / 후속 계획</label>
+                    <input type="text" id="appendResult" class="w-full px-4 py-2.5 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-green-500/20 text-sm outline-none" placeholder="조치 사항이나 후속 계획">
+                </div>
+
+                <div class="flex items-center justify-between pt-6 border-t border-gray-100">
+                    <button type="button" onclick="closeAppendModal()" class="px-6 py-2.5 text-gray-500 font-medium hover:text-gray-700 transition">취소</button>
+                    <button type="submit" class="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-8 py-2.5 rounded-xl font-bold shadow-lg shadow-green-500/30 hover:shadow-green-500/50 transition transform active:scale-95">
+                        <i class="fas fa-plus-circle mr-2"></i>상담 내용 추가
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         let counselingData = [];
         let currentFilter = 'all';
+        
+        // 페이지네이션 상태
+        let filteredData = [];
+        let displayCount = 3; // 초기 표시 개수
+        const itemsPerPage = 3; // 한 번에 추가로 로드할 개수
+        let isLoading = false;
 
         document.addEventListener('DOMContentLoaded', () => {
             initialize();
         });
 
         async function initialize() {
+            const params = new URLSearchParams(window.location.search);
+            const searchParam = params.get('search');
+            if (searchParam) {
+                document.getElementById('searchInput').value = searchParam;
+            }
+
             await Promise.all([
                 loadCourses(),
                 loadStudents(),
@@ -245,17 +346,49 @@ export const adminHrdCounselingHtml = `
 
         function setupEventListeners() {
             document.getElementById('searchInput').addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') loadCounselingLogs();
+                if (e.key === 'Enter') {
+                    displayCount = itemsPerPage; // 검색 시 리셋
+                    loadCounselingLogs();
+                }
             });
             
-            document.getElementById('courseFilter').addEventListener('change', loadCounselingLogs);
-            document.getElementById('dateFilter').addEventListener('change', loadCounselingLogs);
+            document.getElementById('courseFilter').addEventListener('change', () => {
+                displayCount = itemsPerPage;
+                loadCounselingLogs();
+            });
+            document.getElementById('dateFilter').addEventListener('change', () => {
+                displayCount = itemsPerPage;
+                loadCounselingLogs();
+            });
+        }
+
+        function resetSearch() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('courseFilter').value = '';
+            document.getElementById('dateFilter').value = '';
+            
+            const url = new URL(window.location.href);
+            url.search = '';
+            window.history.pushState({}, '', url);
+
+            setFilter('all');
         }
 
         function setFilter(filter) {
+            if (filter === 'all') {
+                const params = new URLSearchParams(window.location.search);
+                const searchParam = params.get('search');
+                const currentInput = document.getElementById('searchInput').value;
+                
+                if (searchParam && currentInput === searchParam) {
+                    resetSearch();
+                    return; 
+                }
+            }
+
             currentFilter = filter;
+            displayCount = itemsPerPage; 
             
-            // UI 업데이트
             const buttons = document.querySelectorAll('header .active-tab, header .text-gray-500');
             buttons.forEach(btn => {
                 if (btn.textContent.includes(getCategoryLabel(filter)) || (filter === 'all' && btn.textContent === '전체 내역')) {
@@ -326,12 +459,14 @@ export const adminHrdCounselingHtml = `
                 counselingData = result.success ? result.data : (Array.isArray(result) ? result : []);
 
                 // 필터링 적용 (클라이언트 사이드 범주 필터)
-                const filtered = currentFilter === 'all' 
+                filteredData = currentFilter === 'all' 
                     ? counselingData 
                     : counselingData.filter(log => log.category === currentFilter);
 
-                renderLogs(filtered);
+                // 페이지네이션 적용하여 렌더링
+                renderLogsWithPagination();
                 updateStats(counselingData);
+                updatePaginationUI();
             } catch (e) {
                 console.error('로그 로드 실패', e);
                 listContainer.innerHTML = \`<div class="p-10 text-red-500 text-center font-medium">데이터 로드 중 오류가 발생했습니다.</div>\`;
@@ -342,6 +477,55 @@ export const adminHrdCounselingHtml = `
             const today = new Date().toISOString().split('T')[0];
             const todayCount = data.filter(log => log.counseling_date.split('T')[0] === today).length;
             document.getElementById('todayCount').textContent = todayCount;
+        }
+        
+        function updatePaginationUI() {
+            const paginationInfo = document.getElementById('paginationInfo');
+            const totalCount = document.getElementById('totalLogsCount');
+            const displayedCountEl = document.getElementById('displayedCount');
+            const loadMoreBtn = document.getElementById('loadMoreBtn');
+            
+            if (filteredData.length > 0) {
+                paginationInfo.classList.remove('hidden');
+                totalCount.textContent = filteredData.length;
+                displayedCountEl.textContent = Math.min(displayCount, filteredData.length);
+                
+                if (displayCount < filteredData.length) {
+                    loadMoreBtn.classList.remove('hidden');
+                } else {
+                    loadMoreBtn.classList.add('hidden');
+                }
+            } else {
+                paginationInfo.classList.add('hidden');
+            }
+        }
+        
+        function loadMoreLogs() {
+            displayCount += itemsPerPage;
+            renderLogsWithPagination();
+            updatePaginationUI();
+        }
+        
+        function handleScroll(event) {
+            const container = event.target;
+            const scrollTop = container.scrollTop;
+            const scrollHeight = container.scrollHeight;
+            const clientHeight = container.clientHeight;
+            
+            // 스크롤이 하단 근처에 도달하면 (100px 여유)
+            if (scrollTop + clientHeight >= scrollHeight - 100 && !isLoading && displayCount < filteredData.length) {
+                isLoading = true;
+                displayCount += itemsPerPage;
+                renderLogsWithPagination();
+                updatePaginationUI();
+                isLoading = false;
+            }
+        }
+        
+        function renderLogsWithPagination() {
+            // displayCount만큼만 잘라서 렌더링
+            const dataToRender = filteredData.slice(0, displayCount);
+            renderLogs(dataToRender);
         }
 
         function renderLogs(data) {
@@ -355,7 +539,6 @@ export const adminHrdCounselingHtml = `
                 return;
             }
 
-            // 날짜별 그룹화
             const grouped = {};
             data.forEach(log => {
                 const date = log.counseling_date.split('T')[0];
@@ -366,11 +549,11 @@ export const adminHrdCounselingHtml = `
             const sortedDates = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
 
             const categoryInfo = {
-                academic: { label: '학사/학습', color: 'bg-blue-50 text-blue-600', dot: 'bg-blue-500' },
-                attendance: { label: '출결/행정', color: 'bg-yellow-50 text-yellow-600', dot: 'bg-yellow-500' },
-                career: { label: '취업/진로', color: 'bg-green-50 text-green-600', dot: 'bg-green-500' },
-                complaint: { label: '고충/건의', color: 'bg-red-50 text-red-600', dot: 'bg-red-500' },
-                other: { label: '기타 사항', color: 'bg-gray-50 text-gray-600', dot: 'bg-gray-500' }
+                academic: { label: '학사/학습', color: 'bg-blue-50 text-blue-600' },
+                attendance: { label: '출결/행정', color: 'bg-yellow-50 text-yellow-600' },
+                career: { label: '취업/진로', color: 'bg-green-50 text-green-600' },
+                complaint: { label: '고충/건의', color: 'bg-red-50 text-red-600' },
+                other: { label: '기타 사항', color: 'bg-gray-50 text-gray-600' }
             };
 
             const methodLabels = { face_to_face: '대면', phone: '유선', online: '온라인', other: '기타' };
@@ -387,52 +570,110 @@ export const adminHrdCounselingHtml = `
                         <div class="space-y-4 pb-10">
                             \${grouped[date].map(log => {
                                 const info = categoryInfo[log.category] || categoryInfo.other;
+                                const entries = parseConsultEntries(log.content);
+                                const latestEntry = entries[entries.length - 1];
+                                const hasHistory = entries.length > 1;
+                                
                                 return \`
-                                    <div class="group bg-white rounded-[2rem] border border-gray-100 p-6 shadow-sm hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300 relative">
-                                        <div class="flex items-start justify-between mb-4">
-                                            <div class="flex items-center">
-                                                <div class="w-10 h-10 rounded-full overflow-hidden mr-3 bg-gray-100 border border-gray-100 shadow-inner">
-                                                    <img src="\${log.student_image || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(log.student_name)}" class="w-full h-full object-cover">
-                                                </div>
-                                                <div>
-                                                    <div class="flex items-center">
-                                                        <span class="font-bold text-gray-900">\${log.student_name}</span>
-                                                        <span class="ml-2 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase \${info.color}">\${info.label}</span>
+                                    <div class="group bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300 overflow-hidden" id="card-\${log.id}">
+                                        <div class="p-6 pb-4">
+                                            <div class="flex items-start justify-between mb-4">
+                                                <div class="flex items-center">
+                                                    <div class="w-10 h-10 rounded-full overflow-hidden mr-3 bg-gray-100 border border-gray-100 shadow-inner">
+                                                        <img src="\${log.student_image || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(log.student_name)}" class="w-full h-full object-cover">
                                                     </div>
-                                                    <p class="text-[10px] text-gray-400 mt-0.5">\${log.course_title || '일반 상담'} · \${methodLabels[log.method] || '기타'}</p>
+                                                    <div>
+                                                        <div class="flex items-center flex-wrap gap-2">
+                                                            \${hasHistory ? '<span onclick="toggleHistory(' + log.id + ')" class="font-bold text-gray-900 hover:text-blue-600 cursor-pointer transition">' + log.student_name + ' <i class="fas fa-chevron-down text-[10px] text-gray-400 ml-1"></i></span>' : '<span class="font-bold text-gray-900">' + log.student_name + '</span>'}
+                                                            <span class="px-2 py-0.5 rounded-lg text-[10px] font-black uppercase \${info.color}">\${info.label}</span>
+                                                            \${hasHistory ? '<span class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-purple-50 text-purple-600"><i class="fas fa-layer-group mr-1"></i>' + entries.length + '회 상담</span>' : ''}
+                                                        </div>
+                                                        <p class="text-[10px] text-gray-400 mt-0.5">\${log.course_title || '일반 상담'} · \${methodLabels[log.method] || '기타'}</p>
+                                                    </div>
+                                                </div>
+                                                <div class="flex items-center space-x-1">
+                                                    <button onclick="toggleInlineAdd(\${log.id})" title="추가 상담" class="w-8 h-8 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 transition flex items-center justify-center">
+                                                        <i class="fas fa-plus text-sm"></i>
+                                                    </button>
+                                                    <button onclick="editLog(\${log.id})" title="수정" class="w-8 h-8 rounded-lg hover:bg-blue-50 text-gray-300 hover:text-blue-600 transition flex items-center justify-center">
+                                                        <i class="fas fa-edit text-sm"></i>
+                                                    </button>
+                                                    <button onclick="deleteLog(\${log.id})" title="삭제" class="w-8 h-8 rounded-lg hover:bg-red-50 text-gray-300 hover:text-red-600 transition flex items-center justify-center">
+                                                        <i class="fas fa-trash-alt text-sm"></i>
+                                                    </button>
                                                 </div>
                                             </div>
-                                            <div class="flex items-center space-x-1">
-                                                <button onclick="editLog(\${log.id})" class="w-8 h-8 rounded-lg hover:bg-blue-50 text-gray-300 hover:text-blue-600 transition flex items-center justify-center">
-                                                    <i class="fas fa-edit text-sm"></i>
-                                                </button>
-                                                <button onclick="deleteLog(\${log.id})" class="w-8 h-8 rounded-lg hover:bg-red-50 text-gray-300 hover:text-red-600 transition flex items-center justify-center">
-                                                    <i class="fas fa-trash-alt text-sm"></i>
-                                                </button>
+                                            
+                                            <div id="inline-add-\${log.id}" class="inline-add-form">
+                                                <div class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-4 mb-4 border border-green-100">
+                                                    <div class="flex items-center gap-2 mb-3">
+                                                        <i class="fas fa-plus-circle text-green-600"></i>
+                                                        <span class="text-sm font-bold text-green-800">추가 상담 기록</span>
+                                                    </div>
+                                                    <textarea id="inline-content-\${log.id}" rows="2" class="w-full px-3 py-2 bg-white border border-green-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-green-500/20 resize-none mb-3" placeholder="새로운 상담 내용을 입력하세요..."></textarea>
+                                                    <div class="flex items-center justify-between">
+                                                        <select id="inline-method-\${log.id}" class="px-2 py-1.5 bg-white border border-green-200 rounded-lg text-xs outline-none">
+                                                            <option value="face_to_face">대면</option>
+                                                            <option value="phone">유선</option>
+                                                            <option value="online">온라인</option>
+                                                        </select>
+                                                        <div class="flex gap-2">
+                                                            <button type="button" onclick="toggleInlineAdd(\${log.id})" class="px-3 py-1.5 text-gray-500 text-xs font-medium hover:text-gray-700">취소</button>
+                                                            <button type="button" onclick="saveInlineAdd(\${log.id})" class="px-4 py-1.5 gradient-green text-white rounded-lg text-xs font-bold shadow-sm">
+                                                                <i class="fas fa-check mr-1"></i>추가
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </div>
-                                        
-                                        <div class="pl-0">
-                                            <p class="text-sm text-gray-600 leading-relaxed mb-4 whitespace-pre-line">\${log.content}</p>
+                                            
+                                            <div class="bg-gray-50 rounded-2xl p-4 mb-3">
+                                                <div class="flex items-center gap-2 mb-2">
+                                                    <span class="text-[10px] font-black text-gray-500 uppercase">최신 상담</span>
+                                                    \${latestEntry.date ? '<span class="text-[10px] text-gray-400">' + latestEntry.date + '</span>' : ''}
+                                                </div>
+                                                <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-line">\${latestEntry.content}</p>
+                                            </div>
+                                            
+                                            \${hasHistory ? \`
+                                            <button onclick="toggleHistory(\${log.id})" class="w-full flex items-center justify-center gap-2 py-2 text-xs font-bold text-purple-600 hover:text-purple-700 transition">
+                                                <i class="fas fa-history"></i>
+                                                <span>이전 상담 내역 \${entries.length - 1}건 보기</span>
+                                                <i class="fas fa-chevron-down history-toggle-icon" id="toggle-icon-\${log.id}"></i>
+                                            </button>
+                                            
+                                            <div id="history-\${log.id}" class="history-accordion" data-total-entries="\${entries.length - 1}" data-show-count="2">
+                                                <div class="space-y-2 pt-3 border-t border-gray-100" id="history-items-\${log.id}">
+                                                    \${entries.slice(0, -1).reverse().slice(0, 2).map(function(entry, idx) {
+                                                        return '<div class="bg-purple-50/50 rounded-xl p-3 border border-purple-100 history-entry-' + log.id + '">' +
+                                                            '<div class="flex items-center gap-2 mb-1">' +
+                                                                '<span class="w-5 h-5 rounded-full bg-purple-200 text-purple-700 text-[10px] font-bold flex items-center justify-center">' + (entries.length - 1 - idx) + '</span>' +
+                                                                '<span class="text-[10px] font-bold text-purple-600">' + (entry.date || '초기 상담') + '</span>' +
+                                                                (entry.method ? '<span class="text-[10px] text-purple-400">' + entry.method + '</span>' : '') +
+                                                            '</div>' +
+                                                            '<p class="text-xs text-gray-600 leading-relaxed whitespace-pre-line pl-7">' + entry.content + '</p>' +
+                                                        '</div>';
+                                                    }).join('')}
+                                                </div>
+                                                \${entries.length - 1 > 2 ? '<div class="mt-3 text-center"><button onclick="loadMoreHistory(' + log.id + ', ' + JSON.stringify(entries.slice(0, -1).reverse()).replace(/"/g, "&quot;") + ')" id="load-more-history-' + log.id + '" class="px-4 py-2 bg-purple-100 text-purple-700 text-xs font-bold rounded-lg hover:bg-purple-200 transition"><i class="fas fa-ellipsis-h mr-1"></i>이전 상담 ' + (entries.length - 1 - 2) + '건 더 보기</button></div>' : ''}
+                                            </div>
+                                            \` : ''}
                                             
                                             \${log.result ? \`
-                                            <div class="bg-blue-50/50 rounded-2xl p-4 border border-blue-50 flex items-start">
+                                            <div class="bg-blue-50/50 rounded-2xl p-4 mt-3 border border-blue-50 flex items-start">
                                                 <i class="fas fa-check-circle text-blue-500 mt-0.5 mr-2"></i>
                                                 <div>
                                                     <span class="text-[10px] font-black text-blue-700 uppercase tracking-wider block mb-1">조치 결과 및 계획</span>
                                                     <p class="text-xs text-blue-800">\${log.result}</p>
                                                 </div>
                                             </div>\` : ''}
-                                            
-                                            <div class="mt-4 pt-4 border-t border-gray-50 flex justify-between items-center">
-                                                <div class="flex items-center text-[10px] text-gray-400">
-                                                    <i class="far fa-user mr-1.5"></i> 상담자: <span class="text-gray-600 ml-1 font-medium">\${log.counselor_name || '관리자'}</span>
-                                                </div>
-                                                \${log.next_counseling_date ? \`
-                                                <div class="flex items-center text-[10px] font-bold text-orange-500 bg-orange-50 px-3 py-1 rounded-full">
-                                                    <i class="far fa-clock mr-1.5"></i> 차기 상담: \${new Date(log.next_counseling_date).toLocaleDateString()}
-                                                </div>\` : ''}
+                                        </div>
+                                        
+                                        <div class="px-6 py-3 bg-gray-50/50 border-t border-gray-50 flex justify-between items-center">
+                                            <div class="flex items-center text-[10px] text-gray-400">
+                                                <i class="far fa-user mr-1.5"></i> 상담자: <span class="text-gray-600 ml-1 font-medium">\${log.counselor_name || '관리자'}</span>
                                             </div>
+                                            \${log.next_counseling_date ? '<div class="flex items-center text-[10px] font-bold text-orange-500 bg-orange-50 px-3 py-1 rounded-full"><i class="far fa-clock mr-1.5"></i> 차기 상담: ' + new Date(log.next_counseling_date).toLocaleDateString() + '</div>' : ''}
                                         </div>
                                     </div>
                                 \`;
@@ -441,6 +682,208 @@ export const adminHrdCounselingHtml = `
                     </div>
                 \`;
             }).join('');
+        }
+        
+        function parseConsultEntries(content) {
+            if (!content) return [{ content: '', date: '', method: '' }];
+            
+            var separator = '--- [추가 상담:';
+            var parts = content.split(separator);
+            var entries = [];
+            
+            if (parts[0].trim()) {
+                entries.push({ content: parts[0].trim(), date: '', method: '' });
+            }
+            
+            for (var i = 1; i < parts.length; i++) {
+                var part = parts[i];
+                var dateMatch = part.match(/^([^\\]]+)\\]/);
+                var date = dateMatch ? dateMatch[1].trim() : '';
+                
+                var afterDate = dateMatch ? part.substring(dateMatch[0].length) : part;
+                var lines = afterDate.split('\\n').filter(function(l) { return l.trim(); });
+                
+                var method = '';
+                var contentLines = [];
+                
+                for (var j = 0; j < lines.length; j++) {
+                    var line = lines[j];
+                    if (line.indexOf('상담자:') !== -1 && line.indexOf('방식:') !== -1) {
+                        var methodMatch = line.match(/방식:\\s*([^\\n]+)/);
+                        method = methodMatch ? methodMatch[1].trim() : '';
+                    } else if (line.indexOf('---') !== 0) {
+                        contentLines.push(line);
+                    }
+                }
+                
+                entries.push({
+                    content: contentLines.join('\\n').trim(),
+                    date: date,
+                    method: method
+                });
+            }
+            
+            return entries.length > 0 ? entries : [{ content: content, date: '', method: '' }];
+        }
+        
+        // 현재 열린 아코디언 ID 추적
+        var currentOpenHistoryId = null;
+        
+        function toggleHistory(logId) {
+            var historyEl = document.getElementById('history-' + logId);
+            var iconEl = document.getElementById('toggle-icon-' + logId);
+            
+            if (!historyEl || !iconEl) return;
+            
+            var isOpening = !historyEl.classList.contains('open');
+            
+            // 다른 열린 아코디언이 있으면 먼저 닫기
+            if (currentOpenHistoryId && currentOpenHistoryId !== logId) {
+                var prevHistoryEl = document.getElementById('history-' + currentOpenHistoryId);
+                var prevIconEl = document.getElementById('toggle-icon-' + currentOpenHistoryId);
+                if (prevHistoryEl && prevHistoryEl.classList.contains('open')) {
+                    prevHistoryEl.classList.remove('open');
+                    if (prevIconEl) prevIconEl.classList.remove('open');
+                }
+            }
+            
+            // 현재 아코디언 토글
+            historyEl.classList.toggle('open');
+            iconEl.classList.toggle('open');
+            
+            // 현재 열린 ID 업데이트
+            if (isOpening) {
+                currentOpenHistoryId = logId;
+            } else {
+                currentOpenHistoryId = null;
+            }
+        }
+        
+        // 서브 페이지네이션: 이전 상담 내역 더 보기
+        var historyShowCounts = {}; // logId별 표시 개수 관리
+        
+        function loadMoreHistory(logId, allEntries) {
+            // 현재 표시 개수 가져오기 (기본 2개에서 시작)
+            if (!historyShowCounts[logId]) {
+                historyShowCounts[logId] = 2;
+            }
+            
+            // 2개 더 추가
+            historyShowCounts[logId] += 2;
+            var showCount = historyShowCounts[logId];
+            
+            var container = document.getElementById('history-items-' + logId);
+            var loadMoreBtn = document.getElementById('load-more-history-' + logId);
+            
+            if (!container) return;
+            
+            // 기존 항목 제거
+            container.innerHTML = '';
+            
+            // showCount만큼 다시 렌더링
+            var entriesToShow = allEntries.slice(0, showCount);
+            var totalEntries = allEntries.length;
+            
+            entriesToShow.forEach(function(entry, idx) {
+                var entryHtml = '<div class="bg-purple-50/50 rounded-xl p-3 border border-purple-100 history-entry-' + logId + '">' +
+                    '<div class="flex items-center gap-2 mb-1">' +
+                        '<span class="w-5 h-5 rounded-full bg-purple-200 text-purple-700 text-[10px] font-bold flex items-center justify-center">' + (totalEntries - idx) + '</span>' +
+                        '<span class="text-[10px] font-bold text-purple-600">' + (entry.date || '초기 상담') + '</span>' +
+                        (entry.method ? '<span class="text-[10px] text-purple-400">' + entry.method + '</span>' : '') +
+                    '</div>' +
+                    '<p class="text-xs text-gray-600 leading-relaxed whitespace-pre-line pl-7">' + entry.content + '</p>' +
+                '</div>';
+                container.innerHTML += entryHtml;
+            });
+            
+            // 더 보기 버튼 업데이트
+            if (loadMoreBtn) {
+                var remaining = totalEntries - showCount;
+                if (remaining <= 0) {
+                    loadMoreBtn.parentElement.remove();
+                } else {
+                    loadMoreBtn.innerHTML = '<i class="fas fa-ellipsis-h mr-1"></i>이전 상담 ' + remaining + '건 더 보기';
+                }
+            }
+        }
+        
+        // 현재 열린 인라인 폼 ID 추적
+        var currentOpenInlineId = null;
+        
+        function toggleInlineAdd(logId) {
+            var formEl = document.getElementById('inline-add-' + logId);
+            if (!formEl) return;
+            
+            var isOpening = !formEl.classList.contains('open');
+            
+            // 다른 열린 인라인 폼이 있으면 먼저 닫기
+            if (currentOpenInlineId && currentOpenInlineId !== logId) {
+                var prevFormEl = document.getElementById('inline-add-' + currentOpenInlineId);
+                if (prevFormEl && prevFormEl.classList.contains('open')) {
+                    prevFormEl.classList.remove('open');
+                }
+            }
+            
+            // 현재 폼 토글
+            formEl.classList.toggle('open');
+            
+            // 현재 열린 ID 업데이트
+            if (isOpening) {
+                currentOpenInlineId = logId;
+                document.getElementById('inline-content-' + logId).focus();
+            } else {
+                currentOpenInlineId = null;
+            }
+        }
+        
+        async function saveInlineAdd(logId) {
+            var log = counselingData.find(function(d) { return d.id === logId; });
+            if (!log) return;
+            
+            var content = document.getElementById('inline-content-' + logId).value.trim();
+            var method = document.getElementById('inline-method-' + logId).value;
+            
+            if (!content) {
+                alert('상담 내용을 입력해주세요.');
+                return;
+            }
+            
+            var today = new Date().toISOString().split('T')[0];
+            var methodLabels = { face_to_face: '대면', phone: '유선', online: '온라인', other: '기타' };
+            var user = JSON.parse(localStorage.getItem('user') || '{}');
+            var counselor = user.name || '관리자';
+            
+            var newEntry = '\\n\\n--- [추가 상담: ' + today + '] ---\\n상담자: ' + counselor + ' | 방식: ' + methodLabels[method] + '\\n' + content;
+            var updatedContent = log.content + newEntry;
+            
+            try {
+                var token = localStorage.getItem('token');
+                var response = await fetch('/api/hrd/counseling/' + logId, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({
+                        student_id: log.student_id,
+                        course_id: log.course_id,
+                        category: log.category,
+                        method: log.method,
+                        content: updatedContent,
+                        result: log.result,
+                        counseling_date: today,
+                        next_counseling_date: log.next_counseling_date,
+                        counselor_id: log.counselor_id
+                    })
+                });
+                
+                if (response.ok) {
+                    toggleInlineAdd(logId);
+                    loadCounselingLogs();
+                } else {
+                    alert('저장에 실패했습니다.');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('네트워크 오류가 발생했습니다.');
+            }
         }
 
         function openModal() {
@@ -536,6 +979,85 @@ export const adminHrdCounselingHtml = `
                 }
             } catch (e) {
                 console.error(e);
+            }
+        }
+
+        // ========== 추가 상담 기능 ==========
+        let appendTargetLog = null;
+
+        function openAppendModal(logId) {
+            const log = counselingData.find(d => d.id === logId);
+            if (!log) return;
+            
+            appendTargetLog = log;
+            document.getElementById('appendLogId').value = log.id;
+            document.getElementById('appendStudentName').textContent = log.student_name;
+            document.getElementById('appendDate').valueAsDate = new Date();
+            document.getElementById('appendContent').value = '';
+            document.getElementById('appendResult').value = '';
+            
+            // 상담자 기본값 설정
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            document.getElementById('appendCounselor').value = user.name || '관리자';
+            
+            document.getElementById('appendModal').classList.remove('hidden');
+        }
+
+        function closeAppendModal() {
+            document.getElementById('appendModal').classList.add('hidden');
+            appendTargetLog = null;
+        }
+
+        async function handleAppendSave(e) {
+            e.preventDefault();
+            
+            if (!appendTargetLog) return;
+            
+            const appendDate = document.getElementById('appendDate').value;
+            const appendMethod = document.getElementById('appendMethod').value;
+            const appendCounselor = document.getElementById('appendCounselor').value || '관리자';
+            const appendContent = document.getElementById('appendContent').value.trim();
+            const appendResult = document.getElementById('appendResult').value.trim();
+            
+            if (!appendContent) {
+                alert('추가 상담 내용을 입력해주세요.');
+                return;
+            }
+            
+            const methodLabels = { face_to_face: '대면', phone: '유선', online: '온라인', other: '기타' };
+            
+            // 기존 content에 새 내용을 추가하는 형식
+            const newEntry = '\\n\\n--- [추가 상담: ' + appendDate + '] ---\\n상담자: ' + appendCounselor + ' | 방식: ' + (methodLabels[appendMethod] || appendMethod) + '\\n' + appendContent + (appendResult ? '\\n→ 조치/계획: ' + appendResult : '');
+            const updatedContent = appendTargetLog.content + newEntry;
+            
+            // 결과도 업데이트 (최신 결과로 덮어쓰기)
+            const updatedResult = appendResult || appendTargetLog.result;
+            
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/hrd/counseling/' + appendTargetLog.id, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({
+                        ...appendTargetLog,
+                        content: updatedContent,
+                        result: updatedResult,
+                        // 마지막 상담일을 추가 상담일로 업데이트
+                        counseling_date: appendDate
+                    })
+                });
+                
+                if (response.ok) {
+                    alert('추가 상담 내용이 저장되었습니다.');
+                    closeAppendModal();
+                    loadCounselingLogs();
+                } else {
+                    const err = await response.json();
+                    alert('저장 실패: ' + (err.error || '알 수 없는 오류'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('네트워크 오류가 발생했습니다.');
             }
         }
     </script>

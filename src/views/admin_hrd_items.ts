@@ -179,6 +179,20 @@ export const adminHrdItemsHtml = () => `
                     <textarea name="memo" id="itemMemo" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"></textarea>
                 </div>
 
+                <!-- 시설 보유 비품 목록 (동적 표시) -->
+                <div id="facilityItemsList" class="hidden">
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="block text-sm font-medium text-gray-700">
+                            <i class="fas fa-boxes text-blue-500 mr-1"></i>
+                            <span id="selectedFacilityName">시설</span> 보유 비품
+                        </label>
+                        <span id="facilityItemsCount" class="text-xs text-gray-400"></span>
+                    </div>
+                    <div id="facilityItemsContainer" class="max-h-32 overflow-y-auto border border-gray-200 rounded-lg bg-gray-50 divide-y divide-gray-100">
+                        <!-- 비품 목록이 여기에 표시됨 -->
+                    </div>
+                </div>
+
                 <div class="pt-4 flex justify-end space-x-3">
                     <button type="button" onclick="closeModal('createItemModal')" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">취소</button>
                     <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">저장하기</button>
@@ -279,7 +293,7 @@ export const adminHrdItemsHtml = () => `
             
             // 시설 목록 추가
             facilitiesData.forEach(facility => {
-                options += '<option value="' + facility.name + '">' + facility.name + '</option>';
+                options += '<option value="' + facility.name + '" data-facility-id="' + facility.id + '">' + facility.name + '</option>';
 
             });
 
@@ -291,16 +305,69 @@ export const adminHrdItemsHtml = () => `
             // 선택 변경 이벤트
             select.onchange = function () {
                 const customInput = document.getElementById('itemLocationCustom');
+                const facilityItemsList = document.getElementById('facilityItemsList');
+                
                 if (customInput) {
                     if (this.value === '__custom__') {
                         customInput.classList.remove('hidden');
                         customInput.focus();
+                        if (facilityItemsList) facilityItemsList.classList.add('hidden');
                     } else {
                         customInput.classList.add('hidden');
                         customInput.value = '';
                     }
                 }
+                
+                // 시설 선택 시 해당 시설의 비품 목록 표시
+                if (this.value && this.value !== '__custom__') {
+                    const selectedOption = this.options[this.selectedIndex];
+                    const facilityId = selectedOption.getAttribute('data-facility-id');
+                    loadFacilityItems(facilityId, this.value);
+                } else {
+                    if (facilityItemsList) facilityItemsList.classList.add('hidden');
+                }
             };
+        }
+        
+        // 선택된 시설의 비품 목록 로드
+        async function loadFacilityItems(facilityId, facilityName) {
+            const container = document.getElementById('facilityItemsContainer');
+            const listWrapper = document.getElementById('facilityItemsList');
+            const nameSpan = document.getElementById('selectedFacilityName');
+            const countSpan = document.getElementById('facilityItemsCount');
+            
+            if (!container || !listWrapper) return;
+            
+            // 이름 표시
+            if (nameSpan) nameSpan.textContent = facilityName;
+            
+            // 로딩 상태
+            container.innerHTML = '<div class="px-3 py-2 text-xs text-gray-400 text-center"><i class="fas fa-spinner fa-spin mr-1"></i>불러오는 중...</div>';
+            listWrapper.classList.remove('hidden');
+            
+            try {
+                const res = await fetch('/api/hrd/facilities/' + facilityId + '/items');
+                const result = await res.json();
+                
+                if (result.success && result.data.length > 0) {
+                    countSpan.textContent = result.data.length + '개 등록됨';
+                    container.innerHTML = result.data.map(item => 
+                        '<div class="px-3 py-2 flex items-center justify-between text-xs">' +
+                            '<div class="flex items-center gap-2">' +
+                                '<span class="font-medium text-gray-700">' + item.name + '</span>' +
+                                '<span class="text-gray-400">' + (item.model || '') + '</span>' +
+                            '</div>' +
+                            '<span class="text-blue-600 font-bold">' + item.quantity + '개</span>' +
+                        '</div>'
+                    ).join('');
+                } else {
+                    countSpan.textContent = '';
+                    container.innerHTML = '<div class="px-3 py-4 text-xs text-gray-400 text-center">등록된 비품이 없습니다</div>';
+                }
+            } catch (e) {
+                console.error('시설 비품 로드 실패:', e);
+                container.innerHTML = '<div class="px-3 py-2 text-xs text-red-400 text-center">로드 실패</div>';
+            }
         }
 
 function filterCategory(category) {

@@ -138,7 +138,7 @@ export const adminHrdFacilitiesHtml = () => `
                     <label class="block text-sm font-bold text-gray-700 mb-1">시설명 <span class="text-red-500">*</span></label>
                     <input type="text" id="newFacName" class="w-full border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" placeholder="예: 제1강의실">
                 </div>
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-3 gap-4">
                     <div>
                         <label class="block text-sm font-bold text-gray-700 mb-1">면적 (m²)</label>
                         <input type="number" id="newFacArea" class="w-full border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" placeholder="45.5">
@@ -146,6 +146,10 @@ export const adminHrdFacilitiesHtml = () => `
                     <div>
                         <label class="block text-sm font-bold text-gray-700 mb-1">정 관리자</label>
                         <input type="text" id="newFacManager" class="w-full border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" placeholder="이름">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-1">부 관리자</label>
+                        <input type="text" id="newFacManagerSub" class="w-full border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" placeholder="이름">
                     </div>
                 </div>
                 <div>
@@ -410,10 +414,11 @@ export const adminHrdFacilitiesHtml = () => `
                                                                                                                                                                      </div>
                                                                                                                                                                  </div>
                                                                                                                                                                  </div>
-                                                                                                                                                                 </div>
-                                                                                                                                                                 </div>
+                                                                                                                                                                  </div> <!-- Close space-y-4 -->
+                                                                                                                                                                  </div> <!-- Close bg-white -->
+                                                                                                                                                                  </div> <!-- Close contentInfo -->
 
-                                                                                                                                                                <!--Items Tab(Unchanged)-->
+
                                                                                                                                                                     <div id="contentItems" class="hidden space-y-4 animate-fade-in" >
                                                                                                                                                                         \${resItems.success && resItems.data.length > 0 ? resItems.data.map(item => \`
                                 <div class="bg-white p-4 rounded-xl border border-gray-200 flex justify-between items-center text-sm shadow-sm hover:shadow-md transition-shadow">
@@ -513,6 +518,7 @@ export const adminHrdFacilitiesHtml = () => `
             document.getElementById('newFacName').value = '';
             document.getElementById('newFacArea').value = '';
             document.getElementById('newFacManager').value = '';
+            document.getElementById('newFacManagerSub').value = '';
             document.getElementById('newFacDesc').value = '';
             clearNewFacImage();
         }
@@ -533,6 +539,7 @@ export const adminHrdFacilitiesHtml = () => `
             document.getElementById('newFacName').value = facility.name;
             document.getElementById('newFacArea').value = facility.area || '';
             document.getElementById('newFacManager').value = facility.manager_main || '';
+            document.getElementById('newFacManagerSub').value = facility.manager_sub || '';
             document.getElementById('newFacDesc').value = facility.description || '';
             
             clearNewFacImage();
@@ -549,6 +556,7 @@ export const adminHrdFacilitiesHtml = () => `
             const name = document.getElementById('newFacName').value;
             const area = document.getElementById('newFacArea').value;
             const managerMain = document.getElementById('newFacManager').value;
+            const managerSub = document.getElementById('newFacManagerSub').value;
             const description = document.getElementById('newFacDesc').value;
             const image_url = document.getElementById('newFacImageUrl').value;
             
@@ -560,18 +568,18 @@ export const adminHrdFacilitiesHtml = () => `
             const body = { 
                 name, 
                 area, 
-                manager_main: managerMain, 
+                managerMain: managerMain, 
+                managerSub: managerSub,
                 description, 
                 image_url 
             };
 
             if (id) {
                 body.id = id;
-                // Preserve existing status and other fields not in form
+                // Preserve existing status
                 const original = facilities.find(f => f.id == id);
                 if (original) {
                     body.status = original.status;
-                    body.manager_sub = original.manager_sub;
                 }
             } else {
                 body.status = '양호'; // Default status for new
@@ -603,6 +611,60 @@ export const adminHrdFacilitiesHtml = () => `
         // but handleModalSave replaces it. Redefining it to redirect to handleModalSave just in case.
         function createFacility() {
             handleModalSave();
+        }
+        
+        // 모달 닫기
+        function closeCreateModal() {
+            document.getElementById('createModal').classList.add('hidden');
+        }
+        
+        // 시설 이미지 초기화
+        function clearNewFacImage() {
+            const preview = document.getElementById('newFacImagePreview');
+            const placeholder = document.getElementById('newFacImagePlaceholder');
+            const urlInput = document.getElementById('newFacImageUrl');
+            const fileInput = document.getElementById('newFacImageFile');
+            
+            if (preview) { preview.src = ''; preview.classList.add('hidden'); }
+            if (placeholder) placeholder.classList.remove('hidden');
+            if (urlInput) urlInput.value = '';
+            if (fileInput) fileInput.value = '';
+        }
+        
+        // 시설 이미지 업로드 처리
+        function handleNewFacImage(input) {
+            if (!input.files || !input.files[0]) return;
+            const file = input.files[0];
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const img = new Image();
+                img.src = e.target.result;
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    const MAX_WIDTH = 800;
+                    const MAX_HEIGHT = 600;
+
+                    if (width > height) {
+                        if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+                    } else {
+                        if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                    document.getElementById('newFacImageUrl').value = dataUrl;
+                    document.getElementById('newFacImagePreview').src = dataUrl;
+                    document.getElementById('newFacImagePreview').classList.remove('hidden');
+                    document.getElementById('newFacImagePlaceholder').classList.add('hidden');
+                }
+            }
+            reader.readAsDataURL(file);
         }
         async function deleteFacility() {
             if(!currentDetailId || !confirm('정말 삭제하시겠습니까? 삭제된 데이터는 복구할 수 없습니다.')) return;

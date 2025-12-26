@@ -1,3 +1,7 @@
+-- 과제 테이블 초기화 (마이그레이션 충돌 방지)
+DROP TABLE IF EXISTS assignment_submissions;
+DROP TABLE IF EXISTS assignments;
+
 -- 과제 테이블
 CREATE TABLE IF NOT EXISTS assignments (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

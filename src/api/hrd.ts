@@ -476,9 +476,16 @@ app.post('/students', async (c) => {
 
         const hrdCourseId = course_id ? parseInt(course_id) : null;
 
+        // 기본값 처리
+        const valStatus = status || 'consulting';
+        const valType = type || 'jobseeker';
+        const valPackageType = package_type || null;
+        const valPaymentMethod = payment_method || null;
+        const valPaymentDate = payment_date || null;
+        const valSelfPayAmount = parseInt(self_pay_amount || '0') || 0;
+        const valStatusMemo = status_memo || null;
+
         // 2. HRD 상세 정보 등록/업데이트
-        // users 테이블로 옮겨간 정보들은 여기서 관리하지 않아도 되지만, 하위 호환성을 위해 유지하거나 제거 가능.
-        // 여기서는 일단 유지하되 users 테이블 데이터를 우선시합니다.
         await c.env.DB.prepare(`
             INSERT INTO hrd_student_details (
                 user_id, course_id, status, type, package_type, payment_method, payment_date,
@@ -491,13 +498,13 @@ app.post('/students', async (c) => {
                 is_hrd_net_registered = ?, status_memo = ?,
                 updated_at = CURRENT_TIMESTAMP
         `).bind(
-            userId, hrdCourseId, status, type, package_type, payment_method, payment_date,
-            parseInt(self_pay_amount || 0), has_application ? 1 : 0, has_card ? 1 : 0,
-            is_hrd_net_registered ? 1 : 0, status_memo,
+            userId, hrdCourseId, valStatus, valType, valPackageType, valPaymentMethod, valPaymentDate,
+            valSelfPayAmount, has_application ? 1 : 0, has_card ? 1 : 0,
+            is_hrd_net_registered ? 1 : 0, valStatusMemo,
             // UPDATE values
-            hrdCourseId, status, type, package_type, payment_method, payment_date,
-            parseInt(self_pay_amount || 0), has_application ? 1 : 0, has_card ? 1 : 0,
-            is_hrd_net_registered ? 1 : 0, status_memo
+            hrdCourseId, valStatus, valType, valPackageType, valPaymentMethod, valPaymentDate,
+            valSelfPayAmount, has_application ? 1 : 0, has_card ? 1 : 0,
+            is_hrd_net_registered ? 1 : 0, valStatusMemo
         ).run();
 
         return c.json({ success: true, data: { id: userId } });
