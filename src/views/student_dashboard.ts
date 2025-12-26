@@ -118,12 +118,14 @@ export const studentDashboardHtml = () => `
 
         function switchTab(tab) {
             // 버튼 스타일 초기화
-            ['exams', 'lectures', 'assignments', 'grades', 'ncs', 'surveys', 'portfolio', 'employment'].forEach(t => {
+            ['exams', 'lectures', 'grades', 'ncs', 'surveys', 'portfolio', 'employment'].forEach(t => {
                 const btn = document.getElementById('btn-' + t);
-                if (t === tab) {
-                    btn.className = 'w-full text-left px-4 py-2 bg-blue-50 text-blue-700 rounded-lg font-medium transition';
-                } else {
-                    btn.className = 'w-full text-left px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition';
+                if (btn) {
+                    if (t === tab) {
+                        btn.className = 'w-full text-left px-4 py-2 bg-blue-50 text-blue-700 rounded-lg font-medium transition';
+                    } else {
+                        btn.className = 'w-full text-left px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition';
+                    }
                 }
             });
 
