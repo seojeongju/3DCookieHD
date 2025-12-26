@@ -241,7 +241,9 @@ export const adminUsersHtml = (activeMenu: string = 'users') => `
                 });
 
                 if (response.status === 401 || response.status === 403) {
-                    alert('인증이 만료되었거나 권한이 없습니다. 다시 로그인해주세요.');
+                    const errorResult = await response.json().catch(() => ({}));
+                    const detail = errorResult.error || '인증이 만료되었거나 권한이 없습니다.';
+                    alert('오류: ' + detail + '\\n\\n시스템 보안 강화로 인해 기존 세션이 만료되었을 수 있습니다. 로그아웃 후 다시 로그인해 주세요.');
                     location.href = '/login';
                     return;
                 }

@@ -10,14 +10,16 @@ type Variables = {
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
 // 사용자 목록 조회 (관리자 전용)
+// 미들웨어 순서: 인증 -> 관리자 체크
 app.get('/', authMiddleware, requireAdmin, async (c) => {
     const db = c.env.DB;
     const { search, role, status } = c.req.query();
-    const currentUser = c.get('user');
 
-    if (!currentUser) {
-        console.error('Users API: Current user not found in context even after authMiddleware');
-        return c.json({ success: false, error: 'User context missing' }, 401);
+    // 이 시점에서 authMiddleware가 성공했다면 user는 반드시 존재해야 함
+    const user = c.get('user');
+    if (!user) {
+        console.error('[Users API] User context missing after authMiddleware');
+        return c.json({ success: false, error: 'Authentication context lost' }, 401);
     }
 
     try {
@@ -55,7 +57,7 @@ app.get('/', authMiddleware, requireAdmin, async (c) => {
             data: result.results || []
         });
     } catch (error) {
-        console.error('사용자 목록 조회 실패:', error);
+        console.error('[Users API] Load failed:', error);
         return c.json({ success: false, error: 'Failed to fetch users' }, 500);
     }
 });
@@ -105,7 +107,7 @@ app.post('/', authMiddleware, requireAdmin, async (c) => {
             data: { id: result.meta.last_row_id }
         });
     } catch (error) {
-        console.error('사용자 생성 실패:', error);
+        console.error('[Users API] Create failed:', error);
         return c.json({ success: false, error: 'Failed to create user' }, 500);
     }
 });
@@ -140,7 +142,7 @@ app.put('/', authMiddleware, requireAdmin, async (c) => {
 
         return c.json({ success: true });
     } catch (error) {
-        console.error('사용자 정보 수정 실패:', error);
+        console.error('[Users API] Update failed:', error);
         return c.json({ success: false, error: 'Failed to update user' }, 500);
     }
 });
@@ -157,7 +159,7 @@ app.delete('/:id', authMiddleware, requireAdmin, async (c) => {
 
     try {
         // 자기 자신은 삭제할 수 없도록 보호
-        if (user.userId === userId) {
+        if (user && user.userId === userId) {
             return c.json({ success: false, error: 'Cannot delete your own account' }, 400);
         }
 
@@ -165,7 +167,7 @@ app.delete('/:id', authMiddleware, requireAdmin, async (c) => {
 
         return c.json({ success: true });
     } catch (error) {
-        console.error('사용자 삭제 실패:', error);
+        console.error('[Users API] Delete failed:', error);
         return c.json({ success: false, error: 'Failed to delete user' }, 500);
     }
 });
