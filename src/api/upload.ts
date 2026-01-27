@@ -181,9 +181,15 @@ app.post('/', authMiddleware, async (c) => {
 app.get('/files/*', async (c) => {
   try {
     const { R2 } = c.env;
-    let filePath = c.req.param('path');
     
-    console.log('File download request, path:', filePath);
+    // 경로 추출: /files/documents/... -> documents/...
+    const requestPath = c.req.path;
+    console.log('Full request path:', requestPath);
+    
+    // /api/upload/files/ 부분을 제거하여 실제 파일 경로만 추출
+    let filePath = requestPath.replace(/^\/api\/upload\/files\//, '').replace(/^\/files\//, '');
+    
+    console.log('Extracted file path:', filePath);
 
     if (!R2) {
       return c.json({ success: false, error: 'R2 스토리지가 설정되지 않았습니다' }, 500);
