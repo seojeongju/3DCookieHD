@@ -17,14 +17,39 @@ app.get('/', authMiddleware, async (c) => {
     const page = parseInt(c.req.query('page') || '1');
     const limit = parseInt(c.req.query('limit') || '10');
     const status = c.req.query('status'); // pending, approved, rejected, completed, cancelled
+    const courseId = c.req.query('course_id'); // 과정별 필터링
     const offset = (page - 1) * limit;
 
     // WHERE 조건 구성
     let whereClause = '';
     const params: any[] = [];
 
-    // 관리자가 아니면 본인 신청만 조회
-    if (user.role !== 'admin') {
+    // 강사인 경우 본인이 담당하는 과정의 수강생만 조회
+    if (user.role === 'teacher') {
+      // 과정 ID가 지정된 경우 해당 과정의 수강생만 조회
+      if (courseId) {
+        // 강사가 해당 과정의 담당자인지 확인
+        const courseCheck = await DB.prepare('SELECT teacher_id FROM courses WHERE id = ?').bind(courseId).first<{ teacher_id: number }>();
+        if (!courseCheck || courseCheck.teacher_id !== user.userId) {
+          return c.json({ success: false, error: '권한이 없습니다' }, 403);
+        }
+        whereClause = 'WHERE e.course_id = ?';
+        params.push(courseId);
+        if (status) {
+          whereClause += ' AND e.status = ?';
+          params.push(status);
+        }
+      } else {
+        // 과정 ID가 없으면 강사가 담당하는 모든 과정의 수강생 조회
+        whereClause = 'WHERE c.teacher_id = ?';
+        params.push(user.userId);
+        if (status) {
+          whereClause += ' AND e.status = ?';
+          params.push(status);
+        }
+      }
+    } else if (user.role !== 'admin') {
+      // 일반 사용자는 본인 신청만 조회
       whereClause = 'WHERE e.user_id = ?';
       params.push(user.userId);
 
@@ -32,11 +57,23 @@ app.get('/', authMiddleware, async (c) => {
         whereClause += ' AND e.status = ?';
         params.push(status);
       }
+      if (courseId) {
+        whereClause += ' AND e.course_id = ?';
+        params.push(courseId);
+      }
     } else {
       // 관리자는 모든 신청 조회 가능
+      const conditions: string[] = [];
       if (status) {
-        whereClause = 'WHERE e.status = ?';
+        conditions.push('e.status = ?');
         params.push(status);
+      }
+      if (courseId) {
+        conditions.push('e.course_id = ?');
+        params.push(courseId);
+      }
+      if (conditions.length > 0) {
+        whereClause = 'WHERE ' + conditions.join(' AND ');
       }
     }
 
@@ -51,22 +88,23 @@ app.get('/', authMiddleware, async (c) => {
 
     // 목록 조회
     const query = `
-SELECT
-e.*,
-  u.name as user_name,
-  u.email as user_email,
-  c.title as course_title,
-  c.category as course_category,
-  c.thumbnail_url as course_thumbnail,
-  cam.name as campus_name
+      SELECT
+        e.*,
+        u.name as user_name,
+        u.email as user_email,
+        u.phone as user_phone,
+        c.title as course_title,
+        c.category as course_category,
+        c.thumbnail_url as course_thumbnail,
+        cam.name as campus_name
       FROM enrollments e
       LEFT JOIN users u ON e.user_id = u.id
       LEFT JOIN courses c ON e.course_id = c.id
       LEFT JOIN campuses cam ON c.campus_id = cam.id
       ${whereClause}
       ORDER BY e.enrolled_at DESC
-LIMIT ? OFFSET ?
-  `;
+      LIMIT ? OFFSET ?
+    `;
 
     const result = await DB.prepare(query).bind(...params, limit, offset).all();
 
