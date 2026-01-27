@@ -1169,8 +1169,14 @@ export const adminHrdPersonnelHtml = () => `
                 const response = await fetch('/api/hrd/personnel');
                 const result = await response.json();
                 
+                console.log('API Response:', result);
+                
                 if (result.success && result.data) {
                     const personnel = result.data.find(p => p.id == id);
+                    console.log('Found personnel:', personnel);
+                    console.log('Personnel certifications:', personnel?.certifications);
+                    console.log('Type of certifications:', typeof personnel?.certifications);
+                    
                     if (personnel) {
                         openEditModal(personnel);
                     } else {
@@ -1210,8 +1216,29 @@ export const adminHrdPersonnelHtml = () => `
             
             // certifications가 null이거나 빈 문자열인 경우 처리
             let certsData = data.certifications;
-            if (certsData === null || certsData === undefined || certsData === 'null' || certsData === '') {
-                console.log('Certifications is null/empty, initializing empty array');
+            
+            // 이미 파싱된 객체/배열인 경우 그대로 사용
+            if (certsData !== null && certsData !== undefined) {
+                // 문자열인 경우 파싱 시도
+                if (typeof certsData === 'string') {
+                    if (certsData.trim() === '' || certsData === 'null' || certsData === 'undefined') {
+                        console.log('Certifications is empty/null string');
+                        certsData = null;
+                    } else {
+                        try {
+                            certsData = JSON.parse(certsData);
+                            console.log('Parsed certifications from string:', certsData);
+                        } catch (e) {
+                            console.error('Failed to parse certifications string:', e);
+                            certsData = null;
+                        }
+                    }
+                } else if (Array.isArray(certsData) || typeof certsData === 'object') {
+                    // 이미 파싱된 경우
+                    console.log('Certifications is already parsed:', certsData);
+                }
+            } else {
+                console.log('Certifications is null/undefined');
                 certsData = null;
             }
             

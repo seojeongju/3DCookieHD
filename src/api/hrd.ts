@@ -44,7 +44,29 @@ app.get('/personnel', async (c) => {
         }
         
         const { results } = await c.env.DB.prepare(query).all();
-        return c.json({ success: true, data: results });
+        
+        // certifications 필드가 JSON 문자열인 경우 파싱하여 반환
+        const processedResults = (results || []).map((row: any) => {
+            const processed: any = { ...row };
+            
+            // certifications가 JSON 문자열이면 파싱
+            if (processed.certifications) {
+                try {
+                    // 이미 객체인 경우 그대로 사용
+                    if (typeof processed.certifications === 'string') {
+                        processed.certifications = JSON.parse(processed.certifications);
+                    }
+                } catch (e) {
+                    console.warn('Failed to parse certifications JSON:', e, 'Raw:', processed.certifications);
+                    // 파싱 실패 시 null로 설정
+                    processed.certifications = null;
+                }
+            }
+            
+            return processed;
+        });
+        
+        return c.json({ success: true, data: processedResults });
     } catch (e) {
         console.error('Failed to fetch personnel:', e);
         return c.json({ success: false, error: '교강사 목록 조회 실패: ' + (e instanceof Error ? e.message : String(e)) }, 500);
