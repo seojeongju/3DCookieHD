@@ -507,21 +507,44 @@ export const adminHrdPersonnelHtml = () => `
         // 파일 다운로드 함수
         async function downloadFile(fileUrl, fileName) {
             try {
+                console.log('Downloading file:', fileUrl);
+                console.log('File name:', fileName);
+                
                 const token = localStorage.getItem('token');
+                
+                // URL이 상대 경로인 경우 절대 경로로 변환
+                let downloadUrl = fileUrl;
+                if (fileUrl.startsWith('/')) {
+                    // 상대 경로인 경우 그대로 사용
+                    downloadUrl = fileUrl;
+                } else if (!fileUrl.startsWith('http')) {
+                    // 상대 경로인데 /로 시작하지 않으면 추가
+                    downloadUrl = '/' + fileUrl;
+                }
+                
                 // 다운로드 모드로 요청
-                const response = await fetch(fileUrl + '?download=true', {
+                const fullUrl = downloadUrl + (downloadUrl.includes('?') ? '&' : '?') + 'download=true';
+                console.log('Full download URL:', fullUrl);
+                
+                const response = await fetch(fullUrl, {
                     method: 'GET',
                     headers: {
                         'Authorization': 'Bearer ' + token
                     }
                 });
                 
+                console.log('Download response status:', response.status);
+                console.log('Download response headers:', response.headers);
+                
                 if (!response.ok) {
-                    throw new Error('파일 다운로드 실패');
+                    const errorText = await response.text();
+                    console.error('Download failed:', response.status, errorText);
+                    throw new Error(\`파일 다운로드 실패: \${response.status} \${response.statusText}\`);
                 }
                 
                 // Blob으로 변환
                 const blob = await response.blob();
+                console.log('Blob created, size:', blob.size);
                 
                 // 다운로드 링크 생성
                 const url = window.URL.createObjectURL(blob);
@@ -532,11 +555,13 @@ export const adminHrdPersonnelHtml = () => `
                 a.click();
                 
                 // 정리
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
+                setTimeout(() => {
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                }, 100);
             } catch (error) {
                 console.error('Download error:', error);
-                alert('파일 다운로드 중 오류가 발생했습니다.');
+                alert('파일 다운로드 중 오류가 발생했습니다: ' + (error.message || error));
             }
         }
         let certIdCounter = 0;

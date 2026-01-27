@@ -181,17 +181,32 @@ app.post('/', authMiddleware, async (c) => {
 app.get('/files/:path(*)', async (c) => {
   try {
     const { R2 } = c.env;
-    const filePath = c.req.param('path');
+    let filePath = c.req.param('path');
+    
+    console.log('File download request, path:', filePath);
 
     if (!R2) {
       return c.json({ success: false, error: 'R2 스토리지가 설정되지 않았습니다' }, 500);
     }
 
+    // 파일 경로 정규화 (URL 디코딩)
+    try {
+      filePath = decodeURIComponent(filePath);
+    } catch (e) {
+      console.warn('Failed to decode file path:', e);
+    }
+    
+    console.log('Normalized file path:', filePath);
+
     // 파일 조회
     const object = await R2.get(filePath);
+    
+    console.log('R2 object found:', !!object);
 
     if (!object) {
-      return c.json({ success: false, error: '파일을 찾을 수 없습니다' }, 404);
+      // 파일이 없으면 더 자세한 정보 로깅
+      console.error('File not found in R2:', filePath);
+      return c.json({ success: false, error: \`파일을 찾을 수 없습니다: \${filePath}\` }, 404);
     }
 
     // 파일 메타데이터
