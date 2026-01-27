@@ -487,7 +487,7 @@ export const adminHrdPersonnelHtml = () => `
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-gray-600 mb-1">자격증 파일</label>
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-2 flex-wrap">
                             <input type="file" class="cert-file hidden" accept=".pdf,.jpg,.jpeg,.png" 
                                    data-cert-id="\${certId}">
                             <button type="button" class="cert-file-btn px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-xs hover:bg-gray-50" 
@@ -496,9 +496,15 @@ export const adminHrdPersonnelHtml = () => `
                             </button>
                             <span class="cert-file-name text-xs text-gray-500"></span>
                             \${certData && certData.file_url ? \`
-                                <a href="\${certData.file_url}" target="_blank" class="text-blue-600 text-xs hover:underline">
-                                    <i class="fas fa-file-pdf mr-1"></i> 기존 파일 보기
-                                </a>
+                                <div class="flex items-center gap-2">
+                                    <a href="\${certData.file_url}" target="_blank" class="text-blue-600 text-xs hover:underline flex items-center">
+                                        <i class="fas fa-file-pdf mr-1"></i> 파일 보기
+                                    </a>
+                                    <button type="button" class="delete-cert-file-btn text-red-600 text-xs hover:text-red-800 flex items-center" 
+                                            data-cert-id="\${certId}" data-file-url="\${certData.file_url}">
+                                        <i class="fas fa-trash mr-1"></i> 삭제
+                                    </button>
+                                </div>
                             \` : ''}
                         </div>
                         <input type="hidden" class="cert-file-url" value="\${certData ? (certData.file_url || '') : ''}">
@@ -514,6 +520,9 @@ export const adminHrdPersonnelHtml = () => `
                 const fileInput = certItem.querySelector('.cert-file');
                 const fileBtn = certItem.querySelector('.cert-file-btn');
                 const removeBtn = certItem.querySelector('.remove-cert-btn');
+                const deleteFileBtn = certItem.querySelector('.delete-cert-file-btn');
+                const fileNameSpan = certItem.querySelector('.cert-file-name');
+                const fileUrlInput = certItem.querySelector('.cert-file-url');
                 
                 if (fileBtn && fileInput) {
                     fileBtn.addEventListener('click', () => {
@@ -532,6 +541,34 @@ export const adminHrdPersonnelHtml = () => `
                         removeCertification(certId);
                     });
                 }
+                
+                if (deleteFileBtn) {
+                    deleteFileBtn.addEventListener('click', async () => {
+                        const fileUrl = deleteFileBtn.getAttribute('data-file-url');
+                        if (fileUrl && confirm('파일을 삭제하시겠습니까?')) {
+                            await deleteCertFile(certId, fileUrl);
+                        }
+                    });
+                }
+                
+                // 기존 파일이 있으면 파일명 표시 및 삭제 버튼 이벤트 연결
+                if (certData && certData.file_url) {
+                    if (fileNameSpan) {
+                        // 파일 URL에서 파일명 추출
+                        const fileName = certData.file_url.split('/').pop() || '파일';
+                        fileNameSpan.textContent = fileName;
+                        fileNameSpan.classList.add('text-green-600');
+                    }
+                    
+                    // 삭제 버튼 이벤트 연결
+                    if (deleteFileBtn) {
+                        deleteFileBtn.addEventListener('click', async () => {
+                            if (confirm('파일을 삭제하시겠습니까?')) {
+                                await deleteCertFile(certId, certData.file_url);
+                            }
+                        });
+                    }
+                }
             }
             
             if (certData) {
@@ -542,9 +579,84 @@ export const adminHrdPersonnelHtml = () => `
         }
 
         function removeCertification(certId) {
+            if (!confirm('자격증 정보를 삭제하시겠습니까?')) return;
+            
             const item = document.querySelector(\`[data-cert-id="\${certId}"]\`);
-            if (item) item.remove();
-            certifications = certifications.filter(c => c.id !== certId);
+            const fileUrlInput = item?.querySelector('.cert-file-url');
+            const fileUrl = fileUrlInput?.value;
+            
+            // 파일이 있으면 삭제
+            if (fileUrl) {
+                deleteCertFile(certId, fileUrl, false).then(() => {
+                    if (item) item.remove();
+                    certifications = certifications.filter(c => c.id !== certId);
+                });
+            } else {
+                if (item) item.remove();
+                certifications = certifications.filter(c => c.id !== certId);
+            }
+        }
+        
+        async function deleteCertFile(certId, fileUrl, showAlert = true) {
+            try {
+                const token = localStorage.getItem('token');
+                
+                // 파일 URL에서 경로 추출 (예: /api/upload/files/documents/...)
+                let filePath = fileUrl;
+                if (fileUrl.startsWith('/api/upload/files/')) {
+                    filePath = fileUrl.replace('/api/upload/files/', '');
+                } else if (fileUrl.startsWith('/api/upload/')) {
+                    filePath = fileUrl.replace('/api/upload/', '');
+                } else if (fileUrl.includes('/api/upload/')) {
+                    filePath = fileUrl.split('/api/upload/')[1];
+                }
+                
+                // R2에서 파일 삭제
+                const deleteRes = await fetch(\`/api/upload/\${filePath}\`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                
+                const deleteResult = await deleteRes.json();
+                
+                if (deleteResult.success || deleteRes.status === 200) {
+                    // UI에서 파일 정보 제거
+                    const certItem = document.querySelector(\`[data-cert-id="\${certId}"]\`);
+                    if (certItem) {
+                        const fileUrlInput = certItem.querySelector('.cert-file-url');
+                        const fileNameSpan = certItem.querySelector('.cert-file-name');
+                        const deleteFileBtn = certItem.querySelector('.delete-cert-file-btn');
+                        const fileLink = certItem.querySelector('a[target="_blank"]');
+                        
+                        if (fileUrlInput) fileUrlInput.value = '';
+                        if (fileNameSpan) {
+                            fileNameSpan.textContent = '';
+                            fileNameSpan.classList.remove('text-green-600');
+                        }
+                        if (deleteFileBtn) deleteFileBtn.remove();
+                        if (fileLink) fileLink.remove();
+                    }
+                    
+                    // certifications 배열에서 파일 URL 제거
+                    const cert = certifications.find(c => c.id === certId);
+                    if (cert) {
+                        cert.file_url = null;
+                    }
+                    
+                    if (showAlert) {
+                        alert('파일이 삭제되었습니다.');
+                    }
+                } else {
+                    if (showAlert) {
+                        alert('파일 삭제 실패: ' + (deleteResult.error || '알 수 없는 오류'));
+                    }
+                }
+            } catch (e) {
+                console.error('File deletion error:', e);
+                if (showAlert) {
+                    alert('파일 삭제 중 오류가 발생했습니다.');
+                }
+            }
         }
 
         async function handleCertFile(input, certId) {
@@ -576,6 +688,39 @@ export const adminHrdPersonnelHtml = () => `
                     fileNameSpan.textContent = file.name;
                     fileNameSpan.classList.add('text-green-600');
                     
+                    // 파일 링크 및 삭제 버튼 추가/업데이트
+                    const fileContainer = input.closest('.cert-item').querySelector('.flex.items-center.gap-2');
+                    const existingLink = fileContainer.querySelector('a[target="_blank"]');
+                    const existingDeleteBtn = fileContainer.querySelector('.delete-cert-file-btn');
+                    
+                    if (!existingLink) {
+                        const fileLink = document.createElement('a');
+                        fileLink.href = uploadResult.data.url;
+                        fileLink.target = '_blank';
+                        fileLink.className = 'text-blue-600 text-xs hover:underline flex items-center';
+                        fileLink.innerHTML = '<i class="fas fa-file-pdf mr-1"></i> 파일 보기';
+                        fileContainer.appendChild(fileLink);
+                    } else {
+                        existingLink.href = uploadResult.data.url;
+                    }
+                    
+                    if (!existingDeleteBtn) {
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.type = 'button';
+                        deleteBtn.className = 'delete-cert-file-btn text-red-600 text-xs hover:text-red-800 flex items-center';
+                        deleteBtn.setAttribute('data-cert-id', certId);
+                        deleteBtn.setAttribute('data-file-url', uploadResult.data.url);
+                        deleteBtn.innerHTML = '<i class="fas fa-trash mr-1"></i> 삭제';
+                        deleteBtn.addEventListener('click', async () => {
+                            if (confirm('파일을 삭제하시겠습니까?')) {
+                                await deleteCertFile(certId, uploadResult.data.url);
+                            }
+                        });
+                        fileContainer.appendChild(deleteBtn);
+                    } else {
+                        existingDeleteBtn.setAttribute('data-file-url', uploadResult.data.url);
+                    }
+                    
                     // certifications 배열 업데이트
                     const cert = certifications.find(c => c.id === certId);
                     if (cert) {
@@ -601,6 +746,10 @@ export const adminHrdPersonnelHtml = () => `
                     const certs = typeof certificationsJson === 'string' ? JSON.parse(certificationsJson) : certificationsJson;
                     if (Array.isArray(certs) && certs.length > 0) {
                         certs.forEach(cert => {
+                            // certId가 없으면 생성
+                            if (!cert.id) {
+                                cert.id = 'loaded_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                            }
                             addCertification(cert);
                         });
                     }
