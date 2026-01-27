@@ -1,0 +1,19 @@
+{
+  "name": "webapp",
+  "compatibility_date": "2025-10-27",
+  "pages_build_output_dir": "./dist",
+  "compatibility_flags": ["nodejs_compat"],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "education-platform-db",
+      "database_id": "28fc5bec-bc18-46a9-8aea-fc4a4f6e44db"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "R2",
+      "bucket_name": "education-platform-files"
+    }
+  ]
+}

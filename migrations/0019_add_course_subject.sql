@@ -1,0 +1,2 @@
+-- ALTER TABLE courses ADD COLUMN subject TEXT;
+SELECT 1;
