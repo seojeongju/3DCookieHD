@@ -12,36 +12,64 @@ const app = new Hono<{ Bindings: Bindings, Variables: Variables }>();
 // 교강사 목록 조회 (교강사 정보 + 유저명/사진 등)
 app.get('/personnel', async (c) => {
     try {
-        // 먼저 컬럼 존재 여부 확인을 위해 간단한 쿼리로 테스트
-        let query = `
+        // 각 컬럼 존재 여부를 개별적으로 확인
+        let hasEducation = false;
+        let hasCareer = false;
+        let hasCertifications = false;
+        let hasTrainingHistory = false;
+        
+        try {
+            await c.env.DB.prepare("SELECT education FROM hrd_instructors LIMIT 1").first();
+            hasEducation = true;
+        } catch (e) {}
+        
+        try {
+            await c.env.DB.prepare("SELECT career FROM hrd_instructors LIMIT 1").first();
+            hasCareer = true;
+        } catch (e) {}
+        
+        try {
+            await c.env.DB.prepare("SELECT certifications FROM hrd_instructors LIMIT 1").first();
+            hasCertifications = true;
+        } catch (e) {
+            // 컬럼이 없으면 자동으로 추가 시도
+            try {
+                await c.env.DB.prepare("ALTER TABLE hrd_instructors ADD COLUMN certifications TEXT").run();
+                hasCertifications = true;
+                console.log('Successfully added certifications column in GET endpoint');
+            } catch (alterError) {
+                console.warn('Failed to add certifications column in GET:', alterError);
+            }
+        }
+        
+        try {
+            await c.env.DB.prepare("SELECT training_history FROM hrd_instructors LIMIT 1").first();
+            hasTrainingHistory = true;
+        } catch (e) {}
+        
+        // 존재하는 컬럼만 SELECT 쿼리에 포함
+        const selectFields = [
+            'u.id', 'u.name', 'u.email', 'u.phone', 'u.role', 'u.status as user_status', 'u.profile_image',
+            'i.position', 'i.subject', 'i.type', 'i.status as instructor_status', 'i.joined_at'
+        ];
+        
+        if (hasEducation) selectFields.push('i.education');
+        if (hasCareer) selectFields.push('i.career');
+        if (hasCertifications) selectFields.push('i.certifications');
+        if (hasTrainingHistory) selectFields.push('i.training_history');
+        
+        selectFields.push('u.created_at');
+        
+        const query = `
             SELECT 
-                u.id, u.name, u.email, u.phone, u.role, u.status as user_status, u.profile_image,
-                i.position, i.subject, i.type, i.status as instructor_status, i.joined_at, u.created_at
+                ${selectFields.join(', ')}
             FROM users u
             LEFT JOIN hrd_instructors i ON u.id = i.user_id
             WHERE u.role = 'teacher' OR i.user_id IS NOT NULL
             ORDER BY u.created_at DESC
         `;
         
-        // 새 컬럼들이 있는지 확인하고 추가
-        try {
-            // 컬럼 존재 여부 확인을 위한 테스트 쿼리
-            await c.env.DB.prepare("SELECT education FROM hrd_instructors LIMIT 1").first();
-            // 컬럼이 존재하면 전체 쿼리 사용
-            query = `
-                SELECT 
-                    u.id, u.name, u.email, u.phone, u.role, u.status as user_status, u.profile_image,
-                    i.position, i.subject, i.type, i.status as instructor_status, i.joined_at, 
-                    i.education, i.career, i.certifications, i.training_history, u.created_at
-                FROM users u
-                LEFT JOIN hrd_instructors i ON u.id = i.user_id
-                WHERE u.role = 'teacher' OR i.user_id IS NOT NULL
-                ORDER BY u.created_at DESC
-            `;
-        } catch (colError) {
-            // 컬럼이 없으면 기본 쿼리만 사용 (마이그레이션 전)
-            console.log('New columns not found, using basic query');
-        }
+        console.log('GET query includes certifications:', hasCertifications);
         
         const { results } = await c.env.DB.prepare(query).all();
         
