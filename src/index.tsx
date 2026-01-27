@@ -69,6 +69,7 @@ import { studentDashboardHtml } from './views/student_dashboard';
 import { teacherDashboardHtml } from './views/teacher_dashboard';
 import { teacherPortfoliosHtml } from './views/teacher_portfolios';
 import { teacherSurveysHtml } from './views/teacher_surveys';
+import { teacherProfileHtml } from './views/teacher_profile';
 import { teacherSidebar } from './views/components/teacher_sidebar';
 import { hrdSidebar } from './views/components/hrd_sidebar';
 import { adminGradesHtml } from './views/admin_grades';
@@ -265,6 +266,7 @@ app.get('/student', (c) => c.html(studentDashboardHtml()));
 app.get('/teacher', (c) => c.html(teacherDashboardHtml));
 app.get('/teacher/portfolios', (c) => c.html(teacherPortfoliosHtml));
 app.get('/teacher/surveys', (c) => c.html(teacherSurveysHtml));
+app.get('/teacher/profile', (c) => c.html(teacherProfileHtml));
 app.get('/teacher/courses', (c) => c.html(adminCoursesListHtml(teacherSidebar('courses')))); // Reusing admin views for now or TODO: create teacher specific views
 app.get('/teacher/students', (c) => c.html(adminStudentsListHtml(teacherSidebar('students'))));
 app.get('/teacher/attendance', (c) => c.html(adminHrdAttendanceHtml(teacherSidebar('attendance'))));

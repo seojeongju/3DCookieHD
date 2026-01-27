@@ -49,6 +49,13 @@ export const teacherSidebar = (activeMenu: string) => `
             <span class="font-medium">포트폴리오 관리</span>
         </a>
 
+        <!-- 개인정보 관리 -->
+        <div class="px-4 mt-8 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">개인정보</div>
+        <a href="/teacher/profile" class="flex items-center px-6 py-3 ${activeMenu === 'profile' ? 'bg-slate-700 border-r-4 border-blue-500 text-white' : 'text-slate-300 hover:bg-slate-700 hover:text-white transition-colors'} group">
+            <i class="fas fa-user-edit w-6 ${activeMenu === 'profile' ? 'text-blue-400' : 'text-slate-400 group-hover:text-white transition-colors'}"></i>
+            <span class="font-medium">개인정보 수정</span>
+        </a>
+
         <div class="h-10"></div>
     </nav>
     

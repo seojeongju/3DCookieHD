@@ -168,10 +168,16 @@ app.post('/personnel', async (c) => {
 });
 
 // 교강사 정보 수정
-app.put('/personnel/:id', async (c) => {
+app.put('/personnel/:id', authMiddleware, async (c) => {
     try {
         const userId = c.req.param('id');
+        const user = c.get('user');
         const body = await c.req.json();
+        
+        // 강사는 본인 정보만 수정 가능
+        if (user.role === 'teacher' && user.userId.toString() !== userId) {
+            return c.json({ success: false, error: '본인의 정보만 수정할 수 있습니다.' }, 403);
+        }
         const { name, phone, email, position, subject, type, joined_at, instructor_status, profile_image,
                 education, career, certifications, training_history } = body;
 
