@@ -855,21 +855,41 @@ export const adminHrdPersonnelHtml = () => `
             document.getElementById('certificationsContainer').innerHTML = '';
             certifications = [];
             
+            console.log('Loading certifications:', certificationsJson);
+            
             if (certificationsJson) {
                 try {
-                    const certs = typeof certificationsJson === 'string' ? JSON.parse(certificationsJson) : certificationsJson;
+                    let certs;
+                    if (typeof certificationsJson === 'string') {
+                        // 빈 문자열이나 null 체크
+                        if (certificationsJson.trim() === '' || certificationsJson === 'null' || certificationsJson === 'undefined') {
+                            console.log('Certifications is empty string or null');
+                            return;
+                        }
+                        certs = JSON.parse(certificationsJson);
+                    } else {
+                        certs = certificationsJson;
+                    }
+                    
+                    console.log('Parsed certifications:', certs);
+                    
                     if (Array.isArray(certs) && certs.length > 0) {
-                        certs.forEach(cert => {
+                        certs.forEach((cert, index) => {
+                            console.log(\`Loading cert \${index}:\`, cert);
                             // certId가 없으면 생성
                             if (!cert.id) {
                                 cert.id = 'loaded_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
                             }
                             addCertification(cert);
                         });
+                    } else {
+                        console.log('Certifications is not an array or is empty');
                     }
                 } catch (e) {
-                    console.error('Failed to parse certifications:', e);
+                    console.error('Failed to parse certifications:', e, 'Raw data:', certificationsJson);
                 }
+            } else {
+                console.log('No certifications data provided');
             }
         }
 
@@ -884,15 +904,24 @@ export const adminHrdPersonnelHtml = () => `
             const certsArray = [];
             certItems.forEach(item => {
                 const certId = item.getAttribute('data-cert-id');
-                const name = item.querySelector('.cert-name').value;
-                const issueDate = item.querySelector('.cert-issue-date').value;
-                const expiryDate = item.querySelector('.cert-expiry-date').value;
-                const fileUrl = item.querySelector('.cert-file-url').value;
+                const nameInput = item.querySelector('.cert-name');
+                const issueDateInput = item.querySelector('.cert-issue-date');
+                const expiryDateInput = item.querySelector('.cert-expiry-date');
+                const fileUrlInput = item.querySelector('.cert-file-url');
                 
-                if (name || issueDate || fileUrl) {
+                const name = nameInput ? nameInput.value : '';
+                const issueDate = issueDateInput ? issueDateInput.value : '';
+                const expiryDate = expiryDateInput ? expiryDateInput.value : '';
+                const fileUrl = fileUrlInput ? fileUrlInput.value : '';
+                
+                // 디버깅 로그
+                console.log('Cert data:', { certId, name, issueDate, expiryDate, fileUrl });
+                
+                // 파일 URL이 있거나 다른 정보가 하나라도 있으면 저장
+                if (name || issueDate || expiryDate || fileUrl) {
                     certsArray.push({
                         id: certId,
-                        name: name,
+                        name: name || null,
                         issue_date: issueDate || null,
                         expiry_date: expiryDate || null,
                         file_url: fileUrl || null
@@ -900,7 +929,9 @@ export const adminHrdPersonnelHtml = () => `
                 }
             });
             
+            console.log('Certifications array:', certsArray);
             data.certifications = JSON.stringify(certsArray);
+            console.log('Certifications JSON:', data.certifications);
 
             try {
                 let url = '/api/hrd/personnel';
@@ -987,6 +1018,7 @@ export const adminHrdPersonnelHtml = () => `
         }
 
         function openEditModal(data) {
+            console.log('Opening edit modal with data:', data);
             document.getElementById('modalTitle').textContent = '교강사 정보 수정';
             document.getElementById('personnelId').value = data.id;
             document.getElementById('pName').value = data.name;
@@ -1003,7 +1035,9 @@ export const adminHrdPersonnelHtml = () => `
             document.getElementById('pCareer').value = data.career || '';
             document.getElementById('pTrainingHistory').value = data.training_history || '';
             
-            // 자격증 데이터 로드
+            // 자격증 데이터 로드 (디버깅 포함)
+            console.log('Certifications data from API:', data.certifications);
+            console.log('Type of certifications:', typeof data.certifications);
             loadCertifications(data.certifications);
             
             if (data.profile_image) {
