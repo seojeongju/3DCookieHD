@@ -401,7 +401,7 @@ export const adminHrdPersonnelHtml = () => `
                     \`;
                 } else {
                     actionBtns = \`
-                        <button onclick="openEditModal(\${pData})" class="text-blue-600 hover:text-blue-900 mr-3" title="수정"><i class="fas fa-edit"></i></button>
+                        <button onclick="openEditModalById(\${p.id})" class="text-blue-600 hover:text-blue-900 mr-3" title="수정"><i class="fas fa-edit"></i></button>
                         <button onclick="deletePersonnel(\${p.id})" class="text-red-600 hover:text-red-900" title="퇴직(삭제)"><i class="fas fa-trash"></i></button>
                     \`;
                 }
@@ -993,6 +993,12 @@ export const adminHrdPersonnelHtml = () => `
                                 cert.file_urls = [cert.file_url];
                             }
                             
+                            // file_urls가 없으면 빈 배열로 초기화
+                            if (!cert.file_urls) {
+                                cert.file_urls = [];
+                            }
+                            
+                            console.log('Adding certification with data:', cert);
                             addCertification(cert);
                         });
                     } else {
@@ -1144,6 +1150,28 @@ export const adminHrdPersonnelHtml = () => `
             document.getElementById('pImagePreview').classList.add('hidden');
             document.getElementById('pImagePlaceholder').classList.remove('hidden');
             document.getElementById('pImageFile').value = '';
+        }
+
+        // ID로 모달 열기 (API에서 최신 데이터 가져오기)
+        async function openEditModalById(id) {
+            try {
+                const response = await fetch('/api/hrd/personnel');
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    const personnel = result.data.find(p => p.id == id);
+                    if (personnel) {
+                        openEditModal(personnel);
+                    } else {
+                        alert('교강사 정보를 찾을 수 없습니다.');
+                    }
+                } else {
+                    alert('교강사 정보를 불러오는데 실패했습니다.');
+                }
+            } catch (e) {
+                console.error('Failed to load personnel data:', e);
+                alert('오류가 발생했습니다.');
+            }
         }
 
         function openEditModal(data) {
