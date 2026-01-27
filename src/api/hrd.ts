@@ -155,18 +155,37 @@ app.put('/personnel/:id', async (c) => {
         // 2. hrd_instructors 테이블 업데이트 (상세 정보)
         const exists = await c.env.DB.prepare("SELECT user_id FROM hrd_instructors WHERE user_id = ?").bind(userId).first();
 
-        // 새 컬럼 존재 여부 확인
-        let hasNewColumns = false;
+        // 각 컬럼 존재 여부를 개별적으로 확인
+        let hasEducation = false;
+        let hasCareer = false;
+        let hasCertifications = false;
+        let hasTrainingHistory = false;
+        
         try {
             await c.env.DB.prepare("SELECT education FROM hrd_instructors LIMIT 1").first();
-            hasNewColumns = true;
-        } catch (colError) {
-            hasNewColumns = false;
+            hasEducation = true;
+        } catch (e) {}
+        
+        try {
+            await c.env.DB.prepare("SELECT career FROM hrd_instructors LIMIT 1").first();
+            hasCareer = true;
+        } catch (e) {}
+        
+        try {
+            await c.env.DB.prepare("SELECT certifications FROM hrd_instructors LIMIT 1").first();
+            hasCertifications = true;
+        } catch (e) {
+            console.warn('certifications column does not exist, will skip it');
         }
+        
+        try {
+            await c.env.DB.prepare("SELECT training_history FROM hrd_instructors LIMIT 1").first();
+            hasTrainingHistory = true;
+        } catch (e) {}
 
         // certifications 처리: 배열이면 JSON 문자열로 변환, 문자열이면 그대로, 빈 값이면 null
         let certsValue: string | null = null;
-        if (certifications !== null && certifications !== undefined) {
+        if (hasCertifications && certifications !== null && certifications !== undefined) {
             if (Array.isArray(certifications)) {
                 // 배열인 경우 JSON 문자열로 변환
                 certsValue = certifications.length > 0 ? JSON.stringify(certifications) : null;
@@ -184,17 +203,49 @@ app.put('/personnel/:id', async (c) => {
             }
         }
         
+        console.log('Column existence:', { hasEducation, hasCareer, hasCertifications, hasTrainingHistory });
         console.log('Saving certifications:', certsValue);
         console.log('Type:', typeof certsValue);
-        console.log('Original certifications:', certifications);
-        console.log('Original type:', typeof certifications);
 
         if (exists) {
-            if (hasNewColumns) {
-                let query = `UPDATE hrd_instructors SET position = ?, subject = ?, type = ?, joined_at = ?, 
-                             education = ?, career = ?, certifications = ?, training_history = ?`;
-                const params = [position, subject, type, joined_at, education || null, career || null, 
-                              certsValue, training_history || null];
+            // 동적으로 쿼리 생성 (존재하는 컬럼만 포함)
+            const updateFields: string[] = ['position = ?', 'subject = ?', 'type = ?', 'joined_at = ?'];
+            const params: any[] = [position, subject, type, joined_at];
+            
+            if (hasEducation) {
+                updateFields.push('education = ?');
+                params.push(education || null);
+            }
+            
+            if (hasCareer) {
+                updateFields.push('career = ?');
+                params.push(career || null);
+            }
+            
+            if (hasCertifications) {
+                updateFields.push('certifications = ?');
+                params.push(certsValue);
+            }
+            
+            if (hasTrainingHistory) {
+                updateFields.push('training_history = ?');
+                params.push(training_history || null);
+            }
+            
+            if (instructor_status) {
+                updateFields.push('status = ?');
+                params.push(instructor_status);
+            }
+            
+            updateFields.push('WHERE user_id = ?');
+            params.push(userId);
+            
+            const query = `UPDATE hrd_instructors SET ${updateFields.join(', ')}`;
+            console.log('Update query:', query);
+            console.log('Update params:', params);
+            
+            const updateResult = await c.env.DB.prepare(query).bind(...params).run();
+            console.log('Update result:', updateResult);
 
                 if (instructor_status) {
                     query += `, status = ?`;
@@ -206,44 +257,55 @@ app.put('/personnel/:id', async (c) => {
 
                 const updateResult = await c.env.DB.prepare(query).bind(...params).run();
                 console.log('Update result:', updateResult);
-            } else {
-                // 기본 필드만 업데이트
-                let query = `UPDATE hrd_instructors SET position = ?, subject = ?, type = ?, joined_at = ?`;
-                const params = [position, subject, type, joined_at];
-
-                if (instructor_status) {
-                    query += `, status = ?`;
-                    params.push(instructor_status);
-                }
-
-                query += ` WHERE user_id = ?`;
-                params.push(userId);
-
-                await c.env.DB.prepare(query).bind(...params).run();
-            }
         } else {
-            if (hasNewColumns) {
-                await c.env.DB.prepare(`
-                    INSERT INTO hrd_instructors 
-                    (user_id, position, subject, type, joined_at, status, education, career, certifications, training_history) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                `).bind(userId, position, subject, type, joined_at, instructor_status || 'active',
-                        education || null, career || null, certsValue, training_history || null).run();
-            } else {
-                await c.env.DB.prepare(`
-                    INSERT INTO hrd_instructors 
-                    (user_id, position, subject, type, joined_at, status) 
-                    VALUES (?, ?, ?, ?, ?, ?)
-                `).bind(userId, position, subject, type, joined_at, instructor_status || 'active').run();
+            // INSERT: 존재하는 컬럼만 포함
+            const insertFields: string[] = ['user_id', 'position', 'subject', 'type', 'joined_at', 'status'];
+            const insertValues: string[] = ['?', '?', '?', '?', '?', '?'];
+            const insertParams: any[] = [userId, position, subject, type, joined_at, instructor_status || 'active'];
+            
+            if (hasEducation) {
+                insertFields.push('education');
+                insertValues.push('?');
+                insertParams.push(education || null);
             }
+            
+            if (hasCareer) {
+                insertFields.push('career');
+                insertValues.push('?');
+                insertParams.push(career || null);
+            }
+            
+            if (hasCertifications) {
+                insertFields.push('certifications');
+                insertValues.push('?');
+                insertParams.push(certsValue);
+            }
+            
+            if (hasTrainingHistory) {
+                insertFields.push('training_history');
+                insertValues.push('?');
+                insertParams.push(training_history || null);
+            }
+            
+            const insertQuery = `INSERT INTO hrd_instructors (${insertFields.join(', ')}) VALUES (${insertValues.join(', ')})`;
+            console.log('Insert query:', insertQuery);
+            console.log('Insert params:', insertParams);
+            
+            await c.env.DB.prepare(insertQuery).bind(...insertParams).run();
         }
 
-        // 저장 후 실제로 저장된 데이터 확인
-        const savedData = await c.env.DB.prepare(`
-            SELECT certifications FROM hrd_instructors WHERE user_id = ?
-        `).bind(userId).first();
-        
-        console.log('Saved certifications in DB:', savedData?.certifications);
+        // 저장 후 실제로 저장된 데이터 확인 (certifications 컬럼이 있는 경우만)
+        if (hasCertifications) {
+            try {
+                const savedData = await c.env.DB.prepare(`
+                    SELECT certifications FROM hrd_instructors WHERE user_id = ?
+                `).bind(userId).first();
+                
+                console.log('Saved certifications in DB:', savedData?.certifications);
+            } catch (e) {
+                console.warn('Could not verify saved certifications:', e);
+            }
+        }
 
         return c.json({ success: true, message: '정보가 수정되었습니다.' });
     } catch (e) {
