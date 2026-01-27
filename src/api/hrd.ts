@@ -1224,13 +1224,22 @@ app.get('/attendance/monthly', async (c) => {
 });
 
 // 출석 기록 저장 (일괄 처리)
-app.post('/attendance', async (c) => {
+app.post('/attendance', authMiddleware, async (c) => {
     try {
+        const user = c.get('user') as JWTPayload;
         const body = await c.req.json();
         const { courseId, date, attendances } = body;
 
         if (!courseId || !date || !attendances) {
             return c.json({ success: false, error: '필수 정보가 누락되었습니다.' }, 400);
+        }
+
+        // 강사인 경우 권한 확인
+        if (user.role === 'teacher') {
+            const course: any = await c.env.DB.prepare("SELECT teacher_id FROM courses WHERE id = ?").bind(courseId).first();
+            if (!course || course.teacher_id !== user.userId) {
+                return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
+            }
         }
 
         // 각 학생별로 처리 (D1 배치가 제한적이므로 반복문 사용하되, 최적화 고려)
