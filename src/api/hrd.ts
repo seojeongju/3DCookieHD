@@ -246,17 +246,6 @@ app.put('/personnel/:id', async (c) => {
             
             const updateResult = await c.env.DB.prepare(query).bind(...params).run();
             console.log('Update result:', updateResult);
-
-                if (instructor_status) {
-                    query += `, status = ?`;
-                    params.push(instructor_status);
-                }
-
-                query += ` WHERE user_id = ?`;
-                params.push(userId);
-
-                const updateResult = await c.env.DB.prepare(query).bind(...params).run();
-                console.log('Update result:', updateResult);
         } else {
             // INSERT: 존재하는 컬럼만 포함
             const insertFields: string[] = ['user_id', 'position', 'subject', 'type', 'joined_at', 'status'];
