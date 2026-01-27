@@ -206,7 +206,7 @@ app.get('/files/:path(*)', async (c) => {
     if (!object) {
       // 파일이 없으면 더 자세한 정보 로깅
       console.error('File not found in R2:', filePath);
-      return c.json({ success: false, error: \`파일을 찾을 수 없습니다: \${filePath}\` }, 404);
+      return c.json({ success: false, error: `파일을 찾을 수 없습니다: ${filePath}` }, 404);
     }
 
     // 파일 메타데이터
