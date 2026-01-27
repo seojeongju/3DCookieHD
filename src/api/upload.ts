@@ -172,13 +172,13 @@ app.post('/', authMiddleware, async (c) => {
 
 /**
  * 파일 다운로드/조회
- * GET /api/files/:path(*)
+ * GET /api/upload/files/:path(*)
  * 
  * 경로 예시:
- * - /api/files/resumes/user123/resume.pdf
- * - /api/files/portfolios/portfolio.jpg
+ * - /api/upload/files/documents/personnel_certs/new_0/file.pdf
+ * - /api/upload/files/resumes/user123/resume.pdf
  */
-app.get('/files/:path(*)', async (c) => {
+app.get('/files/*', async (c) => {
   try {
     const { R2 } = c.env;
     let filePath = c.req.param('path');
@@ -243,11 +243,14 @@ app.get('/files/:path(*)', async (c) => {
  * 
  * 관리자 또는 파일 업로드자만 삭제 가능
  */
-app.delete('/:path(*)', authMiddleware, async (c) => {
+app.delete('/*', authMiddleware, async (c) => {
   try {
     const { R2 } = c.env;
     const user = c.get('user');
-    const filePath = c.req.param('path');
+    // 와일드카드 경로 추출
+    const fullPath = c.req.path;
+    // /api/upload/ 부분을 제거하여 실제 파일 경로만 추출
+    let filePath = fullPath.replace('/api/upload/', '');
 
     if (!R2) {
       return c.json({ success: false, error: 'R2 스토리지가 설정되지 않았습니다' }, 500);
