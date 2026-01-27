@@ -24,6 +24,17 @@ app.get('/', async (c) => {
             LEFT JOIN courses c ON p.course_id = c.id
             WHERE 1=1
         `;
+        
+        // teacher_feedback 필드 존재 여부 확인 및 추가
+        try {
+            await DB.prepare("SELECT teacher_feedback FROM student_portfolios LIMIT 1").first();
+        } catch (e) {
+            try {
+                await DB.prepare("ALTER TABLE student_portfolios ADD COLUMN teacher_feedback TEXT").run();
+            } catch (alterError) {
+                // 필드 추가 실패해도 계속 진행
+            }
+        }
         const params: any[] = [];
 
         if (category) {
@@ -35,7 +46,8 @@ app.get('/', async (c) => {
             params.push(courseId);
         }
         if (teacherId) {
-            query += " AND p.course_id IN (SELECT course_id FROM hrd_course_instructors WHERE instructor_id = ?)";
+            // 강사가 담당하는 과정의 포트폴리오만 조회 (courses 테이블의 teacher_id 사용)
+            query += " AND p.course_id IN (SELECT id FROM courses WHERE teacher_id = ?)";
             params.push(teacherId);
         }
         if (isFeatured === 'true') {
@@ -109,20 +121,62 @@ app.put('/:id', authMiddleware, async (c) => {
         const id = c.req.param('id');
         const user = c.get('user');
         const body = await c.req.json();
-        const { title, description, thumbnail_url, content_url, category, course_id } = body;
+        const { title, description, thumbnail_url, content_url, category, course_id, teacher_feedback } = body;
 
-        // 권한 확인 (본인 또는 관리자)
-        const existing: any = await DB.prepare("SELECT student_id FROM student_portfolios WHERE id = ?").bind(id).first();
+        // 권한 확인 (본인, 관리자, 또는 담당 강사)
+        const existing: any = await DB.prepare(`
+            SELECT p.student_id, p.course_id, c.teacher_id 
+            FROM student_portfolios p
+            LEFT JOIN courses c ON p.course_id = c.id
+            WHERE p.id = ?
+        `).bind(id).first();
         if (!existing) return errorResponse(c, '포트폴리오를 찾을 수 없습니다', 404);
-        if (existing.student_id !== user.userId && user.role !== 'admin') {
+        
+        let hasPermission = false;
+        if (existing.student_id === user.userId || user.role === 'admin') {
+            hasPermission = true;
+        } else if (user.role === 'teacher' && existing.teacher_id === user.userId) {
+            hasPermission = true;
+        }
+        
+        if (!hasPermission) {
             return errorResponse(c, '권한이 없습니다', 403);
         }
 
+        // teacher_feedback 필드 존재 여부 확인
+        let hasTeacherFeedback = false;
+        try {
+            await DB.prepare("SELECT teacher_feedback FROM student_portfolios LIMIT 1").first();
+            hasTeacherFeedback = true;
+        } catch (e) {
+            // 필드가 없으면 추가 시도
+            try {
+                await DB.prepare("ALTER TABLE student_portfolios ADD COLUMN teacher_feedback TEXT").run();
+                hasTeacherFeedback = true;
+            } catch (alterError) {
+                console.warn('Failed to add teacher_feedback column:', alterError);
+            }
+        }
+
+        // 동적 쿼리 생성
+        const updateFields: string[] = [
+            'title = ?', 'description = ?', 'thumbnail_url = ?', 
+            'content_url = ?', 'category = ?', 'course_id = ?', 'updated_at = CURRENT_TIMESTAMP'
+        ];
+        const params: any[] = [title, description || null, thumbnail_url || null, content_url || null, category || 'other', course_id || null];
+        
+        if (hasTeacherFeedback) {
+            updateFields.splice(-1, 0, 'teacher_feedback = ?'); // updated_at 앞에 삽입
+            params.splice(-1, 0, teacher_feedback || null);
+        }
+        
+        params.push(id);
+
         await DB.prepare(`
             UPDATE student_portfolios 
-            SET title = ?, description = ?, thumbnail_url = ?, content_url = ?, category = ?, course_id = ?, updated_at = CURRENT_TIMESTAMP
+            SET ${updateFields.join(', ')}
             WHERE id = ?
-        `).bind(title, description, thumbnail_url, content_url, category, course_id || null, id).run();
+        `).bind(...params).run();
 
         return successResponse(c, null, '포트폴리오가 수정되었습니다');
     } catch (e: any) {
@@ -140,10 +194,23 @@ app.delete('/:id', authMiddleware, async (c) => {
         const id = c.req.param('id');
         const user = c.get('user');
 
-        // 권한 확인
-        const existing: any = await DB.prepare("SELECT student_id FROM student_portfolios WHERE id = ?").bind(id).first();
+        // 권한 확인 (본인, 관리자, 또는 담당 강사)
+        const existing: any = await DB.prepare(`
+            SELECT p.student_id, p.course_id, c.teacher_id 
+            FROM student_portfolios p
+            LEFT JOIN courses c ON p.course_id = c.id
+            WHERE p.id = ?
+        `).bind(id).first();
         if (!existing) return errorResponse(c, '포트폴리오를 찾을 수 없습니다', 404);
-        if (existing.student_id !== user.userId && user.role !== 'admin') {
+        
+        let hasPermission = false;
+        if (existing.student_id === user.userId || user.role === 'admin') {
+            hasPermission = true;
+        } else if (user.role === 'teacher' && existing.teacher_id === user.userId) {
+            hasPermission = true;
+        }
+        
+        if (!hasPermission) {
             return errorResponse(c, '권한이 없습니다', 403);
         }
 
@@ -169,11 +236,11 @@ app.patch('/:id/featured', authMiddleware, async (c) => {
         if (user.role === 'admin') {
             // 관리자는 무조건 가능
         } else if (user.role === 'teacher') {
-            // 강사는 본인이 담당하는 과정의 학생 것만 가능
+            // 강사는 본인이 담당하는 과정의 학생 것만 가능 (courses 테이블의 teacher_id 사용)
             const check: any = await DB.prepare(`
                 SELECT 1 FROM student_portfolios p
-                JOIN hrd_course_instructors ci ON p.course_id = ci.course_id
-                WHERE p.id = ? AND ci.instructor_id = ?
+                LEFT JOIN courses c ON p.course_id = c.id
+                WHERE p.id = ? AND c.teacher_id = ?
             `).bind(id, user.userId).first();
             if (!check) return errorResponse(c, '담당 과정의 학생이 아니거나 권한이 없습니다', 403);
         } else {
