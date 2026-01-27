@@ -559,13 +559,17 @@ export const adminHrdPersonnelHtml = () => `
                             <!-- 업로드된 파일 목록 -->
                             <div class="cert-file-list space-y-2" id="file-list-\${certId}">
                                 \${certData && certData.file_urls && Array.isArray(certData.file_urls) && certData.file_urls.length > 0
-                                    ? certData.file_urls.map((fileUrl, idx) => {
-                                        const fileName = fileUrl.split('/').pop() || '파일';
+                                    ? certData.file_urls.map((fileInfo, idx) => {
+                                        // fileInfo가 객체면 {url, name}, 문자열이면 URL만
+                                        const fileUrl = typeof fileInfo === 'string' ? fileInfo : fileInfo.url;
+                                        const fileName = typeof fileInfo === 'string' 
+                                            ? fileInfo.split('/').pop() || '파일'
+                                            : (fileInfo.name || fileInfo.url.split('/').pop() || '파일');
                                         return \`
-                                            <div class="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-3" data-file-url="\${fileUrl}" data-file-index="\${idx}">
+                                            <div class="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-3" data-file-url="\${fileUrl}" data-file-name="\${fileName}" data-file-index="\${idx}">
                                                 <div class="flex items-center gap-2 flex-1 min-w-0">
                                                     <i class="fas fa-file-pdf text-green-600"></i>
-                                                    <span class="text-xs font-medium text-gray-700 truncate">\${fileName}</span>
+                                                    <span class="text-xs font-medium text-gray-700 truncate" title="\${fileName}">\${fileName}</span>
                                                 </div>
                                                 <div class="flex items-center gap-2 ml-2">
                                                     <a href="\${fileUrl}" target="_blank" class="px-2 py-1 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700 transition flex items-center">
@@ -779,9 +783,10 @@ export const adminHrdPersonnelHtml = () => `
                 
                 if (uploadResult.success && uploadResult.data) {
                     const fileUrl = uploadResult.data.url;
-                    const fileName = uploadResult.data.originalName || file.name;
+                    const originalFileName = uploadResult.data.originalName || file.name;
                     
                     console.log('File uploaded successfully, URL:', fileUrl);
+                    console.log('Original file name:', originalFileName);
                     
                     // 파일 목록에 추가 (기존 파일 제거하지 않음 - 여러 파일 허용)
                     if (fileList) {
@@ -798,14 +803,15 @@ export const adminHrdPersonnelHtml = () => `
                             return;
                         }
                         
-                        // 새 파일 항목 추가
+                        // 새 파일 항목 추가 (원본 파일명 사용)
                         const fileItem = document.createElement('div');
                         fileItem.className = 'flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-3';
                         fileItem.setAttribute('data-file-url', fileUrl);
+                        fileItem.setAttribute('data-file-name', originalFileName);
                         fileItem.innerHTML = \`
                             <div class="flex items-center gap-2 flex-1 min-w-0">
                                 <i class="fas fa-file-pdf text-green-600"></i>
-                                <span class="text-xs font-medium text-gray-700 truncate" title="\${fileName}">\${fileName}</span>
+                                <span class="text-xs font-medium text-gray-700 truncate" title="\${originalFileName}">\${originalFileName}</span>
                             </div>
                             <div class="flex items-center gap-2 ml-2">
                                 <a href="\${fileUrl}" target="_blank" class="px-2 py-1 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700 transition flex items-center">
@@ -831,35 +837,51 @@ export const adminHrdPersonnelHtml = () => `
                         
                         fileList.appendChild(fileItem);
                         
-                        // Hidden input 업데이트 (파일 URL 배열)
+                        // Hidden input 업데이트 (파일 정보 객체 배열로 저장: {url, name})
                         if (fileUrlsInput) {
-                            const existingUrls = fileUrlsInput.value ? JSON.parse(fileUrlsInput.value) : [];
-                            if (!existingUrls.includes(fileUrl)) {
-                                existingUrls.push(fileUrl);
-                                fileUrlsInput.value = JSON.stringify(existingUrls);
-                                console.log('File URLs updated:', existingUrls);
-                            }
+                            const existingFiles = fileUrlsInput.value ? JSON.parse(fileUrlsInput.value) : [];
+                            // 기존 URL 문자열을 객체로 변환 (구버전 호환)
+                            const normalizedFiles = existingFiles.map(f => {
+                                if (typeof f === 'string') {
+                                    return { url: f, name: f.split('/').pop() || '파일' };
+                                }
+                                return f;
+                            });
+                            
+                            // 새 파일 추가 (URL과 원본 파일명 함께 저장)
+                            normalizedFiles.push({ url: fileUrl, name: originalFileName });
+                            fileUrlsInput.value = JSON.stringify(normalizedFiles);
+                            console.log('File info updated:', normalizedFiles);
                         }
                     }
                     
                     // 업로드 상태 업데이트
                     if (uploadStatus) {
-                        uploadStatus.innerHTML = \`<span class="text-green-600 font-bold"><i class="fas fa-check-circle mr-1"></i> 업로드 완료: \${fileName}</span>\`;
+                        uploadStatus.innerHTML = \`<span class="text-green-600 font-bold"><i class="fas fa-check-circle mr-1"></i> 업로드 완료: \${originalFileName}</span>\`;
                         setTimeout(() => {
                             uploadStatus.innerHTML = '';
                         }, 3000);
                     }
                     
-                    // certifications 배열 업데이트 (여러 파일 지원)
+                    // certifications 배열 업데이트 (여러 파일 지원, 원본 파일명 포함)
                     const cert = certifications.find(c => c.id === certId);
                     if (cert) {
                         // file_urls 배열로 변환 (기존 file_url이 있으면 배열로 변환)
                         if (!cert.file_urls) {
-                            cert.file_urls = cert.file_url ? [cert.file_url] : [];
+                            cert.file_urls = cert.file_url ? [{ url: cert.file_url, name: cert.file_url.split('/').pop() || '파일' }] : [];
                             delete cert.file_url; // 구버전 필드 제거
                         }
-                        if (!cert.file_urls.includes(fileUrl)) {
-                            cert.file_urls.push(fileUrl);
+                        // file_urls가 문자열 배열이면 객체 배열로 변환
+                        if (cert.file_urls.length > 0 && typeof cert.file_urls[0] === 'string') {
+                            cert.file_urls = cert.file_urls.map(url => ({ url, name: url.split('/').pop() || '파일' }));
+                        }
+                        // 새 파일 추가 (URL과 원본 파일명 함께 저장)
+                        const fileExists = cert.file_urls.some(f => {
+                            const fileUrlToCheck = typeof f === 'string' ? f : f.url;
+                            return fileUrlToCheck === fileUrl;
+                        });
+                        if (!fileExists) {
+                            cert.file_urls.push({ url: fileUrl, name: originalFileName });
                         }
                         console.log('Updated cert in array:', cert);
                     } else {
@@ -870,7 +892,7 @@ export const adminHrdPersonnelHtml = () => `
                             name: certItem?.querySelector('.cert-name')?.value || '',
                             issue_date: certItem?.querySelector('.cert-issue-date')?.value || '',
                             expiry_date: certItem?.querySelector('.cert-expiry-date')?.value || '',
-                            file_urls: [fileUrl]
+                            file_urls: [{ url: fileUrl, name: originalFileName }]
                         };
                         certifications.push(newCert);
                         console.log('Added new cert to array:', newCert);
@@ -1002,12 +1024,17 @@ export const adminHrdPersonnelHtml = () => `
                         
                         // 구버전 호환: file_url이 있으면 file_urls 배열로 변환
                         if (cert.file_url && !cert.file_urls) {
-                            cert.file_urls = [cert.file_url];
+                            cert.file_urls = [{ url: cert.file_url, name: cert.file_url.split('/').pop() || '파일' }];
                         }
                         
                         // file_urls가 없으면 빈 배열로 초기화
                         if (!cert.file_urls) {
                             cert.file_urls = [];
+                        }
+                        
+                        // file_urls가 문자열 배열이면 객체 배열로 변환 (원본 파일명 보존)
+                        if (Array.isArray(cert.file_urls) && cert.file_urls.length > 0 && typeof cert.file_urls[0] === 'string') {
+                            cert.file_urls = cert.file_urls.map(url => ({ url, name: url.split('/').pop() || '파일' }));
                         }
                         
                         console.log('Adding certification with data:', cert);
@@ -1043,34 +1070,44 @@ export const adminHrdPersonnelHtml = () => `
                 const issueDate = issueDateInput ? issueDateInput.value : '';
                 const expiryDate = expiryDateInput ? expiryDateInput.value : '';
                 
-                // 파일 URL 배열 가져오기
-                let fileUrls = [];
+                // 파일 정보 배열 가져오기 (URL과 원본 파일명 포함)
+                let fileInfos = [];
                 if (fileUrlsInput && fileUrlsInput.value) {
                     try {
-                        fileUrls = JSON.parse(fileUrlsInput.value);
-                        if (!Array.isArray(fileUrls)) {
-                            // 구버전 호환: 단일 URL이면 배열로 변환
-                            fileUrls = fileUrls ? [fileUrls] : [];
+                        const parsed = JSON.parse(fileUrlsInput.value);
+                        if (Array.isArray(parsed)) {
+                            fileInfos = parsed;
+                        } else if (parsed) {
+                            // 구버전 호환: 단일 값이면 배열로 변환
+                            fileInfos = [parsed];
                         }
                     } catch (e) {
-                        console.warn('Failed to parse file URLs:', e);
-                        fileUrls = [];
+                        console.warn('Failed to parse file info:', e);
+                        fileInfos = [];
                     }
                 }
                 
+                // fileInfos를 정규화 (문자열이면 객체로 변환)
+                const normalizedFileInfos = fileInfos.map(f => {
+                    if (typeof f === 'string') {
+                        return { url: f, name: f.split('/').pop() || '파일' };
+                    }
+                    return f;
+                });
+                
                 // 디버깅 로그
-                console.log('Cert data:', { certId, name, issueDate, expiryDate, fileUrls });
+                console.log('Cert data:', { certId, name, issueDate, expiryDate, fileInfos: normalizedFileInfos });
                 
                 // 정보가 하나라도 있으면 저장
-                if (name || issueDate || expiryDate || fileUrls.length > 0) {
+                if (name || issueDate || expiryDate || normalizedFileInfos.length > 0) {
                     certsArray.push({
                         id: certId,
                         name: name || null,
                         issue_date: issueDate || null,
                         expiry_date: expiryDate || null,
-                        file_urls: fileUrls.length > 0 ? fileUrls : null,
-                        // 구버전 호환을 위해 첫 번째 파일을 file_url로도 저장
-                        file_url: fileUrls.length > 0 ? fileUrls[0] : null
+                        file_urls: normalizedFileInfos.length > 0 ? normalizedFileInfos : null,
+                        // 구버전 호환을 위해 첫 번째 파일 URL을 file_url로도 저장
+                        file_url: normalizedFileInfos.length > 0 ? normalizedFileInfos[0].url : null
                     });
                 }
             });
