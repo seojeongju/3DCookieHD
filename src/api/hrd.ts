@@ -12,20 +12,42 @@ const app = new Hono<{ Bindings: Bindings, Variables: Variables }>();
 // 교강사 목록 조회 (교강사 정보 + 유저명/사진 등)
 app.get('/personnel', async (c) => {
     try {
-        const { results } = await c.env.DB.prepare(`
+        // 먼저 컬럼 존재 여부 확인을 위해 간단한 쿼리로 테스트
+        let query = `
             SELECT 
                 u.id, u.name, u.email, u.phone, u.role, u.status as user_status, u.profile_image,
-                i.position, i.subject, i.type, i.status as instructor_status, i.joined_at, 
-                i.education, i.career, i.certifications, i.training_history, u.created_at
+                i.position, i.subject, i.type, i.status as instructor_status, i.joined_at, u.created_at
             FROM users u
             LEFT JOIN hrd_instructors i ON u.id = i.user_id
             WHERE u.role = 'teacher' OR i.user_id IS NOT NULL
             ORDER BY u.created_at DESC
-        `).all();
+        `;
+        
+        // 새 컬럼들이 있는지 확인하고 추가
+        try {
+            // 컬럼 존재 여부 확인을 위한 테스트 쿼리
+            await c.env.DB.prepare("SELECT education FROM hrd_instructors LIMIT 1").first();
+            // 컬럼이 존재하면 전체 쿼리 사용
+            query = `
+                SELECT 
+                    u.id, u.name, u.email, u.phone, u.role, u.status as user_status, u.profile_image,
+                    i.position, i.subject, i.type, i.status as instructor_status, i.joined_at, 
+                    i.education, i.career, i.certifications, i.training_history, u.created_at
+                FROM users u
+                LEFT JOIN hrd_instructors i ON u.id = i.user_id
+                WHERE u.role = 'teacher' OR i.user_id IS NOT NULL
+                ORDER BY u.created_at DESC
+            `;
+        } catch (colError) {
+            // 컬럼이 없으면 기본 쿼리만 사용 (마이그레이션 전)
+            console.log('New columns not found, using basic query');
+        }
+        
+        const { results } = await c.env.DB.prepare(query).all();
         return c.json({ success: true, data: results });
     } catch (e) {
         console.error('Failed to fetch personnel:', e);
-        return c.json({ success: false, error: '교강사 목록 조회 실패' }, 500);
+        return c.json({ success: false, error: '교강사 목록 조회 실패: ' + (e instanceof Error ? e.message : String(e)) }, 500);
     }
 });
 
@@ -53,17 +75,29 @@ app.post('/personnel', async (c) => {
         }
 
         // 2. 강사 상세 정보 등록
-        await c.env.DB.prepare(`
-            INSERT OR REPLACE INTO hrd_instructors 
-            (user_id, position, subject, type, status, joined_at, education, career, certifications, training_history)
-            VALUES (?, ?, ?, ?, 'active', ?, ?, ?, ?, ?)
-        `).bind(
-            userId, position, subject, type, joined_at, 
-            education || null, 
-            career || null, 
-            certifications || null, 
-            training_history || null
-        ).run();
+        // 새 컬럼 존재 여부 확인 후 적절한 쿼리 사용
+        try {
+            await c.env.DB.prepare("SELECT education FROM hrd_instructors LIMIT 1").first();
+            // 새 컬럼이 있으면 전체 필드 사용
+            await c.env.DB.prepare(`
+                INSERT OR REPLACE INTO hrd_instructors 
+                (user_id, position, subject, type, status, joined_at, education, career, certifications, training_history)
+                VALUES (?, ?, ?, ?, 'active', ?, ?, ?, ?, ?)
+            `).bind(
+                userId, position, subject, type, joined_at, 
+                education || null, 
+                career || null, 
+                certifications || null, 
+                training_history || null
+            ).run();
+        } catch (colError) {
+            // 새 컬럼이 없으면 기본 필드만 사용
+            await c.env.DB.prepare(`
+                INSERT OR REPLACE INTO hrd_instructors 
+                (user_id, position, subject, type, status, joined_at)
+                VALUES (?, ?, ?, ?, 'active', ?)
+            `).bind(userId, position, subject, type, joined_at).run();
+        }
 
         return c.json({ success: true, message: '교강사가 등록되었습니다.' });
     } catch (e) {
@@ -88,28 +122,61 @@ app.put('/personnel/:id', async (c) => {
         // 2. hrd_instructors 테이블 업데이트 (상세 정보)
         const exists = await c.env.DB.prepare("SELECT user_id FROM hrd_instructors WHERE user_id = ?").bind(userId).first();
 
+        // 새 컬럼 존재 여부 확인
+        let hasNewColumns = false;
+        try {
+            await c.env.DB.prepare("SELECT education FROM hrd_instructors LIMIT 1").first();
+            hasNewColumns = true;
+        } catch (colError) {
+            hasNewColumns = false;
+        }
+
         if (exists) {
-            let query = `UPDATE hrd_instructors SET position = ?, subject = ?, type = ?, joined_at = ?, 
-                         education = ?, career = ?, certifications = ?, training_history = ?`;
-            const params = [position, subject, type, joined_at, education || null, career || null, 
-                          certifications || null, training_history || null];
+            if (hasNewColumns) {
+                let query = `UPDATE hrd_instructors SET position = ?, subject = ?, type = ?, joined_at = ?, 
+                             education = ?, career = ?, certifications = ?, training_history = ?`;
+                const params = [position, subject, type, joined_at, education || null, career || null, 
+                              certifications || null, training_history || null];
 
-            if (instructor_status) {
-                query += `, status = ?`;
-                params.push(instructor_status);
+                if (instructor_status) {
+                    query += `, status = ?`;
+                    params.push(instructor_status);
+                }
+
+                query += ` WHERE user_id = ?`;
+                params.push(userId);
+
+                await c.env.DB.prepare(query).bind(...params).run();
+            } else {
+                // 기본 필드만 업데이트
+                let query = `UPDATE hrd_instructors SET position = ?, subject = ?, type = ?, joined_at = ?`;
+                const params = [position, subject, type, joined_at];
+
+                if (instructor_status) {
+                    query += `, status = ?`;
+                    params.push(instructor_status);
+                }
+
+                query += ` WHERE user_id = ?`;
+                params.push(userId);
+
+                await c.env.DB.prepare(query).bind(...params).run();
             }
-
-            query += ` WHERE user_id = ?`;
-            params.push(userId);
-
-            await c.env.DB.prepare(query).bind(...params).run();
         } else {
-            await c.env.DB.prepare(`
-                INSERT INTO hrd_instructors 
-                (user_id, position, subject, type, joined_at, status, education, career, certifications, training_history) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `).bind(userId, position, subject, type, joined_at, instructor_status || 'active',
-                    education || null, career || null, certifications || null, training_history || null).run();
+            if (hasNewColumns) {
+                await c.env.DB.prepare(`
+                    INSERT INTO hrd_instructors 
+                    (user_id, position, subject, type, joined_at, status, education, career, certifications, training_history) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `).bind(userId, position, subject, type, joined_at, instructor_status || 'active',
+                        education || null, career || null, certifications || null, training_history || null).run();
+            } else {
+                await c.env.DB.prepare(`
+                    INSERT INTO hrd_instructors 
+                    (user_id, position, subject, type, joined_at, status) 
+                    VALUES (?, ?, ?, ?, ?, ?)
+                `).bind(userId, position, subject, type, joined_at, instructor_status || 'active').run();
+            }
         }
 
         return c.json({ success: true, message: '정보가 수정되었습니다.' });
