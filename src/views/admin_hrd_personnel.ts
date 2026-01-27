@@ -558,26 +558,49 @@ export const adminHrdPersonnelHtml = () => `
                             
                             <!-- 업로드된 파일 목록 -->
                             <div class="cert-file-list space-y-2" id="file-list-\${certId}">
-                                \${certData && certData.file_url ? \`
-                                    <div class="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-3" data-file-url="\${certData.file_url}">
-                                        <div class="flex items-center gap-2 flex-1 min-w-0">
-                                            <i class="fas fa-file-pdf text-green-600"></i>
-                                            <span class="text-xs font-medium text-gray-700 truncate">\${certData.file_url.split('/').pop() || '파일'}</span>
-                                        </div>
-                                        <div class="flex items-center gap-2 ml-2">
-                                            <a href="\${certData.file_url}" target="_blank" class="px-2 py-1 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700 transition flex items-center">
-                                                <i class="fas fa-download mr-1"></i> 다운로드
-                                            </a>
-                                            <button type="button" class="cert-file-remove-btn px-2 py-1 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700 transition flex items-center" 
-                                                    data-cert-id="\${certId}" data-file-url="\${certData.file_url}">
-                                                <i class="fas fa-times"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                \` : '<div class="text-xs text-gray-400 text-center py-2">업로드된 파일이 없습니다</div>'}
+                                \${certData && certData.file_urls && Array.isArray(certData.file_urls) && certData.file_urls.length > 0
+                                    ? certData.file_urls.map((fileUrl, idx) => {
+                                        const fileName = fileUrl.split('/').pop() || '파일';
+                                        return \`
+                                            <div class="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-3" data-file-url="\${fileUrl}" data-file-index="\${idx}">
+                                                <div class="flex items-center gap-2 flex-1 min-w-0">
+                                                    <i class="fas fa-file-pdf text-green-600"></i>
+                                                    <span class="text-xs font-medium text-gray-700 truncate">\${fileName}</span>
+                                                </div>
+                                                <div class="flex items-center gap-2 ml-2">
+                                                    <a href="\${fileUrl}" target="_blank" class="px-2 py-1 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700 transition flex items-center">
+                                                        <i class="fas fa-download mr-1"></i> 다운로드
+                                                    </a>
+                                                    <button type="button" class="cert-file-remove-btn px-2 py-1 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700 transition flex items-center" 
+                                                            data-cert-id="\${certId}" data-file-url="\${fileUrl}">
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        \`;
+                                    }).join('')
+                                    : certData && certData.file_url
+                                        ? \`
+                                            <div class="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-3" data-file-url="\${certData.file_url}" data-file-index="0">
+                                                <div class="flex items-center gap-2 flex-1 min-w-0">
+                                                    <i class="fas fa-file-pdf text-green-600"></i>
+                                                    <span class="text-xs font-medium text-gray-700 truncate">\${certData.file_url.split('/').pop() || '파일'}</span>
+                                                </div>
+                                                <div class="flex items-center gap-2 ml-2">
+                                                    <a href="\${certData.file_url}" target="_blank" class="px-2 py-1 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700 transition flex items-center">
+                                                        <i class="fas fa-download mr-1"></i> 다운로드
+                                                    </a>
+                                                    <button type="button" class="cert-file-remove-btn px-2 py-1 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700 transition flex items-center" 
+                                                            data-cert-id="\${certId}" data-file-url="\${certData.file_url}">
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        \`
+                                        : '<div class="text-xs text-gray-400 text-center py-2">업로드된 파일이 없습니다</div>'}
                             </div>
                         </div>
-                        <input type="hidden" class="cert-file-url" value="\${certData ? (certData.file_url || '') : ''}">
+                        <input type="hidden" class="cert-file-urls" value="\${certData ? JSON.stringify(certData.file_urls || (certData.file_url ? [certData.file_url] : [])) : '[]'}">
                     </div>
                 </div>
             \`;
@@ -590,7 +613,7 @@ export const adminHrdPersonnelHtml = () => `
                 const fileInput = certItem.querySelector('.cert-file');
                 const uploadBtn = certItem.querySelector('.cert-upload-btn');
                 const removeBtn = certItem.querySelector('.remove-cert-btn');
-                const fileUrlInput = certItem.querySelector('.cert-file-url');
+                const fileUrlsInput = certItem.querySelector('.cert-file-urls');
                 const fileList = certItem.querySelector(\`#file-list-\${certId}\`);
                 const uploadStatus = certItem.querySelector(\`#upload-status-\${certId}\`);
                 
@@ -604,7 +627,7 @@ export const adminHrdPersonnelHtml = () => `
                 // 파일 선택 시 업로드 시작
                 if (fileInput) {
                     fileInput.addEventListener('change', async (e) => {
-                        await handleCertFileUpload(e.target, certId, fileList, uploadStatus, fileUrlInput);
+                        await handleCertFileUpload(e.target, certId, fileList, uploadStatus, fileUrlsInput);
                     });
                 }
                 
@@ -615,23 +638,27 @@ export const adminHrdPersonnelHtml = () => `
                     });
                 }
                 
-                // 파일 삭제 버튼들
+                // 파일 삭제 버튼들 (기존 파일이 있을 때)
                 const removeFileBtns = certItem.querySelectorAll('.cert-file-remove-btn');
                 removeFileBtns.forEach(btn => {
                     btn.addEventListener('click', async (e) => {
                         e.stopPropagation();
                         const fileUrl = btn.getAttribute('data-file-url');
                         if (fileUrl && confirm('파일을 삭제하시겠습니까?')) {
-                            await removeCertFile(certId, fileUrl, fileList, fileUrlInput);
+                            await removeCertFile(certId, fileUrl, fileList, fileUrlsInput);
                         }
                     });
                 });
             }
             
             if (certData) {
+                // 구버전 호환: file_url이 있으면 file_urls 배열로 변환
+                if (certData.file_url && !certData.file_urls) {
+                    certData.file_urls = [certData.file_url];
+                }
                 certifications.push(certData);
             } else {
-                certifications.push({ id: certId, name: '', issue_date: '', expiry_date: '', file_url: '' });
+                certifications.push({ id: certId, name: '', issue_date: '', expiry_date: '', file_urls: [] });
             }
         }
 
@@ -639,13 +666,18 @@ export const adminHrdPersonnelHtml = () => `
             if (!confirm('자격증 정보를 삭제하시겠습니까?')) return;
             
             const item = document.querySelector(\`[data-cert-id="\${certId}"]\`);
-            const fileUrlInput = item?.querySelector('.cert-file-url');
-            const fileUrl = fileUrlInput?.value;
+            const fileUrlsInput = item?.querySelector('.cert-file-urls');
             const fileList = item?.querySelector(\`#file-list-\${certId}\`);
             
-            // 파일이 있으면 삭제
-            if (fileUrl && fileList) {
-                removeCertFile(certId, fileUrl, fileList, fileUrlInput).then(() => {
+            // 모든 파일 삭제
+            if (fileList && fileUrlsInput) {
+                const fileItems = fileList.querySelectorAll('[data-file-url]');
+                const deletePromises = Array.from(fileItems).map(fileItem => {
+                    const fileUrl = fileItem.getAttribute('data-file-url');
+                    return removeCertFile(certId, fileUrl, fileList, fileUrlsInput);
+                });
+                
+                Promise.all(deletePromises).then(() => {
                     if (item) item.remove();
                     certifications = certifications.filter(c => c.id !== certId);
                 });
@@ -717,8 +749,8 @@ export const adminHrdPersonnelHtml = () => `
             }
         }
 
-        // 파일 업로드 처리 (새로운 방식: 저장 전에 업로드)
-        async function handleCertFileUpload(input, certId, fileList, uploadStatus, fileUrlInput) {
+        // 파일 업로드 처리 (새로운 방식: 저장 전에 업로드, 여러 파일 지원)
+        async function handleCertFileUpload(input, certId, fileList, uploadStatus, fileUrlsInput) {
             if (!input.files || !input.files[0]) return;
             
             const file = input.files[0];
@@ -751,22 +783,19 @@ export const adminHrdPersonnelHtml = () => `
                     
                     console.log('File uploaded successfully, URL:', fileUrl);
                     
-                    // Hidden input에 파일 URL 저장
-                    if (fileUrlInput) {
-                        fileUrlInput.value = fileUrl;
-                        console.log('File URL saved to hidden input:', fileUrlInput.value);
-                    }
-                    
-                    // 파일 목록에 추가
+                    // 파일 목록에 추가 (기존 파일 제거하지 않음 - 여러 파일 허용)
                     if (fileList) {
                         // 기존 "파일 없음" 메시지 제거
                         const emptyMsg = fileList.querySelector('.text-gray-400');
                         if (emptyMsg) emptyMsg.remove();
                         
-                        // 기존 파일 항목 제거 (하나만 유지)
-                        const existingFile = fileList.querySelector('[data-file-url]');
+                        // 중복 체크: 같은 URL의 파일이 이미 있는지 확인
+                        const existingFile = fileList.querySelector(\`[data-file-url="\${fileUrl}"]\`);
                         if (existingFile) {
-                            existingFile.remove();
+                            alert('이미 업로드된 파일입니다.');
+                            if (uploadStatus) uploadStatus.innerHTML = '';
+                            input.value = '';
+                            return;
                         }
                         
                         // 새 파일 항목 추가
@@ -776,7 +805,7 @@ export const adminHrdPersonnelHtml = () => `
                         fileItem.innerHTML = \`
                             <div class="flex items-center gap-2 flex-1 min-w-0">
                                 <i class="fas fa-file-pdf text-green-600"></i>
-                                <span class="text-xs font-medium text-gray-700 truncate">\${fileName}</span>
+                                <span class="text-xs font-medium text-gray-700 truncate" title="\${fileName}">\${fileName}</span>
                             </div>
                             <div class="flex items-center gap-2 ml-2">
                                 <a href="\${fileUrl}" target="_blank" class="px-2 py-1 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700 transition flex items-center">
@@ -801,6 +830,16 @@ export const adminHrdPersonnelHtml = () => `
                         }
                         
                         fileList.appendChild(fileItem);
+                        
+                        // Hidden input 업데이트 (파일 URL 배열)
+                        if (fileUrlInput) {
+                            const existingUrls = fileUrlInput.value ? JSON.parse(fileUrlInput.value) : [];
+                            if (!existingUrls.includes(fileUrl)) {
+                                existingUrls.push(fileUrl);
+                                fileUrlInput.value = JSON.stringify(existingUrls);
+                                console.log('File URLs updated:', existingUrls);
+                            }
+                        }
                     }
                     
                     // 업로드 상태 업데이트
@@ -811,10 +850,17 @@ export const adminHrdPersonnelHtml = () => `
                         }, 3000);
                     }
                     
-                    // certifications 배열 업데이트
+                    // certifications 배열 업데이트 (여러 파일 지원)
                     const cert = certifications.find(c => c.id === certId);
                     if (cert) {
-                        cert.file_url = fileUrl;
+                        // file_urls 배열로 변환 (기존 file_url이 있으면 배열로 변환)
+                        if (!cert.file_urls) {
+                            cert.file_urls = cert.file_url ? [cert.file_url] : [];
+                            delete cert.file_url; // 구버전 필드 제거
+                        }
+                        if (!cert.file_urls.includes(fileUrl)) {
+                            cert.file_urls.push(fileUrl);
+                        }
                         console.log('Updated cert in array:', cert);
                     } else {
                         // 배열에 없으면 추가
@@ -824,7 +870,7 @@ export const adminHrdPersonnelHtml = () => `
                             name: certItem?.querySelector('.cert-name')?.value || '',
                             issue_date: certItem?.querySelector('.cert-issue-date')?.value || '',
                             expiry_date: certItem?.querySelector('.cert-expiry-date')?.value || '',
-                            file_url: fileUrl
+                            file_urls: [fileUrl]
                         };
                         certifications.push(newCert);
                         console.log('Added new cert to array:', newCert);
@@ -851,8 +897,8 @@ export const adminHrdPersonnelHtml = () => `
             }
         }
         
-        // 파일 제거 (UI에서만 제거, R2 삭제는 선택사항)
-        async function removeCertFile(certId, fileUrl, fileList, fileUrlInput) {
+        // 파일 제거 (UI에서만 제거, R2 삭제는 선택사항, 여러 파일 지원)
+        async function removeCertFile(certId, fileUrl, fileList, fileUrlsInput) {
             if (!confirm('파일을 목록에서 제거하시겠습니까?')) return;
             
             try {
@@ -886,15 +932,23 @@ export const adminHrdPersonnelHtml = () => `
                     fileList.innerHTML = '<div class="text-xs text-gray-400 text-center py-2">업로드된 파일이 없습니다</div>';
                 }
                 
-                // Hidden input 초기화
+                // Hidden input 업데이트 (파일 URL 배열에서 제거)
                 if (fileUrlInput) {
-                    fileUrlInput.value = '';
+                    const existingUrls = fileUrlInput.value ? JSON.parse(fileUrlInput.value) : [];
+                    const updatedUrls = existingUrls.filter(url => url !== fileUrl);
+                    fileUrlInput.value = JSON.stringify(updatedUrls);
+                    console.log('File URLs after removal:', updatedUrls);
                 }
                 
                 // certifications 배열에서 파일 URL 제거
                 const cert = certifications.find(c => c.id === certId);
                 if (cert) {
-                    cert.file_url = null;
+                    if (cert.file_urls && Array.isArray(cert.file_urls)) {
+                        cert.file_urls = cert.file_urls.filter(url => url !== fileUrl);
+                    } else if (cert.file_url === fileUrl) {
+                        // 구버전 호환: file_url이 있으면 제거
+                        cert.file_url = null;
+                    }
                 }
                 
                 console.log('File removed from UI');
@@ -933,6 +987,12 @@ export const adminHrdPersonnelHtml = () => `
                             if (!cert.id) {
                                 cert.id = 'loaded_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
                             }
+                            
+                            // 구버전 호환: file_url이 있으면 file_urls 배열로 변환
+                            if (cert.file_url && !cert.file_urls) {
+                                cert.file_urls = [cert.file_url];
+                            }
+                            
                             addCertification(cert);
                         });
                     } else {
@@ -960,24 +1020,40 @@ export const adminHrdPersonnelHtml = () => `
                 const nameInput = item.querySelector('.cert-name');
                 const issueDateInput = item.querySelector('.cert-issue-date');
                 const expiryDateInput = item.querySelector('.cert-expiry-date');
-                const fileUrlInput = item.querySelector('.cert-file-url');
+                const fileUrlsInput = item.querySelector('.cert-file-urls');
                 
                 const name = nameInput ? nameInput.value : '';
                 const issueDate = issueDateInput ? issueDateInput.value : '';
                 const expiryDate = expiryDateInput ? expiryDateInput.value : '';
-                const fileUrl = fileUrlInput ? fileUrlInput.value : '';
+                
+                // 파일 URL 배열 가져오기
+                let fileUrls = [];
+                if (fileUrlsInput && fileUrlsInput.value) {
+                    try {
+                        fileUrls = JSON.parse(fileUrlsInput.value);
+                        if (!Array.isArray(fileUrls)) {
+                            // 구버전 호환: 단일 URL이면 배열로 변환
+                            fileUrls = fileUrls ? [fileUrls] : [];
+                        }
+                    } catch (e) {
+                        console.warn('Failed to parse file URLs:', e);
+                        fileUrls = [];
+                    }
+                }
                 
                 // 디버깅 로그
-                console.log('Cert data:', { certId, name, issueDate, expiryDate, fileUrl });
+                console.log('Cert data:', { certId, name, issueDate, expiryDate, fileUrls });
                 
-                // 파일 URL이 있거나 다른 정보가 하나라도 있으면 저장
-                if (name || issueDate || expiryDate || fileUrl) {
+                // 정보가 하나라도 있으면 저장
+                if (name || issueDate || expiryDate || fileUrls.length > 0) {
                     certsArray.push({
                         id: certId,
                         name: name || null,
                         issue_date: issueDate || null,
                         expiry_date: expiryDate || null,
-                        file_url: fileUrl || null
+                        file_urls: fileUrls.length > 0 ? fileUrls : null,
+                        // 구버전 호환을 위해 첫 번째 파일을 file_url로도 저장
+                        file_url: fileUrls.length > 0 ? fileUrls[0] : null
                     });
                 }
             });
