@@ -175,7 +175,16 @@ app.put('/personnel/:id', async (c) => {
             await c.env.DB.prepare("SELECT certifications FROM hrd_instructors LIMIT 1").first();
             hasCertifications = true;
         } catch (e) {
-            console.warn('certifications column does not exist, will skip it');
+            console.warn('certifications column does not exist, attempting to add it');
+            // 컬럼이 없으면 자동으로 추가 시도
+            try {
+                await c.env.DB.prepare("ALTER TABLE hrd_instructors ADD COLUMN certifications TEXT").run();
+                hasCertifications = true;
+                console.log('Successfully added certifications column');
+            } catch (alterError) {
+                console.error('Failed to add certifications column:', alterError);
+                // 컬럼 추가 실패해도 계속 진행 (다른 필드는 저장)
+            }
         }
         
         try {
@@ -222,9 +231,12 @@ app.put('/personnel/:id', async (c) => {
                 params.push(career || null);
             }
             
-            if (hasCertifications) {
+            if (hasCertifications && certsValue !== null) {
                 updateFields.push('certifications = ?');
                 params.push(certsValue);
+            } else if (!hasCertifications && certsValue !== null) {
+                // 컬럼이 없지만 데이터가 있으면 경고 로그
+                console.warn('certifications data provided but column does not exist. Data:', certsValue);
             }
             
             if (hasTrainingHistory) {
@@ -264,10 +276,13 @@ app.put('/personnel/:id', async (c) => {
                 insertParams.push(career || null);
             }
             
-            if (hasCertifications) {
+            if (hasCertifications && certsValue !== null) {
                 insertFields.push('certifications');
                 insertValues.push('?');
                 insertParams.push(certsValue);
+            } else if (!hasCertifications && certsValue !== null) {
+                // 컬럼이 없지만 데이터가 있으면 경고 로그
+                console.warn('certifications data provided but column does not exist. Data:', certsValue);
             }
             
             if (hasTrainingHistory) {
