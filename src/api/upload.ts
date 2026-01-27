@@ -201,8 +201,17 @@ app.get('/files/:path(*)', async (c) => {
     headers.set('Cache-Control', object.httpMetadata?.cacheControl || 'public, max-age=31536000');
     
     // 원본 파일명이 있으면 Content-Disposition 헤더 추가
+    // 다운로드 요청인지 확인 (download 쿼리 파라미터)
+    const isDownload = c.req.query('download') === 'true';
     if (object.customMetadata?.originalName) {
-      headers.set('Content-Disposition', `inline; filename="${object.customMetadata.originalName}"`);
+      const disposition = isDownload ? 'attachment' : 'inline';
+      // 파일명에 특수문자가 있을 수 있으므로 인코딩
+      const encodedFileName = encodeURIComponent(object.customMetadata.originalName);
+      headers.set('Content-Disposition', `${disposition}; filename="${encodedFileName}"; filename*=UTF-8''${encodedFileName}`);
+    } else if (isDownload) {
+      // 원본 파일명이 없어도 다운로드 모드로 설정
+      const fileName = filePath.split('/').pop() || 'file';
+      headers.set('Content-Disposition', `attachment; filename="${fileName}"`);
     }
 
     // 파일 스트림 반환

@@ -503,6 +503,42 @@ export const adminHrdPersonnelHtml = () => `
 
         // 자격증 관리
         let certifications = [];
+        
+        // 파일 다운로드 함수
+        async function downloadFile(fileUrl, fileName) {
+            try {
+                const token = localStorage.getItem('token');
+                // 다운로드 모드로 요청
+                const response = await fetch(fileUrl + '?download=true', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('파일 다운로드 실패');
+                }
+                
+                // Blob으로 변환
+                const blob = await response.blob();
+                
+                // 다운로드 링크 생성
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileName || fileUrl.split('/').pop() || '파일';
+                document.body.appendChild(a);
+                a.click();
+                
+                // 정리
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            } catch (error) {
+                console.error('Download error:', error);
+                alert('파일 다운로드 중 오류가 발생했습니다.');
+            }
+        }
         let certIdCounter = 0;
 
         function addCertification(certData = null) {
@@ -572,9 +608,10 @@ export const adminHrdPersonnelHtml = () => `
                                                     <span class="text-xs font-medium text-gray-700 truncate" title="\${fileName}">\${fileName}</span>
                                                 </div>
                                                 <div class="flex items-center gap-2 ml-2">
-                                                    <a href="\${fileUrl}" target="_blank" class="px-2 py-1 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700 transition flex items-center">
+                                                    <button type="button" class="cert-file-download-btn px-2 py-1 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700 transition flex items-center" 
+                                                            data-file-url="\${fileUrl}" data-file-name="\${fileName}">
                                                         <i class="fas fa-download mr-1"></i> 다운로드
-                                                    </a>
+                                                    </button>
                                                     <button type="button" class="cert-file-remove-btn px-2 py-1 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700 transition flex items-center" 
                                                             data-cert-id="\${certId}" data-file-url="\${fileUrl}">
                                                         <i class="fas fa-times"></i>
@@ -591,9 +628,10 @@ export const adminHrdPersonnelHtml = () => `
                                                     <span class="text-xs font-medium text-gray-700 truncate">\${certData.file_url.split('/').pop() || '파일'}</span>
                                                 </div>
                                                 <div class="flex items-center gap-2 ml-2">
-                                                    <a href="\${certData.file_url}" target="_blank" class="px-2 py-1 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700 transition flex items-center">
+                                                    <button type="button" class="cert-file-download-btn px-2 py-1 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700 transition flex items-center" 
+                                                            data-file-url="\${certData.file_url}" data-file-name="\${certData.file_url.split('/').pop() || '파일'}">
                                                         <i class="fas fa-download mr-1"></i> 다운로드
-                                                    </a>
+                                                    </button>
                                                     <button type="button" class="cert-file-remove-btn px-2 py-1 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700 transition flex items-center" 
                                                             data-cert-id="\${certId}" data-file-url="\${certData.file_url}">
                                                         <i class="fas fa-times"></i>
@@ -641,6 +679,19 @@ export const adminHrdPersonnelHtml = () => `
                         removeCertification(certId);
                     });
                 }
+                
+                // 파일 다운로드 버튼들
+                const downloadFileBtns = certItem.querySelectorAll('.cert-file-download-btn');
+                downloadFileBtns.forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        e.stopPropagation();
+                        const fileUrl = btn.getAttribute('data-file-url');
+                        const fileName = btn.getAttribute('data-file-name') || fileUrl.split('/').pop() || '파일';
+                        if (fileUrl) {
+                            await downloadFile(fileUrl, fileName);
+                        }
+                    });
+                });
                 
                 // 파일 삭제 버튼들 (기존 파일이 있을 때)
                 const removeFileBtns = certItem.querySelectorAll('.cert-file-remove-btn');
@@ -814,15 +865,29 @@ export const adminHrdPersonnelHtml = () => `
                                 <span class="text-xs font-medium text-gray-700 truncate" title="\${originalFileName}">\${originalFileName}</span>
                             </div>
                             <div class="flex items-center gap-2 ml-2">
-                                <a href="\${fileUrl}" target="_blank" class="px-2 py-1 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700 transition flex items-center">
+                                <button type="button" class="cert-file-download-btn px-2 py-1 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700 transition flex items-center" 
+                                        data-file-url="\${fileUrl}" data-file-name="\${originalFileName}">
                                     <i class="fas fa-download mr-1"></i> 다운로드
-                                </a>
+                                </button>
                                 <button type="button" class="cert-file-remove-btn px-2 py-1 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700 transition flex items-center" 
                                         data-cert-id="\${certId}" data-file-url="\${fileUrl}">
                                     <i class="fas fa-times"></i>
                                 </button>
                             </div>
                         \`;
+                        
+                        // 파일 다운로드 버튼 이벤트 연결
+                        const downloadBtn = fileItem.querySelector('.cert-file-download-btn');
+                        if (downloadBtn) {
+                            downloadBtn.addEventListener('click', async (e) => {
+                                e.stopPropagation();
+                                const fileUrl = downloadBtn.getAttribute('data-file-url');
+                                const fileName = downloadBtn.getAttribute('data-file-name') || originalFileName;
+                                if (fileUrl) {
+                                    await downloadFile(fileUrl, fileName);
+                                }
+                            });
+                        }
                         
                         // 파일 삭제 버튼 이벤트 연결
                         const removeBtn = fileItem.querySelector('.cert-file-remove-btn');
