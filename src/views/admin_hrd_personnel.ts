@@ -1076,8 +1076,16 @@ export const adminHrdPersonnelHtml = () => `
             });
             
             console.log('Certifications array:', certsArray);
-            data.certifications = JSON.stringify(certsArray);
-            console.log('Certifications JSON:', data.certifications);
+            
+            // 빈 배열이어도 저장해야 함 (null이 아닌 빈 배열 JSON)
+            if (certsArray.length === 0) {
+                data.certifications = '[]';
+            } else {
+                data.certifications = JSON.stringify(certsArray);
+            }
+            
+            console.log('Certifications JSON to save:', data.certifications);
+            console.log('Certifications JSON length:', data.certifications.length);
 
             try {
                 let url = '/api/hrd/personnel';
@@ -1087,19 +1095,31 @@ export const adminHrdPersonnelHtml = () => `
                     method = 'PUT';
                 }
 
+                console.log('Sending request to:', url, 'Method:', method);
+                console.log('Request body:', JSON.stringify(data, null, 2));
+                
                 const response = await fetch(url, {
                     method: method,
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + localStorage.getItem('token')
+                    },
                     body: JSON.stringify(data)
                 });
 
                 const result = await response.json();
+                console.log('Save response:', result);
+                
                 if (result.success) {
                     alert(id ? '수정되었습니다.' : '등록되었습니다.');
                     closeModal('createPersonnelModal');
-                    loadData();
+                    // 데이터 새로고침 전에 잠시 대기 (DB 업데이트 반영 시간)
+                    setTimeout(() => {
+                        loadData();
+                    }, 500);
                 } else {
-                    alert('실패: ' + result.error);
+                    console.error('Save failed:', result);
+                    alert('실패: ' + (result.error || '알 수 없는 오류'));
                 }
             } catch (e) {
                 console.error(e);

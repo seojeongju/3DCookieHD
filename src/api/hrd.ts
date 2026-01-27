@@ -49,19 +49,30 @@ app.get('/personnel', async (c) => {
         const processedResults = (results || []).map((row: any) => {
             const processed: any = { ...row };
             
-            // certifications가 JSON 문자열이면 파싱
-            if (processed.certifications) {
+            // certifications 처리
+            if (processed.certifications !== null && processed.certifications !== undefined) {
                 try {
-                    // 이미 객체인 경우 그대로 사용
+                    // 문자열인 경우 파싱
                     if (typeof processed.certifications === 'string') {
-                        processed.certifications = JSON.parse(processed.certifications);
+                        const trimmed = processed.certifications.trim();
+                        if (trimmed === '' || trimmed === 'null' || trimmed === 'undefined') {
+                            processed.certifications = null;
+                        } else {
+                            processed.certifications = JSON.parse(trimmed);
+                        }
                     }
+                    // 이미 객체/배열인 경우 그대로 사용
                 } catch (e) {
                     console.warn('Failed to parse certifications JSON:', e, 'Raw:', processed.certifications);
                     // 파싱 실패 시 null로 설정
                     processed.certifications = null;
                 }
+            } else {
+                // null 또는 undefined인 경우 명시적으로 null로 설정
+                processed.certifications = null;
             }
+            
+            console.log(`Personnel ID ${processed.id}: certifications =`, processed.certifications);
             
             return processed;
         });
@@ -153,12 +164,21 @@ app.put('/personnel/:id', async (c) => {
             hasNewColumns = false;
         }
 
+        // certifications가 빈 문자열이거나 빈 배열 JSON이면 null로 처리, 아니면 그대로 저장
+        let certsValue = certifications;
+        if (certsValue === '' || certsValue === '[]' || certsValue === 'null') {
+            certsValue = null;
+        }
+        
+        console.log('Saving certifications:', certsValue);
+        console.log('Type:', typeof certsValue);
+
         if (exists) {
             if (hasNewColumns) {
                 let query = `UPDATE hrd_instructors SET position = ?, subject = ?, type = ?, joined_at = ?, 
                              education = ?, career = ?, certifications = ?, training_history = ?`;
                 const params = [position, subject, type, joined_at, education || null, career || null, 
-                              certifications || null, training_history || null];
+                              certsValue, training_history || null];
 
                 if (instructor_status) {
                     query += `, status = ?`;
@@ -168,7 +188,8 @@ app.put('/personnel/:id', async (c) => {
                 query += ` WHERE user_id = ?`;
                 params.push(userId);
 
-                await c.env.DB.prepare(query).bind(...params).run();
+                const updateResult = await c.env.DB.prepare(query).bind(...params).run();
+                console.log('Update result:', updateResult);
             } else {
                 // 기본 필드만 업데이트
                 let query = `UPDATE hrd_instructors SET position = ?, subject = ?, type = ?, joined_at = ?`;
@@ -191,7 +212,7 @@ app.put('/personnel/:id', async (c) => {
                     (user_id, position, subject, type, joined_at, status, education, career, certifications, training_history) 
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 `).bind(userId, position, subject, type, joined_at, instructor_status || 'active',
-                        education || null, career || null, certifications || null, training_history || null).run();
+                        education || null, career || null, certsValue, training_history || null).run();
             } else {
                 await c.env.DB.prepare(`
                     INSERT INTO hrd_instructors 
@@ -200,6 +221,13 @@ app.put('/personnel/:id', async (c) => {
                 `).bind(userId, position, subject, type, joined_at, instructor_status || 'active').run();
             }
         }
+
+        // 저장 후 실제로 저장된 데이터 확인
+        const savedData = await c.env.DB.prepare(`
+            SELECT certifications FROM hrd_instructors WHERE user_id = ?
+        `).bind(userId).first();
+        
+        console.log('Saved certifications in DB:', savedData?.certifications);
 
         return c.json({ success: true, message: '정보가 수정되었습니다.' });
     } catch (e) {
