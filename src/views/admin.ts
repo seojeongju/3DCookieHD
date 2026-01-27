@@ -486,11 +486,14 @@ export const adminDashboardHtml = `
     </div>
 
     <script>
-        function logout() {
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            location.href = '/login';
-        }
+        // 전역 스코프에 logout 함수 정의
+        window.logout = function logout() {
+            if (confirm('로그아웃 하시겠습니까?')) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                location.href = '/login';
+            }
+        };
 
         function openModal(id) {
             document.getElementById(id).classList.remove('hidden');

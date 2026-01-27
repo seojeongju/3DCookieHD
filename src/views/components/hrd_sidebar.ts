@@ -159,7 +159,7 @@ export const hrdSidebar = (activeMenu: string) => `
                     <p class="text-sm font-bold text-white truncate">최고 관리자</p>
                     <p class="text-[10px] text-slate-500 font-medium uppercase tracking-tight truncate">Super Admin</p>
                 </div>
-                <button onclick="logout()" class="ml-auto w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-white hover:bg-slate-700/50 transition-all duration-300">
+                <button id="logout-btn" class="ml-auto w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-white hover:bg-slate-700/50 transition-all duration-300">
                     <i class="fas fa-sign-out-alt"></i>
                 </button>
             </div>
@@ -169,6 +169,15 @@ export const hrdSidebar = (activeMenu: string) => `
 </aside>
 
 <script>
+    // 전역 logout 함수 정의
+    window.logout = function() {
+        if (confirm('로그아웃 하시겠습니까?')) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            location.href = '/login';
+        }
+    };
+
     document.addEventListener('DOMContentLoaded', () => {
         const sidebarNav = document.querySelector('aside nav');
         if (sidebarNav) {
@@ -182,6 +191,14 @@ export const hrdSidebar = (activeMenu: string) => `
                 link.addEventListener('click', () => {
                     sessionStorage.setItem('sidebarScrollTop', sidebarNav.scrollTop);
                 });
+            });
+        }
+        
+        // 로그아웃 버튼에 이벤트 리스너 추가
+        const logoutBtn = document.getElementById('logout-btn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => {
+                window.logout();
             });
         }
     });
