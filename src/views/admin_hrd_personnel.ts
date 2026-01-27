@@ -114,119 +114,168 @@ export const adminHrdPersonnelHtml = () => `
         </div>
     </div>
 
-    <!-- 교강사 등록/수정 모달 -->
-    <div id="createPersonnelModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4 overflow-hidden max-h-[90vh] flex flex-col">
-            <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-                <h3 class="text-lg font-bold text-gray-800" id="modalTitle">교강사 등록</h3>
-                <button onclick="closeModal('createPersonnelModal')" class="text-gray-400 hover:text-gray-600">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
-            </div>
-            <form id="personnelForm" onsubmit="handleSavePersonnel(event)" class="p-6 space-y-4 overflow-y-auto flex-1">
-                <input type="hidden" name="id" id="personnelId">
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">이름 <span class="text-red-500">*</span></label>
-                        <input type="text" name="name" id="pName" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">직위</label>
-                        <input type="text" name="position" id="pPosition" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="예: 전임강사">
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">이메일 <span class="text-red-500">*</span></label>
-                    <input type="email" name="email" id="pEmail" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">연락처 <span class="text-red-500">*</span></label>
-                    <input type="text" name="phone" id="pPhone" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="010-0000-0000">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">프로필 사진</label>
+    <!-- 교강사 등록/수정 모달 (고도화된 UI) -->
+    <div id="createPersonnelModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-5xl mx-4 overflow-hidden max-h-[95vh] flex flex-col transform transition-all">
+            <!-- 모달 헤더 -->
+            <div class="bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-6">
+                <div class="flex justify-between items-center">
                     <div class="flex items-center gap-4">
-                        <div class="w-20 h-20 bg-gray-100 rounded-full border border-gray-200 flex items-center justify-center overflow-hidden relative group">
-                            <i class="fas fa-user text-gray-300 text-2xl" id="pImagePlaceholder"></i>
-                            <img id="pImagePreview" src="" class="w-full h-full object-cover hidden">
-                            <button type="button" onclick="clearPImage()" class="absolute inset-0 bg-black/40 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                <i class="fas fa-times"></i>
-                            </button>
+                        <div class="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center text-white shadow-lg">
+                            <i class="fas fa-chalkboard-teacher text-2xl"></i>
                         </div>
-                        <div class="flex-1">
-                             <input type="hidden" name="profile_image" id="pImageUrl">
-                             <input type="file" id="pImageFile" accept="image/*" class="hidden" onchange="handlePImage(this)">
-                             <button type="button" onclick="document.getElementById('pImageFile').click()" class="px-3 py-1.5 border border-gray-300 rounded-lg text-xs font-bold text-gray-700 hover:bg-gray-50 flex items-center">
-                                <i class="fas fa-camera mr-2"></i> 이미지 선택
-                             </button>
+                        <div>
+                            <h3 class="text-2xl font-black text-white" id="modalTitle">교강사 등록</h3>
+                            <p class="text-xs text-white/80 font-medium mt-1">교강사 정보를 입력하고 관리하세요</p>
                         </div>
                     </div>
+                    <button onclick="closeModal('createPersonnelModal')" class="w-12 h-12 flex items-center justify-center rounded-2xl hover:bg-white/10 text-white/90 transition">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
                 </div>
+            </div>
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">담당 과목</label>
-                    <input type="text" name="subject" id="pSubject" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="예: 3D 모델링, 제품디자인">
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">고용 형태</label>
-                        <select name="type" id="pType" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
-                            <option value="full">전임</option>
-                            <option value="part">파트타임</option>
-                            <option value="external">외부강사</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">상태</label>
-                        <select name="instructor_status" id="pStatus" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
-                            <option value="active">재직</option>
-                            <option value="leave">휴직</option>
-                            <option value="retired">퇴직</option>
-                        </select>
-                    </div>
-                </div>
+            <form id="personnelForm" onsubmit="handleSavePersonnel(event)" class="flex-1 overflow-hidden flex flex-col">
+                <input type="hidden" name="id" id="personnelId">
                 
-                <div>
-                     <label class="block text-sm font-medium text-gray-700 mb-1">입사일</label>
-                     <input type="date" name="joined_at" id="pJoined" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                <!-- 기초 정보 섹션 (상단 고정) -->
+                <div class="bg-gradient-to-br from-gray-50 to-blue-50/30 px-8 py-6 border-b border-gray-200">
+                    <div class="flex items-start gap-6">
+                        <!-- 프로필 이미지 -->
+                        <div class="flex-shrink-0">
+                            <div class="w-32 h-32 rounded-[2rem] bg-white border-4 border-white shadow-xl overflow-hidden relative group cursor-pointer" onclick="document.getElementById('pImageFile').click()">
+                                <i class="fas fa-user text-gray-300 text-5xl absolute inset-0 flex items-center justify-center" id="pImagePlaceholder"></i>
+                                <img id="pImagePreview" src="" class="w-full h-full object-cover hidden">
+                                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold">
+                                    <i class="fas fa-camera mr-2"></i> 변경
+                                </div>
+                            </div>
+                            <input type="hidden" name="profile_image" id="pImageUrl">
+                            <input type="file" id="pImageFile" accept="image/*" class="hidden" onchange="handlePImage(this)">
+                        </div>
+
+                        <!-- 기본 정보 그리드 -->
+                        <div class="flex-1 grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-xs font-black text-gray-500 uppercase tracking-wider mb-2 block">이름 <span class="text-red-500">*</span></label>
+                                <input type="text" name="name" id="pName" required class="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition">
+                            </div>
+                            <div>
+                                <label class="text-xs font-black text-gray-500 uppercase tracking-wider mb-2 block">직위</label>
+                                <input type="text" name="position" id="pPosition" class="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition" placeholder="예: 전임강사">
+                            </div>
+                            <div>
+                                <label class="text-xs font-black text-gray-500 uppercase tracking-wider mb-2 block">이메일 <span class="text-red-500">*</span></label>
+                                <input type="email" name="email" id="pEmail" required class="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition">
+                            </div>
+                            <div>
+                                <label class="text-xs font-black text-gray-500 uppercase tracking-wider mb-2 block">연락처 <span class="text-red-500">*</span></label>
+                                <input type="text" name="phone" id="pPhone" required class="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition" placeholder="010-0000-0000">
+                            </div>
+                            <div>
+                                <label class="text-xs font-black text-gray-500 uppercase tracking-wider mb-2 block">담당 과목</label>
+                                <input type="text" name="subject" id="pSubject" class="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition" placeholder="예: 3D 모델링, 제품디자인">
+                            </div>
+                            <div>
+                                <label class="text-xs font-black text-gray-500 uppercase tracking-wider mb-2 block">입사일</label>
+                                <input type="date" name="joined_at" id="pJoined" class="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition">
+                            </div>
+                            <div>
+                                <label class="text-xs font-black text-gray-500 uppercase tracking-wider mb-2 block">고용 형태</label>
+                                <select name="type" id="pType" class="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition cursor-pointer">
+                                    <option value="full">전임</option>
+                                    <option value="part">파트타임</option>
+                                    <option value="external">외부강사</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-xs font-black text-gray-500 uppercase tracking-wider mb-2 block">상태</label>
+                                <select name="instructor_status" id="pStatus" class="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition cursor-pointer">
+                                    <option value="active">재직</option>
+                                    <option value="leave">휴직</option>
+                                    <option value="retired">퇴직</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="border-t border-gray-200 pt-4 mt-4">
-                    <h4 class="text-sm font-bold text-gray-800 mb-4">상세 정보</h4>
-                    
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">최종학력</label>
-                        <input type="text" name="education" id="pEducation" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="예: 서울대학교 컴퓨터공학과 학사">
-                    </div>
-
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">경력사항</label>
-                        <textarea name="career" id="pCareer" rows="4" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="회사명, 기간, 직책 등을 입력하세요&#10;예:&#10;- 2020.01 ~ 2023.12: ㈜ABC디자인, 시니어 디자이너&#10;- 2018.03 ~ 2019.12: XYZ스튜디오, 주임"></textarea>
-                    </div>
-
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">자격증</label>
-                        <div id="certificationsContainer" class="space-y-3">
-                            <!-- 자격증 항목들이 여기에 동적으로 추가됨 -->
-                        </div>
-                        <button type="button" onclick="addCertification()" class="mt-2 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition-colors flex items-center">
-                            <i class="fas fa-plus mr-2"></i> 자격증 추가
+                <!-- 탭 네비게이션 -->
+                <div class="bg-white border-b border-gray-200 px-8">
+                    <div class="flex items-center gap-8">
+                        <button type="button" onclick="switchPersonnelTab('education')" id="tabEducation" class="pb-4 text-sm font-black uppercase tracking-widest tab-active-personnel transition-all border-b-2 border-blue-600 text-blue-600">
+                            <i class="fas fa-graduation-cap mr-2"></i> 학력 및 경력
+                        </button>
+                        <button type="button" onclick="switchPersonnelTab('certifications')" id="tabCertifications" class="pb-4 text-sm font-black uppercase tracking-widest tab-inactive-personnel transition-all border-b-2 border-transparent text-gray-400 hover:text-gray-600">
+                            <i class="fas fa-certificate mr-2"></i> 자격증
+                        </button>
+                        <button type="button" onclick="switchPersonnelTab('training')" id="tabTraining" class="pb-4 text-sm font-black uppercase tracking-widest tab-inactive-personnel transition-all border-b-2 border-transparent text-gray-400 hover:text-gray-600">
+                            <i class="fas fa-chalkboard-teacher mr-2"></i> 보수교육
                         </button>
                     </div>
+                </div>
 
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">보수교육현황</label>
-                        <textarea name="training_history" id="pTrainingHistory" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="보수교육 이력, 연수명, 기간 등을 입력하세요"></textarea>
+                <!-- 탭 컨텐츠 영역 -->
+                <div class="flex-1 overflow-y-auto bg-gray-50/50">
+                    <!-- 탭 1: 학력 및 경력 -->
+                    <div id="contentEducation" class="p-8 space-y-6">
+                        <div class="bg-white rounded-[2rem] p-8 border border-gray-100 shadow-sm">
+                            <h5 class="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center mb-6">
+                                <i class="fas fa-university mr-3 text-blue-500"></i> 최종 학력
+                            </h5>
+                            <div>
+                                <input type="text" name="education" id="pEducation" class="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition" placeholder="예: 서울대학교 컴퓨터공학과 학사">
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-[2rem] p-8 border border-gray-100 shadow-sm">
+                            <h5 class="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center mb-6">
+                                <i class="fas fa-briefcase mr-3 text-purple-500"></i> 경력 사항
+                            </h5>
+                            <div>
+                                <textarea name="career" id="pCareer" rows="6" class="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl text-sm outline-none resize-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition" placeholder="회사명, 기간, 직책 등을 입력하세요&#10;&#10;예:&#10;- 2020.01 ~ 2023.12: ㈜ABC디자인, 시니어 디자이너&#10;- 2018.03 ~ 2019.12: XYZ스튜디오, 주임"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 탭 2: 자격증 -->
+                    <div id="contentCertifications" class="hidden p-8 space-y-6">
+                        <div class="bg-white rounded-[2rem] p-8 border border-gray-100 shadow-sm">
+                            <div class="flex items-center justify-between mb-6">
+                                <h5 class="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center">
+                                    <i class="fas fa-certificate mr-3 text-orange-500"></i> 자격증 목록
+                                </h5>
+                                <button type="button" onclick="addCertification()" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-500/20 flex items-center">
+                                    <i class="fas fa-plus mr-2"></i> 자격증 추가
+                                </button>
+                            </div>
+                            <div id="certificationsContainer" class="space-y-4">
+                                <!-- 자격증 항목들이 여기에 동적으로 추가됨 -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 탭 3: 보수교육 -->
+                    <div id="contentTraining" class="hidden p-8 space-y-6">
+                        <div class="bg-white rounded-[2rem] p-8 border border-gray-100 shadow-sm">
+                            <h5 class="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center mb-6">
+                                <i class="fas fa-chalkboard-teacher mr-3 text-green-500"></i> 보수교육 현황
+                            </h5>
+                            <div>
+                                <textarea name="training_history" id="pTrainingHistory" rows="8" class="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl text-sm outline-none resize-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition" placeholder="보수교육 이력, 연수명, 기간 등을 입력하세요&#10;&#10;예:&#10;- 2024.03: HRD-Net 보수교육 (40시간)&#10;- 2023.09: 디지털 교육 역량 강화 연수 (20시간)"></textarea>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="pt-4 flex justify-end space-x-3">
-                    <button type="button" onclick="closeModal('createPersonnelModal')" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">취소</button>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">저장하기</button>
+                <!-- 하단 버튼 -->
+                <div class="bg-white border-t border-gray-200 px-8 py-6 flex justify-end gap-4">
+                    <button type="button" onclick="closeModal('createPersonnelModal')" class="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold text-sm hover:bg-gray-200 transition">
+                        취소
+                    </button>
+                    <button type="submit" class="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition shadow-lg shadow-blue-500/20 flex items-center">
+                        <i class="fas fa-save mr-2"></i> 저장하기
+                    </button>
                 </div>
             </form>
         </div>
@@ -461,48 +510,50 @@ export const adminHrdPersonnelHtml = () => `
             const container = document.getElementById('certificationsContainer');
             
             const certHtml = \`
-                <div class="cert-item border border-gray-200 rounded-lg p-4 bg-gray-50" data-cert-id="\${certId}">
-                    <div class="flex justify-between items-start mb-3">
-                        <h5 class="text-sm font-bold text-gray-700">자격증 정보</h5>
-                        <button type="button" class="remove-cert-btn text-red-500 hover:text-red-700" data-cert-id="\${certId}">
-                            <i class="fas fa-times"></i>
+                <div class="cert-item border-2 border-gray-200 rounded-2xl p-6 bg-gradient-to-br from-white to-gray-50/50 shadow-sm hover:shadow-md transition-all" data-cert-id="\${certId}">
+                    <div class="flex justify-between items-start mb-4">
+                        <h5 class="text-sm font-black text-gray-800 uppercase tracking-wider flex items-center">
+                            <i class="fas fa-certificate mr-2 text-orange-500"></i> 자격증 정보
+                        </h5>
+                        <button type="button" class="remove-cert-btn w-8 h-8 flex items-center justify-center rounded-xl bg-red-50 text-red-600 hover:bg-red-100 transition" data-cert-id="\${certId}">
+                            <i class="fas fa-times text-sm"></i>
                         </button>
                     </div>
-                    <div class="grid grid-cols-2 gap-3 mb-3">
+                    <div class="grid grid-cols-2 gap-4 mb-4">
                         <div>
-                            <label class="block text-xs font-medium text-gray-600 mb-1">자격증명</label>
-                            <input type="text" class="cert-name w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" 
+                            <label class="block text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">자격증명</label>
+                            <input type="text" class="cert-name w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition" 
                                    placeholder="예: 컴퓨터활용능력 1급" value="\${certData ? certData.name || '' : ''}">
                         </div>
                         <div>
-                            <label class="block text-xs font-medium text-gray-600 mb-1">발급일</label>
-                            <input type="date" class="cert-issue-date w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" 
+                            <label class="block text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">발급일</label>
+                            <input type="date" class="cert-issue-date w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition" 
                                    value="\${certData && certData.issue_date ? certData.issue_date.split('T')[0] : ''}">
                         </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="block text-xs font-medium text-gray-600 mb-1">만료일 (선택)</label>
-                        <input type="date" class="cert-expiry-date w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" 
+                    <div class="mb-4">
+                        <label class="block text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">만료일 (선택)</label>
+                        <input type="date" class="cert-expiry-date w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition" 
                                value="\${certData && certData.expiry_date ? certData.expiry_date.split('T')[0] : ''}">
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">자격증 파일</label>
-                        <div class="flex items-center gap-2 flex-wrap">
+                        <label class="block text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">자격증 파일</label>
+                        <div class="flex items-center gap-3 flex-wrap">
                             <input type="file" class="cert-file hidden" accept=".pdf,.jpg,.jpeg,.png" 
                                    data-cert-id="\${certId}">
-                            <button type="button" class="cert-file-btn px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-xs hover:bg-gray-50" 
+                            <button type="button" class="cert-file-btn px-4 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-500/20 flex items-center" 
                                     data-cert-id="\${certId}">
-                                <i class="fas fa-upload mr-1"></i> 파일 선택
+                                <i class="fas fa-upload mr-2"></i> 파일 선택
                             </button>
-                            <span class="cert-file-name text-xs text-gray-500"></span>
+                            <span class="cert-file-name text-xs text-gray-600 font-medium"></span>
                             \${certData && certData.file_url ? \`
                                 <div class="flex items-center gap-2">
-                                    <a href="\${certData.file_url}" target="_blank" class="text-blue-600 text-xs hover:underline flex items-center">
-                                        <i class="fas fa-file-pdf mr-1"></i> 파일 보기
+                                    <a href="\${certData.file_url}" target="_blank" class="px-3 py-2 bg-green-50 text-green-700 rounded-xl text-xs font-bold hover:bg-green-100 transition flex items-center">
+                                        <i class="fas fa-file-pdf mr-2"></i> 파일 보기
                                     </a>
-                                    <button type="button" class="delete-cert-file-btn text-red-600 text-xs hover:text-red-800 flex items-center" 
+                                    <button type="button" class="delete-cert-file-btn px-3 py-2 bg-red-50 text-red-600 rounded-xl text-xs font-bold hover:bg-red-100 transition flex items-center" 
                                             data-cert-id="\${certId}" data-file-url="\${certData.file_url}">
-                                        <i class="fas fa-trash mr-1"></i> 삭제
+                                        <i class="fas fa-trash mr-2"></i> 삭제
                                     </button>
                                 </div>
                             \` : ''}
@@ -826,6 +877,8 @@ export const adminHrdPersonnelHtml = () => `
             // 자격증 컨테이너 초기화
             document.getElementById('certificationsContainer').innerHTML = '';
             certifications = [];
+            // 첫 번째 탭으로 리셋
+            switchPersonnelTab('education');
             document.getElementById('createPersonnelModal').classList.remove('hidden');
         }
 
@@ -899,6 +952,8 @@ export const adminHrdPersonnelHtml = () => `
                 clearPImage();
             }
 
+            // 첫 번째 탭으로 리셋
+            switchPersonnelTab('education');
             document.getElementById('createPersonnelModal').classList.remove('hidden');
         }
 
@@ -906,11 +961,53 @@ export const adminHrdPersonnelHtml = () => `
             document.getElementById(id).classList.add('hidden');
         }
 
+        // 탭 전환 함수
+        let currentPersonnelTab = 'education';
+        function switchPersonnelTab(tab) {
+            currentPersonnelTab = tab;
+            
+            // 모든 탭 버튼 비활성화
+            document.querySelectorAll('.tab-active-personnel, .tab-inactive-personnel').forEach(btn => {
+                btn.classList.remove('tab-active-personnel', 'border-blue-600', 'text-blue-600');
+                btn.classList.add('tab-inactive-personnel', 'border-transparent', 'text-gray-400');
+            });
+            
+            // 모든 컨텐츠 숨기기
+            document.getElementById('contentEducation').classList.add('hidden');
+            document.getElementById('contentCertifications').classList.add('hidden');
+            document.getElementById('contentTraining').classList.add('hidden');
+            
+            // 선택된 탭 활성화
+            const activeTab = document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1));
+            if (activeTab) {
+                activeTab.classList.remove('tab-inactive-personnel', 'border-transparent', 'text-gray-400');
+                activeTab.classList.add('tab-active-personnel', 'border-blue-600', 'text-blue-600');
+            }
+            
+            // 선택된 컨텐츠 표시
+            const activeContent = document.getElementById('content' + tab.charAt(0).toUpperCase() + tab.slice(1));
+            if (activeContent) {
+                activeContent.classList.remove('hidden');
+            }
+        }
+
         // 검색 엔터 처리
         document.getElementById('searchInput').addEventListener('keyup', (e) => {
             if (e.key === 'Enter') renderTable();
         });
     </script>
+    <style>
+        .tab-active-personnel {
+            color: #2563eb;
+            border-bottom-color: #2563eb;
+        }
+        .tab-inactive-personnel {
+            color: #9ca3af;
+        }
+        .tab-inactive-personnel:hover {
+            color: #4b5563;
+        }
+    </style>
 </body>
 </html>
 `;
