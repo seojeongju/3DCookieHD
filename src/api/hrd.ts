@@ -164,14 +164,30 @@ app.put('/personnel/:id', async (c) => {
             hasNewColumns = false;
         }
 
-        // certifications가 빈 문자열이거나 빈 배열 JSON이면 null로 처리, 아니면 그대로 저장
-        let certsValue = certifications;
-        if (certsValue === '' || certsValue === '[]' || certsValue === 'null') {
-            certsValue = null;
+        // certifications 처리: 배열이면 JSON 문자열로 변환, 문자열이면 그대로, 빈 값이면 null
+        let certsValue: string | null = null;
+        if (certifications !== null && certifications !== undefined) {
+            if (Array.isArray(certifications)) {
+                // 배열인 경우 JSON 문자열로 변환
+                certsValue = certifications.length > 0 ? JSON.stringify(certifications) : null;
+            } else if (typeof certifications === 'string') {
+                // 문자열인 경우
+                const trimmed = certifications.trim();
+                if (trimmed === '' || trimmed === '[]' || trimmed === 'null' || trimmed === 'undefined') {
+                    certsValue = null;
+                } else {
+                    certsValue = trimmed;
+                }
+            } else if (typeof certifications === 'object') {
+                // 객체인 경우 JSON 문자열로 변환
+                certsValue = JSON.stringify(certifications);
+            }
         }
         
         console.log('Saving certifications:', certsValue);
         console.log('Type:', typeof certsValue);
+        console.log('Original certifications:', certifications);
+        console.log('Original type:', typeof certifications);
 
         if (exists) {
             if (hasNewColumns) {
@@ -232,7 +248,12 @@ app.put('/personnel/:id', async (c) => {
         return c.json({ success: true, message: '정보가 수정되었습니다.' });
     } catch (e) {
         console.error('Failed to update personnel:', e);
-        return c.json({ success: false, error: '수정 실패' }, 500);
+        console.error('Error details:', e instanceof Error ? e.message : String(e));
+        console.error('Stack trace:', e instanceof Error ? e.stack : 'N/A');
+        return c.json({ 
+            success: false, 
+            error: '수정 실패: ' + (e instanceof Error ? e.message : String(e))
+        }, 500);
     }
 });
 
