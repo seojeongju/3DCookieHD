@@ -182,12 +182,18 @@ app.get('/files/*', async (c) => {
   try {
     const { R2 } = c.env;
     
-    // 경로 추출: /files/documents/... -> documents/...
-    const requestPath = c.req.path;
-    console.log('Full request path:', requestPath);
+    // URL에서 파일 경로 추출
+    const url = new URL(c.req.url);
+    const pathname = url.pathname;
+    console.log('Full URL pathname:', pathname);
     
     // /api/upload/files/ 부분을 제거하여 실제 파일 경로만 추출
-    let filePath = requestPath.replace(/^\/api\/upload\/files\//, '').replace(/^\/files\//, '');
+    let filePath = pathname.replace(/^\/api\/upload\/files\//, '');
+    
+    // 만약 여전히 /files/로 시작하면 제거
+    if (filePath.startsWith('files/')) {
+      filePath = filePath.replace(/^files\//, '');
+    }
     
     console.log('Extracted file path:', filePath);
 
