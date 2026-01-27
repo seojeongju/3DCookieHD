@@ -464,7 +464,7 @@ export const adminHrdPersonnelHtml = () => `
                 <div class="cert-item border border-gray-200 rounded-lg p-4 bg-gray-50" data-cert-id="\${certId}">
                     <div class="flex justify-between items-start mb-3">
                         <h5 class="text-sm font-bold text-gray-700">자격증 정보</h5>
-                        <button type="button" onclick="removeCertification('\${certId}')" class="text-red-500 hover:text-red-700">
+                        <button type="button" class="remove-cert-btn text-red-500 hover:text-red-700" data-cert-id="\${certId}">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
@@ -489,9 +489,9 @@ export const adminHrdPersonnelHtml = () => `
                         <label class="block text-xs font-medium text-gray-600 mb-1">자격증 파일</label>
                         <div class="flex items-center gap-2">
                             <input type="file" class="cert-file hidden" accept=".pdf,.jpg,.jpeg,.png" 
-                                   onchange="handleCertFile(this, '\${certId}')">
-                            <button type="button" onclick="document.querySelector('[data-cert-id=\\\'\${certId}\\\'] .cert-file').click()" 
-                                    class="px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-xs hover:bg-gray-50">
+                                   data-cert-id="\${certId}">
+                            <button type="button" class="cert-file-btn px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-xs hover:bg-gray-50" 
+                                    data-cert-id="\${certId}">
                                 <i class="fas fa-upload mr-1"></i> 파일 선택
                             </button>
                             <span class="cert-file-name text-xs text-gray-500"></span>
@@ -501,12 +501,38 @@ export const adminHrdPersonnelHtml = () => `
                                 </a>
                             \` : ''}
                         </div>
-                        <input type="hidden" class="cert-file-url" value="\${certData ? certData.file_url || '' : ''}">
+                        <input type="hidden" class="cert-file-url" value="\${certData ? (certData.file_url || '') : ''}">
                     </div>
                 </div>
             \`;
             
             container.insertAdjacentHTML('beforeend', certHtml);
+            
+            // 이벤트 리스너 추가 (인라인 onclick 대신)
+            const certItem = container.querySelector(\`[data-cert-id="\${certId}"]\`);
+            if (certItem) {
+                const fileInput = certItem.querySelector('.cert-file');
+                const fileBtn = certItem.querySelector('.cert-file-btn');
+                const removeBtn = certItem.querySelector('.remove-cert-btn');
+                
+                if (fileBtn && fileInput) {
+                    fileBtn.addEventListener('click', () => {
+                        fileInput.click();
+                    });
+                }
+                
+                if (fileInput) {
+                    fileInput.addEventListener('change', (e) => {
+                        handleCertFile(e.target, certId);
+                    });
+                }
+                
+                if (removeBtn) {
+                    removeBtn.addEventListener('click', () => {
+                        removeCertification(certId);
+                    });
+                }
+            }
             
             if (certData) {
                 certifications.push(certData);
