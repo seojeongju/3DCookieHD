@@ -237,10 +237,10 @@ app.put('/personnel/:id', async (c) => {
                 params.push(instructor_status);
             }
             
-            updateFields.push('WHERE user_id = ?');
+            // WHERE 절은 SET 절 밖에 있어야 함
+            const query = `UPDATE hrd_instructors SET ${updateFields.join(', ')} WHERE user_id = ?`;
             params.push(userId);
             
-            const query = `UPDATE hrd_instructors SET ${updateFields.join(', ')}`;
             console.log('Update query:', query);
             console.log('Update params:', params);
             
