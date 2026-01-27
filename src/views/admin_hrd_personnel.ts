@@ -824,7 +824,7 @@ export const adminHrdPersonnelHtml = () => `
                             removeBtn.addEventListener('click', async (e) => {
                                 e.stopPropagation();
                                 if (confirm('파일을 삭제하시겠습니까?')) {
-                                    await removeCertFile(certId, fileUrl, fileList, fileUrlInput);
+                                    await removeCertFile(certId, fileUrl, fileList, fileUrlsInput);
                                 }
                             });
                         }
@@ -832,11 +832,11 @@ export const adminHrdPersonnelHtml = () => `
                         fileList.appendChild(fileItem);
                         
                         // Hidden input 업데이트 (파일 URL 배열)
-                        if (fileUrlInput) {
-                            const existingUrls = fileUrlInput.value ? JSON.parse(fileUrlInput.value) : [];
+                        if (fileUrlsInput) {
+                            const existingUrls = fileUrlsInput.value ? JSON.parse(fileUrlsInput.value) : [];
                             if (!existingUrls.includes(fileUrl)) {
                                 existingUrls.push(fileUrl);
-                                fileUrlInput.value = JSON.stringify(existingUrls);
+                                fileUrlsInput.value = JSON.stringify(existingUrls);
                                 console.log('File URLs updated:', existingUrls);
                             }
                         }
@@ -933,10 +933,10 @@ export const adminHrdPersonnelHtml = () => `
                 }
                 
                 // Hidden input 업데이트 (파일 URL 배열에서 제거)
-                if (fileUrlInput) {
-                    const existingUrls = fileUrlInput.value ? JSON.parse(fileUrlInput.value) : [];
+                if (fileUrlsInput) {
+                    const existingUrls = fileUrlsInput.value ? JSON.parse(fileUrlsInput.value) : [];
                     const updatedUrls = existingUrls.filter(url => url !== fileUrl);
-                    fileUrlInput.value = JSON.stringify(updatedUrls);
+                    fileUrlsInput.value = JSON.stringify(updatedUrls);
                     console.log('File URLs after removal:', updatedUrls);
                 }
                 
@@ -963,52 +963,63 @@ export const adminHrdPersonnelHtml = () => `
             certifications = [];
             
             console.log('Loading certifications:', certificationsJson);
+            console.log('Type:', typeof certificationsJson);
             
-            if (certificationsJson) {
-                try {
-                    let certs;
-                    if (typeof certificationsJson === 'string') {
-                        // 빈 문자열이나 null 체크
-                        if (certificationsJson.trim() === '' || certificationsJson === 'null' || certificationsJson === 'undefined') {
-                            console.log('Certifications is empty string or null');
-                            return;
-                        }
-                        certs = JSON.parse(certificationsJson);
-                    } else {
-                        certs = certificationsJson;
-                    }
-                    
-                    console.log('Parsed certifications:', certs);
-                    
-                    if (Array.isArray(certs) && certs.length > 0) {
-                        certs.forEach((cert, index) => {
-                            console.log(\`Loading cert \${index}:\`, cert);
-                            // certId가 없으면 생성
-                            if (!cert.id) {
-                                cert.id = 'loaded_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-                            }
-                            
-                            // 구버전 호환: file_url이 있으면 file_urls 배열로 변환
-                            if (cert.file_url && !cert.file_urls) {
-                                cert.file_urls = [cert.file_url];
-                            }
-                            
-                            // file_urls가 없으면 빈 배열로 초기화
-                            if (!cert.file_urls) {
-                                cert.file_urls = [];
-                            }
-                            
-                            console.log('Adding certification with data:', cert);
-                            addCertification(cert);
-                        });
-                    } else {
-                        console.log('Certifications is not an array or is empty');
-                    }
-                } catch (e) {
-                    console.error('Failed to parse certifications:', e, 'Raw data:', certificationsJson);
+            // null, undefined, 빈 문자열 체크
+            if (!certificationsJson || 
+                certificationsJson === 'null' || 
+                certificationsJson === 'undefined' || 
+                (typeof certificationsJson === 'string' && certificationsJson.trim() === '')) {
+                console.log('No certifications data provided or empty');
+                return;
+            }
+            
+            try {
+                let certs;
+                if (typeof certificationsJson === 'string') {
+                    // JSON 문자열 파싱
+                    certs = JSON.parse(certificationsJson);
+                } else if (Array.isArray(certificationsJson)) {
+                    // 이미 배열인 경우
+                    certs = certificationsJson;
+                } else if (typeof certificationsJson === 'object') {
+                    // 객체인 경우 배열로 변환
+                    certs = [certificationsJson];
+                } else {
+                    console.warn('Unexpected certifications format:', certificationsJson);
+                    return;
                 }
-            } else {
-                console.log('No certifications data provided');
+                
+                console.log('Parsed certifications:', certs);
+                
+                if (Array.isArray(certs) && certs.length > 0) {
+                    certs.forEach((cert, index) => {
+                        console.log(\`Loading cert \${index}:\`, cert);
+                        // certId가 없으면 생성
+                        if (!cert.id) {
+                            cert.id = 'loaded_' + Date.now() + '_' + index + '_' + Math.random().toString(36).substr(2, 9);
+                        }
+                        
+                        // 구버전 호환: file_url이 있으면 file_urls 배열로 변환
+                        if (cert.file_url && !cert.file_urls) {
+                            cert.file_urls = [cert.file_url];
+                        }
+                        
+                        // file_urls가 없으면 빈 배열로 초기화
+                        if (!cert.file_urls) {
+                            cert.file_urls = [];
+                        }
+                        
+                        console.log('Adding certification with data:', cert);
+                        addCertification(cert);
+                    });
+                } else {
+                    console.log('Certifications is not an array or is empty');
+                }
+            } catch (e) {
+                console.error('Failed to parse certifications:', e);
+                console.error('Raw data:', certificationsJson);
+                // 파싱 실패해도 계속 진행 (빈 상태로)
             }
         }
 
@@ -1193,9 +1204,18 @@ export const adminHrdPersonnelHtml = () => `
             document.getElementById('pTrainingHistory').value = data.training_history || '';
             
             // 자격증 데이터 로드 (디버깅 포함)
+            console.log('Full data object:', data);
             console.log('Certifications data from API:', data.certifications);
             console.log('Type of certifications:', typeof data.certifications);
-            loadCertifications(data.certifications);
+            
+            // certifications가 null이거나 빈 문자열인 경우 처리
+            let certsData = data.certifications;
+            if (certsData === null || certsData === undefined || certsData === 'null' || certsData === '') {
+                console.log('Certifications is null/empty, initializing empty array');
+                certsData = null;
+            }
+            
+            loadCertifications(certsData);
             
             if (data.profile_image) {
                 document.getElementById('pImageUrl').value = data.profile_image;
