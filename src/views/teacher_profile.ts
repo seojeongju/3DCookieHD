@@ -868,110 +868,113 @@ export const teacherProfileHtml = `
                     joinedEl.value = data.joined_at.split('T')[0];
                 }
                 console.log('Basic form fields populated');
-            
-            // 프로필 이미지
-            if (data.profile_image) {
-                document.getElementById('pImagePreview').src = data.profile_image;
-                document.getElementById('pImagePreview').classList.remove('hidden');
-                document.getElementById('pImagePlaceholder').classList.add('hidden');
-                document.getElementById('pImageUrl').value = data.profile_image;
-            }
-            
-            // 상세 정보 - JSON 배열로 파싱
-            // 학력
-            if (data.education) {
-                try {
-                    const eduData = typeof data.education === 'string' ? JSON.parse(data.education) : data.education;
-                    education = Array.isArray(eduData) ? eduData : [];
-                } catch (e) {
-                    // 기존 텍스트 형식인 경우 빈 배열로 처리
-                    console.log('Education is not JSON array, treating as empty:', e);
+                
+                // 프로필 이미지
+                if (data.profile_image) {
+                    document.getElementById('pImagePreview').src = data.profile_image;
+                    document.getElementById('pImagePreview').classList.remove('hidden');
+                    document.getElementById('pImagePlaceholder').classList.add('hidden');
+                    document.getElementById('pImageUrl').value = data.profile_image;
+                }
+                
+                    // 상세 정보 - JSON 배열로 파싱
+                // 학력
+                if (data.education) {
+                    try {
+                        const eduData = typeof data.education === 'string' ? JSON.parse(data.education) : data.education;
+                        education = Array.isArray(eduData) ? eduData : [];
+                    } catch (e) {
+                        // 기존 텍스트 형식인 경우 빈 배열로 처리
+                        console.log('Education is not JSON array, treating as empty:', e);
+                        education = [];
+                    }
+                } else {
                     education = [];
                 }
-            } else {
-                education = [];
-            }
-            
-            // 경력
-            if (data.career) {
-                try {
-                    const carData = typeof data.career === 'string' ? JSON.parse(data.career) : data.career;
-                    career = Array.isArray(carData) ? carData : [];
-                } catch (e) {
-                    // 기존 텍스트 형식인 경우 빈 배열로 처리
-                    console.log('Career is not JSON array, treating as empty:', e);
+                
+                // 경력
+                if (data.career) {
+                    try {
+                        const carData = typeof data.career === 'string' ? JSON.parse(data.career) : data.career;
+                        career = Array.isArray(carData) ? carData : [];
+                    } catch (e) {
+                        // 기존 텍스트 형식인 경우 빈 배열로 처리
+                        console.log('Career is not JSON array, treating as empty:', e);
+                        career = [];
+                    }
+                } else {
                     career = [];
                 }
-            } else {
-                career = [];
-            }
-            
-            // 보수교육
-            if (data.training_history) {
-                try {
-                    const trData = typeof data.training_history === 'string' ? JSON.parse(data.training_history) : data.training_history;
-                    training = Array.isArray(trData) ? trData : [];
-                } catch (e) {
-                    // 기존 텍스트 형식인 경우 빈 배열로 처리
-                    console.log('Training history is not JSON array, treating as empty:', e);
+                
+                // 보수교육
+                if (data.training_history) {
+                    try {
+                        const trData = typeof data.training_history === 'string' ? JSON.parse(data.training_history) : data.training_history;
+                        training = Array.isArray(trData) ? trData : [];
+                    } catch (e) {
+                        // 기존 텍스트 형식인 경우 빈 배열로 처리
+                        console.log('Training history is not JSON array, treating as empty:', e);
+                        training = [];
+                    }
+                } else {
                     training = [];
                 }
-            } else {
-                training = [];
-            }
-            
-            // 자격증
-            if (data.certifications) {
-                try {
-                    let certs = [];
-                    if (Array.isArray(data.certifications)) {
-                        certs = data.certifications;
-                    } else if (typeof data.certifications === 'string') {
-                        const parsed = JSON.parse(data.certifications);
-                        certs = Array.isArray(parsed) ? parsed : [];
+                
+                // 자격증
+                if (data.certifications) {
+                    try {
+                        let certs = [];
+                        if (Array.isArray(data.certifications)) {
+                            certs = data.certifications;
+                        } else if (typeof data.certifications === 'string') {
+                            const parsed = JSON.parse(data.certifications);
+                            certs = Array.isArray(parsed) ? parsed : [];
+                        }
+                        certifications = certs || [];
+                        console.log('Loaded certifications:', certifications);
+                    } catch (e) {
+                        console.error('Failed to parse certifications:', e, data.certifications);
+                        certifications = [];
                     }
-                    certifications = certs || [];
-                    console.log('Loaded certifications:', certifications);
-                } catch (e) {
-                    console.error('Failed to parse certifications:', e, data.certifications);
+                } else {
                     certifications = [];
                 }
-            } else {
-                certifications = [];
-            }
-            
-            // 탭이 활성화되면 리스트 로드
-            setTimeout(() => {
-                if (currentProfileTab === 'education') {
-                    loadEducation();
-                    loadCareer();
-                } else if (currentProfileTab === 'certifications') {
-                    loadCertifications();
-                } else if (currentProfileTab === 'training') {
-                    loadTraining();
-                } else if (currentProfileTab === 'teaching') {
-                    loadTeachingHistory();
-                }
-            }, 100);
-            
-            // 강의이력
-            if (data.teaching_history) {
-                try {
-                    let history = [];
-                    if (Array.isArray(data.teaching_history)) {
-                        history = data.teaching_history;
-                    } else if (typeof data.teaching_history === 'string') {
-                        const parsed = JSON.parse(data.teaching_history);
-                        history = Array.isArray(parsed) ? parsed : [];
+                
+                // 탭이 활성화되면 리스트 로드
+                setTimeout(() => {
+                    if (currentProfileTab === 'education') {
+                        loadEducation();
+                        loadCareer();
+                    } else if (currentProfileTab === 'certifications') {
+                        loadCertifications();
+                    } else if (currentProfileTab === 'training') {
+                        loadTraining();
+                    } else if (currentProfileTab === 'teaching') {
+                        loadTeachingHistory();
                     }
-                    teachingHistory = history || [];
-                    console.log('Loaded teaching history:', teachingHistory);
-                } catch (e) {
-                    console.error('Failed to parse teaching_history:', e, data.teaching_history);
+                }, 100);
+                
+                // 강의이력
+                if (data.teaching_history) {
+                    try {
+                        let history = [];
+                        if (Array.isArray(data.teaching_history)) {
+                            history = data.teaching_history;
+                        } else if (typeof data.teaching_history === 'string') {
+                            const parsed = JSON.parse(data.teaching_history);
+                            history = Array.isArray(parsed) ? parsed : [];
+                        }
+                        teachingHistory = history || [];
+                        console.log('Loaded teaching history:', teachingHistory);
+                    } catch (e) {
+                        console.error('Failed to parse teaching_history:', e, data.teaching_history);
+                        teachingHistory = [];
+                    }
+                } else {
                     teachingHistory = [];
                 }
-            } else {
-                teachingHistory = [];
+            } catch (error) {
+                console.error('Error in populateForm:', error);
             }
         }
 
