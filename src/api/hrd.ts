@@ -204,7 +204,12 @@ app.post('/personnel', async (c) => {
 // 교강사 정보 수정
 app.put('/personnel/:id', authMiddleware, async (c) => {
     try {
-        const userId = c.req.param('id');
+        let userId = c.req.param('id');
+        // URL 파라미터에서 잘못된 형식 제거 (예: "14:1" -> "14")
+        if (userId.includes(':')) {
+            userId = userId.split(':')[0];
+        }
+        userId = parseInt(userId) || userId;
         const user = c.get('user');
         const body = await c.req.json();
         
@@ -259,6 +264,20 @@ app.put('/personnel/:id', authMiddleware, async (c) => {
             await c.env.DB.prepare("SELECT training_history FROM hrd_instructors LIMIT 1").first();
             hasTrainingHistory = true;
         } catch (e) {}
+
+        let hasTeachingHistory = false;
+        try {
+            await c.env.DB.prepare("SELECT teaching_history FROM hrd_instructors LIMIT 1").first();
+            hasTeachingHistory = true;
+        } catch (e) {
+            try {
+                await c.env.DB.prepare("ALTER TABLE hrd_instructors ADD COLUMN teaching_history TEXT").run();
+                hasTeachingHistory = true;
+                console.log('Successfully added teaching_history column');
+            } catch (alterError) {
+                console.error('Failed to add teaching_history column:', alterError);
+            }
+        }
 
         // certifications 처리: 배열이면 JSON 문자열로 변환, 문자열이면 그대로, 빈 값이면 null
         let certsValue: string | null = null;

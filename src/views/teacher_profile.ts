@@ -235,7 +235,7 @@ export const teacherProfileHtml = `
                 alert('강사 권한이 필요합니다.');
                 window.location.href = '/';
             }
-            currentUserId = user.id;
+            currentUserId = parseInt(user.id) || user.id;
         }
 
         async function loadProfileData() {
