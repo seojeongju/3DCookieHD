@@ -432,16 +432,16 @@ export const adminHrdFacilitiesHtml = () => `
                                     </div>
 
                                     <!--Tabs -->
-                                        <div class="flex border-b border-gray-200 px-6 shrink-0 bg-white sticky top-0 z-10 shadow-sm" >
-                                            <button onclick="switchTab('info')" id = "tabInfo" class="py-4 text-sm font-bold text-blue-600 border-b-2 border-blue-600 px-4 transition-colors" > 기본 정보 </button>
-                                                <button onclick="switchTab('items')" id = "tabItems" class="py-4 text-sm font-medium text-gray-500 hover:text-gray-800 px-4 transition-colors border-b-2 border-transparent" > 보유 비품 </button>
-                                                    <button onclick="switchTab('logs')" id = "tabLogs" class="py-4 text-sm font-medium text-gray-500 hover:text-gray-800 px-4 transition-colors border-b-2 border-transparent" > 유지보수 이력 </button>
-                                                        </div>
+                                        <div class="flex border-b border-gray-200 px-6 shrink-0 bg-white sticky top-0 z-10 shadow-sm">
+                                            <button onclick="switchTab('info')" id="tabInfo" class="py-4 text-sm font-bold px-4 transition-colors border-b-2 \${currentTab === 'info' ? 'text-blue-600 border-blue-600' : 'text-gray-500 border-transparent hover:text-gray-800'}">기본 정보</button>
+                                            <button onclick="switchTab('items')" id="tabItems" class="py-4 text-sm font-medium px-4 transition-colors border-b-2 \${currentTab === 'items' ? 'text-blue-600 border-blue-600' : 'text-gray-500 border-transparent hover:text-gray-800'}">보유 비품</button>
+                                            <button onclick="switchTab('logs')" id="tabLogs" class="py-4 text-sm font-medium px-4 transition-colors border-b-2 \${currentTab === 'logs' ? 'text-blue-600 border-blue-600' : 'text-gray-500 border-transparent hover:text-gray-800'}">유지보수 이력</button>
+                                        </div>
 
                                                         <!--Content -->
                                                             <div class="p-6 space-y-6 bg-gray-50 min-h-[500px]" >
                                                                 <!--Info Tab-->
-                                                                    <div id="contentInfo" class="space-y-6 animate-fade-in" >
+                                                                    <div id="contentInfo" class="space-y-6 animate-fade-in \${currentTab === 'info' ? '' : 'hidden'}">
                                                                         <div class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm space-y-5" >
                                                                             <h4 class="font-bold text-gray-800 text-sm border-b pb-3 flex justify-between items-center" >
                                                                                 시설 정보 수정
@@ -500,7 +500,7 @@ export const adminHrdFacilitiesHtml = () => `
                                                                                                                                                                   </div> <!-- Close contentInfo -->
 
 
-                                                                                                                                                                    <div id="contentItems" class="hidden space-y-4 animate-fade-in" >
+                                                                <div id="contentItems" class="space-y-4 animate-fade-in \${currentTab === 'items' ? '' : 'hidden'}">
                                                                                                                                                                         \${resItems.success && resItems.data.length > 0 ? resItems.data.map(item => \`
                                 <div class="bg-white p-4 rounded-xl border border-gray-200 flex justify-between items-center text-sm shadow-sm hover:shadow-md transition-shadow">
                                     <div class="flex items-center gap-4">
@@ -517,7 +517,7 @@ export const adminHrdFacilitiesHtml = () => `
 </div>
 
     <!--Logs Tab(Unchanged)-->
-        <div id="contentLogs" class="hidden space-y-4 animate-fade-in" >
+        <div id="contentLogs" class="space-y-4 animate-fade-in \${currentTab === 'logs' ? '' : 'hidden'}">
             <div class="grid grid-cols-2 gap-3 mb-4" >
                 <button onclick="addLog('check')" class="bg-white border-2 border-gray-100 text-blue-600 font-bold text-sm py-3 rounded-xl hover:border-blue-100 hover:bg-blue-50 transition-all shadow-sm" > <i class="fas fa-check mr-2" > </i> 점검 기록 추가</button>
                     <button onclick="addLog('repair')" class="bg-white border-2 border-gray-100 text-orange-600 font-bold text-sm py-3 rounded-xl hover:border-orange-100 hover:bg-orange-50 transition-all shadow-sm" > <i class="fas fa-tools mr-2" > </i> 수리 요청 추가</button>
@@ -665,6 +665,9 @@ export const adminHrdFacilitiesHtml = () => `
             } else {
                 body.status = '양호'; // Default status for new
             }
+
+            // Ensure price is integer (or 0)
+            if (body.price) body.price = parseInt(body.price);
 
             try {
                 const res = await fetch('/api/hrd/facilities', {
