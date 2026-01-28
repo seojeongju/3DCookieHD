@@ -321,12 +321,9 @@ app.put('/personnel/:id', authMiddleware, async (c) => {
                 params.push(career || null);
             }
 
-            if (hasCertifications && certsValue !== null) {
+            if (hasCertifications) {
                 updateFields.push('certifications = ?');
                 params.push(certsValue);
-            } else if (!hasCertifications && certsValue !== null) {
-                // 컬럼이 없지만 데이터가 있으면 경고 로그
-                console.warn('certifications data provided but column does not exist. Data:', certsValue);
             }
 
             if (hasTrainingHistory) {
@@ -351,7 +348,7 @@ app.put('/personnel/:id', authMiddleware, async (c) => {
                 }
             }
 
-            if (hasTeachingHistory && teachingHistoryValue !== null) {
+            if (hasTeachingHistory) {
                 updateFields.push('teaching_history = ?');
                 params.push(teachingHistoryValue);
             }
@@ -388,13 +385,10 @@ app.put('/personnel/:id', authMiddleware, async (c) => {
                 insertParams.push(career || null);
             }
 
-            if (hasCertifications && certsValue !== null) {
+            if (hasCertifications) {
                 insertFields.push('certifications');
                 insertValues.push('?');
                 insertParams.push(certsValue);
-            } else if (!hasCertifications && certsValue !== null) {
-                // 컬럼이 없지만 데이터가 있으면 경고 로그
-                console.warn('certifications data provided but column does not exist. Data:', certsValue);
             }
 
             if (hasTrainingHistory) {
@@ -420,7 +414,7 @@ app.put('/personnel/:id', authMiddleware, async (c) => {
                 }
             }
 
-            if (hasTeachingHistory && teachingHistoryValue !== null) {
+            if (hasTeachingHistory) {
                 insertFields.push('teaching_history');
                 insertValues.push('?');
                 insertParams.push(teachingHistoryValue);

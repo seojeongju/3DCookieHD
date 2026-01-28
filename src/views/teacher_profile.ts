@@ -1678,55 +1678,6 @@ export const teacherProfileHtml = `
                 const token = localStorage.getItem('token');
                 const form = event.target;
                 
-                // 자격증 데이터 수집
-                const certs = [];
-                document.querySelectorAll('[data-cert-id]').forEach(certEl => {
-                    const certId = certEl.getAttribute('data-cert-id');
-                    const name = certEl.querySelector('.cert-name').value;
-                    const issueDate = certEl.querySelector('.cert-issue-date').value;
-                    const expiryDate = certEl.querySelector('.cert-expiry-date').value;
-                    const fileUrlsInput = certEl.querySelector('.cert-file-urls');
-                    
-                    let fileUrls = [];
-                    try {
-                        fileUrls = JSON.parse(fileUrlsInput.value || '[]');
-                    } catch (e) {}
-                    
-                    if (name || issueDate || expiryDate || fileUrls.length > 0) {
-                        certs.push({
-                            id: certId,
-                            name: name || null,
-                            issue_date: issueDate || null,
-                            expiry_date: expiryDate || null,
-                            file_urls: fileUrls
-                        });
-                    }
-                });
-                
-                // 강의이력 데이터 수집
-                const teachingHistoryData = [];
-                document.querySelectorAll('[data-teaching-id]').forEach(historyEl => {
-                    const historyId = historyEl.getAttribute('data-teaching-id');
-                    const courseName = historyEl.querySelector('.teaching-course-name').value;
-                    const startDate = historyEl.querySelector('.teaching-start-date').value;
-                    const endDate = historyEl.querySelector('.teaching-end-date').value;
-                    const studentCount = historyEl.querySelector('.teaching-student-count').value;
-                    const description = historyEl.querySelector('.teaching-description').value;
-                    const notes = historyEl.querySelector('.teaching-notes').value;
-                    
-                    if (courseName || startDate || endDate || studentCount || description || notes) {
-                        teachingHistoryData.push({
-                            id: historyId,
-                            course_name: courseName || null,
-                            start_date: startDate || null,
-                            end_date: endDate || null,
-                            student_count: studentCount || null,
-                            description: description || null,
-                            notes: notes || null
-                        });
-                    }
-                });
-                
                 // 폼 데이터 수집
                 const data = {
                     name: form.pName.value,
