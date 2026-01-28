@@ -1061,28 +1061,47 @@ export const teacherProfileHtml = `
             if (!fileUrls || fileUrls.length === 0) return;
             
             fileUrls.forEach((fileInfo, index) => {
-                const fileItem = document.createElement('div');
-                fileItem.className = 'flex items-center justify-between px-3 py-2 bg-white rounded-lg border border-gray-200 mb-2';
                 const fileName = fileInfo.name || (typeof fileInfo === 'string' ? fileInfo.split('/').pop() : '파일');
                 const fileUrl = fileInfo.url || fileInfo;
                 
-                // Escape properly for inline JS
-                const safeUrl = (fileUrl || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'"); 
-                const safeName = (fileName || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                const fileItem = document.createElement('div');
+                fileItem.className = 'flex items-center justify-between px-3 py-2 bg-white rounded-lg border border-gray-200 mb-2';
                 
-                fileItem.innerHTML = 
-                    '<span class="text-sm text-gray-700 flex items-center">' +
-                        '<i class="fas fa-file-pdf text-red-500 mr-2"></i>' +
-                        fileName +
-                    '</span>' +
-                    '<div class="flex items-center gap-2">' +
-                        '<button type="button" onclick="downloadCertFile(\'' + safeUrl + '\', \'' + safeName + '\')" class="text-blue-600 hover:text-blue-800 text-sm">' +
-                            '<i class="fas fa-download"></i>' +
-                        '</button>' +
-                        '<button type="button" onclick="removeCertModalFile(' + index + ')" class="text-red-600 hover:text-red-800 text-sm">' +
-                            '<i class="fas fa-trash"></i>' +
-                        '</button>' +
-                    '</div>';
+                // Left part (Name)
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'text-sm text-gray-700 flex items-center';
+                nameSpan.innerHTML = '<i class="fas fa-file-pdf text-red-500 mr-2"></i>';
+                const textNode = document.createTextNode(fileName);
+                nameSpan.appendChild(textNode);
+                
+                // Right part (Buttons)
+                const btnContainer = document.createElement('div');
+                btnContainer.className = 'flex items-center gap-2';
+                
+                // Download Button
+                const downBtn = document.createElement('button');
+                downBtn.type = 'button';
+                downBtn.className = 'text-blue-600 hover:text-blue-800 text-sm';
+                downBtn.innerHTML = '<i class="fas fa-download"></i>';
+                downBtn.onclick = function() {
+                     downloadCertFile(fileUrl, fileName);
+                };
+                
+                // Delete Button
+                const delBtn = document.createElement('button');
+                delBtn.type = 'button';
+                delBtn.className = 'text-red-600 hover:text-red-800 text-sm';
+                delBtn.innerHTML = '<i class="fas fa-trash"></i>';
+                delBtn.onclick = function() {
+                     removeCertModalFile(index);
+                };
+                
+                btnContainer.appendChild(downBtn);
+                btnContainer.appendChild(delBtn);
+                
+                fileItem.appendChild(nameSpan);
+                fileItem.appendChild(btnContainer);
+                
                 fileList.appendChild(fileItem);
             });
         }
