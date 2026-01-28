@@ -175,6 +175,12 @@ app.post('/', authMiddleware, async (c) => {
   try {
     const { DB } = c.env;
     const user = c.get('user');
+    
+    if (!user || !user.userId) {
+      console.error('POST /api/posts: user not found or userId missing', { user });
+      return c.json({ success: false, error: '인증 정보가 올바르지 않습니다' }, 401);
+    }
+
     const { title, content, category, images, pinned, status } = body;
 
     const tit = title != null ? String(title).trim() : '';
@@ -217,6 +223,15 @@ app.post('/', authMiddleware, async (c) => {
       ? String(status)
       : 'published';
 
+    console.log('POST /api/posts: Inserting post', {
+      author_id: user.userId,
+      title: tit,
+      category: cat,
+      status: st,
+      pinned: pin ? 1 : 0,
+      imagesLength: imagesJson.length
+    });
+
     const result = await DB.prepare(`
       INSERT INTO posts (
         author_id, title, content, category, images,
@@ -232,6 +247,8 @@ app.post('/', authMiddleware, async (c) => {
       st
     ).run();
 
+    console.log('POST /api/posts: Insert successful', { id: result.meta.last_row_id });
+
     return c.json({
       success: true,
       data: {
@@ -240,8 +257,18 @@ app.post('/', authMiddleware, async (c) => {
       }
     }, 201);
   } catch (error: any) {
-    console.error('Error creating post:', error?.message ?? error, error?.stack);
-    return c.json({ success: false, error: '게시글 작성 중 오류가 발생했습니다' }, 500);
+    const errorMsg = error?.message ?? String(error);
+    const errorStack = error?.stack;
+    console.error('POST /api/posts: Error creating post', {
+      message: errorMsg,
+      stack: errorStack,
+      error: error,
+      body: JSON.stringify(body).substring(0, 500)
+    });
+    return c.json({ 
+      success: false, 
+      error: `게시글 작성 중 오류가 발생했습니다: ${errorMsg}` 
+    }, 500);
   }
 });
 
