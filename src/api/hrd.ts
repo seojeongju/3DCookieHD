@@ -1119,20 +1119,22 @@ app.post('/facilities/:id/maintenance', async (c) => {
 
         if (!facilityId) return c.json({ success: false, error: '시설 ID가 필요합니다.' }, 400);
 
+        const fId = parseInt(facilityId);
+
         await c.env.DB.prepare(`
             INSERT INTO hrd_facility_maintenance (facility_id, status, title, price, vendor, manager, memo, date)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `).bind(facilityId, status, title, parseInt(price || 0), vendor, manager || '관리자', memo, date || new Date().toISOString()).run();
+        `).bind(fId, status, title, parseInt(price || 0), vendor, manager || '관리자', memo, date || new Date().toISOString()).run();
 
         // 시설의 최종 점검일 및 상태 업데이트
         await c.env.DB.prepare(`
             UPDATE hrd_facilities SET last_check = ?, status = ? WHERE id = ?
-        `).bind(date || new Date().toISOString(), status === 'repair' ? '점검필요' : '양호', facilityId).run();
+        `).bind(date || new Date().toISOString(), status === 'repair' ? '점검필요' : '양호', fId).run();
 
         return c.json({ success: true });
     } catch (e) {
         console.error('Failed to add maintenance log:', e);
-        return c.json({ success: false, error: '시설 관리 대장 등록 실패' }, 500);
+        return c.json({ success: false, error: '시설 관리 대장 등록 실패: ' + (e instanceof Error ? e.message : String(e)) }, 500);
     }
 });
 
