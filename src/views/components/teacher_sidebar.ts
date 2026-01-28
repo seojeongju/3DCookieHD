@@ -59,13 +59,21 @@ export const teacherSidebar = (activeMenu: string) => `
         <div class="h-10"></div>
     </nav>
     
-    <!-- 하단 프로필 -->
+    <!-- 하단 프로필 섹션 -->
     <div class="p-4 bg-slate-900 border-t border-slate-700 shadow-inner">
-        <div class="flex items-center px-2">
-            <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-sm shadow-md">T</div>
-            <div class="ml-3">
-                <p id="sidebar-teacher-name" class="text-sm font-medium text-white">강사</p>
-                <p class="text-xs text-slate-400">Teacher</p>
+        <div class="p-3 bg-slate-800/40 rounded-2xl border border-slate-700/30">
+            <div class="flex items-center">
+                <div class="relative">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-lg">T</div>
+                    <div class="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-green-500 border-2 border-slate-900 rounded-full"></div>
+                </div>
+                <div class="ml-3 truncate flex-1">
+                    <p id="sidebar-teacher-name" class="text-sm font-bold text-white truncate">강사</p>
+                    <p class="text-[10px] text-slate-500 font-medium uppercase tracking-tight truncate">Teacher</p>
+                </div>
+                <button id="logout-btn" class="ml-auto w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-white hover:bg-slate-700/50 transition-all duration-300">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
             </div>
         </div>
     </div>
@@ -87,6 +95,15 @@ export const teacherSidebar = (activeMenu: string) => `
 }
 </style>
 <script>
+    // 전역 logout 함수 정의
+    window.logout = function() {
+        if (confirm('로그아웃 하시겠습니까?')) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            location.href = '/login';
+        }
+    };
+
     document.addEventListener('DOMContentLoaded', () => {
         const userStr = localStorage.getItem('user');
         if (userStr) {
@@ -97,6 +114,14 @@ export const teacherSidebar = (activeMenu: string) => `
                     nameEl.textContent = user.name;
                 }
             } catch(e) {}
+        }
+        
+        // 로그아웃 버튼에 이벤트 리스너 추가
+        const logoutBtn = document.getElementById('logout-btn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => {
+                window.logout();
+            });
         }
     });
 </script>

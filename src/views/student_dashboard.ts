@@ -21,10 +21,19 @@ export const studentDashboardHtml = () => `
                         </a>
                     </div>
                     <div class="flex items-center space-x-4">
-                        <span id="userName" class="text-gray-700 font-medium"></span>
-                        <button onclick="logout()" class="text-gray-500 hover:text-red-600">
-                            <i class="fas fa-sign-out-alt"></i> 로그아웃
-                        </button>
+                        <div class="flex items-center space-x-3 px-4 py-2 bg-white rounded-lg border border-gray-200 shadow-sm">
+                            <div class="relative">
+                                <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xs shadow-md">S</div>
+                                <div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p id="userName" class="text-sm font-bold text-gray-800 truncate"></p>
+                                <p class="text-[10px] text-gray-500 font-medium uppercase tracking-tight">Student</p>
+                            </div>
+                            <button onclick="logout()" class="ml-2 w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 transition-all duration-300">
+                                <i class="fas fa-sign-out-alt"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -110,10 +119,17 @@ export const studentDashboardHtml = () => `
             }
         }
 
+        // 전역 logout 함수 정의 (관리자/강사와 동일)
+        window.logout = function() {
+            if (confirm('로그아웃 하시겠습니까?')) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                location.href = '/login';
+            }
+        };
+        
         function logout() {
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            window.location.href = '/';
+            window.logout();
         }
 
         function switchTab(tab) {
