@@ -1180,7 +1180,7 @@ export const teacherProfileHtml = `
                 });
                 
                 if (!response.ok) {
-                    throw new Error(\`파일 다운로드 실패: \${response.status}\`);
+                    throw new Error('파일 다운로드 실패: ' + response.status);
                 }
                 
                 const blob = await response.blob();
@@ -1219,6 +1219,13 @@ export const teacherProfileHtml = `
             certifications.forEach((cert, index) => {
                 const certCard = document.createElement('div');
                 certCard.className = 'bg-gray-50 rounded-xl p-5 border border-gray-200 hover:shadow-md transition';
+                
+                // Escape string for HTML attribute
+                // Note: We are inside a JS string, so we need careful escaping
+                // Instead of putting complex JS in onclick, let's use data attributes and delegate or simpler calls
+                
+                const fileCount = (cert.file_urls && cert.file_urls.length > 0) ? cert.file_urls.length : 0;
+                
                 certCard.innerHTML = 
                     '<div class="flex items-start justify-between">' +
                         '<div class="flex-1">' +
@@ -1226,14 +1233,14 @@ export const teacherProfileHtml = `
                             '<div class="flex flex-wrap gap-4 text-sm text-gray-600">' +
                                 (cert.issue_date ? '<div><i class="fas fa-calendar-alt mr-1 text-blue-500"></i> 발급일: ' + cert.issue_date.split('T')[0] + '</div>' : '') +
                                 (cert.expiry_date ? '<div><i class="fas fa-calendar-times mr-1 text-orange-500"></i> 만료일: ' + cert.expiry_date.split('T')[0] + '</div>' : '') +
-                                (cert.file_urls && cert.file_urls.length > 0 ? '<div><i class="fas fa-file-pdf mr-1 text-red-500"></i> 파일 ' + cert.file_urls.length + '개</div>' : '') +
+                                (fileCount > 0 ? '<div><i class="fas fa-file-pdf mr-1 text-red-500"></i> 파일 ' + fileCount + '개</div>' : '') +
                             '</div>' +
                         '</div>' +
                         '<div class="flex items-center gap-2 ml-4">' +
-                            '<button type="button" onclick="openCertificationModal(' + index + ')" class="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-200 transition">' +
+                            '<button type="button" onclick="window.openCertificationModal(' + index + ')" class="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-200 transition">' +
                                 '<i class="fas fa-edit mr-1"></i> 수정' +
                             '</button>' +
-                            '<button type="button" onclick="deleteCertification(' + index + ')" class="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200 transition">' +
+                            '<button type="button" onclick="window.deleteCertification(' + index + ')" class="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200 transition">' +
                                 '<i class="fas fa-trash mr-1"></i> 삭제' +
                             '</button>' +
                         '</div>' +
