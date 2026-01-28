@@ -112,16 +112,16 @@ export const teacherProfileHtml = `
                     <!-- 탭 네비게이션 -->
                     <div class="bg-white border-b border-gray-200 px-8">
                         <div class="flex items-center gap-8">
-                            <button type="button" onclick="switchProfileTab('education')" id="tabEducation" class="pb-4 text-sm font-black uppercase tracking-widest tab-active-profile transition-all border-b-2 border-blue-600 text-blue-600">
+                            <button type="button" onclick="window.switchProfileTab('education')" id="tabEducation" class="pb-4 text-sm font-black uppercase tracking-widest tab-active-profile transition-all border-b-2 border-blue-600 text-blue-600">
                                 <i class="fas fa-graduation-cap mr-2"></i> 학력 및 경력
                             </button>
-                            <button type="button" onclick="switchProfileTab('certifications')" id="tabCertifications" class="pb-4 text-sm font-black uppercase tracking-widest tab-inactive-profile transition-all border-b-2 border-transparent text-gray-400 hover:text-gray-600">
+                            <button type="button" onclick="window.switchProfileTab('certifications')" id="tabCertifications" class="pb-4 text-sm font-black uppercase tracking-widest tab-inactive-profile transition-all border-b-2 border-transparent text-gray-400 hover:text-gray-600">
                                 <i class="fas fa-certificate mr-2"></i> 자격증
                             </button>
-                            <button type="button" onclick="switchProfileTab('training')" id="tabTraining" class="pb-4 text-sm font-black uppercase tracking-widest tab-inactive-profile transition-all border-b-2 border-transparent text-gray-400 hover:text-gray-600">
+                            <button type="button" onclick="window.switchProfileTab('training')" id="tabTraining" class="pb-4 text-sm font-black uppercase tracking-widest tab-inactive-profile transition-all border-b-2 border-transparent text-gray-400 hover:text-gray-600">
                                 <i class="fas fa-chalkboard-teacher mr-2"></i> 보수교육
                             </button>
-                            <button type="button" onclick="switchProfileTab('teaching')" id="tabTeaching" class="pb-4 text-sm font-black uppercase tracking-widest tab-inactive-profile transition-all border-b-2 border-transparent text-gray-400 hover:text-gray-600">
+                            <button type="button" onclick="window.switchProfileTab('teaching')" id="tabTeaching" class="pb-4 text-sm font-black uppercase tracking-widest tab-inactive-profile transition-all border-b-2 border-transparent text-gray-400 hover:text-gray-600">
                                 <i class="fas fa-book-open mr-2"></i> 강의이력
                             </button>
                         </div>
@@ -734,16 +734,20 @@ export const teacherProfileHtml = `
                         const fileItem = document.createElement('div');
                         fileItem.className = 'flex items-center justify-between px-3 py-2 bg-white rounded-lg border border-gray-200';
                         fileItem.setAttribute('data-file-name', fileInfo.name);
+                        // URL과 파일명을 이스케이프 처리
+                        const escapedUrl = fileInfo.url.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                        const escapedName = (fileInfo.name || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                        
                         fileItem.innerHTML = \`
                             <span class="text-sm text-gray-700 flex items-center">
                                 <i class="fas fa-file-pdf text-red-500 mr-2"></i>
-                                \${fileInfo.name}
+                                \${escapedName}
                             </span>
                             <div class="flex items-center gap-2">
-                                <button type="button" onclick="window.downloadCertFile('\${fileInfo.url}', '\${fileInfo.name}')" class="text-blue-600 hover:text-blue-800 text-sm">
+                                <button type="button" onclick="window.downloadCertFile('\${escapedUrl}', '\${escapedName}')" class="text-blue-600 hover:text-blue-800 text-sm">
                                     <i class="fas fa-download"></i>
                                 </button>
-                                <button type="button" onclick="window.removeCertFile(this, '\'' + fileInfo.url + '\')" class="text-red-600 hover:text-red-800 text-sm">
+                                <button type="button" onclick="window.removeCertFile(this, '\${escapedUrl}')" class="text-red-600 hover:text-red-800 text-sm">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </div>
@@ -786,16 +790,21 @@ export const teacherProfileHtml = `
                 const fileItem = document.createElement('div');
                 fileItem.className = 'flex items-center justify-between px-3 py-2 bg-white rounded-lg border border-gray-200';
                 fileItem.setAttribute('data-file-name', fileInfo.name || fileInfo.url.split('/').pop());
+                // URL과 파일명을 이스케이프 처리
+                const fileName = fileInfo.name || fileInfo.url.split('/').pop();
+                const escapedUrl = fileInfo.url.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                const escapedName = (fileName || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                
                 fileItem.innerHTML = \`
                     <span class="text-sm text-gray-700 flex items-center">
                         <i class="fas fa-file-pdf text-red-500 mr-2"></i>
-                        \${fileInfo.name || fileInfo.url.split('/').pop()}
+                        \${escapedName}
                     </span>
                     <div class="flex items-center gap-2">
-                        <button type="button" onclick="window.downloadCertFile('\${fileInfo.url}', '\${fileInfo.name || fileInfo.url.split('/').pop()}')" class="text-blue-600 hover:text-blue-800 text-sm">
+                        <button type="button" onclick="window.downloadCertFile('\${escapedUrl}', '\${escapedName}')" class="text-blue-600 hover:text-blue-800 text-sm">
                             <i class="fas fa-download"></i>
                         </button>
-                        <button type="button" onclick="window.removeCertFile(this, '\'' + fileInfo.url + '\')" class="text-red-600 hover:text-red-800 text-sm">
+                        <button type="button" onclick="window.removeCertFile(this, '\${escapedUrl}')" class="text-red-600 hover:text-red-800 text-sm">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
