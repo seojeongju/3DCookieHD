@@ -137,7 +137,7 @@ export const teacherProfileHtml = `
                                     <h5 class="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center">
                                         <i class="fas fa-university mr-3 text-blue-500"></i> 학력 목록
                                     </h5>
-                                    <button type="button" onclick="window.openEducationModal()" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-500/20 flex items-center">
+                                    <button type="button" data-action="openEducationModal" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-500/20 flex items-center">
                                         <i class="fas fa-plus mr-2"></i> 학력 추가
                                     </button>
                                 </div>
@@ -152,7 +152,7 @@ export const teacherProfileHtml = `
                                     <h5 class="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center">
                                         <i class="fas fa-briefcase mr-3 text-purple-500"></i> 경력 목록
                                     </h5>
-                                    <button type="button" onclick="window.openCareerModal()" class="px-4 py-2 bg-purple-600 text-white rounded-xl text-sm font-bold hover:bg-purple-700 transition shadow-lg shadow-purple-500/20 flex items-center">
+                                    <button type="button" data-action="openCareerModal" class="px-4 py-2 bg-purple-600 text-white rounded-xl text-sm font-bold hover:bg-purple-700 transition shadow-lg shadow-purple-500/20 flex items-center">
                                         <i class="fas fa-plus mr-2"></i> 경력 추가
                                     </button>
                                 </div>
@@ -186,7 +186,7 @@ export const teacherProfileHtml = `
                                     <h5 class="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center">
                                         <i class="fas fa-chalkboard-teacher mr-3 text-green-500"></i> 보수교육 목록
                                     </h5>
-                                    <button type="button" onclick="window.openTrainingModal()" class="px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-bold hover:bg-green-700 transition shadow-lg shadow-green-500/20 flex items-center">
+                                    <button type="button" data-action="openTrainingModal" class="px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-bold hover:bg-green-700 transition shadow-lg shadow-green-500/20 flex items-center">
                                         <i class="fas fa-plus mr-2"></i> 보수교육 추가
                                     </button>
                                 </div>
@@ -516,6 +516,135 @@ export const teacherProfileHtml = `
         let currentUserId = null;
 
         // 전역 함수들을 즉시 정의 (HTML 파싱 전에 접근 가능하도록)
+        // 학력 모달 관리 변수
+        let currentEducationIndex = null;
+        let currentCareerIndex = null;
+        let currentTrainingIndex = null;
+        
+        // 학력 모달 함수들
+        window.openEducationModal = function(index = null) {
+            currentEducationIndex = index;
+            const modal = document.getElementById('educationModal');
+            const title = document.getElementById('educationModalTitle');
+            const form = document.getElementById('educationForm');
+            
+            if (!modal || !title || !form) {
+                console.error('Education modal elements not found');
+                return;
+            }
+            
+            if (index !== null && education[index]) {
+                // 수정 모드
+                const edu = education[index];
+                title.textContent = '학력 수정';
+                document.getElementById('educationModalId').value = edu.id || '';
+                document.getElementById('educationModalSchool').value = edu.school || '';
+                document.getElementById('educationModalMajor').value = edu.major || '';
+                document.getElementById('educationModalStartDate').value = edu.start_date ? edu.start_date.split('T')[0] : '';
+                document.getElementById('educationModalEndDate').value = edu.end_date ? edu.end_date.split('T')[0] : '';
+                document.getElementById('educationModalDegree').value = edu.degree || '';
+                document.getElementById('educationModalNotes').value = edu.notes || '';
+            } else {
+                // 추가 모드
+                title.textContent = '학력 추가';
+                form.reset();
+                document.getElementById('educationModalId').value = '';
+            }
+            
+            modal.classList.remove('hidden');
+        };
+        
+        window.closeEducationModal = function() {
+            const modal = document.getElementById('educationModal');
+            if (modal) {
+                modal.classList.add('hidden');
+            }
+            currentEducationIndex = null;
+        };
+        
+        // 경력 모달 함수들
+        window.openCareerModal = function(index = null) {
+            currentCareerIndex = index;
+            const modal = document.getElementById('careerModal');
+            const title = document.getElementById('careerModalTitle');
+            const form = document.getElementById('careerForm');
+            
+            if (!modal || !title || !form) {
+                console.error('Career modal elements not found');
+                return;
+            }
+            
+            if (index !== null && career[index]) {
+                // 수정 모드
+                const car = career[index];
+                title.textContent = '경력 수정';
+                document.getElementById('careerModalId').value = car.id || '';
+                document.getElementById('careerModalCompany').value = car.company || '';
+                document.getElementById('careerModalPosition').value = car.position || '';
+                document.getElementById('careerModalStartDate').value = car.start_date ? car.start_date.split('T')[0] : '';
+                document.getElementById('careerModalEndDate').value = car.end_date ? car.end_date.split('T')[0] : '';
+                document.getElementById('careerModalDescription').value = car.description || '';
+                document.getElementById('careerModalNotes').value = car.notes || '';
+            } else {
+                // 추가 모드
+                title.textContent = '경력 추가';
+                form.reset();
+                document.getElementById('careerModalId').value = '';
+            }
+            
+            modal.classList.remove('hidden');
+        };
+        
+        window.closeCareerModal = function() {
+            const modal = document.getElementById('careerModal');
+            if (modal) {
+                modal.classList.add('hidden');
+            }
+            currentCareerIndex = null;
+        };
+        
+        // 보수교육 모달 함수들
+        window.openTrainingModal = function(index = null) {
+            currentTrainingIndex = index;
+            const modal = document.getElementById('trainingModal');
+            const title = document.getElementById('trainingModalTitle');
+            const form = document.getElementById('trainingForm');
+            
+            if (!modal || !title || !form) {
+                console.error('Training modal elements not found');
+                return;
+            }
+            
+            if (index !== null && training[index]) {
+                // 수정 모드
+                const tr = training[index];
+                title.textContent = '보수교육 수정';
+                document.getElementById('trainingModalId').value = tr.id || '';
+                document.getElementById('trainingModalName').value = tr.name || '';
+                document.getElementById('trainingModalStartDate').value = tr.start_date ? tr.start_date.split('T')[0] : '';
+                document.getElementById('trainingModalEndDate').value = tr.end_date ? tr.end_date.split('T')[0] : '';
+                document.getElementById('trainingModalHours').value = tr.hours || '';
+                document.getElementById('trainingModalInstitution').value = tr.institution || '';
+                document.getElementById('trainingModalDescription').value = tr.description || '';
+                document.getElementById('trainingModalNotes').value = tr.notes || '';
+            } else {
+                // 추가 모드
+                title.textContent = '보수교육 추가';
+                form.reset();
+                document.getElementById('trainingModalId').value = '';
+            }
+            
+            modal.classList.remove('hidden');
+        };
+        
+        window.closeTrainingModal = function() {
+            const modal = document.getElementById('trainingModal');
+            if (modal) {
+                modal.classList.add('hidden');
+            }
+            currentTrainingIndex = null;
+        };
+        
         // switchProfileTab 함수 - 탭 전환 기능
         window.switchProfileTab = function(tab) {
             if (typeof currentProfileTab === 'undefined') {
@@ -558,8 +687,9 @@ export const teacherProfileHtml = `
             });
         };
 
-        // 탭 버튼에 이벤트 리스너 추가 (DOMContentLoaded 전에 함수 정의)
-        function setupTabListeners() {
+        // 탭 버튼과 모달 버튼에 이벤트 리스너 추가
+        function setupEventListeners() {
+            // 탭 버튼
             const tabButtons = document.querySelectorAll('[data-tab]');
             tabButtons.forEach(btn => {
                 btn.addEventListener('click', function() {
@@ -569,12 +699,25 @@ export const teacherProfileHtml = `
                     }
                 });
             });
+            
+            // 모달 열기 버튼
+            const modalButtons = document.querySelectorAll('[data-action]');
+            modalButtons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const action = this.getAttribute('data-action');
+                    if (action && window[action]) {
+                        window[action]();
+                    } else {
+                        console.error('Function not found:', action);
+                    }
+                });
+            });
         }
 
         document.addEventListener('DOMContentLoaded', () => {
             checkLogin();
             loadProfileData();
-            setupTabListeners();
+            setupEventListeners();
         });
 
         function checkLogin() {
@@ -1374,42 +1517,7 @@ export const teacherProfileHtml = `
             });
         }
 
-        // 학력 모달 관리
-        let currentEducationIndex = null;
-        
-        window.openEducationModal = function(index = null) {
-            currentEducationIndex = index;
-            const modal = document.getElementById('educationModal');
-            const title = document.getElementById('educationModalTitle');
-            const form = document.getElementById('educationForm');
-            
-            if (index !== null && education[index]) {
-                // 수정 모드
-                const edu = education[index];
-                title.textContent = '학력 수정';
-                document.getElementById('educationModalId').value = edu.id || '';
-                document.getElementById('educationModalSchool').value = edu.school || '';
-                document.getElementById('educationModalMajor').value = edu.major || '';
-                document.getElementById('educationModalStartDate').value = edu.start_date ? edu.start_date.split('T')[0] : '';
-                document.getElementById('educationModalEndDate').value = edu.end_date ? edu.end_date.split('T')[0] : '';
-                document.getElementById('educationModalDegree').value = edu.degree || '';
-                document.getElementById('educationModalNotes').value = edu.notes || '';
-            } else {
-                // 추가 모드
-                title.textContent = '학력 추가';
-                form.reset();
-                document.getElementById('educationModalId').value = '';
-            }
-            
-            modal.classList.remove('hidden');
-        };
-        
-        window.closeEducationModal = function() {
-            const modal = document.getElementById('educationModal');
-            modal.classList.add('hidden');
-            currentEducationIndex = null;
-        };
-        
+        // 학력 모달 저장/삭제 함수들 (이미 위에서 openEducationModal, closeEducationModal 정의됨)
         window.handleSaveEducation = function(event) {
             event.preventDefault();
             
@@ -1437,7 +1545,7 @@ export const teacherProfileHtml = `
                 education.push(eduData);
             }
             
-            closeEducationModal();
+            window.closeEducationModal();
             loadEducation();
         };
         
@@ -1489,42 +1597,7 @@ export const teacherProfileHtml = `
             });
         }
 
-        // 경력 모달 관리
-        let currentCareerIndex = null;
-        
-        window.openCareerModal = function(index = null) {
-            currentCareerIndex = index;
-            const modal = document.getElementById('careerModal');
-            const title = document.getElementById('careerModalTitle');
-            const form = document.getElementById('careerForm');
-            
-            if (index !== null && career[index]) {
-                // 수정 모드
-                const car = career[index];
-                title.textContent = '경력 수정';
-                document.getElementById('careerModalId').value = car.id || '';
-                document.getElementById('careerModalCompany').value = car.company || '';
-                document.getElementById('careerModalPosition').value = car.position || '';
-                document.getElementById('careerModalStartDate').value = car.start_date ? car.start_date.split('T')[0] : '';
-                document.getElementById('careerModalEndDate').value = car.end_date ? car.end_date.split('T')[0] : '';
-                document.getElementById('careerModalDescription').value = car.description || '';
-                document.getElementById('careerModalNotes').value = car.notes || '';
-            } else {
-                // 추가 모드
-                title.textContent = '경력 추가';
-                form.reset();
-                document.getElementById('careerModalId').value = '';
-            }
-            
-            modal.classList.remove('hidden');
-        };
-        
-        window.closeCareerModal = function() {
-            const modal = document.getElementById('careerModal');
-            modal.classList.add('hidden');
-            currentCareerIndex = null;
-        };
-        
+        // 경력 모달 저장 함수 (이미 위에서 openCareerModal, closeCareerModal 정의됨)
         window.handleSaveCareer = function(event) {
             event.preventDefault();
             
@@ -1552,7 +1625,7 @@ export const teacherProfileHtml = `
                 career.push(carData);
             }
             
-            closeCareerModal();
+            window.closeCareerModal();
             loadCareer();
         };
         
@@ -1604,10 +1677,8 @@ export const teacherProfileHtml = `
             });
         }
 
-        // 보수교육 모달 관리
-        let currentTrainingIndex = null;
-        
-        window.openTrainingModal = function(index = null) {
+        // 보수교육 모달 저장 함수 (이미 위에서 openTrainingModal, closeTrainingModal 정의됨)
+        window.handleSaveTraining = function(event) {
             currentTrainingIndex = index;
             const modal = document.getElementById('trainingModal');
             const title = document.getElementById('trainingModalTitle');
@@ -1670,7 +1741,7 @@ export const teacherProfileHtml = `
                 training.push(trData);
             }
             
-            closeTrainingModal();
+            window.closeTrainingModal();
             loadTraining();
         };
         
