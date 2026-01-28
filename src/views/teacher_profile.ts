@@ -715,9 +715,17 @@ export const teacherProfileHtml = `
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            checkLogin();
-            loadProfileData();
-            setupEventListeners();
+            console.log('DOMContentLoaded fired');
+            try {
+                checkLogin();
+                console.log('checkLogin completed');
+                loadProfileData();
+                console.log('loadProfileData called');
+                setupEventListeners();
+                console.log('setupEventListeners completed');
+            } catch (error) {
+                console.error('Error in DOMContentLoaded:', error);
+            }
         });
 
         function checkLogin() {
@@ -737,19 +745,39 @@ export const teacherProfileHtml = `
         }
 
         async function loadProfileData() {
+            console.log('loadProfileData started');
             try {
                 const token = localStorage.getItem('token');
+                console.log('Token exists:', !!token);
                 const user = JSON.parse(localStorage.getItem('user') || '{}');
+                console.log('User data:', user);
+                
+                if (!token) {
+                    console.error('No token found');
+                    populateBasicInfo(user);
+                    return;
+                }
                 
                 // user.id를 숫자로 변환
                 const userIdNum = parseInt(user.id);
                 const userId = isNaN(userIdNum) ? user.id : userIdNum;
+                console.log('Looking for userId:', userId);
                 
                 // 교강사 목록에서 본인 정보 찾기
+                console.log('Fetching personnel data...');
                 const response = await fetch('/api/hrd/personnel', {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
+                console.log('Response status:', response.status);
+                
+                if (!response.ok) {
+                    console.error('Response not OK:', response.status, response.statusText);
+                    populateBasicInfo(user);
+                    return;
+                }
+                
                 const result = await response.json();
+                console.log('API result:', result);
                 
                 if (result.success && result.data) {
                     // ID 타입을 고려하여 찾기 (숫자와 문자열 모두 비교)
@@ -760,15 +788,16 @@ export const teacherProfileHtml = `
                     });
                     
                     if (myData) {
-                        console.log('Loaded profile data:', myData);
+                        console.log('Found profile data:', myData);
                         populateForm(myData);
                     } else {
-                        console.log('Profile data not found, using basic info');
+                        console.log('Profile data not found in personnel list, using basic info');
+                        console.log('Available personnel IDs:', result.data.map(p => p.id));
                         // 교강사 정보가 없으면 기본 정보만 표시
                         populateBasicInfo(user);
                     }
                 } else {
-                    console.error('Failed to load profile:', result.error);
+                    console.error('Failed to load profile:', result.error || 'Unknown error');
                     populateBasicInfo(user);
                 }
             } catch (error) {
@@ -779,28 +808,66 @@ export const teacherProfileHtml = `
         }
 
         function populateBasicInfo(user) {
-            document.getElementById('pName').value = user.name || '';
-            document.getElementById('pEmail').value = user.email || '';
-            document.getElementById('pPhone').value = user.phone || '';
-            if (user.profile_image) {
-                document.getElementById('pImagePreview').src = user.profile_image;
-                document.getElementById('pImagePreview').classList.remove('hidden');
-                document.getElementById('pImagePlaceholder').classList.add('hidden');
-                document.getElementById('pImageUrl').value = user.profile_image;
+            console.log('populateBasicInfo called with user:', user);
+            try {
+                const nameEl = document.getElementById('pName');
+                const emailEl = document.getElementById('pEmail');
+                const phoneEl = document.getElementById('pPhone');
+                
+                if (!nameEl || !emailEl || !phoneEl) {
+                    console.error('Form elements not found:', { nameEl: !!nameEl, emailEl: !!emailEl, phoneEl: !!phoneEl });
+                    return;
+                }
+                
+                nameEl.value = user.name || '';
+                emailEl.value = user.email || '';
+                phoneEl.value = user.phone || '';
+                console.log('Basic info populated:', { name: user.name, email: user.email, phone: user.phone });
+                
+                if (user.profile_image) {
+                    const imgPreview = document.getElementById('pImagePreview');
+                    const imgPlaceholder = document.getElementById('pImagePlaceholder');
+                    const imgUrl = document.getElementById('pImageUrl');
+                    
+                    if (imgPreview && imgPlaceholder && imgUrl) {
+                        imgPreview.src = user.profile_image;
+                        imgPreview.classList.remove('hidden');
+                        imgPlaceholder.classList.add('hidden');
+                        imgUrl.value = user.profile_image;
+                    }
+                }
+            } catch (error) {
+                console.error('Error in populateBasicInfo:', error);
             }
         }
 
         function populateForm(data) {
-            // 기본 정보
-            document.getElementById('pName').value = data.name || '';
-            document.getElementById('pEmail').value = data.email || '';
-            document.getElementById('pPhone').value = data.phone || '';
-            document.getElementById('pPosition').value = data.position || '';
-            document.getElementById('pSubject').value = data.subject || '';
-            document.getElementById('pType').value = data.type || 'full';
-            if (data.joined_at) {
-                document.getElementById('pJoined').value = data.joined_at.split('T')[0];
-            }
+            console.log('populateForm called with data:', data);
+            try {
+                // 기본 정보
+                const nameEl = document.getElementById('pName');
+                const emailEl = document.getElementById('pEmail');
+                const phoneEl = document.getElementById('pPhone');
+                const positionEl = document.getElementById('pPosition');
+                const subjectEl = document.getElementById('pSubject');
+                const typeEl = document.getElementById('pType');
+                const joinedEl = document.getElementById('pJoined');
+                
+                if (!nameEl || !emailEl || !phoneEl) {
+                    console.error('Required form elements not found');
+                    return;
+                }
+                
+                nameEl.value = data.name || '';
+                emailEl.value = data.email || '';
+                phoneEl.value = data.phone || '';
+                if (positionEl) positionEl.value = data.position || '';
+                if (subjectEl) subjectEl.value = data.subject || '';
+                if (typeEl) typeEl.value = data.type || 'full';
+                if (joinedEl && data.joined_at) {
+                    joinedEl.value = data.joined_at.split('T')[0];
+                }
+                console.log('Basic form fields populated');
             
             // 프로필 이미지
             if (data.profile_image) {
