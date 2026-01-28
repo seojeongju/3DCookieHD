@@ -331,15 +331,22 @@ export const teacherProfileHtml = `
                     }
                     certifications = certs || [];
                     console.log('Loaded certifications:', certifications);
-                    loadCertifications();
+                    // 약간의 지연 후 로드 (DOM이 준비될 때까지)
+                    setTimeout(() => {
+                        loadCertifications();
+                    }, 100);
                 } catch (e) {
                     console.error('Failed to parse certifications:', e, data.certifications);
                     certifications = [];
-                    loadCertifications();
+                    setTimeout(() => {
+                        loadCertifications();
+                    }, 100);
                 }
             } else {
                 certifications = [];
-                loadCertifications();
+                setTimeout(() => {
+                    loadCertifications();
+                }, 100);
             }
             
             // 강의이력
@@ -354,15 +361,22 @@ export const teacherProfileHtml = `
                     }
                     teachingHistory = history || [];
                     console.log('Loaded teaching history:', teachingHistory);
-                    loadTeachingHistory();
+                    // 약간의 지연 후 로드 (DOM이 준비될 때까지)
+                    setTimeout(() => {
+                        loadTeachingHistory();
+                    }, 100);
                 } catch (e) {
                     console.error('Failed to parse teaching_history:', e, data.teaching_history);
                     teachingHistory = [];
-                    loadTeachingHistory();
+                    setTimeout(() => {
+                        loadTeachingHistory();
+                    }, 100);
                 }
             } else {
                 teachingHistory = [];
-                loadTeachingHistory();
+                setTimeout(() => {
+                    loadTeachingHistory();
+                }, 100);
             }
         }
 
@@ -377,6 +391,13 @@ export const teacherProfileHtml = `
                 if (t === tab) {
                     btn.className = 'pb-4 text-sm font-black uppercase tracking-widest tab-active-profile transition-all border-b-2 border-blue-600 text-blue-600';
                     content.classList.remove('hidden');
+                    
+                    // 탭이 활성화될 때 해당 데이터 다시 로드
+                    if (t === 'certifications') {
+                        loadCertifications();
+                    } else if (t === 'teaching') {
+                        loadTeachingHistory();
+                    }
                 } else {
                     btn.className = 'pb-4 text-sm font-black uppercase tracking-widest tab-inactive-profile transition-all border-b-2 border-transparent text-gray-400 hover:text-gray-600';
                     content.classList.add('hidden');
@@ -422,7 +443,12 @@ export const teacherProfileHtml = `
         function addCertification(certData = null) {
             const certId = certData ? (certData.id || 'new_' + (certIdCounter++)) : 'new_' + (certIdCounter++);
             const container = document.getElementById('certificationsContainer');
-            if (!container) return;
+            if (!container) {
+                console.warn('certificationsContainer not found in addCertification');
+                return;
+            }
+            
+            console.log('addCertification called with certId:', certId, 'certData:', certData);
             
             const certHtml = \`
                 <div class="bg-gray-50 rounded-2xl p-6 border border-gray-200" data-cert-id="\${certId}">
@@ -460,14 +486,19 @@ export const teacherProfileHtml = `
             container.insertAdjacentHTML('beforeend', certHtml);
             
             // 파일 입력 이벤트 리스너 추가
-            const fileInput = container.querySelector(\`[data-cert-id="\${certId}"] .cert-file-input\`);
-            if (fileInput) {
-                fileInput.addEventListener('change', (e) => handleCertFileUpload(e, certId));
-            }
-            
-            // 기존 파일이 있으면 표시
-            if (certData && certData.file_urls) {
-                loadCertFiles(certId, certData.file_urls);
+            const certElement = container.querySelector(\`[data-cert-id="\${certId}"]\`);
+            if (certElement) {
+                const fileInput = certElement.querySelector('.cert-file-input');
+                if (fileInput) {
+                    fileInput.addEventListener('change', (e) => handleCertFileUpload(e, certId));
+                }
+                
+                // 기존 파일이 있으면 표시
+                if (certData && certData.file_urls) {
+                    loadCertFiles(certId, certData.file_urls);
+                }
+            } else {
+                console.error('Failed to find cert element after insertAdjacentHTML');
             }
         }
 
@@ -648,16 +679,22 @@ export const teacherProfileHtml = `
 
         function loadCertifications() {
             const container = document.getElementById('certificationsContainer');
-            if (!container) return;
+            if (!container) {
+                console.warn('certificationsContainer not found');
+                return;
+            }
             
+            console.log('loadCertifications called, certifications:', certifications);
             container.innerHTML = '';
             
-            if (certifications.length === 0) {
+            if (!certifications || certifications.length === 0) {
                 container.innerHTML = '<div class="text-center py-8 text-gray-400 text-sm">자격증이 없습니다. 추가 버튼을 클릭하여 자격증을 추가하세요.</div>';
                 return;
             }
             
-            certifications.forEach(cert => {
+            // 기존 certifications 배열을 순회하며 추가
+            certifications.forEach((cert, index) => {
+                console.log('Adding certification ' + index + ':', cert);
                 addCertification(cert);
             });
         }
@@ -666,7 +703,12 @@ export const teacherProfileHtml = `
         function addTeachingHistory(historyData = null) {
             const historyId = historyData ? (historyData.id || 'teaching_' + (teachingHistoryIdCounter++)) : 'teaching_' + (teachingHistoryIdCounter++);
             const container = document.getElementById('teachingHistoryContainer');
-            if (!container) return;
+            if (!container) {
+                console.warn('teachingHistoryContainer not found in addTeachingHistory');
+                return;
+            }
+            
+            console.log('addTeachingHistory called with historyId:', historyId, 'historyData:', historyData);
             
             const historyHtml = \`
                 <div class="bg-gray-50 rounded-2xl p-6 border-2 border-gray-200" data-teaching-id="\${historyId}">
@@ -713,6 +755,12 @@ export const teacherProfileHtml = `
             
             container.insertAdjacentHTML('beforeend', historyHtml);
             
+            // DOM에 추가되었는지 확인
+            const historyElement = container.querySelector(\`[data-teaching-id="\${historyId}"]\`);
+            if (!historyElement) {
+                console.error('Failed to find history element after insertAdjacentHTML');
+            }
+            
             // 중복 추가 방지
             const existingIndex = teachingHistory.findIndex(h => h.id === historyId);
             if (existingIndex >= 0) {
@@ -740,16 +788,22 @@ export const teacherProfileHtml = `
 
         function loadTeachingHistory() {
             const container = document.getElementById('teachingHistoryContainer');
-            if (!container) return;
+            if (!container) {
+                console.warn('teachingHistoryContainer not found');
+                return;
+            }
             
+            console.log('loadTeachingHistory called, teachingHistory:', teachingHistory);
             container.innerHTML = '';
             
-            if (teachingHistory.length === 0) {
+            if (!teachingHistory || teachingHistory.length === 0) {
                 container.innerHTML = '<div class="text-center py-8 text-gray-400 text-sm">강의이력이 없습니다. 추가 버튼을 클릭하여 이력을 추가하세요.</div>';
                 return;
             }
             
-            teachingHistory.forEach(history => {
+            // 기존 teachingHistory 배열을 순회하며 추가
+            teachingHistory.forEach((history, index) => {
+                console.log('Adding teaching history ' + index + ':', history);
                 addTeachingHistory(history);
             });
         }
