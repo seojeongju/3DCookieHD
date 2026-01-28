@@ -245,17 +245,29 @@ export const teacherProfileHtml = `
                 const token = localStorage.getItem('token');
                 const user = JSON.parse(localStorage.getItem('user') || '{}');
                 
+                // user.id를 숫자로 변환
+                const userIdNum = parseInt(user.id);
+                const userId = isNaN(userIdNum) ? user.id : userIdNum;
+                
                 // 교강사 목록에서 본인 정보 찾기
                 const response = await fetch('/api/hrd/personnel', {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
                 const result = await response.json();
                 
-                if (result.success) {
-                    const myData = result.data.find(p => p.id === user.id);
+                if (result.success && result.data) {
+                    // ID 타입을 고려하여 찾기 (숫자와 문자열 모두 비교)
+                    const myData = result.data.find(p => {
+                        const pIdNum = parseInt(p.id);
+                        const pId = isNaN(pIdNum) ? p.id : pIdNum;
+                        return pId === userId || p.id === userId || p.id === user.id;
+                    });
+                    
                     if (myData) {
+                        console.log('Loaded profile data:', myData);
                         populateForm(myData);
                     } else {
+                        console.log('Profile data not found, using basic info');
                         // 교강사 정보가 없으면 기본 정보만 표시
                         populateBasicInfo(user);
                     }
@@ -310,29 +322,47 @@ export const teacherProfileHtml = `
             // 자격증
             if (data.certifications) {
                 try {
-                    const certs = Array.isArray(data.certifications) ? data.certifications : JSON.parse(data.certifications);
+                    let certs = [];
+                    if (Array.isArray(data.certifications)) {
+                        certs = data.certifications;
+                    } else if (typeof data.certifications === 'string') {
+                        const parsed = JSON.parse(data.certifications);
+                        certs = Array.isArray(parsed) ? parsed : [];
+                    }
                     certifications = certs || [];
+                    console.log('Loaded certifications:', certifications);
                     loadCertifications();
                 } catch (e) {
-                    console.error('Failed to parse certifications:', e);
+                    console.error('Failed to parse certifications:', e, data.certifications);
                     certifications = [];
+                    loadCertifications();
                 }
             } else {
                 certifications = [];
+                loadCertifications();
             }
             
             // 강의이력
             if (data.teaching_history) {
                 try {
-                    const history = Array.isArray(data.teaching_history) ? data.teaching_history : JSON.parse(data.teaching_history);
+                    let history = [];
+                    if (Array.isArray(data.teaching_history)) {
+                        history = data.teaching_history;
+                    } else if (typeof data.teaching_history === 'string') {
+                        const parsed = JSON.parse(data.teaching_history);
+                        history = Array.isArray(parsed) ? parsed : [];
+                    }
                     teachingHistory = history || [];
+                    console.log('Loaded teaching history:', teachingHistory);
                     loadTeachingHistory();
                 } catch (e) {
-                    console.error('Failed to parse teaching_history:', e);
+                    console.error('Failed to parse teaching_history:', e, data.teaching_history);
                     teachingHistory = [];
+                    loadTeachingHistory();
                 }
             } else {
                 teachingHistory = [];
+                loadTeachingHistory();
             }
         }
 
@@ -390,8 +420,9 @@ export const teacherProfileHtml = `
 
         // 자격증 관리 (관리자 페이지와 동일한 로직)
         function addCertification(certData = null) {
-            const certId = certData ? certData.id : 'new_' + (certIdCounter++);
+            const certId = certData ? (certData.id || 'new_' + (certIdCounter++)) : 'new_' + (certIdCounter++);
             const container = document.getElementById('certificationsContainer');
+            if (!container) return;
             
             const certHtml = \`
                 <div class="bg-gray-50 rounded-2xl p-6 border border-gray-200" data-cert-id="\${certId}">
@@ -617,7 +648,14 @@ export const teacherProfileHtml = `
 
         function loadCertifications() {
             const container = document.getElementById('certificationsContainer');
+            if (!container) return;
+            
             container.innerHTML = '';
+            
+            if (certifications.length === 0) {
+                container.innerHTML = '<div class="text-center py-8 text-gray-400 text-sm">자격증이 없습니다. 추가 버튼을 클릭하여 자격증을 추가하세요.</div>';
+                return;
+            }
             
             certifications.forEach(cert => {
                 addCertification(cert);
@@ -626,8 +664,9 @@ export const teacherProfileHtml = `
 
         // 강의이력 관리
         function addTeachingHistory(historyData = null) {
-            const historyId = historyData ? historyData.id : 'teaching_' + (teachingHistoryIdCounter++);
+            const historyId = historyData ? (historyData.id || 'teaching_' + (teachingHistoryIdCounter++)) : 'teaching_' + (teachingHistoryIdCounter++);
             const container = document.getElementById('teachingHistoryContainer');
+            if (!container) return;
             
             const historyHtml = \`
                 <div class="bg-gray-50 rounded-2xl p-6 border-2 border-gray-200" data-teaching-id="\${historyId}">
@@ -674,10 +713,18 @@ export const teacherProfileHtml = `
             
             container.insertAdjacentHTML('beforeend', historyHtml);
             
-            if (historyData) {
-                teachingHistory.push(historyData);
+            // 중복 추가 방지
+            const existingIndex = teachingHistory.findIndex(h => h.id === historyId);
+            if (existingIndex >= 0) {
+                // 이미 존재하면 업데이트
+                teachingHistory[existingIndex] = historyData || { id: historyId, course_name: '', start_date: '', end_date: '', student_count: '', description: '', notes: '' };
             } else {
-                teachingHistory.push({ id: historyId, course_name: '', start_date: '', end_date: '', student_count: '', description: '', notes: '' });
+                // 새로 추가
+                if (historyData) {
+                    teachingHistory.push(historyData);
+                } else {
+                    teachingHistory.push({ id: historyId, course_name: '', start_date: '', end_date: '', student_count: '', description: '', notes: '' });
+                }
             }
         }
 
@@ -693,6 +740,8 @@ export const teacherProfileHtml = `
 
         function loadTeachingHistory() {
             const container = document.getElementById('teachingHistoryContainer');
+            if (!container) return;
+            
             container.innerHTML = '';
             
             if (teachingHistory.length === 0) {
@@ -798,8 +847,8 @@ export const teacherProfileHtml = `
                     user.phone = data.phone;
                     user.profile_image = data.profile_image;
                     localStorage.setItem('user', JSON.stringify(user));
-                    // 대시보드로 이동
-                    window.location.href = '/teacher';
+                    // 페이지를 다시 로드하여 저장된 데이터 표시
+                    loadProfileData();
                 } else {
                     alert('저장 실패: ' + (result.error || '알 수 없는 오류'));
                 }
