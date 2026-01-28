@@ -15,11 +15,10 @@ app.get('/', async (c) => {
     const limit = Number(c.req.query('limit')) || 10;
     const category = c.req.query('category');
     const search = c.req.query('search');
+    const status = c.req.query('status');
     const offset = (page - 1) * limit;
 
-    let query = `
-      SELECT p.*, u.name as author_name, 
-      (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
+    const base = `
       FROM posts p
       LEFT JOIN users u ON p.author_id = u.id
       WHERE 1=1
@@ -27,43 +26,61 @@ app.get('/', async (c) => {
     const params: any[] = [];
 
     if (category && category !== 'all') {
-      query += ' AND p.category = ?';
       params.push(category);
     }
-
     if (search) {
-      query += ' AND (p.title LIKE ? OR p.content LIKE ?)';
       params.push(`%${search}%`, `%${search}%`);
     }
+    if (status) {
+      params.push(status);
+    }
 
-    // 전체 개수 조회
-    const countQuery = query.replace('SELECT p.*, u.name as author_name, (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count', 'SELECT COUNT(*) as total');
+    const whereClauses: string[] = [];
+    if (category && category !== 'all') whereClauses.push(' AND p.category = ?');
+    if (search) whereClauses.push(' AND (p.title LIKE ? OR p.content LIKE ?)');
+    if (status) whereClauses.push(' AND p.status = ?');
+    const whereSql = whereClauses.join('');
+
+    const countQuery = `SELECT COUNT(*) as total ${base}${whereSql}`;
     const totalResult = await DB.prepare(countQuery).bind(...params).first<{ total: number }>();
     const total = totalResult?.total || 0;
 
-    // 데이터 조회 (상단 고정 우선, 그 다음 최신순)
-    query += ' ORDER BY p.pinned DESC, p.created_at DESC LIMIT ? OFFSET ?';
-    params.push(limit, offset);
+    const dataQuery = `
+      SELECT p.*, u.name as author_name,
+      (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
+      ${base}${whereSql}
+      ORDER BY p.pinned DESC, p.created_at DESC LIMIT ? OFFSET ?
+    `;
+    const dataParams = [...params, limit, offset];
+    const { results } = await DB.prepare(dataQuery).bind(...dataParams).all();
 
-    const { results } = await DB.prepare(query).bind(...params).all();
+    function parseImages(val: unknown): string[] {
+      if (val == null || val === '') return [];
+      try {
+        if (typeof val === 'string') {
+          const t = val.trim();
+          if (t === '' || t === '[]' || t === 'null') return [];
+          return JSON.parse(t) as string[];
+        }
+        if (Array.isArray(val)) return val;
+        return [];
+      } catch {
+        return [];
+      }
+    }
 
-    // 이미지 JSON 파싱 및 본문에서 이미지 추출
-    const posts = results.map((post: any) => {
-      let images = post.images ? JSON.parse(post.images as string) : [];
+    const posts = (results || []).map((post: any) => {
+      let images = parseImages(post.images);
 
-      // 이미지가 없고 본문이 있다면 본문에서 추출 시도
-      if ((!images || images.length === 0) && post.content) {
-        // 간단한 정규식으로 img 태그의 src 속성 추출
+      if (images.length === 0 && post.content) {
         const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/i;
         const match = post.content.match(imgRegex);
-        if (match && match[1]) {
-          images = [match[1]];
-        }
+        if (match?.[1]) images = [match[1]];
       }
 
       return {
         ...post,
-        images: images,
+        images,
         pinned: Boolean(post.pinned)
       };
     });
@@ -75,11 +92,11 @@ app.get('/', async (c) => {
         page,
         limit,
         total,
-        totalPages: Math.ceil(total / limit)
+        totalPages: Math.ceil(total / limit) || 1
       }
     });
-  } catch (error) {
-    console.error('Error fetching posts:', error);
+  } catch (error: any) {
+    console.error('Error fetching posts:', error?.message ?? error, error?.stack);
     return c.json({ success: false, error: '게시글 목록을 불러오는 중 오류가 발생했습니다' }, 500);
   }
 });
@@ -117,17 +134,27 @@ app.get('/:id', async (c) => {
       ORDER BY c.created_at ASC
     `).bind(id).all();
 
+    let images: string[] = [];
+    try {
+      if (post.images != null && post.images !== '') {
+        const v = typeof post.images === 'string' ? JSON.parse(post.images) : post.images;
+        images = Array.isArray(v) ? v : [];
+      }
+    } catch {
+      images = [];
+    }
+
     return c.json({
       success: true,
       data: {
         ...post,
-        images: post.images ? JSON.parse(post.images as string) : [],
+        images,
         pinned: Boolean(post.pinned),
-        comments: comments
+        comments: comments || []
       }
     });
-  } catch (error) {
-    console.error('Error fetching post:', error);
+  } catch (error: any) {
+    console.error('Error fetching post:', error?.message ?? error, error?.stack);
     return c.json({ success: false, error: '게시글을 불러오는 중 오류가 발생했습니다' }, 500);
   }
 });
@@ -137,40 +164,72 @@ app.get('/:id', async (c) => {
 // POST /api/posts
 // ============================================
 app.post('/', authMiddleware, async (c) => {
+  let body: any;
+  try {
+    body = await c.req.json();
+  } catch (e: any) {
+    console.error('POST /api/posts: invalid JSON body', e?.message ?? e);
+    return c.json({ success: false, error: '요청 본문이 올바른 JSON이 아닙니다' }, 400);
+  }
+
   try {
     const { DB } = c.env;
     const user = c.get('user');
-    const body = await c.req.json();
-
     const { title, content, category, images, pinned, status } = body;
 
-    // 필수 필드 검증
-    if (!title || !content || !category) {
-      return c.json({ success: false, error: '제목, 내용, 카테고리는 필수입니다' }, 400);
+    const tit = title != null ? String(title).trim() : '';
+    const cont = content != null ? String(content) : '';
+    const cat = category != null ? String(category).trim() : '';
+
+    if (!tit || !cat) {
+      return c.json({ success: false, error: '제목, 카테고리는 필수입니다' }, 400);
+    }
+    if (!cont) {
+      return c.json({ success: false, error: '내용은 필수입니다' }, 400);
     }
 
-    // 관리자만 공지사항 작성 및 상단 고정 가능
-    if (category === 'notice' && user.role !== 'admin') {
+    if (cat === 'notice' && user.role !== 'admin') {
       return c.json({ success: false, error: '공지사항은 관리자만 작성할 수 있습니다' }, 403);
     }
 
-    if (pinned && user.role !== 'admin') {
+    const pin = pinned === true || pinned === 1 || pinned === '1';
+    if (pin && user.role !== 'admin') {
       return c.json({ success: false, error: '상단 고정은 관리자만 설정할 수 있습니다' }, 403);
     }
 
+    let imagesJson: string;
+    try {
+      if (images == null) {
+        imagesJson = '[]';
+      } else if (Array.isArray(images)) {
+        imagesJson = JSON.stringify(images);
+      } else if (typeof images === 'string') {
+        const t = images.trim();
+        imagesJson = t === '' || t === '[]' ? '[]' : t;
+      } else {
+        imagesJson = '[]';
+      }
+    } catch {
+      imagesJson = '[]';
+    }
+
+    const st = status && ['draft', 'published', 'hidden'].includes(String(status))
+      ? String(status)
+      : 'published';
+
     const result = await DB.prepare(`
       INSERT INTO posts (
-        author_id, title, content, category, images, 
+        author_id, title, content, category, images,
         views, likes, pinned, status, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, 0, 0, ?, ?, datetime('now'), datetime('now'))
     `).bind(
       user.userId,
-      title,
-      content,
-      category,
-      images ? JSON.stringify(images) : '[]',
-      pinned ? 1 : 0,
-      status || 'published'
+      tit,
+      cont,
+      cat,
+      imagesJson,
+      pin ? 1 : 0,
+      st
     ).run();
 
     return c.json({
@@ -180,8 +239,8 @@ app.post('/', authMiddleware, async (c) => {
         message: '게시글이 등록되었습니다'
       }
     }, 201);
-  } catch (error) {
-    console.error('Error creating post:', error);
+  } catch (error: any) {
+    console.error('Error creating post:', error?.message ?? error, error?.stack);
     return c.json({ success: false, error: '게시글 작성 중 오류가 발생했습니다' }, 500);
   }
 });
