@@ -12,137 +12,69 @@ const app = new Hono<{ Bindings: Bindings, Variables: Variables }>();
 // 교강사 목록 조회 (교강사 정보 + 유저명/사진 등)
 app.get('/personnel', async (c) => {
     try {
-        // 각 컬럼 존재 여부를 개별적으로 확인
-        let hasEducation = false;
-        let hasCareer = false;
-        let hasCertifications = false;
-        let hasTrainingHistory = false;
+        const jsonFields = ['education', 'career', 'certifications', 'training_history', 'teaching_history'];
+        const existingColumns: string[] = [];
 
-        try {
-            await c.env.DB.prepare("SELECT education FROM hrd_instructors LIMIT 1").first();
-            hasEducation = true;
-        } catch (e) { }
-
-        try {
-            await c.env.DB.prepare("SELECT career FROM hrd_instructors LIMIT 1").first();
-            hasCareer = true;
-        } catch (e) { }
-
-        try {
-            await c.env.DB.prepare("SELECT certifications FROM hrd_instructors LIMIT 1").first();
-            hasCertifications = true;
-        } catch (e) {
-            // 컬럼이 없으면 자동으로 추가 시도
+        for (const col of jsonFields) {
             try {
-                await c.env.DB.prepare("ALTER TABLE hrd_instructors ADD COLUMN certifications TEXT").run();
-                hasCertifications = true;
-                console.log('Successfully added certifications column in GET endpoint');
-            } catch (alterError) {
-                console.warn('Failed to add certifications column in GET:', alterError);
+                await c.env.DB.prepare(`SELECT ${col} FROM hrd_instructors LIMIT 1`).first();
+                existingColumns.push(col);
+            } catch (e) {
+                try {
+                    await c.env.DB.prepare(`ALTER TABLE hrd_instructors ADD COLUMN ${col} TEXT`).run();
+                    existingColumns.push(col);
+                } catch (alterError) {
+                    console.warn(`Failed to add column ${col}:`, alterError);
+                }
             }
         }
 
-        try {
-            await c.env.DB.prepare("SELECT training_history FROM hrd_instructors LIMIT 1").first();
-            hasTrainingHistory = true;
-        } catch (e) { }
-
-        // 존재하는 컬럼만 SELECT 쿼리에 포함
         const selectFields = [
             'u.id', 'u.name', 'u.email', 'u.phone', 'u.role', 'u.status as user_status', 'u.profile_image',
-            'i.position', 'i.subject', 'i.type', 'i.status as instructor_status', 'i.joined_at'
+            'i.position', 'i.subject', 'i.type', 'i.status as instructor_status', 'i.joined_at', 'u.created_at'
         ];
 
-        if (hasEducation) selectFields.push('i.education');
-        if (hasCareer) selectFields.push('i.career');
-        if (hasCertifications) selectFields.push('i.certifications');
-        if (hasTrainingHistory) selectFields.push('i.training_history');
-
-        let hasTeachingHistory = false;
-        try {
-            await c.env.DB.prepare("SELECT teaching_history FROM hrd_instructors LIMIT 1").first();
-            hasTeachingHistory = true;
-        } catch (e) {
-            try {
-                await c.env.DB.prepare("ALTER TABLE hrd_instructors ADD COLUMN teaching_history TEXT").run();
-                hasTeachingHistory = true;
-            } catch (alterError) { }
+        for (const col of existingColumns) {
+            selectFields.push(`i.${col}`);
         }
-        if (hasTeachingHistory) selectFields.push('i.teaching_history');
-
-        selectFields.push('u.created_at');
 
         const query = `
-            SELECT 
-                ${selectFields.join(', ')}
+            SELECT ${selectFields.join(', ')}
             FROM users u
             LEFT JOIN hrd_instructors i ON u.id = i.user_id
             WHERE u.role = 'teacher' OR i.user_id IS NOT NULL
             ORDER BY u.created_at DESC
         `;
 
-        console.log('GET query includes certifications:', hasCertifications);
-
         const { results } = await c.env.DB.prepare(query).all();
 
-        // certifications 및 teaching_history 필드가 JSON 문자열인 경우 파싱하여 반환
         const processedResults = (results || []).map((row: any) => {
             const processed: any = { ...row };
-
-            // certifications 처리
-            if (processed.certifications !== null && processed.certifications !== undefined) {
-                try {
-                    // 문자열인 경우 파싱
-                    if (typeof processed.certifications === 'string') {
-                        const trimmed = processed.certifications.trim();
-                        if (trimmed === '' || trimmed === 'null' || trimmed === 'undefined') {
-                            processed.certifications = null;
-                        } else {
-                            processed.certifications = JSON.parse(trimmed);
+            for (const field of jsonFields) {
+                if (processed[field] !== null && processed[field] !== undefined) {
+                    try {
+                        if (typeof processed[field] === 'string') {
+                            const trimmed = processed[field].trim();
+                            if (trimmed === '' || trimmed === 'null' || trimmed === 'undefined' || trimmed === '[]') {
+                                processed[field] = null;
+                            } else {
+                                processed[field] = JSON.parse(trimmed);
+                            }
                         }
+                    } catch (e) {
+                        processed[field] = null;
                     }
-                    // 이미 객체/배열인 경우 그대로 사용
-                } catch (e) {
-                    console.warn('Failed to parse certifications JSON:', e, 'Raw:', processed.certifications);
-                    // 파싱 실패 시 null로 설정
-                    processed.certifications = null;
+                } else {
+                    processed[field] = null;
                 }
-            } else {
-                // null 또는 undefined인 경우 명시적으로 null로 설정
-                processed.certifications = null;
             }
-
-            // teaching_history 처리
-            if (processed.teaching_history !== null && processed.teaching_history !== undefined) {
-                try {
-                    // 문자열인 경우 파싱
-                    if (typeof processed.teaching_history === 'string') {
-                        const trimmed = processed.teaching_history.trim();
-                        if (trimmed === '' || trimmed === 'null' || trimmed === 'undefined') {
-                            processed.teaching_history = null;
-                        } else {
-                            processed.teaching_history = JSON.parse(trimmed);
-                        }
-                    }
-                    // 이미 객체/배열인 경우 그대로 사용
-                } catch (e) {
-                    console.warn('Failed to parse teaching_history JSON:', e, 'Raw:', processed.teaching_history);
-                    processed.teaching_history = null;
-                }
-            } else {
-                processed.teaching_history = null;
-            }
-
-            console.log(`Personnel ID ${processed.id}: certifications =`, processed.certifications);
-            console.log(`Personnel ID ${processed.id}: teaching_history =`, processed.teaching_history);
-
             return processed;
         });
 
         return c.json({ success: true, data: processedResults });
     } catch (e) {
         console.error('Failed to fetch personnel:', e);
-        return c.json({ success: false, error: '교강사 목록 조회 실패: ' + (e instanceof Error ? e.message : String(e)) }, 500);
+        return c.json({ success: false, error: '교강사 목록 조회 실패' }, 500);
     }
 });
 
@@ -151,48 +83,33 @@ app.post('/personnel', async (c) => {
     try {
         const body = await c.req.json();
         const { email, name, phone, position, subject, type, joined_at, profile_image,
-            education, career, certifications, training_history } = body;
+            education, career, certifications, training_history, teaching_history } = body;
 
-        // 1. 사용자 테이블에 있는지 확인
         let user: any = await c.env.DB.prepare("SELECT id FROM users WHERE email = ?").bind(email).first();
         let userId: number;
 
         if (!user) {
-            // 새 사용자 생성 (비밀번호는 기본값으로 설정 - 추후 변경 필요)
             const result = await c.env.DB.prepare(
                 "INSERT INTO users (email, password, name, phone, role, status, profile_image) VALUES (?, ?, ?, ?, 'teacher', 'active', ?)"
             ).bind(email, 'temp_password', name, phone, profile_image || null).run();
             userId = result.meta.last_row_id as number;
         } else {
             userId = user.id;
-            // 역할 및 이미지 업데이트
-            await c.env.DB.prepare("UPDATE users SET role = 'teacher', profile_image = ? WHERE id = ?").bind(profile_image || null, userId).run();
+            await c.env.DB.prepare("UPDATE users SET role = 'teacher', profile_image = ? WHERE id = ?")
+                .bind(profile_image || null, userId).run();
         }
 
-        // 2. 강사 상세 정보 등록
-        // 새 컬럼 존재 여부 확인 후 적절한 쿼리 사용
-        try {
-            await c.env.DB.prepare("SELECT education FROM hrd_instructors LIMIT 1").first();
-            // 새 컬럼이 있으면 전체 필드 사용
-            await c.env.DB.prepare(`
-                INSERT OR REPLACE INTO hrd_instructors 
-                (user_id, position, subject, type, status, joined_at, education, career, certifications, training_history)
-                VALUES (?, ?, ?, ?, 'active', ?, ?, ?, ?, ?)
-            `).bind(
-                userId, position, subject, type, joined_at,
-                education || null,
-                career || null,
-                certifications || null,
-                training_history || null
-            ).run();
-        } catch (colError) {
-            // 새 컬럼이 없으면 기본 필드만 사용
-            await c.env.DB.prepare(`
-                INSERT OR REPLACE INTO hrd_instructors 
-                (user_id, position, subject, type, status, joined_at)
-                VALUES (?, ?, ?, ?, 'active', ?)
-            `).bind(userId, position, subject, type, joined_at).run();
-        }
+        const processJson = (val: any) => (val && typeof val !== 'string') ? JSON.stringify(val) : (val || null);
+
+        await c.env.DB.prepare(`
+            INSERT OR REPLACE INTO hrd_instructors 
+            (user_id, position, subject, type, status, joined_at, education, career, certifications, training_history, teaching_history)
+            VALUES (?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?)
+        `).bind(
+            userId, position, subject, type, joined_at,
+            processJson(education), processJson(career), processJson(certifications),
+            processJson(training_history), processJson(teaching_history)
+        ).run();
 
         return c.json({ success: true, message: '교강사가 등록되었습니다.' });
     } catch (e) {
@@ -205,250 +122,68 @@ app.post('/personnel', async (c) => {
 app.put('/personnel/:id', authMiddleware, async (c) => {
     try {
         const rawId = c.req.param('id');
-        const cleanId = rawId.includes(':') ? rawId.split(':')[0] : rawId;
-        const userIdNum = parseInt(cleanId);
-        const userId: string | number = isNaN(userIdNum) ? cleanId : userIdNum;
+        const userId = parseInt(rawId.includes(':') ? rawId.split(':')[0] : rawId);
         const user = c.get('user');
         const body = await c.req.json();
 
-        // 강사는 본인 정보만 수정 가능
-        // userId와 user.userId를 모두 숫자로 변환하여 비교
-        const userUserIdNum = typeof user.userId === 'number' ? user.userId : parseInt(user.userId);
-        if (user.role === 'teacher' && userUserIdNum !== userIdNum) {
-            console.log('Permission check failed:', { userUserId: userUserIdNum, requestedUserId: userIdNum, userRole: user.role });
-            return c.json({ success: false, error: '본인의 정보만 수정할 수 있습니다.' }, 403);
+        if (user.role === 'teacher' && user.userId !== userId) {
+            return forbiddenResponse(c, '본인의 정보만 수정할 수 있습니다.');
         }
 
-        // 이후 코드에서 userId 사용
         const { name, phone, email, position, subject, type, joined_at, instructor_status, profile_image,
             education, career, certifications, training_history, teaching_history } = body;
 
-        // 1. users 테이블 업데이트 (기본 정보)
+        // 1. users 테이블 업데이트
         await c.env.DB.prepare(
             "UPDATE users SET name = ?, phone = ?, email = ?, profile_image = ? WHERE id = ?"
         ).bind(name, phone, email, profile_image || null, userId).run();
 
-        // 2. hrd_instructors 테이블 업데이트 (상세 정보)
-        const exists = await c.env.DB.prepare("SELECT user_id FROM hrd_instructors WHERE user_id = ?").bind(userId).first();
-
-        // 각 컬럼 존재 여부를 개별적으로 확인
-        let hasEducation = false;
-        let hasCareer = false;
-        let hasCertifications = false;
-        let hasTrainingHistory = false;
-
-        try {
-            await c.env.DB.prepare("SELECT education FROM hrd_instructors LIMIT 1").first();
-            hasEducation = true;
-        } catch (e) { }
-
-        try {
-            await c.env.DB.prepare("SELECT career FROM hrd_instructors LIMIT 1").first();
-            hasCareer = true;
-        } catch (e) { }
-
-        try {
-            await c.env.DB.prepare("SELECT certifications FROM hrd_instructors LIMIT 1").first();
-            hasCertifications = true;
-        } catch (e) {
-            console.warn('certifications column does not exist, attempting to add it');
-            // 컬럼이 없으면 자동으로 추가 시도
+        // 2. hrd_instructors 테이블 업데이트
+        const jsonFields = ['education', 'career', 'certifications', 'training_history', 'teaching_history'];
+        for (const col of jsonFields) {
             try {
-                await c.env.DB.prepare("ALTER TABLE hrd_instructors ADD COLUMN certifications TEXT").run();
-                hasCertifications = true;
-                console.log('Successfully added certifications column');
-            } catch (alterError) {
-                console.error('Failed to add certifications column:', alterError);
-                // 컬럼 추가 실패해도 계속 진행 (다른 필드는 저장)
-            }
-        }
-
-        try {
-            await c.env.DB.prepare("SELECT training_history FROM hrd_instructors LIMIT 1").first();
-            hasTrainingHistory = true;
-        } catch (e) { }
-
-        let hasTeachingHistory = false;
-        try {
-            await c.env.DB.prepare("SELECT teaching_history FROM hrd_instructors LIMIT 1").first();
-            hasTeachingHistory = true;
-        } catch (e) {
-            try {
-                await c.env.DB.prepare("ALTER TABLE hrd_instructors ADD COLUMN teaching_history TEXT").run();
-                hasTeachingHistory = true;
-                console.log('Successfully added teaching_history column');
-            } catch (alterError) {
-                console.error('Failed to add teaching_history column:', alterError);
-            }
-        }
-
-        // certifications 처리: 배열이면 JSON 문자열로 변환, 문자열이면 그대로, 빈 값이면 null
-        let certsValue: string | null = null;
-        if (hasCertifications && certifications !== null && certifications !== undefined) {
-            if (Array.isArray(certifications)) {
-                // 배열인 경우 JSON 문자열로 변환
-                certsValue = certifications.length > 0 ? JSON.stringify(certifications) : null;
-            } else if (typeof certifications === 'string') {
-                // 문자열인 경우
-                const trimmed = certifications.trim();
-                if (trimmed === '' || trimmed === '[]' || trimmed === 'null' || trimmed === 'undefined') {
-                    certsValue = null;
-                } else {
-                    certsValue = trimmed;
-                }
-            } else if (typeof certifications === 'object') {
-                // 객체인 경우 JSON 문자열로 변환
-                certsValue = JSON.stringify(certifications);
-            }
-        }
-
-        console.log('Column existence:', { hasEducation, hasCareer, hasCertifications, hasTrainingHistory });
-        console.log('Saving certifications:', certsValue);
-        console.log('Type:', typeof certsValue);
-
-        if (exists) {
-            // 동적으로 쿼리 생성 (존재하는 컬럼만 포함)
-            const updateFields: string[] = ['position = ?', 'subject = ?', 'type = ?', 'joined_at = ?'];
-            const params: any[] = [position, subject, type, joined_at];
-
-            if (hasEducation) {
-                updateFields.push('education = ?');
-                params.push(education || null);
-            }
-
-            if (hasCareer) {
-                updateFields.push('career = ?');
-                params.push(career || null);
-            }
-
-            if (hasCertifications) {
-                updateFields.push('certifications = ?');
-                params.push(certsValue);
-            }
-
-            if (hasTrainingHistory) {
-                updateFields.push('training_history = ?');
-                params.push(training_history || null);
-            }
-
-            // teaching_history 처리: 배열이면 JSON 문자열로 변환
-            let teachingHistoryValue: string | null = null;
-            if (hasTeachingHistory && teaching_history !== null && teaching_history !== undefined) {
-                if (Array.isArray(teaching_history)) {
-                    teachingHistoryValue = teaching_history.length > 0 ? JSON.stringify(teaching_history) : null;
-                } else if (typeof teaching_history === 'string') {
-                    const trimmed = teaching_history.trim();
-                    if (trimmed === '' || trimmed === '[]' || trimmed === 'null' || trimmed === 'undefined') {
-                        teachingHistoryValue = null;
-                    } else {
-                        teachingHistoryValue = trimmed;
-                    }
-                } else if (typeof teaching_history === 'object') {
-                    teachingHistoryValue = JSON.stringify(teaching_history);
-                }
-            }
-
-            if (hasTeachingHistory) {
-                updateFields.push('teaching_history = ?');
-                params.push(teachingHistoryValue);
-            }
-
-            if (instructor_status) {
-                updateFields.push('status = ?');
-                params.push(instructor_status);
-            }
-
-            // WHERE 절은 SET 절 밖에 있어야 함
-            const query = `UPDATE hrd_instructors SET ${updateFields.join(', ')} WHERE user_id = ?`;
-            params.push(userId);
-
-            console.log('Update query:', query);
-            console.log('Update params:', params);
-
-            const updateResult = await c.env.DB.prepare(query).bind(...params).run();
-            console.log('Update result:', updateResult);
-        } else {
-            // INSERT: 존재하는 컬럼만 포함
-            const insertFields: string[] = ['user_id', 'position', 'subject', 'type', 'joined_at', 'status'];
-            const insertValues: string[] = ['?', '?', '?', '?', '?', '?'];
-            const insertParams: any[] = [userId, position, subject, type, joined_at, instructor_status || 'active'];
-
-            if (hasEducation) {
-                insertFields.push('education');
-                insertValues.push('?');
-                insertParams.push(education || null);
-            }
-
-            if (hasCareer) {
-                insertFields.push('career');
-                insertValues.push('?');
-                insertParams.push(career || null);
-            }
-
-            if (hasCertifications) {
-                insertFields.push('certifications');
-                insertValues.push('?');
-                insertParams.push(certsValue);
-            }
-
-            if (hasTrainingHistory) {
-                insertFields.push('training_history');
-                insertValues.push('?');
-                insertParams.push(training_history || null);
-            }
-
-            // teaching_history 처리
-            let teachingHistoryValue: string | null = null;
-            if (hasTeachingHistory && teaching_history !== null && teaching_history !== undefined) {
-                if (Array.isArray(teaching_history)) {
-                    teachingHistoryValue = teaching_history.length > 0 ? JSON.stringify(teaching_history) : null;
-                } else if (typeof teaching_history === 'string') {
-                    const trimmed = teaching_history.trim();
-                    if (trimmed === '' || trimmed === '[]' || trimmed === 'null' || trimmed === 'undefined') {
-                        teachingHistoryValue = null;
-                    } else {
-                        teachingHistoryValue = trimmed;
-                    }
-                } else if (typeof teaching_history === 'object') {
-                    teachingHistoryValue = JSON.stringify(teaching_history);
-                }
-            }
-
-            if (hasTeachingHistory) {
-                insertFields.push('teaching_history');
-                insertValues.push('?');
-                insertParams.push(teachingHistoryValue);
-            }
-
-            const insertQuery = `INSERT INTO hrd_instructors (${insertFields.join(', ')}) VALUES (${insertValues.join(', ')})`;
-            console.log('Insert query:', insertQuery);
-            console.log('Insert params:', insertParams);
-
-            await c.env.DB.prepare(insertQuery).bind(...insertParams).run();
-        }
-
-        // 저장 후 실제로 저장된 데이터 확인 (certifications 컬럼이 있는 경우만)
-        if (hasCertifications) {
-            try {
-                const savedData = await c.env.DB.prepare(`
-                    SELECT certifications FROM hrd_instructors WHERE user_id = ?
-                `).bind(userId).first();
-
-                console.log('Saved certifications in DB:', savedData?.certifications);
+                await c.env.DB.prepare(`SELECT ${col} FROM hrd_instructors LIMIT 1`).first();
             } catch (e) {
-                console.warn('Could not verify saved certifications:', e);
+                try {
+                    await c.env.DB.prepare(`ALTER TABLE hrd_instructors ADD COLUMN ${col} TEXT`).run();
+                } catch (alterError) { }
             }
         }
+
+        const processJson = (val: any) => {
+            if (val === null || val === undefined) return null;
+            if (typeof val === 'string') {
+                const trimmed = val.trim();
+                return (trimmed === '' || trimmed === '[]' || trimmed === 'null' || trimmed === 'undefined') ? null : trimmed;
+            }
+            return JSON.stringify(val);
+        };
+
+        const updateFields = ['position = ?', 'subject = ?', 'type = ?', 'joined_at = ?', 'status = ?'];
+        const params: any[] = [position, subject, type, joined_at, instructor_status || 'active'];
+
+        const jsonValues = {
+            education: processJson(education),
+            career: processJson(career),
+            certifications: processJson(certifications),
+            training_history: processJson(training_history),
+            teaching_history: processJson(teaching_history)
+        };
+
+        for (const [field, value] of Object.entries(jsonValues)) {
+            updateFields.push(`${field} = ?`);
+            params.push(value);
+        }
+
+        const query = `UPDATE hrd_instructors SET ${updateFields.join(', ')} WHERE user_id = ?`;
+        params.push(userId);
+
+        await c.env.DB.prepare(query).bind(...params).run();
 
         return c.json({ success: true, message: '정보가 수정되었습니다.' });
     } catch (e) {
         console.error('Failed to update personnel:', e);
-        console.error('Error details:', e instanceof Error ? e.message : String(e));
-        console.error('Stack trace:', e instanceof Error ? e.stack : 'N/A');
-        return c.json({
-            success: false,
-            error: '수정 실패: ' + (e instanceof Error ? e.message : String(e))
-        }, 500);
+        return c.json({ success: false, error: '수정 실패: ' + (e instanceof Error ? e.message : String(e)) }, 500);
     }
 });
 
@@ -1282,7 +1017,25 @@ app.get('/facilities/:id/maintenance', async (c) => {
     try {
         const id = c.req.param('id');
 
-        // progress 및 updated_at 컬럼 존재 확인 및 추가
+        // 안전 장치: 테이블이 없으면 생성
+        await c.env.DB.prepare(`
+            CREATE TABLE IF NOT EXISTS hrd_facility_maintenance (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                facility_id INTEGER,
+                status TEXT,
+                title TEXT,
+                price INTEGER DEFAULT 0,
+                vendor TEXT,
+                manager TEXT,
+                memo TEXT,
+                date TEXT,
+                progress TEXT DEFAULT 'pending',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `).run();
+
+        // 기존 테이블이 있을 경우 컬럼 누락 방지 (마이그레이션)
         try {
             await c.env.DB.prepare("SELECT progress FROM hrd_facility_maintenance LIMIT 1").first();
         } catch (e) {
@@ -1290,6 +1043,7 @@ app.get('/facilities/:id/maintenance', async (c) => {
                 await c.env.DB.prepare("ALTER TABLE hrd_facility_maintenance ADD COLUMN progress TEXT DEFAULT 'pending'").run();
             } catch (alterError) { console.error('Failed to add progress column', alterError); }
         }
+
         try {
             await c.env.DB.prepare("SELECT updated_at FROM hrd_facility_maintenance LIMIT 1").first();
         } catch (e) {

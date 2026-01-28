@@ -521,6 +521,15 @@ export const teacherProfileHtml = `
         let currentCareerIndex = null;
         let currentTrainingIndex = null;
         
+        // 디버깅용: 전역 변수들에 접근 가능하도록 윈도우 객체에 할당 (선택 사항)
+        window._debug_state = {
+            get education() { return education; },
+            get career() { return career; },
+            get certifications() { return certifications; },
+            get training() { return training; },
+            get teachingHistory() { return teachingHistory; }
+        };
+
         // 학력 모달 함수들
         window.openEducationModal = function(index = null) {
             currentEducationIndex = index;
@@ -603,7 +612,7 @@ export const teacherProfileHtml = `
             currentCareerIndex = null;
         };
         
-        // 보수교육 모달 함수들
+        // 보수교육 모달 함수들 (기존에 handleSaveTraining으로 오기입된 부분 수정)
         window.openTrainingModal = function(index = null) {
             currentTrainingIndex = index;
             const modal = document.getElementById('trainingModal');
@@ -880,9 +889,11 @@ export const teacherProfileHtml = `
                     // 상세 정보 - JSON 배열로 파싱
                 // 학력
                 if (data.education) {
+                    console.log('Raw education from server:', data.education);
                     try {
                         const eduData = typeof data.education === 'string' ? JSON.parse(data.education) : data.education;
                         education = Array.isArray(eduData) ? eduData : [];
+                        console.log('Parsed education:', education);
                     } catch (e) {
                         // 기존 텍스트 형식인 경우 빈 배열로 처리
                         console.log('Education is not JSON array, treating as empty:', e);
@@ -1554,43 +1565,10 @@ export const teacherProfileHtml = `
             });
         }
 
-        // 보수교육 모달 저장 함수 (이미 위에서 openTrainingModal, closeTrainingModal 정의됨)
-        window.handleSaveTraining = function(event) {
-            currentTrainingIndex = index;
-            const modal = document.getElementById('trainingModal');
-            const title = document.getElementById('trainingModalTitle');
-            const form = document.getElementById('trainingForm');
-            
-            if (index !== null && training[index]) {
-                // 수정 모드
-                const tr = training[index];
-                title.textContent = '보수교육 수정';
-                document.getElementById('trainingModalId').value = tr.id || '';
-                document.getElementById('trainingModalName').value = tr.name || '';
-                document.getElementById('trainingModalStartDate').value = tr.start_date ? tr.start_date.split('T')[0] : '';
-                document.getElementById('trainingModalEndDate').value = tr.end_date ? tr.end_date.split('T')[0] : '';
-                document.getElementById('trainingModalHours').value = tr.hours || '';
-                document.getElementById('trainingModalInstitution').value = tr.institution || '';
-                document.getElementById('trainingModalDescription').value = tr.description || '';
-                document.getElementById('trainingModalNotes').value = tr.notes || '';
-            } else {
-                // 추가 모드
-                title.textContent = '보수교육 추가';
-                form.reset();
-                document.getElementById('trainingModalId').value = '';
-            }
-            
-            modal.classList.remove('hidden');
-        };
-        
-        window.closeTrainingModal = function() {
-            const modal = document.getElementById('trainingModal');
-            modal.classList.add('hidden');
-            currentTrainingIndex = null;
-        };
-        
+        // 보수교육 모달 저장 함수
         window.handleSaveTraining = function(event) {
             event.preventDefault();
+            console.log('handleSaveTraining called, currentTrainingIndex:', currentTrainingIndex);
             
             const name = document.getElementById('trainingModalName').value;
             const startDate = document.getElementById('trainingModalStartDate').value;
@@ -1601,8 +1579,13 @@ export const teacherProfileHtml = `
             const notes = document.getElementById('trainingModalNotes').value;
             const id = document.getElementById('trainingModalId').value;
             
+            if (!name) {
+                alert('연수명을 입력해주세요.');
+                return;
+            }
+
             const trData = {
-                id: id || 'training_' + Date.now(),
+                id: id || 'tr_' + Date.now(),
                 name: name || null,
                 start_date: startDate || null,
                 end_date: endDate || null,
@@ -1618,10 +1601,11 @@ export const teacherProfileHtml = `
                 training.push(trData);
             }
             
+            console.log('Training list updated:', training);
             window.closeTrainingModal();
             loadTraining();
         };
-        
+
         window.deleteTraining = function(index) {
             if (!confirm('보수교육을 삭제하시겠습니까?')) return;
             training.splice(index, 1);
@@ -1635,9 +1619,11 @@ export const teacherProfileHtml = `
                 return;
             }
             
+            console.log('loadTraining called, training data:', training);
             container.innerHTML = '';
             
-            if (!training || training.length === 0) {
+            if (!training || !Array.isArray(training) || training.length === 0) {
+                console.log('No training history to display');
                 container.innerHTML = '<div class="text-center py-12 text-gray-400"><i class="fas fa-chalkboard-teacher text-4xl mb-3 opacity-50"></i><p class="text-sm">보수교육이 없습니다.</p><p class="text-xs mt-1">추가 버튼을 클릭하여 보수교육을 추가하세요.</p></div>';
                 return;
             }
@@ -1678,6 +1664,15 @@ export const teacherProfileHtml = `
                 const token = localStorage.getItem('token');
                 const form = event.target;
                 
+                // 전역 배열 상태 확인 및 로그
+                console.log('Final saving data check:', {
+                    education, 
+                    career, 
+                    certifications, 
+                    training, 
+                    teachingHistory
+                });
+
                 // 폼 데이터 수집
                 const data = {
                     name: form.pName.value,
@@ -1688,14 +1683,16 @@ export const teacherProfileHtml = `
                     type: form.pType.value,
                     joined_at: form.pJoined.value || null,
                     profile_image: form.pImageUrl.value || null,
-                    education: education.length > 0 ? JSON.stringify(education) : '[]',
-                    career: career.length > 0 ? JSON.stringify(career) : '[]',
-                    certifications: certifications.length > 0 ? JSON.stringify(certifications) : '[]',
-                    training_history: training.length > 0 ? JSON.stringify(training) : '[]',
-                    teaching_history: teachingHistory.length > 0 ? JSON.stringify(teachingHistory) : '[]'
+                    // 항상 배열을 문자열로 변환하여 전달
+                    education: JSON.stringify(education),
+                    career: JSON.stringify(career),
+                    certifications: JSON.stringify(certifications),
+                    training_history: JSON.stringify(training),
+                    teaching_history: JSON.stringify(teachingHistory)
                 };
                 
-                // API 호출
+                console.log('Sending data to server:', data);
+
                 const response = await fetch(\`/api/hrd/personnel/\${currentUserId}\`, {
                     method: 'PUT',
                     headers: {
@@ -1708,15 +1705,16 @@ export const teacherProfileHtml = `
                 const result = await response.json();
                 if (result.success) {
                     alert('개인정보가 저장되었습니다.');
-                    // 사용자 정보 업데이트
+                    // 사용자 로컬 스토리지 정보 캐시 업데이트
                     const user = JSON.parse(localStorage.getItem('user') || '{}');
                     user.name = data.name;
                     user.email = data.email;
                     user.phone = data.phone;
                     user.profile_image = data.profile_image;
                     localStorage.setItem('user', JSON.stringify(user));
-                    // 데이터 다시 로드
-                    loadProfileData();
+                    
+                    // 저장 후 데이터를 다시 로드하여 UI 갱신
+                    await loadProfileData();
                 } else {
                     alert('저장 실패: ' + (result.error || '알 수 없는 오류'));
                 }
