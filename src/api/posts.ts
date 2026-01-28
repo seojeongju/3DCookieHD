@@ -72,14 +72,22 @@ app.get('/', async (c) => {
     const posts = (results || []).map((post: any) => {
       let images = parseImages(post.images);
 
-      if (images.length === 0 && post.content) {
+      // R2에 저장된 콘텐츠는 목록에서는 원본 메시지 유지 (전체 콘텐츠 로드는 상세 조회에서)
+      let displayContent = post.content || '';
+      if (post.content && post.content.includes('[콘텐츠가 R2 스토리지에 저장되었습니다')) {
+        // R2 저장된 콘텐츠는 목록에서 간단히 표시
+        displayContent = '[대용량 콘텐츠 - 상세보기에서 확인 가능]';
+      }
+
+      if (images.length === 0 && displayContent) {
         const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/i;
-        const match = post.content.match(imgRegex);
+        const match = displayContent.match(imgRegex);
         if (match?.[1]) images = [match[1]];
       }
 
       return {
         ...post,
+        content: displayContent,
         images,
         pinned: Boolean(post.pinned)
       };
@@ -144,10 +152,34 @@ app.get('/:id', async (c) => {
       images = [];
     }
 
+    // R2에 저장된 콘텐츠인지 확인하고 로드
+    let finalContent = post.content || '';
+    if (post.content && post.content.includes('[콘텐츠가 R2 스토리지에 저장되었습니다. URL: ')) {
+      try {
+        const urlMatch = post.content.match(/URL: (\/api\/upload\/files\/[^\]]+)/);
+        if (urlMatch && urlMatch[1]) {
+          const { R2 } = c.env;
+          if (R2) {
+            const filePath = urlMatch[1].replace('/api/upload/files/', '');
+            const object = await R2.get(filePath);
+            if (object) {
+              const decoder = new TextDecoder('utf-8');
+              finalContent = decoder.decode(await object.arrayBuffer());
+              console.log('GET /api/posts/:id: Loaded content from R2', { filePath, contentLength: finalContent.length });
+            }
+          }
+        }
+      } catch (r2Error: any) {
+        console.error('GET /api/posts/:id: Failed to load content from R2', r2Error?.message ?? r2Error);
+        // R2 로드 실패 시 원본 메시지 유지
+      }
+    }
+
     return c.json({
       success: true,
       data: {
         ...post,
+        content: finalContent,
         images,
         pinned: Boolean(post.pinned),
         comments: comments || []
@@ -223,13 +255,67 @@ app.post('/', authMiddleware, async (c) => {
       ? String(status)
       : 'published';
 
+    // D1 TEXT 컬럼 크기 제한 (약 100KB)을 초과하면 R2에 저장
+    const CONTENT_SIZE_LIMIT = 100 * 1024; // 100KB
+    let finalContent = cont;
+    let contentUrl: string | null = null;
+
+    if (cont.length > CONTENT_SIZE_LIMIT) {
+      try {
+        const { R2 } = c.env;
+        if (R2) {
+          // R2에 HTML 콘텐츠를 텍스트 파일로 저장
+          const timestamp = Date.now();
+          const randomStr = Math.random().toString(36).substring(2, 8);
+          const filePath = `posts/content/${timestamp}_${randomStr}_${user.userId}.html`;
+          
+          const encoder = new TextEncoder();
+          const contentBuffer = encoder.encode(cont);
+          
+          await R2.put(filePath, contentBuffer, {
+            httpMetadata: {
+              contentType: 'text/html; charset=utf-8',
+              cacheControl: 'public, max-age=31536000',
+            },
+            customMetadata: {
+              originalName: `post_${timestamp}.html`,
+              uploadedBy: user.userId.toString(),
+              uploadedAt: new Date().toISOString(),
+              postTitle: tit.substring(0, 100), // 제목 일부만 메타데이터에 저장
+            },
+          });
+
+          contentUrl = `/api/upload/files/${filePath}`;
+          finalContent = `[콘텐츠가 R2 스토리지에 저장되었습니다. URL: ${contentUrl}]`;
+          
+          console.log('POST /api/posts: Content saved to R2', {
+            contentLength: cont.length,
+            contentUrl,
+            filePath
+          });
+        }
+      } catch (r2Error: any) {
+        console.error('POST /api/posts: Failed to save content to R2', r2Error?.message ?? r2Error);
+        // R2 저장 실패해도 원본 콘텐츠로 시도 (더 작은 크기로 잘라서)
+        if (cont.length > CONTENT_SIZE_LIMIT * 2) {
+          return c.json({ 
+            success: false, 
+            error: '콘텐츠가 너무 큽니다. 콘텐츠를 줄이거나 이미지를 별도로 업로드해주세요.' 
+          }, 400);
+        }
+        // R2 저장 실패 시 원본 콘텐츠 사용 (에러 발생 가능하지만 시도)
+      }
+    }
+
     console.log('POST /api/posts: Inserting post', {
       author_id: user.userId,
       title: tit,
       category: cat,
       status: st,
       pinned: pin ? 1 : 0,
-      imagesLength: imagesJson.length
+      imagesLength: imagesJson.length,
+      contentLength: finalContent.length,
+      contentUrl: contentUrl || 'stored in DB'
     });
 
     const result = await DB.prepare(`
@@ -240,7 +326,7 @@ app.post('/', authMiddleware, async (c) => {
     `).bind(
       user.userId,
       tit,
-      cont,
+      finalContent,
       cat,
       imagesJson,
       pin ? 1 : 0,
@@ -297,6 +383,71 @@ app.put('/:id', authMiddleware, async (c) => {
 
     const { title, content, images, pinned, status } = body;
 
+    // D1 TEXT 컬럼 크기 제한을 초과하면 R2에 저장
+    const CONTENT_SIZE_LIMIT = 100 * 1024; // 100KB
+    let finalContent = content ?? post.content;
+    let contentUrl: string | null = null;
+
+    if (content && content.length > CONTENT_SIZE_LIMIT) {
+      try {
+        const { R2 } = c.env;
+        if (R2) {
+          // 기존 R2 파일이 있으면 삭제
+          if (post.content && post.content.includes('[콘텐츠가 R2 스토리지에 저장되었습니다. URL: ')) {
+            const urlMatch = post.content.match(/URL: (\/api\/upload\/files\/[^\]]+)/);
+            if (urlMatch && urlMatch[1]) {
+              const oldFilePath = urlMatch[1].replace('/api/upload/files/', '');
+              try {
+                await R2.delete(oldFilePath);
+                console.log('PUT /api/posts/:id: Deleted old R2 content', { oldFilePath });
+              } catch (deleteError) {
+                console.warn('PUT /api/posts/:id: Failed to delete old R2 content', deleteError);
+              }
+            }
+          }
+
+          // 새로운 콘텐츠를 R2에 저장
+          const timestamp = Date.now();
+          const randomStr = Math.random().toString(36).substring(2, 8);
+          const filePath = `posts/content/${timestamp}_${randomStr}_${user.userId}.html`;
+          
+          const encoder = new TextEncoder();
+          const contentBuffer = encoder.encode(content);
+          
+          await R2.put(filePath, contentBuffer, {
+            httpMetadata: {
+              contentType: 'text/html; charset=utf-8',
+              cacheControl: 'public, max-age=31536000',
+            },
+            customMetadata: {
+              originalName: `post_${timestamp}.html`,
+              uploadedBy: user.userId.toString(),
+              uploadedAt: new Date().toISOString(),
+              postTitle: (title ?? post.title).substring(0, 100),
+            },
+          });
+
+          contentUrl = `/api/upload/files/${filePath}`;
+          finalContent = `[콘텐츠가 R2 스토리지에 저장되었습니다. URL: ${contentUrl}]`;
+          
+          console.log('PUT /api/posts/:id: Content saved to R2', {
+            contentLength: content.length,
+            contentUrl,
+            filePath
+          });
+        }
+      } catch (r2Error: any) {
+        console.error('PUT /api/posts/:id: Failed to save content to R2', r2Error?.message ?? r2Error);
+        // R2 저장 실패 시 원본 콘텐츠 사용
+        if (content.length > CONTENT_SIZE_LIMIT * 2) {
+          return c.json({ 
+            success: false, 
+            error: '콘텐츠가 너무 큽니다. 콘텐츠를 줄이거나 이미지를 별도로 업로드해주세요.' 
+          }, 400);
+        }
+      }
+    }
+
     // 게시글 수정
     await DB.prepare(`
       UPDATE posts 
@@ -305,7 +456,7 @@ app.put('/:id', authMiddleware, async (c) => {
       WHERE id = ?
     `).bind(
       title ?? post.title,
-      content ?? post.content,
+      finalContent,
       images ? JSON.stringify(images) : post.images,
       (pinned !== undefined && user.role === 'admin') ? (pinned ? 1 : 0) : post.pinned,
       status ?? post.status,
