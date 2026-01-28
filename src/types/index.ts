@@ -75,6 +75,7 @@ export interface Course {
   end_date?: string;
   schedule?: string;
   tags?: string; // JSON
+  class_days?: string; // JSON (Selected dates array)
   rating: number;
   review_count: number;
   view_count: number;

@@ -41,8 +41,34 @@ export const adminLmsAttendanceHtml = `
                             <i class="fas fa-calendar text-gray-400"></i>
                         </div>
                     </div>
+                    <button onclick="openPrintModal()" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition flex items-center">
+                        <i class="fas fa-print mr-2"></i> 출석부 출력
+                    </button>
                     <button onclick="saveAttendance()" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center">
                         <i class="fas fa-save mr-2"></i> 저장하기
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 출석부 출력 모달 -->
+    <div id="printModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                <h3 class="text-lg font-bold text-gray-800">월간 출석부 출력</h3>
+                <button onclick="document.getElementById('printModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                   <label class="block text-sm font-medium text-gray-700 mb-1">출력할 연/월</label>
+                   <input type="month" id="printMonth" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none">
+                </div>
+                <div class="flex justify-end pt-2">
+                    <button onclick="printAttendance()" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors font-bold w-full">
+                        <i class="fas fa-print mr-2"></i> 인쇄 미리보기
                     </button>
                 </div>
             </div>
@@ -201,6 +227,27 @@ export const adminLmsAttendanceHtml = `
             }
         }
 
+        function openPrintModal() {
+            // Set default month to today YYYY-MM
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            document.getElementById('printMonth').value = \`\${yyyy}-\${mm}\`;
+            document.getElementById('printModal').classList.remove('hidden');
+        }
+
+        function printAttendance() {
+            const monthVal = document.getElementById('printMonth').value; // YYYY-MM
+            if (!monthVal) { alert('날짜를 선택하세요'); return; }
+            
+            const [year, month] = monthVal.split('-');
+            const courseTitle = document.getElementById('header-courseTitle')?.textContent || '과정';
+            
+            const url = \`/admin/attendance/print?courseId=\${courseId}&courseTitle=\${encodeURIComponent(courseTitle)}&year=\${year}&month=\${month}\`;
+            window.open(url, '_blank', 'width=1200,height=800');
+            document.getElementById('printModal').classList.add('hidden');
+        }
+
         function updateStudentData(index, field, value) {
             students[index][field] = value;
             if (field === 'status') {
@@ -238,7 +285,13 @@ export const adminLmsAttendanceHtml = `
                     },
                     body: JSON.stringify({
                         date: date,
-                        records: students
+                        records: students.map(s => ({
+                           enrollment_id: s.enrollment_id,
+                           check_in: s.check_in,
+                           check_out: s.check_out,
+                           status: s.status,
+                           note: s.note
+                        }))
                     })
                 });
                 

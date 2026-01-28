@@ -1289,6 +1289,67 @@ app.get('/attendance', authMiddleware, async (c) => {
     }
 });
 
+// 전체 과정 출석 요약 정보 조회
+app.get('/attendance/summary', authMiddleware, async (c) => {
+    try {
+        const date = c.req.query('date') || new Date().toISOString().split('T')[0];
+
+        // 1. 모든 활성 과정 조회
+        const coursesQuery = `
+            SELECT 
+                c.id, c.title,
+                u.name as teacher_name
+            FROM courses c
+            LEFT JOIN users u ON c.teacher_id = u.id
+            WHERE c.status IN ('active', 'open')
+            ORDER BY c.created_at DESC
+        `;
+        const { results: courses } = await c.env.DB.prepare(coursesQuery).all();
+
+        // 2. 각 과정별 통계 조회
+        const summaryData = await Promise.all((courses as any[]).map(async (course) => {
+            // 해당 과정의 총 학생 수
+            const studentsCount = await c.env.DB.prepare(`
+                SELECT COUNT(*) as count 
+                FROM enrollments 
+                WHERE course_id = ?
+            `).bind(course.id).first<{ count: number }>();
+
+            // 해당 날짜의 출석 로그 집계
+            const stats = await c.env.DB.prepare(`
+                SELECT 
+                    SUM(CASE WHEN al.status = 'present' THEN 1 ELSE 0 END) as present,
+                    SUM(CASE WHEN al.status = 'late' THEN 1 ELSE 0 END) as late,
+                    SUM(CASE WHEN al.status = 'early_leave' THEN 1 ELSE 0 END) as early,
+                    SUM(CASE WHEN al.status = 'absent' THEN 1 ELSE 0 END) as absent
+                FROM enrollments e
+                LEFT JOIN attendance_logs al ON e.id = al.enrollment_id AND al.date = ?
+                WHERE e.course_id = ?
+            `).bind(date, course.id).first<any>();
+
+            const total = studentsCount?.count || 0;
+            const handled = (Number(stats?.present) || 0) + (Number(stats?.late) || 0) + (Number(stats?.early) || 0) + (Number(stats?.absent) || 0);
+
+            return {
+                id: course.id,
+                title: course.title,
+                teacher_name: course.teacher_name || '-',
+                total_students: total,
+                present: Number(stats?.present) || 0,
+                late: (Number(stats?.late) || 0) + (Number(stats?.early) || 0),
+                absent: Number(stats?.absent) || 0,
+                pending: total - handled,
+                rate: total > 0 ? Math.round(((Number(stats?.present) || 0) / total) * 100) : 0
+            };
+        }));
+
+        return c.json({ success: true, data: summaryData });
+    } catch (e) {
+        console.error('Failed to fetch attendance summary:', e);
+        return c.json({ success: false, error: '출석 요약 조회 실패' }, 500);
+    }
+});
+
 // 월간 출석부 조회 (출력용)
 app.get('/attendance/monthly', async (c) => {
     try {
