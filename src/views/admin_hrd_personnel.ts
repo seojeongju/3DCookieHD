@@ -1373,12 +1373,12 @@ export const adminHrdPersonnelHtml = () => `
                      cert.file_urls.forEach(f => {
                          const url = typeof f === 'string' ? f : f.url;
                          const name = typeof f === 'string' ? (url.split('/').pop() || '파일') : (f.name || f.url.split('/').pop() || '파일');
-                         fileButtonsHtml += \`<button onclick="downloadFile('\${url}', '\${name}')" class="text-xs text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-1 rounded inline-flex items-center mr-2 mb-1 mt-1 border border-blue-100"><i class="fas fa-download mr-1"></i> \${name}</button>\`;
+                         fileButtonsHtml += \`<button type="button" onclick="event.stopPropagation(); downloadFile('\${url}', '\${name}')" class="text-xs text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-1 rounded inline-flex items-center mr-2 mb-1 mt-1 border border-blue-100"><i class="fas fa-download mr-1"></i> \${name}</button>\`;
                      });
                  } else if (cert.file_url) {
                       const url = cert.file_url;
                       const name = url.split('/').pop() || '파일';
-                      fileButtonsHtml = \`<button onclick="downloadFile('\${url}', '\${name}')" class="text-xs text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-1 rounded inline-flex items-center mr-2 mb-1 mt-1 border border-blue-100"><i class="fas fa-download mr-1"></i> \${name}</button>\`;
+                      fileButtonsHtml = \`<button type="button" onclick="event.stopPropagation(); downloadFile('\${url}', '\${name}')" class="text-xs text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-1 rounded inline-flex items-center mr-2 mb-1 mt-1 border border-blue-100"><i class="fas fa-download mr-1"></i> \${name}</button>\`;
                  }
 
                  const div = document.createElement('div');
