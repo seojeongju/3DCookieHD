@@ -263,15 +263,18 @@ export const teacherDashboardHtml = `
                 if (result.success && result.data) {
                     const data = result.data;
                     updateStats(data);
+                    // 데이터가 있으면 표시, 없으면 빈 상태 메시지 표시
                     renderRecentCourses(data.recentCourses || []);
                     renderPendingGrading(data.pendingGradingList || []);
                 } else {
                     console.error('Failed to load dashboard data:', result.error);
-                    showError('대시보드 데이터를 불러오는데 실패했습니다.');
+                    // 로딩 중지하고 에러 메시지 표시
+                    stopLoadingAndShowError('대시보드 데이터를 불러오는데 실패했습니다.');
                 }
             } catch (error) {
                 console.error('Error loading dashboard data:', error);
-                showError('대시보드 데이터를 불러오는 중 오류가 발생했습니다.');
+                // 로딩 중지하고 에러 메시지 표시
+                stopLoadingAndShowError('대시보드 데이터를 불러오는 중 오류가 발생했습니다.');
             }
         }
 
@@ -292,6 +295,7 @@ export const teacherDashboardHtml = `
         function renderRecentCourses(courses) {
             const container = document.getElementById('recentCoursesContainer');
             
+            // 로딩 상태 제거
             if (!courses || courses.length === 0) {
                 container.innerHTML = 
                     '<div class="col-span-3 text-center py-16 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl border-2 border-dashed border-gray-300">' +
@@ -343,6 +347,7 @@ export const teacherDashboardHtml = `
         function renderPendingGrading(gradingList) {
             const container = document.getElementById('pendingGradingListContainer');
             
+            // 로딩 상태 제거
             if (!gradingList || gradingList.length === 0) {
                 container.innerHTML = 
                     '<div class="px-6 py-12 text-center">' +
@@ -389,15 +394,37 @@ export const teacherDashboardHtml = `
             }).join('');
         }
 
-        function showError(message) {
-            const container = document.getElementById('recentCoursesContainer');
-            if (container) {
-                container.innerHTML = 
-                    '<div class="col-span-3 text-center py-12 bg-red-50 rounded-xl border border-red-200">' +
-                        '<i class="fas fa-exclamation-circle text-red-500 text-3xl mb-3"></i>' +
-                        '<p class="text-red-600 font-medium">' + message + '</p>' +
+        function stopLoadingAndShowError(message) {
+            // 담당 과정 섹션 로딩 중지 및 에러 표시
+            const coursesContainer = document.getElementById('recentCoursesContainer');
+            if (coursesContainer) {
+                coursesContainer.innerHTML = 
+                    '<div class="col-span-3 text-center py-16 bg-red-50 rounded-2xl border-2 border-red-200">' +
+                        '<div class="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 flex items-center justify-center">' +
+                            '<i class="fas fa-exclamation-circle text-2xl text-red-500"></i>' +
+                        '</div>' +
+                        '<p class="text-red-600 font-medium mb-2">데이터를 불러올 수 없습니다</p>' +
+                        '<p class="text-sm text-red-500">' + message + '</p>' +
+                        '<button onclick="loadDashboardData()" class="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm">다시 시도</button>' +
                     '</div>';
             }
+            
+            // 채점 대기 목록 섹션 로딩 중지 및 에러 표시
+            const gradingContainer = document.getElementById('pendingGradingListContainer');
+            if (gradingContainer) {
+                gradingContainer.innerHTML = 
+                    '<div class="px-6 py-12 text-center">' +
+                        '<div class="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 flex items-center justify-center">' +
+                            '<i class="fas fa-exclamation-circle text-2xl text-red-500"></i>' +
+                        '</div>' +
+                        '<p class="text-red-600 font-medium mb-1">데이터를 불러올 수 없습니다</p>' +
+                        '<p class="text-sm text-red-500">' + message + '</p>' +
+                    '</div>';
+            }
+        }
+
+        function showError(message) {
+            stopLoadingAndShowError(message);
         }
     </script>
 </body>
