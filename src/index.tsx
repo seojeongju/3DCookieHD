@@ -80,7 +80,7 @@ import { teacherAttendanceHtml } from './views/teacher_attendance';
 import { teacherExamsHtml } from './views/teacher_exams';
 import { teacherSidebar } from './views/components/teacher_sidebar';
 import { hrdSidebar } from './views/components/hrd_sidebar';
-import { adminGradesHtml } from './views/admin_grades';
+import { adminHrdGradesHtml } from './views/admin_hrd_grades';
 import { reviewsListHtml } from './views/reviews';
 import { loginHtml } from './views/login';
 import { registerHtml } from './views/register';
@@ -250,6 +250,7 @@ app.get('/admin/counseling', (c) => c.html(adminHrdCounselingHtml));
 app.get('/admin/ncs', (c) => c.html(adminNcsHtml));
 app.get('/admin/exams', (c) => c.html(adminHrdExamsHtml()));
 app.get('/admin/exams/:id/results', (c) => c.html(adminExamResultsHtml()));
+app.get('/admin/grades', (c) => c.html(adminHrdGradesHtml()));
 // app.get('/admin/portfolios', (c) => c.html(adminPortfoliosHtml)); // 게시판 관리에서 통합 관리
 app.get('/admin/reviews', (c) => c.html(adminReviewsListHtml(hrdSidebar('reviews'))));
 app.get('/admin/posts', (c) => c.html(adminPostsListHtml(hrdSidebar('posts'))));
@@ -2923,10 +2924,6 @@ app.get('/admin/exams/:id/edit', (c) => {
     return c.html(adminExamEditHtml);
 });
 
-// 관리자 - 성적 관리 페이지
-app.get('/admin/grades', (c) => {
-    return c.html(adminGradesHtml);
-});
 
 // 학생 - 시험 응시 페이지
 app.get('/student/exam/:id', (c) => {
