@@ -46,24 +46,36 @@ export const teacherSurveysHtml = `
                 </div>
             </header>
 
-            <div class="p-8 max-w-7xl mx-auto">
-                <!-- 상단 액션 -->
-                <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-                    <div class="flex gap-2">
-                        <select id="courseFilter" class="bg-white border text-gray-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 shadow-sm">
-                            <option value="all">전체 과정 보기</option>
-                            <!-- 코스 목록이 여기에 로드됨 -->
-                        </select>
+            <div class="p-8">
+                <!-- 과정 선택 섹션 -->
+                <div id="coursesSection">
+                    <div class="mb-6">
+                        <h2 class="text-xl font-bold text-gray-800 mb-4">배정된 과정 선택</h2>
+                        <p class="text-gray-600 mb-6">설문/역량평가를 관리할 과정을 선택하세요.</p>
                     </div>
-                    <div class="flex gap-2">
-                        <button onclick="openCreateModal('diagnosis')" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center shadow-sm">
-                            <i class="fas fa-chart-radar mr-2"></i> 역량 진단 생성
-                        </button>
-                        <button onclick="openCreateModal('survey')" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center shadow-sm">
-                            <i class="fas fa-poll mr-2"></i> 일반 설문 생성
-                        </button>
+                    <div id="coursesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- 과정 카드들이 여기에 동적으로 추가됨 -->
                     </div>
                 </div>
+
+                <!-- 설문 목록 섹션 -->
+                <div id="surveysSection" class="hidden">
+                    <div class="mb-6 flex items-center justify-between">
+                        <div>
+                            <button onclick="backToCourses()" class="text-gray-600 hover:text-gray-800 mb-2 flex items-center">
+                                <i class="fas fa-arrow-left mr-2"></i> 과정 목록으로
+                            </button>
+                            <h2 id="selectedCourseTitle" class="text-xl font-bold text-gray-800"></h2>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="openCreateModal('diagnosis')" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center shadow-sm">
+                                <i class="fas fa-chart-radar mr-2"></i> 역량 진단 생성
+                            </button>
+                            <button onclick="openCreateModal('survey')" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center shadow-sm">
+                                <i class="fas fa-poll mr-2"></i> 일반 설문 생성
+                            </button>
+                        </div>
+                    </div>
 
                 <!-- 통계 요약 카드 -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -150,6 +162,28 @@ export const teacherSurveysHtml = `
                         <option value="">과정을 선택하세요</option>
                     </select>
                 </div>
+                <script>
+                    // 과정 목록을 모달에 로드
+                    (async () => {
+                        try {
+                            const token = localStorage.getItem('token');
+                            const response = await fetch('/api/courses?limit=100', {
+                                headers: { 'Authorization': 'Bearer ' + token }
+                            });
+                            const result = await response.json();
+                            const courses = result.success ? result.data : (result.data || []);
+                            const select = document.getElementById('targetCourseId');
+                            if (select) {
+                                courses.forEach(c => {
+                                    const option = document.createElement('option');
+                                    option.value = c.id;
+                                    option.textContent = c.title;
+                                    select.appendChild(option);
+                                });
+                            }
+                        } catch (e) { console.error(e); }
+                    })();
+                </script>
                 <div>
                     <label class="block text-sm font-bold text-gray-700 mb-1">제목</label>
                     <input type="text" id="surveyTitle" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="예: 1개월차 훈련과정 만족도 조사">
@@ -234,120 +268,256 @@ export const teacherSurveysHtml = `
 
     <script>
         let competencyChart = null;
-        let myCourses = [];
+        let selectedCourseId = null;
+        let selectedCourseTitle = '';
+        let allSurveys = [];
         
-        let surveys = [
-            { id: 1, courseId: 101, type: 'diagnosis', title: '사전 NC·S 직무 역량 진단', startDate: '2024-01-01', endDate: '2024-12-31', responseCount: 15, totalTarget: 20, status: 'active', courseTitle: 'Java 국비지원 과정' },
-            { id: 2, courseId: 101, type: 'survey', title: '1개월차 훈련과정 만족도 조사', startDate: '2024-02-01', endDate: '2024-02-05', responseCount: 18, totalTarget: 20, status: 'completed', courseTitle: 'Java 국비지원 과정' }
-        ];
-
         document.addEventListener('DOMContentLoaded', async () => {
              checkLogin();
              await loadCourses();
-             loadSurveys();
-             updateStats();
         });
 
         function checkLogin() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                alert('로그인이 필요합니다.');
+                window.location.href = '/login';
+            }
             const user = JSON.parse(localStorage.getItem('user') || '{}');
-            document.getElementById('teacherName').textContent = user.name || '강사님';
+            if (user.role !== 'teacher' && user.role !== 'admin') {
+                alert('강사 권한이 필요합니다.');
+                window.location.href = '/';
+            }
+            const nameEl = document.getElementById('teacherName');
+            if (nameEl) nameEl.textContent = user.name || '강사님';
         }
 
         async function loadCourses() {
             try {
-                // Mock Courses for now
-                // const res = await fetch('/api/courses', { ... });
-                await new Promise(r => setTimeout(r, 200));
-                myCourses = [
-                    { id: 101, title: 'Java 국비지원 과정' },
-                    { id: 102, title: 'Python 데이터 분석' }
-                ];
-                
-                const filter = document.getElementById('courseFilter');
-                const modalSelect = document.getElementById('targetCourseId');
-                
-                myCourses.forEach(c => {
-                    filter.innerHTML += \`<option value="\${c.id}">\${c.title}</option>\`;
-                    modalSelect.innerHTML += \`<option value="\${c.id}">\${c.title}</option>\`;
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/courses?limit=100', {
+                    headers: { 'Authorization': 'Bearer ' + token }
                 });
-            } catch (e) { console.error(e); }
+                const result = await response.json();
+                
+                const courses = result.success ? result.data : (result.data || []);
+                const grid = document.getElementById('coursesGrid');
+                
+                if (courses.length === 0) {
+                    grid.innerHTML = '<div class="col-span-full text-center py-12 text-gray-500">배정된 과정이 없습니다.</div>';
+                    return;
+                }
+
+                grid.innerHTML = courses.map(course => \`
+                    <div onclick="selectCourse(\${course.id}, '\${course.title.replace(/'/g, "\\'")}')" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 cursor-pointer hover:shadow-md transition hover:border-blue-300">
+                        <div class="flex items-start justify-between mb-4">
+                            <h3 class="text-lg font-bold text-gray-800">\${course.title}</h3>
+                            <span class="px-2 py-1 bg-blue-100 text-blue-600 text-xs font-bold rounded">\${course.category || '일반'}</span>
+                        </div>
+                        <div class="space-y-2 text-sm text-gray-600">
+                            <div class="flex items-center">
+                                <i class="fas fa-users w-5 text-gray-400"></i>
+                                <span>수강생: \${course.current_students || 0}명</span>
+                            </div>
+                            <div class="flex items-center">
+                                <i class="fas fa-calendar w-5 text-gray-400"></i>
+                                <span>\${course.start_date ? new Date(course.start_date).toLocaleDateString() : '-'} ~ \${course.end_date ? new Date(course.end_date).toLocaleDateString() : '-'}</span>
+                            </div>
+                        </div>
+                        <div class="mt-4 pt-4 border-t border-gray-200">
+                            <button onclick="event.stopPropagation(); selectCourse(\${course.id}, '\${course.title.replace(/'/g, "\\'")}')" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium">
+                                설문 관리하기
+                            </button>
+                        </div>
+                    </div>
+                \`).join('');
+            } catch (error) {
+                console.error('Error loading courses:', error);
+                document.getElementById('coursesGrid').innerHTML = '<div class="col-span-full text-center py-12 text-red-500">과정 목록을 불러오는데 실패했습니다.</div>';
+            }
         }
 
-        function loadSurveys() {
-            const container = document.getElementById('surveyList');
-            const typeFilter = document.getElementById('typeFilter').value;
-            const courseFilter = document.getElementById('courseFilter').value;
-            
-            let filtered = surveys.filter(s => {
-                if (typeFilter !== 'all' && s.type !== typeFilter) return false;
-                if (courseFilter !== 'all' && s.courseId != courseFilter) return false;
-                return true;
-            });
+        function selectCourse(courseId, courseTitle) {
+            selectedCourseId = courseId;
+            selectedCourseTitle = courseTitle;
+            document.getElementById('coursesSection').classList.add('hidden');
+            document.getElementById('surveysSection').classList.remove('hidden');
+            document.getElementById('selectedCourseTitle').textContent = courseTitle;
+            loadSurveys();
+            updateStats();
+        }
 
-            if (filtered.length === 0) {
-                 container.innerHTML = '<tr><td colspan="6" class="px-6 py-10 text-center text-gray-500">등록된 설문이 없습니다.</td></tr>';
-                 return;
+        function backToCourses() {
+            selectedCourseId = null;
+            document.getElementById('coursesSection').classList.remove('hidden');
+            document.getElementById('surveysSection').classList.add('hidden');
+        }
+
+        async function loadSurveys() {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/surveys/teacher', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const result = await response.json();
+                
+                allSurveys = result.success ? result.data : (result.data || []);
+                const filtered = selectedCourseId 
+                    ? allSurveys.filter(s => s.course_id === selectedCourseId)
+                    : allSurveys;
+                
+                const container = document.getElementById('surveyList');
+                const typeFilter = document.getElementById('typeFilter')?.value || 'all';
+                const finalFiltered = typeFilter !== 'all' 
+                    ? filtered.filter(s => s.type === typeFilter)
+                    : filtered;
+
+                if (finalFiltered.length === 0) {
+                    container.innerHTML = '<tr><td colspan="6" class="px-6 py-10 text-center text-gray-500">등록된 설문이 없습니다.</td></tr>';
+                    return;
+                }
+
+                container.innerHTML = finalFiltered.map(s => {
+                    const typeLabel = s.type === 'diagnosis' 
+                        ? '<span class="px-2 py-1 bg-indigo-100 text-indigo-700 rounded text-xs font-bold">역량진단</span>'
+                        : '<span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-bold">일반설문</span>';
+                    
+                    const statusLabel = s.status === 'active'
+                        ? '<span class="text-green-600 font-bold text-xs"><i class="fas fa-circle text-[8px] mr-1"></i>진행중</span>'
+                        : s.status === 'closed'
+                        ? '<span class="text-gray-400 font-bold text-xs">마감됨</span>'
+                        : '<span class="text-yellow-600 font-bold text-xs">임시저장</span>';
+                    
+                    const rate = s.total_target > 0 ? Math.round((s.response_count / s.total_target) * 100) : 0;
+
+                    return \`
+                        <tr class="hover:bg-gray-50 transition">
+                            <td class="px-6 py-4">
+                                <div class="text-xs font-bold text-gray-500 mb-1">\${s.course_title || '-'}</div>
+                                \${typeLabel}
+                            </td>
+                            <td class="px-6 py-4 font-medium text-gray-800">\${s.title}</td>
+                            <td class="px-6 py-4 text-xs text-gray-500">\${s.start_date || '-'} ~ \${s.end_date || '-'}</td>
+                            <td class="px-6 py-4 text-center">
+                                <div class="flex items-center justify-center gap-2">
+                                    <span class="text-sm font-bold text-gray-700">\${s.response_count}/\${s.total_target}</span>
+                                    <span class="text-xs text-gray-400">(\${rate}%)</span>
+                                </div>
+                                <div class="w-full bg-gray-100 rounded-full h-1.5 mt-1 max-w-[100px] mx-auto">
+                                    <div class="bg-blue-500 h-1.5 rounded-full" style="width: \${rate}%"></div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-center">\${statusLabel}</td>
+                            <td class="px-6 py-4 text-right space-x-2">
+                                <button onclick="viewResults(\${s.id}, '\${s.type}')" class="text-blue-600 hover:text-blue-900 text-xs font-bold">결과분석</button>
+                                <button onclick="editSurvey(\${s.id})" class="text-green-600 hover:text-green-900 text-xs">수정</button>
+                                \${s.status === 'active' ? '<button onclick="closeSurvey(\${s.id})" class="text-red-500 hover:text-red-700 text-xs">마감</button>' : ''}
+                                <button onclick="deleteSurvey(\${s.id})" class="text-red-600 hover:text-red-900 text-xs">삭제</button>
+                            </td>
+                        </tr>
+                    \`;
+                }).join('');
+            } catch (error) {
+                console.error('Error loading surveys:', error);
+                document.getElementById('surveyList').innerHTML = '<tr><td colspan="6" class="px-6 py-10 text-center text-red-500">설문 목록을 불러오는데 실패했습니다.</td></tr>';
             }
-
-            container.innerHTML = filtered.map(s => {
-                const typeLabel = s.type === 'diagnosis' 
-                    ? '<span class="px-2 py-1 bg-indigo-100 text-indigo-700 rounded text-xs font-bold">역량진단</span>'
-                    : '<span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-bold">일반설문</span>';
-                
-                const statusLabel = s.status === 'active'
-                    ? '<span class="text-green-600 font-bold text-xs"><i class="fas fa-circle text-[8px] mr-1"></i>진행중</span>'
-                    : '<span class="text-gray-400 font-bold text-xs">종료됨</span>';
-                
-                const rate = Math.round((s.responseCount / s.totalTarget) * 100);
-
-                return \`
-                    <tr class="hover:bg-gray-50 transition">
-                        <td class="px-6 py-4">
-                            <div class="text-xs font-bold text-gray-500 mb-1">\${s.courseTitle}</div>
-                            \${typeLabel}
-                        </td>
-                        <td class="px-6 py-4 font-medium text-gray-800">\${s.title}</td>
-                        <td class="px-6 py-4 text-xs text-gray-500">\${s.startDate} ~ \${s.endDate}</td>
-                        <td class="px-6 py-4 text-center">
-                            <div class="flex items-center justify-center gap-2">
-                                <span class="text-sm font-bold text-gray-700">\${s.responseCount}/\${s.totalTarget}</span>
-                                <span class="text-xs text-gray-400">(\${rate}%)</span>
-                            </div>
-                            <div class="w-full bg-gray-100 rounded-full h-1.5 mt-1 max-w-[100px] mx-auto">
-                                <div class="bg-blue-500 h-1.5 rounded-full" style="width: \${rate}%"></div>
-                            </div>
-                        </td>
-                        <td class="px-6 py-4 text-center">\${statusLabel}</td>
-                        <td class="px-6 py-4 text-right">
-                            <button onclick="viewResults(\${s.id}, '\${s.type}')" class="text-blue-600 hover:underline text-xs font-bold mr-3">결과분석</button>
-                            \${s.status === 'active' ? '<button onclick="closeSurvey(' + s.id + ')" class="text-red-500 hover:text-red-700 text-xs">마감</button>' : ''}
-                        </td>
-                    </tr>
-                \`;
-            }).join('');
         }
 
         window.filterSurveys = loadSurveys;
-        document.getElementById('courseFilter').addEventListener('change', loadSurveys);
+        const typeFilterEl = document.getElementById('typeFilter');
+        if (typeFilterEl) {
+            typeFilterEl.addEventListener('change', loadSurveys);
+        }
 
         function updateStats() {
-            const active = surveys.filter(s => s.status === 'active').length;
+            const filtered = selectedCourseId 
+                ? allSurveys.filter(s => s.course_id === selectedCourseId)
+                : allSurveys;
+            const active = filtered.filter(s => s.status === 'active').length;
+            const totalResponses = filtered.reduce((sum, s) => sum + (s.response_count || 0), 0);
+            const totalTarget = filtered.reduce((sum, s) => sum + (s.total_target || 0), 0);
+            const progress = totalTarget > 0 ? Math.round((totalResponses / totalTarget) * 100) : 0;
+            
             document.getElementById('stat-active').textContent = active;
-            document.getElementById('stat-progress').textContent = '78%';
-            document.getElementById('stat-progress-bar').style.width = '78%';
-            document.getElementById('stat-satisfaction').textContent = '4.2';
-            document.getElementById('stat-stars').innerHTML = '<i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i>';
+            document.getElementById('stat-progress').textContent = progress + '%';
+            document.getElementById('stat-progress-bar').style.width = progress + '%';
+            
+            // 평균 만족도는 rating 타입 설문의 평균 점수로 계산 (실제로는 API에서 계산 필요)
+            document.getElementById('stat-satisfaction').textContent = '0.0';
+            document.getElementById('stat-stars').innerHTML = '';
         }
+
+        let currentSurveyId = null;
 
         /* Modal & Form Functions */
         window.openCreateModal = (type) => {
+            currentSurveyId = null;
             document.getElementById('createForm').reset();
             document.getElementById('questionContainer').innerHTML = '';
             document.getElementById('surveyType').value = type;
             document.getElementById('modalTitle').textContent = type === 'diagnosis' ? '역량 진단 생성' : '새 설문 생성';
+            const courseSelect = document.getElementById('targetCourseId');
+            if (courseSelect) {
+                courseSelect.value = selectedCourseId || '';
+            }
             addQuestion();
             document.getElementById('createModal').classList.remove('hidden');
         };
+
+        async function editSurvey(id) {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(\`/api/surveys/\${id}\`, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const result = await response.json();
+                
+                if (!result.success) {
+                    alert('설문 정보를 불러오는데 실패했습니다.');
+                    return;
+                }
+                
+                const survey = result.data;
+                currentSurveyId = id;
+                document.getElementById('surveyType').value = survey.type;
+                document.getElementById('modalTitle').textContent = '설문 수정';
+                document.getElementById('targetCourseId').value = survey.course_id || '';
+                document.getElementById('surveyTitle').value = survey.title || '';
+                document.getElementById('surveyDesc').value = survey.description || '';
+                document.getElementById('startDate').value = survey.start_date || '';
+                document.getElementById('endDate').value = survey.end_date || '';
+                
+                const container = document.getElementById('questionContainer');
+                container.innerHTML = '';
+                
+                if (survey.questions && survey.questions.length > 0) {
+                    survey.questions.forEach((q, idx) => {
+                        const tpl = document.getElementById('questionTemplate').content.cloneNode(true);
+                        const qText = tpl.querySelector('[name="q_text"]');
+                        const qType = tpl.querySelector('[name="q_type"]');
+                        const optionsArea = tpl.querySelector('.options-area');
+                        const optionsInput = optionsArea.querySelector('input');
+                        
+                        qText.value = q.question_text || '';
+                        qType.value = q.question_type || 'rating';
+                        
+                        if (q.question_type === 'choice' && q.options && Array.isArray(q.options)) {
+                            optionsInput.value = q.options.join(',');
+                            optionsArea.classList.remove('hidden');
+                        }
+                        
+                        container.appendChild(tpl);
+                    });
+                } else {
+                    addQuestion();
+                }
+                
+                document.getElementById('createModal').classList.remove('hidden');
+            } catch (error) {
+                console.error('Error loading survey:', error);
+                alert('설문 정보를 불러오는데 실패했습니다.');
+            }
+        }
 
         window.closeModal = (id) => document.getElementById(id).classList.add('hidden');
 
@@ -364,51 +534,224 @@ export const teacherSurveysHtml = `
             else area.classList.add('hidden');
         };
 
-        window.handleSave = (e) => {
+        window.handleSave = async (e) => {
             e.preventDefault();
-            alert('저장되었습니다. (Mock)');
-            closeModal('createModal');
+            try {
+                const token = localStorage.getItem('token');
+                const questions = [];
+                document.querySelectorAll('.question-item').forEach(qEl => {
+                    const text = qEl.querySelector('[name="q_text"]').value;
+                    const type = qEl.querySelector('[name="q_type"]').value;
+                    let options = null;
+                    
+                    if (type === 'choice') {
+                        const optionsText = qEl.querySelector('.options-area input').value;
+                        options = optionsText.split(',').map(o => o.trim()).filter(o => o);
+                    }
+                    
+                    questions.push({
+                        question_text: text,
+                        question_type: type,
+                        options: options
+                    });
+                });
+
+                const data = {
+                    course_id: parseInt(document.getElementById('targetCourseId').value) || selectedCourseId,
+                    type: document.getElementById('surveyType').value,
+                    title: document.getElementById('surveyTitle').value,
+                    description: document.getElementById('surveyDesc').value,
+                    start_date: document.getElementById('startDate').value || null,
+                    end_date: document.getElementById('endDate').value || null,
+                    status: 'active',
+                    questions: questions
+                };
+
+                const url = currentSurveyId ? \`/api/surveys/\${currentSurveyId}\` : '/api/surveys';
+                const method = currentSurveyId ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    alert(currentSurveyId ? '설문이 수정되었습니다.' : '설문이 생성되었습니다.');
+                    closeModal('createModal');
+                    loadSurveys();
+                    updateStats();
+                } else {
+                    alert('오류: ' + (result.error || '저장 실패'));
+                }
+            } catch (error) {
+                console.error('Error saving survey:', error);
+                alert('설문 저장 중 오류가 발생했습니다.');
+            }
         };
         
-        window.closeSurvey = (id) => {
-            if(confirm('이 설문을 마감하시겠습니까?')) {
-                alert('마감 처리되었습니다.');
+        window.closeSurvey = async (id) => {
+            if(!confirm('이 설문을 마감하시겠습니까?')) return;
+            
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(\`/api/surveys/\${id}/close\`, {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    alert('마감 처리되었습니다.');
+                    loadSurveys();
+                    updateStats();
+                } else {
+                    alert('오류: ' + (result.error || '마감 실패'));
+                }
+            } catch (error) {
+                console.error('Error closing survey:', error);
+                alert('마감 처리 중 오류가 발생했습니다.');
             }
         };
 
-        /* Results */
-        window.viewResults = (id, type) => {
-            document.getElementById('resultModal').classList.remove('hidden');
+        async function deleteSurvey(id) {
+            if(!confirm('정말 이 설문을 삭제하시겠습니까? 모든 응답 데이터도 함께 삭제됩니다.')) return;
             
-            if (type === 'diagnosis') {
-                document.getElementById('chartContainer').classList.remove('hidden');
-                if (competencyChart) competencyChart.destroy();
-                const ctx = document.getElementById('competencyChart').getContext('2d');
-                competencyChart = new Chart(ctx, {
-                    type: 'radar',
-                    data: {
-                        labels: ['직무이해', '기술활용', '문제해결', '협업능력', '자기주도'],
-                        datasets: [{
-                            label: '평균 달성도',
-                            data: [85, 72, 90, 88, 75],
-                            fill: true,
-                            backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                            borderColor: 'rgb(59, 130, 246)',
-                            pointBackgroundColor: 'rgb(59, 130, 246)',
-                            pointBorderColor: '#fff'
-                        }]
-                    },
-                    options: { scales: { r: { suggestedMin: 0, suggestedMax: 100 } } }
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(\`/api/surveys/\${id}\`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + token }
                 });
-            } else {
-                document.getElementById('chartContainer').classList.add('hidden');
+                
+                const result = await response.json();
+                if (result.success) {
+                    alert('삭제되었습니다.');
+                    loadSurveys();
+                    updateStats();
+                } else {
+                    alert('오류: ' + (result.error || '삭제 실패'));
+                }
+            } catch (error) {
+                console.error('Error deleting survey:', error);
+                alert('삭제 중 오류가 발생했습니다.');
             }
+        }
 
-            document.getElementById('scoreDetails').innerHTML = [
-                { label: '항목 1', score: 85 }, { label: '항목 2', score: 92 }
-            ].map(d => \`<div><div class="flex justify-between text-sm mb-1"><span class="font-bold">\${d.label}</span><span>\${d.score}점</span></div><div class="bg-gray-100 h-2 rounded-full"><div class="bg-blue-500 h-2 rounded-full" style="width:\${d.score}%"></div></div></div>\`).join('');
-            
-            document.getElementById('commentsList').innerHTML = '<div class="p-2 border-b">학생들의 익명 피드백입니다.</div>';
+        /* Results */
+        window.viewResults = async (id, type) => {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(\`/api/surveys/\${id}/results\`, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const result = await response.json();
+                
+                if (!result.success) {
+                    alert('결과를 불러오는데 실패했습니다.');
+                    return;
+                }
+                
+                const { survey, stats, question_stats, responses } = result.data;
+                document.getElementById('resultModal').classList.remove('hidden');
+                
+                // 통계 요약 표시
+                const chartContainer = document.getElementById('chartContainer');
+                if (type === 'diagnosis' && question_stats && question_stats.length > 0) {
+                    chartContainer.classList.remove('hidden');
+                    if (competencyChart) competencyChart.destroy();
+                    const ctx = document.getElementById('competencyChart').getContext('2d');
+                    const ratingQuestions = question_stats.filter(q => q.question_type === 'rating');
+                    
+                    if (ratingQuestions.length > 0) {
+                        const labels = ratingQuestions.map(q => q.question_text.length > 15 ? q.question_text.substring(0, 15) + '...' : q.question_text);
+                        const data = ratingQuestions.map(q => q.average || 0);
+                        
+                        competencyChart = new Chart(ctx, {
+                            type: 'radar',
+                            data: {
+                                labels: labels,
+                                datasets: [{
+                                    label: '평균 점수',
+                                    data: data,
+                                    fill: true,
+                                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                                    borderColor: 'rgb(59, 130, 246)',
+                                    pointBackgroundColor: 'rgb(59, 130, 246)',
+                                    pointBorderColor: '#fff'
+                                }]
+                            },
+                            options: { 
+                                scales: { r: { suggestedMin: 0, suggestedMax: 5 } },
+                                plugins: { legend: { display: false } }
+                            }
+                        });
+                    } else {
+                        chartContainer.classList.add('hidden');
+                    }
+                } else {
+                    chartContainer.classList.add('hidden');
+                }
+
+                // 문항별 통계
+                let scoreDetailsHtml = '';
+                if (question_stats && question_stats.length > 0) {
+                    scoreDetailsHtml = question_stats.map(q => {
+                        const avg = q.average || 0;
+                        const max = q.question_type === 'rating' ? 5 : 100;
+                        return \`
+                            <div class="mb-4">
+                                <div class="flex justify-between text-sm mb-1">
+                                    <span class="font-bold text-gray-700">\${q.question_text}</span>
+                                    <span class="text-blue-600 font-bold">\${avg.toFixed(1)}점</span>
+                                </div>
+                                <div class="bg-gray-100 h-2 rounded-full">
+                                    <div class="bg-blue-500 h-2 rounded-full" style="width:\${(avg / max * 100)}%"></div>
+                                </div>
+                                <div class="text-xs text-gray-500 mt-1">응답: \${q.total_responses}건</div>
+                            </div>
+                        \`;
+                    }).join('');
+                }
+                document.getElementById('scoreDetails').innerHTML = scoreDetailsHtml || '<div class="text-gray-500">통계 데이터가 없습니다.</div>';
+                
+                // 서술형 답변 수집
+                const textQuestions = question_stats?.filter(q => q.question_type === 'text') || [];
+                let commentsHtml = '';
+                if (textQuestions.length > 0 && responses && responses.length > 0) {
+                    for (const resp of responses) {
+                        try {
+                            const respDetail = await fetch(\`/api/surveys/\${id}/responses/\${resp.id}\`, {
+                                headers: { 'Authorization': 'Bearer ' + token }
+                            }).then(r => r.json());
+                            
+                            if (respDetail.success && respDetail.data && respDetail.data.answers) {
+                                respDetail.data.answers.forEach((answer: any) => {
+                                    if (answer.question_type === 'text' && answer.answer_value) {
+                                        commentsHtml += \`<div class="p-3 border-b border-gray-200">
+                                            <div class="flex justify-between items-start mb-2">
+                                                <div class="text-xs text-gray-500">\${resp.student_name || '익명'}</div>
+                                                <div class="text-xs text-gray-400">\${new Date(resp.submitted_at).toLocaleDateString()}</div>
+                                            </div>
+                                            <div class="text-sm text-gray-700 whitespace-pre-wrap">\${answer.answer_value}</div>
+                                        </div>\`;
+                                    }
+                                });
+                            }
+                        } catch (e) {
+                            console.error('Error loading response detail:', e);
+                        }
+                    }
+                }
+                document.getElementById('commentsList').innerHTML = commentsHtml || '<div class="p-2 text-gray-500">서술형 답변이 없습니다.</div>';
+            } catch (error) {
+                console.error('Error loading results:', error);
+                alert('결과를 불러오는데 실패했습니다.');
+            }
         };
 
     </script>
