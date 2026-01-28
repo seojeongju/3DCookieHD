@@ -837,8 +837,24 @@ function handleNewFacImage(input) {
     reader.readAsDataURL(file);
 }
 async function deleteFacility() {
-    if (!currentDetailId || !confirm('정말 삭제하시겠습니까? 삭제된 데이터는 복구할 수 없습니다.')) return;
-    try { await fetch('/api/hrd/facilities/' + currentDetailId, { method: 'DELETE' }); closeDrawer(); alert('삭제되었습니다.'); loadFacilities(); } catch (e) { console.error(e); }
+    if (!currentDetailId) return;
+    if (!confirm('정말 삭제하시겠습니까?\\n이 시설과 관련된 모든 점검/수리 기록도 함께 삭제되며, 복구할 수 없습니다.')) return;
+    
+    try {
+        const res = await fetch('/api/hrd/facilities/' + currentDetailId, { method: 'DELETE' });
+        const json = await res.json();
+        
+        if (json.success) {
+            closeDrawer();
+            alert('시설이 삭제되었습니다.');
+            loadFacilities(); // 목록 새로고침
+        } else {
+            alert('삭제 실패: ' + (json.error || '알 수 없는 오류'));
+        }
+    } catch (e) {
+        console.error('Delete failed:', e);
+        alert('삭제 중 오류가 발생했습니다. 네트워크 상태를 확인해주세요.');
+    }
 }
 async function addLog(type) {
     if (type === 'check') {

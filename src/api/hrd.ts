@@ -1266,11 +1266,20 @@ app.put('/facilities', async (c) => {
 app.delete('/facilities/:id', async (c) => {
     try {
         const id = c.req.param('id');
-        await c.env.DB.prepare("DELETE FROM hrd_facilities WHERE id = ?").bind(id).run();
+
+        // 외래 키 제약 조건 오류 방지를 위해 관련 데이터를 먼저 수동으로 삭제
+        await c.env.DB.batch([
+            c.env.DB.prepare("DELETE FROM hrd_facility_maintenance WHERE facility_id = ?").bind(id),
+            c.env.DB.prepare("DELETE FROM hrd_facility_images WHERE facility_id = ?").bind(id),
+            c.env.DB.prepare("DELETE FROM hrd_facility_items WHERE facility_id = ?").bind(id),
+            c.env.DB.prepare("DELETE FROM hrd_facility_reservations WHERE facility_id = ?").bind(id),
+            c.env.DB.prepare("DELETE FROM hrd_facilities WHERE id = ?").bind(id)
+        ]);
+
         return c.json({ success: true });
     } catch (e) {
         console.error('Failed to delete facility:', e);
-        return c.json({ success: false, error: '훈련시설 삭제 실패' }, 500);
+        return c.json({ success: false, error: '훈련시설 삭제 실패: ' + (e instanceof Error ? e.message : String(e)) }, 500);
     }
 });
 
@@ -1279,13 +1288,20 @@ app.get('/facilities/:id/maintenance', async (c) => {
     try {
         const id = c.req.param('id');
 
-        // progress 컬럼 존재 확인 및 추가
+        // progress 및 updated_at 컬럼 존재 확인 및 추가
         try {
             await c.env.DB.prepare("SELECT progress FROM hrd_facility_maintenance LIMIT 1").first();
         } catch (e) {
             try {
                 await c.env.DB.prepare("ALTER TABLE hrd_facility_maintenance ADD COLUMN progress TEXT DEFAULT 'pending'").run();
             } catch (alterError) { console.error('Failed to add progress column', alterError); }
+        }
+        try {
+            await c.env.DB.prepare("SELECT updated_at FROM hrd_facility_maintenance LIMIT 1").first();
+        } catch (e) {
+            try {
+                await c.env.DB.prepare("ALTER TABLE hrd_facility_maintenance ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP").run();
+            } catch (alterError) { console.error('Failed to add updated_at column', alterError); }
         }
 
         const { results } = await c.env.DB.prepare(`
@@ -1307,25 +1323,39 @@ app.put('/facilities/maintenance/:logId', async (c) => {
         const body = await c.req.json();
         const { progress, title, price, vendor, memo, date } = body;
 
-        // 동적 업데이트 쿼리
-        let query = "UPDATE hrd_facility_maintenance SET updated_at = CURRENT_TIMESTAMP";
+        // 동적 업데이트 쿼리 (SET 구문을 동적으로 생성)
+        const updates: string[] = [];
         const params: any[] = [];
 
-        if (progress) { query += ", progress = ?"; params.push(progress); }
-        if (title) { query += ", title = ?"; params.push(title); }
-        if (price !== undefined) { query += ", price = ?"; params.push(price); }
-        if (vendor !== undefined) { query += ", vendor = ?"; params.push(vendor); }
-        if (memo !== undefined) { query += ", memo = ?"; params.push(memo); }
-        if (date) { query += ", date = ?"; params.push(date); }
+        if (progress) { updates.push("progress = ?"); params.push(progress); }
+        if (title) { updates.push("title = ?"); params.push(title); }
+        if (price !== undefined) { updates.push("price = ?"); params.push(parseInt(price || 0)); }
+        if (vendor !== undefined) { updates.push("vendor = ?"); params.push(vendor); }
+        if (memo !== undefined) { updates.push("memo = ?"); params.push(memo); }
+        if (date) { updates.push("date = ?"); params.push(date); }
 
-        query += " WHERE id = ?";
+        if (updates.length === 0) {
+            return c.json({ success: true, message: '변경 내용 없음' });
+        }
+
+        const query = `UPDATE hrd_facility_maintenance SET ${updates.join(", ")}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
         params.push(logId);
 
-        await c.env.DB.prepare(query).bind(...params).run();
+        try {
+            await c.env.DB.prepare(query).bind(...params).run();
+        } catch (dbError) {
+            // updated_at 컬럼이 없을 경우를 대비한 폴백 (과도기적 조치)
+            const fallbackQuery = `UPDATE hrd_facility_maintenance SET ${updates.join(", ")} WHERE id = ?`;
+            await c.env.DB.prepare(fallbackQuery).bind(...params).run();
+        }
+
         return c.json({ success: true });
     } catch (e) {
         console.error('Failed to update maintenance log:', e);
-        return c.json({ success: false, error: '수정 실패' }, 500);
+        return c.json({
+            success: false,
+            error: '수정 실패: ' + (e instanceof Error ? e.message : String(e))
+        }, 500);
     }
 });
 
