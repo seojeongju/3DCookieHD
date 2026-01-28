@@ -206,17 +206,25 @@ app.put('/personnel/:id', authMiddleware, async (c) => {
     try {
         let userId = c.req.param('id');
         // URL 파라미터에서 잘못된 형식 제거 (예: "14:1" -> "14")
-        if (userId.includes(':')) {
+        if (typeof userId === 'string' && userId.includes(':')) {
             userId = userId.split(':')[0];
         }
-        userId = parseInt(userId) || userId;
+        // userId를 숫자로 변환 (문자열이어도 숫자로 변환)
+        const userIdNum = parseInt(userId);
+        const finalUserId = isNaN(userIdNum) ? userId : userIdNum;
         const user = c.get('user');
         const body = await c.req.json();
         
         // 강사는 본인 정보만 수정 가능
-        if (user.role === 'teacher' && user.userId.toString() !== userId) {
+        // userId와 user.userId를 모두 숫자로 변환하여 비교
+        const userUserIdNum = typeof user.userId === 'number' ? user.userId : parseInt(user.userId);
+        if (user.role === 'teacher' && userUserIdNum !== userIdNum) {
+            console.log('Permission check failed:', { userUserId: userUserIdNum, requestedUserId: userIdNum, userRole: user.role });
             return c.json({ success: false, error: '본인의 정보만 수정할 수 있습니다.' }, 403);
         }
+        
+        // 이후 코드에서 userId 대신 finalUserId 사용
+        userId = finalUserId;
         const { name, phone, email, position, subject, type, joined_at, instructor_status, profile_image,
                 education, career, certifications, training_history, teaching_history } = body;
 

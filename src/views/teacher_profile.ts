@@ -235,7 +235,9 @@ export const teacherProfileHtml = `
                 alert('강사 권한이 필요합니다.');
                 window.location.href = '/';
             }
-            currentUserId = parseInt(user.id) || user.id;
+            // user.id를 숫자로 변환 (문자열이어도 숫자로 변환)
+            const userIdNum = parseInt(user.id);
+            currentUserId = isNaN(userIdNum) ? user.id : userIdNum;
         }
 
         async function loadProfileData() {
