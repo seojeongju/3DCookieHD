@@ -339,166 +339,6 @@ export const adminHrdItemsHtml = () => `
         </div>
     </div>
 
-    <!-- 재고(입/출고) 관리 모달 -->
-    <div id="stockManagementModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
-        <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4 overflow-hidden h-[80vh] flex flex-col">
-            <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-                <h3 class="text-lg font-bold text-gray-800">재고 입/출고 관리 (<span id="stockItemName" class="text-blue-600"></span>)</h3>
-                <button onclick="closeModal('stockManagementModal')" class="text-gray-400 hover:text-gray-600">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
-            </div>
-            
-            <div class="p-6 flex-1 overflow-y-auto custom-scrollbar">
-                <!-- 입출고 등록 폼 -->
-                <div class="bg-gray-50 p-5 rounded-lg mb-8 border border-gray-200 shadow-sm">
-                    <h4 class="font-bold text-gray-800 mb-3 text-sm flex items-center">
-                        <i class="fas fa-exchange-alt mr-2 text-blue-500"></i> 입/출고 등록
-                        <span class="ml-auto text-xs font-normal text-gray-500">현재 재고: <strong id="stockCurrentQty" class="text-blue-600 text-base">0</strong>개</span>
-                    </h4>
-                    <form onsubmit="handleStockSubmit(event)" id="stockForm" class="space-y-4">
-                        <input type="hidden" id="stockItemId">
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <div class="col-span-1">
-                                <label class="block text-xs font-medium text-gray-700 mb-1">구분 <span class="text-red-500">*</span></label>
-                                <div class="flex rounded-md shadow-sm" role="group">
-                                    <button type="button" onclick="setStockType('IN')" id="btnTypeIn" class="flex-1 px-3 py-2 text-sm font-medium border border-gray-300 rounded-l-lg hover:bg-gray-100 focus:z-10 focus:ring-2 focus:ring-blue-500">
-                                        <i class="fas fa-arrow-down mr-1"></i>입고
-                                    </button>
-                                    <button type="button" onclick="setStockType('OUT')" id="btnTypeOut" class="flex-1 px-3 py-2 text-sm font-medium border border-gray-300 rounded-r-lg hover:bg-gray-100 focus:z-10 focus:ring-2 focus:ring-blue-500">
-                                        <i class="fas fa-arrow-up mr-1"></i>출고
-                                    </button>
-                                </div>
-                                <input type="hidden" name="type" id="stockType" required>
-                            </div>
-                            
-                            <div class="col-span-1">
-                                <label class="block text-xs font-medium text-gray-700 mb-1">수량 <span class="text-red-500">*</span></label>
-                                <input type="number" name="quantity" required min="1" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="수량">
-                            </div>
-                            
-                            <div class="col-span-2">
-                                <label class="block text-xs font-medium text-gray-700 mb-1">사유/담당자</label>
-                                <input type="text" name="reason" placeholder="예: 추가 구매, 파손 폐기, 정기 소모" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                            </div>
-                        </div>
-                        
-                        <div class="flex justify-end pt-2">
-                             <button type="submit" class="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm transition-colors shadow-sm">
-                                <i class="fas fa-check mr-1"></i> 처리 완료
-                             </button>
-                        </div>
-                    </form>
-                </div>
-
-                <!-- 입출고 이력 테이블 -->
-                <h4 class="font-bold text-gray-800 mb-3 text-sm flex items-center">
-                    <i class="fas fa-history mr-2 text-gray-500"></i> 입/출고 이력
-                </h4>
-                <div class="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-                    <table class="w-full text-sm text-left">
-                        <thead class="bg-gray-50 text-gray-500 font-medium border-b border-gray-200">
-                            <tr>
-                                <th class="px-4 py-2 w-20 text-center">구분</th>
-                                <th class="px-4 py-2 w-20 text-right">수량</th>
-                                <th class="px-4 py-2 w-24 text-right">재고변동</th>
-                                <th class="px-4 py-2">사유/내용</th>
-                                <th class="px-4 py-2 w-32 border-l border-gray-100">처리일시</th>
-                            </tr>
-                        </thead>
-                        <tbody id="stockHistoryBody" class="divide-y divide-gray-100 bg-white">
-                             <tr><td colspan="5" class="px-4 py-8 text-center text-gray-500">이력을 불러오는 중...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="bg-gray-50 px-6 py-4 border-t border-gray-200 text-right">
-                <button onclick="closeModal('stockManagementModal')" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 shadowing-sm transition-colors">닫기</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 재고(입/출고) 관리 모달 -->
-    <div id="stockManagementModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
-        <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4 overflow-hidden h-[80vh] flex flex-col">
-            <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-                <h3 class="text-lg font-bold text-gray-800">재고 입/출고 관리 (<span id="stockItemName" class="text-blue-600"></span>)</h3>
-                <button onclick="closeModal('stockManagementModal')" class="text-gray-400 hover:text-gray-600">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
-            </div>
-            
-            <div class="p-6 flex-1 overflow-y-auto custom-scrollbar">
-                <!-- 입출고 등록 폼 -->
-                <div class="bg-gray-50 p-5 rounded-lg mb-8 border border-gray-200 shadow-sm">
-                    <h4 class="font-bold text-gray-800 mb-3 text-sm flex items-center">
-                        <i class="fas fa-exchange-alt mr-2 text-blue-500"></i> 입/출고 등록
-                        <span class="ml-auto text-xs font-normal text-gray-500">현재 재고: <strong id="stockCurrentQty" class="text-blue-600 text-base">0</strong>개</span>
-                    </h4>
-                    <form onsubmit="handleStockSubmit(event)" id="stockForm" class="space-y-4">
-                        <input type="hidden" id="stockItemId">
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <div class="col-span-1">
-                                <label class="block text-xs font-medium text-gray-700 mb-1">구분 <span class="text-red-500">*</span></label>
-                                <div class="flex rounded-md shadow-sm" role="group">
-                                    <button type="button" onclick="setStockType('IN')" id="btnTypeIn" class="flex-1 px-3 py-2 text-sm font-medium border border-gray-300 rounded-l-lg hover:bg-gray-100 focus:z-10 focus:ring-2 focus:ring-blue-500">
-                                        <i class="fas fa-arrow-down mr-1"></i>입고
-                                    </button>
-                                    <button type="button" onclick="setStockType('OUT')" id="btnTypeOut" class="flex-1 px-3 py-2 text-sm font-medium border border-gray-300 rounded-r-lg hover:bg-gray-100 focus:z-10 focus:ring-2 focus:ring-blue-500">
-                                        <i class="fas fa-arrow-up mr-1"></i>출고
-                                    </button>
-                                </div>
-                                <input type="hidden" name="type" id="stockType" required>
-                            </div>
-                            
-                            <div class="col-span-1">
-                                <label class="block text-xs font-medium text-gray-700 mb-1">수량 <span class="text-red-500">*</span></label>
-                                <input type="number" name="quantity" required min="1" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="수량">
-                            </div>
-                            
-                            <div class="col-span-2">
-                                <label class="block text-xs font-medium text-gray-700 mb-1">사유/담당자</label>
-                                <input type="text" name="reason" placeholder="예: 추가 구매, 파손 폐기, 정기 소모" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                            </div>
-                        </div>
-                        
-                        <div class="flex justify-end pt-2">
-                             <button type="submit" class="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm transition-colors shadow-sm">
-                                <i class="fas fa-check mr-1"></i> 처리 완료
-                             </button>
-                        </div>
-                    </form>
-                </div>
-
-                <!-- 입출고 이력 테이블 -->
-                <h4 class="font-bold text-gray-800 mb-3 text-sm flex items-center">
-                    <i class="fas fa-history mr-2 text-gray-500"></i> 입/출고 이력
-                </h4>
-                <div class="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-                    <table class="w-full text-sm text-left">
-                        <thead class="bg-gray-50 text-gray-500 font-medium border-b border-gray-200">
-                            <tr>
-                                <th class="px-4 py-2 w-20 text-center">구분</th>
-                                <th class="px-4 py-2 w-20 text-right">수량</th>
-                                <th class="px-4 py-2 w-24 text-right">재고변동</th>
-                                <th class="px-4 py-2">사유/내용</th>
-                                <th class="px-4 py-2 w-32 border-l border-gray-100">처리일시</th>
-                            </tr>
-                        </thead>
-                        <tbody id="stockHistoryBody" class="divide-y divide-gray-100 bg-white">
-                             <tr><td colspan="5" class="px-4 py-8 text-center text-gray-500">이력을 불러오는 중...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="bg-gray-50 px-6 py-4 border-t border-gray-200 text-right">
-                <button onclick="closeModal('stockManagementModal')" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 shadowing-sm transition-colors">닫기</button>
-            </div>
-        </div>
-    </div>
-
     <script>
         let currentCategory = 'all';
         let currentPage = 1;
@@ -688,7 +528,6 @@ async function loadItems(page = 1) {
                             </td>
                             <td class="px-6 py-4 text-right whitespace-nowrap">
                                 <button onclick="openStockModal(\${itemData})" class="text-green-600 hover:text-green-800 transition-colors mr-3" title="입/출고 관리"><i class="fas fa-boxes"></i></button>
-                                <button onclick="openStockModal(\${itemData})" class="text-green-600 hover:text-green-800 transition-colors mr-3" title="입/출고 관리"><i class="fas fa-boxes"></i></button>
                                 <button onclick="openRentalModal(\${itemData})" class="text-blue-600 hover:text-blue-800 transition-colors mr-3" title="대여/반납"><i class="fas fa-clipboard-list"></i></button>
                                 <button onclick="editItem(\${itemData})" class="text-gray-400 hover:text-blue-600 transition-colors mr-2" title="수정"><i class="fas fa-edit"></i></button>
                                 <button onclick="deleteItem(\${item.id})" class="text-gray-400 hover:text-red-600 transition-colors" title="삭제"><i class="fas fa-trash"></i></button>
@@ -696,25 +535,25 @@ async function loadItems(page = 1) {
                         </tr>
                     \`;
                 }).join('');
-                
-                renderPagination(result.total, result.page, result.limit);
+
+renderPagination(result.total, result.page, result.limit);
 
             } catch (e) {
-                console.error(e);
-                document.getElementById('itemsTableBody').innerHTML = '<tr><td colspan="9" class="px-6 py-10 text-center text-red-500">오류 발생</td></tr>';
-            }
+    console.error(e);
+    document.getElementById('itemsTableBody').innerHTML = '<tr><td colspan="9" class="px-6 py-10 text-center text-red-500">오류 발생</td></tr>';
+}
         }
-        
-        function renderPagination(total, page, limit) {
-            const totalPages = Math.ceil(total / limit);
-            const container = document.getElementById('paginationContainer');
-            if(totalPages <= 1 && page === 1) { container.innerHTML = ''; return; }
 
-            let html = '<div class="flex items-center space-x-2">';
-            
-            // Prev
-            const prevDisabled = page === 1;
-            html += \`<button onclick="loadItems(\${page - 1})" \${prevDisabled ? 'disabled' : ''} class="px-3 py-1 rounded border \${prevDisabled ? 'bg-gray-50 text-gray-300 cursor-not-allowed' : 'bg-white hover:bg-gray-50 text-gray-600'}"><i class="fas fa-chevron-left"></i></button>\`;
+function renderPagination(total, page, limit) {
+    const totalPages = Math.ceil(total / limit);
+    const container = document.getElementById('paginationContainer');
+    if (totalPages <= 1 && page === 1) { container.innerHTML = ''; return; }
+
+    let html = '<div class="flex items-center space-x-2">';
+
+    // Prev
+    const prevDisabled = page === 1;
+    html += \`<button onclick="loadItems(\${page - 1})" \${prevDisabled ? 'disabled' : ''} class="px-3 py-1 rounded border \${prevDisabled ? 'bg-gray-50 text-gray-300 cursor-not-allowed' : 'bg-white hover:bg-gray-50 text-gray-600'}"><i class="fas fa-chevron-left"></i></button>\`;
 
             // Numbers
             let startPage = Math.max(1, page - 2);
