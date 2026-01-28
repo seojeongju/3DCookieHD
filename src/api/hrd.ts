@@ -1120,21 +1120,33 @@ app.post('/facilities/:id/maintenance', async (c) => {
         if (!facilityId) return c.json({ success: false, error: '시설 ID가 필요합니다.' }, 400);
 
         const fId = parseInt(facilityId);
+        if (isNaN(fId)) return c.json({ success: false, error: `유효하지 않은 시설 ID: ${facilityId}` }, 400);
 
-        await c.env.DB.prepare(`
-            INSERT INTO hrd_facility_maintenance (facility_id, status, title, price, vendor, manager, memo, date)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `).bind(fId, status, title, parseInt(price || 0), vendor, manager || '관리자', memo, date || new Date().toISOString()).run();
+        // 상세 로그 로깅 (서버 콘솔용)
+        console.log(`Adding maintenance log: facilityId=${fId}, status=${status}, title=${title}`);
 
-        // 시설의 최종 점검일 및 상태 업데이트
-        await c.env.DB.prepare(`
-            UPDATE hrd_facilities SET last_check = ?, status = ? WHERE id = ?
-        `).bind(date || new Date().toISOString(), status === 'repair' ? '점검필요' : '양호', fId).run();
+        try {
+            await c.env.DB.prepare(`
+                INSERT INTO hrd_facility_maintenance (facility_id, status, title, price, vendor, manager, memo, date)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            `).bind(fId, status, title, parseInt(price || 0), vendor, manager || '관리자', memo, date || new Date().toISOString()).run();
 
-        return c.json({ success: true });
+            // 시설의 최종 점검일 및 상태 업데이트
+            await c.env.DB.prepare(`
+                UPDATE hrd_facilities SET last_check = ?, status = ? WHERE id = ?
+            `).bind(date || new Date().toISOString(), status === 'repair' ? '점검필요' : '양호', fId).run();
+
+            return c.json({ success: true });
+        } catch (dbError) {
+            console.error('DB Error adding maintenance log:', dbError);
+            return c.json({
+                success: false,
+                error: '[v3] 데이터베이스 오류: ' + (dbError instanceof Error ? dbError.message : String(dbError))
+            }, 500);
+        }
     } catch (e) {
-        console.error('Failed to add maintenance log:', e);
-        return c.json({ success: false, error: '시설 관리 대장 등록 실패: ' + (e instanceof Error ? e.message : String(e)) }, 500);
+        console.error('General Error in maintenance log registration:', e);
+        return c.json({ success: false, error: '[v3] 알 수 없는 오류: ' + (e instanceof Error ? e.message : String(e)) }, 500);
     }
 });
 
