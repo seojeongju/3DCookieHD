@@ -91,11 +91,19 @@ export const hrdSidebar = (activeMenu: string) => `
             <span class="font-medium text-[14px]">교강사 관리</span>
         </a>
 
-        <a href="/admin/items" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'items' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
-             ${activeMenu === 'items' ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
-            <i class="fas fa-boxes-stacked w-6 text-lg ${activeMenu === 'items' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
-            <span class="font-medium text-[14px]">물품 관리</span>
-        </a>
+        <div class="space-y-1">
+            <a href="/admin/items" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'items' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
+                ${activeMenu === 'items' ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
+                <i class="fas fa-boxes-stacked w-6 text-lg ${activeMenu === 'items' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
+                <span class="font-medium text-[14px]">물품 관리</span>
+            </a>
+            
+            <!-- 입/출고 관리 (Sub Menu) -->
+            <a href="/admin/items/transactions" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'items-transactions' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
+                 <i class="fas fa-exchange-alt w-6 text-sm ${activeMenu === 'items-transactions' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
+                 <span class="font-medium text-[13px]">ㄴ 입/출고 이력</span>
+            </a>
+        </div>
 
         <a href="/admin/facilities" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'facilities' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
              ${activeMenu === 'facilities' ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}

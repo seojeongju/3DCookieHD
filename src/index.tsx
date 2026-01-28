@@ -41,6 +41,7 @@ import { adminStudentsListHtml } from './views/admin_students';
 import { adminHrdHtml } from './views/admin_hrd';
 import { adminHrdPersonnelHtml } from './views/admin_hrd_personnel';
 import { adminHrdItemsHtml } from './views/admin_hrd_items';
+import { adminHrdItemsTransactionsHtml } from './views/admin_hrd_items_transactions';
 import { adminHrdStudentsHtml } from './views/admin_hrd_students';
 import { adminUsersHtml } from './views/admin_users';
 import { adminHrdFacilitiesHtml } from './views/admin_hrd_facilities';
@@ -234,6 +235,7 @@ app.get('/admin/users', (c) => c.html(adminUsersHtml())); // 회원관리 - 역�
 app.get('/admin/hrd', (c) => c.html(adminHrdHtml()));
 app.get('/admin/personnel', (c) => c.html(adminHrdPersonnelHtml()));
 app.get('/admin/items', (c) => c.html(adminHrdItemsHtml()));
+app.get('/admin/items/transactions', (c) => c.html(adminHrdItemsTransactionsHtml()));
 app.get('/admin/students', (c) => c.html(adminHrdStudentsHtml()));
 app.get('/admin/facilities', (c) => c.html(adminHrdFacilitiesHtml()));
 app.get('/admin/schedule', (c) => c.html(adminScheduleHtml));

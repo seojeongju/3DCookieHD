@@ -555,6 +555,67 @@ app.get('/items', async (c) => {
     }
 });
 
+// 전체 입/출고 이력 조회 (Items List보다 뒤, Item Detail보다 앞)
+app.get('/items/transactions/all', async (c) => {
+    try {
+        const page = parseInt(c.req.query('page') || '1');
+        const limit = parseInt(c.req.query('limit') || '20');
+        const offset = (page - 1) * limit;
+        const search = c.req.query('search') || '';
+        const type = c.req.query('type'); // 'IN' | 'OUT' | 'all'
+
+        // History 테이블 존재 여부 체크 (없으면 빈 배열 반환)
+        try {
+            await c.env.DB.prepare("SELECT id FROM hrd_item_history LIMIT 1").first();
+        } catch (e) {
+            return c.json({ success: true, data: [], total: 0 });
+        }
+
+        let whereClause = "WHERE 1=1";
+        const params: any[] = [];
+
+        if (search) {
+            whereClause += " AND (i.name LIKE ? OR i.model LIKE ?)";
+            const searchParam = `%${search}%`;
+            params.push(searchParam, searchParam);
+        }
+
+        if (type && type !== 'all') {
+            whereClause += " AND h.type = ?";
+            params.push(type);
+        }
+
+        // 전체 카운트
+        const countQuery = `
+            SELECT COUNT(*) as total 
+            FROM hrd_item_history h
+            JOIN hrd_items i ON h.item_id = i.id
+            ${whereClause}
+        `;
+
+        const countRes: any = await c.env.DB.prepare(countQuery).bind(...params).first();
+        const total = countRes ? countRes.total : 0;
+
+        // 데이터 조회
+        const query = `
+            SELECT h.*, i.name as item_name, i.model as item_model, i.category, i.image_url
+            FROM hrd_item_history h
+            JOIN hrd_items i ON h.item_id = i.id
+            ${whereClause}
+            ORDER BY h.created_at DESC
+            LIMIT ? OFFSET ?
+        `;
+
+        const { results } = await c.env.DB.prepare(query).bind(...params, limit, offset).all();
+
+        return c.json({ success: true, data: results, total, page, limit });
+
+    } catch (e) {
+        console.error('Failed to fetch all transactions:', e);
+        return c.json({ success: false, error: '전체 이력 조회 실패' }, 500);
+    }
+});
+
 // 물품 상세 조회
 app.get('/items/:id', async (c) => {
     try {
