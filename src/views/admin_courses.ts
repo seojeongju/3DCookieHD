@@ -67,7 +67,9 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses')) => `
                         <thead class="bg-gray-50">
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">상태</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">과정명 / 기간</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">과정명</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">기간</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">담당강사</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">수강료</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">정원</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">등록일</th>
@@ -268,14 +270,16 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses')) => `
                 const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
                 const r = await res.json();
                 const tbody = document.getElementById('coursesTableBody');
-                if (!r.success || r.data.length === 0) { tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-12 text-center text-gray-500">데이터가 없습니다.</td></tr>'; return; }
+                if (!r.success || r.data.length === 0) { tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-12 text-center text-gray-500">데이터가 없습니다.</td></tr>'; return; }
                 tbody.innerHTML = r.data.map(c => \`
                     <tr class="hover:bg-gray-100 transition">
                         <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 py-1 rounded-full text-xs font-bold \${c.status === 'open' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">\${c.status === 'open' ? '모집중' : '마감'}</span></td>
-                        <td class="px-6 py-4"><div class="font-bold">\${c.title}</div><div class="text-xs text-gray-500">\${c.start_date?.split('T')[0]} ~ \${c.end_date?.split('T')[0]}</div></td>
-                        <td class="px-6 py-4">\${Number(c.price || 0).toLocaleString()}원</td>
-                        <td class="px-6 py-4">\${c.max_students || 0}명</td>
-                        <td class="px-6 py-4">\${c.created_at?.split('T')[0]}</td>
+                        <td class="px-6 py-4"><div class="font-bold">\${c.title}</div><div class="text-xs text-gray-400">\${c.subject || ''}</div></td>
+                        <td class="px-6 py-4 whitespace-nowrap"><div class="text-sm text-gray-700 font-medium">\${c.start_date?.split('T')[0] || '-'}</div><div class="text-xs text-gray-400">~ \${c.end_date?.split('T')[0] || '-'}</div></td>
+                        <td class="px-6 py-4 whitespace-nowrap"><div class="text-sm font-medium text-gray-900">\${c.teacher_name || '-'}</div></td>
+                        <td class="px-6 py-4 whitespace-nowrap">\${Number(c.price || 0).toLocaleString()}원</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-gray-600">\${c.max_students || 0}명</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-gray-500 text-xs">\${c.created_at?.split('T')[0]}</td>
                         <td class="px-6 py-4 text-right space-x-2">
                             <a href="/admin/courses/\${c.id}/lms" class="text-purple-600 hover:underline">관리</a>
                             <button onclick='editCourse(\${JSON.stringify(c).replace(/'/g, "&#39;")})' class="text-blue-600"><i class="fas fa-edit"></i></button>
