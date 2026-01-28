@@ -27,7 +27,7 @@ export const adminLmsTrainingLogsHtml = `
 </head>
 <body class="bg-gray-50">
     <!-- LMS Shared Header -->
-    \${lmsHeaderHtml('training-logs')}
+    ${lmsHeaderHtml('training-logs')}
 
     <!-- 서브 헤더 (훈련일지 전용) -->
      <div class="bg-white border-b border-gray-200 sticky top-[6.5rem] z-30">

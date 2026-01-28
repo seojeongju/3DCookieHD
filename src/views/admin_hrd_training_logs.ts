@@ -27,7 +27,7 @@ export const adminHrdTrainingLogsHtml = (sidebar = hrdSidebar('training-logs')) 
 </head>
 <body class="bg-gray-50 font-sans">
     <div class="flex h-screen overflow-hidden">
-        \${sidebar}
+        ${sidebar}
         <div class="flex-1 flex flex-col overflow-hidden bg-gray-50">
             <!-- 헤더 -->
             <div class="bg-white border-b border-gray-200 flex-shrink-0">
