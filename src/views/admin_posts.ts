@@ -277,6 +277,66 @@ export const adminPostsListHtml = (sidebar: string | null = null) => `
             }
         }
 
+        const IMAGE_MAX_WIDTH = 1200;
+        const IMAGE_MAX_HEIGHT = 1200;
+        const IMAGE_JPEG_QUALITY = 0.82;
+
+        function resizeImageBlob(blob) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                const url = URL.createObjectURL(blob);
+                img.onload = () => {
+                    URL.revokeObjectURL(url);
+                    let w = img.naturalWidth;
+                    let h = img.naturalHeight;
+                    if (w <= IMAGE_MAX_WIDTH && h <= IMAGE_MAX_HEIGHT && blob.size < 200000) {
+                        resolve(blob);
+                        return;
+                    }
+                    const r = Math.min(IMAGE_MAX_WIDTH / w, IMAGE_MAX_HEIGHT / h, 1);
+                    w = Math.round(w * r);
+                    h = Math.round(h * r);
+                    const canvas = document.createElement('canvas');
+                    canvas.width = w;
+                    canvas.height = h;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, w, h);
+                    canvas.toBlob(
+                        (b) => (b ? resolve(b) : reject(new Error('resize failed'))),
+                        'image/jpeg',
+                        IMAGE_JPEG_QUALITY
+                    );
+                };
+                img.onerror = () => {
+                    URL.revokeObjectURL(url);
+                    reject(new Error('Image load failed'));
+                };
+                img.src = url;
+            });
+        }
+
+        async function uploadPostImage(blob) {
+            const token = localStorage.getItem('token');
+            if (!token) throw new Error('로그인이 필요합니다.');
+            const resized = await resizeImageBlob(blob);
+            const isPng = (resized.type || '').includes('png');
+            const ext = isPng ? 'png' : 'jpg';
+            const mime = isPng ? 'image/png' : 'image/jpeg';
+            const file = new File([resized], 'post_' + Date.now() + '.' + ext, { type: mime });
+            const fd = new FormData();
+            fd.append('file', file);
+            fd.append('category', 'images');
+            fd.append('folder', 'posts');
+            const res = await fetch('/api/upload', {
+                method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + token },
+                body: fd
+            });
+            const json = await res.json();
+            if (!json.success) throw new Error(json.error || '업로드 실패');
+            return json.data.url || json.data.file_url || '';
+        }
+
         function initTinyMCE(initialContent) {
             tinymce.init({
                 selector: '#postContent',
@@ -292,18 +352,7 @@ export const adminPostsListHtml = (sidebar: string | null = null) => `
                     'alignright alignjustify | bullist numlist outdent indent | ' +
                     'removeformat | image code | help',
                 content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:14px }',
-                images_upload_handler: (blobInfo, progress) => new Promise((resolve, reject) => {
-                    // 실제 구현에서는 서버에 이미지를 업로드하고 URL을 반환해야 함
-                    // 여기서는 Base64로 변환하여 처리
-                    const reader = new FileReader();
-                    reader.onload = () => {
-                        resolve(reader.result);
-                    };
-                    reader.onerror = () => {
-                        reject('Image upload failed');
-                    };
-                    reader.readAsDataURL(blobInfo.blob());
-                }),
+                images_upload_handler: (blobInfo, progress) => uploadPostImage(blobInfo.blob()),
                 setup: function(editor) {
                     editor.on('init', function(e) {
                         editor.setContent(initialContent);
