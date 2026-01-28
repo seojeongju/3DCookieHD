@@ -82,7 +82,7 @@ export const hrdSidebar = (activeMenu: string) => `
 
         <a href="/admin/exams" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'exams' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
              ${activeMenu === 'exams' ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
-            <i class="fas fa-file-alt w-6 text-lg ${activeMenu === 'exams' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
+            <i class="fas fa-file-signature w-6 text-lg ${activeMenu === 'exams' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
             <span class="font-medium text-[14px]">시험/문제 관리</span>
         </a>
 

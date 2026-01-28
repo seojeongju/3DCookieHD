@@ -64,6 +64,7 @@ import { adminLmsSurveysHtml } from './views/admin_lms_surveys';
 import { adminScheduleHtml } from './views/admin_schedule';
 import { adminLmsAssignmentsHtml } from './views/admin_lms_assignments';
 import { adminHrdAssignmentsHtml } from './views/admin_hrd_assignments';
+import { adminHrdExamsHtml } from './views/admin_hrd_exams';
 import { adminLmsQrAttendanceHtml } from './views/admin_lms_qr_attendance';
 import { adminExamsHtml, adminExamCreateHtml, adminExamEditHtml } from './views/admin_exams';
 import { adminExamResultsHtml } from './views/admin_exam_results';
@@ -247,7 +248,7 @@ app.get('/admin/training-logs', (c) => c.html(adminHrdTrainingLogsHtml()));
 app.get('/admin/assignments', (c) => c.html(adminHrdAssignmentsHtml()));
 app.get('/admin/counseling', (c) => c.html(adminHrdCounselingHtml));
 app.get('/admin/ncs', (c) => c.html(adminNcsHtml));
-app.get('/admin/exams', (c) => c.html(adminExamsHtml()));
+app.get('/admin/exams', (c) => c.html(adminHrdExamsHtml()));
 app.get('/admin/exams/:id/results', (c) => c.html(adminExamResultsHtml()));
 // app.get('/admin/portfolios', (c) => c.html(adminPortfoliosHtml)); // 게시판 관리에서 통합 관리
 app.get('/admin/reviews', (c) => c.html(adminReviewsListHtml(hrdSidebar('reviews'))));

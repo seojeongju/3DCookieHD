@@ -1812,6 +1812,68 @@ app.get('/assignments/summary', authMiddleware, async (c) => {
     }
 });
 
+// 시험 및 CBT 참여 현황 요약 조회 (전체 과정)
+app.get('/exams/summary', authMiddleware, async (c) => {
+    try {
+        // 1. 모든 운영 중인 과정 및 기본 정보 조회
+        const { results: courses } = await c.env.DB.prepare(`
+            SELECT c.id, c.title, u.name as teacher_name
+            FROM courses c
+            LEFT JOIN users u ON c.teacher_id = u.id
+            WHERE c.status != 'closed'
+        `).all();
+
+        const summaryData = await Promise.all(courses.map(async (course: any) => {
+            // 해당 과정의 전체 시험 수
+            const examStats: any = await c.env.DB.prepare(`
+                SELECT COUNT(*) as exam_count
+                FROM exams
+                WHERE course_id = ?
+            `).bind(course.id).first();
+
+            // 해당 과정의 전체 제출 수 및 평균 점수
+            const submissionStats: any = await c.env.DB.prepare(`
+                SELECT 
+                    COUNT(DISTINCT student_id || '-' || exam_id) as total_submissions,
+                    AVG(total_score) as avg_score
+                FROM exam_submissions s
+                JOIN exams e ON s.exam_id = e.id
+                WHERE e.course_id = ?
+            `).bind(course.id).first();
+
+            // 수강생 수
+            const studentStats: any = await c.env.DB.prepare(`
+                SELECT COUNT(*) as student_count
+                FROM enrollments
+                WHERE course_id = ? AND status = 'approved'
+            `).bind(course.id).first();
+
+            const examCount = examStats.exam_count || 0;
+            const studentCount = studentStats.student_count || 0;
+            const totalSubmissions = submissionStats.total_submissions || 0;
+
+            // 참여율 계산: (전체 제출 수) / (시험 수 * 학생 수) * 100
+            const participationRate = (examCount > 0 && studentCount > 0)
+                ? Math.round((totalSubmissions / (examCount * studentCount)) * 100)
+                : 0;
+
+            return {
+                ...course,
+                exam_count: examCount,
+                student_count: studentCount,
+                total_submissions: totalSubmissions,
+                avg_score: Math.round((submissionStats.avg_score || 0) * 10) / 10,
+                participation_rate: Math.min(participationRate, 100)
+            };
+        }));
+
+        return c.json({ success: true, data: summaryData });
+    } catch (e: any) {
+        console.error('Failed to fetch exam summary:', e);
+        return errorResponse(c, e.message, 500);
+    }
+});
+
 // NCS 이수 현황 요약 조회 (대시보드 차트용)
 app.get('/courses/:courseId/ncs-summary', async (c) => {
     try {
