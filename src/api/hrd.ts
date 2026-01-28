@@ -204,14 +204,10 @@ app.post('/personnel', async (c) => {
 // 교강사 정보 수정
 app.put('/personnel/:id', authMiddleware, async (c) => {
     try {
-        let userId = c.req.param('id');
-        // URL 파라미터에서 잘못된 형식 제거 (예: "14:1" -> "14")
-        if (typeof userId === 'string' && userId.includes(':')) {
-            userId = userId.split(':')[0];
-        }
-        // userId를 숫자로 변환 (문자열이어도 숫자로 변환)
-        const userIdNum = parseInt(userId);
-        const finalUserId = isNaN(userIdNum) ? userId : userIdNum;
+        const rawId = c.req.param('id');
+        const cleanId = rawId.includes(':') ? rawId.split(':')[0] : rawId;
+        const userIdNum = parseInt(cleanId);
+        const userId: string | number = isNaN(userIdNum) ? cleanId : userIdNum;
         const user = c.get('user');
         const body = await c.req.json();
 
@@ -223,8 +219,7 @@ app.put('/personnel/:id', authMiddleware, async (c) => {
             return c.json({ success: false, error: '본인의 정보만 수정할 수 있습니다.' }, 403);
         }
 
-        // 이후 코드에서 userId 대신 finalUserId 사용
-        userId = finalUserId;
+        // 이후 코드에서 userId 사용
         const { name, phone, email, position, subject, type, joined_at, instructor_status, profile_image,
             education, career, certifications, training_history, teaching_history } = body;
 
@@ -1283,6 +1278,16 @@ app.delete('/facilities/:id', async (c) => {
 app.get('/facilities/:id/maintenance', async (c) => {
     try {
         const id = c.req.param('id');
+
+        // progress 컬럼 존재 확인 및 추가
+        try {
+            await c.env.DB.prepare("SELECT progress FROM hrd_facility_maintenance LIMIT 1").first();
+        } catch (e) {
+            try {
+                await c.env.DB.prepare("ALTER TABLE hrd_facility_maintenance ADD COLUMN progress TEXT DEFAULT 'pending'").run();
+            } catch (alterError) { console.error('Failed to add progress column', alterError); }
+        }
+
         const { results } = await c.env.DB.prepare(`
             SELECT * FROM hrd_facility_maintenance 
             WHERE facility_id = ? 
@@ -1295,6 +1300,35 @@ app.get('/facilities/:id/maintenance', async (c) => {
     }
 });
 
+// 시설 관리 대장 항목 수정 (상태 변경 등)
+app.put('/facilities/maintenance/:logId', async (c) => {
+    try {
+        const logId = c.req.param('logId');
+        const body = await c.req.json();
+        const { progress, title, price, vendor, memo, date } = body;
+
+        // 동적 업데이트 쿼리
+        let query = "UPDATE hrd_facility_maintenance SET updated_at = CURRENT_TIMESTAMP";
+        const params: any[] = [];
+
+        if (progress) { query += ", progress = ?"; params.push(progress); }
+        if (title) { query += ", title = ?"; params.push(title); }
+        if (price !== undefined) { query += ", price = ?"; params.push(price); }
+        if (vendor !== undefined) { query += ", vendor = ?"; params.push(vendor); }
+        if (memo !== undefined) { query += ", memo = ?"; params.push(memo); }
+        if (date) { query += ", date = ?"; params.push(date); }
+
+        query += " WHERE id = ?";
+        params.push(logId);
+
+        await c.env.DB.prepare(query).bind(...params).run();
+        return c.json({ success: true });
+    } catch (e) {
+        console.error('Failed to update maintenance log:', e);
+        return c.json({ success: false, error: '수정 실패' }, 500);
+    }
+});
+
 // 시설 관리 대장 등록
 app.post('/facilities/:id/maintenance', async (c) => {
     try {
@@ -1302,10 +1336,13 @@ app.post('/facilities/:id/maintenance', async (c) => {
         const body = await c.req.json();
         const { status, title, price, vendor, manager, memo, date } = body;
 
+        // Check의 경우 기본 progress는 'completed', Repair는 'pending'
+        const progress = status === 'check' ? 'completed' : 'pending';
+
         await c.env.DB.prepare(`
-            INSERT INTO hrd_facility_maintenance (facility_id, status, title, price, vendor, manager, memo, date)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `).bind(facilityId, status, title, parseInt(price || 0), vendor, manager || '관리자', memo, date || new Date().toISOString()).run();
+            INSERT INTO hrd_facility_maintenance (facility_id, status, title, price, vendor, manager, memo, date, progress)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).bind(facilityId, status, title, parseInt(price || 0), vendor, manager || '관리자', memo, date || new Date().toISOString(), progress).run();
 
         // 시설의 최종 점검일 및 상태 업데이트
         await c.env.DB.prepare(`

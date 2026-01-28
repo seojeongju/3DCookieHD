@@ -375,570 +375,656 @@ export const adminHrdFacilitiesHtml = () => `
         async function openDrawer(id) {
             currentDetailId = id;
             const drawer = document.getElementById('drawer');
-            const overlay = document.getElementById('drawerOverlay');
             const content = document.getElementById('drawerContent');
-            
             drawer.classList.remove('translate-x-full');
-            overlay.classList.remove('hidden');
-            setTimeout(() => overlay.classList.remove('opacity-0'), 10);
+            document.getElementById('drawerOverlay').classList.remove('hidden');
+            setTimeout(() => {
+                document.getElementById('drawerOverlay').classList.remove('opacity-0');
+            }, 10);
 
             try {
-                // Fetch details
-                const [resFac, resItems, resLogs, resImages] = await Promise.all([
-                    fetch('/api/hrd/facilities/' + id).then(r => r.json()),
+                // 병렬 데이터 로드
+                let facility = facilities.find(f => f.id === id);
+                
+                const [resItems, resLogs, resImages] = await Promise.all([
                     fetch('/api/hrd/facilities/' + id + '/items').then(r => r.json()),
                     fetch('/api/hrd/facilities/' + id + '/maintenance').then(r => r.json()),
-                    fetch('/api/hrd/facilities/' + id + '/images').then(r => r.json()),
+                    fetch('/api/hrd/facilities/' + id + '/images').then(r => r.json())
                 ]);
 
-                let facility = resFac.success ? resFac.data : null;
-                // Fallback to list object if API empty (though API now updated to return image)
-                // If the single GET api doesn't return image_url, we should merge from list if needed, 
-                // but simpler to assuming individual re-fetch is okay.
-                // NOTE: GET /facilities/:id might not be updated to return image_url yet. 
-                // We use resImages to get the latest image.
-                const latestImage = (resImages.success && resImages.data.length > 0) ? resImages.data[0].url : null;
-                
-                if(!facility && facilities.length > 0) facility = facilities.find(f => f.id === id); 
-                if(!facility) { content.innerHTML = '<div class="p-10 text-center text-red-500">정보를 불러올 수 없습니다.</div>'; return; }
+                if (!facility) {
+                    const resFac = await fetch('/api/hrd/facilities/' + id).then(r => r.json());
+                    if (resFac.success && resFac.data) facility = resFac.data;
+                }
 
-                // Use latest uploaded image or fallback or existing property
+                if(!facility) { 
+                    content.innerHTML = '<div class="p-10 text-center text-red-500">정보를 불러올 수 없습니다.</div>'; 
+                    return; 
+                }
+
+                const latestImage = (resImages.success && resImages.data.length > 0) ? resImages.data[0].url : null;
                 const displayImage = latestImage || facility.image_url;
+                
+                // Logs Separation
+                const logs = resLogs.success ? resLogs.data : [];
+                const inspections = logs.filter(l => l.status === 'check');
+                const repairs = logs.filter(l => l.status === 'repair');
 
                 content.innerHTML = \`
-                                        <!--Hero Image Area-->
-                                            <div class="relative h-48 bg-gray-200 group shrink-0 overflow-hidden" >
-                                                \${
-                                                    displayImage
-                                                        ? \`<img src="\${displayImage}" class="absolute inset-0 w-full h-full object-cover">
-                               <div class="absolute inset-0 bg-black/40"></div>\`
-                                                        : \`<div class="absolute inset-0 flex items-center justify-center bg-gray-300 text-gray-400"><i class="fas fa-image text-4xl"></i></div>
-                               <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>\`
-}
+                    <!--Hero Image Area-->
+                    <div class="relative h-48 bg-gray-200 group shrink-0 overflow-hidden">
+                        \${
+                            displayImage
+                            ? '<img src="' + displayImage + '" class="absolute inset-0 w-full h-full object-cover"><div class="absolute inset-0 bg-black/40"></div>'
+                            : '<div class="absolute inset-0 flex items-center justify-center bg-gray-300 text-gray-400"><i class="fas fa-image text-4xl"></i></div><div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>'
+                        }
 
-<div class="absolute inset-0 flex flex-col justify-end p-6 z-10">
-    <div class="mb-2 self-start" > \${ getStatusBadge(facility.status) } </div>
-        <h3 class="text-2xl font-bold text-white leading-tight drop-shadow-md" > \${ facility.name } </h3>
-            <p class="text-white/90 text-sm mt-1 font-medium bg-black/20 inline-block px-2 py-1 rounded backdrop-blur-sm" > \${ facility.area || 0 } m² | \${ facility.manager_main || '관리자 미지정' } </p>
-                </div>
-
-                <!--Upload Button-->
-                    <div class="absolute top-4 right-4 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onclick="triggerImageUpload()" class="bg-white/90 hover:bg-white text-gray-800 p-2 rounded-full shadow-lg backdrop-blur text-sm font-bold flex items-center px-3" >
-                            <i class="fas fa-camera mr-2" > </i> 사진 변경
-                                </button>
-                                <input type="file" id = "imageInput" class="hidden" accept = "image/*" onchange="uploadImage(this)" >
-                                    </div>
-                                    </div>
-
-                                    <!--Tabs -->
-                                        <div class="flex border-b border-gray-200 px-6 shrink-0 bg-white sticky top-0 z-10 shadow-sm">
-                                            <button onclick="switchTab('info')" id="tabInfo" class="py-4 text-sm font-bold px-4 transition-colors border-b-2 \${currentTab === 'info' ? 'text-blue-600 border-blue-600' : 'text-gray-500 border-transparent hover:text-gray-800'}">기본 정보</button>
-                                            <button onclick="switchTab('items')" id="tabItems" class="py-4 text-sm font-medium px-4 transition-colors border-b-2 \${currentTab === 'items' ? 'text-blue-600 border-blue-600' : 'text-gray-500 border-transparent hover:text-gray-800'}">보유 비품</button>
-                                            <button onclick="switchTab('logs')" id="tabLogs" class="py-4 text-sm font-medium px-4 transition-colors border-b-2 \${currentTab === 'logs' ? 'text-blue-600 border-blue-600' : 'text-gray-500 border-transparent hover:text-gray-800'}">유지보수 이력</button>
-                                        </div>
-
-                                                        <!--Content -->
-                                                            <div class="p-6 space-y-6 bg-gray-50 min-h-[500px]" >
-                                                                <!--Info Tab-->
-                                                                    <div id="contentInfo" class="space-y-6 animate-fade-in \${currentTab === 'info' ? '' : 'hidden'}">
-                                                                        <div class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm space-y-5" >
-                                                                            <h4 class="font-bold text-gray-800 text-sm border-b pb-3 flex justify-between items-center" >
-                                                                                시설 정보 수정
-                                                                                    <span class="text-xs font-normal text-gray-400" > <i class="fas fa-info-circle mr-1" > </i>자동 저장됩니다</span>
-                                                                                        </h4>
-                                                                                        <div class="space-y-4" >
-                                                                                            <div>
-                                                                                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1" > 시설명 </label>
-                                                                                                <input type="text" value = "\${facility.name}" class="w-full border-gray-200 bg-gray-50 rounded-lg text-sm px-3 py-2 outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 transition-colors" onchange="updateFacility(this.value, 'name')" >
-                                                                                                    </div>
-                                                                                                    <div class="grid grid-cols-2 gap-4" >
-                                                                                                        <div>
-                                                                                                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1" > 상태 </label>
-                                                                                                            <select onchange="updateFacility(this.value, 'status')" class="w-full border-gray-200 bg-gray-50 rounded-lg text-sm px-3 py-2 outline-none focus:ring-2 focus:ring-blue-100" >
-                                                                                                                <option value="양호" \${ facility.status === '양호' ? 'selected' : '' }>🟢 양호 </option>
-                                                                                                                    <option value = "점검필요" \${ facility.status === '점검필요' ? 'selected' : '' }>🟡 점검필요 </option>
-                                                                                                                        <option value = "수리중" \${ facility.status === '수리중' ? 'selected' : '' }>🔴 수리중 </option>
-                                                                                                                            </select>
-                                                                                                                            </div>
-                                                                                                                            <div>
-                                                                                                                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1" > 면적(m²) </label>
-                                                                                                                                <input type="number" value = "\${facility.area || ''}" class="w-full border-gray-200 bg-gray-50 rounded-lg text-sm px-3 py-2 outline-none focus:bg-white focus:ring-2 focus:ring-blue-100" onchange="updateFacility(this.value, 'area')" >
-                                                                                                                                    </div>
-                                                                                                                                    </div>
-                                                                                                                                    <div class="grid grid-cols-2 gap-4" >
-                                                                                                                                        <div>
-                                                                                                                                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1" > 정 관리자 </label>
-                                                                                                                                            <input type="text" value = "\${facility.manager_main || ''}" class="w-full border-gray-200 bg-gray-50 rounded-lg text-sm px-3 py-2 outline-none focus:bg-white focus:ring-2 focus:ring-blue-100" onchange="updateFacility(this.value, 'manager_main')" >
-                                                                                                                                                </div>
-                                                                                                                                                 <div>
-                                                                                                                                                 <label class="block text-xs font-bold text-gray-500 uppercase mb-1" > 부 관리자 </label>
-                                                                                                                                                     <input type="text" value = "\${facility.manager_sub || ''}" class="w-full border-gray-200 bg-gray-50 rounded-lg text-sm px-3 py-2 outline-none focus:bg-white focus:ring-2 focus:ring-blue-100" onchange="updateFacility(this.value, 'manager_sub')" >
-                                                                                                                                                         </div>
-                                                                                                                                                         </div>
-                                                                                                                                                         <div>
-                                                                                                                                                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1" > 설명 </label>
-                                                                                                                                                             <textarea rows="4" class="w-full border-gray-200 bg-gray-50 rounded-lg text-sm px-3 py-2 outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 resize-none" onchange="updateFacility(this.value, 'description')" > \${ facility.description || '' } </textarea>
-                                                                                                                                                                 </div>
-                                                                                                                                                                 <div>
-                                                                                                                                                                 <label class="block text-xs font-bold text-gray-500 uppercase mb-2" > 시설 이미지 </label>
-                                                                                                                                                                 <div class="flex items-center gap-4 bg-gray-50 p-3 rounded-lg border border-gray-200" >
-                                                                                                                                                                     <div class="w-16 h-16 bg-white rounded-lg border border-gray-200 flex items-center justify-center overflow-hidden relative group" >
-                                                                                                                                                                         <img id="editFacImagePreview" src="\${displayImage || ''}" class="w-full h-full object-cover \${displayImage ? '' : 'hidden'}" >
-                                                                                                                                                                         <i class="fas fa-image text-gray-300 \${displayImage ? 'hidden' : ''}" id="editFacImagePlaceholder" > </i>
-                                                                                                                                                                     </div>
-                                                                                                                                                                     <div class="flex-1" >
-                                                                                                                                                                         <button onclick="triggerImageUpload()" class="px-3 py-1.5 bg-white border border-gray-300 rounded text-xs font-bold text-gray-700 hover:bg-gray-50 flex items-center" >
-                                                                                                                                                                             <i class="fas fa-camera mr-2" > </i> 사진 변경
-                                                                                                                                                                         </button>
-                                                                                                                                                                         <p class="text-[10px] text-gray-500 mt-1" > 이미지를 즉시 업데이트합니다. </p>
-                                                                                                                                                                     </div>
-                                                                                                                                                                 </div>
-                                                                                                                                                                 </div>
-                                                                                                                                                                  </div> <!-- Close space-y-4 -->
-                                                                                                                                                                  </div> <!-- Close bg-white -->
-                                                                                                                                                                  </div> <!-- Close contentInfo -->
-
-
-                                                                <div id="contentItems" class="space-y-4 animate-fade-in \${currentTab === 'items' ? '' : 'hidden'}">
-                                                                                                                                                                        \${resItems.success && resItems.data.length > 0 ? resItems.data.map(item => \`
-                                <div class="bg-white p-4 rounded-xl border border-gray-200 flex justify-between items-center text-sm shadow-sm hover:shadow-md transition-shadow">
-                                    <div class="flex items-center gap-4">
-                                        <div class="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-lg">\${item.quantity}</div>
-                                        <div>
-                                            <div class="font-bold text-gray-900">\${item.name}</div>
-                                            <div class="text-xs text-gray-500 mt-0.5">\${item.model || '-'} | <span class="\${item.status === 'good' ? 'text-green-600' : 'text-orange-600'}">\${item.status}</span></div>
-                                        </div>
-                                    </div>
-                                    <span class="px-2.5 py-1 bg-gray-100 rounded-md text-xs font-medium text-gray-600">\${item.category === 'textbook' ? '교재' : '비품/장비'}</span>
-                                </div>
-                            \`).join('') : '<div class="text-center py-10 text-gray-400 bg-white rounded-xl border border-dashed border-gray-300">등록된 비품이 없습니다.</div>'
-    }
-</div>
-
-    <!--Logs Tab(Unchanged)-->
-        <div id="contentLogs" class="space-y-4 animate-fade-in \${currentTab === 'logs' ? '' : 'hidden'}">
-            <div class="grid grid-cols-2 gap-3 mb-4" >
-                <button onclick="addLog('check')" class="bg-white border-2 border-gray-100 text-blue-600 font-bold text-sm py-3 rounded-xl hover:border-blue-100 hover:bg-blue-50 transition-all shadow-sm" > <i class="fas fa-check mr-2" > </i> 점검 기록 추가</button>
-                    <button onclick="addLog('repair')" class="bg-white border-2 border-gray-100 text-orange-600 font-bold text-sm py-3 rounded-xl hover:border-orange-100 hover:bg-orange-50 transition-all shadow-sm" > <i class="fas fa-tools mr-2" > </i> 수리 요청 추가</button>
+                        <div class="absolute inset-0 flex flex-col justify-end p-6 z-10">
+                            <div class="mb-2 self-start">\${getStatusBadge(facility.status)}</div>
+                            <h3 class="text-2xl font-bold text-white leading-tight drop-shadow-md">\${facility.name}</h3>
+                            <p class="text-white/90 text-sm mt-1 font-medium bg-black/20 inline-block px-2 py-1 rounded backdrop-blur-sm">\${facility.area || 0} m² | \${facility.manager_main || '관리자 미지정'}</p>
                         </div>
-                        <div id="logsContainer" class="space-y-3">
-                            \${
-                                resLogs.success && resLogs.data.length > 0 ? resLogs.data.map(log => \`
-                                <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm relative pl-4 border-l-4 \${log.status === 'repair' ? 'border-l-orange-500' : 'border-l-green-500'}">
-                                    <div class="flex justify-between items-start mb-2">
-                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider \${log.status === 'repair' ? 'bg-orange-100 text-orange-600' : 'bg-green-100 text-green-600'}">\${log.status === 'repair' ? '수리' : '점검'}</span>
-                                        <span class="text-xs text-gray-400 font-mono">\${log.date ? log.date.split('T')[0] : '-'}</span>
-                                    </div>
-                                    <h5 class="font-bold text-gray-800 text-sm mb-1">\${log.title}</h5>
-                                    <p class="text-xs text-gray-600 leading-relaxed">\${log.memo || '내용 없음'}</p>
-                                    \${log.price ? \`<div class="mt-3 pt-2 border-t border-gray-100 text-xs font-bold text-gray-700 text-right">비용: ₩ \${log.price.toLocaleString()}</div>\` : ''}
-                                </div>
-                            \`).join('') : '<div class="text-center py-10 text-gray-400 bg-white rounded-xl border border-dashed border-gray-300">유지보수 이력이 없습니다.</div>'
-}
-</div>
-    </div>
-    </div>
-        \`;
 
-            } catch(e) {
+                        <!--Upload Button-->
+                        <div class="absolute top-4 right-4 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onclick="triggerImageUpload()" class="bg-white/90 hover:bg-white text-gray-800 p-2 rounded-full shadow-lg backdrop-blur text-sm font-bold flex items-center px-3">
+                                <i class="fas fa-camera mr-2"></i> 사진 변경
+                            </button>
+                            <input type="file" id="imageInput" class="hidden" accept="image/*" onchange="uploadImage(this)">
+                        </div>
+                    </div>
+
+                    <!--Tabs-->
+                    <div class="flex border-b border-gray-200 px-6 shrink-0 bg-white sticky top-0 z-10 shadow-sm">
+                        <button onclick="switchTab('info')" id="tabInfo" class="py-4 text-sm font-bold px-4 transition-colors border-b-2 \${currentTab === 'info' ? 'text-blue-600 border-blue-600' : 'text-gray-500 border-transparent hover:text-gray-800'}">기본 정보</button>
+                        <button onclick="switchTab('items')" id="tabItems" class="py-4 text-sm font-medium px-4 transition-colors border-b-2 \${currentTab === 'items' ? 'text-blue-600 border-blue-600' : 'text-gray-500 border-transparent hover:text-gray-800'}">보유 비품</button>
+                        <button onclick="switchTab('inspections')" id="tabInspections" class="py-4 text-sm font-medium px-4 transition-colors border-b-2 \${currentTab === 'inspections' ? 'text-blue-600 border-blue-600' : 'text-gray-500 border-transparent hover:text-gray-800'}">점검 기록</button>
+                        <button onclick="switchTab('repairs')" id="tabRepairs" class="py-4 text-sm font-medium px-4 transition-colors border-b-2 \${currentTab === 'repairs' ? 'text-blue-600 border-blue-600' : 'text-gray-500 border-transparent hover:text-gray-800'}">수리 요청</button>
+                    </div>
+
+                    <!--Content-->
+                    <div class="p-6 space-y-6 bg-gray-50 min-h-[500px]">
+                        <!--Info Tab-->
+                        <div id="contentInfo" class="space-y-6 animate-fade-in \${currentTab === 'info' ? '' : 'hidden'}">
+                            <div class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm space-y-5">
+                                <h4 class="font-bold text-gray-800 text-sm border-b pb-3 flex justify-between items-center">
+                                    시설 정보 수정
+                                    <span class="text-xs font-normal text-gray-400"><i class="fas fa-info-circle mr-1"></i>자동 저장됩니다</span>
+                                </h4>
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">시설명</label>
+                                        <input type="text" value="\${facility.name}" class="w-full border-gray-200 bg-gray-50 rounded-lg text-sm px-3 py-2 outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 transition-colors" onchange="updateFacility(this.value, 'name')">
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">상태</label>
+                                            <select onchange="updateFacility(this.value, 'status')" class="w-full border-gray-200 bg-gray-50 rounded-lg text-sm px-3 py-2 outline-none focus:ring-2 focus:ring-blue-100">
+                                                <option value="양호" \${facility.status === '양호' ? 'selected' : ''}>🟢 양호</option>
+                                                <option value="점검필요" \${facility.status === '점검필요' ? 'selected' : ''}>🟡 점검필요</option>
+                                                <option value="수리중" \${facility.status === '수리중' ? 'selected' : ''}>🔴 수리중</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">면적(m²)</label>
+                                            <input type="number" value="\${facility.area || ''}" class="w-full border-gray-200 bg-gray-50 rounded-lg text-sm px-3 py-2 outline-none focus:bg-white focus:ring-2 focus:ring-blue-100" onchange="updateFacility(this.value, 'area')">
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">정 관리자</label>
+                                            <input type="text" value="\${facility.manager_main || ''}" class="w-full border-gray-200 bg-gray-50 rounded-lg text-sm px-3 py-2 outline-none focus:bg-white focus:ring-2 focus:ring-blue-100" onchange="updateFacility(this.value, 'manager_main')">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">부 관리자</label>
+                                            <input type="text" value="\${facility.manager_sub || ''}" class="w-full border-gray-200 bg-gray-50 rounded-lg text-sm px-3 py-2 outline-none focus:bg-white focus:ring-2 focus:ring-blue-100" onchange="updateFacility(this.value, 'manager_sub')">
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">설명</label>
+                                        <textarea rows="4" class="w-full border-gray-200 bg-gray-50 rounded-lg text-sm px-3 py-2 outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 resize-none" onchange="updateFacility(this.value, 'description')">\${facility.description || ''}</textarea>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-gray-500 uppercase mb-2">시설 이미지</label>
+                                        <div class="flex items-center gap-4 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                            <div class="w-16 h-16 bg-white rounded-lg border border-gray-200 flex items-center justify-center overflow-hidden relative group">
+                                                <img id="editFacImagePreview" src="\${displayImage || ''}" class="w-full h-full object-cover \${displayImage ? '' : 'hidden'}">
+                                                <i class="fas fa-image text-gray-300 \${displayImage ? 'hidden' : ''}" id="editFacImagePlaceholder"></i>
+                                            </div>
+                                            <div class="flex-1">
+                                                <button onclick="triggerImageUpload()" class="px-3 py-1.5 bg-white border border-gray-300 rounded text-xs font-bold text-gray-700 hover:bg-gray-50 flex items-center">
+                                                    <i class="fas fa-camera mr-2"></i> 사진 변경
+                                                </button>
+                                                <p class="text-[10px] text-gray-500 mt-1">이미지를 즉시 업데이트합니다.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!--Items Tab-->
+                        <div id="contentItems" class="space-y-4 animate-fade-in \${currentTab === 'items' ? '' : 'hidden'}">
+                            \${
+                                resItems.data && resItems.data.length > 0 ? resItems.data.map(item => \`
+                                    <div class="bg-white p-4 rounded-xl border border-gray-200 flex justify-between items-center text-sm shadow-sm hover:shadow-md transition-shadow">
+                                        <div class="flex items-center gap-4">
+                                            <div class="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-lg">\${item.quantity}</div>
+                                            <div>
+                                                <div class="font-bold text-gray-900">\${item.name}</div>
+                                                <div class="text-xs text-gray-500 mt-0.5">\${item.model || '-'} | <span class="\${item.status === 'good' ? 'text-green-600' : 'text-orange-600'}">\${item.status}</span></div>
+                                            </div>
+                                        </div>
+                                        <span class="px-2.5 py-1 bg-gray-100 rounded-md text-xs font-medium text-gray-600">\${item.category === 'textbook' ? '교재' : '비품/장비'}</span>
+                                    </div>
+                                \`).join('') : '<div class="text-center py-10 text-gray-400 bg-white rounded-xl border border-dashed border-gray-300">등록된 비품이 없습니다.</div>'
+                            }
+                        </div>
+
+                        <!--Inspections Tab-->
+                        <div id="contentInspections" class="space-y-4 animate-fade-in \${currentTab === 'inspections' ? '' : 'hidden'}">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="font-bold text-gray-800 text-sm">최근 점검 이력</h4>
+                                <button onclick="addLog('check')" class="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors">
+                                    <i class="fas fa-plus mr-1"></i> 점검 기록 추가
+                                </button>
+                            </div>
+                            
+                            \${
+                                inspections.length > 0 ? inspections.map(log => \`
+                                    <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow relative group">
+                                        <div class="flex justify-between items-start mb-2">
+                                            <div class="flex items-center gap-2">
+                                                <span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-bold">점검</span>
+                                                <h5 class="font-bold text-gray-900 text-sm">\${log.title}</h5>
+                                            </div>
+                                            <span class="text-xs text-gray-400 font-mono">\${log.date.split('T')[0]}</span>
+                                        </div>
+                                        <p class="text-sm text-gray-600 mb-2">\${log.memo || '특이사항 없음'}</p>
+                                        <div class="flex justify-between items-center text-xs text-gray-400">
+                                            <span><i class="fas fa-user-check mr-1"></i> \${log.manager || '관리자'}</span>
+                                        </div>
+                                    </div>
+                                \`).join('') : '<div class="text-center py-10 text-gray-400 bg-white rounded-xl border border-dashed border-gray-300">등록된 점검 기록이 없습니다.</div>'
+                            }
+                        </div>
+
+                        <!--Repairs Tab-->
+                        <div id="contentRepairs" class="space-y-4 animate-fade-in \${currentTab === 'repairs' ? '' : 'hidden'}">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="font-bold text-gray-800 text-sm">수리 요청 및 처리 현황</h4>
+                                <button onclick="addLog('repair')" class="px-3 py-1.5 bg-orange-50 text-orange-600 rounded-lg text-xs font-bold hover:bg-orange-100 transition-colors">
+                                    <i class="fas fa-tools mr-1"></i> 수리 요청 추가
+                                </button>
+                            </div>
+
+                            \${
+                                repairs.length > 0 ? repairs.map(log => {
+                                    let statusBadge = '';
+                                    let statusClass = '';
+                                    const progress = log.progress || 'pending';
+                                    
+                                    if(progress === 'completed') {
+                                        statusBadge = '<span class="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs font-bold ring-1 ring-green-600/20">완료</span>';
+                                        statusClass = 'border-l-4 border-green-500';
+                                    } else if(progress === 'in_progress') {
+                                        statusBadge = '<span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-bold ring-1 ring-blue-600/20">처리중</span>';
+                                        statusClass = 'border-l-4 border-blue-500';
+                                    } else {
+                                        statusBadge = '<span class="bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-xs font-bold ring-1 ring-gray-600/20">접수대기</span>';
+                                        statusClass = 'border-l-4 border-gray-300';
+                                    }
+
+                                    return \`
+                                    <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow relative \${statusClass}">
+                                        <div class="flex justify-between items-start mb-2">
+                                            <div class="flex items-center gap-2">
+                                                \${statusBadge}
+                                                <h5 class="font-bold text-gray-900 text-sm">\${log.title}</h5>
+                                            </div>
+                                            <span class="text-xs text-gray-400 font-mono">\${log.date.split('T')[0]}</span>
+                                        </div>
+                                        <div class="grid grid-cols-2 gap-2 text-xs text-gray-500 mb-3 bg-gray-50 p-2 rounded">
+                                            <div><span class="text-gray-400 block text-[10px]">예상 비용</span>\${log.price ? log.price.toLocaleString() + '원' : '-'}</div>
+                                            <div><span class="text-gray-400 block text-[10px]">업체</span>\${log.vendor || '-'}</div>
+                                        </div>
+                                        <p class="text-sm text-gray-600 mb-3">\${log.memo || '-'}</p>
+                                        
+                                        <!-- Action Buttons -->
+                                        <div class="flex justify-end gap-2 border-t pt-2 mt-2">
+                                            \${progress !== 'in_progress' && progress !== 'completed' ? '<button onclick="updateRepairStatus(\\'' + log.id + '\\', \\'in_progress\\')" class="text-xs px-2 py-1 bg-blue-50 text-blue-600 rounded hover:bg-blue-100">처리중으로 변경</button>' : ''}
+                                            \${progress !== 'completed' ? '<button onclick="updateRepairStatus(\\'' + log.id + '\\', \\'completed\\')" class="text-xs px-2 py-1 bg-green-50 text-green-600 rounded hover:bg-green-100">완료 처리</button>' : ''}
+                                            \${progress === 'completed' ? '<span class="text-xs text-gray-400 flex items-center"><i class="fas fa-check-circle mr-1"></i>처리 완료됨</span>' : ''}
+                                        </div>
+                                    </div>
+                                    \`;
+                                }).join('') : '<div class="text-center py-10 text-gray-400 bg-white rounded-xl border border-dashed border-gray-300">수리 요청 내역이 없습니다.</div>'
+                            }
+                        </div>
+                    </div>
+                \`;
+            } catch (e) {
                 console.error(e);
                 content.innerHTML = '<div class="p-10 text-center text-red-500">오류가 발생했습니다.</div>';
             }
         }
 
-        // Functions (closeDrawer, switchTab, updateFacility) are same as before
-        function closeDrawer() {
-            document.getElementById('drawer').classList.add('translate-x-full');
-            document.getElementById('drawerOverlay').classList.add('opacity-0');
-            setTimeout(() => {
-                document.getElementById('drawerOverlay').classList.add('hidden');
-                document.getElementById('drawerContent').innerHTML = '<div class="flex items-center justify-center h-full text-gray-400"><i class="fas fa-circle-notch fa-spin mr-2"></i> 로딩중...</div>';
-            }, 300);
-            currentDetailId = null;
-        }
+// Functions (closeDrawer, switchTab, updateFacility) are same as before
+function closeDrawer() {
+    document.getElementById('drawer').classList.add('translate-x-full');
+    document.getElementById('drawerOverlay').classList.add('opacity-0');
+    setTimeout(() => {
+        document.getElementById('drawerOverlay').classList.add('hidden');
+        document.getElementById('drawerContent').innerHTML = '<div class="flex items-center justify-center h-full text-gray-400"><i class="fas fa-circle-notch fa-spin mr-2"></i> 로딩중...</div>';
+    }, 300);
+    currentDetailId = null;
+}
 
-        function switchTab(tab) {
-            currentTab = tab;
-            ['Info', 'Items', 'Logs'].forEach(t => {
-                const btn = document.getElementById('tab' + t);
-                const content = document.getElementById('content' + t);
-                if(t.toLowerCase() === tab) {
-                    btn.classList.add('text-blue-600', 'border-blue-600');
-                    btn.classList.remove('text-gray-500', 'border-transparent');
-                    content.classList.remove('hidden');
-                } else {
-                    btn.classList.remove('text-blue-600', 'border-blue-600');
-                    btn.classList.add('text-gray-500', 'border-transparent');
-                    content.classList.add('hidden');
-                }
-            });
-        }
+async function switchTab(tabName) {
+    currentTab = tabName;
+    document.getElementById('contentInfo').classList.add('hidden');
+    document.getElementById('contentItems').classList.add('hidden');
+    document.getElementById('contentInspections').classList.add('hidden');
+    document.getElementById('contentRepairs').classList.add('hidden');
 
-        async function updateFacility(value, field) {
-            if(!currentDetailId) return;
-            try {
-                const current = facilities.find(f => f.id === currentDetailId) || {};
-                const data = { ...current, [field]: value };
-                current[field] = value; 
-                await fetch('/api/hrd/facilities', {
-                    method: 'PUT',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(data)
-                });
-                loadFacilities(); 
-            } catch(e) { console.error(e); }
-        }
+    // Reset tab styles
+    ['tabInfo', 'tabItems', 'tabInspections', 'tabRepairs'].forEach(t => {
+        const el = document.getElementById(t);
+        el.className = 'py-4 text-sm font-medium px-4 transition-colors border-b-2 text-gray-500 border-transparent hover:text-gray-800';
+    });
 
-        function openCreateModal() {
-            document.getElementById('editFacilityId').value = '';
-            document.getElementById('modalTitle').textContent = '새 훈련시설 등록';
-            document.getElementById('modalSaveBtn').textContent = '등록하기';
-            
-            document.getElementById('createModal').classList.remove('hidden');
-            document.getElementById('newFacName').value = '';
-            document.getElementById('newFacArea').value = '';
-            document.getElementById('newFacManager').value = '';
-            document.getElementById('newFacManagerSub').value = '';
-            document.getElementById('newFacDesc').value = '';
-            clearNewFacImage();
-        }
+    // Activate tab
+    const activeTabBtn = document.getElementById('tab' + tabName.charAt(0).toUpperCase() + tabName.slice(1));
+    activeTabBtn.className = 'py-4 text-sm font-bold px-4 transition-colors border-b-2 text-blue-600 border-blue-600';
 
-        function openEditModalFromDrawer() {
-            if (currentDetailId) {
-                const facility = facilities.find(f => f.id === currentDetailId);
-                if (facility) openEditModal(facility);
+    const activeContent = document.getElementById('content' + tabName.charAt(0).toUpperCase() + tabName.slice(1));
+    activeContent.classList.remove('hidden');
+}
+
+async function updateFacility(value, field) {
+    if (!currentDetailId) return;
+    try {
+        const current = facilities.find(f => f.id === currentDetailId) || {};
+        const data = { ...current, [field]: value };
+        current[field] = value;
+        await fetch('/api/hrd/facilities', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        loadFacilities();
+    } catch (e) { console.error(e); }
+}
+
+function openCreateModal() {
+    document.getElementById('editFacilityId').value = '';
+    document.getElementById('modalTitle').textContent = '새 훈련시설 등록';
+    document.getElementById('modalSaveBtn').textContent = '등록하기';
+
+    document.getElementById('createModal').classList.remove('hidden');
+    document.getElementById('newFacName').value = '';
+    document.getElementById('newFacArea').value = '';
+    document.getElementById('newFacManager').value = '';
+    document.getElementById('newFacManagerSub').value = '';
+    document.getElementById('newFacDesc').value = '';
+    clearNewFacImage();
+}
+
+function openEditModalFromDrawer() {
+    if (currentDetailId) {
+        const facility = facilities.find(f => f.id === currentDetailId);
+        if (facility) openEditModal(facility);
+    }
+}
+
+function openEditModal(facility) {
+    document.getElementById('editFacilityId').value = facility.id;
+    document.getElementById('modalTitle').textContent = '시설 정보 수정';
+    document.getElementById('modalSaveBtn').textContent = '수정 완료';
+
+    document.getElementById('createModal').classList.remove('hidden');
+    document.getElementById('newFacName').value = facility.name;
+    document.getElementById('newFacArea').value = facility.area || '';
+    document.getElementById('newFacManager').value = facility.manager_main || '';
+    document.getElementById('newFacManagerSub').value = facility.manager_sub || '';
+    document.getElementById('newFacDesc').value = facility.description || '';
+
+    clearNewFacImage();
+    if (facility.image_url) {
+        document.getElementById('newFacImageUrl').value = facility.image_url;
+        document.getElementById('newFacImagePreview').src = facility.image_url;
+        document.getElementById('newFacImagePreview').classList.remove('hidden');
+        document.getElementById('newFacImagePlaceholder').classList.add('hidden');
+    }
+}
+
+async function updateRepairStatus(logId, status) {
+    if (!confirm('상태를 변경하시겠습니까?')) return;
+    try {
+        const res = await fetch('/api/hrd/facilities/maintenance/' + logId, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ progress: status })
+        });
+        const result = await res.json();
+        if (result.success) {
+            openDrawer(currentDetailId); // Refresh
+        } else {
+            alert('상태 변경 실패: ' + result.error);
+        }
+    } catch (e) {
+        console.error(e);
+        alert('오류가 발생했습니다.');
+    }
+}
+
+async function handleModalSave() {
+    const id = document.getElementById('editFacilityId').value;
+    const name = document.getElementById('newFacName').value;
+    const area = document.getElementById('newFacArea').value;
+    const managerMain = document.getElementById('newFacManager').value;
+    const managerSub = document.getElementById('newFacManagerSub').value;
+    const description = document.getElementById('newFacDesc').value;
+    const image_url = document.getElementById('newFacImageUrl').value;
+
+    if (!name) { alert('시설명을 입력해주세요.'); return; }
+
+    const method = id ? 'PUT' : 'POST';
+
+    // Prepare body with correct field names for backend
+    const body = {
+        name,
+        area,
+        managerMain: managerMain,
+        managerSub: managerSub,
+        description,
+        image_url
+    };
+
+    if (id) {
+        body.id = id;
+        // Preserve existing status
+        const original = facilities.find(f => f.id == id);
+        if (original) {
+            body.status = original.status;
+        }
+    } else {
+        body.status = '양호'; // Default status for new
+    }
+
+    // Ensure price is integer (or 0)
+    if (body.price) body.price = parseInt(body.price);
+
+    try {
+        const res = await fetch('/api/hrd/facilities', {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        const result = await res.json();
+        if (result.success) {
+            closeCreateModal();
+            if (id && currentDetailId === parseInt(id)) {
+                openDrawer(parseInt(id)); // Drawer 리로드
             }
+            loadFacilities();
+        } else {
+            alert((id ? '수정' : '등록') + ' 실패: ' + result.error);
         }
+    } catch (e) {
+        console.error(e);
+        alert('오류가 발생했습니다.');
+    }
+}
 
-        function openEditModal(facility) {
-            document.getElementById('editFacilityId').value = facility.id;
-            document.getElementById('modalTitle').textContent = '시설 정보 수정';
-            document.getElementById('modalSaveBtn').textContent = '수정 완료';
-            
-            document.getElementById('createModal').classList.remove('hidden');
-            document.getElementById('newFacName').value = facility.name;
-            document.getElementById('newFacArea').value = facility.area || '';
-            document.getElementById('newFacManager').value = facility.manager_main || '';
-            document.getElementById('newFacManagerSub').value = facility.manager_sub || '';
-            document.getElementById('newFacDesc').value = facility.description || '';
-            
-            clearNewFacImage();
-            if (facility.image_url) {
-                document.getElementById('newFacImageUrl').value = facility.image_url;
-                document.getElementById('newFacImagePreview').src = facility.image_url;
-                document.getElementById('newFacImagePreview').classList.remove('hidden');
-                document.getElementById('newFacImagePlaceholder').classList.add('hidden');
-            }
-        }
+// Keep createFacility for backward compatibility or if referenced elsewhere, 
+// but handleModalSave replaces it. Redefining it to redirect to handleModalSave just in case.
+function createFacility() {
+    handleModalSave();
+}
 
-        async function handleModalSave() {
-            const id = document.getElementById('editFacilityId').value;
-            const name = document.getElementById('newFacName').value;
-            const area = document.getElementById('newFacArea').value;
-            const managerMain = document.getElementById('newFacManager').value;
-            const managerSub = document.getElementById('newFacManagerSub').value;
-            const description = document.getElementById('newFacDesc').value;
-            const image_url = document.getElementById('newFacImageUrl').value;
-            
-            if(!name) { alert('시설명을 입력해주세요.'); return; }
+// 모달 닫기
+function closeCreateModal() {
+    document.getElementById('createModal').classList.add('hidden');
+}
 
-            const method = id ? 'PUT' : 'POST';
-            
-            // Prepare body with correct field names for backend
-            const body = { 
-                name, 
-                area, 
-                managerMain: managerMain, 
-                managerSub: managerSub,
-                description, 
-                image_url 
-            };
+// 시설 이미지 초기화
+function clearNewFacImage() {
+    const preview = document.getElementById('newFacImagePreview');
+    const placeholder = document.getElementById('newFacImagePlaceholder');
+    const urlInput = document.getElementById('newFacImageUrl');
+    const fileInput = document.getElementById('newFacImageFile');
 
-            if (id) {
-                body.id = id;
-                // Preserve existing status
-                const original = facilities.find(f => f.id == id);
-                if (original) {
-                    body.status = original.status;
-                }
+    if (preview) { preview.src = ''; preview.classList.add('hidden'); }
+    if (placeholder) placeholder.classList.remove('hidden');
+    if (urlInput) urlInput.value = '';
+    if (fileInput) fileInput.value = '';
+}
+
+// 시설 이미지 업로드 처리
+function handleNewFacImage(input) {
+    if (!input.files || !input.files[0]) return;
+    const file = input.files[0];
+    const reader = new FileReader();
+
+    reader.onload = function (e) {
+        const img = new Image();
+        img.src = e.target.result;
+        img.onload = function () {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+            const MAX_WIDTH = 800;
+            const MAX_HEIGHT = 600;
+
+            if (width > height) {
+                if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
             } else {
-                body.status = '양호'; // Default status for new
+                if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
             }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
 
-            // Ensure price is integer (or 0)
-            if (body.price) body.price = parseInt(body.price);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+            document.getElementById('newFacImageUrl').value = dataUrl;
+            document.getElementById('newFacImagePreview').src = dataUrl;
+            document.getElementById('newFacImagePreview').classList.remove('hidden');
+            document.getElementById('newFacImagePlaceholder').classList.add('hidden');
+        }
+    }
+    reader.readAsDataURL(file);
+}
+async function deleteFacility() {
+    if (!currentDetailId || !confirm('정말 삭제하시겠습니까? 삭제된 데이터는 복구할 수 없습니다.')) return;
+    try { await fetch('/api/hrd/facilities/' + currentDetailId, { method: 'DELETE' }); closeDrawer(); alert('삭제되었습니다.'); loadFacilities(); } catch (e) { console.error(e); }
+}
+async function addLog(type) {
+    if (type === 'check') {
+        openCheckModal();
+    } else {
+        openRepairModal();
+    }
+}
 
-            try {
-                const res = await fetch('/api/hrd/facilities', {
-                    method: method,
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(body)
-                });
-                const result = await res.json();
-                if(result.success) {
-                    closeCreateModal();
-                    if (id && currentDetailId === parseInt(id)) {
-                        openDrawer(parseInt(id)); // Drawer 리로드
-                    }
-                    loadFacilities();
-                } else {
-                    alert((id ? '수정' : '등록') + ' 실패: ' + result.error);
-                }
-            } catch(e) {
-                console.error(e);
-                alert('오류가 발생했습니다.');
-            }
-        }
+// Inspection Modal Functions
+function openCheckModal() {
+    const modal = document.getElementById('checkModal');
+    const content = modal.querySelector('div');
+    modal.classList.remove('hidden');
+    // Animation
+    setTimeout(() => {
+        modal.classList.remove('opacity-0');
+        content.classList.remove('scale-95', 'opacity-0');
+        content.classList.add('scale-100', 'opacity-100');
+    }, 10);
 
-        // Keep createFacility for backward compatibility or if referenced elsewhere, 
-        // but handleModalSave replaces it. Redefining it to redirect to handleModalSave just in case.
-        function createFacility() {
-            handleModalSave();
-        }
-        
-        // 모달 닫기
-        function closeCreateModal() {
-            document.getElementById('createModal').classList.add('hidden');
-        }
-        
-        // 시설 이미지 초기화
-        function clearNewFacImage() {
-            const preview = document.getElementById('newFacImagePreview');
-            const placeholder = document.getElementById('newFacImagePlaceholder');
-            const urlInput = document.getElementById('newFacImageUrl');
-            const fileInput = document.getElementById('newFacImageFile');
-            
-            if (preview) { preview.src = ''; preview.classList.add('hidden'); }
-            if (placeholder) placeholder.classList.remove('hidden');
-            if (urlInput) urlInput.value = '';
-            if (fileInput) fileInput.value = '';
-        }
-        
-        // 시설 이미지 업로드 처리
-        function handleNewFacImage(input) {
-            if (!input.files || !input.files[0]) return;
-            const file = input.files[0];
-            const reader = new FileReader();
-            
-            reader.onload = function(e) {
-                const img = new Image();
-                img.src = e.target.result;
-                img.onload = function() {
-                    const canvas = document.createElement('canvas');
-                    let width = img.width;
-                    let height = img.height;
-                    const MAX_WIDTH = 800;
-                    const MAX_HEIGHT = 600;
+    document.getElementById('checkDate').valueAsDate = new Date();
+    document.getElementById('checkTitle').value = '';
+    // Reset status
+    const statusRadios = document.getElementsByName('checkStatus');
+    if (statusRadios.length > 0) statusRadios[0].checked = true;
+}
 
-                    if (width > height) {
-                        if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
-                    } else {
-                        if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
-                    }
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-                    
-                    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-                    document.getElementById('newFacImageUrl').value = dataUrl;
-                    document.getElementById('newFacImagePreview').src = dataUrl;
-                    document.getElementById('newFacImagePreview').classList.remove('hidden');
-                    document.getElementById('newFacImagePlaceholder').classList.add('hidden');
-                }
-            }
-            reader.readAsDataURL(file);
-        }
-        async function deleteFacility() {
-            if(!currentDetailId || !confirm('정말 삭제하시겠습니까? 삭제된 데이터는 복구할 수 없습니다.')) return;
-            try { await fetch('/api/hrd/facilities/' + currentDetailId, { method: 'DELETE' }); closeDrawer(); alert('삭제되었습니다.'); loadFacilities(); } catch(e) { console.error(e); }
-        }
-        async function addLog(type) {
-            if(type === 'check') {
-                openCheckModal();
+function closeCheckModal() {
+    const modal = document.getElementById('checkModal');
+    const content = modal.querySelector('div');
+    modal.classList.add('opacity-0');
+    content.classList.remove('scale-100', 'opacity-100');
+    content.classList.add('scale-95', 'opacity-0');
+
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 200);
+}
+
+async function submitCheckLog() {
+    const date = document.getElementById('checkDate').value;
+    const manager = document.getElementById('checkManager').value;
+    const title = document.getElementById('checkTitle').value;
+
+    if (!title) { alert('점검 내용을 입력해주세요.'); return; }
+    if (!date) { alert('점검 일자를 입력해주세요.'); return; }
+
+    try {
+        await fetch('/api/hrd/facilities/' + currentDetailId + '/maintenance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                status: 'check',
+                title: title,
+                manager: manager,
+                date: date,
+                memo: title, // Use title as memo for now as API expects it? No, API has title and memo.
+                price: 0
+            })
+        });
+        closeCheckModal();
+        openDrawer(currentDetailId);
+    } catch (e) { console.error(e); alert('등록 중 오류가 발생했습니다.'); }
+}
+
+// Repair Modal Functions
+function openRepairModal() {
+    const modal = document.getElementById('repairModal');
+    const content = modal.querySelector('div');
+    modal.classList.remove('hidden');
+    // Animation
+    setTimeout(() => {
+        modal.classList.remove('opacity-0');
+        content.classList.remove('scale-95', 'opacity-0');
+        content.classList.add('scale-100', 'opacity-100');
+    }, 10);
+
+    document.getElementById('repairDate').valueAsDate = new Date();
+    document.getElementById('repairTitle').value = '';
+    document.getElementById('repairPrice').value = '';
+    document.getElementById('repairVendor').value = '';
+    document.getElementById('repairMemo').value = '';
+}
+
+function closeRepairModal() {
+    const modal = document.getElementById('repairModal');
+    const content = modal.querySelector('div');
+    modal.classList.add('opacity-0');
+    content.classList.remove('scale-100', 'opacity-100');
+    content.classList.add('scale-95', 'opacity-0');
+
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 200);
+}
+
+async function submitRepairLog() {
+    const date = document.getElementById('repairDate').value;
+    const title = document.getElementById('repairTitle').value;
+    const price = document.getElementById('repairPrice').value;
+    const manager = document.getElementById('repairManager').value;
+    const vendor = document.getElementById('repairVendor').value;
+    const memo = document.getElementById('repairMemo').value;
+
+    if (!title) { alert('수리 요청 제목을 입력해주세요.'); return; }
+
+    try {
+        await fetch('/api/hrd/facilities/' + currentDetailId + '/maintenance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                status: 'repair',
+                title: title,
+                price: price || 0,
+                vendor: vendor,
+                manager: manager,
+                date: date,
+                memo: memo
+            })
+        });
+        closeRepairModal();
+        openDrawer(currentDetailId);
+    } catch (e) { console.error(e); alert('등록 중 오류가 발생했습니다.'); }
+}
+
+// Image Upload Logic
+function triggerImageUpload() {
+    document.getElementById('imageInput').click();
+}
+
+async function uploadImage(input) {
+    if (!input.files || !input.files[0]) return;
+    const file = input.files[0];
+
+    // Client-side Resize to avoid huge payload
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = function (e) {
+        const img = new Image();
+        img.src = e.target.result;
+        img.onload = function () {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+            const MAX_WIDTH = 800;
+            const MAX_HEIGHT = 600;
+
+            if (width > height) {
+                if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
             } else {
-                openRepairModal();
+                if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
             }
-        }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
 
-        // Inspection Modal Functions
-        function openCheckModal() {
-            const modal = document.getElementById('checkModal');
-            const content = modal.querySelector('div');
-            modal.classList.remove('hidden');
-            // Animation
-            setTimeout(() => {
-                modal.classList.remove('opacity-0');
-                content.classList.remove('scale-95', 'opacity-0');
-                content.classList.add('scale-100', 'opacity-100');
-            }, 10);
-            
-            document.getElementById('checkDate').valueAsDate = new Date();
-            document.getElementById('checkTitle').value = '';
-            // Reset status
-            const statusRadios = document.getElementsByName('checkStatus');
-            if(statusRadios.length > 0) statusRadios[0].checked = true;
-        }
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
 
-        function closeCheckModal() {
-            const modal = document.getElementById('checkModal');
-            const content = modal.querySelector('div');
-            modal.classList.add('opacity-0');
-            content.classList.remove('scale-100', 'opacity-100');
-            content.classList.add('scale-95', 'opacity-0');
-            
-            setTimeout(() => {
-                modal.classList.add('hidden');
-            }, 200);
-        }
-
-        async function submitCheckLog() {
-            const date = document.getElementById('checkDate').value;
-            const manager = document.getElementById('checkManager').value;
-            const title = document.getElementById('checkTitle').value;
-            
-            if (!title) { alert('점검 내용을 입력해주세요.'); return; }
-            if (!date) { alert('점검 일자를 입력해주세요.'); return; }
-            
-            try {
-                await fetch('/api/hrd/facilities/' + currentDetailId + '/maintenance', {
-                    method: 'POST', 
-                    headers: {'Content-Type':'application/json'},
-                    body: JSON.stringify({ 
-                        status: 'check', 
-                        title: title, 
-                        manager: manager, 
-                        date: date, 
-                        memo: title, // Use title as memo for now as API expects it? No, API has title and memo.
-                        price: 0 
-                    })
-                }); 
-                closeCheckModal();
-                openDrawer(currentDetailId);
-            } catch(e) { console.error(e); alert('등록 중 오류가 발생했습니다.'); }
-        }
-
-        // Repair Modal Functions
-        function openRepairModal() {
-            const modal = document.getElementById('repairModal');
-            const content = modal.querySelector('div');
-            modal.classList.remove('hidden');
-            // Animation
-            setTimeout(() => {
-                modal.classList.remove('opacity-0');
-                content.classList.remove('scale-95', 'opacity-0');
-                content.classList.add('scale-100', 'opacity-100');
-            }, 10);
-            
-            document.getElementById('repairDate').valueAsDate = new Date();
-            document.getElementById('repairTitle').value = '';
-            document.getElementById('repairPrice').value = '';
-            document.getElementById('repairVendor').value = '';
-            document.getElementById('repairMemo').value = '';
-        }
-
-        function closeRepairModal() {
-            const modal = document.getElementById('repairModal');
-            const content = modal.querySelector('div');
-            modal.classList.add('opacity-0');
-            content.classList.remove('scale-100', 'opacity-100');
-            content.classList.add('scale-95', 'opacity-0');
-            
-            setTimeout(() => {
-                modal.classList.add('hidden');
-            }, 200);
-        }
-
-        async function submitRepairLog() {
-            const date = document.getElementById('repairDate').value;
-            const title = document.getElementById('repairTitle').value;
-            const price = document.getElementById('repairPrice').value;
-            const manager = document.getElementById('repairManager').value;
-            const vendor = document.getElementById('repairVendor').value;
-            const memo = document.getElementById('repairMemo').value;
-            
-            if (!title) { alert('수리 요청 제목을 입력해주세요.'); return; }
-            
-            try {
-                await fetch('/api/hrd/facilities/' + currentDetailId + '/maintenance', {
-                    method: 'POST', 
-                    headers: {'Content-Type':'application/json'},
-                    body: JSON.stringify({ 
-                        status: 'repair', 
-                        title: title, 
-                        price: price || 0,
-                        vendor: vendor,
-                        manager: manager, 
-                        date: date, 
-                        memo: memo 
-                    })
-                }); 
-                closeRepairModal();
-                openDrawer(currentDetailId);
-            } catch(e) { console.error(e); alert('등록 중 오류가 발생했습니다.'); }
-        }
-
-        // Image Upload Logic
-        function triggerImageUpload() {
-            document.getElementById('imageInput').click();
-        }
-
-        async function uploadImage(input) {
-            if(!input.files || !input.files[0]) return;
-            const file = input.files[0];
-            
-            // Client-side Resize to avoid huge payload
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = function(e) {
-                const img = new Image();
-                img.src = e.target.result;
-                img.onload = function() {
-                    const canvas = document.createElement('canvas');
-                    let width = img.width;
-                    let height = img.height;
-                    const MAX_WIDTH = 800;
-                    const MAX_HEIGHT = 600;
-
-                    if (width > height) {
-                        if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+            // Send to API
+            fetch('/api/hrd/facilities/' + currentDetailId + '/images', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: file.name,
+                    size: Math.round(dataUrl.length * 0.75),
+                    url: dataUrl
+                })
+            })
+                .then(res => res.json())
+                .then(json => {
+                    if (json.success) {
+                        // alert('이미지가 등록되었습니다.');
+                        openDrawer(currentDetailId); // Reload drawer to show new image
+                        loadFacilities(); // Reload list to show thumbnail
                     } else {
-                        if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
+                        alert('이미지 업로드 실패: ' + (json.error || 'Unknown error'));
                     }
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-                    
-                    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-
-                    // Send to API
-                    fetch('/api/hrd/facilities/' + currentDetailId + '/images', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({
-                            name: file.name,
-                            size: Math.round(dataUrl.length * 0.75),
-                            url: dataUrl
-                        })
-                    })
-                    .then(res => res.json())
-                    .then(json => {
-                        if(json.success) {
-                            // alert('이미지가 등록되었습니다.');
-                            openDrawer(currentDetailId); // Reload drawer to show new image
-                            loadFacilities(); // Reload list to show thumbnail
-                        } else {
-                            alert('이미지 업로드 실패: ' + (json.error || 'Unknown error'));
-                        }
-                    })
-                    .catch(console.error);
-                }
-            }
+                })
+                .catch(console.error);
         }
-    </script>
-</body>
-</html>
-`;
+    }
+}
+</script>
+    </body>
+    </html>
+        `;
 
