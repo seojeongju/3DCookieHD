@@ -314,12 +314,52 @@ export const teacherProfileHtml = `
     </div>
 
     <script>
+        // 전역 변수 선언
         let certifications = [];
         let certIdCounter = 0;
         let teachingHistory = [];
         let teachingHistoryIdCounter = 0;
         let currentProfileTab = 'education';
         let currentUserId = null;
+
+        // 전역 함수들을 즉시 정의 (HTML 파싱 전에 접근 가능하도록)
+        // switchProfileTab 함수 - 탭 전환 기능
+        window.switchProfileTab = function(tab) {
+            if (typeof currentProfileTab === 'undefined') {
+                currentProfileTab = 'education';
+            }
+            currentProfileTab = tab;
+            
+            // 탭 버튼 스타일 업데이트
+            ['education', 'certifications', 'training', 'teaching'].forEach(t => {
+                const btnId = 'tab' + t.charAt(0).toUpperCase() + t.slice(1);
+                const contentId = 'content' + t.charAt(0).toUpperCase() + t.slice(1);
+                const btn = document.getElementById(btnId);
+                const content = document.getElementById(contentId);
+                
+                if (!btn || !content) {
+                    console.warn('Tab element not found:', t, 'btnId:', btnId, 'contentId:', contentId);
+                    return;
+                }
+                
+                if (t === tab) {
+                    btn.className = 'pb-4 text-sm font-black uppercase tracking-widest tab-active-profile transition-all border-b-2 border-blue-600 text-blue-600';
+                    content.classList.remove('hidden');
+                    
+                    // 탭이 활성화될 때 해당 데이터 다시 로드
+                    setTimeout(() => {
+                        if (t === 'certifications' && typeof loadCertifications === 'function') {
+                            loadCertifications();
+                        } else if (t === 'teaching' && typeof loadTeachingHistory === 'function') {
+                            loadTeachingHistory();
+                        }
+                    }, 50);
+                } else {
+                    btn.className = 'pb-4 text-sm font-black uppercase tracking-widest tab-inactive-profile transition-all border-b-2 border-transparent text-gray-400 hover:text-gray-600';
+                    content.classList.add('hidden');
+                }
+            });
+        };
 
         document.addEventListener('DOMContentLoaded', () => {
             checkLogin();
@@ -462,43 +502,7 @@ export const teacherProfileHtml = `
             }
         }
 
-        // 전역 스코프에 함수 할당 (onclick에서 접근 가능하도록)
-        window.switchProfileTab = function(tab) {
-            currentProfileTab = tab;
-            
-            // 탭 버튼 스타일 업데이트
-            ['education', 'certifications', 'training', 'teaching'].forEach(t => {
-                const btn = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1));
-                const content = document.getElementById('content' + t.charAt(0).toUpperCase() + t.slice(1));
-                
-                if (!btn || !content) {
-                    console.warn('Tab element not found:', t);
-                    return;
-                }
-                
-                if (t === tab) {
-                    btn.className = 'pb-4 text-sm font-black uppercase tracking-widest tab-active-profile transition-all border-b-2 border-blue-600 text-blue-600';
-                    content.classList.remove('hidden');
-                    
-                    // 탭이 활성화될 때 해당 데이터 다시 로드
-                    setTimeout(() => {
-                        if (t === 'certifications') {
-                            loadCertifications();
-                        } else if (t === 'teaching') {
-                            loadTeachingHistory();
-                        }
-                    }, 50);
-                } else {
-                    btn.className = 'pb-4 text-sm font-black uppercase tracking-widest tab-inactive-profile transition-all border-b-2 border-transparent text-gray-400 hover:text-gray-600';
-                    content.classList.add('hidden');
-                }
-            });
-        };
-        
-        // 하위 호환성을 위해 일반 함수도 유지
-        function switchProfileTab(tab) {
-            window.switchProfileTab(tab);
-        }
+        // switchProfileTab은 이미 위에서 window 객체에 할당됨
 
         // 프로필 이미지 업로드
         window.handlePImage = async function(input) {
