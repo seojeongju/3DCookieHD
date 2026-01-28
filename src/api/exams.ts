@@ -9,16 +9,42 @@ const exams = new Hono<{ Bindings: Bindings }>();
 // Auth middleware for all exam routes (or specific ones if preferred)
 // exams.use('*', authMiddleware);
 
-// GET /api/exams - List all exams
+// GET /api/exams - List all exams (with teacher filtering)
 exams.get('/', async (c) => {
     try {
-        const { results } = await c.env.DB.prepare(`
-            SELECT e.*, c.title as course_title 
+        const authHeader = c.req.header('Authorization');
+        let teacherId: number | null = null;
+        
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            try {
+                const { verifyToken } = await import('../utils/jwt');
+                const token = authHeader.substring(7);
+                const payload = await verifyToken(token);
+                if (payload && payload.role === 'teacher') {
+                    teacherId = payload.userId;
+                }
+            } catch (e) {
+                // Token invalid or missing, continue without teacher filter
+            }
+        }
+        
+        let query = `
+            SELECT e.*, c.title as course_title, c.teacher_id
             FROM exams e 
             LEFT JOIN courses c ON e.course_id = c.id 
-            ORDER BY e.created_at DESC
-        `).all();
-        return successResponse(c, results); // Wrapped in successResponse
+            WHERE 1=1
+        `;
+        const params: any[] = [];
+        
+        if (teacherId) {
+            query += ' AND c.teacher_id = ?';
+            params.push(teacherId);
+        }
+        
+        query += ' ORDER BY e.created_at DESC';
+        
+        const { results } = await c.env.DB.prepare(query).bind(...params).all();
+        return successResponse(c, results || []);
     } catch (e: any) {
         return errorResponse(c, e.message, 500);
     }
@@ -125,12 +151,23 @@ exams.get('/student/exams', async (c) => {
     }
 });
 
-// GET /api/exams/:id - Get exam details with questions (Admin view)
-exams.get('/:id', async (c) => {
+// GET /api/exams/:id - Get exam details with questions
+exams.get('/:id', authMiddleware, async (c) => {
     const id = c.req.param('id');
     try {
-        const exam = await c.env.DB.prepare('SELECT * FROM exams WHERE id = ?').bind(id).first();
+        const user = c.get('user');
+        const exam: any = await c.env.DB.prepare(`
+            SELECT e.*, c.teacher_id 
+            FROM exams e 
+            LEFT JOIN courses c ON e.course_id = c.id 
+            WHERE e.id = ?
+        `).bind(id).first();
         if (!exam) return notFoundResponse(c, 'Exam not found');
+        
+        // 강사는 본인이 담당하는 과정의 시험만 조회 가능
+        if (user.role === 'teacher' && exam.teacher_id !== user.userId) {
+            return errorResponse(c, '본인이 담당하는 과정의 시험만 조회할 수 있습니다', 403);
+        }
 
         // exam_questions 테이블 사용, order_index 사용
         const { results: questions } = await c.env.DB.prepare('SELECT * FROM exam_questions WHERE exam_id = ? ORDER BY order_index ASC').bind(id).all();
@@ -148,12 +185,24 @@ exams.get('/:id', async (c) => {
 });
 
 // GET /api/exams/:id/status - Get exam stats and student submission status
-exams.get('/:id/status', async (c) => {
+exams.get('/:id/status', authMiddleware, async (c) => {
     const examId = c.req.param('id');
     try {
+        const user = c.get('user');
+        
         // 1. 시험 정보 및 과정 ID 조회
-        const exam = await c.env.DB.prepare('SELECT * FROM exams WHERE id = ?').bind(examId).first();
+        const exam: any = await c.env.DB.prepare(`
+            SELECT e.*, c.teacher_id 
+            FROM exams e 
+            LEFT JOIN courses c ON e.course_id = c.id 
+            WHERE e.id = ?
+        `).bind(examId).first();
         if (!exam) return notFoundResponse(c, 'Exam not found');
+        
+        // 강사는 본인이 담당하는 과정의 시험만 조회 가능
+        if (user.role === 'teacher' && exam.teacher_id !== user.userId) {
+            return errorResponse(c, '본인이 담당하는 과정의 시험만 조회할 수 있습니다', 403);
+        }
 
         // 2. 전체 수강생 목록 조회 (해당 과정의 approved된 수강생)
         const { results: students } = await c.env.DB.prepare(`
@@ -206,10 +255,19 @@ exams.get('/:id/status', async (c) => {
 });
 
 // POST /api/exams - Create new exam
-exams.post('/', async (c) => {
+exams.post('/', authMiddleware, async (c) => {
     try {
+        const user = c.get('user');
         const body = await c.req.json();
         const { title, course_id, description, time_limit, questions } = body;
+
+        // 강사는 본인이 담당하는 과정에만 시험 생성 가능
+        if (user.role === 'teacher' && course_id) {
+            const course: any = await c.env.DB.prepare('SELECT teacher_id FROM courses WHERE id = ?').bind(course_id).first();
+            if (!course || course.teacher_id !== user.userId) {
+                return errorResponse(c, '본인이 담당하는 과정에만 시험을 생성할 수 있습니다', 403);
+            }
+        }
 
         // exams 테이블 사용, time_limit_minutes 사용
         const result = await c.env.DB.prepare(`
@@ -241,9 +299,24 @@ exams.post('/', async (c) => {
 });
 
 // DELETE /api/exams/:id
-exams.delete('/:id', async (c) => {
+exams.delete('/:id', authMiddleware, async (c) => {
     const id = c.req.param('id');
     try {
+        const user = c.get('user');
+        
+        // 강사는 본인이 담당하는 과정의 시험만 삭제 가능
+        if (user.role === 'teacher') {
+            const exam: any = await c.env.DB.prepare(`
+                SELECT e.course_id, c.teacher_id 
+                FROM exams e 
+                LEFT JOIN courses c ON e.course_id = c.id 
+                WHERE e.id = ?
+            `).bind(id).first();
+            if (!exam || exam.teacher_id !== user.userId) {
+                return errorResponse(c, '본인이 담당하는 과정의 시험만 삭제할 수 있습니다', 403);
+            }
+        }
+        
         await c.env.DB.batch([
             c.env.DB.prepare('DELETE FROM exam_questions WHERE exam_id = ?').bind(id),
             c.env.DB.prepare('DELETE FROM exams WHERE id = ?').bind(id)
@@ -255,11 +328,32 @@ exams.delete('/:id', async (c) => {
 });
 
 // PUT /api/exams/:id - Update exam
-exams.put('/:id', async (c) => {
+exams.put('/:id', authMiddleware, async (c) => {
     const id = c.req.param('id');
     try {
+        const user = c.get('user');
         const body = await c.req.json();
         const { title, course_id, description, time_limit, is_active, questions } = body;
+
+        // 강사는 본인이 담당하는 과정의 시험만 수정 가능
+        if (user.role === 'teacher') {
+            const exam: any = await c.env.DB.prepare(`
+                SELECT e.course_id, c.teacher_id 
+                FROM exams e 
+                LEFT JOIN courses c ON e.course_id = c.id 
+                WHERE e.id = ?
+            `).bind(id).first();
+            if (!exam || exam.teacher_id !== user.userId) {
+                return errorResponse(c, '본인이 담당하는 과정의 시험만 수정할 수 있습니다', 403);
+            }
+            // course_id 변경 시에도 본인 담당 과정인지 확인
+            if (course_id && course_id !== exam.course_id) {
+                const newCourse: any = await c.env.DB.prepare('SELECT teacher_id FROM courses WHERE id = ?').bind(course_id).first();
+                if (!newCourse || newCourse.teacher_id !== user.userId) {
+                    return errorResponse(c, '본인이 담당하는 과정으로만 변경할 수 있습니다', 403);
+                }
+            }
+        }
 
         // exams 테이블 사용, time_limit_minutes 사용
         await c.env.DB.prepare(`
@@ -410,6 +504,142 @@ exams.post('/:id/submit', async (c) => {
 
     } catch (e: any) {
         console.error('Submit error:', e);
+        return errorResponse(c, e.message, 500);
+    }
+});
+
+// POST /api/exams/:id/grade - Grade essay questions manually (Teacher)
+exams.post('/:id/grade', authMiddleware, async (c) => {
+    const examId = c.req.param('id');
+    try {
+        const user = c.get('user');
+        const body = await c.req.json();
+        const { submission_id, question_scores } = body; // question_scores: { question_id: score }
+
+        // 시험 및 과정 확인
+        const exam: any = await c.env.DB.prepare(`
+            SELECT e.*, c.teacher_id 
+            FROM exams e 
+            LEFT JOIN courses c ON e.course_id = c.id 
+            WHERE e.id = ?
+        `).bind(examId).first();
+        if (!exam) return notFoundResponse(c, 'Exam not found');
+
+        // 강사는 본인이 담당하는 과정의 시험만 채점 가능
+        if (user.role === 'teacher' && exam.teacher_id !== user.userId) {
+            return errorResponse(c, '본인이 담당하는 과정의 시험만 채점할 수 있습니다', 403);
+        }
+
+        // 제출 내역 확인
+        const submission: any = await c.env.DB.prepare('SELECT * FROM exam_submissions WHERE id = ? AND exam_id = ?').bind(submission_id, examId).first();
+        if (!submission) return notFoundResponse(c, 'Submission not found');
+
+        // 각 문제별 점수 업데이트 및 총점 재계산
+        let newTotalScore = 0;
+        const updatePromises = Object.entries(question_scores || {}).map(async ([questionId, score]: [string, any]) => {
+            const qId = parseInt(questionId);
+            const points = parseFloat(score) || 0;
+            
+            // 문제 정보 조회
+            const question: any = await c.env.DB.prepare('SELECT points FROM exam_questions WHERE id = ? AND exam_id = ?').bind(qId, examId).first();
+            if (!question) return;
+            
+            const maxPoints = question.points || 0;
+            const awardedPoints = Math.min(Math.max(0, points), maxPoints); // 0 ~ maxPoints 사이로 제한
+            
+            // exam_answers 업데이트
+            await c.env.DB.prepare(`
+                UPDATE exam_answers 
+                SET score_awarded = ?, is_correct = ?
+                WHERE submission_id = ? AND question_id = ?
+            `).bind(awardedPoints, awardedPoints === maxPoints ? 1 : 0, submission_id, qId).run();
+            
+            newTotalScore += awardedPoints;
+        });
+
+        await Promise.all(updatePromises);
+
+        // 객관식/단답형 점수도 포함하여 총점 계산
+        const { results: allAnswers } = await c.env.DB.prepare(`
+            SELECT ea.score_awarded 
+            FROM exam_answers ea
+            WHERE ea.submission_id = ?
+        `).bind(submission_id).all();
+        
+        const recalculatedTotal = allAnswers.reduce((sum: number, a: any) => sum + (a.score_awarded || 0), 0);
+
+        // exam_submissions 총점 업데이트
+        await c.env.DB.prepare(`
+            UPDATE exam_submissions 
+            SET total_score = ?, status = 'graded', updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        `).bind(recalculatedTotal, submission_id).run();
+
+        return successResponse(c, { 
+            submission_id, 
+            total_score: recalculatedTotal 
+        }, '채점이 완료되었습니다');
+    } catch (e: any) {
+        console.error('Grade exam error:', e);
+        return errorResponse(c, e.message, 500);
+    }
+});
+
+// GET /api/exams/:id/submissions/:submission_id - Get submission details with answers for grading
+exams.get('/:id/submissions/:submission_id', authMiddleware, async (c) => {
+    const examId = c.req.param('id');
+    const submissionId = c.req.param('submission_id');
+    try {
+        const user = c.get('user');
+        
+        // 시험 및 과정 확인
+        const exam: any = await c.env.DB.prepare(`
+            SELECT e.*, c.teacher_id 
+            FROM exams e 
+            LEFT JOIN courses c ON e.course_id = c.id 
+            WHERE e.id = ?
+        `).bind(examId).first();
+        if (!exam) return notFoundResponse(c, 'Exam not found');
+
+        // 강사는 본인이 담당하는 과정의 시험만 조회 가능
+        if (user.role === 'teacher' && exam.teacher_id !== user.userId) {
+            return errorResponse(c, '본인이 담당하는 과정의 시험만 조회할 수 있습니다', 403);
+        }
+
+        // 제출 내역 및 학생 정보
+        const submission: any = await c.env.DB.prepare(`
+            SELECT es.*, u.name as student_name, u.email as student_email
+            FROM exam_submissions es
+            JOIN users u ON es.student_id = u.id
+            WHERE es.id = ? AND es.exam_id = ?
+        `).bind(submissionId, examId).first();
+        if (!submission) return notFoundResponse(c, 'Submission not found');
+
+        // 문제 및 답안 조회
+        const { results: questions } = await c.env.DB.prepare(`
+            SELECT 
+                q.id, q.question_text, q.question_type, q.options, q.correct_answer, q.points, q.order_index,
+                ea.student_answer, ea.is_correct, ea.score_awarded
+            FROM exam_questions q
+            LEFT JOIN exam_answers ea ON q.id = ea.question_id AND ea.submission_id = ?
+            WHERE q.exam_id = ?
+            ORDER BY q.order_index ASC
+        `).bind(submissionId, examId).all();
+
+        const parsedQuestions = questions.map((q: any) => ({
+            ...q,
+            options: q.options ? JSON.parse(q.options as string) : [],
+            student_answer: q.student_answer || '',
+            is_correct: q.is_correct === 1,
+            score_awarded: q.score_awarded || 0
+        }));
+
+        return successResponse(c, {
+            submission,
+            questions: parsedQuestions
+        });
+    } catch (e: any) {
+        console.error('Get submission error:', e);
         return errorResponse(c, e.message, 500);
     }
 });

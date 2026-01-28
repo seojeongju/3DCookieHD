@@ -73,6 +73,7 @@ import { teacherProfileHtml } from './views/teacher_profile';
 import { teacherCoursesHtml } from './views/teacher_courses';
 import { teacherStudentsHtml } from './views/teacher_students';
 import { teacherAttendanceHtml } from './views/teacher_attendance';
+import { teacherExamsHtml } from './views/teacher_exams';
 import { teacherSidebar } from './views/components/teacher_sidebar';
 import { hrdSidebar } from './views/components/hrd_sidebar';
 import { adminGradesHtml } from './views/admin_grades';
@@ -273,7 +274,7 @@ app.get('/teacher/profile', (c) => c.html(teacherProfileHtml));
 app.get('/teacher/courses', (c) => c.html(teacherCoursesHtml));
 app.get('/teacher/students', (c) => c.html(teacherStudentsHtml));
 app.get('/teacher/attendance', (c) => c.html(teacherAttendanceHtml));
-app.get('/teacher/exams', (c) => c.html(adminExamsHtml(teacherSidebar('exams'))));
+app.get('/teacher/exams', (c) => c.html(teacherExamsHtml));
 app.get('/teacher/posts', (c) => c.html(adminPostsListHtml(teacherSidebar('posts'))));
 
 // ============================================
