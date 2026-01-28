@@ -1115,12 +1115,14 @@ app.post('/facilities/:id/maintenance', async (c) => {
         const { status, title, price, vendor, manager, memo, date } = body;
 
         // Check의 경우 기본 progress는 'completed', Repair는 'pending'
-        const progress = status === 'check' ? 'completed' : 'pending';
+        // const progress = status === 'check' ? 'completed' : 'pending'; (DB 컬럼 없음)
+
+        if (!facilityId) return c.json({ success: false, error: '시설 ID가 필요합니다.' }, 400);
 
         await c.env.DB.prepare(`
-            INSERT INTO hrd_facility_maintenance (facility_id, status, title, price, vendor, manager, memo, date, progress)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `).bind(facilityId, status, title, parseInt(price || 0), vendor, manager || '관리자', memo, date || new Date().toISOString(), progress).run();
+            INSERT INTO hrd_facility_maintenance (facility_id, status, title, price, vendor, manager, memo, date)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `).bind(facilityId, status, title, parseInt(price || 0), vendor, manager || '관리자', memo, date || new Date().toISOString()).run();
 
         // 시설의 최종 점검일 및 상태 업데이트
         await c.env.DB.prepare(`
