@@ -131,21 +131,33 @@ export const teacherProfileHtml = `
                     <div class="bg-gray-50/50 p-8">
                         <!-- 탭 1: 학력 및 경력 -->
                         <div id="contentEducation" class="space-y-6">
+                            <!-- 학력 목록 -->
                             <div class="bg-white rounded-[2rem] p-8 border border-gray-100 shadow-sm">
-                                <h5 class="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center mb-6">
-                                    <i class="fas fa-university mr-3 text-blue-500"></i> 최종 학력
-                                </h5>
-                                <div>
-                                    <input type="text" name="education" id="pEducation" class="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition" placeholder="예: 서울대학교 컴퓨터공학과 학사">
+                                <div class="flex items-center justify-between mb-6">
+                                    <h5 class="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center">
+                                        <i class="fas fa-university mr-3 text-blue-500"></i> 학력 목록
+                                    </h5>
+                                    <button type="button" onclick="window.openEducationModal()" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-500/20 flex items-center">
+                                        <i class="fas fa-plus mr-2"></i> 학력 추가
+                                    </button>
+                                </div>
+                                <div id="educationContainer" class="space-y-4">
+                                    <!-- 학력 목록이 여기에 동적으로 표시됨 -->
                                 </div>
                             </div>
 
+                            <!-- 경력 목록 -->
                             <div class="bg-white rounded-[2rem] p-8 border border-gray-100 shadow-sm">
-                                <h5 class="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center mb-6">
-                                    <i class="fas fa-briefcase mr-3 text-purple-500"></i> 경력 사항
-                                </h5>
-                                <div>
-                                    <textarea name="career" id="pCareer" rows="6" class="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl text-sm outline-none resize-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition" placeholder="회사명, 기간, 직책 등을 입력하세요&#10;&#10;예:&#10;- 2020.01 ~ 2023.12: ㈜ABC디자인, 시니어 디자이너&#10;- 2018.03 ~ 2019.12: XYZ스튜디오, 주임"></textarea>
+                                <div class="flex items-center justify-between mb-6">
+                                    <h5 class="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center">
+                                        <i class="fas fa-briefcase mr-3 text-purple-500"></i> 경력 목록
+                                    </h5>
+                                    <button type="button" onclick="window.openCareerModal()" class="px-4 py-2 bg-purple-600 text-white rounded-xl text-sm font-bold hover:bg-purple-700 transition shadow-lg shadow-purple-500/20 flex items-center">
+                                        <i class="fas fa-plus mr-2"></i> 경력 추가
+                                    </button>
+                                </div>
+                                <div id="careerContainer" class="space-y-4">
+                                    <!-- 경력 목록이 여기에 동적으로 표시됨 -->
                                 </div>
                             </div>
                         </div>
@@ -170,11 +182,16 @@ export const teacherProfileHtml = `
                         <!-- 탭 3: 보수교육 -->
                         <div id="contentTraining" class="hidden space-y-6">
                             <div class="bg-white rounded-[2rem] p-8 border border-gray-100 shadow-sm">
-                                <h5 class="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center mb-6">
-                                    <i class="fas fa-chalkboard-teacher mr-3 text-green-500"></i> 보수교육 현황
-                                </h5>
-                                <div>
-                                    <textarea name="training_history" id="pTrainingHistory" rows="8" class="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl text-sm outline-none resize-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition" placeholder="보수교육 이력, 연수명, 기간 등을 입력하세요&#10;&#10;예:&#10;- 2024.03: HRD-Net 보수교육 (40시간)&#10;- 2023.09: 디지털 교육 역량 강화 연수 (20시간)"></textarea>
+                                <div class="flex items-center justify-between mb-6">
+                                    <h5 class="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center">
+                                        <i class="fas fa-chalkboard-teacher mr-3 text-green-500"></i> 보수교육 목록
+                                    </h5>
+                                    <button type="button" onclick="window.openTrainingModal()" class="px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-bold hover:bg-green-700 transition shadow-lg shadow-green-500/20 flex items-center">
+                                        <i class="fas fa-plus mr-2"></i> 보수교육 추가
+                                    </button>
+                                </div>
+                                <div id="trainingContainer" class="space-y-4">
+                                    <!-- 보수교육 목록이 여기에 동적으로 표시됨 -->
                                 </div>
                             </div>
                         </div>
@@ -313,12 +330,188 @@ export const teacherProfileHtml = `
         </div>
     </div>
 
+    <!-- 학력 입력/수정 모달 -->
+    <div id="educationModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+                <h3 class="text-lg font-bold text-gray-800" id="educationModalTitle">학력 추가</h3>
+                <button type="button" onclick="window.closeEducationModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <form id="educationForm" onsubmit="window.handleSaveEducation(event)">
+                    <input type="hidden" id="educationModalId" value="">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="text-sm font-medium text-gray-700 mb-2 block">학교명 <span class="text-red-500">*</span></label>
+                            <input type="text" id="educationModalSchool" required class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition" placeholder="예: 서울대학교">
+                        </div>
+                        <div>
+                            <label class="text-sm font-medium text-gray-700 mb-2 block">학과/전공</label>
+                            <input type="text" id="educationModalMajor" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition" placeholder="예: 컴퓨터공학과">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-sm font-medium text-gray-700 mb-2 block">입학일</label>
+                                <input type="date" id="educationModalStartDate" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition">
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium text-gray-700 mb-2 block">졸업일</label>
+                                <input type="date" id="educationModalEndDate" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-sm font-medium text-gray-700 mb-2 block">학위</label>
+                            <select id="educationModalDegree" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition">
+                                <option value="">선택하세요</option>
+                                <option value="고등학교">고등학교</option>
+                                <option value="전문대학">전문대학</option>
+                                <option value="학사">학사</option>
+                                <option value="석사">석사</option>
+                                <option value="박사">박사</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-sm font-medium text-gray-700 mb-2 block">비고</label>
+                            <textarea id="educationModalNotes" rows="2" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none resize-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition" placeholder="기타 사항을 입력하세요"></textarea>
+                        </div>
+                    </div>
+                    <div class="mt-6 flex justify-end gap-3">
+                        <button type="button" onclick="window.closeEducationModal()" class="px-6 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition">
+                            취소
+                        </button>
+                        <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition">
+                            저장
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 경력 입력/수정 모달 -->
+    <div id="careerModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+                <h3 class="text-lg font-bold text-gray-800" id="careerModalTitle">경력 추가</h3>
+                <button type="button" onclick="window.closeCareerModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <form id="careerForm" onsubmit="window.handleSaveCareer(event)">
+                    <input type="hidden" id="careerModalId" value="">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="text-sm font-medium text-gray-700 mb-2 block">회사명 <span class="text-red-500">*</span></label>
+                            <input type="text" id="careerModalCompany" required class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition" placeholder="예: ㈜ABC디자인">
+                        </div>
+                        <div>
+                            <label class="text-sm font-medium text-gray-700 mb-2 block">직책</label>
+                            <input type="text" id="careerModalPosition" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition" placeholder="예: 시니어 디자이너">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-sm font-medium text-gray-700 mb-2 block">입사일</label>
+                                <input type="date" id="careerModalStartDate" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition">
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium text-gray-700 mb-2 block">퇴사일</label>
+                                <input type="date" id="careerModalEndDate" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-sm font-medium text-gray-700 mb-2 block">담당 업무</label>
+                            <textarea id="careerModalDescription" rows="3" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none resize-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition" placeholder="담당했던 주요 업무, 프로젝트 등을 입력하세요"></textarea>
+                        </div>
+                        <div>
+                            <label class="text-sm font-medium text-gray-700 mb-2 block">비고</label>
+                            <textarea id="careerModalNotes" rows="2" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none resize-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition" placeholder="기타 사항을 입력하세요"></textarea>
+                        </div>
+                    </div>
+                    <div class="mt-6 flex justify-end gap-3">
+                        <button type="button" onclick="window.closeCareerModal()" class="px-6 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition">
+                            취소
+                        </button>
+                        <button type="submit" class="px-6 py-2 bg-purple-600 text-white rounded-xl font-medium hover:bg-purple-700 transition">
+                            저장
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 보수교육 입력/수정 모달 -->
+    <div id="trainingModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+                <h3 class="text-lg font-bold text-gray-800" id="trainingModalTitle">보수교육 추가</h3>
+                <button type="button" onclick="window.closeTrainingModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <form id="trainingForm" onsubmit="window.handleSaveTraining(event)">
+                    <input type="hidden" id="trainingModalId" value="">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="text-sm font-medium text-gray-700 mb-2 block">연수명 <span class="text-red-500">*</span></label>
+                            <input type="text" id="trainingModalName" required class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition" placeholder="예: HRD-Net 보수교육">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-sm font-medium text-gray-700 mb-2 block">시작일</label>
+                                <input type="date" id="trainingModalStartDate" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition">
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium text-gray-700 mb-2 block">종료일</label>
+                                <input type="date" id="trainingModalEndDate" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-sm font-medium text-gray-700 mb-2 block">교육 시간</label>
+                            <input type="number" id="trainingModalHours" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition" placeholder="예: 40">
+                        </div>
+                        <div>
+                            <label class="text-sm font-medium text-gray-700 mb-2 block">교육 기관</label>
+                            <input type="text" id="trainingModalInstitution" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition" placeholder="예: 한국산업인력공단">
+                        </div>
+                        <div>
+                            <label class="text-sm font-medium text-gray-700 mb-2 block">교육 내용</label>
+                            <textarea id="trainingModalDescription" rows="3" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none resize-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition" placeholder="교육 내용, 커리큘럼 등을 입력하세요"></textarea>
+                        </div>
+                        <div>
+                            <label class="text-sm font-medium text-gray-700 mb-2 block">비고</label>
+                            <textarea id="trainingModalNotes" rows="2" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none resize-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition" placeholder="기타 사항을 입력하세요"></textarea>
+                        </div>
+                    </div>
+                    <div class="mt-6 flex justify-end gap-3">
+                        <button type="button" onclick="window.closeTrainingModal()" class="px-6 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition">
+                            취소
+                        </button>
+                        <button type="submit" class="px-6 py-2 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition">
+                            저장
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script>
         // 전역 변수 선언
         let certifications = [];
         let certIdCounter = 0;
         let teachingHistory = [];
         let teachingHistoryIdCounter = 0;
+        let education = [];
+        let educationIdCounter = 0;
+        let career = [];
+        let careerIdCounter = 0;
+        let training = [];
+        let trainingIdCounter = 0;
         let currentProfileTab = 'education';
         let currentUserId = null;
 
@@ -348,8 +541,12 @@ export const teacherProfileHtml = `
                     
                     // 탭이 활성화될 때 해당 데이터 다시 로드
                     setTimeout(() => {
-                        if (t === 'certifications' && typeof loadCertifications === 'function') {
+                        if (t === 'education' && typeof loadEducation === 'function') {
+                            loadEducation();
+                        } else if (t === 'certifications' && typeof loadCertifications === 'function') {
                             loadCertifications();
+                        } else if (t === 'training' && typeof loadTraining === 'function') {
+                            loadTraining();
                         } else if (t === 'teaching' && typeof loadTeachingHistory === 'function') {
                             loadTeachingHistory();
                         }
@@ -456,10 +653,48 @@ export const teacherProfileHtml = `
                 document.getElementById('pImageUrl').value = data.profile_image;
             }
             
-            // 상세 정보
-            document.getElementById('pEducation').value = data.education || '';
-            document.getElementById('pCareer').value = data.career || '';
-            document.getElementById('pTrainingHistory').value = data.training_history || '';
+            // 상세 정보 - JSON 배열로 파싱
+            // 학력
+            if (data.education) {
+                try {
+                    const eduData = typeof data.education === 'string' ? JSON.parse(data.education) : data.education;
+                    education = Array.isArray(eduData) ? eduData : [];
+                } catch (e) {
+                    // 기존 텍스트 형식인 경우 빈 배열로 처리
+                    console.log('Education is not JSON array, treating as empty:', e);
+                    education = [];
+                }
+            } else {
+                education = [];
+            }
+            
+            // 경력
+            if (data.career) {
+                try {
+                    const carData = typeof data.career === 'string' ? JSON.parse(data.career) : data.career;
+                    career = Array.isArray(carData) ? carData : [];
+                } catch (e) {
+                    // 기존 텍스트 형식인 경우 빈 배열로 처리
+                    console.log('Career is not JSON array, treating as empty:', e);
+                    career = [];
+                }
+            } else {
+                career = [];
+            }
+            
+            // 보수교육
+            if (data.training_history) {
+                try {
+                    const trData = typeof data.training_history === 'string' ? JSON.parse(data.training_history) : data.training_history;
+                    training = Array.isArray(trData) ? trData : [];
+                } catch (e) {
+                    // 기존 텍스트 형식인 경우 빈 배열로 처리
+                    console.log('Training history is not JSON array, treating as empty:', e);
+                    training = [];
+                }
+            } else {
+                training = [];
+            }
             
             // 자격증
             if (data.certifications) {
@@ -480,6 +715,20 @@ export const teacherProfileHtml = `
             } else {
                 certifications = [];
             }
+            
+            // 탭이 활성화되면 리스트 로드
+            setTimeout(() => {
+                if (currentProfileTab === 'education') {
+                    loadEducation();
+                    loadCareer();
+                } else if (currentProfileTab === 'certifications') {
+                    loadCertifications();
+                } else if (currentProfileTab === 'training') {
+                    loadTraining();
+                } else if (currentProfileTab === 'teaching') {
+                    loadTeachingHistory();
+                }
+            }, 100);
             
             // 강의이력
             if (data.teaching_history) {
@@ -1111,6 +1360,355 @@ export const teacherProfileHtml = `
             });
         }
 
+        // 학력 모달 관리
+        let currentEducationIndex = null;
+        
+        window.openEducationModal = function(index = null) {
+            currentEducationIndex = index;
+            const modal = document.getElementById('educationModal');
+            const title = document.getElementById('educationModalTitle');
+            const form = document.getElementById('educationForm');
+            
+            if (index !== null && education[index]) {
+                // 수정 모드
+                const edu = education[index];
+                title.textContent = '학력 수정';
+                document.getElementById('educationModalId').value = edu.id || '';
+                document.getElementById('educationModalSchool').value = edu.school || '';
+                document.getElementById('educationModalMajor').value = edu.major || '';
+                document.getElementById('educationModalStartDate').value = edu.start_date ? edu.start_date.split('T')[0] : '';
+                document.getElementById('educationModalEndDate').value = edu.end_date ? edu.end_date.split('T')[0] : '';
+                document.getElementById('educationModalDegree').value = edu.degree || '';
+                document.getElementById('educationModalNotes').value = edu.notes || '';
+            } else {
+                // 추가 모드
+                title.textContent = '학력 추가';
+                form.reset();
+                document.getElementById('educationModalId').value = '';
+            }
+            
+            modal.classList.remove('hidden');
+        };
+        
+        window.closeEducationModal = function() {
+            const modal = document.getElementById('educationModal');
+            modal.classList.add('hidden');
+            currentEducationIndex = null;
+        };
+        
+        window.handleSaveEducation = function(event) {
+            event.preventDefault();
+            
+            const school = document.getElementById('educationModalSchool').value;
+            const major = document.getElementById('educationModalMajor').value;
+            const startDate = document.getElementById('educationModalStartDate').value;
+            const endDate = document.getElementById('educationModalEndDate').value;
+            const degree = document.getElementById('educationModalDegree').value;
+            const notes = document.getElementById('educationModalNotes').value;
+            const id = document.getElementById('educationModalId').value;
+            
+            const eduData = {
+                id: id || 'edu_' + Date.now(),
+                school: school || null,
+                major: major || null,
+                start_date: startDate || null,
+                end_date: endDate || null,
+                degree: degree || null,
+                notes: notes || null
+            };
+            
+            if (currentEducationIndex !== null) {
+                education[currentEducationIndex] = eduData;
+            } else {
+                education.push(eduData);
+            }
+            
+            closeEducationModal();
+            loadEducation();
+        };
+        
+        window.deleteEducation = function(index) {
+            if (!confirm('학력을 삭제하시겠습니까?')) return;
+            education.splice(index, 1);
+            loadEducation();
+        };
+        
+        function loadEducation() {
+            const container = document.getElementById('educationContainer');
+            if (!container) {
+                console.warn('educationContainer not found');
+                return;
+            }
+            
+            container.innerHTML = '';
+            
+            if (!education || education.length === 0) {
+                container.innerHTML = '<div class="text-center py-12 text-gray-400"><i class="fas fa-university text-4xl mb-3 opacity-50"></i><p class="text-sm">학력이 없습니다.</p><p class="text-xs mt-1">추가 버튼을 클릭하여 학력을 추가하세요.</p></div>';
+                return;
+            }
+            
+            education.forEach((edu, index) => {
+                const eduCard = document.createElement('div');
+                eduCard.className = 'bg-gray-50 rounded-xl p-5 border border-gray-200 hover:shadow-md transition';
+                eduCard.innerHTML = 
+                    '<div class="flex items-start justify-between">' +
+                        '<div class="flex-1">' +
+                            '<h6 class="font-bold text-gray-800 mb-2">' + (edu.school || '학교명 없음') + '</h6>' +
+                            '<div class="flex flex-wrap gap-4 text-sm text-gray-600">' +
+                                (edu.major ? '<div><i class="fas fa-graduation-cap mr-1 text-blue-500"></i> ' + edu.major + '</div>' : '') +
+                                (edu.degree ? '<div><i class="fas fa-certificate mr-1 text-purple-500"></i> ' + edu.degree + '</div>' : '') +
+                                (edu.start_date ? '<div><i class="fas fa-calendar-alt mr-1 text-green-500"></i> 입학: ' + edu.start_date.split('T')[0] + '</div>' : '') +
+                                (edu.end_date ? '<div><i class="fas fa-calendar-check mr-1 text-orange-500"></i> 졸업: ' + edu.end_date.split('T')[0] + '</div>' : '') +
+                            '</div>' +
+                            (edu.notes ? '<p class="text-xs text-gray-500 italic mt-2">' + edu.notes + '</p>' : '') +
+                        '</div>' +
+                        '<div class="flex items-center gap-2 ml-4">' +
+                            '<button type="button" onclick="window.openEducationModal(' + index + ')" class="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-200 transition">' +
+                                '<i class="fas fa-edit mr-1"></i> 수정' +
+                            '</button>' +
+                            '<button type="button" onclick="window.deleteEducation(' + index + ')" class="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200 transition">' +
+                                '<i class="fas fa-trash mr-1"></i> 삭제' +
+                            '</button>' +
+                        '</div>' +
+                    '</div>';
+                container.appendChild(eduCard);
+            });
+        }
+
+        // 경력 모달 관리
+        let currentCareerIndex = null;
+        
+        window.openCareerModal = function(index = null) {
+            currentCareerIndex = index;
+            const modal = document.getElementById('careerModal');
+            const title = document.getElementById('careerModalTitle');
+            const form = document.getElementById('careerForm');
+            
+            if (index !== null && career[index]) {
+                // 수정 모드
+                const car = career[index];
+                title.textContent = '경력 수정';
+                document.getElementById('careerModalId').value = car.id || '';
+                document.getElementById('careerModalCompany').value = car.company || '';
+                document.getElementById('careerModalPosition').value = car.position || '';
+                document.getElementById('careerModalStartDate').value = car.start_date ? car.start_date.split('T')[0] : '';
+                document.getElementById('careerModalEndDate').value = car.end_date ? car.end_date.split('T')[0] : '';
+                document.getElementById('careerModalDescription').value = car.description || '';
+                document.getElementById('careerModalNotes').value = car.notes || '';
+            } else {
+                // 추가 모드
+                title.textContent = '경력 추가';
+                form.reset();
+                document.getElementById('careerModalId').value = '';
+            }
+            
+            modal.classList.remove('hidden');
+        };
+        
+        window.closeCareerModal = function() {
+            const modal = document.getElementById('careerModal');
+            modal.classList.add('hidden');
+            currentCareerIndex = null;
+        };
+        
+        window.handleSaveCareer = function(event) {
+            event.preventDefault();
+            
+            const company = document.getElementById('careerModalCompany').value;
+            const position = document.getElementById('careerModalPosition').value;
+            const startDate = document.getElementById('careerModalStartDate').value;
+            const endDate = document.getElementById('careerModalEndDate').value;
+            const description = document.getElementById('careerModalDescription').value;
+            const notes = document.getElementById('careerModalNotes').value;
+            const id = document.getElementById('careerModalId').value;
+            
+            const carData = {
+                id: id || 'career_' + Date.now(),
+                company: company || null,
+                position: position || null,
+                start_date: startDate || null,
+                end_date: endDate || null,
+                description: description || null,
+                notes: notes || null
+            };
+            
+            if (currentCareerIndex !== null) {
+                career[currentCareerIndex] = carData;
+            } else {
+                career.push(carData);
+            }
+            
+            closeCareerModal();
+            loadCareer();
+        };
+        
+        window.deleteCareer = function(index) {
+            if (!confirm('경력을 삭제하시겠습니까?')) return;
+            career.splice(index, 1);
+            loadCareer();
+        };
+        
+        function loadCareer() {
+            const container = document.getElementById('careerContainer');
+            if (!container) {
+                console.warn('careerContainer not found');
+                return;
+            }
+            
+            container.innerHTML = '';
+            
+            if (!career || career.length === 0) {
+                container.innerHTML = '<div class="text-center py-12 text-gray-400"><i class="fas fa-briefcase text-4xl mb-3 opacity-50"></i><p class="text-sm">경력이 없습니다.</p><p class="text-xs mt-1">추가 버튼을 클릭하여 경력을 추가하세요.</p></div>';
+                return;
+            }
+            
+            career.forEach((car, index) => {
+                const carCard = document.createElement('div');
+                carCard.className = 'bg-gray-50 rounded-xl p-5 border border-gray-200 hover:shadow-md transition';
+                carCard.innerHTML = 
+                    '<div class="flex items-start justify-between">' +
+                        '<div class="flex-1">' +
+                            '<h6 class="font-bold text-gray-800 mb-2">' + (car.company || '회사명 없음') + '</h6>' +
+                            '<div class="flex flex-wrap gap-4 text-sm text-gray-600 mb-2">' +
+                                (car.position ? '<div><i class="fas fa-user-tie mr-1 text-purple-500"></i> ' + car.position + '</div>' : '') +
+                                (car.start_date ? '<div><i class="fas fa-calendar-alt mr-1 text-blue-500"></i> 입사: ' + car.start_date.split('T')[0] + '</div>' : '') +
+                                (car.end_date ? '<div><i class="fas fa-calendar-check mr-1 text-green-500"></i> 퇴사: ' + car.end_date.split('T')[0] + '</div>' : '') +
+                            '</div>' +
+                            (car.description ? '<p class="text-sm text-gray-600 mb-1 line-clamp-2">' + car.description + '</p>' : '') +
+                            (car.notes ? '<p class="text-xs text-gray-500 italic">' + car.notes + '</p>' : '') +
+                        '</div>' +
+                        '<div class="flex items-center gap-2 ml-4">' +
+                            '<button type="button" onclick="window.openCareerModal(' + index + ')" class="px-3 py-1.5 bg-purple-100 text-purple-700 rounded-lg text-sm font-medium hover:bg-purple-200 transition">' +
+                                '<i class="fas fa-edit mr-1"></i> 수정' +
+                            '</button>' +
+                            '<button type="button" onclick="window.deleteCareer(' + index + ')" class="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200 transition">' +
+                                '<i class="fas fa-trash mr-1"></i> 삭제' +
+                            '</button>' +
+                        '</div>' +
+                    '</div>';
+                container.appendChild(carCard);
+            });
+        }
+
+        // 보수교육 모달 관리
+        let currentTrainingIndex = null;
+        
+        window.openTrainingModal = function(index = null) {
+            currentTrainingIndex = index;
+            const modal = document.getElementById('trainingModal');
+            const title = document.getElementById('trainingModalTitle');
+            const form = document.getElementById('trainingForm');
+            
+            if (index !== null && training[index]) {
+                // 수정 모드
+                const tr = training[index];
+                title.textContent = '보수교육 수정';
+                document.getElementById('trainingModalId').value = tr.id || '';
+                document.getElementById('trainingModalName').value = tr.name || '';
+                document.getElementById('trainingModalStartDate').value = tr.start_date ? tr.start_date.split('T')[0] : '';
+                document.getElementById('trainingModalEndDate').value = tr.end_date ? tr.end_date.split('T')[0] : '';
+                document.getElementById('trainingModalHours').value = tr.hours || '';
+                document.getElementById('trainingModalInstitution').value = tr.institution || '';
+                document.getElementById('trainingModalDescription').value = tr.description || '';
+                document.getElementById('trainingModalNotes').value = tr.notes || '';
+            } else {
+                // 추가 모드
+                title.textContent = '보수교육 추가';
+                form.reset();
+                document.getElementById('trainingModalId').value = '';
+            }
+            
+            modal.classList.remove('hidden');
+        };
+        
+        window.closeTrainingModal = function() {
+            const modal = document.getElementById('trainingModal');
+            modal.classList.add('hidden');
+            currentTrainingIndex = null;
+        };
+        
+        window.handleSaveTraining = function(event) {
+            event.preventDefault();
+            
+            const name = document.getElementById('trainingModalName').value;
+            const startDate = document.getElementById('trainingModalStartDate').value;
+            const endDate = document.getElementById('trainingModalEndDate').value;
+            const hours = document.getElementById('trainingModalHours').value;
+            const institution = document.getElementById('trainingModalInstitution').value;
+            const description = document.getElementById('trainingModalDescription').value;
+            const notes = document.getElementById('trainingModalNotes').value;
+            const id = document.getElementById('trainingModalId').value;
+            
+            const trData = {
+                id: id || 'training_' + Date.now(),
+                name: name || null,
+                start_date: startDate || null,
+                end_date: endDate || null,
+                hours: hours || null,
+                institution: institution || null,
+                description: description || null,
+                notes: notes || null
+            };
+            
+            if (currentTrainingIndex !== null) {
+                training[currentTrainingIndex] = trData;
+            } else {
+                training.push(trData);
+            }
+            
+            closeTrainingModal();
+            loadTraining();
+        };
+        
+        window.deleteTraining = function(index) {
+            if (!confirm('보수교육을 삭제하시겠습니까?')) return;
+            training.splice(index, 1);
+            loadTraining();
+        };
+        
+        function loadTraining() {
+            const container = document.getElementById('trainingContainer');
+            if (!container) {
+                console.warn('trainingContainer not found');
+                return;
+            }
+            
+            container.innerHTML = '';
+            
+            if (!training || training.length === 0) {
+                container.innerHTML = '<div class="text-center py-12 text-gray-400"><i class="fas fa-chalkboard-teacher text-4xl mb-3 opacity-50"></i><p class="text-sm">보수교육이 없습니다.</p><p class="text-xs mt-1">추가 버튼을 클릭하여 보수교육을 추가하세요.</p></div>';
+                return;
+            }
+            
+            training.forEach((tr, index) => {
+                const trCard = document.createElement('div');
+                trCard.className = 'bg-gray-50 rounded-xl p-5 border border-gray-200 hover:shadow-md transition';
+                trCard.innerHTML = 
+                    '<div class="flex items-start justify-between">' +
+                        '<div class="flex-1">' +
+                            '<h6 class="font-bold text-gray-800 mb-2">' + (tr.name || '연수명 없음') + '</h6>' +
+                            '<div class="flex flex-wrap gap-4 text-sm text-gray-600 mb-2">' +
+                                (tr.institution ? '<div><i class="fas fa-building mr-1 text-green-500"></i> ' + tr.institution + '</div>' : '') +
+                                (tr.hours ? '<div><i class="fas fa-clock mr-1 text-blue-500"></i> ' + tr.hours + '시간</div>' : '') +
+                                (tr.start_date ? '<div><i class="fas fa-calendar-alt mr-1 text-purple-500"></i> 시작: ' + tr.start_date.split('T')[0] + '</div>' : '') +
+                                (tr.end_date ? '<div><i class="fas fa-calendar-check mr-1 text-orange-500"></i> 종료: ' + tr.end_date.split('T')[0] + '</div>' : '') +
+                            '</div>' +
+                            (tr.description ? '<p class="text-sm text-gray-600 mb-1 line-clamp-2">' + tr.description + '</p>' : '') +
+                            (tr.notes ? '<p class="text-xs text-gray-500 italic">' + tr.notes + '</p>' : '') +
+                        '</div>' +
+                        '<div class="flex items-center gap-2 ml-4">' +
+                            '<button type="button" onclick="window.openTrainingModal(' + index + ')" class="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-sm font-medium hover:bg-green-200 transition">' +
+                                '<i class="fas fa-edit mr-1"></i> 수정' +
+                            '</button>' +
+                            '<button type="button" onclick="window.deleteTraining(' + index + ')" class="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200 transition">' +
+                                '<i class="fas fa-trash mr-1"></i> 삭제' +
+                            '</button>' +
+                        '</div>' +
+                    '</div>';
+                container.appendChild(trCard);
+            });
+        }
+
         window.handleSaveProfile = async function(event) {
             event.preventDefault();
             
@@ -1177,11 +1775,11 @@ export const teacherProfileHtml = `
                     type: form.pType.value,
                     joined_at: form.pJoined.value || null,
                     profile_image: form.pImageUrl.value || null,
-                    education: form.pEducation.value || null,
-                    career: form.pCareer.value || null,
-                    certifications: certs.length > 0 ? JSON.stringify(certs) : '[]',
-                    training_history: form.pTrainingHistory.value || null,
-                    teaching_history: teachingHistoryData.length > 0 ? JSON.stringify(teachingHistoryData) : '[]'
+                    education: education.length > 0 ? JSON.stringify(education) : '[]',
+                    career: career.length > 0 ? JSON.stringify(career) : '[]',
+                    certifications: certifications.length > 0 ? JSON.stringify(certifications) : '[]',
+                    training_history: training.length > 0 ? JSON.stringify(training) : '[]',
+                    teaching_history: teachingHistory.length > 0 ? JSON.stringify(teachingHistory) : '[]'
                 };
                 
                 // API 호출
