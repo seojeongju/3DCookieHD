@@ -1210,24 +1210,22 @@ export const teacherProfileHtml = `
                         const fileItem = document.createElement('div');
                         fileItem.className = 'flex items-center justify-between px-3 py-2 bg-white rounded-lg border border-gray-200';
                         fileItem.setAttribute('data-file-name', fileInfo.name);
-                        // URL과 파일명을 이스케이프 처리
-                        const escapedUrl = fileInfo.url.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-                        const escapedName = (fileInfo.name || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                        // URL과 파일명을 이스케이프 처리 (HTML 속성용)
+                        const escapedUrl = fileInfo.url.replace(/'/g, "&#39;").replace(/"/g, '&quot;').replace(/&/g, '&amp;');
+                        const escapedName = (fileInfo.name || '').replace(/'/g, "&#39;").replace(/"/g, '&quot;').replace(/&/g, '&amp;');
                         
-                        fileItem.innerHTML = \`
-                            <span class="text-sm text-gray-700 flex items-center">
-                                <i class="fas fa-file-pdf text-red-500 mr-2"></i>
-                                \${escapedName}
-                            </span>
-                            <div class="flex items-center gap-2">
-                                <button type="button" onclick="window.downloadCertFile('\${escapedUrl}', '\${escapedName}')" class="text-blue-600 hover:text-blue-800 text-sm">
-                                    <i class="fas fa-download"></i>
-                                </button>
-                                <button type="button" onclick="window.removeCertFile(this, '\${escapedUrl}')" class="text-red-600 hover:text-red-800 text-sm">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        \`;
+                        fileItem.innerHTML = '<span class="text-sm text-gray-700 flex items-center">' +
+                            '<i class="fas fa-file-pdf text-red-500 mr-2"></i>' +
+                            escapedName +
+                            '</span>' +
+                            '<div class="flex items-center gap-2">' +
+                            '<button type="button" onclick="window.downloadCertFile(\'' + fileInfo.url.replace(/'/g, "\\'") + '\', \'' + (fileInfo.name || '').replace(/'/g, "\\'") + '\')" class="text-blue-600 hover:text-blue-800 text-sm">' +
+                            '<i class="fas fa-download"></i>' +
+                            '</button>' +
+                            '<button type="button" onclick="window.removeCertFile(this, \'' + fileInfo.url.replace(/'/g, "\\'") + '\')" class="text-red-600 hover:text-red-800 text-sm">' +
+                            '<i class="fas fa-trash"></i>' +
+                            '</button>' +
+                            '</div>';
                         fileListEl.appendChild(fileItem);
                     }
                 } catch (error) {
@@ -1268,23 +1266,22 @@ export const teacherProfileHtml = `
                 fileItem.setAttribute('data-file-name', fileInfo.name || fileInfo.url.split('/').pop());
                 // URL과 파일명을 이스케이프 처리
                 const fileName = fileInfo.name || fileInfo.url.split('/').pop();
-                const escapedUrl = fileInfo.url.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-                const escapedName = (fileName || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                // URL과 파일명을 이스케이프 처리 (HTML 속성용)
+                const escapedUrl = fileInfo.url.replace(/'/g, "&#39;").replace(/"/g, '&quot;').replace(/&/g, '&amp;');
+                const escapedName = (fileName || '').replace(/'/g, "&#39;").replace(/"/g, '&quot;').replace(/&/g, '&amp;');
                 
-                fileItem.innerHTML = \`
-                    <span class="text-sm text-gray-700 flex items-center">
-                        <i class="fas fa-file-pdf text-red-500 mr-2"></i>
-                        \${escapedName}
-                    </span>
-                    <div class="flex items-center gap-2">
-                        <button type="button" onclick="window.downloadCertFile('\${escapedUrl}', '\${escapedName}')" class="text-blue-600 hover:text-blue-800 text-sm">
-                            <i class="fas fa-download"></i>
-                        </button>
-                        <button type="button" onclick="window.removeCertFile(this, '\${escapedUrl}')" class="text-red-600 hover:text-red-800 text-sm">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                \`;
+                fileItem.innerHTML = '<span class="text-sm text-gray-700 flex items-center">' +
+                    '<i class="fas fa-file-pdf text-red-500 mr-2"></i>' +
+                    escapedName +
+                    '</span>' +
+                    '<div class="flex items-center gap-2">' +
+                    '<button type="button" onclick="window.downloadCertFile(\'' + fileInfo.url.replace(/'/g, "\\'") + '\', \'' + (fileName || '').replace(/'/g, "\\'") + '\')" class="text-blue-600 hover:text-blue-800 text-sm">' +
+                    '<i class="fas fa-download"></i>' +
+                    '</button>' +
+                    '<button type="button" onclick="window.removeCertFile(this, \'' + fileInfo.url.replace(/'/g, "\\'") + '\')" class="text-red-600 hover:text-red-800 text-sm">' +
+                    '<i class="fas fa-trash"></i>' +
+                    '</button>' +
+                    '</div>';
                 fileListEl.appendChild(fileItem);
             });
             
