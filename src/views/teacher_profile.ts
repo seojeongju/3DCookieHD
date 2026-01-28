@@ -112,16 +112,16 @@ export const teacherProfileHtml = `
                     <!-- 탭 네비게이션 -->
                     <div class="bg-white border-b border-gray-200 px-8">
                         <div class="flex items-center gap-8">
-                            <button type="button" onclick="window.switchProfileTab('education')" id="tabEducation" class="pb-4 text-sm font-black uppercase tracking-widest tab-active-profile transition-all border-b-2 border-blue-600 text-blue-600">
+                            <button type="button" data-tab="education" id="tabEducation" class="pb-4 text-sm font-black uppercase tracking-widest tab-active-profile transition-all border-b-2 border-blue-600 text-blue-600">
                                 <i class="fas fa-graduation-cap mr-2"></i> 학력 및 경력
                             </button>
-                            <button type="button" onclick="window.switchProfileTab('certifications')" id="tabCertifications" class="pb-4 text-sm font-black uppercase tracking-widest tab-inactive-profile transition-all border-b-2 border-transparent text-gray-400 hover:text-gray-600">
+                            <button type="button" data-tab="certifications" id="tabCertifications" class="pb-4 text-sm font-black uppercase tracking-widest tab-inactive-profile transition-all border-b-2 border-transparent text-gray-400 hover:text-gray-600">
                                 <i class="fas fa-certificate mr-2"></i> 자격증
                             </button>
-                            <button type="button" onclick="window.switchProfileTab('training')" id="tabTraining" class="pb-4 text-sm font-black uppercase tracking-widest tab-inactive-profile transition-all border-b-2 border-transparent text-gray-400 hover:text-gray-600">
+                            <button type="button" data-tab="training" id="tabTraining" class="pb-4 text-sm font-black uppercase tracking-widest tab-inactive-profile transition-all border-b-2 border-transparent text-gray-400 hover:text-gray-600">
                                 <i class="fas fa-chalkboard-teacher mr-2"></i> 보수교육
                             </button>
-                            <button type="button" onclick="window.switchProfileTab('teaching')" id="tabTeaching" class="pb-4 text-sm font-black uppercase tracking-widest tab-inactive-profile transition-all border-b-2 border-transparent text-gray-400 hover:text-gray-600">
+                            <button type="button" data-tab="teaching" id="tabTeaching" class="pb-4 text-sm font-black uppercase tracking-widest tab-inactive-profile transition-all border-b-2 border-transparent text-gray-400 hover:text-gray-600">
                                 <i class="fas fa-book-open mr-2"></i> 강의이력
                             </button>
                         </div>
@@ -558,9 +558,23 @@ export const teacherProfileHtml = `
             });
         };
 
+        // 탭 버튼에 이벤트 리스너 추가 (DOMContentLoaded 전에 함수 정의)
+        function setupTabListeners() {
+            const tabButtons = document.querySelectorAll('[data-tab]');
+            tabButtons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const tab = this.getAttribute('data-tab');
+                    if (tab && window.switchProfileTab) {
+                        window.switchProfileTab(tab);
+                    }
+                });
+            });
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             checkLogin();
             loadProfileData();
+            setupTabListeners();
         });
 
         function checkLogin() {
