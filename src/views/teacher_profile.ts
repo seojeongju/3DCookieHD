@@ -462,13 +462,19 @@ export const teacherProfileHtml = `
             }
         }
 
-        function switchProfileTab(tab) {
+        // 전역 스코프에 함수 할당 (onclick에서 접근 가능하도록)
+        window.switchProfileTab = function(tab) {
             currentProfileTab = tab;
             
             // 탭 버튼 스타일 업데이트
             ['education', 'certifications', 'training', 'teaching'].forEach(t => {
                 const btn = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1));
                 const content = document.getElementById('content' + t.charAt(0).toUpperCase() + t.slice(1));
+                
+                if (!btn || !content) {
+                    console.warn('Tab element not found:', t);
+                    return;
+                }
                 
                 if (t === tab) {
                     btn.className = 'pb-4 text-sm font-black uppercase tracking-widest tab-active-profile transition-all border-b-2 border-blue-600 text-blue-600';
@@ -487,10 +493,15 @@ export const teacherProfileHtml = `
                     content.classList.add('hidden');
                 }
             });
+        };
+        
+        // 하위 호환성을 위해 일반 함수도 유지
+        function switchProfileTab(tab) {
+            window.switchProfileTab(tab);
         }
 
         // 프로필 이미지 업로드
-        async function handlePImage(input) {
+        window.handlePImage = async function(input) {
             if (!input.files || !input.files[0]) return;
             
             const file = input.files[0];
@@ -521,12 +532,12 @@ export const teacherProfileHtml = `
                 console.error('Image upload error:', error);
                 alert('이미지 업로드 중 오류가 발생했습니다.');
             }
-        }
+        };
 
         // 자격증 모달 관리
         let currentCertIndex = null;
         
-        function openCertificationModal(index = null) {
+        window.openCertificationModal = function(index = null) {
             currentCertIndex = index;
             const modal = document.getElementById('certificationModal');
             const title = document.getElementById('certModalTitle');
@@ -555,13 +566,13 @@ export const teacherProfileHtml = `
             }
             
             modal.classList.remove('hidden');
-        }
+        };
         
-        function closeCertificationModal() {
+        window.closeCertificationModal = function() {
             const modal = document.getElementById('certificationModal');
             modal.classList.add('hidden');
             currentCertIndex = null;
-        }
+        };
         
         function displayCertModalFiles(fileUrls) {
             const fileList = document.getElementById('certModalFileList');
@@ -599,9 +610,9 @@ export const teacherProfileHtml = `
             files.splice(index, 1);
             fileUrlsInput.value = JSON.stringify(files);
             displayCertModalFiles(files);
-        }
+        };
         
-        async function handleSaveCertification(event) {
+        window.handleSaveCertification = async function(event) {
             event.preventDefault();
             
             const form = event.target;
@@ -662,80 +673,21 @@ export const teacherProfileHtml = `
             
             closeCertificationModal();
             loadCertifications();
-        }
+        };
         
-        function deleteCertification(index) {
+        window.deleteCertification = function(index) {
             if (!confirm('자격증을 삭제하시겠습니까?')) return;
             certifications.splice(index, 1);
             loadCertifications();
-        }
+        };
         
         // 기존 addCertification 함수는 더 이상 사용하지 않음 (하위 호환성을 위해 유지)
         function addCertification(certData = null) {
             // 이 함수는 더 이상 사용하지 않지만 호환성을 위해 유지
             console.warn('addCertification is deprecated, use openCertificationModal instead');
         }
-            
-            const certHtml = \`
-                <div class="bg-gray-50 rounded-2xl p-6 border border-gray-200" data-cert-id="\${certId}">
-                    <div class="flex justify-between items-start mb-4">
-                        <h6 class="text-sm font-bold text-gray-800">자격증 정보</h6>
-                        <button type="button" onclick="removeCertification('\${certId}')" class="text-red-500 hover:text-red-700">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4 mb-4">
-                        <div>
-                            <label class="text-xs font-medium text-gray-600 mb-1 block">자격증명</label>
-                            <input type="text" class="cert-name w-full px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm" placeholder="예: 정보처리기사" value="\${certData ? (certData.name || '') : ''}">
-                        </div>
-                        <div>
-                            <label class="text-xs font-medium text-gray-600 mb-1 block">발급일</label>
-                            <input type="date" class="cert-issue-date w-full px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm" value="\${certData ? (certData.issue_date ? certData.issue_date.split('T')[0] : '') : ''}">
-                        </div>
-                        <div>
-                            <label class="text-xs font-medium text-gray-600 mb-1 block">만료일</label>
-                            <input type="date" class="cert-expiry-date w-full px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm" value="\${certData ? (certData.expiry_date ? certData.expiry_date.split('T')[0] : '') : ''}">
-                        </div>
-                    </div>
-                    <div>
-                        <label class="text-xs font-medium text-gray-600 mb-1 block">자격증 파일</label>
-                        <div class="space-y-2">
-                            <input type="file" class="cert-file-input w-full px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm" accept=".pdf,.jpg,.jpeg,.png" multiple>
-                            <div class="cert-file-list space-y-1"></div>
-                            <input type="hidden" class="cert-file-urls" value="\${certData && certData.file_urls ? JSON.stringify(certData.file_urls) : '[]'}">
-                        </div>
-                    </div>
-                </div>
-            \`;
-            
-            container.insertAdjacentHTML('beforeend', certHtml);
-            
-            // 파일 입력 이벤트 리스너 추가
-            const certElement = container.querySelector(\`[data-cert-id="\${certId}"]\`);
-            if (certElement) {
-                const fileInput = certElement.querySelector('.cert-file-input');
-                if (fileInput) {
-                    fileInput.addEventListener('change', (e) => handleCertFileUpload(e, certId));
-                }
-                
-                // 기존 파일이 있으면 표시
-                if (certData && certData.file_urls) {
-                    loadCertFiles(certId, certData.file_urls);
-                }
-            } else {
-                console.error('Failed to find cert element after insertAdjacentHTML');
-            }
-        }
 
-        function removeCertification(certId) {
-            const certEl = document.querySelector(\`[data-cert-id="\${certId}"]\`);
-            if (certEl) {
-                certEl.remove();
-            }
-            certifications = certifications.filter(c => c.id !== certId);
-        }
-
+        // 이 함수는 더 이상 사용하지 않음 (모달 구조로 변경됨)
         async function handleCertFileUpload(event, certId) {
             const files = event.target.files;
             if (!files || files.length === 0) return;
@@ -784,10 +736,10 @@ export const teacherProfileHtml = `
                                 \${fileInfo.name}
                             </span>
                             <div class="flex items-center gap-2">
-                                <button type="button" onclick="downloadCertFile('\${fileInfo.url}', '\${fileInfo.name}')" class="text-blue-600 hover:text-blue-800 text-sm">
+                                <button type="button" onclick="window.downloadCertFile('\${fileInfo.url}', '\${fileInfo.name}')" class="text-blue-600 hover:text-blue-800 text-sm">
                                     <i class="fas fa-download"></i>
                                 </button>
-                                <button type="button" onclick="removeCertFile(this, '\${fileInfo.url}')" class="text-red-600 hover:text-red-800 text-sm">
+                                <button type="button" onclick="window.removeCertFile(this, '\'' + fileInfo.url + '\')" class="text-red-600 hover:text-red-800 text-sm">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </div>
@@ -804,6 +756,7 @@ export const teacherProfileHtml = `
             fileUrlsInput.value = JSON.stringify(existingFiles);
         }
 
+        // 이 함수는 더 이상 사용하지 않음 (모달 구조로 변경됨)
         function loadCertFiles(certId, fileUrls) {
             const certEl = document.querySelector(\`[data-cert-id="\${certId}"]\`);
             if (!certEl) return;
@@ -835,10 +788,10 @@ export const teacherProfileHtml = `
                         \${fileInfo.name || fileInfo.url.split('/').pop()}
                     </span>
                     <div class="flex items-center gap-2">
-                        <button type="button" onclick="downloadCertFile('\${fileInfo.url}', '\${fileInfo.name || fileInfo.url.split('/').pop()}')" class="text-blue-600 hover:text-blue-800 text-sm">
+                        <button type="button" onclick="window.downloadCertFile('\${fileInfo.url}', '\${fileInfo.name || fileInfo.url.split('/').pop()}')" class="text-blue-600 hover:text-blue-800 text-sm">
                             <i class="fas fa-download"></i>
                         </button>
-                        <button type="button" onclick="removeCertFile(this, '\${fileInfo.url}')" class="text-red-600 hover:text-red-800 text-sm">
+                        <button type="button" onclick="window.removeCertFile(this, '\'' + fileInfo.url + '\')" class="text-red-600 hover:text-red-800 text-sm">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -849,7 +802,7 @@ export const teacherProfileHtml = `
             fileUrlsInput.value = JSON.stringify(files);
         }
 
-        function removeCertFile(button, fileUrl) {
+        window.removeCertFile = function(button, fileUrl) {
             if (!confirm('파일을 삭제하시겠습니까?')) return;
             
             const fileItem = button.closest('[data-file-name]');
@@ -864,9 +817,9 @@ export const teacherProfileHtml = `
             } catch (e) {
                 console.error('Failed to remove file from list:', e);
             }
-        }
+        };
 
-        async function downloadCertFile(fileUrl, fileName) {
+        window.downloadCertFile = async function(fileUrl, fileName) {
             try {
                 const token = localStorage.getItem('token');
                 let downloadUrl = fileUrl;
@@ -901,7 +854,7 @@ export const teacherProfileHtml = `
                 console.error('Download error:', error);
                 alert('파일 다운로드 중 오류가 발생했습니다: ' + (error.message || error));
             }
-        }
+        };
 
         function loadCertifications() {
             const container = document.getElementById('certificationsContainer');
@@ -948,7 +901,7 @@ export const teacherProfileHtml = `
         // 강의이력 모달 관리
         let currentTeachingIndex = null;
         
-        function openTeachingHistoryModal(index = null) {
+        window.openTeachingHistoryModal = function(index = null) {
             currentTeachingIndex = index;
             const modal = document.getElementById('teachingHistoryModal');
             const title = document.getElementById('teachingModalTitle');
@@ -973,15 +926,15 @@ export const teacherProfileHtml = `
             }
             
             modal.classList.remove('hidden');
-        }
+        };
         
-        function closeTeachingHistoryModal() {
+        window.closeTeachingHistoryModal = function() {
             const modal = document.getElementById('teachingHistoryModal');
             modal.classList.add('hidden');
             currentTeachingIndex = null;
-        }
+        };
         
-        function handleSaveTeachingHistory(event) {
+        window.handleSaveTeachingHistory = function(event) {
             event.preventDefault();
             
             const historyId = document.getElementById('teachingModalId').value || 'teaching_' + (teachingHistoryIdCounter++);
@@ -1012,13 +965,13 @@ export const teacherProfileHtml = `
             
             closeTeachingHistoryModal();
             loadTeachingHistory();
-        }
+        };
         
-        function deleteTeachingHistory(index) {
+        window.deleteTeachingHistory = function(index) {
             if (!confirm('강의이력을 삭제하시겠습니까?')) return;
             teachingHistory.splice(index, 1);
             loadTeachingHistory();
-        }
+        };
         
         // 기존 addTeachingHistory 함수는 더 이상 사용하지 않음 (하위 호환성을 위해 유지)
         function addTeachingHistory(historyData = null) {
@@ -1145,7 +1098,7 @@ export const teacherProfileHtml = `
             });
         }
 
-        async function handleSaveProfile(event) {
+        window.handleSaveProfile = async function(event) {
             event.preventDefault();
             
             try {
@@ -1247,7 +1200,7 @@ export const teacherProfileHtml = `
                 console.error('Save error:', error);
                 alert('저장 중 오류가 발생했습니다: ' + (error.message || error));
             }
-        }
+        };
     </script>
     <style>
         .tab-active-profile {
