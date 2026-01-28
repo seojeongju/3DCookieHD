@@ -434,4 +434,4 @@ export const adminLmsTrainingLogsHtml = `
     </script>
 </body>
 </html>
-\`;
+`;
