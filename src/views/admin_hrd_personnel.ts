@@ -1373,33 +1373,33 @@ export const adminHrdPersonnelHtml = () => `
                      cert.file_urls.forEach(f => {
                          const url = typeof f === 'string' ? f : f.url;
                          const name = typeof f === 'string' ? (url.split('/').pop() || '파일') : (f.name || f.url.split('/').pop() || '파일');
-                         fileButtonsHtml += `<button onclick="downloadFile('${url}', '${name}')" class="text-xs text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-1 rounded inline-flex items-center mr-2 mb-1 mt-1 border border-blue-100"><i class="fas fa-download mr-1"></i> ${name}</button>`;
+                         fileButtonsHtml += \`<button onclick="downloadFile('\${url}', '\${name}')" class="text-xs text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-1 rounded inline-flex items-center mr-2 mb-1 mt-1 border border-blue-100"><i class="fas fa-download mr-1"></i> \${name}</button>\`;
                      });
                  } else if (cert.file_url) {
                       const url = cert.file_url;
                       const name = url.split('/').pop() || '파일';
-                      fileButtonsHtml = `<button onclick="downloadFile('${url}', '${name}')" class="text-xs text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-1 rounded inline-flex items-center mr-2 mb-1 mt-1 border border-blue-100"><i class="fas fa-download mr-1"></i> ${name}</button>`;
+                      fileButtonsHtml = \`<button onclick="downloadFile('\${url}', '\${name}')" class="text-xs text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-1 rounded inline-flex items-center mr-2 mb-1 mt-1 border border-blue-100"><i class="fas fa-download mr-1"></i> \${name}</button>\`;
                  }
 
                  const div = document.createElement('div');
                  div.className = 'bg-white p-4 rounded-xl border border-gray-200 shadow-sm relative hover:shadow-md transition-shadow';
-                 div.innerHTML = `
+                 div.innerHTML = \`
                     <div class="flex justify-between items-start">
                         <div class="flex-1 min-w-0 pr-4">
-                            <h4 class="font-bold text-gray-900 truncate">${ cert.name || '-' }</h4>
+                            <h4 class="font-bold text-gray-900 truncate">\${ cert.name || '-' }</h4>
                             <div class="text-xs text-gray-500 mt-1">
-                                ${ cert.issue_date || '' } ~ ${ cert.expiry_date || '' }
+                                \${ cert.issue_date || '' } ~ \${ cert.expiry_date || '' }
                             </div>
                             <div class="mt-2 flex flex-wrap">
-                                ${ fileButtonsHtml }
+                                \${ fileButtonsHtml }
                             </div>
                         </div>
                         <div class="flex space-x-2 shrink-0">
-                             <button type="button" onclick="openCertificationModal(${index})" class="text-blue-500 hover:text-blue-700 w-8 h-8 flex items-center justify-center rounded-full hover:bg-blue-50 transition-colors"><i class="fas fa-edit"></i></button>
-                             <button type="button" onclick="deleteCertification(${index})" class="text-red-500 hover:text-red-700 w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-50 transition-colors"><i class="fas fa-trash"></i></button>
+                             <button type="button" onclick="openCertificationModal(\${index})" class="text-blue-500 hover:text-blue-700 w-8 h-8 flex items-center justify-center rounded-full hover:bg-blue-50 transition-colors"><i class="fas fa-edit"></i></button>
+                             <button type="button" onclick="deleteCertification(\${index})" class="text-red-500 hover:text-red-700 w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-50 transition-colors"><i class="fas fa-trash"></i></button>
                         </div>
                     </div>
-                `;
+                \`;
                  container.appendChild(div);
              });
         }
