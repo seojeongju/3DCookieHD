@@ -58,6 +58,15 @@ export const adminHrdItemsTransactionsHtml = () => `
                                     <option value="IN">입고 (IN)</option>
                                     <option value="OUT">출고 (OUT)</option>
                                 </select>
+                                <select id="categoryFilter" onchange="loadTransactions(1)" class="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none min-w-[120px]">
+                                    <option value="all">전체 분류</option>
+                                    <option value="textbook">교재</option>
+                                    <option value="equipment">장비/기자재</option>
+                                    <option value="consumable">소모품/재료</option>
+                                    <option value="furniture">가구/비품</option>
+                                    <option value="software">S/W</option>
+                                    <option value="etc">기타</option>
+                                </select>
                                 <button onclick="loadTransactions(1)" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium text-sm shadow-sm">
                                     검색
                                 </button>
@@ -94,7 +103,8 @@ export const adminHrdItemsTransactionsHtml = () => `
                                 <thead class="bg-gray-50/80 text-gray-500 font-medium uppercase text-xs border-b border-gray-200">
                                     <tr>
                                         <th class="px-6 py-3 w-16 text-center">No</th>
-                                        <th class="px-6 py-3 w-28 text-center">구분</th>
+                                        <th class="px-6 py-3 w-24 text-center">분류</th>
+                                        <th class="px-6 py-3 w-24 text-center">구분</th>
                                         <th class="px-6 py-3">물품 정보</th>
                                         <th class="px-6 py-3 text-right">수량 변동</th>
                                         <th class="px-6 py-3 text-right">변동 후 재고</th>
@@ -211,6 +221,7 @@ export const adminHrdItemsTransactionsHtml = () => `
             currentPage = page;
             const search = document.getElementById('searchInput').value;
             const type = document.getElementById('typeFilter').value;
+            const category = document.getElementById('categoryFilter').value;
             const tbody = document.getElementById('transactionTableBody');
             
             // 로딩 표시
@@ -221,7 +232,8 @@ export const adminHrdItemsTransactionsHtml = () => `
                     page: page,
                     limit: limit,
                     search: search,
-                    type: type
+                    type: type,
+                    category: category
                 });
 
                 const res = await fetch(\`/api/hrd/items/transactions/all?\${queryParams}\`);
@@ -247,9 +259,22 @@ export const adminHrdItemsTransactionsHtml = () => `
                     const qtyClass = isIn ? 'text-blue-600' : 'text-red-600';
                     const sign = isIn ? '+' : '-';
 
+                    const categoryLabels = {
+                        'textbook': { label: '교재', class: 'bg-yellow-100 text-yellow-800' },
+                        'equipment': { label: '장비', class: 'bg-indigo-100 text-indigo-800' },
+                        'consumable': { label: '소모품', class: 'bg-green-100 text-green-800' },
+                        'furniture': { label: '비품', class: 'bg-purple-100 text-purple-800' },
+                        'software': { label: 'S/W', class: 'bg-pink-100 text-pink-800' },
+                        'etc': { label: '기타', class: 'bg-gray-100 text-gray-800' }
+                    };
+                    const catInfo = categoryLabels[item.category] || categoryLabels['etc'];
+
                     return \`
                         <tr class="hover:bg-gray-50 transition-colors border-b border-gray-50">
                             <td class="px-6 py-4 text-center text-gray-400 text-xs">\${idx}</td>
+                            <td class="px-6 py-4 text-center">
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full \${catInfo.class}">\${catInfo.label}</span>
+                            </td>
                             <td class="px-6 py-4 text-center">\${typeBadge}</td>
                             <td class="px-6 py-4">
                                 <div class="flex items-center">

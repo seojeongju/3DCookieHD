@@ -563,6 +563,7 @@ app.get('/items/transactions/all', async (c) => {
         const offset = (page - 1) * limit;
         const search = c.req.query('search') || '';
         const type = c.req.query('type'); // 'IN' | 'OUT' | 'all'
+        const category = c.req.query('category');
 
         // History 테이블 존재 여부 체크 (없으면 빈 배열 반환)
         try {
@@ -583,6 +584,11 @@ app.get('/items/transactions/all', async (c) => {
         if (type && type !== 'all') {
             whereClause += " AND h.type = ?";
             params.push(type);
+        }
+
+        if (category && category !== 'all') {
+            whereClause += " AND i.category = ?";
+            params.push(category);
         }
 
         // 전체 카운트
