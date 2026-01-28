@@ -157,12 +157,12 @@ export const teacherProfileHtml = `
                                     <h5 class="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center">
                                         <i class="fas fa-certificate mr-3 text-orange-500"></i> 자격증 목록
                                     </h5>
-                                    <button type="button" onclick="addCertification()" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-500/20 flex items-center">
+                                    <button type="button" onclick="openCertificationModal()" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-500/20 flex items-center">
                                         <i class="fas fa-plus mr-2"></i> 자격증 추가
                                     </button>
                                 </div>
                                 <div id="certificationsContainer" class="space-y-4">
-                                    <!-- 자격증 항목들이 여기에 동적으로 추가됨 -->
+                                    <!-- 자격증 목록이 여기에 동적으로 표시됨 -->
                                 </div>
                             </div>
                         </div>
@@ -186,12 +186,12 @@ export const teacherProfileHtml = `
                                     <h5 class="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center">
                                         <i class="fas fa-book-open mr-3 text-indigo-500"></i> 강의이력
                                     </h5>
-                                    <button type="button" onclick="addTeachingHistory()" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition shadow-lg shadow-indigo-500/20 flex items-center">
+                                    <button type="button" onclick="openTeachingHistoryModal()" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition shadow-lg shadow-indigo-500/20 flex items-center">
                                         <i class="fas fa-plus mr-2"></i> 강의이력 추가
                                     </button>
                                 </div>
                                 <div id="teachingHistoryContainer" class="space-y-4">
-                                    <!-- 강의이력 항목들이 여기에 동적으로 추가됨 -->
+                                    <!-- 강의이력 목록이 여기에 동적으로 표시됨 -->
                                 </div>
                             </div>
                         </div>
@@ -209,6 +209,108 @@ export const teacherProfileHtml = `
                 </form>
             </div>
         </main>
+    </div>
+
+    <!-- 자격증 입력/수정 모달 -->
+    <div id="certificationModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+                <h3 class="text-lg font-bold text-gray-800" id="certModalTitle">자격증 추가</h3>
+                <button type="button" onclick="closeCertificationModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <form id="certificationForm" onsubmit="handleSaveCertification(event)">
+                    <input type="hidden" id="certModalId" value="">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="text-sm font-medium text-gray-700 mb-2 block">자격증명 <span class="text-red-500">*</span></label>
+                            <input type="text" id="certModalName" required class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition" placeholder="예: 정보처리기사">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-sm font-medium text-gray-700 mb-2 block">발급일</label>
+                                <input type="date" id="certModalIssueDate" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition">
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium text-gray-700 mb-2 block">만료일</label>
+                                <input type="date" id="certModalExpiryDate" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-sm font-medium text-gray-700 mb-2 block">자격증 파일</label>
+                            <input type="file" id="certModalFileInput" accept=".pdf,.jpg,.jpeg,.png" multiple class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition">
+                            <div id="certModalFileList" class="mt-3 space-y-2">
+                                <!-- 파일 목록이 여기에 표시됨 -->
+                            </div>
+                            <input type="hidden" id="certModalFileUrls" value="[]">
+                        </div>
+                    </div>
+                    <div class="mt-6 flex justify-end gap-3">
+                        <button type="button" onclick="closeCertificationModal()" class="px-6 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition">
+                            취소
+                        </button>
+                        <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition">
+                            저장
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 강의이력 입력/수정 모달 -->
+    <div id="teachingHistoryModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+                <h3 class="text-lg font-bold text-gray-800" id="teachingModalTitle">강의이력 추가</h3>
+                <button type="button" onclick="closeTeachingHistoryModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <form id="teachingHistoryForm" onsubmit="handleSaveTeachingHistory(event)">
+                    <input type="hidden" id="teachingModalId" value="">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="text-sm font-medium text-gray-700 mb-2 block">과정명 <span class="text-red-500">*</span></label>
+                            <input type="text" id="teachingModalCourseName" required class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition" placeholder="예: 3D 모델링 기초">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-sm font-medium text-gray-700 mb-2 block">시작일</label>
+                                <input type="date" id="teachingModalStartDate" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition">
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium text-gray-700 mb-2 block">종료일</label>
+                                <input type="date" id="teachingModalEndDate" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-sm font-medium text-gray-700 mb-2 block">수강생 수</label>
+                            <input type="number" id="teachingModalStudentCount" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition" placeholder="예: 25">
+                        </div>
+                        <div>
+                            <label class="text-sm font-medium text-gray-700 mb-2 block">강의 내용/설명</label>
+                            <textarea id="teachingModalDescription" rows="3" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none resize-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition" placeholder="강의 내용, 커리큘럼, 주요 학습 내용 등을 입력하세요"></textarea>
+                        </div>
+                        <div>
+                            <label class="text-sm font-medium text-gray-700 mb-2 block">기타 메모</label>
+                            <textarea id="teachingModalNotes" rows="2" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none resize-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition" placeholder="특이사항, 성과, 수강생 반응 등을 입력하세요"></textarea>
+                        </div>
+                    </div>
+                    <div class="mt-6 flex justify-end gap-3">
+                        <button type="button" onclick="closeTeachingHistoryModal()" class="px-6 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition">
+                            취소
+                        </button>
+                        <button type="submit" class="px-6 py-2 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition">
+                            저장
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -331,22 +433,12 @@ export const teacherProfileHtml = `
                     }
                     certifications = certs || [];
                     console.log('Loaded certifications:', certifications);
-                    // 약간의 지연 후 로드 (DOM이 준비될 때까지)
-                    setTimeout(() => {
-                        loadCertifications();
-                    }, 100);
                 } catch (e) {
                     console.error('Failed to parse certifications:', e, data.certifications);
                     certifications = [];
-                    setTimeout(() => {
-                        loadCertifications();
-                    }, 100);
                 }
             } else {
                 certifications = [];
-                setTimeout(() => {
-                    loadCertifications();
-                }, 100);
             }
             
             // 강의이력
@@ -361,22 +453,12 @@ export const teacherProfileHtml = `
                     }
                     teachingHistory = history || [];
                     console.log('Loaded teaching history:', teachingHistory);
-                    // 약간의 지연 후 로드 (DOM이 준비될 때까지)
-                    setTimeout(() => {
-                        loadTeachingHistory();
-                    }, 100);
                 } catch (e) {
                     console.error('Failed to parse teaching_history:', e, data.teaching_history);
                     teachingHistory = [];
-                    setTimeout(() => {
-                        loadTeachingHistory();
-                    }, 100);
                 }
             } else {
                 teachingHistory = [];
-                setTimeout(() => {
-                    loadTeachingHistory();
-                }, 100);
             }
         }
 
@@ -393,11 +475,13 @@ export const teacherProfileHtml = `
                     content.classList.remove('hidden');
                     
                     // 탭이 활성화될 때 해당 데이터 다시 로드
-                    if (t === 'certifications') {
-                        loadCertifications();
-                    } else if (t === 'teaching') {
-                        loadTeachingHistory();
-                    }
+                    setTimeout(() => {
+                        if (t === 'certifications') {
+                            loadCertifications();
+                        } else if (t === 'teaching') {
+                            loadTeachingHistory();
+                        }
+                    }, 50);
                 } else {
                     btn.className = 'pb-4 text-sm font-black uppercase tracking-widest tab-inactive-profile transition-all border-b-2 border-transparent text-gray-400 hover:text-gray-600';
                     content.classList.add('hidden');
@@ -439,16 +523,158 @@ export const teacherProfileHtml = `
             }
         }
 
-        // 자격증 관리 (관리자 페이지와 동일한 로직)
-        function addCertification(certData = null) {
-            const certId = certData ? (certData.id || 'new_' + (certIdCounter++)) : 'new_' + (certIdCounter++);
-            const container = document.getElementById('certificationsContainer');
-            if (!container) {
-                console.warn('certificationsContainer not found in addCertification');
-                return;
+        // 자격증 모달 관리
+        let currentCertIndex = null;
+        
+        function openCertificationModal(index = null) {
+            currentCertIndex = index;
+            const modal = document.getElementById('certificationModal');
+            const title = document.getElementById('certModalTitle');
+            const form = document.getElementById('certificationForm');
+            
+            if (index !== null && certifications[index]) {
+                // 수정 모드
+                const cert = certifications[index];
+                title.textContent = '자격증 수정';
+                document.getElementById('certModalId').value = cert.id || '';
+                document.getElementById('certModalName').value = cert.name || '';
+                document.getElementById('certModalIssueDate').value = cert.issue_date ? cert.issue_date.split('T')[0] : '';
+                document.getElementById('certModalExpiryDate').value = cert.expiry_date ? cert.expiry_date.split('T')[0] : '';
+                
+                // 파일 목록 표시
+                const fileUrls = cert.file_urls || [];
+                document.getElementById('certModalFileUrls').value = JSON.stringify(fileUrls);
+                displayCertModalFiles(fileUrls);
+            } else {
+                // 추가 모드
+                title.textContent = '자격증 추가';
+                form.reset();
+                document.getElementById('certModalId').value = '';
+                document.getElementById('certModalFileUrls').value = '[]';
+                document.getElementById('certModalFileList').innerHTML = '';
             }
             
-            console.log('addCertification called with certId:', certId, 'certData:', certData);
+            modal.classList.remove('hidden');
+        }
+        
+        function closeCertificationModal() {
+            const modal = document.getElementById('certificationModal');
+            modal.classList.add('hidden');
+            currentCertIndex = null;
+        }
+        
+        function displayCertModalFiles(fileUrls) {
+            const fileList = document.getElementById('certModalFileList');
+            fileList.innerHTML = '';
+            
+            if (!fileUrls || fileUrls.length === 0) return;
+            
+            fileUrls.forEach((fileInfo, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'flex items-center justify-between px-3 py-2 bg-white rounded-lg border border-gray-200 mb-2';
+                const fileName = fileInfo.name || (typeof fileInfo === 'string' ? fileInfo.split('/').pop() : '파일');
+                const fileUrl = fileInfo.url || fileInfo;
+                fileItem.innerHTML = 
+                    '<span class="text-sm text-gray-700 flex items-center">' +
+                        '<i class="fas fa-file-pdf text-red-500 mr-2"></i>' +
+                        fileName +
+                    '</span>' +
+                    '<div class="flex items-center gap-2">' +
+                        '<button type="button" onclick="downloadCertFile(\'' + fileUrl + '\', \'' + fileName + '\')" class="text-blue-600 hover:text-blue-800 text-sm">' +
+                            '<i class="fas fa-download"></i>' +
+                        '</button>' +
+                        '<button type="button" onclick="removeCertModalFile(' + index + ')" class="text-red-600 hover:text-red-800 text-sm">' +
+                            '<i class="fas fa-trash"></i>' +
+                        '</button>' +
+                    '</div>';
+                fileList.appendChild(fileItem);
+            });
+        }
+        
+        function removeCertModalFile(index) {
+            if (!confirm('파일을 삭제하시겠습니까?')) return;
+            
+            const fileUrlsInput = document.getElementById('certModalFileUrls');
+            let files = JSON.parse(fileUrlsInput.value || '[]');
+            files.splice(index, 1);
+            fileUrlsInput.value = JSON.stringify(files);
+            displayCertModalFiles(files);
+        }
+        
+        async function handleSaveCertification(event) {
+            event.preventDefault();
+            
+            const form = event.target;
+            const certId = document.getElementById('certModalId').value || 'new_' + (certIdCounter++);
+            const name = document.getElementById('certModalName').value;
+            const issueDate = document.getElementById('certModalIssueDate').value;
+            const expiryDate = document.getElementById('certModalExpiryDate').value;
+            const fileUrlsInput = document.getElementById('certModalFileUrls');
+            let fileUrls = [];
+            try {
+                fileUrls = JSON.parse(fileUrlsInput.value || '[]');
+            } catch (e) {}
+            
+            // 파일 업로드 처리
+            const fileInput = document.getElementById('certModalFileInput');
+            if (fileInput.files && fileInput.files.length > 0) {
+                const token = localStorage.getItem('token');
+                for (let file of fileInput.files) {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('category', 'documents');
+                    formData.append('folder', 'personnel_certs/' + certId);
+                    
+                    try {
+                        const response = await fetch('/api/upload', {
+                            method: 'POST',
+                            headers: { 'Authorization': 'Bearer ' + token },
+                            body: formData
+                        });
+                        const result = await response.json();
+                        if (result.success) {
+                            fileUrls.push({
+                                url: result.data.url,
+                                name: result.data.originalName || file.name
+                            });
+                        }
+                    } catch (error) {
+                        console.error('File upload error:', error);
+                    }
+                }
+            }
+            
+            const certData = {
+                id: certId,
+                name: name || null,
+                issue_date: issueDate || null,
+                expiry_date: expiryDate || null,
+                file_urls: fileUrls
+            };
+            
+            if (currentCertIndex !== null) {
+                // 수정
+                certifications[currentCertIndex] = certData;
+            } else {
+                // 추가
+                certifications.push(certData);
+            }
+            
+            closeCertificationModal();
+            loadCertifications();
+        }
+        
+        function deleteCertification(index) {
+            if (!confirm('자격증을 삭제하시겠습니까?')) return;
+            certifications.splice(index, 1);
+            loadCertifications();
+        }
+        
+        // 기존 addCertification 함수는 더 이상 사용하지 않음 (하위 호환성을 위해 유지)
+        function addCertification(certData = null) {
+            // 이 함수는 더 이상 사용하지 않지만 호환성을 위해 유지
+            console.warn('addCertification is deprecated, use openCertificationModal instead');
+        }
             
             const certHtml = \`
                 <div class="bg-gray-50 rounded-2xl p-6 border border-gray-200" data-cert-id="\${certId}">
@@ -688,27 +914,116 @@ export const teacherProfileHtml = `
             container.innerHTML = '';
             
             if (!certifications || certifications.length === 0) {
-                container.innerHTML = '<div class="text-center py-8 text-gray-400 text-sm">자격증이 없습니다. 추가 버튼을 클릭하여 자격증을 추가하세요.</div>';
+                container.innerHTML = '<div class="text-center py-12 text-gray-400"><i class="fas fa-certificate text-4xl mb-3 opacity-50"></i><p class="text-sm">자격증이 없습니다.</p><p class="text-xs mt-1">추가 버튼을 클릭하여 자격증을 추가하세요.</p></div>';
                 return;
             }
             
-            // 기존 certifications 배열을 순회하며 추가
+            // 리스트 형태로 표시
             certifications.forEach((cert, index) => {
-                console.log('Adding certification ' + index + ':', cert);
-                addCertification(cert);
+                const certCard = document.createElement('div');
+                certCard.className = 'bg-gray-50 rounded-xl p-5 border border-gray-200 hover:shadow-md transition';
+                certCard.innerHTML = 
+                    '<div class="flex items-start justify-between">' +
+                        '<div class="flex-1">' +
+                            '<h6 class="font-bold text-gray-800 mb-2">' + (cert.name || '자격증명 없음') + '</h6>' +
+                            '<div class="flex flex-wrap gap-4 text-sm text-gray-600">' +
+                                (cert.issue_date ? '<div><i class="fas fa-calendar-alt mr-1 text-blue-500"></i> 발급일: ' + cert.issue_date.split('T')[0] + '</div>' : '') +
+                                (cert.expiry_date ? '<div><i class="fas fa-calendar-times mr-1 text-orange-500"></i> 만료일: ' + cert.expiry_date.split('T')[0] + '</div>' : '') +
+                                (cert.file_urls && cert.file_urls.length > 0 ? '<div><i class="fas fa-file-pdf mr-1 text-red-500"></i> 파일 ' + cert.file_urls.length + '개</div>' : '') +
+                            '</div>' +
+                        '</div>' +
+                        '<div class="flex items-center gap-2 ml-4">' +
+                            '<button type="button" onclick="openCertificationModal(' + index + ')" class="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-200 transition">' +
+                                '<i class="fas fa-edit mr-1"></i> 수정' +
+                            '</button>' +
+                            '<button type="button" onclick="deleteCertification(' + index + ')" class="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200 transition">' +
+                                '<i class="fas fa-trash mr-1"></i> 삭제' +
+                            '</button>' +
+                        '</div>' +
+                    '</div>';
+                container.appendChild(certCard);
             });
         }
 
-        // 강의이력 관리
-        function addTeachingHistory(historyData = null) {
-            const historyId = historyData ? (historyData.id || 'teaching_' + (teachingHistoryIdCounter++)) : 'teaching_' + (teachingHistoryIdCounter++);
-            const container = document.getElementById('teachingHistoryContainer');
-            if (!container) {
-                console.warn('teachingHistoryContainer not found in addTeachingHistory');
-                return;
+        // 강의이력 모달 관리
+        let currentTeachingIndex = null;
+        
+        function openTeachingHistoryModal(index = null) {
+            currentTeachingIndex = index;
+            const modal = document.getElementById('teachingHistoryModal');
+            const title = document.getElementById('teachingModalTitle');
+            const form = document.getElementById('teachingHistoryForm');
+            
+            if (index !== null && teachingHistory[index]) {
+                // 수정 모드
+                const history = teachingHistory[index];
+                title.textContent = '강의이력 수정';
+                document.getElementById('teachingModalId').value = history.id || '';
+                document.getElementById('teachingModalCourseName').value = history.course_name || '';
+                document.getElementById('teachingModalStartDate').value = history.start_date ? history.start_date.split('T')[0] : '';
+                document.getElementById('teachingModalEndDate').value = history.end_date ? history.end_date.split('T')[0] : '';
+                document.getElementById('teachingModalStudentCount').value = history.student_count || '';
+                document.getElementById('teachingModalDescription').value = history.description || '';
+                document.getElementById('teachingModalNotes').value = history.notes || '';
+            } else {
+                // 추가 모드
+                title.textContent = '강의이력 추가';
+                form.reset();
+                document.getElementById('teachingModalId').value = '';
             }
             
-            console.log('addTeachingHistory called with historyId:', historyId, 'historyData:', historyData);
+            modal.classList.remove('hidden');
+        }
+        
+        function closeTeachingHistoryModal() {
+            const modal = document.getElementById('teachingHistoryModal');
+            modal.classList.add('hidden');
+            currentTeachingIndex = null;
+        }
+        
+        function handleSaveTeachingHistory(event) {
+            event.preventDefault();
+            
+            const historyId = document.getElementById('teachingModalId').value || 'teaching_' + (teachingHistoryIdCounter++);
+            const courseName = document.getElementById('teachingModalCourseName').value;
+            const startDate = document.getElementById('teachingModalStartDate').value;
+            const endDate = document.getElementById('teachingModalEndDate').value;
+            const studentCount = document.getElementById('teachingModalStudentCount').value;
+            const description = document.getElementById('teachingModalDescription').value;
+            const notes = document.getElementById('teachingModalNotes').value;
+            
+            const historyData = {
+                id: historyId,
+                course_name: courseName || null,
+                start_date: startDate || null,
+                end_date: endDate || null,
+                student_count: studentCount || null,
+                description: description || null,
+                notes: notes || null
+            };
+            
+            if (currentTeachingIndex !== null) {
+                // 수정
+                teachingHistory[currentTeachingIndex] = historyData;
+            } else {
+                // 추가
+                teachingHistory.push(historyData);
+            }
+            
+            closeTeachingHistoryModal();
+            loadTeachingHistory();
+        }
+        
+        function deleteTeachingHistory(index) {
+            if (!confirm('강의이력을 삭제하시겠습니까?')) return;
+            teachingHistory.splice(index, 1);
+            loadTeachingHistory();
+        }
+        
+        // 기존 addTeachingHistory 함수는 더 이상 사용하지 않음 (하위 호환성을 위해 유지)
+        function addTeachingHistory(historyData = null) {
+            // 이 함수는 더 이상 사용하지 않지만 호환성을 위해 유지
+            console.warn('addTeachingHistory is deprecated, use openTeachingHistoryModal instead');
             
             const historyHtml = \`
                 <div class="bg-gray-50 rounded-2xl p-6 border-2 border-gray-200" data-teaching-id="\${historyId}">
@@ -797,14 +1112,36 @@ export const teacherProfileHtml = `
             container.innerHTML = '';
             
             if (!teachingHistory || teachingHistory.length === 0) {
-                container.innerHTML = '<div class="text-center py-8 text-gray-400 text-sm">강의이력이 없습니다. 추가 버튼을 클릭하여 이력을 추가하세요.</div>';
+                container.innerHTML = '<div class="text-center py-12 text-gray-400"><i class="fas fa-book-open text-4xl mb-3 opacity-50"></i><p class="text-sm">강의이력이 없습니다.</p><p class="text-xs mt-1">추가 버튼을 클릭하여 이력을 추가하세요.</p></div>';
                 return;
             }
             
-            // 기존 teachingHistory 배열을 순회하며 추가
+            // 리스트 형태로 표시
             teachingHistory.forEach((history, index) => {
-                console.log('Adding teaching history ' + index + ':', history);
-                addTeachingHistory(history);
+                const historyCard = document.createElement('div');
+                historyCard.className = 'bg-gray-50 rounded-xl p-5 border border-gray-200 hover:shadow-md transition';
+                historyCard.innerHTML = 
+                    '<div class="flex items-start justify-between">' +
+                        '<div class="flex-1">' +
+                            '<h6 class="font-bold text-gray-800 mb-2">' + (history.course_name || '과정명 없음') + '</h6>' +
+                            '<div class="flex flex-wrap gap-4 text-sm text-gray-600 mb-2">' +
+                                (history.start_date ? '<div><i class="fas fa-calendar-alt mr-1 text-blue-500"></i> 시작: ' + history.start_date.split('T')[0] + '</div>' : '') +
+                                (history.end_date ? '<div><i class="fas fa-calendar-check mr-1 text-green-500"></i> 종료: ' + history.end_date.split('T')[0] + '</div>' : '') +
+                                (history.student_count ? '<div><i class="fas fa-users mr-1 text-purple-500"></i> 수강생: ' + history.student_count + '명</div>' : '') +
+                            '</div>' +
+                            (history.description ? '<p class="text-sm text-gray-600 mb-1 line-clamp-2">' + history.description + '</p>' : '') +
+                            (history.notes ? '<p class="text-xs text-gray-500 italic">' + history.notes + '</p>' : '') +
+                        '</div>' +
+                        '<div class="flex items-center gap-2 ml-4">' +
+                            '<button type="button" onclick="openTeachingHistoryModal(' + index + ')" class="px-3 py-1.5 bg-indigo-100 text-indigo-700 rounded-lg text-sm font-medium hover:bg-indigo-200 transition">' +
+                                '<i class="fas fa-edit mr-1"></i> 수정' +
+                            '</button>' +
+                            '<button type="button" onclick="deleteTeachingHistory(' + index + ')" class="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200 transition">' +
+                                '<i class="fas fa-trash mr-1"></i> 삭제' +
+                            '</button>' +
+                        '</div>' +
+                    '</div>';
+                container.appendChild(historyCard);
             });
         }
 
@@ -901,7 +1238,7 @@ export const teacherProfileHtml = `
                     user.phone = data.phone;
                     user.profile_image = data.profile_image;
                     localStorage.setItem('user', JSON.stringify(user));
-                    // 페이지를 다시 로드하여 저장된 데이터 표시
+                    // 데이터 다시 로드
                     loadProfileData();
                 } else {
                     alert('저장 실패: ' + (result.error || '알 수 없는 오류'));
