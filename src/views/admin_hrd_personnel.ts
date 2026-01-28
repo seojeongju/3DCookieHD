@@ -256,7 +256,7 @@ export const adminHrdPersonnelHtml = () => `
                                 <h5 class="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center">
                                     <i class="fas fa-certificate mr-3 text-orange-500"></i> 자격증 목록
                                 </h5>
-                                <button type="button" onclick="addCertification()" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-500/20 flex items-center">
+                                <button type="button" onclick="openCertificationModal()" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-500/20 flex items-center">
                                     <i class="fas fa-plus mr-2"></i> 자격증 추가
                                 </button>
                             </div>
@@ -1550,57 +1550,6 @@ export const adminHrdPersonnelHtml = () => `
             loadTeachingHistory();
         }
 
-        function handlePImage(input) {
-            if(!input.files || !input.files[0]) return;
-            const file = input.files[0];
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = function(e) {
-                const img = new Image();
-                img.src = e.target.result;
-                img.onload = function() {
-                    const canvas = document.createElement('canvas');
-                    // Resize logic (omitted for brevity, assume full size or standard size)
-                     // ... same resizing logic as before ...
-                    let width = img.width;
-                    let height = img.height;
-                    const MAX = 400; 
-                    if (width > height) { if (width > MAX) { height *= MAX / width; width = MAX; } } 
-                    else { if (height > MAX) { width *= MAX / height; height = MAX; } }
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-
-                    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-                    document.getElementById('pImageUrl').value = dataUrl;
-                    document.getElementById('pImagePreview').src = dataUrl;
-                    document.getElementById('pImagePreview').classList.remove('hidden');
-                    document.getElementById('pImagePlaceholder').classList.add('hidden');
-                }
-            }
-        }
-        
-        function clearPImage() {
-            document.getElementById('pImageUrl').value = '';
-            document.getElementById('pImagePreview').src = '';
-            document.getElementById('pImagePreview').classList.add('hidden');
-            document.getElementById('pImagePlaceholder').classList.remove('hidden');
-            document.getElementById('pImageFile').value = '';
-        }
-
-        async function openEditModalById(id) {
-            try {
-                const response = await fetch('/api/hrd/personnel');
-                const result = await response.json();
-                if (result.success && result.data) {
-                    const personnel = result.data.find(p => p.id == id);
-                    if (personnel) openEditModal(personnel);
-                    else alert('정보를 찾을 수 없습니다.');
-                } else alert('정보 로드 실패');
-            } catch (e) { console.error(e); alert('오류 발생'); }
-        }
-
         function openEditModal(data) {
             document.getElementById('modalTitle').textContent = '교강사 정보 수정';
             document.getElementById('personnelId').value = data.id;
@@ -1646,11 +1595,7 @@ export const adminHrdPersonnelHtml = () => `
             document.getElementById('createPersonnelModal').classList.remove('hidden');
         }
 
-        function closeModal(id) {
-            document.getElementById(id).classList.add('hidden');
-        }
-
-        function switchPersonnelTab(tab) {
+        window.switchPersonnelTab = function(tab) {
             currentPersonnelTab = tab;
             document.querySelectorAll('.tab-active-personnel, .tab-inactive-personnel').forEach(btn => {
                 btn.classList.remove('tab-active-personnel', 'border-blue-600', 'text-blue-600');
@@ -1676,7 +1621,7 @@ export const adminHrdPersonnelHtml = () => `
                 else if (tab === 'training') loadTraining();
                 else if (tab === 'teaching') loadTeachingHistory();
             }
-        }
+        };
         
         // 파일 다운로드 함수
         async function downloadFile(fileUrl, fileName) {
@@ -1713,7 +1658,7 @@ export const adminHrdPersonnelHtml = () => `
                 if (!response.ok) {
                     const errorText = await response.text();
                     console.error('Download failed:', response.status, errorText);
-                    throw new Error(\`파일 다운로드 실패: \${response.status} \${response.statusText}\`);
+                      throw new Error('파일 다운로드 실패: ' + response.status + ' ' + response.statusText);
                 }
                 
                 // Blob으로 변환
@@ -1744,119 +1689,103 @@ export const adminHrdPersonnelHtml = () => `
             const certId = certData ? certData.id : 'new_' + (certIdCounter++);
             const container = document.getElementById('certificationsContainer');
             
-            const certHtml = \`
-                <div class="cert-item border-2 border-gray-200 rounded-2xl p-6 bg-gradient-to-br from-white to-gray-50/50 shadow-sm hover:shadow-md transition-all" data-cert-id="\${certId}">
-                    <div class="flex justify-between items-start mb-4">
-                        <h5 class="text-sm font-black text-gray-800 uppercase tracking-wider flex items-center">
-                            <i class="fas fa-certificate mr-2 text-orange-500"></i> 자격증 정보
-                        </h5>
-                        <button type="button" class="remove-cert-btn w-8 h-8 flex items-center justify-center rounded-xl bg-red-50 text-red-600 hover:bg-red-100 transition" data-cert-id="\${certId}">
-                            <i class="fas fa-times text-sm"></i>
-                        </button>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4 mb-4">
-                        <div>
-                            <label class="block text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">자격증명</label>
-                            <input type="text" class="cert-name w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition" 
-                                   placeholder="예: 컴퓨터활용능력 1급" value="\${certData ? certData.name || '' : ''}">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">발급일</label>
-                            <input type="date" class="cert-issue-date w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition" 
-                                   value="\${certData && certData.issue_date ? certData.issue_date.split('T')[0] : ''}">
-                        </div>
-                    </div>
-                    <div class="mb-4">
-                        <label class="block text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">만료일 (선택)</label>
-                        <input type="date" class="cert-expiry-date w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition" 
-                               value="\${certData && certData.expiry_date ? certData.expiry_date.split('T')[0] : ''}">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">자격증 파일</label>
-                        <div class="space-y-3">
-                            <!-- 파일 업로드 섹션 -->
-                            <div class="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
-                                <div class="flex items-center justify-between mb-3">
-                                    <div class="flex items-center gap-2">
-                                        <i class="fas fa-cloud-upload-alt text-blue-600"></i>
-                                        <span class="text-xs font-bold text-blue-800">파일 업로드</span>
-                                    </div>
-                                    <button type="button" class="cert-upload-btn px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition flex items-center" 
-                                            data-cert-id="\${certId}">
-                                        <i class="fas fa-upload mr-1"></i> 파일 선택
-                                    </button>
-                                </div>
-                                <input type="file" class="cert-file hidden" accept=".pdf,.jpg,.jpeg,.png" 
-                                       data-cert-id="\${certId}">
-                                <div class="cert-upload-status text-xs text-gray-600" id="upload-status-\${certId}"></div>
-                            </div>
-                            
-                            <!-- 업로드된 파일 목록 -->
-                            <div class="cert-file-list space-y-2" id="file-list-\${certId}">
-                                \${certData && certData.file_urls && Array.isArray(certData.file_urls) && certData.file_urls.length > 0
-                                    ? certData.file_urls.map((fileInfo, idx) => {
-                                        // fileInfo가 객체면 {url, name}, 문자열이면 URL만
-                                        const fileUrl = typeof fileInfo === 'string' ? fileInfo : fileInfo.url;
-                                        const fileName = typeof fileInfo === 'string' 
-                                            ? fileInfo.split('/').pop() || '파일'
-                                            : (fileInfo.name || fileInfo.url.split('/').pop() || '파일');
-                                        return \`
-                                            <div class="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-3" data-file-url="\${fileUrl}" data-file-name="\${fileName}" data-file-index="\${idx}">
-                                                <div class="flex items-center gap-2 flex-1 min-w-0">
-                                                    <i class="fas fa-file-pdf text-green-600"></i>
-                                                    <span class="text-xs font-medium text-gray-700 truncate" title="\${fileName}">\${fileName}</span>
-                                                </div>
-                                                <div class="flex items-center gap-2 ml-2">
-                                                    <button type="button" class="cert-file-download-btn px-2 py-1 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700 transition flex items-center" 
-                                                            data-file-url="\${fileUrl}" data-file-name="\${fileName}">
-                                                        <i class="fas fa-download mr-1"></i> 다운로드
-                                                    </button>
-                                                    <button type="button" class="cert-file-remove-btn px-2 py-1 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700 transition flex items-center" 
-                                                            data-cert-id="\${certId}" data-file-url="\${fileUrl}">
-                                                        <i class="fas fa-times"></i>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        \`;
-                                    }).join('')
-                                    : certData && certData.file_url
-                                        ? \`
-                                            <div class="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-3" data-file-url="\${certData.file_url}" data-file-index="0">
-                                                <div class="flex items-center gap-2 flex-1 min-w-0">
-                                                    <i class="fas fa-file-pdf text-green-600"></i>
-                                                    <span class="text-xs font-medium text-gray-700 truncate">\${certData.file_url.split('/').pop() || '파일'}</span>
-                                                </div>
-                                                <div class="flex items-center gap-2 ml-2">
-                                                    <button type="button" class="cert-file-download-btn px-2 py-1 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700 transition flex items-center" 
-                                                            data-file-url="\${certData.file_url}" data-file-name="\${certData.file_url.split('/').pop() || '파일'}">
-                                                        <i class="fas fa-download mr-1"></i> 다운로드
-                                                    </button>
-                                                    <button type="button" class="cert-file-remove-btn px-2 py-1 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700 transition flex items-center" 
-                                                            data-cert-id="\${certId}" data-file-url="\${certData.file_url}">
-                                                        <i class="fas fa-times"></i>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        \`
-                                        : '<div class="text-xs text-gray-400 text-center py-2">업로드된 파일이 없습니다</div>'}
-                            </div>
-                        </div>
-                        <input type="hidden" class="cert-file-urls" value="\${certData ? JSON.stringify(certData.file_urls || (certData.file_url ? [certData.file_url] : [])) : '[]'}">
-                    </div>
-                </div>
-            \`;
+            const certHtml = '<div class="cert-item border-2 border-gray-200 rounded-2xl p-6 bg-gradient-to-br from-white to-gray-50/50 shadow-sm hover:shadow-md transition-all" data-cert-id="' + certId + '">' +
+                '<div class="flex justify-between items-start mb-4">' +
+                    '<h5 class="text-sm font-black text-gray-800 uppercase tracking-wider flex items-center">' +
+                        '<i class="fas fa-certificate mr-2 text-orange-500"></i> 자격증 정보' +
+                    '</h5>' +
+                    '<button type="button" class="remove-cert-btn w-8 h-8 flex items-center justify-center rounded-xl bg-red-50 text-red-600 hover:bg-red-100 transition" data-cert-id="' + certId + '">' +
+                        '<i class="fas fa-times text-sm"></i>' +
+                    '</button>' +
+                '</div>' +
+                '<div class="grid grid-cols-2 gap-4 mb-4">' +
+                    '<div>' +
+                        '<label class="block text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">자격증명</label>' +
+                        '<input type="text" class="cert-name w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition" placeholder="예: 컴퓨터활용능력 1급" value="' + (certData ? (certData.name || '') : '') + '">' +
+                    '</div>' +
+                    '<div>' +
+                        '<label class="block text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">발급일</label>' +
+                        '<input type="date" class="cert-issue-date w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition" value="' + (certData && certData.issue_date ? certData.issue_date.split('T')[0] : '') + '">' +
+                    '</div>' +
+                '</div>' +
+                '<div class="mb-4">' +
+                    '<label class="block text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">만료일(선택)</label>' +
+                    '<input type="date" class="cert-expiry-date w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition" value="' + (certData && certData.expiry_date ? certData.expiry_date.split('T')[0] : '') + '">' +
+                '</div>' +
+                '<div>' +
+                    '<label class="block text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">자격증 파일</label>' +
+                    '<div class="space-y-3">' +
+                        '<!--파일 업로드 섹션-->' +
+                        '<div class="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">' +
+                            '<div class="flex items-center justify-between mb-3">' +
+                                '<div class="flex items-center gap-2">' +
+                                    '<i class="fas fa-cloud-upload-alt text-blue-600"></i>' +
+                                    '<span class="text-xs font-bold text-blue-800">파일 업로드</span>' +
+                                '</div>' +
+                                '<button type="button" class="cert-upload-btn px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition flex items-center" data-cert-id="' + certId + '">' +
+                                    '<i class="fas fa-upload mr-1"></i> 파일 선택' +
+                                '</button>' +
+                            '</div>' +
+                            '<input type="file" class="cert-file hidden" accept=".pdf,.jpg,.jpeg,.png" data-cert-id="' + certId + '">' +
+                            '<div class="cert-upload-status text-xs text-gray-600" id="upload-status-' + certId + '"></div>' +
+                        '</div>' +
+                        '<!--업로드된 파일 목록-->' +
+                        '<div class="cert-file-list space-y-2" id="file-list-' + certId + '">' +
+                        (certData && certData.file_urls && Array.isArray(certData.file_urls) && certData.file_urls.length > 0
+                            ? certData.file_urls.map((fileInfo, idx) => {
+                                const fileUrl = typeof fileInfo === 'string' ? fileInfo : fileInfo.url;
+                                const fileName = typeof fileInfo === 'string'
+                                    ? fileInfo.split('/').pop() || '파일'
+                                    : (fileInfo.name || fileInfo.url.split('/').pop() || '파일');
+                                return '<div class="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-3" data-file-url="' + fileUrl + '" data-file-name="' + fileName + '" data-file-index="' + idx + '">' +
+                                    '<div class="flex items-center gap-2 flex-1 min-w-0">' +
+                                        '<i class="fas fa-file-pdf text-green-600"></i>' +
+                                        '<span class="text-xs font-medium text-gray-700 truncate" title="' + fileName + '">' + fileName + '</span>' +
+                                    '</div>' +
+                                    '<div class="flex items-center gap-2 ml-2">' +
+                                        '<button type="button" class="cert-file-download-btn px-2 py-1 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700 transition flex items-center" data-file-url="' + fileUrl + '" data-file-name="' + fileName + '">' +
+                                            '<i class="fas fa-download mr-1"></i> 다운로드' +
+                                        '</button>' +
+                                        '<button type="button" class="cert-file-remove-btn px-2 py-1 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700 transition flex items-center" data-cert-id="' + certId + '" data-file-url="' + fileUrl + '">' +
+                                            '<i class="fas fa-times"></i>' +
+                                        '</button>' +
+                                    '</div>' +
+                                '</div>';
+                            }).join('')
+                            : certData && certData.file_url
+                                ? '<div class="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-3" data-file-url="' + certData.file_url + '" data-file-index="0">' +
+                                    '<div class="flex items-center gap-2 flex-1 min-w-0">' +
+                                        '<i class="fas fa-file-pdf text-green-600"></i>' +
+                                        '<span class="text-xs font-medium text-gray-700 truncate">' + (certData.file_url.split('/').pop() || '파일') + '</span>' +
+                                    '</div>' +
+                                    '<div class="flex items-center gap-2 ml-2">' +
+                                        '<button type="button" class="cert-file-download-btn px-2 py-1 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700 transition flex items-center" data-file-url="' + certData.file_url + '" data-file-name="' + (certData.file_url.split('/').pop() || '파일') + '">' +
+                                            '<i class="fas fa-download mr-1"></i> 다운로드' +
+                                        '</button>' +
+                                        '<button type="button" class="cert-file-remove-btn px-2 py-1 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700 transition flex items-center" data-cert-id="' + certId + '" data-file-url="' + certData.file_url + '">' +
+                                            '<i class="fas fa-times"></i>' +
+                                        '</button>' +
+                                    '</div>' +
+                                '</div>'
+                                : '<div class="text-xs text-gray-400 text-center py-2">업로드된 파일이 없습니다</div>'
+                        ) +
+                        '</div>' +
+                    '</div>' +
+                    '<input type="hidden" class="cert-file-urls" value="' + (certData ? JSON.stringify(certData.file_urls || (certData.file_url ? [certData.file_url] : [])) : '[]') + '">' +
+                '</div>' +
+            '</div>';
             
             container.insertAdjacentHTML('beforeend', certHtml);
             
             // 이벤트 리스너 추가 (인라인 onclick 대신)
-            const certItem = container.querySelector(\`[data-cert-id="\${certId}"]\`);
+            const certItem = container.querySelector('[data-cert-id="' + certId + '"]');
             if (certItem) {
                 const fileInput = certItem.querySelector('.cert-file');
                 const uploadBtn = certItem.querySelector('.cert-upload-btn');
                 const removeBtn = certItem.querySelector('.remove-cert-btn');
                 const fileUrlsInput = certItem.querySelector('.cert-file-urls');
-                const fileList = certItem.querySelector(\`#file-list-\${certId}\`);
-                const uploadStatus = certItem.querySelector(\`#upload-status-\${certId}\`);
+                  const fileList = certItem.querySelector('#file-list-' + certId);
+                  const uploadStatus = certItem.querySelector('#upload-status-' + certId);
                 
                 // 파일 업로드 버튼 클릭
                 if (uploadBtn && fileInput) {

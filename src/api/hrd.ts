@@ -1903,39 +1903,7 @@ app.delete('/facilities/:facilityId/items/:itemId', async (c) => {
     }
 });
 
-// 시설 유지보수 이력
-app.get('/facilities/:id/maintenance', async (c) => {
-    try {
-        const facilityId = c.req.param('id');
-        const { results } = await c.env.DB.prepare(`
-            SELECT * FROM hrd_facility_maintenance 
-            WHERE facility_id = ? 
-            ORDER BY date DESC, created_at DESC
-        `).bind(facilityId).all();
-
-        return c.json({ success: true, data: results });
-    } catch (e: any) {
-        return errorResponse(c, e.message, 500);
-    }
-});
-
-// 유지보수 이력 추가
-app.post('/facilities/:id/maintenance', async (c) => {
-    try {
-        const facilityId = c.req.param('id');
-        const body = await c.req.json();
-        const { status, title, price, vendor, manager, memo, date } = body;
-
-        await c.env.DB.prepare(`
-            INSERT INTO hrd_facility_maintenance (facility_id, status, title, price, vendor, manager, memo, date)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `).bind(facilityId, status, title, price || 0, vendor, manager, memo, date).run();
-
-        return c.json({ success: true });
-    } catch (e: any) {
-        return errorResponse(c, e.message, 500);
-    }
-});
+// 중복된 엔드포인트 제거됨 - 위의 1016번과 1111번 라인에 이미 정의되어 있음
 
 // 시설 이미지 목록
 app.get('/facilities/:id/images', async (c) => {

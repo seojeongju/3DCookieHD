@@ -904,7 +904,7 @@ async function submitCheckLog() {
     if (!date) { alert('점검 일자를 입력해주세요.'); return; }
 
     try {
-        await fetch('/api/hrd/facilities/' + currentDetailId + '/maintenance', {
+        const response = await fetch('/api/hrd/facilities/' + currentDetailId + '/maintenance', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -912,13 +912,25 @@ async function submitCheckLog() {
                 title: title,
                 manager: manager,
                 date: date,
-                memo: title, // Use title as memo for now as API expects it? No, API has title and memo.
+                memo: title,
                 price: 0
             })
         });
+        
+        const result = await response.json();
+        
+        if (!response.ok || !result.success) {
+            console.error('Failed to add check log:', result);
+            alert('점검기록 등록 실패: ' + (result.error || '알 수 없는 오류'));
+            return;
+        }
+        
         closeCheckModal();
-        openDrawer(currentDetailId);
-    } catch (e) { console.error(e); alert('등록 중 오류가 발생했습니다.'); }
+        openDrawer(currentDetailId); // 리스트 새로고침
+    } catch (e) { 
+        console.error('Error adding check log:', e); 
+        alert('등록 중 오류가 발생했습니다: ' + (e.message || '네트워크 오류'));
+    }
 }
 
 // Repair Modal Functions
@@ -963,7 +975,7 @@ async function submitRepairLog() {
     if (!title) { alert('수리 요청 제목을 입력해주세요.'); return; }
 
     try {
-        await fetch('/api/hrd/facilities/' + currentDetailId + '/maintenance', {
+        const response = await fetch('/api/hrd/facilities/' + currentDetailId + '/maintenance', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -976,9 +988,21 @@ async function submitRepairLog() {
                 memo: memo
             })
         });
+        
+        const result = await response.json();
+        
+        if (!response.ok || !result.success) {
+            console.error('Failed to add repair log:', result);
+            alert('수리기록 등록 실패: ' + (result.error || '알 수 없는 오류'));
+            return;
+        }
+        
         closeRepairModal();
-        openDrawer(currentDetailId);
-    } catch (e) { console.error(e); alert('등록 중 오류가 발생했습니다.'); }
+        openDrawer(currentDetailId); // 리스트 새로고침
+    } catch (e) { 
+        console.error('Error adding repair log:', e); 
+        alert('등록 중 오류가 발생했습니다: ' + (e.message || '네트워크 오류'));
+    }
 }
 
 // Image Upload Logic
