@@ -81,6 +81,8 @@ import { teacherExamsHtml } from './views/teacher_exams';
 import { teacherSidebar } from './views/components/teacher_sidebar';
 import { hrdSidebar } from './views/components/hrd_sidebar';
 import { adminHrdGradesHtml } from './views/admin_hrd_grades';
+import { adminHrdNcsEvalHtml } from './views/admin_hrd_ncs_eval';
+import { adminHrdSurveysHtml } from './views/admin_hrd_surveys';
 import { reviewsListHtml } from './views/reviews';
 import { loginHtml } from './views/login';
 import { registerHtml } from './views/register';
@@ -251,6 +253,8 @@ app.get('/admin/ncs', (c) => c.html(adminNcsHtml));
 app.get('/admin/exams', (c) => c.html(adminHrdExamsHtml()));
 app.get('/admin/exams/:id/results', (c) => c.html(adminExamResultsHtml()));
 app.get('/admin/grades', (c) => c.html(adminHrdGradesHtml()));
+app.get('/admin/ncs-eval', (c) => c.html(adminHrdNcsEvalHtml()));
+app.get('/admin/surveys', (c) => c.html(adminHrdSurveysHtml()));
 // app.get('/admin/portfolios', (c) => c.html(adminPortfoliosHtml)); // 게시판 관리에서 통합 관리
 app.get('/admin/reviews', (c) => c.html(adminReviewsListHtml(hrdSidebar('reviews'))));
 app.get('/admin/posts', (c) => c.html(adminPostsListHtml(hrdSidebar('posts'))));

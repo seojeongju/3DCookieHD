@@ -1919,6 +1919,123 @@ app.get('/grades/summary', authMiddleware, async (c) => {
     }
 });
 
+// NCS 평가 현황 요약 조회 (전체 과정)
+app.get('/ncs-eval/summary', authMiddleware, async (c) => {
+    try {
+        const { results: courses } = await c.env.DB.prepare(`
+            SELECT c.id, c.title, u.name as teacher_name
+            FROM courses c
+            LEFT JOIN users u ON c.teacher_id = u.id
+            WHERE c.status != 'closed'
+        `).all();
+
+        const summaryData = await Promise.all(courses.map(async (course: any) => {
+            // 1. 해당 과정의 총 NCS 능력단위 수
+            const unitStats: any = await c.env.DB.prepare(`
+                SELECT COUNT(*) as unit_count
+                FROM course_ncs_units
+                WHERE course_id = ?
+            `).bind(course.id).first();
+
+            // 2. 평가가 완료된(결과가 등록된) 능력단위 수
+            const evaluatedStats: any = await c.env.DB.prepare(`
+                SELECT COUNT(DISTINCT ncs_unit_id) as evaluated_count
+                FROM ncs_evaluation_plans p
+                JOIN ncs_evaluation_results r ON p.id = r.plan_id
+                WHERE p.course_id = ?
+            `).bind(course.id).first();
+
+            // 3. 전체 평균 점수 및 이수 인원
+            const scoreStats: any = await c.env.DB.prepare(`
+                SELECT 
+                    AVG(score) as avg_score,
+                    COUNT(CASE WHEN is_passed = 1 THEN 1 END) as passed_count,
+                    COUNT(*) as total_evals
+                FROM ncs_evaluation_results r
+                JOIN ncs_evaluation_plans p ON r.plan_id = p.id
+                WHERE p.course_id = ?
+            `).bind(course.id).first();
+
+            const unitCount = unitStats.unit_count || 0;
+            const evaluatedCount = evaluatedStats.evaluated_count || 0;
+            const accomplishmentRate = unitCount > 0 ? Math.round((evaluatedCount / unitCount) * 100) : 0;
+
+            return {
+                ...course,
+                unit_count: unitCount,
+                evaluated_count: evaluatedCount,
+                accomplishment_rate: accomplishmentRate,
+                avg_score: Math.round((scoreStats.avg_score || 0) * 10) / 10,
+                passed_count: scoreStats.passed_count || 0,
+                total_evals: scoreStats.total_evals || 0
+            };
+        }));
+
+        return c.json({ success: true, data: summaryData });
+    } catch (e: any) {
+        console.error('Failed to fetch NCS evaluation summary:', e);
+        return errorResponse(c, e.message, 500);
+    }
+});
+
+// 설문 참여 현황 요약 조회 (전체 과정)
+app.get('/surveys/summary', authMiddleware, async (c) => {
+    try {
+        const { results: courses } = await c.env.DB.prepare(`
+            SELECT c.id, c.title, u.name as teacher_name
+            FROM courses c
+            LEFT JOIN users u ON c.teacher_id = u.id
+            WHERE c.status != 'closed'
+        `).all();
+
+        const summaryData = await Promise.all(courses.map(async (course: any) => {
+            // 1. 해당 과정의 총 설문 수
+            const surveyStats: any = await c.env.DB.prepare(`
+                SELECT COUNT(*) as survey_count
+                FROM surveys
+                WHERE course_id = ?
+            `).bind(course.id).first();
+
+            // 2. 전체 응답 수
+            const responseStats: any = await c.env.DB.prepare(`
+                SELECT COUNT(*) as response_count
+                FROM survey_responses r
+                JOIN surveys s ON r.survey_id = s.id
+                WHERE s.course_id = ?
+            `).bind(course.id).first();
+
+            // 3. 수강생 수
+            const studentStats: any = await c.env.DB.prepare(`
+                SELECT COUNT(*) as student_count
+                FROM enrollments
+                WHERE course_id = ? AND status = 'approved'
+            `).bind(course.id).first();
+
+            const surveyCount = surveyStats.survey_count || 0;
+            const studentCount = studentStats.student_count || 0;
+            const responseCount = responseStats.response_count || 0;
+
+            // 참여율 계산: (전체 응답 수) / (설문 수 * 학생 수) * 100
+            const participationRate = (surveyCount > 0 && studentCount > 0)
+                ? Math.round((responseCount / (surveyCount * studentCount)) * 100)
+                : 0;
+
+            return {
+                ...course,
+                survey_count: surveyCount,
+                student_count: studentCount,
+                response_count: responseCount,
+                participation_rate: Math.min(participationRate, 100)
+            };
+        }));
+
+        return c.json({ success: true, data: summaryData });
+    } catch (e: any) {
+        console.error('Failed to fetch survey summary:', e);
+        return errorResponse(c, e.message, 500);
+    }
+});
+
 // NCS 이수 현황 요약 조회 (대시보드 차트용)
 app.get('/courses/:courseId/ncs-summary', async (c) => {
     try {
