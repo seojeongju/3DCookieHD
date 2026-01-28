@@ -1017,50 +1017,54 @@ app.get('/facilities/:id/maintenance', async (c) => {
     try {
         const id = c.req.param('id');
 
-        // 안전 장치: 테이블이 없으면 생성
-        await c.env.DB.prepare(`
-            CREATE TABLE IF NOT EXISTS hrd_facility_maintenance (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                facility_id INTEGER,
-                status TEXT,
-                title TEXT,
-                price INTEGER DEFAULT 0,
-                vendor TEXT,
-                manager TEXT,
-                memo TEXT,
-                date TEXT,
-                progress TEXT DEFAULT 'pending',
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        `).run();
+        const fId = parseInt(id);
+        if (isNaN(fId)) return c.json({ success: false, error: `유효하지 않은 시설 ID: ${id}` }, 400);
 
-        // 기존 테이블이 있을 경우 컬럼 누락 방지 (마이그레이션)
         try {
-            await c.env.DB.prepare("SELECT progress FROM hrd_facility_maintenance LIMIT 1").first();
-        } catch (e) {
+            // 안전 장치: 테이블이 없으면 생성
+            await c.env.DB.prepare(`
+                CREATE TABLE IF NOT EXISTS hrd_facility_maintenance (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    facility_id INTEGER,
+                    status TEXT,
+                    title TEXT,
+                    price INTEGER DEFAULT 0,
+                    vendor TEXT,
+                    manager TEXT,
+                    memo TEXT,
+                    date TEXT,
+                    progress TEXT DEFAULT 'pending',
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            `).run();
+
+            // 기존 테이블 컬럼 마이그레이션 (개별 try-catch로 독립 실행)
             try {
                 await c.env.DB.prepare("ALTER TABLE hrd_facility_maintenance ADD COLUMN progress TEXT DEFAULT 'pending'").run();
-            } catch (alterError) { console.error('Failed to add progress column', alterError); }
-        }
+            } catch (ignore) { }
 
-        try {
-            await c.env.DB.prepare("SELECT updated_at FROM hrd_facility_maintenance LIMIT 1").first();
-        } catch (e) {
             try {
                 await c.env.DB.prepare("ALTER TABLE hrd_facility_maintenance ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP").run();
-            } catch (alterError) { console.error('Failed to add updated_at column', alterError); }
-        }
+            } catch (ignore) { }
 
-        const { results } = await c.env.DB.prepare(`
-            SELECT * FROM hrd_facility_maintenance 
-            WHERE facility_id = ? 
-            ORDER BY date DESC, created_at DESC
-        `).bind(id).all();
-        return c.json({ success: true, data: results });
+            const { results } = await c.env.DB.prepare(`
+                SELECT * FROM hrd_facility_maintenance 
+                WHERE facility_id = ? 
+                ORDER BY date DESC, created_at DESC
+            `).bind(fId).all();
+
+            return c.json({ success: true, data: results || [] });
+        } catch (dbError) {
+            console.error('DB Error fetching maintenance logs:', dbError);
+            return c.json({
+                success: false,
+                error: '[v4-GET] 데이터베이스 오류: ' + (dbError instanceof Error ? dbError.message : String(dbError))
+            }, 500);
+        }
     } catch (e) {
-        console.error('Failed to fetch maintenance logs:', e);
-        return c.json({ success: false, error: '시설 관리 대장 조회 실패' }, 500);
+        console.error('General Error in fetching maintenance logs:', e);
+        return c.json({ success: false, error: '[v4-GET] 알 수 없는 오류: ' + (e instanceof Error ? e.message : String(e)) }, 500);
     }
 });
 
