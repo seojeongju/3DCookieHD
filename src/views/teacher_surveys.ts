@@ -30,121 +30,123 @@ export const teacherSurveysHtml = `
         <!-- 사이드바 -->
         ${teacherSidebar('surveys')}
 
-        <!-- 메인 컨텐츠 영역 -->
-        <main class="flex-1 overflow-y-auto bg-gray-50">
-            <!-- 헤더 -->
+        <div class="flex-1 flex flex-col overflow-hidden bg-gray-50">
             <header class="bg-white shadow-sm sticky top-0 z-10">
                 <div class="px-8 py-4 flex justify-between items-center">
-                    <h1 class="text-2xl font-bold text-gray-800">설문 및 역량평가 관리</h1>
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-800">설문 및 역량평가 관리</h1>
+                        <p class="text-gray-600 mt-1 text-sm">배정된 과정의 설문 및 역량평가를 생성하고 관리합니다.</p>
+                    </div>
                     <div class="flex items-center space-x-4">
                         <span class="px-3 py-1 bg-blue-100 text-blue-600 text-xs font-bold rounded-full">TEACHER</span>
-                        <div class="flex items-center text-sm text-gray-500">
-                            <span id="teacherName" class="font-medium text-gray-700 mr-2">강사님</span>
-                            접속중
-                        </div>
+                        <a href="/teacher" class="text-gray-500 hover:text-primary-600 transition">
+                            <i class="fas fa-arrow-left mr-1"></i> 대시보드로
+                        </a>
                     </div>
                 </div>
             </header>
-
-            <div class="p-8">
-                <!-- 과정 선택 섹션 -->
-                <div id="coursesSection">
-                    <div class="mb-6">
-                        <h2 class="text-xl font-bold text-gray-800 mb-4">배정된 과정 선택</h2>
-                        <p class="text-gray-600 mb-6">설문/역량평가를 관리할 과정을 선택하세요.</p>
-                    </div>
-                    <div id="coursesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <!-- 과정 카드들이 여기에 동적으로 추가됨 -->
+            <main class="flex-1 overflow-y-auto p-8">
+                <!-- 과정 목록 섹션 -->
+                <div id="coursesSection" class="mb-8">
+                    <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-chalkboard-teacher text-blue-500 mr-2"></i> 배정된 과정 목록
+                    </h2>
+                    <div id="coursesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div class="col-span-full text-center py-12">
+                            <i class="fas fa-spinner fa-spin text-3xl text-gray-400"></i>
+                            <p class="mt-4 text-gray-500">과정 목록을 불러오는 중...</p>
+                        </div>
                     </div>
                 </div>
 
                 <!-- 설문 목록 섹션 -->
                 <div id="surveysSection" class="hidden">
-                    <div class="mb-6 flex items-center justify-between">
-                        <div>
-                            <button onclick="backToCourses()" class="text-gray-600 hover:text-gray-800 mb-2 flex items-center">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-4">
+                            <button onclick="backToCourses()" class="px-4 py-2 text-gray-600 hover:text-blue-600 transition flex items-center">
                                 <i class="fas fa-arrow-left mr-2"></i> 과정 목록으로
                             </button>
-                            <h2 id="selectedCourseTitle" class="text-xl font-bold text-gray-800"></h2>
+                            <h2 class="text-lg font-bold text-gray-800" id="selectedCourseTitle">
+                                <i class="fas fa-poll text-blue-500 mr-2"></i> 설문 및 역량평가
+                            </h2>
                         </div>
                         <div class="flex gap-2">
-                            <button onclick="openCreateModal('diagnosis')" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center shadow-sm">
+                            <button onclick="openCreateModal('diagnosis')" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center shadow-sm text-sm">
                                 <i class="fas fa-chart-radar mr-2"></i> 역량 진단 생성
                             </button>
-                            <button onclick="openCreateModal('survey')" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center shadow-sm">
+                            <button onclick="openCreateModal('survey')" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center shadow-sm text-sm">
                                 <i class="fas fa-poll mr-2"></i> 일반 설문 생성
                             </button>
                         </div>
                     </div>
 
-                <!-- 통계 요약 카드 -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="font-bold text-gray-700">평가 진행률</h3>
-                            <span class="p-2 bg-blue-100 text-blue-600 rounded-lg"><i class="fas fa-percent"></i></span>
+                    <!-- 통계 요약 카드 -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="font-bold text-gray-700 text-sm">평가 진행률</h3>
+                                <span class="p-2 bg-blue-100 text-blue-600 rounded-lg"><i class="fas fa-percent"></i></span>
+                            </div>
+                            <div class="text-3xl font-black text-gray-800 mb-1" id="stat-progress">0%</div>
+                            <p class="text-xs text-gray-500">담당 과정 평균 참여율</p>
+                            <div class="w-full bg-gray-100 rounded-full h-2 mt-4">
+                                <div class="bg-blue-500 h-2 rounded-full" style="width: 0%" id="stat-progress-bar"></div>
+                            </div>
                         </div>
-                        <div class="text-3xl font-black text-gray-800 mb-1" id="stat-progress">0%</div>
-                        <p class="text-sm text-gray-500">담당 과정 평균 참여율</p>
-                        <div class="w-full bg-gray-100 rounded-full h-2 mt-4">
-                            <div class="bg-blue-500 h-2 rounded-full" style="width: 0%" id="stat-progress-bar"></div>
+                        
+                        <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="font-bold text-gray-700 text-sm">평균 만족도</h3>
+                                <span class="p-2 bg-yellow-100 text-yellow-600 rounded-lg"><i class="fas fa-star"></i></span>
+                            </div>
+                            <div class="text-3xl font-black text-gray-800 mb-1" id="stat-satisfaction">0.0</div>
+                            <p class="text-xs text-gray-500">5.0 만점 기준</p>
+                            <div class="flex text-yellow-400 text-sm mt-3" id="stat-stars"></div>
                         </div>
-                    </div>
-                    
-                    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="font-bold text-gray-700">평균 만족도</h3>
-                            <span class="p-2 bg-yellow-100 text-yellow-600 rounded-lg"><i class="fas fa-star"></i></span>
+
+                        <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="font-bold text-gray-700 text-sm">진행중인 평가</h3>
+                                <span class="p-2 bg-green-100 text-green-600 rounded-lg"><i class="fas fa-clock"></i></span>
+                            </div>
+                            <div class="text-3xl font-black text-gray-800 mb-1" id="stat-active">0</div>
+                            <p class="text-xs text-gray-500">현재 참여 가능한 설문/평가</p>
                         </div>
-                        <div class="text-3xl font-black text-gray-800 mb-1" id="stat-satisfaction">0.0</div>
-                        <p class="text-sm text-gray-500">5.0 만점 기준</p>
-                        <div class="flex text-yellow-400 text-sm mt-3" id="stat-stars"></div>
                     </div>
 
-                    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="font-bold text-gray-700">진행중인 평가</h3>
-                            <span class="p-2 bg-green-100 text-green-600 rounded-lg"><i class="fas fa-clock"></i></span>
-                        </div>
-                        <div class="text-3xl font-black text-gray-800 mb-1" id="stat-active">0</div>
-                        <p class="text-sm text-gray-500">현재 참여 가능한 설문/평가</p>
-                    </div>
-                </div>
-
-                <!-- 설문/평가 목록 -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                    <div class="p-6 border-b border-gray-100 flex justify-between items-center">
-                        <h3 class="font-bold text-lg text-gray-800">등록된 평가 및 설문 목록</h3>
-                        <div class="flex gap-2">
-                            <select id="typeFilter" class="text-sm border-gray-300 rounded-lg focus:ring-blue-500" onchange="filterSurveys()">
+                    <!-- 필터 및 설문 목록 -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-4">
+                        <div class="p-4 border-b border-gray-100 flex justify-between items-center">
+                            <h3 class="font-bold text-gray-800 text-sm">등록된 평가 및 설문 목록</h3>
+                            <select id="typeFilter" class="text-sm border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 px-3 py-1.5" onchange="filterSurveys()">
                                 <option value="all">전체 유형</option>
                                 <option value="diagnosis">역량 진단</option>
                                 <option value="survey">일반 설문</option>
                             </select>
                         </div>
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">과정명/구분</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">제목</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">기간</th>
+                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">참여현황</th>
+                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">상태</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">관리</th>
+                                </tr>
+                            </thead>
+                            <tbody id="surveyList" class="bg-white divide-y divide-gray-200">
+                                <tr>
+                                    <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                                        <i class="fas fa-spinner fa-spin mr-2"></i> 데이터를 불러오는 중...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">과정명/구분</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">제목</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">기간</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">참여현황</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">상태</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">관리</th>
-                            </tr>
-                        </thead>
-                        <tbody id="surveyList" class="bg-white divide-y divide-gray-200">
-                            <tr>
-                                <td colspan="6" class="px-6 py-10 text-center text-gray-500">
-                                    <i class="fas fa-spinner fa-spin mr-2"></i> 데이터를 불러오는 중...
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
                 </div>
-            </div>
-        </main>
+            </main>
+        </div>
     </div>
 
     <!-- 생성 모달 -->
@@ -308,8 +310,13 @@ export const teacherSurveysHtml = `
                     return;
                 }
 
+                if (courses.length === 0) {
+                    grid.innerHTML = '<div class="col-span-full text-center py-12 text-gray-500">배정된 과정이 없습니다.</div>';
+                    return;
+                }
+
                 grid.innerHTML = courses.map(course => \`
-                    <div onclick="selectCourse(\${course.id}, '\${course.title.replace(/'/g, "\\'")}')" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 cursor-pointer hover:shadow-md transition hover:border-blue-300">
+                    <div onclick="selectCourse(\${course.id}, '\${course.title.replace(/'/g, "\\'")}')" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 cursor-pointer hover:shadow-md transition hover:border-blue-300">
                         <div class="flex items-start justify-between mb-4">
                             <h3 class="text-lg font-bold text-gray-800">\${course.title}</h3>
                             <span class="px-2 py-1 bg-blue-100 text-blue-600 text-xs font-bold rounded">\${course.category || '일반'}</span>
@@ -333,7 +340,10 @@ export const teacherSurveysHtml = `
                 \`).join('');
             } catch (error) {
                 console.error('Error loading courses:', error);
-                document.getElementById('coursesGrid').innerHTML = '<div class="col-span-full text-center py-12 text-red-500">과정 목록을 불러오는데 실패했습니다.</div>';
+                const grid = document.getElementById('coursesGrid');
+                if (grid) {
+                    grid.innerHTML = '<div class="col-span-full text-center py-12 text-red-500">과정 목록을 불러오는데 실패했습니다.</div>';
+                }
             }
         }
 
@@ -342,7 +352,10 @@ export const teacherSurveysHtml = `
             selectedCourseTitle = courseTitle;
             document.getElementById('coursesSection').classList.add('hidden');
             document.getElementById('surveysSection').classList.remove('hidden');
-            document.getElementById('selectedCourseTitle').textContent = courseTitle;
+            const titleEl = document.getElementById('selectedCourseTitle');
+            if (titleEl) {
+                titleEl.innerHTML = \`<i class="fas fa-poll text-blue-500 mr-2"></i> \${courseTitle} - 설문 및 역량평가\`;
+            }
             loadSurveys();
             updateStats();
         }
