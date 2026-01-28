@@ -121,6 +121,9 @@ export const teacherProfileHtml = `
                             <button type="button" onclick="switchProfileTab('training')" id="tabTraining" class="pb-4 text-sm font-black uppercase tracking-widest tab-inactive-profile transition-all border-b-2 border-transparent text-gray-400 hover:text-gray-600">
                                 <i class="fas fa-chalkboard-teacher mr-2"></i> 보수교육
                             </button>
+                            <button type="button" onclick="switchProfileTab('teaching')" id="tabTeaching" class="pb-4 text-sm font-black uppercase tracking-widest tab-inactive-profile transition-all border-b-2 border-transparent text-gray-400 hover:text-gray-600">
+                                <i class="fas fa-book-open mr-2"></i> 강의이력
+                            </button>
                         </div>
                     </div>
 
@@ -175,6 +178,23 @@ export const teacherProfileHtml = `
                                 </div>
                             </div>
                         </div>
+
+                        <!-- 탭 4: 강의이력 -->
+                        <div id="contentTeaching" class="hidden space-y-6">
+                            <div class="bg-white rounded-[2rem] p-8 border border-gray-100 shadow-sm">
+                                <div class="flex items-center justify-between mb-6">
+                                    <h5 class="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center">
+                                        <i class="fas fa-book-open mr-3 text-indigo-500"></i> 강의이력
+                                    </h5>
+                                    <button type="button" onclick="addTeachingHistory()" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition shadow-lg shadow-indigo-500/20 flex items-center">
+                                        <i class="fas fa-plus mr-2"></i> 강의이력 추가
+                                    </button>
+                                </div>
+                                <div id="teachingHistoryContainer" class="space-y-4">
+                                    <!-- 강의이력 항목들이 여기에 동적으로 추가됨 -->
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- 하단 버튼 -->
@@ -194,6 +214,8 @@ export const teacherProfileHtml = `
     <script>
         let certifications = [];
         let certIdCounter = 0;
+        let teachingHistory = [];
+        let teachingHistoryIdCounter = 0;
         let currentProfileTab = 'education';
         let currentUserId = null;
 
@@ -296,13 +318,27 @@ export const teacherProfileHtml = `
             } else {
                 certifications = [];
             }
+            
+            // 강의이력
+            if (data.teaching_history) {
+                try {
+                    const history = Array.isArray(data.teaching_history) ? data.teaching_history : JSON.parse(data.teaching_history);
+                    teachingHistory = history || [];
+                    loadTeachingHistory();
+                } catch (e) {
+                    console.error('Failed to parse teaching_history:', e);
+                    teachingHistory = [];
+                }
+            } else {
+                teachingHistory = [];
+            }
         }
 
         function switchProfileTab(tab) {
             currentProfileTab = tab;
             
             // 탭 버튼 스타일 업데이트
-            ['education', 'certifications', 'training'].forEach(t => {
+            ['education', 'certifications', 'training', 'teaching'].forEach(t => {
                 const btn = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1));
                 const content = document.getElementById('content' + t.charAt(0).toUpperCase() + t.slice(1));
                 
@@ -586,6 +622,87 @@ export const teacherProfileHtml = `
             });
         }
 
+        // 강의이력 관리
+        function addTeachingHistory(historyData = null) {
+            const historyId = historyData ? historyData.id : 'teaching_' + (teachingHistoryIdCounter++);
+            const container = document.getElementById('teachingHistoryContainer');
+            
+            const historyHtml = \`
+                <div class="bg-gray-50 rounded-2xl p-6 border-2 border-gray-200" data-teaching-id="\${historyId}">
+                    <div class="flex justify-between items-start mb-4">
+                        <h6 class="text-sm font-bold text-gray-800">강의이력 정보</h6>
+                        <button type="button" onclick="removeTeachingHistory('\${historyId}')" class="text-red-500 hover:text-red-700">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="text-xs font-medium text-gray-600 mb-1 block">과정명 <span class="text-red-500">*</span></label>
+                            <input type="text" class="teaching-course-name w-full px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm" 
+                                   placeholder="예: 3D 모델링 기초" value="\${historyData ? (historyData.course_name || '') : ''}">
+                        </div>
+                        <div>
+                            <label class="text-xs font-medium text-gray-600 mb-1 block">수강생 수</label>
+                            <input type="number" class="teaching-student-count w-full px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm" 
+                                   placeholder="예: 25" value="\${historyData ? (historyData.student_count || '') : ''}">
+                        </div>
+                        <div>
+                            <label class="text-xs font-medium text-gray-600 mb-1 block">시작일</label>
+                            <input type="date" class="teaching-start-date w-full px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm" 
+                                   value="\${historyData && historyData.start_date ? historyData.start_date.split('T')[0] : ''}">
+                        </div>
+                        <div>
+                            <label class="text-xs font-medium text-gray-600 mb-1 block">종료일</label>
+                            <input type="date" class="teaching-end-date w-full px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm" 
+                                   value="\${historyData && historyData.end_date ? historyData.end_date.split('T')[0] : ''}">
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="text-xs font-medium text-gray-600 mb-1 block">강의 내용/설명</label>
+                        <textarea class="teaching-description w-full px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm resize-none" 
+                                  rows="3" placeholder="강의 내용, 커리큘럼, 주요 학습 내용 등을 입력하세요">\${historyData ? (historyData.description || '') : ''}</textarea>
+                    </div>
+                    <div>
+                        <label class="text-xs font-medium text-gray-600 mb-1 block">기타 메모</label>
+                        <textarea class="teaching-notes w-full px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm resize-none" 
+                                  rows="2" placeholder="특이사항, 성과, 수강생 반응 등을 입력하세요">\${historyData ? (historyData.notes || '') : ''}</textarea>
+                    </div>
+                </div>
+            \`;
+            
+            container.insertAdjacentHTML('beforeend', historyHtml);
+            
+            if (historyData) {
+                teachingHistory.push(historyData);
+            } else {
+                teachingHistory.push({ id: historyId, course_name: '', start_date: '', end_date: '', student_count: '', description: '', notes: '' });
+            }
+        }
+
+        function removeTeachingHistory(historyId) {
+            if (!confirm('강의이력을 삭제하시겠습니까?')) return;
+            
+            const historyEl = document.querySelector(\`[data-teaching-id="\${historyId}"]\`);
+            if (historyEl) {
+                historyEl.remove();
+            }
+            teachingHistory = teachingHistory.filter(h => h.id !== historyId);
+        }
+
+        function loadTeachingHistory() {
+            const container = document.getElementById('teachingHistoryContainer');
+            container.innerHTML = '';
+            
+            if (teachingHistory.length === 0) {
+                container.innerHTML = '<div class="text-center py-8 text-gray-400 text-sm">강의이력이 없습니다. 추가 버튼을 클릭하여 이력을 추가하세요.</div>';
+                return;
+            }
+            
+            teachingHistory.forEach(history => {
+                addTeachingHistory(history);
+            });
+        }
+
         async function handleSaveProfile(event) {
             event.preventDefault();
             
@@ -618,6 +735,30 @@ export const teacherProfileHtml = `
                     }
                 });
                 
+                // 강의이력 데이터 수집
+                const teachingHistoryData = [];
+                document.querySelectorAll('[data-teaching-id]').forEach(historyEl => {
+                    const historyId = historyEl.getAttribute('data-teaching-id');
+                    const courseName = historyEl.querySelector('.teaching-course-name').value;
+                    const startDate = historyEl.querySelector('.teaching-start-date').value;
+                    const endDate = historyEl.querySelector('.teaching-end-date').value;
+                    const studentCount = historyEl.querySelector('.teaching-student-count').value;
+                    const description = historyEl.querySelector('.teaching-description').value;
+                    const notes = historyEl.querySelector('.teaching-notes').value;
+                    
+                    if (courseName || startDate || endDate || studentCount || description || notes) {
+                        teachingHistoryData.push({
+                            id: historyId,
+                            course_name: courseName || null,
+                            start_date: startDate || null,
+                            end_date: endDate || null,
+                            student_count: studentCount || null,
+                            description: description || null,
+                            notes: notes || null
+                        });
+                    }
+                });
+                
                 // 폼 데이터 수집
                 const data = {
                     name: form.pName.value,
@@ -631,7 +772,8 @@ export const teacherProfileHtml = `
                     education: form.pEducation.value || null,
                     career: form.pCareer.value || null,
                     certifications: certs.length > 0 ? JSON.stringify(certs) : '[]',
-                    training_history: form.pTrainingHistory.value || null
+                    training_history: form.pTrainingHistory.value || null,
+                    teaching_history: teachingHistoryData.length > 0 ? JSON.stringify(teachingHistoryData) : '[]'
                 };
                 
                 // API 호출

@@ -58,6 +58,18 @@ app.get('/personnel', async (c) => {
         if (hasCertifications) selectFields.push('i.certifications');
         if (hasTrainingHistory) selectFields.push('i.training_history');
         
+        let hasTeachingHistory = false;
+        try {
+            await c.env.DB.prepare("SELECT teaching_history FROM hrd_instructors LIMIT 1").first();
+            hasTeachingHistory = true;
+        } catch (e) {
+            try {
+                await c.env.DB.prepare("ALTER TABLE hrd_instructors ADD COLUMN teaching_history TEXT").run();
+                hasTeachingHistory = true;
+            } catch (alterError) {}
+        }
+        if (hasTeachingHistory) selectFields.push('i.teaching_history');
+        
         selectFields.push('u.created_at');
         
         const query = `
@@ -73,7 +85,7 @@ app.get('/personnel', async (c) => {
         
         const { results } = await c.env.DB.prepare(query).all();
         
-        // certifications 필드가 JSON 문자열인 경우 파싱하여 반환
+        // certifications 및 teaching_history 필드가 JSON 문자열인 경우 파싱하여 반환
         const processedResults = (results || []).map((row: any) => {
             const processed: any = { ...row };
             
@@ -100,7 +112,29 @@ app.get('/personnel', async (c) => {
                 processed.certifications = null;
             }
             
+            // teaching_history 처리
+            if (processed.teaching_history !== null && processed.teaching_history !== undefined) {
+                try {
+                    // 문자열인 경우 파싱
+                    if (typeof processed.teaching_history === 'string') {
+                        const trimmed = processed.teaching_history.trim();
+                        if (trimmed === '' || trimmed === 'null' || trimmed === 'undefined') {
+                            processed.teaching_history = null;
+                        } else {
+                            processed.teaching_history = JSON.parse(trimmed);
+                        }
+                    }
+                    // 이미 객체/배열인 경우 그대로 사용
+                } catch (e) {
+                    console.warn('Failed to parse teaching_history JSON:', e, 'Raw:', processed.teaching_history);
+                    processed.teaching_history = null;
+                }
+            } else {
+                processed.teaching_history = null;
+            }
+            
             console.log(`Personnel ID ${processed.id}: certifications =`, processed.certifications);
+            console.log(`Personnel ID ${processed.id}: teaching_history =`, processed.teaching_history);
             
             return processed;
         });
@@ -179,7 +213,7 @@ app.put('/personnel/:id', authMiddleware, async (c) => {
             return c.json({ success: false, error: '본인의 정보만 수정할 수 있습니다.' }, 403);
         }
         const { name, phone, email, position, subject, type, joined_at, instructor_status, profile_image,
-                education, career, certifications, training_history } = body;
+                education, career, certifications, training_history, teaching_history } = body;
 
         // 1. users 테이블 업데이트 (기본 정보)
         await c.env.DB.prepare(
@@ -278,6 +312,28 @@ app.put('/personnel/:id', authMiddleware, async (c) => {
                 params.push(training_history || null);
             }
             
+            // teaching_history 처리: 배열이면 JSON 문자열로 변환
+            let teachingHistoryValue: string | null = null;
+            if (hasTeachingHistory && teaching_history !== null && teaching_history !== undefined) {
+                if (Array.isArray(teaching_history)) {
+                    teachingHistoryValue = teaching_history.length > 0 ? JSON.stringify(teaching_history) : null;
+                } else if (typeof teaching_history === 'string') {
+                    const trimmed = teaching_history.trim();
+                    if (trimmed === '' || trimmed === '[]' || trimmed === 'null' || trimmed === 'undefined') {
+                        teachingHistoryValue = null;
+                    } else {
+                        teachingHistoryValue = trimmed;
+                    }
+                } else if (typeof teaching_history === 'object') {
+                    teachingHistoryValue = JSON.stringify(teaching_history);
+                }
+            }
+            
+            if (hasTeachingHistory && teachingHistoryValue !== null) {
+                updateFields.push('teaching_history = ?');
+                params.push(teachingHistoryValue);
+            }
+            
             if (instructor_status) {
                 updateFields.push('status = ?');
                 params.push(instructor_status);
@@ -323,6 +379,29 @@ app.put('/personnel/:id', authMiddleware, async (c) => {
                 insertFields.push('training_history');
                 insertValues.push('?');
                 insertParams.push(training_history || null);
+            }
+            
+            // teaching_history 처리
+            let teachingHistoryValue: string | null = null;
+            if (hasTeachingHistory && teaching_history !== null && teaching_history !== undefined) {
+                if (Array.isArray(teaching_history)) {
+                    teachingHistoryValue = teaching_history.length > 0 ? JSON.stringify(teaching_history) : null;
+                } else if (typeof teaching_history === 'string') {
+                    const trimmed = teaching_history.trim();
+                    if (trimmed === '' || trimmed === '[]' || trimmed === 'null' || trimmed === 'undefined') {
+                        teachingHistoryValue = null;
+                    } else {
+                        teachingHistoryValue = trimmed;
+                    }
+                } else if (typeof teaching_history === 'object') {
+                    teachingHistoryValue = JSON.stringify(teaching_history);
+                }
+            }
+            
+            if (hasTeachingHistory && teachingHistoryValue !== null) {
+                insertFields.push('teaching_history');
+                insertValues.push('?');
+                insertParams.push(teachingHistoryValue);
             }
             
             const insertQuery = `INSERT INTO hrd_instructors (${insertFields.join(', ')}) VALUES (${insertValues.join(', ')})`;
