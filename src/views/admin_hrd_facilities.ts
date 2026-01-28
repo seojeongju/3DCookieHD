@@ -184,6 +184,87 @@ export const adminHrdFacilitiesHtml = () => `
         </div>
     </div>
 
+    <!-- Inspection Record Modal -->
+    <div id="checkModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center backdrop-blur-sm transition-opacity opacity-0">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-95 opacity-0">
+            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-blue-50/50">
+                <h3 class="text-lg font-bold text-gray-900"><i class="fas fa-clipboard-check text-blue-600 mr-2"></i>시설 점검 기록</h3>
+                <button onclick="closeCheckModal()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">점검 일자</label>
+                    <input type="date" id="checkDate" class="w-full border-gray-200 rounded-lg text-sm px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">점검자</label>
+                    <input type="text" id="checkManager" class="w-full border-gray-200 rounded-lg text-sm px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50" value="관리자">
+                </div>
+                <div>
+                     <label class="block text-xs font-bold text-gray-500 uppercase mb-1">점검 결과</label>
+                     <div class="flex gap-4">
+                         <label class="flex items-center gap-2 cursor-pointer">
+                             <input type="radio" name="checkStatus" value="good" checked class="text-blue-600 focus:ring-blue-500">
+                             <span class="text-sm font-medium text-gray-700">양호 (이상 없음)</span>
+                         </label>
+                     </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">점검 내용/특이사항</label>
+                    <textarea id="checkTitle" rows="3" class="w-full border-gray-200 rounded-lg text-sm px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 resize-none" placeholder="점검 내용을 입력하세요"></textarea>
+                </div>
+            </div>
+            <div class="px-6 py-4 bg-gray-50 flex justify-end gap-2">
+                <button onclick="closeCheckModal()" class="px-4 py-2 text-gray-600 font-bold text-sm hover:bg-gray-200 rounded-lg transition-colors">취소</button>
+                <button onclick="submitCheckLog()" class="px-4 py-2 bg-blue-600 text-white font-bold text-sm rounded-lg hover:bg-blue-700 shadow-md transition-all">등록 완료</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Repair Request Modal -->
+    <div id="repairModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center backdrop-blur-sm transition-opacity opacity-0">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all scale-95 opacity-0">
+            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-orange-50/50">
+                <h3 class="text-lg font-bold text-gray-900"><i class="fas fa-tools text-orange-600 mr-2"></i>시설 수리 요청</h3>
+                <button onclick="closeRepairModal()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">발생 일자</label>
+                        <input type="date" id="repairDate" class="w-full border-gray-200 rounded-lg text-sm px-3 py-2 outline-none focus:ring-2 focus:ring-orange-500 bg-gray-50">
+                    </div>
+                    <div>
+                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">예상 비용 (원)</label>
+                         <input type="number" id="repairPrice" class="w-full border-gray-200 rounded-lg text-sm px-3 py-2 outline-none focus:ring-2 focus:ring-orange-500 bg-gray-50" placeholder="0">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">수리 요청 제목</label>
+                    <input type="text" id="repairTitle" class="w-full border-gray-200 rounded-lg text-sm px-3 py-2 outline-none focus:ring-2 focus:ring-orange-500 bg-gray-50" placeholder="예: 에어컨 고장 수리 요청">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">요청자</label>
+                        <input type="text" id="repairManager" class="w-full border-gray-200 rounded-lg text-sm px-3 py-2 outline-none focus:ring-2 focus:ring-orange-500 bg-gray-50" value="관리자">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">수리 업체 (선택)</label>
+                        <input type="text" id="repairVendor" class="w-full border-gray-200 rounded-lg text-sm px-3 py-2 outline-none focus:ring-2 focus:ring-orange-500 bg-gray-50" placeholder="업체명">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">상세 내용</label>
+                    <textarea id="repairMemo" rows="4" class="w-full border-gray-200 rounded-lg text-sm px-3 py-2 outline-none focus:ring-2 focus:ring-orange-500 bg-gray-50 resize-none" placeholder="고장 증상 및 수리 요청 사항 상세"></textarea>
+                </div>
+            </div>
+            <div class="px-6 py-4 bg-gray-50 flex justify-end gap-2">
+                <button onclick="closeRepairModal()" class="px-4 py-2 text-gray-600 font-bold text-sm hover:bg-gray-200 rounded-lg transition-colors">취소</button>
+                <button onclick="submitRepairLog()" class="px-4 py-2 bg-orange-600 text-white font-bold text-sm rounded-lg hover:bg-orange-700 shadow-md transition-all">요청 등록</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Main Logic Script -->
     <!-- Script will be injected here -->
             <script>
@@ -671,15 +752,128 @@ export const adminHrdFacilitiesHtml = () => `
             try { await fetch('/api/hrd/facilities/' + currentDetailId, { method: 'DELETE' }); closeDrawer(); alert('삭제되었습니다.'); loadFacilities(); } catch(e) { console.error(e); }
         }
         async function addLog(type) {
-             const title = prompt(type === 'check' ? '점검 내용을 입력하세요:' : '수리 요청 내용을 입력하세요:');
-             if(!title) return;
-             const price = type === 'repair' ? prompt('비용이 발생했나요? (숫자만 입력, 없으면 0)', '0') : '0';
-             try {
+            if(type === 'check') {
+                openCheckModal();
+            } else {
+                openRepairModal();
+            }
+        }
+
+        // Inspection Modal Functions
+        function openCheckModal() {
+            const modal = document.getElementById('checkModal');
+            const content = modal.querySelector('div');
+            modal.classList.remove('hidden');
+            // Animation
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }, 10);
+            
+            document.getElementById('checkDate').valueAsDate = new Date();
+            document.getElementById('checkTitle').value = '';
+            // Reset status
+            const statusRadios = document.getElementsByName('checkStatus');
+            if(statusRadios.length > 0) statusRadios[0].checked = true;
+        }
+
+        function closeCheckModal() {
+            const modal = document.getElementById('checkModal');
+            const content = modal.querySelector('div');
+            modal.classList.add('opacity-0');
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+            
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 200);
+        }
+
+        async function submitCheckLog() {
+            const date = document.getElementById('checkDate').value;
+            const manager = document.getElementById('checkManager').value;
+            const title = document.getElementById('checkTitle').value;
+            
+            if (!title) { alert('점검 내용을 입력해주세요.'); return; }
+            if (!date) { alert('점검 일자를 입력해주세요.'); return; }
+            
+            try {
                 await fetch('/api/hrd/facilities/' + currentDetailId + '/maintenance', {
-                    method: 'POST', headers: {'Content-Type':'application/json'},
-                    body: JSON.stringify({ status: type === 'repair' ? 'repair' : 'check', title: title, price: price, memo: '', date: new Date().toISOString() })
-                }); openDrawer(currentDetailId);
-             } catch(e) { console.error(e); }
+                    method: 'POST', 
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({ 
+                        status: 'check', 
+                        title: title, 
+                        manager: manager, 
+                        date: date, 
+                        memo: title, // Use title as memo for now as API expects it? No, API has title and memo.
+                        price: 0 
+                    })
+                }); 
+                closeCheckModal();
+                openDrawer(currentDetailId);
+            } catch(e) { console.error(e); alert('등록 중 오류가 발생했습니다.'); }
+        }
+
+        // Repair Modal Functions
+        function openRepairModal() {
+            const modal = document.getElementById('repairModal');
+            const content = modal.querySelector('div');
+            modal.classList.remove('hidden');
+            // Animation
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }, 10);
+            
+            document.getElementById('repairDate').valueAsDate = new Date();
+            document.getElementById('repairTitle').value = '';
+            document.getElementById('repairPrice').value = '';
+            document.getElementById('repairVendor').value = '';
+            document.getElementById('repairMemo').value = '';
+        }
+
+        function closeRepairModal() {
+            const modal = document.getElementById('repairModal');
+            const content = modal.querySelector('div');
+            modal.classList.add('opacity-0');
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+            
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 200);
+        }
+
+        async function submitRepairLog() {
+            const date = document.getElementById('repairDate').value;
+            const title = document.getElementById('repairTitle').value;
+            const price = document.getElementById('repairPrice').value;
+            const manager = document.getElementById('repairManager').value;
+            const vendor = document.getElementById('repairVendor').value;
+            const memo = document.getElementById('repairMemo').value;
+            
+            if (!title) { alert('수리 요청 제목을 입력해주세요.'); return; }
+            
+            try {
+                await fetch('/api/hrd/facilities/' + currentDetailId + '/maintenance', {
+                    method: 'POST', 
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({ 
+                        status: 'repair', 
+                        title: title, 
+                        price: price || 0,
+                        vendor: vendor,
+                        manager: manager, 
+                        date: date, 
+                        memo: memo 
+                    })
+                }); 
+                closeRepairModal();
+                openDrawer(currentDetailId);
+            } catch(e) { console.error(e); alert('등록 중 오류가 발생했습니다.'); }
         }
 
         // Image Upload Logic
