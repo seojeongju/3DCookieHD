@@ -1129,7 +1129,16 @@ app.post('/facilities/:id/maintenance', async (c) => {
             await c.env.DB.prepare(`
                 INSERT INTO hrd_facility_maintenance (facility_id, status, title, price, vendor, manager, memo, date)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            `).bind(fId, status, title, parseInt(price || 0), vendor, manager || '관리자', memo, date || new Date().toISOString()).run();
+            `).bind(
+                fId,
+                status || null,
+                title || null,
+                parseInt(price || 0),
+                vendor || null,
+                manager || '관리자',
+                memo || null,
+                date || new Date().toISOString()
+            ).run();
 
             // 시설의 최종 점검일 및 상태 업데이트
             await c.env.DB.prepare(`
