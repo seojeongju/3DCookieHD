@@ -1697,6 +1697,59 @@ app.delete('/training-logs/:id', async (c) => {
     }
 });
 
+// 훈련 일지 요약 정보 조회 (전체 과정)
+app.get('/training-logs/summary', authMiddleware, async (c) => {
+    try {
+        const month = c.req.query('month') || new Date().toISOString().substring(0, 7); // YYYY-MM
+
+        // 1. 모든 운영 중인 과정 및 기본 정보 조회
+        const { results: courses } = await c.env.DB.prepare(`
+            SELECT c.id, c.title, u.name as teacher_name
+            FROM courses c
+            LEFT JOIN users u ON c.teacher_id = u.id
+            WHERE c.status != 'closed'
+        `).all();
+
+        const summaryData = await Promise.all(courses.map(async (course: any) => {
+            // 이번 달 작성된 일지 수 및 합계 시간
+            const logStats: any = await c.env.DB.prepare(`
+                SELECT 
+                    COUNT(*) as log_count,
+                    COALESCE(SUM(training_hours), 0) as total_hours,
+                    MAX(date) as last_log_date
+                FROM training_logs
+                WHERE course_id = ? AND date LIKE ?
+            `).bind(course.id, `${month}%`).first();
+
+            // NCS 이수율 계산 (전체 대비)
+            const ncsStats: any = await c.env.DB.prepare(`
+                SELECT 
+                    COALESCE(SUM(cnu.training_hours), 0) as target_total,
+                    (SELECT COALESCE(SUM(training_hours), 0) FROM training_logs WHERE course_id = ?) as current_total
+                FROM course_ncs_units cnu
+                WHERE cnu.course_id = ?
+            `).bind(course.id, course.id).first();
+
+            const ncsRate = ncsStats.target_total > 0
+                ? Math.round((ncsStats.current_total / ncsStats.target_total) * 100)
+                : 0;
+
+            return {
+                ...course,
+                log_count: logStats.log_count || 0,
+                total_hours: logStats.total_hours || 0,
+                last_log_date: logStats.last_log_date || '',
+                ncs_rate: Math.min(ncsRate, 100)
+            };
+        }));
+
+        return c.json({ success: true, data: summaryData });
+    } catch (e: any) {
+        console.error('Failed to fetch training log summary:', e);
+        return errorResponse(c, e.message, 500);
+    }
+});
+
 // NCS 이수 현황 요약 조회 (대시보드 차트용)
 app.get('/courses/:courseId/ncs-summary', async (c) => {
     try {
