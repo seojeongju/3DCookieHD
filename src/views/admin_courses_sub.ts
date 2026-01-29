@@ -690,7 +690,7 @@ export const adminCoursesApprovedHtml = () =>
 
         loadCategories().then(function() { loadApprovedList(); });
     })();
-    </script>
+    ${'</script>'}
     `
   );
 
