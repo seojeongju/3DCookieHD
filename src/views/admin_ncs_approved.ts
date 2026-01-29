@@ -1,0 +1,206 @@
+import { hrdSidebar } from './components/hrd_sidebar';
+
+const STEP_MENU = [
+  { step: 1, label: '과정개요', icon: 'fa-list-alt' },
+  { step: 2, label: '훈련이수체계도', icon: 'fa-sitemap' },
+  { step: 3, label: '교과목편성', icon: 'fa-book' },
+  { step: 4, label: '훈련시간설정', icon: 'fa-clock' },
+  { step: 5, label: '평가·교수학습 방법', icon: 'fa-chalkboard-teacher' },
+  { step: 6, label: '시설·장비', icon: 'fa-building' },
+];
+
+function stepNavHtml(currentStep: number): string {
+  return STEP_MENU.map(
+    (s) => `
+    <a href="/admin/ncs/approved/${s.step}" class="flex items-center px-4 py-3 rounded-xl transition-all ${currentStep === s.step ? 'bg-blue-600/20 text-white border-l-4 border-blue-500' : 'hover:bg-slate-800/50 text-slate-400 hover:text-white'}">
+      <i class="fas ${s.icon} w-6 text-lg mr-3"></i>
+      <span class="font-medium text-sm">${s.step}. ${s.label}</span>
+    </a>`
+  ).join('');
+}
+
+function stepContentHtml(step: number): string {
+  if (step === 1) {
+    return `
+    <div class="space-y-6">
+      <p class="text-xs text-slate-500">등록되는 직종 및 주직종으로 이후에 등록되는 내용에 활용됩니다.</p>
+      <!-- 탭: NCS 훈련과정 전용 / 비NCS 훈련과정 전용 -->
+      <div class="flex gap-2 border-b border-slate-200 pb-2">
+        <button type="button" id="tabNcsOnly" class="ncs-approved-tab px-4 py-2 rounded-t-lg font-bold text-sm bg-emerald-600 text-white">NCS 훈련과정 전용</button>
+        <button type="button" id="tabNonNcs" class="ncs-approved-tab px-4 py-2 rounded-t-lg font-bold text-sm bg-slate-100 text-slate-600 hover:bg-slate-200">비NCS 훈련과정 전용</button>
+      </div>
+      <!-- NCS 훈련과정 전용 패널 -->
+      <div id="panelNcsOnly" class="ncs-approved-panel space-y-6">
+        <div>
+          <h3 class="text-sm font-bold text-slate-700 mb-2">개발분류선택</h3>
+          <select id="ncsDevCategory" class="w-full max-w-md px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+            <option value="">선택</option>
+            <option value="24">24년 NCS기반 훈련기준(1083직종)</option>
+            <option value="23">23년 NCS기반 훈련기준(1039직종)</option>
+            <option value="21">21년 NCS기반 훈련기준(1039직종)</option>
+            <option value="20">20년 NCS기반 훈련기준(1022직종)</option>
+            <option value="19">19년 NCS기반 훈련기준(1001직종)</option>
+          </select>
+        </div>
+        <div>
+          <h3 class="text-sm font-bold text-slate-700 mb-2">훈련직종 검색</h3>
+          <p class="text-xs text-slate-500 mb-2">훈련직종을 선택하여 소분류까지 검색해주세요.</p>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">대분류선택</label>
+              <select id="ncsLargeClass" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20"></select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">중분류선택</label>
+              <select id="ncsMidClass" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20"></select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">소분류선택</label>
+              <select id="ncsSmallClass" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20"></select>
+            </div>
+          </div>
+        </div>
+        <div>
+          <h3 class="text-sm font-bold text-slate-700 mb-2">과정개요 정보 <span class="text-red-500">(! 필수등록)</span></h3>
+          <p class="text-xs text-slate-500 mb-3">선택된 직종으로 과정개요를 등록해주세요.</p>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">과정편성분류</label>
+              <div class="flex gap-4">
+                <label class="flex items-center gap-2 text-sm"><input type="radio" name="courseType" value="양성" class="rounded text-blue-600"> 양성과정</label>
+                <label class="flex items-center gap-2 text-sm"><input type="radio" name="courseType" value="향상" checked class="rounded text-blue-600"> 향상과정</label>
+              </div>
+              <p class="text-xs text-slate-500 mt-1">실업자 대상인 경우 양성과정, 재직자 대상인 경우 향상과정을 선택하시면 됩니다.</p>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">주직종선택</label>
+              <input type="text" id="ncsMainJob" readonly placeholder="직종을 검색하여 선택하세요" class="w-full max-w-md px-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50">
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- 비NCS 훈련과정 전용 패널 -->
+      <div id="panelNonNcs" class="ncs-approved-panel hidden space-y-6">
+        <p class="text-slate-600 text-sm">비NCS 훈련과정 전용 입력 영역입니다. 과정개요를 등록해 주세요.</p>
+        <div>
+          <label class="block text-sm font-bold text-slate-700 mb-1">과정명</label>
+          <input type="text" id="nonNcsCourseName" class="w-full max-w-md px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20" placeholder="과정명 입력">
+        </div>
+        <div>
+          <label class="block text-sm font-bold text-slate-700 mb-1">과정 개요</label>
+          <textarea id="nonNcsOverview" rows="4" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20" placeholder="과정 개요 입력"></textarea>
+        </div>
+      </div>
+    </div>`;
+  }
+  if (step === 2) {
+    return `
+    <div class="space-y-4">
+      <h3 class="text-lg font-bold text-slate-800">2. 훈련이수체계도</h3>
+      <p class="text-sm text-slate-600">훈련이수체계도를 등록·관리합니다.</p>
+      <div class="border-2 border-dashed border-slate-200 rounded-2xl p-12 text-center text-slate-500 bg-slate-50/50">
+        <i class="fas fa-sitemap text-4xl mb-3 opacity-50"></i>
+        <p>훈련이수체계도 등록 영역 (추후 구현)</p>
+      </div>
+    </div>`;
+  }
+  if (step === 3) {
+    return `
+    <div class="space-y-4">
+      <h3 class="text-lg font-bold text-slate-800">3. 교과목편성</h3>
+      <p class="text-sm text-slate-600">교과목을 편성·관리합니다.</p>
+      <div class="border-2 border-dashed border-slate-200 rounded-2xl p-12 text-center text-slate-500 bg-slate-50/50">
+        <i class="fas fa-book text-4xl mb-3 opacity-50"></i>
+        <p>교과목편성 등록 영역 (추후 구현)</p>
+      </div>
+    </div>`;
+  }
+  if (step === 4) {
+    return `
+    <div class="space-y-4">
+      <h3 class="text-lg font-bold text-slate-800">4. 훈련시간설정</h3>
+      <p class="text-sm text-slate-600">훈련시간을 설정·관리합니다.</p>
+      <div class="border-2 border-dashed border-slate-200 rounded-2xl p-12 text-center text-slate-500 bg-slate-50/50">
+        <i class="fas fa-clock text-4xl mb-3 opacity-50"></i>
+        <p>훈련시간설정 등록 영역 (추후 구현)</p>
+      </div>
+    </div>`;
+  }
+  if (step === 5) {
+    return `
+    <div class="space-y-4">
+      <h3 class="text-lg font-bold text-slate-800">5. 평가·교수학습 방법</h3>
+      <p class="text-sm text-slate-600">평가 및 교수·학습 방법을 등록·관리합니다.</p>
+      <div class="border-2 border-dashed border-slate-200 rounded-2xl p-12 text-center text-slate-500 bg-slate-50/50">
+        <i class="fas fa-chalkboard-teacher text-4xl mb-3 opacity-50"></i>
+        <p>평가·교수학습 방법 등록 영역 (추후 구현)</p>
+      </div>
+    </div>`;
+  }
+  if (step === 6) {
+    return `
+    <div class="space-y-4">
+      <h3 class="text-lg font-bold text-slate-800">6. 시설·장비</h3>
+      <p class="text-sm text-slate-600">시설 및 장비 정보를 등록·관리합니다.</p>
+      <div class="border-2 border-dashed border-slate-200 rounded-2xl p-12 text-center text-slate-500 bg-slate-50/50">
+        <i class="fas fa-building text-4xl mb-3 opacity-50"></i>
+        <p>시설·장비 등록 영역 (추후 구현)</p>
+      </div>
+    </div>`;
+  }
+  return '<p class="text-slate-500">잘못된 단계입니다.</p>';
+}
+
+export function adminNcsApprovedHtml(stepParam?: string): string {
+  const step = Math.min(6, Math.max(1, parseInt(stepParam || '1', 10) || 1));
+  const stepNav = stepNavHtml(step);
+  const content = stepContentHtml(step);
+  return `
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>승인받은 NCS 등록 - ${step}. ${STEP_MENU[step - 1].label}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>body { font-family: 'Noto Sans KR', sans-serif; }</style>
+</head>
+<body class="bg-slate-50">
+    <div class="flex min-h-screen">
+        ${hrdSidebar('ncs-approved')}
+        <main class="flex-1 overflow-x-hidden overflow-y-auto">
+            <header class="bg-white shadow-sm sticky top-0 z-10 border-b border-slate-200">
+                <div class="px-8 py-4">
+                    <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">NCS 훈련과정 승인정보</p>
+                    <h1 class="text-xl font-black text-slate-800 mt-0.5">승인받은 NCS 등록 — ${step}. ${STEP_MENU[step - 1].label}</h1>
+                    <p class="text-sm text-slate-600 mt-1">단계별로 승인 NCS 정보를 등록합니다.</p>
+                </div>
+            </header>
+            <div class="flex">
+                <nav class="w-56 flex-shrink-0 bg-white border-r border-slate-200 min-h-[calc(100vh-8rem)] py-4">
+                    <div class="px-3 space-y-1">
+                        ${stepNav}
+                    </div>
+                </nav>
+                <div class="flex-1 p-8">
+                    <div class="bg-white rounded-[2rem] shadow-sm border border-slate-200/60 overflow-hidden">
+                        <div class="px-6 py-4 border-b border-slate-200/60 bg-slate-50/80">
+                            <h2 class="font-black text-slate-800 tracking-tight">${STEP_MENU[step - 1].label}</h2>
+                        </div>
+                        <div class="p-6 md:p-8" id="ncsApprovedStepContent">
+                            ${content}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script>
+        window.NCS_APPROVED_STEP = ${step};
+    </script>
+    <script src="/static/ncs-approved.js"></script>
+</body>
+</html>`;
+}

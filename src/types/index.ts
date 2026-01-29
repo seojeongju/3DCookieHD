@@ -7,6 +7,8 @@ export type Bindings = {
   DB: D1Database;
   // KV: KVNamespace; // 추후 추가
   R2: R2Bucket; // 파일 스토리지
+  /** 공공데이터포털 NCS API 인증키 (선택). 설정 시 /api/ncs/search 에서 실제 API 호출 */
+  NCS_API_KEY?: string;
 };
 
 export type Variables = {
