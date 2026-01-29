@@ -103,230 +103,259 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses')) => `
         </div>
     </div>
 
-    <!-- 과정 개설/수정 모달: Soft Glassmorphism 에디션 -->
-    <div id="createCourseModal" class="fixed inset-0 bg-white/30 backdrop-blur-md hidden z-50 flex items-center justify-center p-4">
-        <div class="relative bg-white/80 backdrop-blur-2xl border border-white/60 shadow-[0_20px_50px_rgba(0,0,0,0.1)] rounded-[2.5rem] w-full max-w-4xl max-h-[94vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-500">
-            <!-- Glass Header -->
-            <div class="px-10 py-7 border-b border-white/40 flex justify-between items-center bg-gradient-to-r from-white/40 to-purple-50/30 sticky top-0 z-30">
-                <div class="flex items-center gap-5">
-                    <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white shadow-xl shadow-purple-200/50 transform -rotate-3 hover:rotate-0 transition-transform duration-500">
-                        <i class="fas fa-graduation-cap text-2xl"></i>
+    <!-- 과정 개설/수정 모달: In-box Bento Grid 에디션 -->
+    <div id="createCourseModal" class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="relative bg-[#f8f9fa] border border-gray-200 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.2)] rounded-[2.5rem] w-full max-w-5xl max-h-[96vh] flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-700">
+            <!-- Modal Header -->
+            <div class="px-10 py-6 flex justify-between items-center bg-white border-b border-gray-100 sticky top-0 z-30">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-2xl bg-gray-900 flex items-center justify-center text-white shadow-xl shadow-gray-200">
+                        <i class="fas fa-cube text-xl"></i>
                     </div>
                     <div>
-                        <h3 class="text-2xl font-black text-gray-900 tracking-tight" id="modalTitle">과정 개설</h3>
-                        <p class="text-sm font-medium text-gray-500 mt-0.5">교육의 가치를 디자인하고 미래를 설계하세요.</p>
+                        <h3 class="text-xl font-black text-gray-900 tracking-tight" id="modalTitle">과정 설계 (Course Architect)</h3>
+                        <p class="text-[11px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Bento Intelligence System v2.0</p>
                     </div>
                 </div>
-                <button onclick="closeModal('createCourseModal')" class="w-11 h-11 flex items-center justify-center rounded-2xl bg-white/50 hover:bg-white text-gray-400 hover:text-red-500 hover:rotate-90 transition-all duration-300 border border-white/50 shadow-sm">
-                    <i class="fas fa-times text-lg"></i>
+                <button onclick="closeModal('createCourseModal')" class="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-50 hover:bg-red-50 text-gray-400 hover:text-red-500 transition-all border border-gray-100">
+                    <i class="fas fa-times"></i>
                 </button>
             </div>
             
-            <div class="p-0 overflow-y-auto flex-1 custom-scrollbar">
-                <form id="createCourseForm" onsubmit="handleSaveCourse(event)">
+            <div class="p-8 overflow-y-auto flex-1 custom-scrollbar bg-[#f1f3f5]">
+                <form id="createCourseForm" onsubmit="handleSaveCourse(event)" class="grid grid-cols-12 gap-4">
                     <input type="hidden" name="id" id="courseId">
                     
-                    <!-- 섹션 1: 기본 정보 (Soft Card) -->
-                    <div class="p-10">
-                        <div class="bg-white/40 border border-white/60 p-8 rounded-[2rem] shadow-sm hover:shadow-md transition-shadow duration-500 space-y-8">
-                            <div class="flex items-center gap-3">
-                                <span class="flex h-2 w-2 rounded-full bg-purple-500"></span>
-                                <h4 class="font-black text-lg text-gray-800 tracking-tight">Core Curriculum Identity</h4>
+                    <!-- Bento Box 1: 메인 정보 (Span 8) -->
+                    <div class="col-span-12 lg:col-span-8 bg-white border border-gray-200 rounded-[2rem] p-8 shadow-sm hover:shadow-md transition-all duration-500 flex flex-col justify-between">
+                         <div class="space-y-6">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                                <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Primary Identity</span>
                             </div>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div class="md:col-span-2">
-                                <label class="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">과정명 (COURSE TITLE)</label>
-                                <input type="text" name="title" id="courseTitle" required placeholder="예: [국비지원] 하이브리드 클라우드 AI 엔지니어 양성과정" 
-                                    class="w-full px-6 py-4 bg-white/50 border border-white/80 rounded-[1.25rem] focus:ring-4 focus:ring-purple-500/10 focus:border-purple-400 outline-none transition-all text-gray-800 font-bold text-lg shadow-inner">
-                            </div>
-                            
-                            <div>
-                                <label class="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">과정 카테고리</label>
-                                <select name="category" id="courseCategory" class="w-full px-6 py-4 bg-white/50 border border-white/80 rounded-[1.25rem] focus:ring-4 focus:ring-purple-500/10 focus:border-purple-400 outline-none transition-all font-bold cursor-pointer appearance-none">
-                                    <option value="국비지원">국비지원과정 (HRD)</option>
-                                    <option value="일반과정">일반 유료과정</option>
-                                    <option value="특강">단기 특강/워크숍</option>
-                                </select>
-                            </div>
-                            
-                            <div>
-                                <label class="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">현재 모집 상태</label>
-                                <select name="status" id="courseStatus" class="w-full px-6 py-4 bg-purple-50/50 border border-purple-100/50 rounded-[1.25rem] focus:ring-4 focus:ring-purple-500/10 focus:border-purple-400 outline-none transition-all font-black text-purple-600 cursor-pointer appearance-none shadow-sm">
-                                    <option value="open">현재 모집중 (Active)</option>
-                                    <option value="closed">모집 마감 (Closed)</option>
-                                    <option value="preparing">준비중 (Draft)</option>
-                                </select>
-                            </div>
-
-                            <div>
-                                <label class="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">메인 담당 강사</label>
-                                <select name="teacher_id" id="courseInstructor" class="w-full px-6 py-4 bg-white/50 border border-white/80 rounded-[1.25rem] focus:ring-4 focus:ring-purple-500/10 focus:border-purple-400 outline-none transition-all font-bold cursor-pointer appearance-none">
-                                    <option value="">강사 목록 로드 중...</option>
-                                </select>
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-bold text-gray-700 mb-2">교육 캠퍼스</label>
-                                <select name="campus_id" id="courseCampus" class="w-full px-5 py-3.5 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-purple-50 focus:border-purple-600 outline-none transition-all bg-white font-medium">
-                                    <option value="1">서울 메인 캠퍼스</option>
-                                </select>
-                            </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 섹션 2: 교육 과목 (Glass Panel) -->
-                    <div class="px-10 mb-10 text-gray-900">
-                        <div class="bg-indigo-50/30 backdrop-blur-md border border-white/60 p-8 rounded-[2.5rem] shadow-sm space-y-6">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-3">
-                                    <span class="flex h-2 w-2 rounded-full bg-indigo-500"></span>
-                                    <h4 class="font-black text-lg text-gray-800 tracking-tight">Modules & Personnel</h4>
-                                </div>
-                                <button type="button" onclick="addSubjectRow()" class="px-5 py-2.5 bg-white/70 hover:bg-white text-indigo-600 rounded-2xl transition-all text-xs font-black shadow-sm flex items-center gap-2 border border-indigo-100/50">
-                                    <i class="fas fa-plus-circle"></i> ADD MODULE
-                                </button>
-                            </div>
-                            
-                            <div class="bg-white/50 rounded-3xl p-6 border border-white/80">
-                                <div id="subjectListContainer" class="space-y-4">
-                                    <!-- Dynamic rows -->
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 섹션 3: 일정 및 정원 (Floating Card) -->
-                    <div class="px-10 mb-10">
-                        <div class="bg-purple-900/5 border border-purple-200/30 p-10 rounded-[3rem] space-y-10">
-                            <div class="flex items-center gap-3">
-                                <span class="flex h-2 w-2 rounded-full bg-pink-500"></span>
-                                <h4 class="font-black text-lg text-gray-800 tracking-tight">Timeline & Capacity</h4>
-                            </div>
-                            
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                            <div class="space-y-2">
-                                <label class="block text-sm font-bold text-gray-700">시작일</label>
-                                <input type="date" name="start_date" id="courseStartDate" onchange="renderCalendar()" 
-                                    class="w-full px-5 py-3 border border-gray-200 rounded-2xl outline-none focus:ring-4 focus:ring-purple-50 focus:border-purple-600 transition-all font-medium">
-                            </div>
-                            <div class="space-y-2">
-                                <label class="block text-sm font-bold text-gray-700">종료일</label>
-                                <input type="date" name="end_date" id="courseEndDate" onchange="renderCalendar()" 
-                                    class="w-full px-5 py-3 border border-gray-200 rounded-2xl outline-none focus:ring-4 focus:ring-purple-50 focus:border-purple-600 transition-all font-medium">
-                            </div>
-                            <div class="space-y-2">
-                                <label class="block text-sm font-bold text-gray-700">정원 (명)</label>
-                                <input type="number" name="max_students" id="courseMaxStudents" placeholder="20" 
-                                    class="w-full px-5 py-3 border border-gray-200 rounded-2xl outline-none focus:ring-4 focus:ring-purple-50 focus:border-purple-600 transition-all font-medium">
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-4">
-                            <div class="space-y-2">
-                                <label class="block text-sm font-bold text-gray-700">일일 교육 시간</label>
-                                <div class="flex items-center gap-3">
-                                    <input type="time" id="courseStartTime" class="flex-1 px-5 py-3 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-purple-50 outline-none font-medium">
-                                    <span class="text-gray-400 font-bold">~</span>
-                                    <input type="time" id="courseEndTime" class="flex-1 px-5 py-3 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-purple-50 outline-none font-medium">
-                                </div>
-                            </div>
-                            <div class="space-y-2">
-                                <label class="block text-sm font-bold text-purple-700 uppercase tracking-tighter">수강료 (KRW)</label>
-                                <div class="relative">
-                                    <span class="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">₩</span>
-                                    <input type="number" name="price" id="coursePrice" placeholder="0" 
-                                        class="w-full pl-11 pr-5 py-3 bg-purple-50/30 border border-purple-100 rounded-2xl focus:ring-4 focus:ring-purple-100 focus:border-purple-600 outline-none font-bold text-gray-900 text-lg">
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="mt-8 bg-gray-50 rounded-3xl p-8 border border-gray-200/50 shadow-inner">
-                             <div class="flex items-center justify-between mb-6">
-                                 <div>
-                                    <label class="block text-sm font-bold text-gray-800">교육 세부 일정 선택</label>
-                                    <p class="text-[11px] text-gray-400 mt-0.5">실제 교육이 진행되는 날짜를 달력에서 직접 선택하세요.</p>
-                                 </div>
-                                 <button type="button" onclick="clearCalendarSelection()" class="text-xs font-bold text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-all border border-red-100 bg-white">전체 초기화</button>
-                             </div>
-                             
-                             <div class="flex flex-wrap gap-2.5 mb-8">
-                                <button type="button" onclick="presetDays([1,2,3,4,5])" class="px-5 py-2.5 text-xs font-bold bg-white border border-gray-200 text-gray-600 rounded-2xl hover:border-purple-400 hover:text-purple-600 transition-all shadow-sm">서울 평일반 (월-금)</button>
-                                <button type="button" onclick="presetDays([1,3,5])" class="px-5 py-2.5 text-xs font-bold bg-white border border-gray-200 text-gray-600 rounded-2xl hover:border-purple-400 hover:text-purple-600 transition-all shadow-sm">월수금 집중반</button>
-                                <button type="button" onclick="presetDays([0,6])" class="px-5 py-2.5 text-xs font-bold bg-white border border-gray-200 text-gray-600 rounded-2xl hover:border-purple-400 hover:text-purple-600 transition-all shadow-sm">주말 마스터반</button>
-                             </div>
-
-                             <div id="calendarContainer" class="border border-white/60 rounded-[2rem] p-8 bg-white/60 backdrop-blur-sm max-h-[480px] overflow-y-auto custom-scrollbar select-none shadow-inner">
-                                <div class="text-center text-gray-300 py-20 flex flex-col items-center">
-                                    <div class="w-20 h-20 rounded-full bg-gray-50 flex items-center justify-center mb-5 border border-gray-100">
-                                        <i class="fas fa-calendar-day text-3xl opacity-30"></i>
+                            <div class="space-y-4">
+                                <label class="block text-xs font-black text-gray-400 uppercase tracking-widest ml-1">과정 공식 명칭</label>
+                                <input type="text" name="title" id="courseTitle" required placeholder="과정명을 입력하세요" 
+                                    class="w-full px-6 py-4 bg-gray-50 border border-transparent rounded-[1.25rem] focus:bg-white focus:border-blue-500/20 focus:ring-4 focus:ring-blue-500/5 outline-none transition-all text-gray-900 font-bold text-xl">
+                                
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="space-y-2">
+                                        <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">카테고리</label>
+                                        <select name="category" id="courseCategory" class="w-full px-5 py-3.5 bg-gray-50 border-transparent rounded-2xl focus:bg-white focus:border-blue-500/20 outline-none transition-all font-bold text-gray-700 text-sm appearance-none cursor-pointer">
+                                            <option value="국비지원">국비지원 (HRD)</option>
+                                            <option value="일반과정">일반 과정</option>
+                                            <option value="특강">단기 특강</option>
+                                        </select>
                                     </div>
-                                    <p class="font-black text-gray-400 uppercase tracking-widest text-xs">Awaiting Date Range Initialization</p>
+                                    <div class="space-y-2">
+                                        <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">캠퍼스 로케이션</label>
+                                        <select name="campus_id" id="courseCampus" class="w-full px-5 py-3.5 bg-gray-50 border-transparent rounded-2xl focus:bg-white focus:border-blue-500/20 outline-none transition-all font-bold text-gray-700 text-sm appearance-none cursor-pointer">
+                                            <option value="1">서울 메인 캠퍼스</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                         </div>
+                    </div>
+
+                    <!-- Bento Box 2: 상태 모니터 (Span 4) -->
+                    <div class="col-span-12 lg:col-span-4 bg-gray-900 border border-gray-800 rounded-[2rem] p-8 shadow-xl flex flex-col justify-between overflow-hidden relative">
+                        <div class="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 blur-[60px] rounded-full"></div>
+                        <div class="space-y-6 relative z-10">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                                <span class="text-[10px] font-black text-gray-600 uppercase tracking-widest">Status Monitor</span>
+                            </div>
+                            <div class="space-y-5">
+                                <div class="space-y-2">
+                                    <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">운영 상태 설정</label>
+                                    <select name="status" id="courseStatus" class="w-full px-5 py-3.5 bg-white/5 border border-white/10 rounded-2xl focus:bg-white/10 focus:border-green-500/30 outline-none transition-all font-black text-green-400 text-sm appearance-none cursor-pointer">
+                                        <option value="open">ACTIVE (모집중)</option>
+                                        <option value="closed">CLOSED (마감)</option>
+                                        <option value="preparing">DRAFT (준비중)</option>
+                                    </select>
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">책임 교수/강사</label>
+                                    <select name="teacher_id" id="courseInstructor" class="w-full px-5 py-3.5 bg-white/5 border border-white/10 rounded-2xl focus:bg-white/10 focus:border-blue-500/30 outline-none transition-all font-bold text-gray-300 text-sm appearance-none cursor-pointer">
+                                        <option value="">강사 로드 중...</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bento Box 3: 쿼터 및 비용 (Span 4) -->
+                    <div class="col-span-12 lg:col-span-4 bg-[#e9ecef] border border-gray-200 rounded-[2rem] p-8 flex flex-col gap-6 shadow-inner">
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-chart-pie text-gray-400 text-xs"></i>
+                            <span class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Financial & Quota</span>
+                        </div>
+                        <div class="grid grid-cols-1 gap-4">
+                            <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+                                <label class="block text-[9px] font-black text-gray-400 uppercase tracking-tighter mb-1">모집 정원 (PERSONNEL)</label>
+                                <div class="flex items-center gap-3">
+                                    <input type="number" name="max_students" id="courseMaxStudents" placeholder="20" class="w-full text-2xl font-black text-gray-900 bg-transparent border-none outline-none focus:ring-0 p-0">
+                                    <span class="text-sm font-black text-gray-300">명</span>
+                                </div>
+                            </div>
+                            <div class="bg-gray-900 rounded-2xl p-5 border border-gray-800 shadow-lg">
+                                <label class="block text-[9px] font-black text-gray-500 uppercase tracking-tighter mb-1">교육 수강료 (PRICE)</label>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xl font-black text-gray-500">₩</span>
+                                    <input type="number" name="price" id="coursePrice" placeholder="0" class="w-full text-2xl font-black text-white bg-transparent border-none outline-none focus:ring-0 p-0">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bento Box 4: 타임라인 (Span 8) -->
+                    <div class="col-span-12 lg:col-span-8 bg-white border border-gray-200 rounded-[2rem] p-8 space-y-6">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <i class="far fa-clock text-blue-500 text-xs"></i>
+                                <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Temporal Logic</span>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-8">
+                            <div class="space-y-4">
+                                <label class="block text-xs font-black text-gray-400 uppercase tracking-widest ml-1">교육 기간 (Range)</label>
+                                <div class="flex items-center gap-2 bg-gray-50 p-2 rounded-2xl border border-gray-100">
+                                    <input type="date" name="start_date" id="courseStartDate" onchange="renderCalendar()" class="flex-1 px-4 py-2 bg-white border-none rounded-xl text-sm font-bold shadow-sm outline-none">
+                                    <span class="text-gray-300"><i class="fas fa-arrow-right"></i></span>
+                                    <input type="date" name="end_date" id="courseEndDate" onchange="renderCalendar()" class="flex-1 px-4 py-2 bg-white border-none rounded-xl text-sm font-bold shadow-sm outline-none">
+                                </div>
+                            </div>
+                            <div class="space-y-4">
+                                <label class="block text-xs font-black text-gray-400 uppercase tracking-widest ml-1">일일 교육 시간 (Shift)</label>
+                                <div class="flex items-center gap-2 bg-gray-50 p-2 rounded-2xl border border-gray-100">
+                                    <input type="time" id="courseStartTime" class="flex-1 px-4 py-2 bg-white border-none rounded-xl text-sm font-bold shadow-sm outline-none">
+                                    <span class="text-gray-300"><i class="fas fa-minus"></i></span>
+                                    <input type="time" id="courseEndTime" class="flex-1 px-4 py-2 bg-white border-none rounded-xl text-sm font-bold shadow-sm outline-none">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bento Box 5: 교과목 구성 (Full) -->
+                    <div class="col-span-12 bg-white border border-gray-200 rounded-[2.5rem] p-10 space-y-8">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-xl bg-orange-100 flex items-center justify-center text-orange-500">
+                                    <i class="fas fa-layer-group text-sm"></i>
+                                </div>
+                                <h4 class="font-black text-lg text-gray-900 tracking-tight">Curriculum Architecture (Modules)</h4>
+                            </div>
+                            <button type="button" onclick="addSubjectRow()" class="px-6 py-2.5 bg-gray-900 text-white rounded-2xl text-xs font-black shadow-lg hover:bg-black transition-all flex items-center gap-2">
+                                <i class="fas fa-plus"></i> NEW MODULE
+                            </button>
+                        </div>
+                        <div id="subjectListContainer" class="space-y-4 max-h-[400px] overflow-y-auto px-1 custom-scrollbar">
+                            <!-- Rows go here -->
+                        </div>
+                    </div>
+
+                    <!-- Bento Box 6: 세부 달력 (Span 7) -->
+                    <div class="col-span-12 lg:col-span-7 bg-white border border-gray-200 rounded-[2.5rem] p-10 space-y-6">
+                        <div class="flex items-center justify-between">
+                             <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Calendar Precision</span>
+                             <button type="button" onclick="clearCalendarSelection()" class="text-[10px] font-black text-red-400 hover:text-red-500 uppercase tracking-widest transition-colors">Clear All</button>
+                        </div>
+                        <div id="calendarContainer" class="min-h-[450px] select-none">
+                             <!-- Calendar Grid -->
+                        </div>
+                    </div>
+
+                    <!-- Bento Box 7: 일정 프리셋 & 요약 (Span 5) -->
+                    <div class="col-span-12 lg:col-span-5 flex flex-col gap-4">
+                        <div class="bg-blue-600 border border-blue-500 rounded-[2rem] p-8 text-white space-y-6 shadow-xl shadow-blue-200">
+                             <div class="flex items-center gap-2">
+                                 <i class="fas fa-magic text-blue-200 text-xs"></i>
+                                 <span class="text-[10px] font-black text-blue-100 uppercase tracking-widest">Smart Presets</span>
+                             </div>
+                             <div class="flex flex-col gap-3">
+                                <button type="button" onclick="presetDays([1,2,3,4,5])" class="w-full px-5 py-4 bg-white/10 hover:bg-white/20 border border-white/20 rounded-2xl text-sm font-black text-left transition-all">서울 평일 집중반 (월-금)</button>
+                                <button type="button" onclick="presetDays([1,3,5])" class="w-full px-5 py-4 bg-white/10 hover:bg-white/20 border border-white/20 rounded-2xl text-sm font-black text-left transition-all">월수금 심화 테크</button>
+                                <button type="button" onclick="presetDays([0,6])" class="w-full px-5 py-4 bg-white/10 hover:bg-white/20 border border-white/20 rounded-2xl text-sm font-black text-left transition-all">주말 마스터 트랙</button>
+                             </div>
+                        </div>
+
+                        <div class="flex-1 bg-white border border-gray-200 rounded-[2rem] p-8 flex flex-col justify-between">
+                             <div class="space-y-4">
+                                <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Training Load Summary</span>
+                                <div class="bg-gray-50 rounded-2xl p-6 border border-gray-100">
+                                     <input type="text" id="courseDays" value="총 0일 선택됨" class="bg-transparent font-black text-3xl text-gray-900 w-full outline-none border-none cursor-default" readonly>
+                                     <p class="text-[11px] font-bold text-blue-500 mt-2 uppercase">Scheduled Operational Period</p>
                                 </div>
                              </div>
-
-                             <div class="mt-6 flex items-center gap-4 bg-purple-600 rounded-2xl p-4 text-white shadow-lg shadow-purple-200">
-                                <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
-                                    <i class="fas fa-check-circle"></i>
-                                </div>
-                                <div>
-                                    <p class="text-[10px] font-bold text-purple-100 uppercase tracking-widest">Selected Duration</p>
-                                    <input type="text" id="courseDays" value="총 0일 선택됨" class="bg-transparent font-bold text-xl text-white w-full outline-none border-none cursor-default" readonly>
-                                </div>
+                             <div class="mt-6 flex items-start gap-4 p-4 bg-yellow-50 rounded-2xl border border-yellow-100">
+                                 <i class="fas fa-exclamation-triangle text-yellow-500 mt-1"></i>
+                                 <p class="text-[11px] text-yellow-800 font-medium leading-relaxed">교육 시작일과 종료일을 변경하면 하단 달력이 자동 갱신됩니다. 실제 수업일을 반드시 확인하세요.</p>
                              </div>
                         </div>
                     </div>
 
-                    <!-- 섹션 4: 상세 커리큘럼 및 이미지 -->
-                    <div class="p-10 space-y-8 bg-white">
-                        <div class="flex items-center gap-2.5">
-                            <div class="w-1.5 h-6 bg-purple-600 rounded-full"></div>
-                            <h4 class="font-bold text-lg text-gray-900">상세 설명 및 디자인</h4>
+                    <!-- Bento Box 8: 설명 및 커리큘럼 (Full) -->
+                    <div class="col-span-12 bg-white border border-gray-200 rounded-[2.5rem] p-10 space-y-6">
+                        <div class="flex items-center gap-2">
+                             <i class="fas fa-align-left text-gray-400 text-xs"></i>
+                             <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Extended Narrative</span>
                         </div>
-                        
                         <div class="space-y-4">
-                            <label class="block text-sm font-bold text-gray-700">과정 전체 커리큘럼 / 소개</label>
-                            <div class="rounded-2xl overflow-hidden border border-gray-200">
+                            <label class="block text-xs font-black text-gray-900 ml-1">상세 커리큘럼 및 과정 소개</label>
+                            <div class="rounded-3xl overflow-hidden border border-gray-100 bg-gray-50/30 p-1">
                                 <textarea id="courseDescription" rows="12" class="w-full px-5 py-4 outline-none"></textarea>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Bento Box 9: 비주얼 에셋 (Full) -->
+                    <div class="col-span-12 bg-white border border-gray-200 rounded-[2.5rem] p-10 space-y-8">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-xl bg-purple-100 flex items-center justify-center text-purple-600">
+                                <i class="fas fa-image text-sm"></i>
+                            </div>
+                            <h4 class="font-black text-lg text-gray-900 tracking-tight">Visual Identity & Assets</h4>
+                        </div>
                         
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
-                            <div class="space-y-4">
-                                <label class="block text-xs font-black text-gray-400 uppercase tracking-widest ml-1">커버 이미지 (THUMBNAIL)</label>
-                                <div class="flex gap-2">
-                                    <input type="text" name="thumbnail_url" id="courseThumbnail" placeholder="https://" class="flex-1 px-6 py-4 bg-white/50 border border-white/80 rounded-2xl focus:ring-4 focus:ring-purple-500/10 focus:border-purple-400 outline-none text-sm font-medium">
-                                    <input type="file" id="thumbnailFile" accept="image/*" class="hidden" onchange="handleThumbnailFile(this)">
-                                    <button type="button" onclick="document.getElementById('thumbnailFile').click()" class="px-6 py-2.5 bg-gray-900 text-white rounded-2xl text-xs font-black hover:bg-black transition-all shadow-lg uppercase tracking-tighter">Upload</button>
+                            <div class="space-y-6">
+                                <div class="space-y-4">
+                                    <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">커버 이미지 (THUMBNAIL)</label>
+                                    <div class="flex gap-2 bg-gray-50 p-2 rounded-2xl border border-gray-100">
+                                        <input type="text" name="thumbnail_url" id="courseThumbnail" placeholder="https://" class="flex-1 px-4 py-2 bg-white border-none rounded-xl text-sm font-medium shadow-sm outline-none">
+                                        <input type="file" id="thumbnailFile" accept="image/*" class="hidden" onchange="handleThumbnailFile(this)">
+                                        <button type="button" onclick="document.getElementById('thumbnailFile').click()" class="px-6 py-2 bg-gray-900 text-white rounded-xl text-[10px] font-black uppercase tracking-tighter hover:bg-black transition-all">Upload</button>
+                                    </div>
                                 </div>
-                                <div id="thumbnailPreview" class="hidden relative aspect-video rounded-3xl overflow-hidden border border-gray-100 shadow-xl group">
+                                <div id="thumbnailPreview" class="hidden relative aspect-video rounded-[2rem] overflow-hidden border border-gray-100 shadow-xl group bg-gray-50">
                                     <img src="" class="w-full h-full object-cover">
-                                    <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                        <button type="button" onclick="clearThumbnail()" class="w-12 h-12 rounded-full bg-white text-red-500 flex items-center justify-center hover:scale-110 transition-transform shadow-lg">
+                                    <div class="absolute inset-0 bg-gray-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
+                                        <button type="button" onclick="clearThumbnail()" class="w-12 h-12 rounded-full bg-white text-red-500 flex items-center justify-center shadow-2xl hover:scale-110 transition-transform">
                                             <i class="fas fa-trash-alt text-xl"></i>
                                         </button>
                                     </div>
                                 </div>
                             </div>
                             
-                            <div class="bg-blue-50/50 p-8 rounded-[32px] border border-blue-100/50 self-start">
-                                <h5 class="font-bold text-blue-900 flex items-center gap-2 mb-4">
-                                    <i class="fas fa-info-circle"></i> 참고 사항
+                            <div class="bg-gray-50/80 p-8 rounded-[2rem] border border-gray-100 self-start flex flex-col gap-5 shadow-inner">
+                                <h5 class="text-xs font-black text-gray-900 uppercase tracking-widest flex items-center gap-2">
+                                    <i class="fas fa-info-circle text-blue-500"></i> Deployment Guidelines
                                 </h5>
-                                <ul class="text-sm text-blue-800/80 space-y-3 leading-relaxed font-medium">
-                                    <li>• 과정명은 사용자 홈페이지 상단에 굵게 노출됩니다.</li>
-                                    <li>• 교육 과목별로 다른 강사를 배정하면, LMS 시스템에서 과목별 진도 관리가 가능해집니다.</li>
-                                    <li>• 이미지는 1280x720 (16:9) 사이즈를 권장합니다.</li>
+                                <ul class="text-[11px] text-gray-500 space-y-3 leading-relaxed font-bold">
+                                    <li class="flex items-start gap-2"><span class="w-1 h-1 rounded-full bg-blue-500 mt-1.5 shrink-0"></span> 과정명은 웹사이트 전면에 노출되므로 정확한 명칭을 권장합니다.</li>
+                                    <li class="flex items-start gap-2"><span class="w-1 h-1 rounded-full bg-blue-500 mt-1.5 shrink-0"></span> 모듈별 강사 배정 시 LMS 권한이 자동으로 부여됩니다.</li>
+                                    <li class="flex items-start gap-2"><span class="w-1 h-1 rounded-full bg-blue-500 mt-1.5 shrink-0"></span> 최적의 썸네일 해상도는 16:9 비율 (1280x720) 입니다.</li>
                                 </ul>
                             </div>
                         </div>
                     </div>
 
-                    <div class="px-10 py-10 bg-white/40 backdrop-blur-xl border-t border-white/60 flex justify-end items-center gap-5 sticky bottom-0 z-30">
-                        <button type="button" onclick="closeModal('createCourseModal')" class="px-8 py-3.5 text-gray-400 font-black hover:text-gray-900 hover:bg-white/50 rounded-2xl transition-all uppercase tracking-widest text-xs">EXIT</button>
-                        <button type="submit" class="px-12 py-4 bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 text-white rounded-[1.5rem] font-black text-lg shadow-[0_15px_30px_-5px_rgba(79,70,229,0.4)] hover:shadow-[0_20px_40px_-5px_rgba(79,70,229,0.5)] hover:-translate-y-1 active:translate-y-0 transition-all duration-300">
-                             DEPLOY COURSE
+                    <!-- Actions -->
+                    <div class="col-span-12 py-10 flex justify-end items-center gap-4">
+                        <button type="button" onclick="closeModal('createCourseModal')" class="px-8 py-3 text-[10px] font-black text-gray-400 hover:text-gray-900 uppercase tracking-widest transition-all">Discard Changes</button>
+                        <button type="submit" class="px-12 py-4 bg-gray-900 text-white rounded-[1.25rem] font-black text-lg shadow-[0_20px_40px_-10px_rgba(0,0,0,0.3)] hover:shadow-[0_25px_50px_-12px_rgba(0,0,0,0.4)] hover:-translate-y-1 active:translate-y-0 transition-all duration-300">
+                             FINALIZE & DEPLOY
                         </button>
                     </div>
                 </form>
@@ -372,7 +401,7 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses')) => `
             const container = document.getElementById('subjectListContainer');
             const rowCount = container.children.length;
             const row = document.createElement('div');
-            row.className = 'grid grid-cols-12 gap-5 items-center bg-white/60 backdrop-blur-sm p-4 rounded-3xl border border-white/80 shadow-sm hover:shadow-md transition-all animate-in slide-in-from-bottom-2 duration-500';
+            row.className = 'grid grid-cols-12 gap-5 items-center bg-gray-50 p-4 rounded-2xl border border-gray-100 shadow-sm hover:ring-2 hover:ring-gray-200 transition-all animate-in slide-in-from-bottom-2 duration-500';
             
             const instructorOptions = instructorsData.map(p => 
                 \`<option value="\${p.id}" \${p.id == instructorId ? 'selected' : ''}>\${p.name} (\${p.position})</option>\`
@@ -380,19 +409,19 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses')) => `
 
             row.innerHTML = \`
                 <div class="col-span-1 flex items-center justify-center">
-                    <div class="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center text-[10px] font-black text-indigo-400 border border-indigo-100/50">\${rowCount + 1}</div>
+                    <div class="w-8 h-8 rounded-xl bg-gray-900 flex items-center justify-center text-[10px] font-black text-white shadow-lg">\${rowCount + 1}</div>
                 </div>
                 <div class="col-span-10">
                     <div class="grid grid-cols-2 gap-4">
-                        <input type="text" class="subject-name w-full px-5 py-2.5 bg-white/50 border border-white/80 rounded-2xl text-sm focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-400 outline-none transition-all placeholder:text-gray-300 font-medium" placeholder="교과목 명칭" value="\${name}">
-                        <select class="subject-instructor w-full px-5 py-2.5 bg-white/50 border border-white/80 rounded-2xl text-sm focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-400 outline-none transition-all font-medium">
+                        <input type="text" class="subject-name w-full px-5 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 outline-none transition-all placeholder:text-gray-300 font-bold text-gray-700" placeholder="교과목 명칭" value="\${name}">
+                        <select class="subject-instructor w-full px-5 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 outline-none transition-all font-bold text-gray-700 appearance-none cursor-pointer">
                             <option value="">강사 필수 배정</option>
                             \${instructorOptions}
                         </select>
                     </div>
                 </div>
                 <div class="col-span-1 flex justify-center">
-                    <button type="button" onclick="this.closest('.grid').remove(); updateSubjectIndices();" class="w-10 h-10 flex items-center justify-center rounded-2xl bg-white/50 text-gray-400 hover:text-red-500 hover:bg-white transition-all border border-white/80 shadow-sm">
+                    <button type="button" onclick="this.closest('.grid').remove(); updateSubjectIndices();" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white text-gray-400 hover:text-red-500 hover:shadow-md transition-all border border-gray-100">
                         <i class="fas fa-trash-alt text-sm"></i>
                     </button>
                 </div>
