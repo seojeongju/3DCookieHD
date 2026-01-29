@@ -747,7 +747,7 @@ export const teacherProfileHtml = `
                         '<div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center"><i class="fas fa-book-open text-sm"></i></div>' +
                         '<div>' +
                             '<h6 class="font-black text-slate-800 tracking-tight text-lg">' + h.course_name + '</h6>' +
-                            <div class="flex items-center gap-3 mt-1">' +
+                            '<div class="flex items-center gap-3 mt-1">' +
                                 '<span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">' + (h.start_date?.split('T')[0] || '-') + ' ~ ' + (h.end_date?.split('T')[0] || '-') + '</span>' +
                                 '<span class="px-2 py-0.5 bg-slate-100 text-[8px] font-black text-slate-500 rounded-full">완료된 강의</span>' +
                             '</div>' +
