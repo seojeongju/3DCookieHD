@@ -232,55 +232,56 @@ app.get('/teacher-stats', authMiddleware, async (c) => {
         `).bind(teacherId).first<{ count: number }>();
         const totalStudents = studentsResult?.count || 0;
 
-        // 3. 채점 대기 건수 (제출되었지만 채점 안 된 시험 결과)
-        const pendingGradingResult = await DB.prepare(`
-            SELECT count(*) as count 
-            FROM student_scores ss
-            JOIN exams e ON ss.exam_id = e.id
-            JOIN courses c ON e.course_id = c.id
-            WHERE c.teacher_id = ? 
-            AND ss.graded_at IS NULL
-            AND ss.submitted_at IS NOT NULL
-        `).bind(teacherId).first<{ count: number }>();
-        const pendingGrading = pendingGradingResult?.count || 0;
+        // 3. 채점 대기 건수 (시험 제출됐지만 아직 채점 안 된 건 - exam_submissions)
+        let pendingGrading = 0;
+        let pendingGradingList: { id: number; exam_id: number; student_id: number; student_name: string; exam_title: string; submitted_at: string | null }[] = [];
+        try {
+            const pendingResult = await DB.prepare(`
+                SELECT count(*) as count 
+                FROM exam_submissions es
+                JOIN exams ex ON es.exam_id = ex.id
+                JOIN courses c ON ex.course_id = c.id
+                WHERE c.teacher_id = ? AND es.status = 'submitted'
+            `).bind(teacherId).first<{ count: number }>();
+            pendingGrading = pendingResult?.count || 0;
 
-        // 4. 평균 출석률 (담당 과정의 출석률)
-        const attendanceResult = await DB.prepare(`
-            SELECT avg(e.attendance) as avg 
-            FROM enrollments e
-            JOIN courses c ON e.course_id = c.id
-            WHERE c.teacher_id = ? AND e.status = 'approved'
-        `).bind(teacherId).first<{ avg: number }>();
-        const avgAttendance = Math.round(attendanceResult?.avg || 0);
+            const pendingList = await DB.prepare(`
+                SELECT es.id, es.exam_id, es.student_id, u.name as student_name, ex.title as exam_title, es.submitted_at
+                FROM exam_submissions es
+                JOIN exams ex ON es.exam_id = ex.id
+                JOIN courses c ON ex.course_id = c.id
+                JOIN users u ON es.student_id = u.id
+                WHERE c.teacher_id = ? AND es.status = 'submitted'
+                ORDER BY es.submitted_at DESC
+                LIMIT 5
+            `).bind(teacherId).all<{ id: number; exam_id: number; student_id: number; student_name: string; exam_title: string; submitted_at: string | null }>();
+            pendingGradingList = pendingList?.results || [];
+        } catch (e) {
+            console.error('Failed to fetch pending grading:', e);
+        }
+
+        // 4. 평균 출석률 (담당 과정의 출석률 - enrollments.attendance)
+        let avgAttendance = 0;
+        try {
+            const attendanceResult = await DB.prepare(`
+                SELECT avg(e.attendance) as avg 
+                FROM enrollments e
+                JOIN courses c ON e.course_id = c.id
+                WHERE c.teacher_id = ? AND e.status = 'approved'
+            `).bind(teacherId).first<{ avg: number }>();
+            avgAttendance = Math.round(attendanceResult?.avg || 0);
+        } catch (e) {
+            console.error('Failed to fetch attendance:', e);
+        }
 
         // 5. 담당 과정 목록 (최근 3개)
         const recentCourses = await DB.prepare(`
             SELECT id, title, category, max_students,
             (SELECT COUNT(*) FROM enrollments WHERE course_id = courses.id AND status = 'approved') as enrolled_count
             FROM courses
-            WHERE teacher_id = ? AND status = 'active'
+            WHERE teacher_id = ? AND (status = 'active' OR status = 'open')
             ORDER BY created_at DESC
             LIMIT 3
-        `).bind(teacherId).all();
-
-        // 6. 최근 채점 대기 목록
-        const pendingGradingList = await DB.prepare(`
-            SELECT 
-                ss.id,
-                ss.exam_id,
-                ss.student_id,
-                u.name as student_name,
-                e.title as exam_title,
-                ss.submitted_at
-            FROM student_scores ss
-            JOIN exams e ON ss.exam_id = e.id
-            JOIN courses c ON e.course_id = c.id
-            JOIN users u ON ss.student_id = u.id
-            WHERE c.teacher_id = ? 
-            AND ss.graded_at IS NULL
-            AND ss.submitted_at IS NOT NULL
-            ORDER BY ss.submitted_at DESC
-            LIMIT 5
         `).bind(teacherId).all();
 
         return c.json({

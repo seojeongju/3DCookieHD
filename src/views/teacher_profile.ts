@@ -484,6 +484,11 @@ export const teacherProfileHtml = `
             training = data.training_history ? (typeof data.training_history === 'string' ? JSON.parse(data.training_history) : data.training_history) : [];
             teachingHistory = data.teaching_history ? (typeof data.teaching_history === 'string' ? JSON.parse(data.teaching_history) : data.teaching_history) : [];
 
+            sortEducationByDate();
+            sortCareerByDate();
+            sortCertificationsByDate();
+            sortTrainingByDate();
+            sortTeachingHistoryByDate();
             refreshTabContent();
         }
 
@@ -515,6 +520,46 @@ export const teacherProfileHtml = `
             else if(currentProfileTab === 'teaching') renderTeachingHistory();
         }
 
+        function dateKey(item, primary, secondary) {
+            const d = item[primary] || item[secondary] || '';
+            return (typeof d === 'string' ? d.split('T')[0] : d) || '';
+        }
+        function sortEducationByDate() {
+            education.sort((a, b) => {
+                const da = dateKey(a, 'end_date', 'start_date');
+                const db = dateKey(b, 'end_date', 'start_date');
+                return db.localeCompare(da);
+            });
+        }
+        function sortCareerByDate() {
+            career.sort((a, b) => {
+                const da = dateKey(a, 'end_date', 'start_date');
+                const db = dateKey(b, 'end_date', 'start_date');
+                return db.localeCompare(da);
+            });
+        }
+        function sortCertificationsByDate() {
+            certifications.sort((a, b) => {
+                const da = dateKey(a, 'issue_date', 'expiry_date');
+                const db = dateKey(b, 'issue_date', 'expiry_date');
+                return db.localeCompare(da);
+            });
+        }
+        function sortTrainingByDate() {
+            training.sort((a, b) => {
+                const da = dateKey(a, 'start_date', '');
+                const db = dateKey(b, 'start_date', '');
+                return db.localeCompare(da);
+            });
+        }
+        function sortTeachingHistoryByDate() {
+            teachingHistory.sort((a, b) => {
+                const da = dateKey(a, 'end_date', 'start_date');
+                const db = dateKey(b, 'end_date', 'start_date');
+                return db.localeCompare(da);
+            });
+        }
+
         // Education Logic
         window.openEducationModal = (idx = null) => {
             currentEducationIndex = idx;
@@ -544,6 +589,7 @@ export const teacherProfileHtml = `
             };
             if(currentEducationIndex !== null) education[currentEducationIndex] = data;
             else education.push(data);
+            sortEducationByDate();
             closeEducationModal(); renderEducation();
         };
         function renderEducation() {
@@ -590,6 +636,7 @@ export const teacherProfileHtml = `
             };
             if(currentCareerIndex !== null) career[currentCareerIndex] = data;
             else career.push(data);
+            sortCareerByDate();
             closeCareerModal(); renderCareer();
         };
         function renderCareer() {
@@ -646,6 +693,7 @@ export const teacherProfileHtml = `
             };
             if(currentCertIndex !== null) certifications[currentCertIndex] = data;
             else certifications.push(data);
+            sortCertificationsByDate();
             closeCertificationModal(); renderCertifications();
         };
         function renderCertifications() {
@@ -691,6 +739,7 @@ export const teacherProfileHtml = `
             };
             if(currentTrainingIndex !== null) training[currentTrainingIndex] = data;
             else training.push(data);
+            sortTrainingByDate();
             closeTrainingModal(); renderTraining();
         };
         function renderTraining() {
@@ -737,6 +786,7 @@ export const teacherProfileHtml = `
             };
             if(currentTeachingIndex !== null) teachingHistory[currentTeachingIndex] = data;
             else teachingHistory.push(data);
+            sortTeachingHistoryByDate();
             closeTeachingHistoryModal(); renderTeachingHistory();
         };
         function renderTeachingHistory() {

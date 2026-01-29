@@ -178,8 +178,8 @@ export const teacherDashboardHtml = `
                             <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">출결 현황</span>
                             <h3 class="text-xl font-black text-slate-800 tracking-tight group-hover:text-emerald-600 transition-colors">출결 자동 추적</h3>
                             <div class="mt-4 flex items-baseline gap-2">
-                                <span class="text-3xl font-black text-slate-900" id="card-attendance-rate">98<span class="text-lg">%</span></span>
-                                <span class="text-xs font-bold text-slate-400">실시간</span>
+                                <span id="card-attendance-rate" class="text-3xl font-black text-slate-900">-</span>
+                                <span class="text-xs font-bold text-slate-400">평균 출석률</span>
                             </div>
                         </div>
                     </div>
@@ -216,8 +216,8 @@ export const teacherDashboardHtml = `
                                 <button class="px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors">지난 주</button>
                             </div>
                         </div>
-                        <div class="h-64 relative z-10">
-                            <canvas id="weeklyChart"></canvas>
+                        <div class="h-64 relative z-10 flex items-center justify-center" id="weeklyChartWrap">
+                            <p id="weeklyChartEmpty" class="text-slate-400 text-sm font-bold">데이터가 없습니다.</p>
                         </div>
                         <!-- Background decoration -->
                         <div class="absolute -bottom-10 -right-10 w-64 h-64 bg-slate-50 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
@@ -231,36 +231,15 @@ export const teacherDashboardHtml = `
                             <div class="flex justify-between items-start mb-6">
                                 <div>
                                     <h3 class="text-xl font-black text-slate-900 tracking-tight">주요 학사 알림</h3>
-                                    <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1">긴급 확인 필요</p>
+                                    <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1">채점 대기 등</p>
                                 </div>
-                                <div class="px-2 py-1 bg-rose-50 text-rose-500 rounded-lg text-[10px] font-black uppercase tracking-wider border border-rose-100 flex items-center gap-1">
+                                <div id="alerts-count-badge" class="px-2 py-1 bg-rose-50 text-rose-500 rounded-lg text-[10px] font-black uppercase tracking-wider border border-rose-100 flex items-center gap-1 hidden">
                                     <span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
-                                    5건
+                                    <span id="alerts-count">0</span>건
                                 </div>
                             </div>
-                            <div class="space-y-3">
-                                <div class="p-4 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-blue-50 hover:border-blue-100 transition-all cursor-pointer group">
-                                    <div class="flex gap-3">
-                                        <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-500 group-hover:text-white transition-colors">
-                                            <i class="fas fa-file-signature"></i>
-                                        </div>
-                                        <div>
-                                            <h4 class="font-bold text-slate-800 text-sm group-hover:text-blue-700">중간고사 성적 입력 마감</h4>
-                                            <p class="text-xs text-slate-500 mt-0.5">3D 모델링 기초 (5일 남음)</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="p-4 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-blue-50 hover:border-blue-100 transition-all cursor-pointer group">
-                                    <div class="flex gap-3">
-                                        <div class="w-10 h-10 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center flex-shrink-0 group-hover:bg-orange-500 group-hover:text-white transition-colors">
-                                            <i class="fas fa-user-clock"></i>
-                                        </div>
-                                        <div>
-                                            <h4 class="font-bold text-slate-800 text-sm group-hover:text-orange-700">장기 결석생 상담 필요</h4>
-                                            <p class="text-xs text-slate-500 mt-0.5">박민수 학생 외 2명</p>
-                                        </div>
-                                    </div>
-                                </div>
+                            <div id="alerts-list" class="space-y-3">
+                                <p class="text-sm text-slate-400 py-4 text-center">데이터를 불러오는 중...</p>
                             </div>
                         </div>
 
@@ -314,8 +293,9 @@ export const teacherDashboardHtml = `
                                 </div>
                             </div>
                             <div class="p-8">
-                                <div class="h-[300px] relative">
+                                <div class="h-[300px] relative" id="performanceChartWrap">
                                     <canvas id="performanceChart"></canvas>
+                                    <p id="performanceChartEmpty" class="hidden absolute inset-0 flex items-center justify-center text-slate-400 text-sm font-bold">데이터가 없습니다.</p>
                                 </div>
                             </div>
                         </div>
@@ -328,36 +308,13 @@ export const teacherDashboardHtml = `
                                     </div>
                                     <div>
                                         <h3 class="font-black text-slate-800 tracking-tight">최근 학사 알림</h3>
-                                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">주요 알림</p>
+                                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">채점 대기 목록</p>
                                     </div>
                                 </div>
-                                <span class="px-3 py-1 bg-orange-100 text-orange-600 text-[10px] font-black rounded-full uppercase tracking-widest">신규 3건</span>
+                                <span id="recent-alerts-count" class="px-3 py-1 bg-orange-100 text-orange-600 text-[10px] font-black rounded-full uppercase tracking-widest">0건</span>
                             </div>
-                            <div class="divide-y divide-slate-50">
-                                <div class="p-6 flex items-start gap-4 hover:bg-slate-50 transition-colors cursor-pointer group">
-                                    <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 flex-shrink-0">
-                                        <i class="fas fa-file-invoice text-sm"></i>
-                                    </div>
-                                    <div class="flex-1 min-w-0">
-                                        <div class="flex justify-between items-start">
-                                            <h4 class="font-bold text-slate-800 text-sm group-hover:text-blue-600 transition-colors tracking-tight">새로운 과제 제출이 확인되었습니다.</h4>
-                                            <span class="text-[10px] text-slate-400 font-bold whitespace-nowrap ml-2">12분 전</span>
-                                        </div>
-                                        <p class="text-xs text-slate-500 mt-1 line-clamp-1">3D 모델링 심화 과정 5기 - 김철수 학생 외 3명</p>
-                                    </div>
-                                </div>
-                                <div class="p-6 flex items-start gap-4 hover:bg-slate-50 transition-colors cursor-pointer group">
-                                    <div class="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center text-purple-500 flex-shrink-0">
-                                        <i class="fas fa-exclamation-triangle text-sm"></i>
-                                    </div>
-                                    <div class="flex-1 min-w-0">
-                                        <div class="flex justify-between items-start">
-                                            <h4 class="font-bold text-slate-800 text-sm group-hover:text-purple-600 transition-colors tracking-tight">출석률 하락 주의 교육생 발생</h4>
-                                            <span class="text-[10px] text-slate-400 font-bold whitespace-nowrap ml-2">2시간 전</span>
-                                        </div>
-                                        <p class="text-xs text-slate-500 mt-1 line-clamp-1">VR 콘텐츠 기획 - 이영희 학생 (현재 출석률 75%)</p>
-                                    </div>
-                                </div>
+                            <div id="recent-alerts-list" class="divide-y divide-slate-50">
+                                <p class="text-sm text-slate-400 py-6 text-center">데이터를 불러오는 중...</p>
                             </div>
                         </div>
                     </div>
@@ -412,16 +369,20 @@ export const teacherDashboardHtml = `
             updateTime();
             setInterval(updateTime, 1000);
             loadDashboardData();
-            initChart();
         });
+
+        function emptyStr(v) {
+            return (v !== undefined && v !== null && v !== '') ? String(v) : '데이터가 없습니다.';
+        }
 
         function updateTime() {
             const now = new Date();
             const timeStr = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            document.getElementById('current-time').textContent = timeStr;
-            
+            const timeEl = document.getElementById('current-time');
+            if (timeEl) timeEl.textContent = timeStr;
             const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' };
-            document.getElementById('welcome-date').textContent = now.toLocaleDateString('ko-KR', options);
+            const dateEl = document.getElementById('welcome-date');
+            if (dateEl) dateEl.textContent = now.toLocaleDateString('ko-KR', options);
         }
 
         async function loadDashboardData() {
@@ -433,74 +394,165 @@ export const teacherDashboardHtml = `
                 }
 
                 const userStr = localStorage.getItem('user');
+                const userName = userStr ? (JSON.parse(userStr).name || '') : '';
+                document.getElementById('header-user-name').textContent = emptyStr(userName);
+                document.getElementById('welcome-name').textContent = emptyStr(userName);
                 if (userStr) {
                     const user = JSON.parse(userStr);
-                    document.getElementById('header-user-name').textContent = user.name;
-                    document.getElementById('welcome-name').textContent = user.name;
                     if (user.role !== 'teacher' && user.role !== 'admin') {
                         location.href = '/';
                         return;
                     }
                 }
 
-                const response = await fetch('/api/teacher/dashboard-stats', {
+                const response = await fetch('/api/dashboard/teacher-stats', {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
                 const result = await response.json();
 
-                if (result.success) {
-                    const { stats, recentCourses } = result.data;
-                    
-                    // Stats
-                    document.getElementById('stat-my-courses').textContent = stats.myCourses;
-                    document.getElementById('stat-total-students').textContent = stats.totalStudents;
-                    document.getElementById('card-my-courses').textContent = stats.myCourses;
-                    document.getElementById('card-total-students').textContent = stats.totalStudents;
-                    document.getElementById('card-pending-grading').textContent = stats.pendingGrading;
-
-                    // Recent Courses
-                    const listContainer = document.getElementById('recent-courses-list');
-                    if (recentCourses.length === 0) {
-                        listContainer.innerHTML = '<p class="text-sm text-slate-400 text-center py-4">진행 중인 강의가 없습니다.</p>';
-                    } else {
-                        listContainer.innerHTML = recentCourses.slice(0, 3).map(course => 
-                            '<div class="flex items-center gap-4 group">' +
-                                '<div class="w-14 h-14 rounded-2xl bg-slate-100 overflow-hidden flex-shrink-0 border border-slate-200/50 group-hover:scale-105 transition-transform">' +
-                                    '<img src="' + (course.thumbnail || '/static/images/default-course.jpg') + '" class="w-full h-full object-cover" alt="Course">' +
-                                '</div>' +
-                                '<div class="flex-1 min-w-0">' +
-                                    '<h4 class="text-sm font-black text-slate-800 truncate tracking-tight group-hover:text-blue-600 transition-colors">' + course.title + '</h4>' +
-                                    '<div class="flex items-center gap-2 mt-1">' +
-                                         '<span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">' + (course.category || 'Core') + '</span>' +
-                                         '<span class="w-1 h-1 rounded-full bg-slate-300"></span>' +
-                                         '<span class="text-[10px] font-bold text-blue-500">' + (course.student_count || 0) + ' Students</span>' +
-                                    '</div>' +
-                                '</div>' +
-                                '<button onclick="location.href=\'/admin/courses/' + course.id + '/lms\'" class="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:bg-blue-600 hover:text-white transition-all">' +
-                                    '<i class="fas fa-cog text-xs"></i>' +
-                                '</button>' +
-                            '</div>'
-                        ).join('');
-                    }
+                const noData = '데이터가 없습니다.';
+                if (!result.success || !result.data) {
+                    document.getElementById('stat-total-students').textContent = noData;
+                    document.getElementById('stat-my-courses').textContent = noData;
+                    document.getElementById('card-my-courses').textContent = noData;
+                    document.getElementById('card-total-students').textContent = noData;
+                    document.getElementById('card-attendance-rate').textContent = noData;
+                    document.getElementById('card-pending-grading').textContent = noData;
+                    document.getElementById('recent-courses-list').innerHTML = '<p class="text-sm text-slate-400 text-center py-4">데이터가 없습니다.</p>';
+                    document.getElementById('alerts-list').innerHTML = '<p class="text-sm text-slate-400 py-4 text-center">데이터가 없습니다.</p>';
+                    document.getElementById('recent-alerts-list').innerHTML = '<p class="text-sm text-slate-400 py-6 text-center">데이터가 없습니다.</p>';
+                    initChart(null);
+                    return;
                 }
+
+                const d = result.data;
+                const myCourses = d.myCourses != null ? d.myCourses : noData;
+                const totalStudents = d.totalStudents != null ? d.totalStudents : noData;
+                const pendingGrading = d.pendingGrading != null ? d.pendingGrading : noData;
+                const avgAttendance = d.avgAttendance != null ? d.avgAttendance : null;
+                const recentCourses = d.recentCourses || [];
+                const pendingGradingList = d.pendingGradingList || [];
+
+                document.getElementById('stat-my-courses').textContent = myCourses;
+                document.getElementById('stat-total-students').textContent = totalStudents;
+                document.getElementById('card-my-courses').textContent = myCourses;
+                document.getElementById('card-total-students').textContent = totalStudents;
+                document.getElementById('card-pending-grading').textContent = pendingGrading;
+
+                const attEl = document.getElementById('card-attendance-rate');
+                if (avgAttendance != null && typeof avgAttendance === 'number') {
+                    attEl.textContent = avgAttendance + '%';
+                } else {
+                    attEl.textContent = noData;
+                }
+
+                const listContainer = document.getElementById('recent-courses-list');
+                if (!recentCourses.length) {
+                    listContainer.innerHTML = '<p class="text-sm text-slate-400 text-center py-4">데이터가 없습니다.</p>';
+                } else {
+                    const enrolledKey = recentCourses[0].enrolled_count != null ? 'enrolled_count' : 'student_count';
+                    listContainer.innerHTML = recentCourses.slice(0, 3).map(course =>
+                        '<div class="flex items-center gap-4 group">' +
+                            '<div class="w-14 h-14 rounded-2xl bg-slate-100 overflow-hidden flex-shrink-0 border border-slate-200/50 group-hover:scale-105 transition-transform">' +
+                                '<img src="' + (course.thumbnail || '/static/logo.png') + '" class="w-full h-full object-cover" alt="Course">' +
+                            '</div>' +
+                            '<div class="flex-1 min-w-0">' +
+                                '<h4 class="text-sm font-black text-slate-800 truncate tracking-tight group-hover:text-blue-600 transition-colors">' + emptyStr(course.title) + '</h4>' +
+                                '<div class="flex items-center gap-2 mt-1">' +
+                                    '<span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">' + (course.category || '-') + '</span>' +
+                                    '<span class="w-1 h-1 rounded-full bg-slate-300"></span>' +
+                                    '<span class="text-[10px] font-bold text-blue-500">' + (course[enrolledKey] != null ? course[enrolledKey] : 0) + '명</span>' +
+                                '</div>' +
+                            '</div>' +
+                            '<button onclick="location.href=\'/admin/courses/' + course.id + '/lms\'" class="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:bg-blue-600 hover:text-white transition-all">' +
+                                '<i class="fas fa-cog text-xs"></i>' +
+                            '</button>' +
+                        '</div>'
+                    ).join('');
+                }
+
+                const alertsList = document.getElementById('alerts-list');
+                const alertsCountBadge = document.getElementById('alerts-count-badge');
+                const alertsCountEl = document.getElementById('alerts-count');
+                if (pendingGradingList.length === 0) {
+                    alertsList.innerHTML = '<p class="text-sm text-slate-400 py-4 text-center">데이터가 없습니다.</p>';
+                    if (alertsCountBadge) alertsCountBadge.classList.add('hidden');
+                } else {
+                    if (alertsCountBadge) alertsCountBadge.classList.remove('hidden');
+                    if (alertsCountEl) alertsCountEl.textContent = pendingGradingList.length;
+                    alertsList.innerHTML = pendingGradingList.slice(0, 5).map(function (item) {
+                        const title = item.exam_title || '시험';
+                        const sub = (item.student_name || '학생') + ' - ' + (item.submitted_at ? item.submitted_at.split('T')[0] : '');
+                        return '<div class="p-4 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-blue-50 hover:border-blue-100 transition-all cursor-pointer group" onclick="location.href=\'/teacher/courses?tab=exams\'">' +
+                            '<div class="flex gap-3">' +
+                                '<div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center flex-shrink-0"><i class="fas fa-file-signature"></i></div>' +
+                                '<div><h4 class="font-bold text-slate-800 text-sm">채점 대기: ' + title + '</h4><p class="text-xs text-slate-500 mt-0.5">' + sub + '</p></div>' +
+                            '</div></div>';
+                    }).join('');
+                }
+
+                const recentAlertsList = document.getElementById('recent-alerts-list');
+                const recentAlertsCount = document.getElementById('recent-alerts-count');
+                if (recentAlertsCount) recentAlertsCount.textContent = pendingGradingList.length + '건';
+                if (pendingGradingList.length === 0) {
+                    recentAlertsList.innerHTML = '<p class="text-sm text-slate-400 py-6 text-center">데이터가 없습니다.</p>';
+                } else {
+                    recentAlertsList.innerHTML = pendingGradingList.slice(0, 5).map(function (item) {
+                        const title = item.exam_title || '시험';
+                        const sub = (item.student_name || '학생') + (item.submitted_at ? ' - ' + item.submitted_at.split('T')[0] : '');
+                        return '<div class="p-6 flex items-start gap-4 hover:bg-slate-50 transition-colors cursor-pointer group" onclick="location.href=\'/teacher/courses?tab=exams\'">' +
+                            '<div class="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center text-purple-500 flex-shrink-0"><i class="fas fa-clipboard-check text-sm"></i></div>' +
+                            '<div class="flex-1 min-w-0">' +
+                                '<h4 class="font-bold text-slate-800 text-sm">채점 대기: ' + title + '</h4>' +
+                                '<p class="text-xs text-slate-500 mt-1">' + sub + '</p>' +
+                            '</div></div>';
+                    }).join('');
+                }
+
+                initChart(avgAttendance);
             } catch (error) {
                 console.error('Error loading dashboard data:', error);
+                document.getElementById('stat-total-students').textContent = '데이터가 없습니다.';
+                document.getElementById('stat-my-courses').textContent = '데이터가 없습니다.';
+                document.getElementById('card-my-courses').textContent = '데이터가 없습니다.';
+                document.getElementById('card-total-students').textContent = '데이터가 없습니다.';
+                document.getElementById('card-attendance-rate').textContent = '데이터가 없습니다.';
+                document.getElementById('card-pending-grading').textContent = '데이터가 없습니다.';
+                document.getElementById('recent-courses-list').innerHTML = '<p class="text-sm text-slate-400 text-center py-4">데이터가 없습니다.</p>';
+                document.getElementById('alerts-list').innerHTML = '<p class="text-sm text-slate-400 py-4 text-center">데이터가 없습니다.</p>';
+                document.getElementById('recent-alerts-list').innerHTML = '<p class="text-sm text-slate-400 py-6 text-center">데이터가 없습니다.</p>';
+                initChart(null);
             }
         }
 
-        function initChart() {
-            const ctx = document.getElementById('performanceChart').getContext('2d');
+        function initChart(avgAttendance) {
+            const wrap = document.getElementById('performanceChartWrap');
+            const emptyEl = document.getElementById('performanceChartEmpty');
+            const canvas = document.getElementById('performanceChart');
+            if (!canvas) return;
+
+            if (avgAttendance == null || (typeof avgAttendance === 'number' && isNaN(avgAttendance))) {
+                if (emptyEl) emptyEl.classList.remove('hidden');
+                canvas.style.display = 'none';
+                return;
+            }
+            if (emptyEl) emptyEl.classList.add('hidden');
+            canvas.style.display = 'block';
+
+            const ctx = canvas.getContext('2d');
             const gradient = ctx.createLinearGradient(0, 0, 0, 300);
             gradient.addColorStop(0, 'rgba(59, 130, 246, 0.2)');
             gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
+            const val = typeof avgAttendance === 'number' ? avgAttendance : 0;
+            const dataArr = [val, val, val, val, val, val, val];
 
             new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                    labels: ['월', '화', '수', '목', '금', '토', '일'],
                     datasets: [{
-                        label: 'Average Attendance Rate (%)',
-                        data: [95, 98, 92, 96, 88, 0, 0],
+                        label: '평균 출석률 (%)',
+                        data: dataArr,
                         borderColor: '#3b82f6',
                         borderWidth: 4,
                         backgroundColor: gradient,
@@ -516,20 +568,10 @@ export const teacherDashboardHtml = `
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false }
-                    },
+                    plugins: { legend: { display: false } },
                     scales: {
-                        y: {
-                            beginAtZero: true,
-                            max: 100,
-                            grid: { color: 'rgba(0,0,0,0.03)' },
-                            ticks: { font: { size: 10, weight: '700' }, color: '#94a3b8' }
-                        },
-                        x: {
-                            grid: { display: false },
-                            ticks: { font: { size: 10, weight: '700' }, color: '#94a3b8' }
-                        }
+                        y: { beginAtZero: true, max: 100, grid: { color: 'rgba(0,0,0,0.03)' }, ticks: { font: { size: 10, weight: '700' }, color: '#94a3b8' } },
+                        x: { grid: { display: false }, ticks: { font: { size: 10, weight: '700' }, color: '#94a3b8' } }
                     }
                 }
             });
