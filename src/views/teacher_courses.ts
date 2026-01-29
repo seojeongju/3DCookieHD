@@ -189,10 +189,10 @@ export const teacherCoursesHtml = `
                     case 'cancelled': statusInfo = { badge: '취소', class: 'bg-red-100 text-red-700' }; break;
                 }
 
-                // Escape single quotes for JS string safety
-                const safeTitle = (course.title || '제목 없음').replace(/'/g, "\\'");
-                const safeCategory = (course.category || '일반').replace(/'/g, "\\'");
-                const safeThumbnail = (course.thumbnail_url || '').replace(/'/g, "\\'");
+                // Use HTML entities to prevent syntax errors in JS/HTML
+                const safeTitle = (course.title || '제목 없음').replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+                const safeCategory = (course.category || '일반').replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+                const safeThumbnail = (course.thumbnail_url || '').replace(/'/g, "&#39;").replace(/"/g, "&quot;");
 
                 const thumbnail = safeThumbnail 
                     ? '<img src="' + safeThumbnail + '" alt="' + safeTitle + '" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000">'
