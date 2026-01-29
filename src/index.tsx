@@ -9,6 +9,7 @@ import { trackingMiddleware } from './middleware/tracking';
 // API 라우트 임포트
 import auth from './api/auth';
 import courses from './api/courses';
+import courseCategories from './api/course_categories';
 import campuses from './api/campuses';
 import enrollments from './api/enrollments';
 import reviews from './api/reviews';
@@ -143,6 +144,7 @@ app.route('/api/auth', auth);
 
 // 과정 API
 app.route('/api/courses', courses);
+app.route('/api/course-categories', courseCategories);
 app.route('/api/surveys', surveys);
 app.route('/api/assignments', assignments);
 app.route('/api/progress', progress);

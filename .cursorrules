@@ -1,0 +1,6 @@
+# UI/UX 규칙
+- 모든 관리자·강사·수강생 페이지는 **벤토 그리드(Bento Grid) 스타일**을 유지한다.
+- 카드/패널: `rounded-[2.5rem]` 또는 `rounded-2xl`, `border border-slate-200/60`, `shadow-sm`, 호버 시 `bento-card` 효과.
+- 배경: `bg-slate-50`, 점 그리드 패턴, `custom-scrollbar`.
+- 헤더: 글래스 스타일(`bg-white/80 backdrop-blur-md`), `font-black tracking-tight`.
+- 새 페이지 추가 시 위 스타일을 따르고, 기존 admin/teacher/student 대시보드와 통일성 유지.
