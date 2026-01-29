@@ -4,7 +4,7 @@ export const lmsHeaderHtml = (activeTab = 'dashboard') => `
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-20">
                 <div class="flex items-center space-x-4">
-                    <a href="/admin" class="flex flex-col items-start group">
+                    <a href="/admin" id="lms-logo-link" class="flex flex-col items-start group">
                         <div class="flex items-center gap-2">
                             <img src="/static/logo.png" alt="WOW 3D" class="h-9 w-auto object-contain mb-0.5">
                             <span class="px-1.5 py-0.5 bg-purple-100 text-purple-600 text-[10px] font-bold rounded-full">LMS</span>
@@ -13,7 +13,7 @@ export const lmsHeaderHtml = (activeTab = 'dashboard') => `
                     </a>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <a href="/admin/courses" class="text-gray-700 hover:text-primary-600 font-medium">
+                    <a href="/admin/courses" id="lms-back-link" class="text-gray-700 hover:text-primary-600 font-medium">
                         <i class="fas fa-arrow-left mr-2"></i>과정 목록으로
                     </a>
                 </div>
@@ -73,7 +73,7 @@ export const lmsHeaderHtml = (activeTab = 'dashboard') => `
                 <a href="surveys" class="px-6 py-3 rounded-t-lg transition whitespace-nowrap ${activeTab === 'surveys' ? 'bg-white text-purple-700 font-bold border-b-2 border-purple-700' : 'text-purple-100 hover:bg-white/10 hover:text-white font-medium'}">
                     <i class="fas fa-poll mr-2"></i>설문/평가
                 </a>
-                 <a href="employment" class="px-6 py-3 rounded-t-lg transition whitespace-nowrap ${activeTab === 'employment' ? 'bg-white text-purple-700 font-bold border-b-2 border-purple-700' : 'text-purple-100 hover:bg-white/10 hover:text-white font-medium'}">
+                <a href="employment" class="px-6 py-3 rounded-t-lg transition whitespace-nowrap ${activeTab === 'employment' ? 'bg-white text-purple-700 font-bold border-b-2 border-purple-700' : 'text-purple-100 hover:bg-white/10 hover:text-white font-medium'}">
                     <i class="fas fa-user-tie mr-2"></i>취업관리
                 </a>
             </div>
@@ -93,83 +93,117 @@ export const lmsHeaderHtml = (activeTab = 'dashboard') => `
 
     <!-- Common Script for Header Data Loading & Link Fixes -->
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            updateLmsLinks(); // Fix links first
-            loadLmsHeaderInfo();
-        });
-
-        function updateLmsLinks() {
-            // Extract courseId from URL: /admin/courses/{id}/lms...
-            const pathParts = window.location.pathname.split('/');
-            const courseIdIndex = pathParts.indexOf('courses') + 1;
-            const courseId = pathParts[courseIdIndex];
-
-            if (!courseId) return;
-
-            const tabs = document.querySelectorAll('#lms-tab-menu a');
-            tabs.forEach(link => {
-                const target = link.getAttribute('href'); 
-                // target is like "dashboard", "attendance"
-                
-                // Construct absolute path
-                if (target === 'dashboard') {
-                    link.setAttribute('href', \`/admin/courses/\${courseId}/lms\`);
+        (function() {
+            function updateLmsLinks() {
+                const userStr = localStorage.getItem('user');
+                if (userStr) {
+                    try {
+                        const user = JSON.parse(userStr);
+                        const logoLink = document.getElementById('lms-logo-link');
+                        const backLink = document.getElementById('lms-back-link');
+                        
+                        if (user.role === 'teacher') {
+                            if (logoLink) logoLink.setAttribute('href', '/teacher');
+                            if (backLink) backLink.setAttribute('href', '/teacher/courses');
+                        } else if (user.role === 'student' || user.role === 'user') {
+                            if (logoLink) logoLink.setAttribute('href', '/student');
+                            if (backLink) backLink.setAttribute('href', '/student');
+                        } else if (user.role === 'admin') {
+                            if (logoLink) logoLink.setAttribute('href', '/admin');
+                            if (backLink) backLink.setAttribute('href', '/admin/courses');
+                        }
+                    } catch(e) {
+                         if (logoLink) logoLink.setAttribute('href', '/');
+                         if (backLink) backLink.setAttribute('href', '/login');
+                    }
                 } else {
-                    link.setAttribute('href', \`/admin/courses/\${courseId}/lms/\${target}\`);
+                    if (logoLink) logoLink.setAttribute('href', '/');
+                    if (backLink) backLink.setAttribute('href', '/login');
                 }
-            });
-        }
 
-        async function loadLmsHeaderInfo() {
-            const pathParts = window.location.pathname.split('/');
-            const courseIdIndex = pathParts.indexOf('courses') + 1;
-            const courseId = pathParts[courseIdIndex];
-            
-            if (!courseId) return;
+                // Extract courseId from URL: /admin/courses/{id}/lms...
+                const pathParts = window.location.pathname.split('/');
+                const courseIdIndex = pathParts.indexOf('courses') + 1;
+                const courseId = pathParts[courseIdIndex];
 
-            try {
-                const token = localStorage.getItem('token');
-                const response = await fetch(\`/api/courses/\${courseId}\`, {
-                    headers: { 'Authorization': 'Bearer ' + token }
-                });
-                const result = await response.json();
-                
-                if (result.success) {
-                    const course = result.data;
-                    const titleEl = document.getElementById('header-courseTitle');
-                    if (titleEl) titleEl.textContent = course.title;
+                if (!courseId) return;
+
+                const tabs = document.querySelectorAll('#lms-tab-menu a');
+                tabs.forEach(link => {
+                    const target = link.getAttribute('href'); 
                     
-                    const catEl = document.getElementById('header-courseCategory');
-                    if (catEl) catEl.textContent = course.category || '기타';
-
-                    const statusEl = document.getElementById('header-courseStatus');
-                    if (statusEl) {
-                        statusEl.textContent = course.status === 'open' ? '진행중' : '마감';
-                        statusEl.className = course.status === 'open' ? 
-                            'px-2 py-1 bg-green-500 rounded text-xs font-semibold' : 
-                            'px-2 py-1 bg-red-500 rounded text-xs font-semibold';
+                    if (target === 'dashboard') {
+                        link.setAttribute('href', '/admin/courses/' + courseId + '/lms');
+                    } else if (!target.startsWith('/')) {
+                        link.setAttribute('href', '/admin/courses/' + courseId + '/lms/' + target);
                     }
-
-                    const periodEl = document.getElementById('header-coursePeriod');
-                    if (periodEl) periodEl.innerHTML = \`<i class="far fa-calendar-alt mr-1"></i> \${(course.start_date||'').split('T')[0]} ~ \${(course.end_date||'').split('T')[0]}\`;
-
-                    const scheduleEl = document.getElementById('header-courseSchedule');
-                    // schedule might be JSON or string
-                    let scheduleStr = course.schedule || '시간표 미정';
-                    if (scheduleStr.startsWith('{')) {
-                        try {
-                            const s = JSON.parse(scheduleStr);
-                            scheduleStr = \`\${s.days || ''} \${s.startTime || ''}-\${s.endTime || ''}\`;
-                        } catch(e){}
-                    }
-                    if (scheduleEl) scheduleEl.innerHTML = \`<i class="far fa-clock mr-1"></i> \${scheduleStr}\`;
-
-                    const countEl = document.getElementById('header-studentCount');
-                    if (countEl) countEl.textContent = course.current_students || course.max_students || 0;
-                }
-            } catch (error) {
-                console.error('Error loading header info:', error);
+                });
             }
-        }
+
+            async function loadLmsHeaderInfo() {
+                const pathParts = window.location.pathname.split('/');
+                const courseIdIndex = pathParts.indexOf('courses') + 1;
+                const courseId = pathParts[courseIdIndex];
+                
+                if (!courseId) return;
+
+                try {
+                    const token = localStorage.getItem('token');
+                    const response = await fetch('/api/courses/' + courseId, {
+                        headers: { 'Authorization': 'Bearer ' + token }
+                    });
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        const course = result.data;
+                        const titleEl = document.getElementById('header-courseTitle');
+                        if (titleEl) titleEl.textContent = course.title;
+                        
+                        const catEl = document.getElementById('header-courseCategory');
+                        if (catEl) catEl.textContent = course.category || '기타';
+
+                        const statusEl = document.getElementById('header-courseStatus');
+                        if (statusEl) {
+                            statusEl.textContent = course.status === 'open' ? '진행중' : '마감';
+                            statusEl.className = course.status === 'open' ? 
+                                'px-2 py-1 bg-green-500 rounded text-xs font-semibold' : 
+                                'px-2 py-1 bg-red-500 rounded text-xs font-semibold';
+                        }
+
+                        const periodEl = document.getElementById('header-coursePeriod');
+                        if (periodEl) {
+                            const start = (course.start_date||'').split('T')[0];
+                            const end = (course.end_date||'').split('T')[0];
+                            periodEl.innerHTML = '<i class="far fa-calendar-alt mr-1"></i> ' + start + ' ~ ' + end;
+                        }
+
+                        const scheduleEl = document.getElementById('header-courseSchedule');
+                        let scheduleStr = course.schedule || '시간표 미정';
+                        if (scheduleStr.startsWith('{')) {
+                            try {
+                                const s = JSON.parse(scheduleStr);
+                                scheduleStr = (s.days || '') + ' ' + (s.startTime || '') + '-' + (s.endTime || '');
+                            } catch(e){}
+                        }
+                        if (scheduleEl) scheduleEl.innerHTML = '<i class="far fa-clock mr-1"></i> ' + scheduleStr;
+
+                        const countEl = document.getElementById('header-studentCount');
+                        if (countEl) countEl.textContent = course.current_students || course.max_students || 0;
+                    }
+                } catch (error) {
+                    console.error('Error loading header info:', error);
+                }
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', () => {
+                    updateLmsLinks();
+                    loadLmsHeaderInfo();
+                });
+            } else {
+                updateLmsLinks();
+                loadLmsHeaderInfo();
+            }
+        })();
     </script>
 `;

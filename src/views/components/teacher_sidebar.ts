@@ -53,13 +53,13 @@ export const teacherSidebar = (activeMenu: string) => `
                     <div class="w-8 flex justify-center">
                         <i class="fas fa-user-graduate text-sm ${activeMenu === 'students' ? 'text-white' : 'text-gray-500 group-hover:text-blue-400 transition-colors'}"></i>
                     </div>
-                    <span class="font-black text-sm tracking-tight">수강생 분석 (Student Analysis)</span>
+                    <span class="font-black text-sm tracking-tight">수강생 관리 (Student Analysis)</span>
                 </a>
                 <a href="/teacher/attendance" class="flex items-center px-4 py-3.5 rounded-2xl transition-all duration-300 group ${activeMenu === 'attendance' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40 border border-white/10' : 'text-gray-400 hover:bg-white/5 hover:text-white'}">
                     <div class="w-8 flex justify-center">
                         <i class="fas fa-calendar-check text-sm ${activeMenu === 'attendance' ? 'text-white' : 'text-gray-500 group-hover:text-blue-400 transition-colors'}"></i>
                     </div>
-                    <span class="font-black text-sm tracking-tight">출석 정밀 관리 (Attendance)</span>
+                    <span class="font-black text-sm tracking-tight">출석 관리 (Attendance)</span>
                 </a>
                 <a href="/teacher/exams" class="flex items-center px-4 py-3.5 rounded-2xl transition-all duration-300 group ${activeMenu === 'exams' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40 border border-white/10' : 'text-gray-400 hover:bg-white/5 hover:text-white'}">
                     <div class="w-8 flex justify-center">
@@ -93,7 +93,7 @@ export const teacherSidebar = (activeMenu: string) => `
                     <div class="w-8 flex justify-center">
                         <i class="fas fa-portal-enter text-sm ${activeMenu === 'portfolios' ? 'text-white' : 'text-gray-500 group-hover:text-blue-400 transition-colors'}"></i>
                     </div>
-                    <span class="font-black text-sm tracking-tight">포트폴리오 빌더 (Portfolio)</span>
+                    <span class="font-black text-sm tracking-tight">포트폴리오 관리 (Portfolio)</span>
                 </a>
             </div>
         </div>
@@ -147,13 +147,8 @@ export const teacherSidebar = (activeMenu: string) => `
     background: transparent;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 10px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.1);
 }
-</aside>
 </style>
 
 <script>
@@ -184,4 +179,4 @@ export const teacherSidebar = (activeMenu: string) => `
         }
     });
 </script>
-`
+`;

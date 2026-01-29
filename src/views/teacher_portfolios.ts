@@ -6,98 +6,147 @@ export const teacherPortfoliosHtml = `
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>포트폴리오 관리 - 강사 대시보드</title>
+    <title>Academic Asset Management - 3D Cookie</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script>
       tailwind.config = {
         theme: {
           extend: {
+            fontFamily: {
+              sans: ['Inter', 'Apple SD Gothic Neo', 'Malgun Gothic', 'sans-serif'],
+            },
             colors: {
               primary: {
                 50: '#f0f7ff', 100: '#e0effe', 200: '#baddfd', 300: '#7dbcfb', 400: '#3a9bf7',
                 500: '#5b9bd5', 600: '#4a90e2', 700: '#2d5fa3', 800: '#1e4278', 900: '#132d54'
+              },
+              industry: {
+                dark: '#0f172a',
+                glass: 'rgba(255, 255, 255, 0.03)',
+                border: 'rgba(255, 255, 255, 0.1)',
               }
             }
           }
         }
       }
     </script>
+    <style>
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
+        .bento-card { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .bento-card:hover { transform: translateY(-4px); box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1); }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        .glass-header { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(226, 232, 240, 0.6); }
+        .asset-image-hover { transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+        .group:hover .asset-image-hover { transform: scale(1.08); }
+        .modal-blur { backdrop-filter: blur(12px); background: rgba(15, 23, 42, 0.8); }
+    </style>
 </head>
-<body class="bg-gray-50 font-sans">
+<body class="bg-slate-50 font-sans text-slate-900 antialiased overflow-hidden">
     <div class="flex h-screen overflow-hidden">
+        <!-- 사이드바 -->
         ${teacherSidebar('portfolios')}
-        <div class="flex-1 flex flex-col overflow-hidden bg-gray-50">
-            <header class="bg-white shadow-sm sticky top-0 z-10">
-                <div class="px-8 py-4 flex justify-between items-center">
-                    <div>
-                        <h1 class="text-2xl font-bold text-gray-800">포트폴리오 관리</h1>
-                        <p class="text-gray-600 mt-1 text-sm">배정된 과정의 학생 포트폴리오를 관리합니다.</p>
-                    </div>
-                    <div class="flex items-center space-x-4">
-                        <span class="px-3 py-1 bg-blue-100 text-blue-600 text-xs font-bold rounded-full">TEACHER</span>
-                        <a href="/teacher" class="text-gray-500 hover:text-primary-600 transition">
-                            <i class="fas fa-arrow-left mr-1"></i> 대시보드로
-                        </a>
+
+        <div class="flex-1 flex flex-col overflow-hidden relative">
+            <div class="absolute inset-0 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:32px_32px] opacity-40 pointer-events-none"></div>
+
+            <!-- 상단 헤더 -->
+            <header class="glass-header sticky top-0 z-20 px-8 py-6 flex justify-between items-center">
+                <div class="flex flex-col">
+                    <h1 class="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+                        성과물 지능 관리
+                        <span class="text-[10px] bg-sky-600 text-white px-2 py-0.5 rounded-full uppercase tracking-widest font-black">Portfolios</span>
+                    </h1>
+                    <p class="text-xs font-medium text-slate-500 mt-0.5 tracking-tight uppercase">Academic Asset Repository & Portfolio Curation</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <button onclick="location.href='/teacher'" class="px-4 py-2 bg-white border border-slate-200 text-[10px] font-black rounded-xl hover:bg-slate-50 transition uppercase tracking-widest flex items-center gap-2 shadow-sm">
+                        <i class="fas fa-arrow-left"></i> Dashboard
+                    </button>
+                    <div class="flex items-center gap-3 pl-4 border-l border-slate-200">
+                        <div class="text-right flex flex-col uppercase tracking-tighter">
+                            <span id="header-user-name" class="text-xs font-black text-slate-900">Instructor Name</span>
+                            <span class="text-[9px] font-black text-slate-400">Curator Mode</span>
+                        </div>
                     </div>
                 </div>
             </header>
-            <main class="flex-1 overflow-y-auto p-8">
-                <!-- 과정 목록 섹션 -->
-                <div id="coursesSection" class="mb-8">
-                    <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
-                        <i class="fas fa-chalkboard-teacher text-blue-500 mr-2"></i> 배정된 과정 목록
-                    </h2>
-                    <div id="coursesContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <div class="col-span-full text-center py-12">
-                            <i class="fas fa-spinner fa-spin text-3xl text-gray-400"></i>
-                            <p class="mt-4 text-gray-500">과정 목록을 불러오는 중...</p>
+
+            <main class="flex-1 overflow-y-auto p-8 custom-scrollbar relative z-10">
+                <div class="max-w-[1400px] mx-auto space-y-8">
+                    
+                    <!-- 1. 과정 선택 섹션 -->
+                    <div id="coursesSection" class="animate-fade-in" style="animation-delay: 0.1s">
+                        <div class="flex items-center gap-4 mb-8">
+                            <div class="w-10 h-10 rounded-xl bg-sky-600 text-white flex items-center justify-center shadow-lg shadow-sky-100">
+                                <i class="fas fa-layer-group text-sm"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-black text-slate-800 tracking-tight">자산 관리 대상 선택</h2>
+                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Select Academic Module for Asset Inventory</p>
+                            </div>
+                        </div>
+
+                        <div id="coursesContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <!-- JS Load -->
+                            <div class="col-span-full py-20 flex flex-col items-center justify-center bg-white rounded-[2.5rem] border border-dashed border-slate-200">
+                                <i class="fas fa-circle-notch fa-spin text-3xl text-sky-500 mb-4"></i>
+                                <p class="text-slate-400 font-black text-sm uppercase tracking-widest">Scanning Academic Containers...</p>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- 포트폴리오 관리 섹션 (과정 선택 시 표시) -->
-                <div id="portfoliosSection" class="hidden">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="flex items-center gap-4">
-                            <button onclick="backToCourses()" class="px-4 py-2 text-gray-600 hover:text-blue-600 transition flex items-center">
-                                <i class="fas fa-arrow-left mr-2"></i> 과정 목록으로
-                            </button>
-                            <h2 class="text-lg font-bold text-gray-800" id="selectedCourseTitle">
-                                <i class="fas fa-briefcase text-blue-500 mr-2"></i> 포트폴리오 관리
-                            </h2>
+                    <!-- 2. 포트폴리오 관리 섹션 (Hidden by Default) -->
+                    <div id="portfoliosSection" class="hidden animate-fade-in">
+                        <div class="flex flex-col lg:flex-row items-center justify-between gap-6 mb-8 bg-white p-8 rounded-[2.5rem] border border-slate-200/60 shadow-sm">
+                            <div class="flex items-center gap-6">
+                                <button onclick="backToCourses()" class="w-12 h-12 flex items-center justify-center rounded-2xl bg-slate-100 text-slate-400 hover:bg-slate-900 hover:text-white transition-all shadow-inner">
+                                    <i class="fas fa-chevron-left text-sm"></i>
+                                </button>
+                                <div>
+                                    <h2 class="text-2xl font-black text-slate-900 tracking-tight" id="selectedCourseTitle">Academic Asset Repository</h2>
+                                    <div class="flex items-center gap-3 mt-1">
+                                        <span class="px-2 py-0.5 bg-sky-50 text-sky-600 text-[10px] font-black rounded-full uppercase tracking-widest border border-sky-100/50">Asset Grid</span>
+                                        <span class="text-xs font-bold text-slate-400 uppercase tracking-tight">Curation of student intelligence outputs</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center gap-3 w-full lg:w-auto">
+                                <div class="relative flex-1 lg:flex-none lg:w-64">
+                                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 text-sm"></i>
+                                    <input type="text" id="searchInput" placeholder="Search Assets..." 
+                                           class="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none transition-all text-sm font-medium tracking-tight"
+                                           onkeyup="if(event.key==='Enter') loadPortfolios()">
+                                </div>
+                                <button onclick="openAddPortfolioModal()" class="px-6 py-4 bg-sky-600 text-white font-black text-[10px] rounded-2xl hover:bg-slate-900 transition-all uppercase tracking-widest shadow-lg shadow-sky-100 flex items-center gap-2">
+                                    <i class="fas fa-plus"></i> New Asset
+                                </button>
+                            </div>
                         </div>
-                        <button onclick="openAddPortfolioModal()" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium flex items-center shadow-sm">
-                            <i class="fas fa-plus mr-2"></i> 포트폴리오 추가
-                        </button>
-                    </div>
 
-                    <!-- 필터 -->
-                    <div class="bg-white rounded-lg shadow-sm p-4 mb-6 flex flex-wrap gap-4 items-center">
-                        <select id="categoryFilter" onchange="loadPortfolios()" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
-                            <option value="">전체 카테고리</option>
-                            <option value="3d_modeling">3D 모델링</option>
-                            <option value="design">디자인</option>
-                            <option value="coding">코딩/개발</option>
-                            <option value="other">기타</option>
-                        </select>
-                        <select id="featuredFilter" onchange="loadPortfolios()" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
-                            <option value="">전체</option>
-                            <option value="true">우수작품만</option>
-                        </select>
-                        <input type="text" id="searchInput" placeholder="포트폴리오 검색..." 
-                               class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                               onkeyup="if(event.key==='Enter') loadPortfolios()">
-                        <button onclick="loadPortfolios()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm">
-                            <i class="fas fa-search mr-2"></i> 검색
-                        </button>
-                    </div>
+                        <!-- 필터 시퀀스 -->
+                        <div class="flex gap-3 mb-8 overflow-x-auto pb-2 custom-scrollbar no-scrollbar">
+                            <select id="categoryFilter" onchange="loadPortfolios()" class="px-6 py-3 bg-white border border-slate-200 rounded-xl font-black text-[10px] uppercase tracking-widest text-slate-600 focus:ring-4 focus:ring-sky-100 outline-none cursor-pointer">
+                                <option value="">ALL CLASSIFICATIONS</option>
+                                <option value="3d_modeling">3D MODELING</option>
+                                <option value="design">DESIGN</option>
+                                <option value="coding">DEVELOPMENT</option>
+                                <option value="other">OTHER</option>
+                            </select>
+                            <select id="featuredFilter" onchange="loadPortfolios()" class="px-6 py-3 bg-white border border-slate-200 rounded-xl font-black text-[10px] uppercase tracking-widest text-slate-600 focus:ring-4 focus:ring-sky-100 outline-none cursor-pointer">
+                                <option value="">ALL ASSETS</option>
+                                <option value="true">FEATURED ONLY</option>
+                            </select>
+                        </div>
 
-                    <!-- 포트폴리오 그리드 -->
-                    <div id="portfoliosContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <div class="col-span-full text-center py-12">
-                            <i class="fas fa-spinner fa-spin text-3xl text-gray-400"></i>
-                            <p class="mt-4 text-gray-500">포트폴리오를 불러오는 중...</p>
+                        <!-- 포트폴리오 그리드 -->
+                        <div id="portfoliosContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                            <!-- JS Load -->
                         </div>
                     </div>
                 </div>
@@ -105,136 +154,149 @@ export const teacherPortfoliosHtml = `
         </div>
     </div>
 
-    <!-- 포트폴리오 추가/수정 모달 -->
-    <div id="portfolioModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
-            <div class="bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-6">
-                <div class="flex justify-between items-center">
-                    <div>
-                        <h3 class="text-2xl font-black text-white" id="modalTitle">포트폴리오 추가</h3>
-                        <p class="text-xs text-white/80 font-medium mt-1">학생 포트폴리오를 등록하거나 수정합니다</p>
+    <!-- 고성능 모달: Portfolio Management -->
+    <div id="portfolioModal" class="fixed inset-0 modal-blur hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div class="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-sky-600 text-white flex items-center justify-center shadow-lg">
+                        <i class="fas fa-briefcase text-sm"></i>
                     </div>
-                    <button onclick="closePortfolioModal()" class="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-white/10 text-white transition">
-                        <i class="fas fa-times text-xl"></i>
-                    </button>
+                    <div>
+                        <h3 class="font-black text-slate-900 uppercase tracking-tight" id="modalTitle">Register Academic Asset</h3>
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Asset Metadata Configuration</p>
+                    </div>
                 </div>
+                <button onclick="closePortfolioModal()" class="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-red-500 hover:text-white text-slate-400 transition-all">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
-
-            <form id="portfolioForm" onsubmit="handleSavePortfolio(event)" class="flex-1 overflow-y-auto p-8">
-                <input type="hidden" id="portfolioId">
-                <input type="hidden" id="portfolioStudentId">
-                
-                <div class="space-y-6">
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2">학생 선택 <span class="text-red-500">*</span></label>
-                        <select id="portfolioStudentSelect" required class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            <option value="">학생을 선택하세요</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2">제목 <span class="text-red-500">*</span></label>
-                        <input type="text" id="portfolioTitle" required class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2">카테고리</label>
-                        <select id="portfolioCategory" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            <option value="3d_modeling">3D 모델링</option>
-                            <option value="design">디자인</option>
-                            <option value="coding">코딩/개발</option>
-                            <option value="other">기타</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2">설명</label>
-                        <textarea id="portfolioDescription" rows="4" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"></textarea>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2">썸네일 이미지</label>
-                        <div class="flex gap-2">
-                            <input type="text" id="portfolioThumbnail" placeholder="이미지 URL" class="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            <input type="file" id="thumbnailFile" accept="image/*" class="hidden" onchange="handleThumbnailUpload(this)">
-                            <button type="button" onclick="document.getElementById('thumbnailFile').click()" class="px-4 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition">
-                                <i class="fas fa-upload mr-2"></i> 업로드
-                            </button>
+            <div class="flex-1 overflow-y-auto p-12 custom-scrollbar">
+                <form id="portfolioForm" onsubmit="handleSavePortfolio(event)" class="space-y-10">
+                    <input type="hidden" id="portfolioId">
+                    <input type="hidden" id="portfolioStudentId">
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                        <div class="space-y-8">
+                            <div>
+                                <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-3 underline decoration-2 underline-offset-4">Assigned Node (Student)</label>
+                                <select id="portfolioStudentSelect" required class="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none transition-all font-bold text-slate-900 appearance-none">
+                                    <option value="">SELECT STUDENT NODE...</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-3 underline decoration-2 underline-offset-4">Asset Label (Title)</label>
+                                <input type="text" id="portfolioTitle" required class="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none transition-all font-bold text-slate-900" placeholder="Enter output title...">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-3">Classification</label>
+                                <select id="portfolioCategory" class="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none transition-all font-bold text-slate-900 appearance-none">
+                                    <option value="3d_modeling">3D MODELING</option>
+                                    <option value="design">VISUAL DESIGN</option>
+                                    <option value="coding">CODE ARCHITECTURE</option>
+                                    <option value="other">GENERIC OUTPUT</option>
+                                </select>
+                            </div>
                         </div>
-                        <div id="thumbnailPreview" class="mt-2 hidden">
-                            <img src="" class="max-h-40 rounded-lg border border-gray-200">
+                        <div class="space-y-8">
+                            <div>
+                                <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-3">Asset Intelligence (Description)</label>
+                                <textarea id="portfolioDescription" rows="5" class="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none transition-all font-medium text-slate-600 text-sm" placeholder="Provide technical context for this output..."></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-3">Endpoint Verification (Link)</label>
+                                <input type="url" id="portfolioContentUrl" class="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none transition-all font-medium text-slate-900" placeholder="https://external-resource-link.com">
+                            </div>
                         </div>
                     </div>
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2">포트폴리오 링크</label>
-                        <input type="url" id="portfolioContentUrl" placeholder="https://..." class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2">강사 조언/피드백</label>
-                        <textarea id="portfolioTeacherFeedback" rows="4" placeholder="포트폴리오에 대한 조언이나 피드백을 입력하세요..." class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"></textarea>
-                    </div>
-                </div>
 
-                <div class="mt-8 flex justify-end gap-4 pt-6 border-t border-gray-200">
-                    <button type="button" onclick="closePortfolioModal()" class="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition">
-                        취소
-                    </button>
-                    <button type="submit" class="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-500/20">
-                        <i class="fas fa-save mr-2"></i> 저장하기
-                    </button>
-                </div>
-            </form>
+                    <div class="pt-10 border-t border-slate-100">
+                        <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-4">Visual Identity (Thumbnail)</label>
+                        <div class="flex flex-col md:flex-row gap-6 items-start">
+                            <div class="flex-1 w-full space-y-4">
+                                <div class="flex gap-2">
+                                    <input type="text" id="portfolioThumbnail" placeholder="Thumbnail URL Vector..." class="flex-1 px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none transition-all font-medium text-slate-900">
+                                    <input type="file" id="thumbnailFile" accept="image/*" class="hidden" onchange="handleThumbnailUpload(this)">
+                                    <button type="button" onclick="document.getElementById('thumbnailFile').click()" class="px-8 py-4 bg-slate-900 text-white font-black text-[10px] rounded-2xl hover:bg-sky-600 transition-all uppercase tracking-widest shadow-lg">
+                                        <i class="fas fa-upload mr-2"></i> Inject
+                                    </button>
+                                </div>
+                                <div id="thumbnailPreview" class="hidden relative group">
+                                     <img src="" class="max-h-60 rounded-[2rem] border-4 border-slate-100 shadow-xl object-contain bg-slate-50">
+                                     <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-[2rem] flex items-center justify-center">
+                                         <span class="text-white font-black text-[10px] uppercase tracking-widest">Active Vector</span>
+                                     </div>
+                                </div>
+                            </div>
+                            <div class="w-full md:w-96">
+                                <label class="block text-[10px] font-black text-purple-600 uppercase tracking-widest mb-3 underline decoration-2 underline-offset-4">Instructor Feedback (Guidance)</label>
+                                <textarea id="portfolioTeacherFeedback" rows="6" class="w-full px-6 py-4 bg-purple-50/30 border border-purple-100 rounded-2xl focus:ring-4 focus:ring-purple-100 outline-none transition-all font-medium text-slate-700 text-sm" placeholder="Provide professional guidance and critique..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+             <div class="px-12 py-8 bg-slate-50/50 border-t border-slate-100 flex justify-end gap-4">
+                <button type="button" onclick="closePortfolioModal()" class="px-8 py-4 bg-white border border-slate-200 text-slate-400 font-black text-[11px] rounded-2xl uppercase tracking-widest hover:bg-slate-100 transition-all">Abort</button>
+                <button type="submit" form="portfolioForm" class="px-12 py-4 bg-sky-600 text-white font-black text-[11px] rounded-2xl uppercase tracking-widest hover:bg-slate-900 transition-all shadow-xl shadow-sky-100">
+                    <i class="fas fa-save mr-2"></i> Save Asset Intelligence
+                </button>
+            </div>
         </div>
     </div>
 
-    <!-- 포트폴리오 상세 모달 -->
-    <div id="detailModal" class="fixed inset-0 bg-black/80 hidden z-[70] flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto transform transition-all">
-            <div class="relative">
-                <img id="modalThumbnail" src="" class="w-full h-80 object-cover rounded-t-3xl">
-                <button onclick="closeDetailModal()" class="absolute top-6 right-6 w-10 h-10 bg-black/30 hover:bg-black/50 text-white rounded-full flex items-center justify-center transition backdrop-blur-md">
-                    <i class="fas fa-times"></i>
-                </button>
-                <div class="absolute bottom-6 left-8">
-                    <span id="modalCategory" class="px-3 py-1 bg-white/90 text-blue-600 text-[10px] font-black rounded-full shadow-sm uppercase tracking-widest mb-2 inline-block">CATEGORY</span>
-                    <h3 id="modalTitle" class="text-3xl font-black text-white drop-shadow-lg">제목</h3>
+    <!-- Asset Detail Modal -->
+    <div id="detailModal" class="fixed inset-0 modal-blur hidden z-[70] flex items-center justify-center p-4">
+        <div class="bg-white rounded-[3rem] shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col md:flex-row">
+            <div class="md:w-1/2 relative bg-slate-900 overflow-hidden min-h-[300px]">
+                <img id="modalThumbnail" src="" class="w-full h-full object-cover opacity-80 group-hover:scale-110 transition-transform duration-[2s]">
+                <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent"></div>
+                <div class="absolute bottom-12 left-12 right-12">
+                    <span id="modalCategory" class="px-3 py-1 bg-sky-500 text-white text-[10px] font-black rounded-full shadow-lg uppercase tracking-widest mb-4 inline-block">CATEGORY</span>
+                    <h3 id="modalTitleDetail" class="text-4xl font-black text-white leading-tight tracking-tighter">Title</h3>
                 </div>
             </div>
-            <div class="p-10">
-                <div class="flex flex-col md:flex-row gap-10">
-                    <div class="flex-1">
-                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-3">Project Description</label>
-                        <p id="modalDescription" class="text-gray-600 leading-relaxed text-lg font-medium"></p>
-                        <div id="modalTeacherFeedback" class="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
-                            <label class="text-[10px] font-black text-blue-600 uppercase tracking-widest block mb-2">강사 조언</label>
-                            <p id="modalFeedbackText" class="text-sm text-gray-700"></p>
-                        </div>
-                    </div>
-                    <div class="w-full md:w-64 space-y-6">
-                        <div class="p-6 bg-gray-50 rounded-2xl border border-gray-100">
-                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-4">Metadata</label>
-                            <div class="space-y-4">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center text-xs"><i class="fas fa-user-graduate"></i></div>
-                                    <div class="text-sm font-bold text-gray-700" id="modalStudent">학생명</div>
-                                </div>
-                                <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center text-xs"><i class="fas fa-graduation-cap"></i></div>
-                                    <div class="text-sm font-bold text-gray-500" id="modalCourse">교육과정명</div>
-                                </div>
+            <div class="md:w-1/2 flex flex-col h-full bg-white">
+                <div class="p-12 overflow-y-auto custom-scrollbar flex-1">
+                    <div class="flex justify-between items-start mb-12">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-2xl bg-slate-900 flex items-center justify-center text-white font-black shadow-xl" id="modalStudentInitial">S</div>
+                            <div>
+                                <h4 class="font-black text-slate-900 tracking-tight" id="modalStudentName">Student Name</h4>
+                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest" id="modalCourseTitle">Academic Module</p>
                             </div>
                         </div>
-                        <div class="flex flex-col gap-3">
-                            <a id="modalContentLink" href="#" target="_blank" class="w-full py-4 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 transition text-center shadow-lg shadow-blue-100 flex items-center justify-center gap-2">
-                                <i class="fas fa-external-link-alt"></i> 작품 상세보기
-                            </a>
-                            <button onclick="openEditPortfolioModal()" class="w-full py-3 bg-gray-100 text-gray-700 font-bold rounded-2xl hover:bg-gray-200 transition flex items-center justify-center gap-2">
-                                <i class="fas fa-edit"></i> 수정하기
-                            </button>
-                            <button id="modalFeaturedBtn" onclick="toggleFeatured()" class="w-full py-3 border-2 border-yellow-200 text-yellow-600 font-bold rounded-2xl hover:bg-yellow-50 transition flex items-center justify-center gap-2">
-                                <i class="fas fa-star"></i> 추천 설정/해제
-                            </button>
-                            <button onclick="deletePortfolio()" class="w-full py-3 border-2 border-red-200 text-red-600 font-bold rounded-2xl hover:bg-red-50 transition flex items-center justify-center gap-2">
-                                <i class="fas fa-trash"></i> 삭제하기
-                            </button>
+                        <button onclick="closeDetailModal()" class="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-100 text-slate-400 hover:bg-red-500 hover:text-white transition-all">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+
+                    <div class="space-y-10">
+                        <div>
+                            <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Technical Description</span>
+                            <p id="modalDescription" class="text-slate-600 leading-relaxed font-medium text-sm"></p>
+                        </div>
+                        
+                        <div id="modalTeacherFeedbackSection" class="p-8 bg-sky-50 rounded-[2rem] border border-sky-100 relative overflow-hidden">
+                            <div class="absolute -right-4 -bottom-4 w-20 h-20 bg-sky-200/20 rounded-full blur-2xl"></div>
+                            <span class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-3 relative z-10">Instructor Curation</span>
+                            <p id="modalFeedbackText" class="text-slate-700 text-sm font-bold relative z-10 italic leading-relaxed"></p>
                         </div>
                     </div>
+                </div>
+                <div class="p-12 bg-slate-50 border-t border-slate-100 grid grid-cols-2 gap-4">
+                    <a id="modalContentLink" href="#" target="_blank" class="px-6 py-4 bg-slate-900 text-white font-black text-[10px] rounded-2xl hover:bg-sky-600 transition-all text-center uppercase tracking-widest shadow-xl">
+                        View Asset Source
+                    </a>
+                    <button id="modalFeaturedBtn" onclick="toggleFeatured()" class="px-6 py-4 bg-white border border-slate-200 text-slate-600 font-black text-[10px] rounded-2xl hover:border-yellow-400 hover:text-yellow-600 transition-all text-center uppercase tracking-widest">
+                        Feature Asset
+                    </button>
+                    <button onclick="openEditPortfolioModal()" class="px-6 py-4 bg-white border border-slate-200 text-slate-600 font-black text-[10px] rounded-2xl hover:bg-sky-50 transition-all text-center uppercase tracking-widest">
+                        Edit Metadata
+                    </button>
+                    <button onclick="deletePortfolio()" class="px-6 py-4 bg-white border border-red-100 text-red-400 font-black text-[10px] rounded-2xl hover:bg-red-500 hover:text-white transition-all text-center uppercase tracking-widest">
+                        Purge Asset
+                    </button>
                 </div>
             </div>
         </div>
@@ -242,514 +304,228 @@ export const teacherPortfoliosHtml = `
 
     <script>
         let allCourses = [];
-        let selectedCourseId = null;
-        let selectedCourseTitle = '';
         let allPortfolios = [];
+        let selectedCourseId = null;
         let currentPortfolio = null;
-        let courseStudents = [];
 
         document.addEventListener('DOMContentLoaded', () => {
-            checkLogin();
+            const userStr = localStorage.getItem('user');
+            if (userStr) {
+                const user = JSON.parse(userStr);
+                document.getElementById('header-user-name').textContent = user.name;
+            }
             loadCourses();
         });
 
-        function checkLogin() {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                alert('로그인이 필요합니다.');
-                window.location.href = '/login';
-            }
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
-            if (user.role !== 'teacher' && user.role !== 'admin') {
-                alert('강사 권한이 필요합니다.');
-                window.location.href = '/';
-            }
-        }
-
         async function loadCourses() {
             try {
-                const token = localStorage.getItem('token');
-                const response = await fetch('/api/courses?limit=100', {
-                    headers: { 'Authorization': 'Bearer ' + token }
-                });
-                const result = await response.json();
-
-                if (result.success) {
-                    allCourses = result.data || [];
-                    renderCourses();
-                } else {
-                    console.error('Failed to load courses:', result.error);
-                    document.getElementById('coursesContainer').innerHTML = 
-                        '<div class="col-span-full text-center py-12 text-red-500">과정 목록을 불러오는데 실패했습니다.</div>';
-                }
-            } catch (error) {
-                console.error('Error loading courses:', error);
-                document.getElementById('coursesContainer').innerHTML = 
-                    '<div class="col-span-full text-center py-12 text-red-500">오류가 발생했습니다.</div>';
-            }
+                const res = await fetch('/api/courses?limit=100', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
+                const result = await res.json();
+                if (result.success) { allCourses = result.data || []; renderCourses(); }
+            } catch (error) { console.error(error); }
         }
 
         function renderCourses() {
             const container = document.getElementById('coursesContainer');
-            
             if (allCourses.length === 0) {
-                container.innerHTML = \`
-                    <div class="col-span-full text-center py-16 bg-white rounded-lg shadow-sm">
-                        <i class="fas fa-chalkboard text-5xl text-gray-300 mb-4"></i>
-                        <h3 class="text-xl font-bold text-gray-700 mb-2">배정된 과정이 없습니다</h3>
-                        <p class="text-gray-500 mb-4">관리자(원장)에게 과정 배정을 요청하세요.</p>
-                        <a href="/teacher" class="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-                            <i class="fas fa-arrow-left mr-2"></i> 대시보드로 돌아가기
-                        </a>
-                    </div>
-                \`;
+                container.innerHTML = '<div class="col-span-full py-20 text-center text-slate-400 font-black uppercase text-xs">No clusters available for curation</div>';
                 return;
             }
-
-            container.innerHTML = allCourses.map(course => {
-                let statusBadge = '';
-                let statusColor = '';
-                switch(course.status) {
-                    case 'active':
-                        statusBadge = '진행중';
-                        statusColor = 'bg-green-100 text-green-800';
-                        break;
-                    case 'upcoming':
-                        statusBadge = '예정';
-                        statusColor = 'bg-blue-100 text-blue-800';
-                        break;
-                    case 'completed':
-                        statusBadge = '완료';
-                        statusColor = 'bg-gray-100 text-gray-800';
-                        break;
-                    case 'cancelled':
-                        statusBadge = '취소';
-                        statusColor = 'bg-red-100 text-red-800';
-                        break;
-                    default:
-                        statusBadge = course.status || '미정';
-                        statusColor = 'bg-gray-100 text-gray-800';
-                }
-
-                return \`
-                    <div onclick="selectCourse(\${course.id}, '\${(course.title || '').replace(/'/g, "\\\\'")}')" 
-                         class="bg-white rounded-xl shadow-sm border-2 border-gray-200 p-5 hover:border-blue-500 hover:shadow-md transition-all cursor-pointer">
-                        <div class="flex items-start justify-between mb-3">
-                            <div class="flex-1">
-                                <h3 class="text-lg font-bold text-gray-800 mb-2 line-clamp-2">\${course.title || '과정명 없음'}</h3>
-                                <p class="text-sm text-gray-600 line-clamp-2 mb-3">\${course.description || '설명 없음'}</p>
-                            </div>
-                            <span class="px-2 py-1 rounded-full text-xs font-bold \${statusColor} ml-2 flex-shrink-0">\${statusBadge}</span>
-                        </div>
-                        <div class="space-y-2 text-sm text-gray-600">
-                            \${course.campus_name ? \`
-                                <div class="flex items-center">
-                                    <i class="fas fa-map-marker-alt w-5 text-gray-400"></i>
-                                    <span>\${course.campus_name}</span>
-                                </div>
-                            \` : ''}
-                            <div class="flex items-center">
-                                <i class="fas fa-user-graduate w-5 text-gray-400"></i>
-                                <span>수강생: \${course.current_students || 0}명</span>
-                            </div>
-                        </div>
-                        <div class="mt-4 pt-4 border-t border-gray-100">
-                            <button class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium">
-                                <i class="fas fa-briefcase mr-2"></i> 포트폴리오 관리
-                            </button>
-                        </div>
-                    </div>
-                \`;
-            }).join('');
+            container.innerHTML = allCourses.map(course => 
+                '<div onclick="selectCourse(' + course.id + ', \'' + ((course.title || '').replace(/'/g, "\\\\'")) + '\')" ' +
+                     'class="bento-card bg-white rounded-[2rem] p-8 border border-slate-200/60 flex flex-col justify-between cursor-pointer group shadow-sm hover:border-sky-600/30">' +
+                    '<div class="flex justify-between items-start mb-6">' +
+                        '<div class="w-14 h-14 rounded-2xl bg-sky-50 flex items-center justify-center text-sky-600 group-hover:bg-sky-600 group-hover:text-white transition-all duration-500 shadow-sm border border-sky-100">' +
+                            '<i class="fas fa-cube text-lg font-black"></i>' +
+                        '</div>' +
+                        '<span class="px-3 py-1 bg-slate-50 text-slate-400 text-[10px] font-black rounded-full uppercase tracking-widest">Sync Ready</span>' +
+                    '</div>' +
+                    '<div>' +
+                        '<h3 class="text-xl font-black text-slate-900 tracking-tight group-hover:text-sky-600 transition-colors mb-2 line-clamp-2">' + course.title + '</h3>' +
+                        '<div class="mt-6 flex items-center justify-between pt-6 border-t border-slate-50">' +
+                             '<span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">' + (course.current_students || 0) + ' Intelligence Nodes</span>' +
+                             '<div class="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-50 group-hover:bg-sky-600 group-hover:text-white transition-all shadow-inner"><i class="fas fa-chevron-right text-[10px]"></i></div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>'
+            ).join('');
         }
 
-        async function selectCourse(courseId, courseTitle) {
-            selectedCourseId = courseId;
-            selectedCourseTitle = courseTitle;
-            
-            // UI 전환
+        async function selectCourse(id, title) {
+            selectedCourseId = id;
             document.getElementById('coursesSection').classList.add('hidden');
             document.getElementById('portfoliosSection').classList.remove('hidden');
-            document.getElementById('selectedCourseTitle').innerHTML = \`
-                <i class="fas fa-briefcase text-blue-500 mr-2"></i> \${courseTitle} - 포트폴리오 관리
-            \`;
-            
-            // 수강생 목록 로드
+            document.getElementById('selectedCourseTitle').textContent = title;
             await loadCourseStudents();
-            // 포트폴리오 목록 로드
             await loadPortfolios();
         }
 
-        async function loadCourseStudents() {
-            try {
-                const token = localStorage.getItem('token');
-                const response = await fetch(\`/api/enrollments?course_id=\${selectedCourseId}&status=approved&limit=100\`, {
-                    headers: { 'Authorization': 'Bearer ' + token }
-                });
-                const result = await response.json();
-
-                if (result.success) {
-                    courseStudents = result.data || [];
-                    // 학생 선택 드롭다운 업데이트
-                    const select = document.getElementById('portfolioStudentSelect');
-                    select.innerHTML = '<option value="">학생을 선택하세요</option>' + 
-                        courseStudents.map(s => \`
-                            <option value="\${s.user_id}">\${s.user_name || '이름 없음'}</option>
-                        \`).join('');
-                }
-            } catch (error) {
-                console.error('Error loading students:', error);
-            }
-        }
-
         function backToCourses() {
-            selectedCourseId = null;
-            selectedCourseTitle = '';
             document.getElementById('coursesSection').classList.remove('hidden');
             document.getElementById('portfoliosSection').classList.add('hidden');
         }
 
+        async function loadCourseStudents() {
+            const res = await fetch('/api/enrollments?course_id=' + selectedCourseId + '&status=approved&limit=100', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
+            const result = await res.json();
+            if (result.success) {
+                const select = document.getElementById('portfolioStudentSelect');
+                const students = result.data || [];
+                select.innerHTML = '<option value="">SELECT STUDENT NODE...</option>' + students.map(s => '<option value="' + s.user_id + '">' + s.user_name + '</option>').join('');
+            }
+        }
+
         async function loadPortfolios() {
-            try {
-                const token = localStorage.getItem('token');
-                const category = document.getElementById('categoryFilter').value;
-                const featured = document.getElementById('featuredFilter').value;
-                const search = document.getElementById('searchInput').value;
+            const cat = document.getElementById('categoryFilter').value;
+            const feat = document.getElementById('featuredFilter').value;
+            const search = document.getElementById('searchInput').value;
+            let url = '/api/portfolios?courseId=' + selectedCourseId;
+            if (cat) url += '&category=' + encodeURIComponent(cat);
+            if (feat) url += '&isFeatured=' + feat;
 
-                let url = \`/api/portfolios?courseId=\${selectedCourseId}\`;
-                if (category) url += \`&category=\${encodeURIComponent(category)}\`;
-                if (featured) url += \`&isFeatured=\${featured}\`;
-
-                const response = await fetch(url, {
-                    headers: { 'Authorization': 'Bearer ' + token }
-                });
-                const result = await response.json();
-
-                if (result.success) {
-                    allPortfolios = result.data || [];
-                    
-                    // 검색 필터링
-                    if (search) {
-                        const searchLower = search.toLowerCase();
-                        allPortfolios = allPortfolios.filter(p => 
-                            (p.title && p.title.toLowerCase().includes(searchLower)) ||
-                            (p.description && p.description.toLowerCase().includes(searchLower)) ||
-                            (p.student_name && p.student_name.toLowerCase().includes(searchLower))
-                        );
-                    }
-                    
-                    renderPortfolios();
-                } else {
-                    console.error('Failed to load portfolios:', result.error);
-                    document.getElementById('portfoliosContainer').innerHTML = 
-                        '<div class="col-span-full text-center py-12 text-red-500">포트폴리오를 불러오는데 실패했습니다.</div>';
+            const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
+            const result = await res.json();
+            if (result.success) {
+                allPortfolios = result.data || [];
+                if(search) {
+                    const s = search.toLowerCase();
+                    allPortfolios = allPortfolios.filter(p => p.title?.toLowerCase().includes(s) || p.student_name?.toLowerCase().includes(s));
                 }
-            } catch (error) {
-                console.error('Error loading portfolios:', error);
-                document.getElementById('portfoliosContainer').innerHTML = 
-                    '<div class="col-span-full text-center py-12 text-red-500">오류가 발생했습니다.</div>';
+                renderPortfolios();
             }
         }
 
         function renderPortfolios() {
             const container = document.getElementById('portfoliosContainer');
-            
             if (allPortfolios.length === 0) {
-                container.innerHTML = \`
-                    <div class="col-span-full text-center py-16 bg-white rounded-lg shadow-sm">
-                        <i class="fas fa-briefcase text-5xl text-gray-300 mb-4"></i>
-                        <h3 class="text-xl font-bold text-gray-700 mb-2">포트폴리오가 없습니다</h3>
-                        <p class="text-gray-500 mb-4">학생 포트폴리오를 추가해보세요.</p>
-                        <button onclick="openAddPortfolioModal()" class="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-                            <i class="fas fa-plus mr-2"></i> 포트폴리오 추가
-                        </button>
-                    </div>
-                \`;
+                container.innerHTML = '<div class="col-span-full py-20 text-center text-slate-400 font-black uppercase text-xs">No intelligence outputs curated in this sector</div>';
                 return;
             }
-
-            container.innerHTML = allPortfolios.map(p => \`
-                <div class="group bg-white rounded-2xl shadow-sm hover:shadow-xl border border-gray-200 overflow-hidden transition-all duration-500 cursor-pointer flex flex-col h-full" onclick="openDetailModal(\${p.id})">
-                    <div class="relative overflow-hidden h-52">
-                        <img src="\${p.thumbnail_url || 'https://images.unsplash.com/photo-1587586062323-836091e6006e?auto=format&fit=crop&q=80&w=800'}" 
-                             class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
-                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-end p-6">
-                            <span class="text-white text-sm font-black flex items-center gap-2">
-                                <i class="fas fa-eye"></i> 상세보기
-                            </span>
-                        </div>
-                        \${p.is_featured ? '<div class="absolute top-4 left-4 px-3 py-1 bg-yellow-400 text-white text-[10px] font-black rounded-full shadow-lg flex items-center gap-1.5"><i class="fas fa-star"></i> 우수작품</div>' : ''}
-                        <div class="absolute top-4 right-4 px-2 py-1 bg-white/90 text-[9px] font-black rounded-lg shadow-sm text-gray-600 uppercase tracking-tighter">\${p.category || 'other'}</div>
-                    </div>
-                    <div class="p-6 flex-1 flex flex-col">
-                        <h4 class="font-black text-gray-800 text-lg mb-1 line-clamp-1 group-hover:text-blue-600 transition-colors">\${p.title || '제목 없음'}</h4>
-                        <p class="text-[10px] text-blue-600 font-black mb-3 uppercase tracking-wider">\${p.course_title || '과정 정보 없음'}</p>
-                        <p class="text-gray-500 text-xs font-medium line-clamp-2 mb-4 leading-relaxed">\${p.description || '설명이 없습니다.'}</p>
-                        <div class="mt-auto pt-4 border-t border-gray-50 flex justify-between items-center">
-                            <div class="flex items-center gap-2">
-                                <div class="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-[8px] font-bold">\${(p.student_name || '학생')[0]}</div>
-                                <span class="text-xs font-black text-gray-500">\${p.student_name || '학생'}</span>
-                            </div>
-                            <div class="flex gap-2">
-                                <button onclick="event.stopPropagation(); openEditPortfolioModalById(\${p.id})" class="text-gray-400 hover:text-blue-600 transition-colors" title="수정">
-                                    <i class="fas fa-edit text-xs"></i>
-                                </button>
-                                <button onclick="event.stopPropagation(); deletePortfolioById(\${p.id})" class="text-gray-400 hover:text-red-600 transition-colors" title="삭제">
-                                    <i class="fas fa-trash-alt text-xs"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            \`).join('');
+            container.innerHTML = allPortfolios.map(p => 
+                '<div class="group bg-white rounded-[2.5rem] border border-slate-200/60 overflow-hidden cursor-pointer hover:shadow-2xl transition-all duration-500 flex flex-col h-full" onclick="openDetailModal(' + p.id + ')">' +
+                    '<div class="h-48 relative overflow-hidden bg-slate-900">' +
+                        '<img src="' + (p.thumbnail_url || 'https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=800') + '" class="w-full h-full object-cover asset-image-hover opacity-90">' +
+                        '<div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-6">' +
+                            '<span class="text-white text-[9px] font-black uppercase tracking-widest flex items-center gap-2"><i class="fas fa-search-plus"></i> Audit Detail</span>' +
+                        '</div>' +
+                        (p.is_featured ? '<div class="absolute top-4 left-4 px-3 py-1 bg-yellow-400 text-white text-[8px] font-black rounded-full shadow-lg">FEATURED</div>' : '') +
+                        '<div class="absolute top-4 right-4 px-2 py-1 bg-white/90 text-[8px] font-black rounded-lg shadow-sm text-slate-800 uppercase tracking-tighter">' + (p.category || 'ASSET') + '</div>' +
+                    '</div>' +
+                    '<div class="p-8 flex flex-col flex-1">' +
+                        '<h4 class="font-black text-slate-900 text-lg mb-1 line-clamp-1 group-hover:text-sky-600 transition-colors">' + p.title + '</h4>' +
+                        '<p class="text-[9px] text-sky-600 font-black mb-4 uppercase tracking-wider">' + p.student_name + ' / ' + p.category + '</p>' +
+                        '<div class="mt-auto pt-6 border-t border-slate-50 flex justify-between items-center text-slate-400">' +
+                            '<div class="w-8 h-8 rounded-xl bg-slate-50 flex items-center justify-center text-[10px] font-black group-hover:bg-slate-900 group-hover:text-white transition-all shadow-inner">' + (p.student_name || 'N')[0] + '</div>' +
+                            '<div class="flex gap-2">' +
+                                '<button onclick="event.stopPropagation(); openEditPortfolioModalById(' + p.id + ')" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-sky-50 transition-colors"><i class="fas fa-edit text-xs"></i></button>' +
+                                '<button onclick="event.stopPropagation(); deletePortfolioById(' + p.id + ')" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-50 transition-colors"><i class="fas fa-trash-alt text-xs"></i></button>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>'
+            ).join('');
         }
 
         function openAddPortfolioModal() {
-            document.getElementById('modalTitle').textContent = '포트폴리오 추가';
+            document.getElementById('modalTitle').textContent = 'Register Academic Asset';
             document.getElementById('portfolioForm').reset();
             document.getElementById('portfolioId').value = '';
-            document.getElementById('portfolioStudentId').value = '';
             document.getElementById('thumbnailPreview').classList.add('hidden');
             document.getElementById('portfolioModal').classList.remove('hidden');
         }
 
-        function openEditPortfolioModal() {
-            if (!currentPortfolio) return;
-            openEditPortfolioModalById(currentPortfolio.id);
-        }
-
-        async function openEditPortfolioModalById(portfolioId) {
-            try {
-                const portfolio = allPortfolios.find(p => p.id === portfolioId);
-                if (!portfolio) {
-                    alert('포트폴리오를 찾을 수 없습니다.');
-                    return;
-                }
-
-                currentPortfolio = portfolio;
-                document.getElementById('modalTitle').textContent = '포트폴리오 수정';
-                document.getElementById('portfolioId').value = portfolio.id;
-                document.getElementById('portfolioStudentId').value = portfolio.student_id;
-                document.getElementById('portfolioStudentSelect').value = portfolio.student_id;
-                document.getElementById('portfolioTitle').value = portfolio.title || '';
-                document.getElementById('portfolioCategory').value = portfolio.category || 'other';
-                document.getElementById('portfolioDescription').value = portfolio.description || '';
-                document.getElementById('portfolioThumbnail').value = portfolio.thumbnail_url || '';
-                document.getElementById('portfolioContentUrl').value = portfolio.content_url || '';
-                document.getElementById('portfolioTeacherFeedback').value = portfolio.teacher_feedback || '';
-                
-                if (portfolio.thumbnail_url) {
-                    const preview = document.getElementById('thumbnailPreview');
-                    preview.querySelector('img').src = portfolio.thumbnail_url;
-                    preview.classList.remove('hidden');
-                } else {
-                    document.getElementById('thumbnailPreview').classList.add('hidden');
-                }
-
-                document.getElementById('portfolioModal').classList.remove('hidden');
-            } catch (error) {
-                console.error('Error opening edit modal:', error);
-                alert('포트폴리오 정보를 불러오는데 실패했습니다.');
+        async function openEditPortfolioModalById(id) {
+            const p = allPortfolios.find(x => x.id === id);
+            if(!p) return;
+            currentPortfolio = p;
+            document.getElementById('modalTitle').textContent = 'Edit Asset Metadata';
+            document.getElementById('portfolioId').value = p.id;
+            document.getElementById('portfolioStudentSelect').value = p.student_id;
+            document.getElementById('portfolioTitle').value = p.title || '';
+            document.getElementById('portfolioCategory').value = p.category || '3d_modeling';
+            document.getElementById('portfolioDescription').value = p.description || '';
+            document.getElementById('portfolioThumbnail').value = p.thumbnail_url || '';
+            document.getElementById('portfolioContentUrl').value = p.content_url || '';
+            document.getElementById('portfolioTeacherFeedback').value = p.teacher_feedback || '';
+            if(p.thumbnail_url) {
+                document.getElementById('thumbnailPreview').classList.remove('hidden');
+                document.getElementById('thumbnailPreview').querySelector('img').src = p.thumbnail_url;
             }
+            document.getElementById('portfolioModal').classList.remove('hidden');
         }
 
-        function closePortfolioModal() {
-            document.getElementById('portfolioModal').classList.add('hidden');
-            currentPortfolio = null;
+        function openEditPortfolioModal() { if(currentPortfolio) openEditPortfolioModalById(currentPortfolio.id); }
+
+        function closePortfolioModal() { document.getElementById('portfolioModal').classList.add('hidden'); }
+
+        async function handleSavePortfolio(e) {
+            e.preventDefault();
+            const id = document.getElementById('portfolioId').value;
+            const data = {
+                title: e.target.portfolioTitle.value,
+                description: e.target.portfolioDescription.value,
+                thumbnail_url: e.target.portfolioThumbnail.value,
+                content_url: e.target.portfolioContentUrl.value,
+                category: e.target.portfolioCategory.value,
+                course_id: selectedCourseId,
+                student_id: e.target.portfolioStudentSelect.value,
+                teacher_feedback: e.target.portfolioTeacherFeedback.value
+            };
+            const res = await fetch(id ? '/api/portfolios/' + id : '/api/portfolios', {
+                method: id ? 'PUT' : 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+                body: JSON.stringify(data)
+            });
+            if((await res.json()).success) { alert('Asset Vector Synchronized'); closePortfolioModal(); loadPortfolios(); }
         }
 
         async function handleThumbnailUpload(input) {
-            if (!input.files || !input.files[0]) return;
-            
-            const file = input.files[0];
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('category', 'images');
-            formData.append('folder', 'portfolios');
-            
-            try {
-                const token = localStorage.getItem('token');
-                const response = await fetch('/api/upload', {
-                    method: 'POST',
-                    headers: { 'Authorization': 'Bearer ' + token },
-                    body: formData
-                });
-                
-                const result = await response.json();
-                if (result.success) {
-                    const imageUrl = result.data.url;
-                    document.getElementById('portfolioThumbnail').value = imageUrl;
-                    const preview = document.getElementById('thumbnailPreview');
-                    preview.querySelector('img').src = imageUrl;
-                    preview.classList.remove('hidden');
-                } else {
-                    alert('이미지 업로드 실패: ' + result.error);
-                }
-            } catch (error) {
-                console.error('Image upload error:', error);
-                alert('이미지 업로드 중 오류가 발생했습니다.');
+            if(!input.files[0]) return;
+            const fd = new FormData(); fd.append('file', input.files[0]); fd.append('category', 'images'); fd.append('folder', 'portfolios');
+            const res = await fetch('/api/upload', { method: 'POST', headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }, body: fd });
+            const result = await res.json();
+            if(result.success) {
+                document.getElementById('portfolioThumbnail').value = result.data.url;
+                document.getElementById('thumbnailPreview').classList.remove('hidden');
+                document.getElementById('thumbnailPreview').querySelector('img').src = result.data.url;
             }
         }
 
-        async function handleSavePortfolio(event) {
-            event.preventDefault();
-            
-            try {
-                const token = localStorage.getItem('token');
-                const form = event.target;
-                const portfolioId = document.getElementById('portfolioId').value;
-                const studentId = document.getElementById('portfolioStudentSelect').value;
-                
-                const data = {
-                    title: form.portfolioTitle.value,
-                    description: form.portfolioDescription.value || null,
-                    thumbnail_url: form.portfolioThumbnail.value || null,
-                    content_url: form.portfolioContentUrl.value || null,
-                    category: form.portfolioCategory.value,
-                    course_id: selectedCourseId,
-                    student_id: studentId,
-                    teacher_feedback: form.portfolioTeacherFeedback.value || null
-                };
-
-                let url = '/api/portfolios';
-                let method = 'POST';
-                
-                if (portfolioId) {
-                    url = \`/api/portfolios/\${portfolioId}\`;
-                    method = 'PUT';
-                }
-
-                const response = await fetch(url, {
-                    method: method,
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + token
-                    },
-                    body: JSON.stringify(data)
-                });
-
-                const result = await response.json();
-                if (result.success) {
-                    alert(portfolioId ? '포트폴리오가 수정되었습니다.' : '포트폴리오가 등록되었습니다.');
-                    closePortfolioModal();
-                    await loadPortfolios();
-                } else {
-                    alert('저장 실패: ' + (result.error || '알 수 없는 오류'));
-                }
-            } catch (error) {
-                console.error('Save error:', error);
-                alert('저장 중 오류가 발생했습니다: ' + (error.message || error));
-            }
-        }
-
-        function openDetailModal(portfolioId) {
-            const portfolio = allPortfolios.find(p => p.id === portfolioId);
-            if (!portfolio) return;
-
-            currentPortfolio = portfolio;
-            document.getElementById('modalThumbnail').src = portfolio.thumbnail_url || 'https://images.unsplash.com/photo-1587586062323-836091e6006e?auto=format&fit=crop&q=80&w=800';
-            document.getElementById('modalCategory').textContent = portfolio.category || 'other';
-            document.getElementById('modalTitle').textContent = portfolio.title || '제목 없음';
-            document.getElementById('modalDescription').textContent = portfolio.description || '설명이 공개되지 않았습니다.';
-            document.getElementById('modalStudent').textContent = portfolio.student_name || '학생명 없음';
-            document.getElementById('modalCourse').textContent = portfolio.course_title || '소속 과정 정보 없음';
-            document.getElementById('modalContentLink').href = portfolio.content_url || '#';
-            
-            // 강사 조언 표시
-            const feedbackDiv = document.getElementById('modalTeacherFeedback');
-            const feedbackText = document.getElementById('modalFeedbackText');
-            if (portfolio.teacher_feedback) {
-                feedbackText.textContent = portfolio.teacher_feedback;
-                feedbackDiv.classList.remove('hidden');
-            } else {
-                feedbackText.textContent = '아직 조언이 없습니다.';
-                feedbackDiv.classList.remove('hidden');
-            }
-            
-            const featureBtn = document.getElementById('modalFeaturedBtn');
-            featureBtn.innerHTML = portfolio.is_featured 
-                ? '<i class="fas fa-star"></i> 추천 해제' 
-                : '<i class="far fa-star"></i> 우수작품 추천';
-
+        function openDetailModal(id) {
+            const p = allPortfolios.find(x => x.id === id);
+            if(!p) return;
+            currentPortfolio = p;
+            document.getElementById('modalThumbnail').src = p.thumbnail_url || 'https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=800';
+            document.getElementById('modalCategory').textContent = p.category || 'ASSET';
+            document.getElementById('modalTitleDetail').textContent = p.title;
+            document.getElementById('modalDescription').textContent = p.description || 'No technical specifications provided.';
+            document.getElementById('modalStudentName').textContent = p.student_name || 'Node Unknown';
+            document.getElementById('modalCourseTitle').textContent = p.course_title || 'Module Unknown';
+            document.getElementById('modalStudentInitial').textContent = (p.student_name || 'N')[0];
+            document.getElementById('modalFeedbackText').textContent = p.teacher_feedback || 'No instructor curation logs detected.';
+            document.getElementById('modalContentLink').href = p.content_url || '#';
+            document.getElementById('modalFeaturedBtn').innerHTML = p.is_featured ? 'UN-FEATURE ASSET' : 'FEATURE ASSET';
             document.getElementById('detailModal').classList.remove('hidden');
         }
 
-        function closeDetailModal() {
-            document.getElementById('detailModal').classList.add('hidden');
-            currentPortfolio = null;
-        }
+        function closeDetailModal() { document.getElementById('detailModal').classList.add('hidden'); }
 
         async function toggleFeatured() {
-            if (!currentPortfolio) return;
-            
-            try {
-                const token = localStorage.getItem('token');
-                const response = await fetch(\`/api/portfolios/\${currentPortfolio.id}/featured\`, {
-                    method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + token
-                    },
-                    body: JSON.stringify({ isFeatured: !currentPortfolio.is_featured })
-                });
-
-                const result = await response.json();
-                if (result.success) {
-                    currentPortfolio.is_featured = !currentPortfolio.is_featured;
-                    closeDetailModal();
-                    await loadPortfolios();
-                } else {
-                    alert('추천 설정 실패: ' + (result.error || '알 수 없는 오류'));
-                }
-            } catch (error) {
-                console.error('Toggle featured error:', error);
-                alert('추천 설정 중 오류가 발생했습니다.');
-            }
+            const res = await fetch('/api/portfolios/' + currentPortfolio.id + '/featured', {
+                method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+                body: JSON.stringify({ isFeatured: !currentPortfolio.is_featured })
+            });
+            if((await res.json()).success) { closeDetailModal(); loadPortfolios(); }
         }
 
-        async function deletePortfolio() {
-            if (!currentPortfolio) return;
-            await deletePortfolioById(currentPortfolio.id);
+        async function deletePortfolioById(id) {
+            if(!confirm('Permanently purge this asset from the repository?')) return;
+            const res = await fetch('/api/portfolios/' + id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
+            if((await res.json()).success) { alert('Asset Purged'); closeDetailModal(); loadPortfolios(); }
         }
 
-        async function deletePortfolioById(portfolioId) {
-            if (!confirm('정말 삭제하시겠습니까?')) return;
-            
-            try {
-                const token = localStorage.getItem('token');
-                const response = await fetch(\`/api/portfolios/\${portfolioId}\`, {
-                    method: 'DELETE',
-                    headers: { 'Authorization': 'Bearer ' + token }
-                });
-
-                const result = await response.json();
-                if (result.success) {
-                    alert('포트폴리오가 삭제되었습니다.');
-                    closeDetailModal();
-                    await loadPortfolios();
-                } else {
-                    alert('삭제 실패: ' + (result.error || '알 수 없는 오류'));
-                }
-            } catch (error) {
-                console.error('Delete error:', error);
-                alert('삭제 중 오류가 발생했습니다.');
-            }
-        }
+        function deletePortfolio() { if(currentPortfolio) deletePortfolioById(currentPortfolio.id); }
     </script>
-    <style>
-        .line-clamp-1 {
-            display: -webkit-box;
-            -webkit-line-clamp: 1;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-        .line-clamp-2 {
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-    </style>
 </body>
 </html>
 `;

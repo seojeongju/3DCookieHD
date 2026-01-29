@@ -6,119 +6,196 @@ export const teacherAttendanceHtml = `
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>출석 관리 - 강사 대시보드</title>
+    <title>Presence Intelligence System - 3D Cookie</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script>
       tailwind.config = {
         theme: {
           extend: {
+            fontFamily: {
+              sans: ['Inter', 'Apple SD Gothic Neo', 'Malgun Gothic', 'sans-serif'],
+            },
             colors: {
               primary: {
                 50: '#f0f7ff', 100: '#e0effe', 200: '#baddfd', 300: '#7dbcfb', 400: '#3a9bf7',
                 500: '#5b9bd5', 600: '#4a90e2', 700: '#2d5fa3', 800: '#1e4278', 900: '#132d54'
+              },
+              industry: {
+                dark: '#0f172a',
+                glass: 'rgba(255, 255, 255, 0.03)',
+                border: 'rgba(255, 255, 255, 0.1)',
               }
             }
           }
         }
       }
     </script>
+    <style>
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
+        .bento-card { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .bento-card:hover { transform: translateY(-4px); box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1); }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        .glass-header { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(226, 232, 240, 0.6); }
+        input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(0.5); }
+    </style>
 </head>
-<body class="bg-gray-50 font-sans">
+<body class="bg-slate-50 font-sans text-slate-900 antialiased overflow-hidden">
     <div class="flex h-screen overflow-hidden">
+        <!-- 사이드바 -->
         ${teacherSidebar('attendance')}
-        <div class="flex-1 flex flex-col overflow-hidden bg-gray-50">
-            <header class="bg-white shadow-sm sticky top-0 z-10">
-                <div class="px-8 py-4 flex justify-between items-center">
-                    <div>
-                        <h1 class="text-2xl font-bold text-gray-800">출석 관리</h1>
-                        <p class="text-gray-600 mt-1 text-sm">배정된 과정의 수강생 출석을 관리합니다.</p>
-                    </div>
-                    <div class="flex items-center space-x-4">
-                        <span class="px-3 py-1 bg-blue-100 text-blue-600 text-xs font-bold rounded-full">TEACHER</span>
-                        <a href="/teacher" class="text-gray-500 hover:text-primary-600 transition">
-                            <i class="fas fa-arrow-left mr-1"></i> 대시보드로
-                        </a>
+
+        <div class="flex-1 flex flex-col overflow-hidden relative">
+            <div class="absolute inset-0 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:32px_32px] opacity-40 pointer-events-none"></div>
+
+            <!-- 상단 헤더 -->
+            <header class="glass-header sticky top-0 z-20 px-8 py-6 flex justify-between items-center">
+                <div class="flex flex-col">
+                    <h1 class="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+                        출결 정밀 관리
+                        <span class="text-[10px] bg-emerald-500 text-white px-2 py-0.5 rounded-full uppercase tracking-widest font-black">Presence</span>
+                    </h1>
+                    <p class="text-xs font-medium text-slate-500 mt-0.5 tracking-tight uppercase">Presence Tracking Logic & Attendance Analytics</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <button onclick="location.href='/teacher'" class="px-4 py-2 bg-white border border-slate-200 text-[10px] font-black rounded-xl hover:bg-slate-50 transition uppercase tracking-widest flex items-center gap-2 shadow-sm">
+                        <i class="fas fa-arrow-left"></i> Dashboard
+                    </button>
+                    <div class="flex items-center gap-3 pl-4 border-l border-slate-200">
+                        <div class="text-right flex flex-col uppercase tracking-tighter">
+                            <span id="header-user-name" class="text-xs font-black text-slate-900">Instructor Name</span>
+                            <span class="text-[9px] font-black text-slate-400">Monitoring Mode</span>
+                        </div>
                     </div>
                 </div>
             </header>
-            <main class="flex-1 overflow-y-auto p-8">
-                <!-- 과정 목록 섹션 -->
-                <div id="coursesSection" class="mb-8">
-                    <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
-                        <i class="fas fa-chalkboard-teacher text-blue-500 mr-2"></i> 배정된 과정 목록
-                    </h2>
-                    <div id="coursesContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <div class="col-span-full text-center py-12">
-                            <i class="fas fa-spinner fa-spin text-3xl text-gray-400"></i>
-                            <p class="mt-4 text-gray-500">과정 목록을 불러오는 중...</p>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- 출석 관리 섹션 (과정 선택 시 표시) -->
-                <div id="attendanceSection" class="hidden">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="flex items-center gap-4">
-                            <button onclick="backToCourses()" class="px-4 py-2 text-gray-600 hover:text-blue-600 transition flex items-center">
-                                <i class="fas fa-arrow-left mr-2"></i> 과정 목록으로
-                            </button>
-                            <h2 class="text-lg font-bold text-gray-800" id="selectedCourseTitle">
-                                <i class="fas fa-calendar-check text-blue-500 mr-2"></i> 출석 관리
-                            </h2>
-                        </div>
-                        <button onclick="saveAttendance()" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium flex items-center shadow-sm">
-                            <i class="fas fa-save mr-2"></i> 출석 저장
-                        </button>
-                    </div>
-
-                    <!-- 필터 카드 -->
-                    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 mb-6">
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">기준 날짜</label>
-                                <input type="date" id="attendanceDate" onchange="loadAttendance()" 
-                                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                       value="">
+            <main class="flex-1 overflow-y-auto p-8 custom-scrollbar relative z-10">
+                <div class="max-w-[1400px] mx-auto space-y-8">
+                    
+                    <!-- 1. 과정 선택 섹션 -->
+                    <div id="coursesSection" class="animate-fade-in" style="animation-delay: 0.1s">
+                        <div class="flex items-center gap-4 mb-8">
+                            <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-100">
+                                <i class="fas fa-calendar-check text-sm"></i>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">상태 필터</label>
-                                <select id="statusFilter" onchange="filterAttendance()" 
-                                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                    <option value="all">전체</option>
-                                    <option value="present">출석</option>
-                                    <option value="late">지각</option>
-                                    <option value="early_leave">조퇴</option>
-                                    <option value="absent">결석</option>
-                                </select>
+                                <h2 class="text-xl font-black text-slate-800 tracking-tight">출결 관리 대상 선택</h2>
+                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Select Academic Module for Presence Scan</p>
                             </div>
-                            <div class="text-right">
-                                <div class="text-sm text-gray-500">총 인원: <span id="totalStudents" class="font-bold text-gray-800">0</span>명</div>
-                                <div class="text-xs text-blue-600 font-medium mt-1">출석률: <span id="attendanceRate">0</span>%</div>
+                        </div>
+
+                        <div id="coursesContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <!-- JS Load -->
+                            <div class="col-span-full py-20 flex flex-col items-center justify-center bg-white rounded-[2.5rem] border border-dashed border-slate-200">
+                                <i class="fas fa-circle-notch fa-spin text-3xl text-blue-500 mb-4"></i>
+                                <p class="text-slate-400 font-black text-sm uppercase tracking-widest">Scanning Academic Frequencies...</p>
                             </div>
                         </div>
                     </div>
 
-                    <!-- 출석 리스트 테이블 -->
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">이름 / 연락처</th>
-                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">출석 상태</th>
-                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">입실 시간</th>
-                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">퇴실 시간</th>
-                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">메모</th>
-                                </tr>
-                            </thead>
-                            <tbody id="attendanceTableBody" class="bg-white divide-y divide-gray-200">
-                                <tr>
-                                    <td colspan="5" class="px-6 py-12 text-center text-gray-500">
-                                        <i class="fas fa-spinner fa-spin mr-2"></i> 출석 정보를 불러오는 중...
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <!-- 2. 출결 관리 상세 섹션 (Hidden by Default) -->
+                    <div id="attendanceSection" class="hidden animate-fade-in">
+                        <div class="flex flex-col lg:flex-row items-stretch gap-8 mb-8">
+                            <!-- 통계 요약 카드 (Bento Style) -->
+                            <div class="lg:w-1/3 bg-indigo-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-2xl">
+                                <div class="absolute -right-20 -bottom-20 w-60 h-60 bg-blue-400/20 rounded-full blur-[80px]"></div>
+                                <div class="relative z-10 h-full flex flex-col justify-between">
+                                    <div>
+                                        <div class="flex items-center gap-3 mb-4">
+                                            <div class="w-10 h-10 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center text-white">
+                                                <i class="fas fa-chart-pie text-sm"></i>
+                                            </div>
+                                            <h3 class="font-black tracking-tight">실시간 Presence 지표</h3>
+                                        </div>
+                                        <div class="space-y-6 mt-8">
+                                            <div class="flex justify-between items-end border-b border-white/10 pb-4">
+                                                <div>
+                                                    <span class="block text-[10px] font-black text-indigo-300 uppercase tracking-widest mb-1">Total Nodes</span>
+                                                    <span class="text-4xl font-black tracking-tighter" id="stat-total">0</span>
+                                                </div>
+                                                <div class="text-right">
+                                                    <span class="block text-[10px] font-black text-indigo-300 uppercase tracking-widest mb-1">Operational Rate</span>
+                                                    <span class="text-2xl font-black text-emerald-400" id="stat-rate">0%</span>
+                                                </div>
+                                            </div>
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <div class="p-4 bg-white/5 border border-white/5 rounded-2xl">
+                                                    <span class="block text-[9px] font-black text-indigo-300 uppercase tracking-widest mb-1">Active</span>
+                                                    <span class="text-xl font-black" id="stat-present">0</span>
+                                                </div>
+                                                <div class="p-4 bg-white/5 border border-white/5 rounded-2xl">
+                                                    <span class="block text-[9px] font-black text-indigo-300 uppercase tracking-widest mb-1">Offline</span>
+                                                    <span class="text-xl font-black text-red-400" id="stat-absent">0</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button onclick="saveAttendance()" class="mt-8 w-full py-4 bg-white text-indigo-900 font-black text-[11px] rounded-[1.5rem] hover:bg-emerald-400 hover:text-white transition-all uppercase tracking-widest shadow-xl">
+                                        Sync Intelligence Data
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- 필터 및 제어 센터 -->
+                            <div class="flex-1 bg-white rounded-[2.5rem] border border-slate-200/60 p-8 shadow-sm flex flex-col justify-between">
+                                <div class="flex flex-col md:flex-row gap-6">
+                                    <div class="flex-1">
+                                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">SCAN DATE (REF)</label>
+                                        <div class="relative">
+                                            <i class="fas fa-calendar absolute left-4 top-1/2 -translate-y-1/2 text-indigo-500"></i>
+                                            <input type="date" id="attendanceDate" onchange="loadAttendance()" 
+                                                   class="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-100 outline-none transition-all font-black text-sm text-slate-700 tracking-tight">
+                                        </div>
+                                    </div>
+                                    <div class="flex-1">
+                                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">INTELLIGENCE FILTER</label>
+                                        <div class="relative">
+                                            <i class="fas fa-filter absolute left-4 top-1/2 -translate-y-1/2 text-indigo-500"></i>
+                                            <select id="statusFilter" onchange="filterAttendance()" 
+                                                    class="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-100 outline-none transition-all font-black text-sm text-slate-700 tracking-tight appearance-none">
+                                                <option value="all">ALL NODES</option>
+                                                <option value="present">ACTIVE (PRESENT)</option>
+                                                <option value="late">DELAYED (LATE)</option>
+                                                <option value="early_leave">PRE-TERM (EARLY)</option>
+                                                <option value="absent">OFFLINE (ABSENT)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mt-8 pt-8 border-t border-slate-100 flex items-center gap-6">
+                                    <button onclick="backToCourses()" class="px-6 py-4 bg-slate-100 text-slate-400 font-black text-[10px] rounded-2xl hover:bg-slate-200 transition-all uppercase tracking-widest">
+                                        <i class="fas fa-chevron-left mr-2"></i> Re-Scan
+                                    </button>
+                                    <div class="flex-1">
+                                        <h4 id="selectedCourseTitle" class="text-lg font-black text-slate-900 tracking-tight line-clamp-1">Module Name</h4>
+                                        <p class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mt-0.5">Academic Core Synchronization</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 데이터 시퀀스 (Grid) -->
+                        <div class="bg-white rounded-[2.5rem] border border-slate-200/60 shadow-xl overflow-hidden">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-50/50 border-b border-slate-100">
+                                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Node Intelligence</th>
+                                        <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Status Flag</th>
+                                        <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">In Bound</th>
+                                        <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Out Bound</th>
+                                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Parameter Log</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="attendanceTableBody" class="divide-y divide-slate-50">
+                                    <!-- JS Load -->
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </main>
@@ -127,32 +204,21 @@ export const teacherAttendanceHtml = `
 
     <script>
         let allCourses = [];
-        let selectedCourseId = null;
-        let selectedCourseTitle = '';
         let attendanceData = [];
+        let selectedCourseId = null;
         let selectedDate = '';
 
         document.addEventListener('DOMContentLoaded', () => {
-            checkLogin();
+            const userStr = localStorage.getItem('user');
+            if (userStr) {
+                const user = JSON.parse(userStr);
+                document.getElementById('header-user-name').textContent = user.name;
+            }
             loadCourses();
-            // 오늘 날짜를 기본값으로 설정
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('attendanceDate').value = today;
             selectedDate = today;
         });
-
-        function checkLogin() {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                alert('로그인이 필요합니다.');
-                window.location.href = '/login';
-            }
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
-            if (user.role !== 'teacher' && user.role !== 'admin') {
-                alert('강사 권한이 필요합니다.');
-                window.location.href = '/';
-            }
-        }
 
         async function loadCourses() {
             try {
@@ -161,121 +227,59 @@ export const teacherAttendanceHtml = `
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
                 const result = await response.json();
-
                 if (result.success) {
                     allCourses = result.data || [];
                     renderCourses();
-                } else {
-                    console.error('Failed to load courses:', result.error);
-                    document.getElementById('coursesContainer').innerHTML = 
-                        '<div class="col-span-full text-center py-12 text-red-500">과정 목록을 불러오는데 실패했습니다.</div>';
                 }
-            } catch (error) {
-                console.error('Error loading courses:', error);
-                document.getElementById('coursesContainer').innerHTML = 
-                    '<div class="col-span-full text-center py-12 text-red-500">오류가 발생했습니다.</div>';
-            }
+            } catch (error) { console.error(error); }
         }
 
         function renderCourses() {
             const container = document.getElementById('coursesContainer');
-            
             if (allCourses.length === 0) {
-                container.innerHTML = \`
-                    <div class="col-span-full text-center py-16 bg-white rounded-lg shadow-sm">
-                        <i class="fas fa-chalkboard text-5xl text-gray-300 mb-4"></i>
-                        <h3 class="text-xl font-bold text-gray-700 mb-2">배정된 과정이 없습니다</h3>
-                        <p class="text-gray-500 mb-4">관리자(원장)에게 과정 배정을 요청하세요.</p>
-                        <a href="/teacher" class="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-                            <i class="fas fa-arrow-left mr-2"></i> 대시보드로 돌아가기
-                        </a>
-                    </div>
-                \`;
+                container.innerHTML = '<div class="col-span-full py-20 text-center text-slate-400 font-black uppercase text-xs">No Presence Data Sources Found</div>';
                 return;
             }
 
-            container.innerHTML = allCourses.map(course => {
-                // 상태 뱃지
-                let statusBadge = '';
-                let statusColor = '';
-                switch(course.status) {
-                    case 'active':
-                        statusBadge = '진행중';
-                        statusColor = 'bg-green-100 text-green-800';
-                        break;
-                    case 'upcoming':
-                        statusBadge = '예정';
-                        statusColor = 'bg-blue-100 text-blue-800';
-                        break;
-                    case 'completed':
-                        statusBadge = '완료';
-                        statusColor = 'bg-gray-100 text-gray-800';
-                        break;
-                    case 'cancelled':
-                        statusBadge = '취소';
-                        statusColor = 'bg-red-100 text-red-800';
-                        break;
-                    default:
-                        statusBadge = course.status || '미정';
-                        statusColor = 'bg-gray-100 text-gray-800';
-                }
-
-                return \`
-                    <div onclick="selectCourse(\${course.id}, '\${(course.title || '').replace(/'/g, "\\\\'")}')" 
-                         class="bg-white rounded-xl shadow-sm border-2 border-gray-200 p-5 hover:border-blue-500 hover:shadow-md transition-all cursor-pointer">
-                        <div class="flex items-start justify-between mb-3">
-                            <div class="flex-1">
-                                <h3 class="text-lg font-bold text-gray-800 mb-2 line-clamp-2">\${course.title || '과정명 없음'}</h3>
-                                <p class="text-sm text-gray-600 line-clamp-2 mb-3">\${course.description || '설명 없음'}</p>
-                            </div>
-                            <span class="px-2 py-1 rounded-full text-xs font-bold \${statusColor} ml-2 flex-shrink-0">\${statusBadge}</span>
-                        </div>
-                        <div class="space-y-2 text-sm text-gray-600">
-                            \${course.campus_name ? \`
-                                <div class="flex items-center">
-                                    <i class="fas fa-map-marker-alt w-5 text-gray-400"></i>
-                                    <span>\${course.campus_name}</span>
-                                </div>
-                            \` : ''}
-                            <div class="flex items-center">
-                                <i class="fas fa-user-graduate w-5 text-gray-400"></i>
-                                <span>수강생: \${course.current_students || 0}명</span>
-                            </div>
-                            \${course.start_date ? \`
-                                <div class="flex items-center">
-                                    <i class="fas fa-calendar-alt w-5 text-gray-400"></i>
-                                    <span>\${course.start_date.split('T')[0]}</span>
-                                </div>
-                            \` : ''}
-                        </div>
-                        <div class="mt-4 pt-4 border-t border-gray-100">
-                            <button class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium">
-                                <i class="fas fa-calendar-check mr-2"></i> 출석 관리
-                            </button>
-                        </div>
-                    </div>
-                \`;
-            }).join('');
+            container.innerHTML = allCourses.map(course => 
+                '<div onclick="selectCourse(' + course.id + ', \'' + ((course.title || '').replace(/'/g, "\\\\'")) + '\')" ' +
+                     'class="bento-card bg-white rounded-[2rem] p-8 border border-slate-200/60 flex flex-col justify-between cursor-pointer group shadow-sm hover:border-indigo-600/30">' +
+                    '<div class="flex justify-between items-start mb-6">' +
+                        '<div class="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-all duration-500 shadow-sm border border-emerald-100">' +
+                            '<i class="fas fa-satellite-dish text-lg font-black"></i>' +
+                        '</div>' +
+                        '<span class="px-3 py-1 bg-slate-50 text-slate-400 text-[10px] font-black rounded-full uppercase tracking-widest border border-slate-100 group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-500 transition-all">Scan Ready</span>' +
+                    '</div>' +
+                    '<div>' +
+                        '<h3 class="text-xl font-black text-slate-900 tracking-tight group-hover:text-indigo-600 transition-colors mb-2 line-clamp-2">' + course.title + '</h3>' +
+                        '<p class="text-[11px] font-medium text-slate-400 line-clamp-2 mb-6 uppercase tracking-tight">Access presence logs and real-time node monitoring for this academic module.</p>' +
+                        
+                        '<div class="flex items-center justify-between pt-6 border-t border-slate-50">' +
+                            '<div class="flex items-center gap-4">' +
+                                '<div class="flex flex-col">' +
+                                    '<span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Nodes</span>' +
+                                    '<span class="text-sm font-black text-slate-700">' + (course.current_students || 0) + '</span>' +
+                                '</div>' +
+                            '</div>' +
+                            '<div class="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-50 group-hover:bg-indigo-600 group-hover:text-white transition-all">' +
+                                '<i class="fas fa-chevron-right text-[10px]"></i>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>'
+            ).join('');
         }
 
         async function selectCourse(courseId, courseTitle) {
             selectedCourseId = courseId;
-            selectedCourseTitle = courseTitle;
-            
-            // UI 전환
             document.getElementById('coursesSection').classList.add('hidden');
             document.getElementById('attendanceSection').classList.remove('hidden');
-            document.getElementById('selectedCourseTitle').innerHTML = \`
-                <i class="fas fa-calendar-check text-blue-500 mr-2"></i> \${courseTitle} - 출석 관리
-            \`;
-            
-            // 출석 정보 로드
+            document.getElementById('selectedCourseTitle').textContent = courseTitle;
             await loadAttendance();
         }
 
         function backToCourses() {
             selectedCourseId = null;
-            selectedCourseTitle = '';
             document.getElementById('coursesSection').classList.remove('hidden');
             document.getElementById('attendanceSection').classList.add('hidden');
         }
@@ -283,252 +287,130 @@ export const teacherAttendanceHtml = `
         async function loadAttendance() {
             try {
                 const token = localStorage.getItem('token');
-                const dateInput = document.getElementById('attendanceDate');
-                selectedDate = dateInput.value;
-                
-                if (!selectedCourseId || !selectedDate) {
-                    alert('과정과 날짜를 선택해주세요.');
-                    return;
-                }
-
-                // 출석 현황 조회
-                const response = await fetch(\`/api/hrd/attendance?courseId=\${selectedCourseId}&date=\${selectedDate}\`, {
+                selectedDate = document.getElementById('attendanceDate').value;
+                const response = await fetch('/api/hrd/attendance?courseId=' + selectedCourseId + '&date=' + selectedDate, {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
                 const result = await response.json();
-
                 if (result.success) {
                     attendanceData = result.data || [];
                     renderAttendance();
                     updateStatistics();
-                } else {
-                    console.error('Failed to load attendance:', result.error);
-                    document.getElementById('attendanceTableBody').innerHTML = 
-                        '<tr><td colspan="5" class="px-6 py-12 text-center text-red-500">출석 정보를 불러오는데 실패했습니다.</td></tr>';
                 }
-            } catch (error) {
-                console.error('Error loading attendance:', error);
-                document.getElementById('attendanceTableBody').innerHTML = 
-                    '<tr><td colspan="5" class="px-6 py-12 text-center text-red-500">오류가 발생했습니다.</td></tr>';
-            }
+            } catch (error) { console.error(error); }
         }
 
         function renderAttendance() {
             const tbody = document.getElementById('attendanceTableBody');
             const statusFilter = document.getElementById('statusFilter').value;
-            
-            // 상태 필터링
-            let filteredData = attendanceData;
+            let filtered = attendanceData;
             if (statusFilter !== 'all') {
-                filteredData = attendanceData.filter(a => a.status === statusFilter);
+                filtered = attendanceData.filter(a => (a.status || 'absent') === statusFilter);
             }
 
-            if (filteredData.length === 0) {
-                tbody.innerHTML = \`
-                    <tr>
-                        <td colspan="5" class="px-6 py-12 text-center text-gray-500">
-                            \${statusFilter !== 'all' ? '해당 상태의 수강생이 없습니다.' : '수강생이 없습니다.'}
-                        </td>
-                    </tr>
-                \`;
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="px-8 py-20 text-center text-slate-400 font-black uppercase text-xs">No Presence Signatures Recorded</td></tr>';
                 return;
             }
 
-            tbody.innerHTML = filteredData.map((student, index) => {
-                const studentId = student.id;
-                const enrollmentId = student.enrollment_id;
+            tbody.innerHTML = filtered.map(student => {
                 const status = student.status || 'absent';
-                const inTime = student.in_time || '';
-                const outTime = student.out_time || '';
-                const memo = student.memo || '';
+                let statusStyle = 'bg-slate-100 text-slate-400';
+                if(status === 'present') statusStyle = 'bg-emerald-50 text-emerald-600 border border-emerald-100';
+                if(status === 'absent') statusStyle = 'bg-red-50 text-red-600 border border-red-100';
+                if(status === 'late' || status === 'early_leave') statusStyle = 'bg-orange-50 text-orange-600 border border-orange-100';
 
-                // 상태 뱃지 색상
-                let statusColor = '';
-                let statusText = '';
-                switch(status) {
-                    case 'present':
-                        statusColor = 'bg-green-100 text-green-800';
-                        statusText = '출석';
-                        break;
-                    case 'late':
-                        statusColor = 'bg-yellow-100 text-yellow-800';
-                        statusText = '지각';
-                        break;
-                    case 'early_leave':
-                        statusColor = 'bg-orange-100 text-orange-800';
-                        statusText = '조퇴';
-                        break;
-                    case 'absent':
-                        statusColor = 'bg-red-100 text-red-800';
-                        statusText = '결석';
-                        break;
-                    default:
-                        statusColor = 'bg-gray-100 text-gray-800';
-                        statusText = '미처리';
-                }
-
-                return \`
-                    <tr class="hover:bg-gray-50 transition-colors">
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="flex items-center">
-                                <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold mr-3">
-                                    \${(student.name || '학생')[0]}
-                                </div>
-                                <div>
-                                    <div class="text-sm font-medium text-gray-900">\${student.name || '이름 없음'}</div>
-                                    <div class="text-sm text-gray-500">\${student.phone || '-'}</div>
-                                </div>
-                            </div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-center">
-                            <select 
-                                class="status-select px-3 py-1 rounded-lg border border-gray-300 text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 \${statusColor}"
-                                data-student-id="\${studentId}"
-                                data-enrollment-id="\${enrollmentId}"
-                                onchange="updateStatusColor(this)">
-                                <option value="present" \${status === 'present' ? 'selected' : ''}>출석</option>
-                                <option value="late" \${status === 'late' ? 'selected' : ''}>지각</option>
-                                <option value="early_leave" \${status === 'early_leave' ? 'selected' : ''}>조퇴</option>
-                                <option value="absent" \${status === 'absent' ? 'selected' : ''}>결석</option>
-                            </select>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-center">
-                            <input type="time" 
-                                   class="in-time-input px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                   data-student-id="\${studentId}"
-                                   value="\${inTime ? inTime.substring(0, 5) : ''}"
-                                   placeholder="09:00">
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-center">
-                            <input type="time" 
-                                   class="out-time-input px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                   data-student-id="\${studentId}"
-                                   value="\${outTime ? outTime.substring(0, 5) : ''}"
-                                   placeholder="18:00">
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <input type="text" 
-                                   class="memo-input w-full px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                   data-student-id="\${studentId}"
-                                   value="\${memo}"
-                                   placeholder="메모 입력...">
-                        </td>
-                    </tr>
-                \`;
+                return '<tr class="group hover:bg-slate-50/80 transition-all duration-300">' +
+                        '<td class="px-8 py-6">' +
+                            '<div class="flex items-center gap-4">' +
+                                '<div class="w-12 h-12 rounded-2xl bg-slate-900 flex items-center justify-center text-white font-black text-lg shadow-lg border border-white/10">' +
+                                    (student.name || 'N')[0] +
+                                '</div>' +
+                                '<div class="flex flex-col">' +
+                                    '<span class="text-sm font-black text-slate-900 tracking-tight group-hover:text-indigo-600 transition-colors">' + (student.name || 'Unknown') + '</span>' +
+                                    '<span class="text-[10px] font-bold text-slate-400 tracking-tight">' + (student.phone || '-') + '</span>' +
+                                '</div>' +
+                            '</div>' +
+                        '</td>' +
+                        '<td class="px-6 py-6 text-center">' +
+                            '<select ' +
+                                'class="status-select px-4 py-2 rounded-xl border border-slate-200 font-black text-[10px] outline-none transition-all uppercase tracking-widest ' + statusStyle + '" ' +
+                                'data-student-id="' + student.id + '" ' +
+                                'data-enrollment-id="' + student.enrollment_id + '" ' +
+                                'onchange="updateStatusColor(this)">' +
+                                '<option value="present" ' + (status === 'present' ? 'selected' : '') + '>ACTIVE</option>' +
+                                '<option value="late" ' + (status === 'late' ? 'selected' : '') + '>DELAYED</option>' +
+                                '<option value="early_leave" ' + (status === 'early_leave' ? 'selected' : '') + '>PRE-TERM</option>' +
+                                '<option value="absent" ' + (status === 'absent' ? 'selected' : '') + '>OFFLINE</option>' +
+                            '</select>' +
+                        '</td>' +
+                        '<td class="px-6 py-6 text-center">' +
+                            '<input type="time" class="in-time-input px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl font-black text-[10px] outline-none focus:ring-4 focus:ring-indigo-100" ' +
+                                   'data-student-id="' + student.id + '" value="' + (student.in_time ? student.in_time.substring(0, 5) : '') + '">' +
+                        '</td>' +
+                        '<td class="px-6 py-6 text-center">' +
+                            '<input type="time" class="out-time-input px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl font-black text-[10px] outline-none focus:ring-4 focus:ring-indigo-100" ' +
+                                   'data-student-id="' + student.id + '" value="' + (student.out_time ? student.out_time.substring(0, 5) : '') + '">' +
+                        '</td>' +
+                        '<td class="px-8 py-6">' +
+                            '<input type="text" class="memo-input w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium outline-none focus:ring-4 focus:ring-indigo-100 transition-all" ' +
+                                   'data-student-id="' + student.id + '" value="' + (student.memo || '') + '" placeholder="Parameter Log...">' +
+                        '</td>' +
+                '</tr>';
             }).join('');
         }
 
         function updateStatusColor(select) {
             const status = select.value;
-            let statusColor = '';
-            switch(status) {
-                case 'present':
-                    statusColor = 'bg-green-100 text-green-800';
-                    break;
-                case 'late':
-                    statusColor = 'bg-yellow-100 text-yellow-800';
-                    break;
-                case 'early_leave':
-                    statusColor = 'bg-orange-100 text-orange-800';
-                    break;
-                case 'absent':
-                    statusColor = 'bg-red-100 text-red-800';
-                    break;
-                default:
-                    statusColor = 'bg-gray-100 text-gray-800';
-            }
-            select.className = \`status-select px-3 py-1 rounded-lg border border-gray-300 text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 \${statusColor}\`;
+            select.classList.remove('bg-emerald-50', 'text-emerald-600', 'bg-red-50', 'text-red-600', 'bg-orange-50', 'text-orange-600', 'bg-slate-100', 'text-slate-400');
+            if(status === 'present') select.classList.add('bg-emerald-50', 'text-emerald-600', 'border-emerald-100');
+            else if(status === 'late' || status === 'early_leave') select.classList.add('bg-orange-50', 'text-orange-600', 'border-orange-100');
+            else if(status === 'absent') select.classList.add('bg-red-50', 'text-red-600', 'border-red-100');
+            else select.classList.add('bg-slate-100', 'text-slate-400');
         }
 
-        function filterAttendance() {
-            renderAttendance();
-            updateStatistics();
-        }
+        function filterAttendance() { renderAttendance(); updateStatistics(); }
 
         function updateStatistics() {
             const total = attendanceData.length;
             const present = attendanceData.filter(a => a.status === 'present' || a.status === 'late').length;
             const rate = total > 0 ? Math.round((present / total) * 100) : 0;
-            
-            document.getElementById('totalStudents').textContent = total;
-            document.getElementById('attendanceRate').textContent = rate;
+            document.getElementById('stat-total').textContent = total;
+            document.getElementById('stat-rate').textContent = rate + '%';
+            document.getElementById('stat-present').textContent = present;
+            document.getElementById('stat-absent').textContent = total - present;
         }
 
         async function saveAttendance() {
             try {
                 const token = localStorage.getItem('token');
-                
-                if (!selectedCourseId || !selectedDate) {
-                    alert('과정과 날짜를 선택해주세요.');
-                    return;
-                }
-
-                // 테이블에서 출석 데이터 수집
                 const attendances = [];
-                const rows = document.querySelectorAll('#attendanceTableBody tr');
-                
-                rows.forEach(row => {
+                document.querySelectorAll('#attendanceTableBody tr').forEach(row => {
                     const statusSelect = row.querySelector('.status-select');
-                    const inTimeInput = row.querySelector('.in-time-input');
-                    const outTimeInput = row.querySelector('.out-time-input');
-                    const memoInput = row.querySelector('.memo-input');
-                    
                     if (statusSelect) {
-                        const studentId = statusSelect.getAttribute('data-student-id');
-                        const enrollmentId = statusSelect.getAttribute('data-enrollment-id');
-                        const status = statusSelect.value;
-                        const inTime = inTimeInput ? inTimeInput.value : '';
-                        const outTime = outTimeInput ? outTimeInput.value : '';
-                        const memo = memoInput ? memoInput.value : '';
-                        
                         attendances.push({
-                            studentId: parseInt(studentId),
-                            enrollmentId: parseInt(enrollmentId),
-                            status: status,
-                            inTime: inTime || null,
-                            outTime: outTime || null,
-                            memo: memo || null
+                            studentId: parseInt(statusSelect.getAttribute('data-student-id')),
+                            enrollmentId: parseInt(statusSelect.getAttribute('data-enrollment-id')),
+                            status: statusSelect.value,
+                            inTime: row.querySelector('.in-time-input')?.value || null,
+                            outTime: row.querySelector('.out-time-input')?.value || null,
+                            memo: row.querySelector('.memo-input')?.value || null
                         });
                     }
                 });
 
-                // API 호출
                 const response = await fetch('/api/hrd/attendance', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + token
-                    },
-                    body: JSON.stringify({
-                        courseId: selectedCourseId,
-                        date: selectedDate,
-                        attendances: attendances
-                    })
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({ courseId: selectedCourseId, date: selectedDate, attendances })
                 });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    alert('출석 정보가 저장되었습니다.');
-                    // 다시 로드하여 최신 데이터 반영
+                if ((await response.json()).success) {
+                    alert('Presence Intel Synchronized Successfully');
                     await loadAttendance();
-                } else {
-                    alert('저장 실패: ' + (result.error || '알 수 없는 오류'));
                 }
-            } catch (error) {
-                console.error('Save error:', error);
-                alert('저장 중 오류가 발생했습니다: ' + (error.message || error));
-            }
+            } catch (error) { console.error(error); }
         }
     </script>
-    <style>
-        .line-clamp-2 {
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-    </style>
 </body>
 </html>
 `;

@@ -132,10 +132,10 @@ export const teacherCoursesHtml = `
                 const search = document.getElementById('searchInput').value;
 
                 // API 호출 (강사는 자동으로 본인 과정만 필터링됨)
-                let url = \`/api/courses?page=\${page}&limit=\${limit}\`;
-                if (category) url += \`&category=\${encodeURIComponent(category)}\`;
-                if (status) url += \`&status=\${encodeURIComponent(status)}\`;
-                if (search) url += \`&search=\${encodeURIComponent(search)}\`;
+                let url = '/api/courses?page=' + page + '&limit=' + limit;
+                if (category) url += '&category=' + encodeURIComponent(category);
+                if (status) url += '&status=' + encodeURIComponent(status);
+                if (search) url += '&search=' + encodeURIComponent(search);
 
                 const response = await fetch(url, {
                     headers: { 'Authorization': 'Bearer ' + token }
@@ -162,18 +162,17 @@ export const teacherCoursesHtml = `
             const container = document.getElementById('coursesContainer');
             
             if (courses.length === 0) {
-                container.innerHTML = \`
-                    <div class="col-span-full text-center py-32 bg-white rounded-[3rem] border border-gray-100 shadow-sm flex flex-col items-center">
-                        <div class="w-24 h-24 rounded-[2rem] bg-gray-50 flex items-center justify-center text-gray-200 mb-6">
-                            <i class="fas fa-chalkboard text-4xl"></i>
-                        </div>
-                        <h3 class="text-2xl font-black text-gray-900 mb-2 tracking-tight">배정된 강의가 존재하지 않습니다</h3>
-                        <p class="text-sm font-bold text-gray-400 uppercase tracking-widest">No Assigned Courses in Database</p>
-                        <button onclick="location.href='/teacher'" class="mt-8 px-8 py-3 bg-gray-900 text-white rounded-2xl font-black text-xs hover:bg-black transition-all shadow-xl">
-                            대시보드로 귀환 (Return to Dashboard)
-                        </button>
-                    </div>
-                \`;
+                container.innerHTML = 
+                    '<div class="col-span-full text-center py-32 bg-white rounded-[3rem] border border-gray-100 shadow-sm flex flex-col items-center">' +
+                        '<div class="w-24 h-24 rounded-[2rem] bg-gray-50 flex items-center justify-center text-gray-200 mb-6">' +
+                            '<i class="fas fa-chalkboard text-4xl"></i>' +
+                        '</div>' +
+                        '<h3 class="text-2xl font-black text-gray-900 mb-2 tracking-tight">배정된 강의가 존재하지 않습니다</h3>' +
+                        '<p class="text-sm font-bold text-gray-400 uppercase tracking-widest">No Assigned Courses in Database</p>' +
+                        '<button onclick="location.href=\'/teacher\'" class="mt-8 px-8 py-3 bg-gray-900 text-white rounded-2xl font-black text-xs hover:bg-black transition-all shadow-xl">' +
+                            '대시보드로 귀환 (Return to Dashboard)' +
+                        '</button>' +
+                    '</div>';
                 return;
             }
 
@@ -190,63 +189,58 @@ export const teacherCoursesHtml = `
                     case 'cancelled': statusInfo = { badge: '취소', class: 'bg-red-100 text-red-700' }; break;
                 }
 
-                return \`
-                    <div class="bg-white rounded-[2.5rem] border border-gray-200 overflow-hidden hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.1)] transition-all duration-500 group">
-                        <div class="relative aspect-[16/10] overflow-hidden">
-                            \${course.thumbnail_url 
-                                ? \`<img src="\${course.thumbnail_url}" alt="\${course.title}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000">\`
-                                : \`<div class="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-                                    <i class="fas fa-cube text-5xl text-gray-300"></i>
-                                </div>\`
-                            }
-                            <div class="absolute top-6 left-6 flex gap-2">
-                                <span class="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider shadow-lg bg-white/90 backdrop-blur-md text-gray-900">\${course.category || 'GENERAL'}</span>
-                            </div>
-                            <div class="absolute bottom-0 inset-x-0 p-6 bg-gradient-to-t from-black/80 to-transparent">
-                                <div class="flex items-center gap-2">
-                                    <div class="w-2 h-2 rounded-full \${course.status === 'active' ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}"></div>
-                                    <span class="text-[10px] font-black text-white uppercase tracking-widest">\${statusInfo.badge} ( \${course.status} )</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="p-8 space-y-6">
-                            <div class="min-h-[64px]">
-                                <h3 class="text-xl font-black text-gray-900 tracking-tight line-clamp-2 leading-tight group-hover:text-blue-600 transition-colors">\${course.title || 'Untitled Course'}</h3>
-                            </div>
-
-                            <div class="grid grid-cols-2 gap-4">
-                                <div class="bg-gray-50 rounded-2xl p-4 border border-gray-100">
-                                    <span class="block text-[9px] font-black text-gray-400 uppercase tracking-tighter mb-1">Students</span>
-                                    <div class="flex items-baseline gap-1">
-                                        <span class="text-xl font-black text-gray-900">\${enrolledCount}</span>
-                                        <span class="text-[10px] font-bold text-gray-400">/ \${maxStudents}</span>
-                                    </div>
-                                    <div class="mt-2 w-full bg-gray-200 h-1 rounded-full overflow-hidden">
-                                        <div class="bg-blue-600 h-full rounded-full transition-all duration-1000" style="width: \${progressPercent}%"></div>
-                                    </div>
-                                </div>
-                                <div class="bg-gray-50 rounded-2xl p-4 border border-gray-100">
-                                    <span class="block text-[9px] font-black text-gray-400 uppercase tracking-tighter mb-1">Schedule</span>
-                                    <div class="flex items-center gap-2 mt-1">
-                                        <i class="far fa-calendar-alt text-blue-500 text-xs"></i>
-                                        <span class="text-[11px] font-black text-gray-700">\${course.start_date ? course.start_date.split('T')[0] : 'N/A'}</span>
-                                    </div>
-                                    <p class="text-[9px] font-bold text-gray-400 mt-1 uppercase">Commencement Date</p>
-                                </div>
-                            </div>
-
-                            <div class="flex gap-3 pt-4 border-t border-gray-50">
-                                <button onclick="viewCourseDetail(\${course.id})" class="flex-1 px-4 py-4 bg-gray-50 text-gray-900 rounded-2xl hover:bg-gray-100 transition-all font-black text-[10px] tracking-widest uppercase">
-                                     강의 보기 (Overview)
-                                </button>
-                                <button onclick="manageCourse(\${course.id})" class="w-14 h-14 bg-gray-900 text-white rounded-2xl hover:bg-black flex items-center justify-center transition-all shadow-xl shadow-gray-200">
-                                    <i class="fas fa-cog"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                \`;
+                return '<div class="bg-white rounded-[2.5rem] border border-gray-200 overflow-hidden hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.1)] transition-all duration-500 group">' +
+                        '<div class="relative aspect-[16/10] overflow-hidden">' +
+                            (course.thumbnail_url 
+                                ? '<img src="' + course.thumbnail_url + '" alt="' + (course.title || '') + '" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000">'
+                                : '<div class="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">' +
+                                    '<i class="fas fa-cube text-5xl text-gray-300"></i>' +
+                                '</div>'
+                            ) +
+                            '<div class="absolute top-6 left-6 flex gap-2">' +
+                                '<span class="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider shadow-lg bg-white/90 backdrop-blur-md text-gray-900">' + (course.category || 'GENERAL') + '</span>' +
+                            '</div>' +
+                            '<div class="absolute bottom-0 inset-x-0 p-6 bg-gradient-to-t from-black/80 to-transparent">' +
+                                '<div class="flex items-center gap-2">' +
+                                    '<div class="w-2 h-2 rounded-full ' + (course.status === 'active' ? 'bg-green-500 animate-pulse' : 'bg-gray-400') + '"></div>' +
+                                    '<span class="text-[10px] font-black text-white uppercase tracking-widest">' + statusInfo.badge + ' ( ' + course.status + ' )</span>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                        '<div class="p-8 space-y-6">' +
+                            '<div class="min-h-[64px]">' +
+                                '<h3 class="text-xl font-black text-gray-900 tracking-tight line-clamp-2 leading-tight group-hover:text-blue-600 transition-colors">' + (course.title || 'Untitled Course') + '</h3>' +
+                            '</div>' +
+                            '<div class="grid grid-cols-2 gap-4">' +
+                                '<div class="bg-gray-50 rounded-2xl p-4 border border-gray-100">' +
+                                    '<span class="block text-[9px] font-black text-gray-400 uppercase tracking-tighter mb-1">Students</span>' +
+                                    '<div class="flex items-baseline gap-1">' +
+                                        '<span class="text-xl font-black text-gray-900">' + enrolledCount + '</span>' +
+                                        '<span class="text-[10px] font-bold text-gray-400">/ ' + maxStudents + '</span>' +
+                                    '</div>' +
+                                    '<div class="mt-2 w-full bg-gray-200 h-1 rounded-full overflow-hidden">' +
+                                        '<div class="bg-blue-600 h-full rounded-full transition-all duration-1000" style="width: ' + progressPercent + '%"></div>' +
+                                    '</div>' +
+                                '</div>' +
+                                '<div class="bg-gray-50 rounded-2xl p-4 border border-gray-100">' +
+                                    '<span class="block text-[9px] font-black text-gray-400 uppercase tracking-tighter mb-1">Schedule</span>' +
+                                    '<div class="flex items-center gap-2 mt-1">' +
+                                        '<i class="far fa-calendar-alt text-blue-500 text-xs"></i>' +
+                                        '<span class="text-[11px] font-black text-gray-700">' + (course.start_date ? course.start_date.split('T')[0] : 'N/A') + '</span>' +
+                                    '</div>' +
+                                    '<p class="text-[9px] font-bold text-gray-400 mt-1 uppercase">Commencement Date</p>' +
+                                '</div>' +
+                            '</div>' +
+                            '<div class="flex gap-3 pt-4 border-t border-gray-50">' +
+                                '<button onclick="viewCourseDetail(' + course.id + ')" class="flex-1 px-4 py-4 bg-gray-50 text-gray-900 rounded-2xl hover:bg-gray-100 transition-all font-black text-[10px] tracking-widest uppercase">' +
+                                     '강의 보기 (Overview)' +
+                                '</button>' +
+                                '<button onclick="manageCourse(' + course.id + ')" class="w-14 h-14 bg-gray-900 text-white rounded-2xl hover:bg-black flex items-center justify-center transition-all shadow-xl shadow-gray-200">' +
+                                    '<i class="fas fa-cog"></i>' +
+                                '</button>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>';
             }).join('');
         }
 
@@ -262,59 +256,59 @@ export const teacherCoursesHtml = `
             const current = pagination.currentPage || currentPage;
 
             // 이전 버튼
-            pages.push(\`
-                <button onclick="loadCourses(\${current - 1})" 
-                        \${current === 1 ? 'disabled class="px-3 py-2 border border-gray-300 rounded-lg text-gray-400 cursor-not-allowed"' : 'class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"'}
-                        \${current === 1 ? 'disabled' : ''}>
-                    <i class="fas fa-chevron-left"></i>
-                </button>
-            \`);
+            pages.push(
+                '<button onclick="loadCourses(' + (current - 1) + ')" ' +
+                        (current === 1 ? 'disabled class="px-3 py-2 border border-gray-300 rounded-lg text-gray-400 cursor-not-allowed"' : 'class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"') +
+                        ' ' + (current === 1 ? 'disabled' : '') + '>' +
+                    '<i class="fas fa-chevron-left"></i>' +
+                '</button>'
+            );
 
             // 페이지 번호
             const startPage = Math.max(1, current - 2);
             const endPage = Math.min(totalPages, current + 2);
 
             if (startPage > 1) {
-                pages.push(\`<button onclick="loadCourses(1)" class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">1</button>\`);
+                pages.push('<button onclick="loadCourses(1)" class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">1</button>');
                 if (startPage > 2) {
                     pages.push('<span class="px-3 py-2 text-gray-400">...</span>');
                 }
             }
 
             for (let i = startPage; i <= endPage; i++) {
-                pages.push(\`
-                    <button onclick="loadCourses(\${i})" 
-                            class="px-3 py-2 border border-gray-300 rounded-lg \${i === current ? 'bg-blue-600 text-white' : 'hover:bg-gray-50'} transition">
-                        \${i}
-                    </button>
-                \`);
+                pages.push(
+                    '<button onclick="loadCourses(' + i + ')" ' +
+                            'class="px-3 py-2 border border-gray-300 rounded-lg ' + (i === current ? 'bg-blue-600 text-white' : 'hover:bg-gray-50') + ' transition">' +
+                        i +
+                    '</button>'
+                );
             }
 
             if (endPage < totalPages) {
                 if (endPage < totalPages - 1) {
                     pages.push('<span class="px-3 py-2 text-gray-400">...</span>');
                 }
-                pages.push(\`<button onclick="loadCourses(\${totalPages})" class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">\${totalPages}</button>\`);
+                pages.push('<button onclick="loadCourses(' + totalPages + ')" class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">' + totalPages + '</button>');
             }
 
             // 다음 버튼
-            pages.push(\`
-                <button onclick="loadCourses(\${current + 1})" 
-                        \${current === totalPages ? 'disabled class="px-3 py-2 border border-gray-300 rounded-lg text-gray-400 cursor-not-allowed"' : 'class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"'}
-                        \${current === totalPages ? 'disabled' : ''}>
-                    <i class="fas fa-chevron-right"></i>
-                </button>
-            \`);
+            pages.push(
+                '<button onclick="loadCourses(' + (current + 1) + ')" ' +
+                        (current === totalPages ? 'disabled class="px-3 py-2 border border-gray-300 rounded-lg text-gray-400 cursor-not-allowed"' : 'class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"') +
+                        ' ' + (current === totalPages ? 'disabled' : '') + '>' +
+                    '<i class="fas fa-chevron-right"></i>' +
+                '</button>'
+            );
 
             container.innerHTML = pages.join('');
         }
 
         function viewCourseDetail(courseId) {
-            window.location.href = \`/courses/\${courseId}\`;
+            window.location.href = '/courses/' + courseId;
         }
 
         function manageCourse(courseId) {
-            window.location.href = \`/admin/courses/\${courseId}/lms\`;
+            window.location.href = '/admin/courses/' + courseId + '/lms';
         }
     </script>
     <style>
