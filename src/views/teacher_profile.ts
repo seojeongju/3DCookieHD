@@ -812,19 +812,35 @@ export const teacherProfileHtml = `
         }
         window.deleteTeachingHistory = (idx) => { if(confirm('이 강의 이력을 삭제하시겠습니까?')) { teachingHistory.splice(idx,1); renderTeachingHistory(); } };
 
-        // Profile Save Logic
-        async function handlePImage(input) {
-            if(!input.files[0]) return;
-            const fd = new FormData(); fd.append('file', input.files[0]); fd.append('category', 'images'); fd.append('folder', 'profiles');
-            const res = await fetch('/api/upload', { method: 'POST', headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }, body: fd });
-            const result = await res.json();
-            if(result.success) {
-                document.getElementById('pImagePreview').src = result.data.url;
-                document.getElementById('pImagePreview').classList.remove('hidden');
-                document.getElementById('pImagePlaceholder').classList.add('hidden');
-                document.getElementById('pImageUrl').value = result.data.url;
+        // Profile Save Logic (사진 업로드 - window에 노출해 onchange에서 호출)
+        window.handlePImage = async function(input) {
+            if(!input || !input.files || !input.files[0]) return;
+            const token = localStorage.getItem('token');
+            if(!token) { alert('로그인이 필요합니다.'); return; }
+            const fd = new FormData();
+            fd.append('file', input.files[0]);
+            fd.append('category', 'images');
+            fd.append('folder', 'profiles');
+            const preview = document.getElementById('pImagePreview');
+            const placeholder = document.getElementById('pImagePlaceholder');
+            const urlInput = document.getElementById('pImageUrl');
+            try {
+                const res = await fetch('/api/upload', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token }, body: fd });
+                const result = await res.json();
+                if(result.success && result.data && result.data.url) {
+                    preview.src = result.data.url;
+                    preview.classList.remove('hidden');
+                    placeholder.classList.add('hidden');
+                    urlInput.value = result.data.url;
+                } else {
+                    alert('사진 업로드 실패: ' + (result.error || '알 수 없는 오류'));
+                }
+            } catch (err) {
+                console.error('Profile image upload error:', err);
+                alert('사진 업로드 중 오류가 발생했습니다.');
             }
-        }
+            input.value = '';
+        };
 
         window.handleSaveProfile = async (e) => {
             e.preventDefault();

@@ -451,8 +451,10 @@ export const teacherDashboardHtml = `
                     listContainer.innerHTML = '<p class="text-sm text-slate-400 text-center py-4">데이터가 없습니다.</p>';
                 } else {
                     const enrolledKey = recentCourses[0].enrolled_count != null ? 'enrolled_count' : 'student_count';
-                    listContainer.innerHTML = recentCourses.slice(0, 3).map(course =>
-                        '<div class="flex items-center gap-4 group">' +
+                    listContainer.innerHTML = recentCourses.slice(0, 3).map(course => {
+                        const idStr = String(course.id).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                        const lmsUrl = "/admin/courses/" + idStr + "/lms";
+                        return '<div class="flex items-center gap-4 group">' +
                             '<div class="w-14 h-14 rounded-2xl bg-slate-100 overflow-hidden flex-shrink-0 border border-slate-200/50 group-hover:scale-105 transition-transform">' +
                                 '<img src="' + (course.thumbnail || '/static/logo.png') + '" class="w-full h-full object-cover" alt="Course">' +
                             '</div>' +
@@ -464,11 +466,11 @@ export const teacherDashboardHtml = `
                                     '<span class="text-[10px] font-bold text-blue-500">' + (course[enrolledKey] != null ? course[enrolledKey] : 0) + '명</span>' +
                                 '</div>' +
                             '</div>' +
-                            '<button onclick="location.href=\'/admin/courses/' + course.id + '/lms\'" class="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:bg-blue-600 hover:text-white transition-all">' +
+                            '<button onclick="location.href=\'' + lmsUrl + '\'" class="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:bg-blue-600 hover:text-white transition-all">' +
                                 '<i class="fas fa-cog text-xs"></i>' +
                             '</button>' +
-                        '</div>'
-                    ).join('');
+                        '</div>';
+                    }).join('');
                 }
 
                 const alertsList = document.getElementById('alerts-list');
@@ -481,8 +483,10 @@ export const teacherDashboardHtml = `
                     if (alertsCountBadge) alertsCountBadge.classList.remove('hidden');
                     if (alertsCountEl) alertsCountEl.textContent = pendingGradingList.length;
                     alertsList.innerHTML = pendingGradingList.slice(0, 5).map(function (item) {
-                        const title = item.exam_title || '시험';
-                        const sub = (item.student_name || '학생') + ' - ' + (item.submitted_at ? item.submitted_at.split('T')[0] : '');
+                        const rawTitle = item.exam_title || '시험';
+                        const rawSub = (item.student_name || '학생') + ' - ' + (item.submitted_at ? item.submitted_at.split('T')[0] : '');
+                        const title = String(rawTitle).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                        const sub = String(rawSub).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/</g, '&lt;').replace(/>/g, '&gt;');
                         return '<div class="p-4 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-blue-50 hover:border-blue-100 transition-all cursor-pointer group" onclick="location.href=\'/teacher/courses?tab=exams\'">' +
                             '<div class="flex gap-3">' +
                                 '<div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center flex-shrink-0"><i class="fas fa-file-signature"></i></div>' +
@@ -498,8 +502,10 @@ export const teacherDashboardHtml = `
                     recentAlertsList.innerHTML = '<p class="text-sm text-slate-400 py-6 text-center">데이터가 없습니다.</p>';
                 } else {
                     recentAlertsList.innerHTML = pendingGradingList.slice(0, 5).map(function (item) {
-                        const title = item.exam_title || '시험';
-                        const sub = (item.student_name || '학생') + (item.submitted_at ? ' - ' + item.submitted_at.split('T')[0] : '');
+                        const rawTitle = item.exam_title || '시험';
+                        const rawSub = (item.student_name || '학생') + (item.submitted_at ? ' - ' + item.submitted_at.split('T')[0] : '');
+                        const title = String(rawTitle).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                        const sub = String(rawSub).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/</g, '&lt;').replace(/>/g, '&gt;');
                         return '<div class="p-6 flex items-start gap-4 hover:bg-slate-50 transition-colors cursor-pointer group" onclick="location.href=\'/teacher/courses?tab=exams\'">' +
                             '<div class="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center text-purple-500 flex-shrink-0"><i class="fas fa-clipboard-check text-sm"></i></div>' +
                             '<div class="flex-1 min-w-0">' +
