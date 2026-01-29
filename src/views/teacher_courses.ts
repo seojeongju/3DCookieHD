@@ -161,7 +161,7 @@ export const teacherCoursesHtml = `
         function renderCourses(courses) {
             const container = document.getElementById('coursesContainer');
             
-            if (courses.length === 0) {
+            if (!courses || courses.length === 0) {
                 container.innerHTML = 
                     '<div class="col-span-full text-center py-32 bg-white rounded-[3rem] border border-gray-100 shadow-sm flex flex-col items-center">' +
                         '<div class="w-24 h-24 rounded-[2rem] bg-gray-50 flex items-center justify-center text-gray-200 mb-6">' +
@@ -189,35 +189,36 @@ export const teacherCoursesHtml = `
                     case 'cancelled': statusInfo = { badge: '취소', class: 'bg-red-100 text-red-700' }; break;
                 }
 
+                const thumbnail = course.thumbnail_url 
+                    ? '<img src="' + course.thumbnail_url + '" alt="' + (course.title || '') + '" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000">'
+                    : '<div class="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center"><i class="fas fa-cube text-5xl text-gray-300"></i></div>';
+                
+                const categoryBadge = '<span class="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider shadow-lg bg-white/90 backdrop-blur-md text-gray-900">' + (course.category || '일반') + '</span>';
+                
+                const statusBadge = '<div class="w-2 h-2 rounded-full ' + (course.status === 'active' ? 'bg-green-500 animate-pulse' : 'bg-gray-400') + '"></div>' +
+                                    '<span class="text-[10px] font-black text-white uppercase tracking-widest">' + statusInfo.badge + '</span>';
+
+                const titleSection = '<h3 class="text-xl font-black text-gray-900 tracking-tight line-clamp-2 leading-tight group-hover:text-blue-600 transition-colors">' + (course.title || '제목 없음') + '</h3>';
+                
+                const studentsSection = '<span class="text-xl font-black text-gray-900">' + enrolledCount + '</span>' +
+                                        '<span class="text-[10px] font-bold text-gray-400">/ ' + maxStudents + '</span>';
+                                        
+                const dateSection = '<span class="text-[11px] font-black text-gray-700">' + (course.start_date ? course.start_date.split('T')[0] : '미정') + '</span>';
+
                 return '<div class="bg-white rounded-[2.5rem] border border-gray-200 overflow-hidden hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.1)] transition-all duration-500 group">' +
                         '<div class="relative aspect-[16/10] overflow-hidden">' +
-                            (course.thumbnail_url 
-                                ? '<img src="' + course.thumbnail_url + '" alt="' + (course.title || '') + '" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000">'
-                                : '<div class="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">' +
-                                    '<i class="fas fa-cube text-5xl text-gray-300"></i>' +
-                                '</div>'
-                            ) +
-                            '<div class="absolute top-6 left-6 flex gap-2">' +
-                                '<span class="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider shadow-lg bg-white/90 backdrop-blur-md text-gray-900">' + (course.category || '일반') + '</span>' +
-                            '</div>' +
+                            thumbnail +
+                            '<div class="absolute top-6 left-6 flex gap-2">' + categoryBadge + '</div>' +
                             '<div class="absolute bottom-0 inset-x-0 p-6 bg-gradient-to-t from-black/80 to-transparent">' +
-                                '<div class="flex items-center gap-2">' +
-                                    '<div class="w-2 h-2 rounded-full ' + (course.status === 'active' ? 'bg-green-500 animate-pulse' : 'bg-gray-400') + '"></div>' +
-                                    '<span class="text-[10px] font-black text-white uppercase tracking-widest">' + statusInfo.badge + '</span>' +
-                                '</div>' +
+                                '<div class="flex items-center gap-2">' + statusBadge + '</div>' +
                             '</div>' +
                         '</div>' +
                         '<div class="p-8 space-y-6">' +
-                            '<div class="min-h-[64px]">' +
-                                '<h3 class="text-xl font-black text-gray-900 tracking-tight line-clamp-2 leading-tight group-hover:text-blue-600 transition-colors">' + (course.title || '제목 없음') + '</h3>' +
-                            '</div>' +
+                            '<div class="min-h-[64px]">' + titleSection + '</div>' +
                             '<div class="grid grid-cols-2 gap-4">' +
                                 '<div class="bg-gray-50 rounded-2xl p-4 border border-gray-100">' +
                                     '<span class="block text-[9px] font-black text-gray-400 uppercase tracking-tighter mb-1">수강생 현황</span>' +
-                                    '<div class="flex items-baseline gap-1">' +
-                                        '<span class="text-xl font-black text-gray-900">' + enrolledCount + '</span>' +
-                                        '<span class="text-[10px] font-bold text-gray-400">/ ' + maxStudents + '</span>' +
-                                    '</div>' +
+                                    '<div class="flex items-baseline gap-1">' + studentsSection + '</div>' +
                                     '<div class="mt-2 w-full bg-gray-200 h-1 rounded-full overflow-hidden">' +
                                         '<div class="bg-blue-600 h-full rounded-full transition-all duration-1000" style="width: ' + progressPercent + '%"></div>' +
                                     '</div>' +
@@ -226,7 +227,7 @@ export const teacherCoursesHtml = `
                                     '<span class="block text-[9px] font-black text-gray-400 uppercase tracking-tighter mb-1">강의 일정</span>' +
                                     '<div class="flex items-center gap-2 mt-1">' +
                                         '<i class="far fa-calendar-alt text-blue-500 text-xs"></i>' +
-                                        '<span class="text-[11px] font-black text-gray-700">' + (course.start_date ? course.start_date.split('T')[0] : '미정') + '</span>' +
+                                        dateSection +
                                     '</div>' +
                                     '<p class="text-[9px] font-bold text-gray-400 mt-1 uppercase">개강일</p>' +
                                 '</div>' +
