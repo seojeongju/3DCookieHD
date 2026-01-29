@@ -192,11 +192,35 @@ export const adminHrdCounselingHtml = `
                             <input type="date" id="counselingDate" required class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500/20 text-sm outline-none">
                         </div>
                     </div>
-                    <div class="space-y-1.5">
+                    <div class="space-y-1.5" id="studentSelectionContainer">
                         <label class="block text-sm font-semibold text-gray-700">대상 훈련생 <span class="text-red-500">*</span></label>
-                        <select id="studentSelect" required class="w-full px-4 py-2.5 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500/20 text-sm outline-none appearance-none cursor-pointer">
+                        <select id="studentSelect" class="w-full px-4 py-2.5 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500/20 text-sm outline-none appearance-none cursor-pointer">
                             <option value="">훈련생 선택</option>
                         </select>
+                    </div>
+                    <div class="space-y-1.5 hidden" id="leadSelectionContainer">
+                        <label class="block text-sm font-semibold text-gray-700">대상 문의자 (Lead) <span class="text-red-500">*</span></label>
+                        <div class="flex gap-2">
+                            <select id="leadSelect" class="flex-1 px-4 py-2.5 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500/20 text-sm outline-none appearance-none cursor-pointer">
+                                <option value="">문의자 선택</option>
+                                <option value="new_offline">+ 새로운 오프라인 문의 등록</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 신규 오프라인 문의 입력 폼 (입학상담 전용) -->
+                <div id="newLeadForm" class="hidden grid grid-cols-2 gap-4 mb-6 p-5 bg-blue-50/50 rounded-2xl border border-blue-100/50 animate-fade-in">
+                    <div class="col-span-2 text-xs font-bold text-blue-600 mb-1 flex items-center">
+                        <i class="fas fa-plus-circle mr-1.5"></i>신규 오프라인 문의(Lead) 정보 입력
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase ml-1">문의자명</label>
+                        <input type="text" id="newLeadName" class="w-full px-4 py-2 bg-white border-none rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500/20" placeholder="성함 입력">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase ml-1">연락처</label>
+                        <input type="tel" id="newLeadPhone" class="w-full px-4 py-2 bg-white border-none rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500/20" placeholder="010-0000-0000">
                     </div>
                 </div>
 
@@ -349,6 +373,7 @@ export const adminHrdCounselingHtml = `
             await Promise.all([
                 loadCourses(),
                 loadStudents(),
+                loadConsultations(),
                 loadCounselingLogs()
             ]);
             
@@ -370,6 +395,14 @@ export const adminHrdCounselingHtml = `
             document.getElementById('dateFilter').addEventListener('change', () => {
                 displayCount = itemsPerPage;
                 loadCounselingLogs();
+            });
+
+            document.getElementById('leadSelect').addEventListener('change', (e) => {
+                const isNew = e.target.value === 'new_offline';
+                document.getElementById('newLeadForm').classList.toggle('hidden', !isNew);
+                if (isNew) {
+                    document.getElementById('newLeadName').focus();
+                }
             });
         }
 
@@ -457,6 +490,25 @@ export const adminHrdCounselingHtml = `
                 });
             } catch (e) {
                 console.error('학생 로드 실패', e);
+            }
+        }
+
+        async function loadConsultations() {
+            try {
+                const response = await fetch('/api/consultations?limit=100');
+                const result = await response.json();
+                const items = result.data || [];
+                const modalSelect = document.getElementById('leadSelect');
+                
+                // 새로운 문의 추가 옵션은 유지
+                modalSelect.innerHTML = '<option value="">문의자 선택</option><option value="new_offline">+ 새로운 오프라인 문의 등록</option>';
+                
+                items.forEach(item => {
+                    const option = new Option(\`\${item.name} (\${item.phone})\`, item.id);
+                    modalSelect.add(option);
+                });
+            } catch (e) {
+                console.error('문의 내역 로드 실패', e);
             }
         }
 
@@ -920,8 +972,19 @@ export const adminHrdCounselingHtml = `
             const form = document.getElementById('counselingForm');
             form.reset();
             document.getElementById('logId').value = '';
-            document.getElementById('modalTitle').textContent = '상담 리포트 작성';
+            document.getElementById('modalTitle').textContent = currentType === 'academic' ? '학사 상담 리포트 작성' : '입학 상담 리포트 작성';
             document.getElementById('counselingDate').valueAsDate = new Date();
+            
+            // 타입에 따른 셀력션 뷰 토글
+            const isAcademic = currentType === 'academic';
+            document.getElementById('studentSelectionContainer').classList.toggle('hidden', !isAcademic);
+            document.getElementById('leadSelectionContainer').classList.toggle('hidden', isAcademic);
+            document.getElementById('studentSelect').required = isAcademic;
+            document.getElementById('leadSelect').required = !isAcademic;
+            
+            // 신규 문의 폼 초기화
+            document.getElementById('newLeadForm').classList.add('hidden');
+            
             document.getElementById('counselingModal').classList.remove('hidden');
         }
 
@@ -933,9 +996,21 @@ export const adminHrdCounselingHtml = `
             const log = counselingData.find(d => d.id === id);
             if (!log) return;
 
+            // 현재 타입과 다를 경우 탭 변경은 하지 않으나 뷰는 맞춰줌
+            const isAcademic = log.counseling_type === 'academic';
+            document.getElementById('studentSelectionContainer').classList.toggle('hidden', !isAcademic);
+            document.getElementById('leadSelectionContainer').classList.toggle('hidden', isAcademic);
+            document.getElementById('newLeadForm').classList.add('hidden');
+
             document.getElementById('logId').value = log.id;
-            document.getElementById('modalTitle').textContent = '상담 리포트 수정';
-            document.getElementById('studentSelect').value = log.student_id;
+            document.getElementById('modalTitle').textContent = isAcademic ? '학사 상담 리포트 수정' : '입학 상담 리포트 수정';
+            
+            if (isAcademic) {
+                document.getElementById('studentSelect').value = log.student_id;
+            } else {
+                document.getElementById('leadSelect').value = log.consultation_id || '';
+            }
+            
             document.getElementById('courseSelect').value = log.course_id || '';
             document.getElementById('categorySelect').value = log.category;
             document.getElementById('methodSelect').value = log.method;
@@ -959,9 +1034,51 @@ export const adminHrdCounselingHtml = `
             const url = id ? \`/api/hrd/counseling/\${id}\` : '/api/hrd/counseling';
 
             const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const isAcademic = currentType === 'academic';
+            
+            let studentId = isAcademic ? document.getElementById('studentSelect').value : null;
+            let consultationId = isAcademic ? null : document.getElementById('leadSelect').value;
+
+            // 신규 오프라인 문의 등록 처리
+            if (!isAcademic && consultationId === 'new_offline') {
+                const name = document.getElementById('newLeadName').value;
+                const phone = document.getElementById('newLeadPhone').value;
+                
+                if (!name || !phone) {
+                    alert('신규 문의자의 성함과 연락처를 입력해 주세요.');
+                    return;
+                }
+                
+                try {
+                    const res = await fetch('/api/consultations', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            name, phone, 
+                            message: '[관리자 직접 등록]',
+                            category: '[오프라인]',
+                            privacy_agree: true,
+                            campus_name: 'offline'
+                        })
+                    });
+                    const result = await res.json();
+                    if (result.success) {
+                        consultationId = result.data.id;
+                        // 리스트 갱신 (추후 선택에 포함되도록)
+                        loadConsultations();
+                    } else {
+                        alert('신규 문의 등록 실패: ' + result.error);
+                        return;
+                    }
+                } catch (err) {
+                    alert('신규 문의 등록 중 네트워크 오류가 발생했습니다.');
+                    return;
+                }
+            }
 
             const data = {
-                student_id: document.getElementById('studentSelect').value,
+                student_id: studentId,
+                consultation_id: consultationId ? parseInt(consultationId) : null,
                 course_id: document.getElementById('courseSelect').value || null,
                 category: document.getElementById('categorySelect').value,
                 method: document.getElementById('methodSelect').value,
