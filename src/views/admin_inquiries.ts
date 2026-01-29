@@ -27,6 +27,9 @@ export const adminInquiriesHtml = (sidebar: string | null = null) => `
                             <h1 class="text-2xl font-bold text-gray-800">온라인 문의 관리</h1>
                             <p class="text-gray-500 mt-1">홈페이지를 통해 접수된 1:1 상담 및 문의 내역을 관리합니다.</p>
                         </div>
+                        <button onclick="openManualModal()" class="px-5 py-2.5 bg-gray-800 text-white font-bold rounded-lg shadow-lg hover:bg-gray-700 transition flex items-center">
+                            <i class="fas fa-plus-circle mr-2"></i>유선/방문 문의 등록
+                        </button>
                     </div>
                 </div>
             </header>
@@ -130,7 +133,7 @@ export const adminInquiriesHtml = (sidebar: string | null = null) => `
                     </div>
                     
                     <!-- 상담 기록 리스트 -->
-                    <div id="counselingHistory" class="space-y-3 max-h-60 overflow-y-auto pr-2">
+                    <div id="counselingHistory" class="space-y-3 max-h-60 overflow-y-auto pr-2 mb-4">
                         <div class="text-center py-6 border border-dashed border-gray-200 rounded-xl">
                             <p class="text-gray-400 text-xs">상담 기록이 없습니다.</p>
                         </div>
@@ -164,6 +167,45 @@ export const adminInquiriesHtml = (sidebar: string | null = null) => `
                     <i class="fas fa-check mr-2"></i>처리 내용 저장
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- Manual Register Modal (New) -->
+    <div id="manualModal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center backdrop-blur-sm p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-fade-in">
+            <div class="px-8 py-6 border-b border-gray-100 flex justify-between items-center bg-gray-900 text-white">
+                <h3 class="text-lg font-bold">유선/방문 문의 수동 등록</h3>
+                <button onclick="closeManualModal()" class="text-gray-400 hover:text-white transition">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="manualForm" onsubmit="submitManualForm(event)" class="p-8 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">성함 <span class="text-red-500">*</span></label>
+                    <input type="text" id="manualName" required class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500/20" placeholder="홍길동">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">연락처 <span class="text-red-500">*</span></label>
+                    <input type="tel" id="manualPhone" required class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500/20" placeholder="010-0000-0000">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">문의 경로/성격</label>
+                    <select id="manualCategory" class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm outline-none">
+                        <option value="phone">유선 전화</option>
+                        <option value="visit">방문 상담</option>
+                        <option value="kakao">카카오톡/SNS</option>
+                        <option value="other">기타 외부 채널</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">간략 메모</label>
+                    <textarea id="manualMessage" rows="3" class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500/20 resize-none" placeholder="내용을 간단히 입력하세요..."></textarea>
+                </div>
+                <div class="pt-4 flex gap-2">
+                    <button type="button" onclick="closeManualModal()" class="flex-1 px-4 py-2.5 bg-gray-100 text-gray-600 font-bold rounded-lg hover:bg-gray-200 transition">취소</button>
+                    <button type="submit" class="flex-1 px-4 py-2.5 bg-blue-600 text-white font-bold rounded-lg shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition">등록 완료</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -293,6 +335,48 @@ export const adminInquiriesHtml = (sidebar: string | null = null) => `
                 }
             } catch (e) {
                 alert('상세 정보를 불러올 수 없습니다.');
+            }
+        }
+
+        // --- Manual Registration ---
+        function openManualModal() {
+            document.getElementById('manualForm').reset();
+            document.getElementById('manualModal').classList.remove('hidden');
+            document.getElementById('manualName').focus();
+        }
+
+        function closeManualModal() {
+            document.getElementById('manualModal').classList.add('hidden');
+        }
+
+        async function submitManualForm(e) {
+            e.preventDefault();
+            const name = document.getElementById('manualName').value;
+            const phone = document.getElementById('manualPhone').value;
+            const category = document.getElementById('manualCategory').value;
+            const message = document.getElementById('manualMessage').value;
+
+            try {
+                const res = await fetch('/api/consultations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name, phone, message, 
+                        category: \`[\${category}] \`, 
+                        privacy_agree: true,
+                        campus_name: 'offline'
+                    })
+                });
+                const result = await res.json();
+                if (result.success) {
+                    alert('문의가 등록되었습니다.');
+                    closeManualModal();
+                    loadInquiries(1);
+                } else {
+                    alert('등록 실패: ' + result.error);
+                }
+            } catch (e) {
+                alert('네트워크 오류');
             }
         }
 

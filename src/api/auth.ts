@@ -74,6 +74,32 @@ auth.post('/register', async (c) => {
       [result.meta.last_row_id]
     );
 
+    // 6. 가입 전 상담 이력 및 문의글 자동 매칭 (Link former lead data)
+    if (phone && userRole === 'student') {
+      try {
+        // 이전에 이 연락처로 접수된 온라인 문의글이 있다면 user_id 연결
+        await c.env.DB.prepare(`
+          UPDATE consultations 
+          SET user_id = ?, updated_at = CURRENT_TIMESTAMP 
+          WHERE phone = ? AND user_id IS NULL
+        `).bind(newUser!.id, phone).run();
+
+        // 이전에 이 연락처로 작성된 입학 상담 일지가 있다면 student_id 연결
+        // consultation_id가 있는 로그들 중 연락처가 일치하는 것을 찾아 연결
+        await c.env.DB.prepare(`
+          UPDATE hrd_counseling_logs 
+          SET student_id = ?, updated_at = CURRENT_TIMESTAMP 
+          WHERE student_id IS NULL AND consultation_id IN (
+            SELECT id FROM consultations WHERE phone = ?
+          )
+        `).bind(newUser!.id, phone).run();
+
+        console.log(`Auto-linked counseling history for new user: ${phone}`);
+      } catch (linkError) {
+        console.error('Failed to link lead data:', linkError);
+      }
+    }
+
     // JWT 토큰 생성
     const token = await generateToken({
       userId: newUser!.id,

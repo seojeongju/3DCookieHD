@@ -1578,6 +1578,8 @@ app.post('/counseling', async (c) => {
         // counselor_id should ideally come from auth token, but for now we accept it or default to 1 (admin)
         const counselorId = body.counselor_id || 1;
 
+        const studentId = (body.student_id && body.student_id !== 0 && body.student_id !== '0') ? body.student_id : null;
+
         await c.env.DB.prepare(`
             INSERT INTO hrd_counseling_logs (
                 student_id, counselor_id, course_id, counseling_date, 
@@ -1586,7 +1588,7 @@ app.post('/counseling', async (c) => {
             )
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
-            body.student_id, counselorId, body.course_id,
+            studentId, counselorId, body.course_id,
             body.counseling_date || new Date().toISOString(),
             body.category, body.method, body.content, body.result, body.next_counseling_date,
             body.counseling_type || 'academic', body.consultation_id
@@ -1603,13 +1605,15 @@ app.put('/counseling/:id', async (c) => {
     const id = c.req.param('id');
     try {
         const body = await c.req.json();
+        const studentId = (body.student_id && body.student_id !== 0 && body.student_id !== '0') ? body.student_id : null;
+
         await c.env.DB.prepare(`
             UPDATE hrd_counseling_logs 
-            SET course_id = ?, counseling_date = ?, category = ?, method = ?, content = ?, 
+            SET student_id = ?, course_id = ?, counseling_date = ?, category = ?, method = ?, content = ?, 
                 result = ?, next_counseling_date = ?, counseling_type = ?, consultation_id = ?, updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
         `).bind(
-            body.course_id, body.counseling_date, body.category, body.method,
+            studentId, body.course_id, body.counseling_date, body.category, body.method,
             body.content, body.result, body.next_counseling_date,
             body.counseling_type, body.consultation_id, id
         ).run();
