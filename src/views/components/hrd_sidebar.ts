@@ -32,11 +32,36 @@ export const hrdSidebar = (activeMenu: string) => `
             <span class="text-[11px] font-bold text-slate-500 uppercase tracking-widest opacity-70">LMS & Academic</span>
         </div>
         
-        <a href="/admin/courses" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'courses' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
-            ${activeMenu === 'courses' ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
-            <i class="fas fa-graduation-cap w-6 text-lg ${activeMenu === 'courses' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
-            <span class="font-medium text-[14px]">교육과정 관리</span>
-        </a>
+        <div class="space-y-1">
+            <a href="/admin/courses" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${(activeMenu === 'courses' || activeMenu === 'courses-register') ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
+                ${(activeMenu === 'courses' || activeMenu === 'courses-register') ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
+                <i class="fas fa-graduation-cap w-6 text-lg ${(activeMenu === 'courses' || activeMenu === 'courses-register') ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
+                <span class="font-medium text-[14px]">교육과정 관리</span>
+            </a>
+            <a href="/admin/courses" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'courses-register' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
+                <i class="fas fa-plus-circle w-6 text-sm ${activeMenu === 'courses-register' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
+                <span class="font-medium text-[13px]">과정등록</span>
+            </a>
+            <div class="px-4 py-1.5 ml-3 mr-2">
+                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest opacity-80">기초 데이터</span>
+            </div>
+            <a href="/admin/courses/categories" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'courses-categories' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
+                <i class="fas fa-tags w-6 text-sm ${activeMenu === 'courses-categories' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
+                <span class="font-medium text-[13px]">과정분류관리</span>
+            </a>
+            <a href="/admin/courses/approved" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'courses-approved' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
+                <i class="fas fa-check-double w-6 text-sm ${activeMenu === 'courses-approved' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
+                <span class="font-medium text-[13px]">승인받은과정</span>
+            </a>
+            <a href="/admin/courses/sessions" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'courses-sessions' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
+                <i class="fas fa-calendar-plus w-6 text-sm ${activeMenu === 'courses-sessions' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
+                <span class="font-medium text-[13px]">회차별 과정개설</span>
+            </a>
+            <a href="/admin/courses/copy" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'courses-copy' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
+                <i class="fas fa-copy w-6 text-sm ${activeMenu === 'courses-copy' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
+                <span class="font-medium text-[13px]">회차별 과정복사</span>
+            </a>
+        </div>
 
         <a href="/admin/ncs" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'ncs' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
              ${activeMenu === 'ncs' ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}

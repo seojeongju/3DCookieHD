@@ -1,6 +1,6 @@
 import { hrdSidebar } from './components/hrd_sidebar';
 
-export const adminCoursesListHtml = (sidebar = hrdSidebar('courses')) => `
+export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) => `
 <!DOCTYPE html>
 <html lang="ko">
 <head>

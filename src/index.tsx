@@ -37,6 +37,12 @@ import { adminJobseekersListHtml } from './views/admin_jobseekers';
 import { jobsListHtml } from './views/jobs';
 import { jobseekersListHtml } from './views/jobseekers';
 import { adminCoursesListHtml } from './views/admin_courses';
+import {
+  adminCoursesCategoriesHtml,
+  adminCoursesApprovedHtml,
+  adminCoursesSessionsHtml,
+  adminCoursesCopyHtml,
+} from './views/admin_courses_sub';
 import { adminStudentsListHtml } from './views/admin_students';
 import { adminHrdHtml } from './views/admin_hrd';
 import { adminHrdPersonnelHtml } from './views/admin_hrd_personnel';
@@ -236,6 +242,10 @@ app.get('/admin', (c) => c.html(adminDashboardHtml));
 app.get('/admin/jobs', (c) => c.html(adminJobsListHtml));
 app.get('/admin/jobseekers', (c) => c.html(adminJobseekersListHtml));
 app.get('/admin/courses', (c) => c.html(adminCoursesListHtml()));
+app.get('/admin/courses/categories', (c) => c.html(adminCoursesCategoriesHtml()));
+app.get('/admin/courses/approved', (c) => c.html(adminCoursesApprovedHtml()));
+app.get('/admin/courses/sessions', (c) => c.html(adminCoursesSessionsHtml()));
+app.get('/admin/courses/copy', (c) => c.html(adminCoursesCopyHtml()));
 app.get('/admin/users', (c) => c.html(adminUsersHtml())); // 회원관리 - 역할 및 권한 관리
 app.get('/admin/hrd', (c) => c.html(adminHrdHtml()));
 app.get('/admin/personnel', (c) => c.html(adminHrdPersonnelHtml()));

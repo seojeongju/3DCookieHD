@@ -33,10 +33,11 @@ const FILE_CATEGORIES = {
   resumes: 'resumes',           // 이력서
   portfolios: 'portfolios',     // 포트폴리오
   documents: 'documents',       // 일반 문서
-  evidence: 'evidence',          // 증빙자료
+  evidence: 'evidence',         // 증빙자료
   assignments: 'assignments',   // 과제 제출물
   materials: 'materials',       // 강의 자료
   images: 'images',             // 이미지
+  profile: 'images/profile',     // 프로필/교강사 사진
 } as const;
 
 type FileCategory = keyof typeof FILE_CATEGORIES;
