@@ -114,8 +114,47 @@ export const adminInquiriesHtml = (sidebar: string | null = null) => `
                             <option value="cancelled">취소/보류</option>
                         </select>
                     </div>
-                    <textarea id="modalMemo" rows="5" class="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none resize-none" placeholder="문의에 대한 답변이나 처리 내용을 기록하세요. (이 내용은 사용자에게 직접 전송되지 않으며 관리자 확인용입니다. 사용자에게는 별도 연락 필요)"></textarea>
+                    <textarea id="modalMemo" rows="3" class="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none resize-none" placeholder="문의에 대한 답변이나 처리 내용을 기록하세요. (이 내용은 사용자에게 직접 전송되지 않으며 관리자 확인용입니다. 사용자에게는 별도 연락 필요)"></textarea>
                     <p class="text-xs text-gray-400 mt-2">* 답변 완료 처리 시 상태를 '답변완료'로 변경해주세요.</p>
+                </div>
+
+                <!-- 입학 상담기록 섹션 (신규 추가) -->
+                <div class="border-t border-gray-100 pt-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <label class="text-sm font-bold text-gray-700 flex items-center">
+                            <i class="fas fa-clipboard-list mr-2 text-blue-500"></i>입학 상담 기록 (Admissions Log)
+                        </label>
+                        <button onclick="showQuickCounseling()" class="text-xs font-bold text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-200 transition">
+                            <i class="fas fa-plus mr-1"></i>상담 추가
+                        </button>
+                    </div>
+                    
+                    <!-- 상담 기록 리스트 -->
+                    <div id="counselingHistory" class="space-y-3 max-h-60 overflow-y-auto pr-2">
+                        <div class="text-center py-6 border border-dashed border-gray-200 rounded-xl">
+                            <p class="text-gray-400 text-xs">상담 기록이 없습니다.</p>
+                        </div>
+                    </div>
+
+                    <!-- 퀵 상담 입력 폼 (숨겨짐) -->
+                    <div id="quickCounselingForm" class="hidden mt-4 p-4 bg-gray-50 rounded-xl border border-blue-100 space-y-3 animate-fade-in">
+                        <div class="flex gap-3">
+                            <select id="quickMethod" class="text-xs border-gray-200 rounded-lg p-1.5">
+                                <option value="phone">유선상담</option>
+                                <option value="online">온라인상담</option>
+                                <option value="face_to_face">대면상담</option>
+                            </select>
+                            <select id="quickCategory" class="text-xs border-gray-200 rounded-lg p-1.5">
+                                <option value="academic">입학가공</option>
+                                <option value="other">기타</option>
+                            </select>
+                        </div>
+                        <textarea id="quickContent" rows="3" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-blue-500/20 outline-none resize-none" placeholder="상담 내용을 입력하세요..."></textarea>
+                        <div class="flex justify-end gap-2">
+                            <button onclick="hideQuickCounseling()" class="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 font-medium">취소</button>
+                            <button onclick="submitQuickCounseling()" class="px-4 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg shadow-sm">저장하기</button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -246,10 +285,94 @@ export const adminInquiriesHtml = (sidebar: string | null = null) => `
                     document.getElementById('modalStatus').value = currentItem.status || 'pending';
                     document.getElementById('modalMemo').value = currentItem.memo || '';
                     
+                    // 상담 기록 로드
+                    loadCounselingHistory(id);
+                    document.getElementById('quickCounselingForm').classList.add('hidden');
+                    
                     document.getElementById('inquiryModal').classList.remove('hidden');
                 }
             } catch (e) {
                 alert('상세 정보를 불러올 수 없습니다.');
+            }
+        }
+
+        async function loadCounselingHistory(consultationId) {
+            const container = document.getElementById('counselingHistory');
+            try {
+                const res = await fetch(\`/api/hrd/counseling?type=admission&consultation_id=\${consultationId}\`);
+                const result = await res.json();
+                
+                if (result.success && result.data && result.data.length > 0) {
+                    container.innerHTML = result.data.map(log => \`
+                        <div class="p-3 bg-white border border-gray-100 rounded-xl shadow-sm">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-[10px] font-bold text-blue-600">\${new Date(log.counseling_date).toLocaleDateString()}</span>
+                                <span class="text-[10px] text-gray-400">\${log.counselor_name || '관리자'} (\${getMethodLabel(log.method)})</span>
+                            </div>
+                            <p class="text-xs text-gray-600 whitespace-pre-line">\${log.content}</p>
+                            \${log.result ? \`<div class="mt-1.5 pt-1.5 border-t border-gray-50 text-[10px] text-blue-500 italic">결과: \${log.result}</div>\` : ''}
+                        </div>
+                    \`).join('');
+                } else {
+                    container.innerHTML = \`<div class="text-center py-6 border border-dashed border-gray-200 rounded-xl"><p class="text-gray-400 text-xs">상담 기록이 없습니다.</p></div>\`;
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function getMethodLabel(method) {
+            const map = { face_to_face: '대면', phone: '유선', online: '온라인', other: '기타' };
+            return map[method] || method;
+        }
+
+        function showQuickCounseling() {
+            document.getElementById('quickCounselingForm').classList.remove('hidden');
+            document.getElementById('quickContent').focus();
+        }
+
+        function hideQuickCounseling() {
+            document.getElementById('quickCounselingForm').classList.add('hidden');
+            document.getElementById('quickContent').value = '';
+        }
+
+        async function submitQuickCounseling() {
+            const consultationId = document.getElementById('modalId').value;
+            const content = document.getElementById('quickContent').value.trim();
+            const method = document.getElementById('quickMethod').value;
+            const category = document.getElementById('quickCategory').value;
+            
+            if (!content) {
+                alert('내용을 입력해주세요.');
+                return;
+            }
+
+            const user = JSON.parse(localStorage.getItem('user') || '{"id": 1}');
+            const token = localStorage.getItem('token');
+
+            try {
+                const res = await fetch('/api/hrd/counseling', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({
+                        student_id: 0, // 입학상담 시 유저가 없을 수 있으므로 0 또는 API에서 처리
+                        consultation_id: parseInt(consultationId),
+                        content,
+                        method,
+                        category,
+                        counseling_type: 'admission',
+                        counseling_date: new Date().toISOString()
+                    })
+                });
+                
+                if (res.ok) {
+                    hideQuickCounseling();
+                    loadCounselingHistory(consultationId);
+                } else {
+                    alert('저장 실패');
+                }
+            } catch (e) {
+                alert('네트워크 오류');
             }
         }
 

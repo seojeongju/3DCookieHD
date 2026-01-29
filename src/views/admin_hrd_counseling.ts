@@ -69,13 +69,23 @@ export const adminHrdCounselingHtml = `
                     </div>
                 </div>
 
-                <!-- 탭/필터 라인 -->
-                <div class="px-8 py-2 flex items-center space-x-6 text-sm font-medium border-t border-gray-100">
-                    <button class="py-2 active-tab" onclick="setFilter('all')">전체 내역</button>
-                    <button class="py-2 text-gray-500 hover:text-blue-600" onclick="setFilter('academic')">학사/학습</button>
-                    <button class="py-2 text-gray-500 hover:text-blue-600" onclick="setFilter('attendance')">출결/행정</button>
-                    <button class="py-2 text-gray-500 hover:text-blue-600" onclick="setFilter('career')">취업/진로</button>
-                    <button class="py-2 text-gray-500 hover:text-blue-600" onclick="setFilter('complaint')">고충/건의</button>
+                <!-- 대분류 탭 (학사 vs 입학) -->
+                <div class="px-8 flex items-center space-x-8 text-sm font-bold border-t border-gray-100 bg-gray-50/50">
+                    <button id="type-academic" class="py-4 border-b-2 border-blue-600 text-blue-600 transition-all flex items-center" onclick="setCounselingType('academic')">
+                        <i class="fas fa-user-graduate mr-2 text-lg"></i>학사 상담 <span class="ml-2 px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-[10px] academic-count">0</span>
+                    </button>
+                    <button id="type-admission" class="py-4 border-b-2 border-transparent text-gray-500 hover:text-blue-600 transition-all flex items-center" onclick="setCounselingType('admission')">
+                        <i class="fas fa-user-plus mr-2 text-lg"></i>입학 상담 <span class="ml-2 px-1.5 py-0.5 bg-gray-200 text-gray-600 rounded text-[10px] admission-count">0</span>
+                    </button>
+                </div>
+
+                <!-- 상세 카테고리 필터 -->
+                <div class="px-8 py-2 flex items-center space-x-6 text-xs font-medium border-t border-gray-100 bg-white">
+                    <button class="py-2 active-tab category-filter" onclick="setFilter('all')">전체 내역</button>
+                    <button class="py-2 text-gray-500 hover:text-blue-600 category-filter" onclick="setFilter('academic')">학사/학습</button>
+                    <button class="py-2 text-gray-500 hover:text-blue-600 category-filter" onclick="setFilter('attendance')">출결/행정</button>
+                    <button class="py-2 text-gray-500 hover:text-blue-600 category-filter" onclick="setFilter('career')">취업/진로</button>
+                    <button class="py-2 text-gray-500 hover:text-blue-600 category-filter" onclick="setFilter('complaint')">고충/건의</button>
                 </div>
             </header>
 
@@ -317,11 +327,12 @@ export const adminHrdCounselingHtml = `
     <script>
         let counselingData = [];
         let currentFilter = 'all';
+        let currentType = 'academic';
         
         // 페이지네이션 상태
         let filteredData = [];
-        let displayCount = 3; // 초기 표시 개수
-        const itemsPerPage = 3; // 한 번에 추가로 로드할 개수
+        let displayCount = 5; // 초기 표시 개수
+        const itemsPerPage = 5; 
         let isLoading = false;
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -374,27 +385,37 @@ export const adminHrdCounselingHtml = `
             setFilter('all');
         }
 
-        function setFilter(filter) {
-            if (filter === 'all') {
-                const params = new URLSearchParams(window.location.search);
-                const searchParam = params.get('search');
-                const currentInput = document.getElementById('searchInput').value;
-                
-                if (searchParam && currentInput === searchParam) {
-                    resetSearch();
-                    return; 
-                }
+        function setCounselingType(type) {
+            currentType = type;
+            displayCount = itemsPerPage;
+            
+            // UI 업데이트
+            const academicBtn = document.getElementById('type-academic');
+            const admissionBtn = document.getElementById('type-admission');
+            
+            if (type === 'academic') {
+                academicBtn.className = 'py-4 border-b-2 border-blue-600 text-blue-600 transition-all flex items-center';
+                admissionBtn.className = 'py-4 border-b-2 border-transparent text-gray-500 hover:text-blue-600 transition-all flex items-center';
+                document.getElementById('listTitle').textContent = '학사 상담 로그 (수강생)';
+            } else {
+                admissionBtn.className = 'py-4 border-b-2 border-blue-600 text-blue-600 transition-all flex items-center';
+                academicBtn.className = 'py-4 border-b-2 border-transparent text-gray-500 hover:text-blue-600 transition-all flex items-center';
+                document.getElementById('listTitle').textContent = '입학 상담 로그 (신규 문의)';
             }
+            
+            loadCounselingLogs();
+        }
 
+        function setFilter(filter) {
             currentFilter = filter;
             displayCount = itemsPerPage; 
             
-            const buttons = document.querySelectorAll('header .active-tab, header .text-gray-500');
+            const buttons = document.querySelectorAll('.category-filter');
             buttons.forEach(btn => {
                 if (btn.textContent.includes(getCategoryLabel(filter)) || (filter === 'all' && btn.textContent === '전체 내역')) {
-                    btn.className = 'py-2 active-tab';
+                    btn.className = 'py-2 active-tab category-filter';
                 } else {
-                    btn.className = 'py-2 text-gray-500 hover:text-blue-600';
+                    btn.className = 'py-2 text-gray-500 hover:text-blue-600 category-filter';
                 }
             });
 
@@ -446,7 +467,7 @@ export const adminHrdCounselingHtml = `
             const date = document.getElementById('dateFilter').value;
 
             try {
-                let url = '/api/hrd/counseling?';
+                let url = \`/api/hrd/counseling?type=\${currentType}&\`;
                 if (search) url += \`search=\${encodeURIComponent(search)}&\`;
                 if (courseId) url += \`course_id=\${courseId}&\`;
                 if (date) url += \`date=\${date}&\`;
@@ -477,6 +498,13 @@ export const adminHrdCounselingHtml = `
             const today = new Date().toISOString().split('T')[0];
             const todayCount = data.filter(log => log.counseling_date.split('T')[0] === today).length;
             document.getElementById('todayCount').textContent = todayCount;
+            
+            // 타입별 카운트 업데이트 (전체 데이터 기준이므로 별도 쿼리가 필요할 수 있으나 현재 로드된 기준)
+            const academicCount = data.filter(l => l.counseling_type === 'academic').length;
+            const admissionCount = data.filter(l => l.counseling_type === 'admission').length;
+            
+            document.querySelectorAll('.academic-count').forEach(el => el.textContent = academicCount);
+            document.querySelectorAll('.admission-count').forEach(el => el.textContent = admissionCount);
         }
         
         function updatePaginationUI() {
@@ -579,12 +607,12 @@ export const adminHrdCounselingHtml = `
                                         <div class="p-6 pb-4">
                                             <div class="flex items-start justify-between mb-4">
                                                 <div class="flex items-center">
-                                                    <div class="w-10 h-10 rounded-full overflow-hidden mr-3 bg-gray-100 border border-gray-100 shadow-inner">
-                                                        <img src="\${log.student_image || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(log.student_name)}" class="w-full h-full object-cover">
+                                                    <div class="w-10 h-10 rounded-full overflow-hidden mr-3 bg-gray-100 border border-gray-100 shadow-inner flex items-center justify-center">
+                                                        \${log.student_image ? '<img src="' + log.student_image + '" class="w-full h-full object-cover">' : '<i class="fas fa-user text-gray-300"></i>'}
                                                     </div>
                                                     <div>
                                                         <div class="flex items-center flex-wrap gap-2">
-                                                            \${hasHistory ? '<span onclick="toggleHistory(' + log.id + ')" class="font-bold text-gray-900 hover:text-blue-600 cursor-pointer transition">' + log.student_name + ' <i class="fas fa-chevron-down text-[10px] text-gray-400 ml-1"></i></span>' : '<span class="font-bold text-gray-900">' + log.student_name + '</span>'}
+                                                            \${hasHistory ? '<span onclick="toggleHistory(' + log.id + ')" class="font-bold text-gray-900 hover:text-blue-600 cursor-pointer transition">' + (log.student_name || log.consultation_name || '미등록 문의자') + ' <i class="fas fa-chevron-down text-[10px] text-gray-400 ml-1"></i></span>' : '<span class="font-bold text-gray-900">' + (log.student_name || log.consultation_name || '미등록 문의자') + '</span>'}
                                                             <span class="px-2 py-0.5 rounded-lg text-[10px] font-black uppercase \${info.color}">\${info.label}</span>
                                                             \${hasHistory ? '<span class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-purple-50 text-purple-600"><i class="fas fa-layer-group mr-1"></i>' + entries.length + '회 상담</span>' : ''}
                                                         </div>
@@ -870,7 +898,9 @@ export const adminHrdCounselingHtml = `
                         result: log.result,
                         counseling_date: today,
                         next_counseling_date: log.next_counseling_date,
-                        counselor_id: log.counselor_id
+                        counselor_id: log.counselor_id,
+                        counseling_type: log.counseling_type,
+                        consultation_id: log.consultation_id
                     })
                 });
                 
@@ -939,7 +969,8 @@ export const adminHrdCounselingHtml = `
                 result: document.getElementById('result').value,
                 counseling_date: document.getElementById('counselingDate').value,
                 next_counseling_date: document.getElementById('nextCounselingDate').value || null,
-                counselor_id: user.id
+                counselor_id: user.id,
+                counseling_type: currentType
             };
 
             try {
@@ -1043,7 +1074,8 @@ export const adminHrdCounselingHtml = `
                         content: updatedContent,
                         result: updatedResult,
                         // 마지막 상담일을 추가 상담일로 업데이트
-                        counseling_date: appendDate
+                        counseling_date: appendDate,
+                        counseling_type: appendTargetLog.counseling_type
                     })
                 });
                 

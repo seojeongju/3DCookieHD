@@ -1516,6 +1516,8 @@ app.get('/counseling', async (c) => {
         const studentId = c.req.query('student_id');
         const courseId = c.req.query('course_id');
         const search = c.req.query('search');
+        const type = c.req.query('type'); // 'admission' or 'academic'
+        const consultationId = c.req.query('consultation_id');
 
         let query = `
             SELECT 
@@ -1523,11 +1525,13 @@ app.get('/counseling', async (c) => {
                 u_student.name as student_name,
                 u_student.profile_image as student_image,
                 u_counselor.name as counselor_name,
-                c.title as course_title
+                c.title as course_title,
+                cons.name as consultation_name
             FROM hrd_counseling_logs cl
             LEFT JOIN users u_student ON cl.student_id = u_student.id
             LEFT JOIN users u_counselor ON cl.counselor_id = u_counselor.id
             LEFT JOIN courses c ON cl.course_id = c.id
+            LEFT JOIN consultations cons ON cl.consultation_id = cons.id
             WHERE 1=1
         `;
 
@@ -1544,8 +1548,18 @@ app.get('/counseling', async (c) => {
         }
 
         if (search) {
-            query += ' AND (u_student.name LIKE ? OR cl.content LIKE ?)';
-            params.push(`%${search}%`, `%${search}%`);
+            query += ' AND (u_student.name LIKE ? OR cl.content LIKE ? OR cons.name LIKE ?)';
+            params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+        }
+
+        if (type) {
+            query += ' AND cl.counseling_type = ?';
+            params.push(type);
+        }
+
+        if (consultationId) {
+            query += ' AND cl.consultation_id = ?';
+            params.push(consultationId);
         }
 
         query += ' ORDER BY cl.counseling_date DESC';
@@ -1565,12 +1579,17 @@ app.post('/counseling', async (c) => {
         const counselorId = body.counselor_id || 1;
 
         await c.env.DB.prepare(`
-            INSERT INTO hrd_counseling_logs (student_id, counselor_id, course_id, counseling_date, category, method, content, result, next_counseling_date)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO hrd_counseling_logs (
+                student_id, counselor_id, course_id, counseling_date, 
+                category, method, content, result, next_counseling_date,
+                counseling_type, consultation_id
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
             body.student_id, counselorId, body.course_id,
             body.counseling_date || new Date().toISOString(),
-            body.category, body.method, body.content, body.result, body.next_counseling_date
+            body.category, body.method, body.content, body.result, body.next_counseling_date,
+            body.counseling_type || 'academic', body.consultation_id
         ).run();
 
         return successResponse(c, { success: true }, '상담 일지가 등록되었습니다.');
@@ -1586,11 +1605,13 @@ app.put('/counseling/:id', async (c) => {
         const body = await c.req.json();
         await c.env.DB.prepare(`
             UPDATE hrd_counseling_logs 
-            SET course_id = ?, counseling_date = ?, category = ?, method = ?, content = ?, result = ?, next_counseling_date = ?, updated_at = CURRENT_TIMESTAMP
+            SET course_id = ?, counseling_date = ?, category = ?, method = ?, content = ?, 
+                result = ?, next_counseling_date = ?, counseling_type = ?, consultation_id = ?, updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
         `).bind(
             body.course_id, body.counseling_date, body.category, body.method,
-            body.content, body.result, body.next_counseling_date, id
+            body.content, body.result, body.next_counseling_date,
+            body.counseling_type, body.consultation_id, id
         ).run();
 
         return successResponse(c, { success: true }, '상담 일지가 수정되었습니다.');
