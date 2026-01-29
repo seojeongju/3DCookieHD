@@ -19,19 +19,23 @@ export const teacherSidebar = (activeMenu: string, activeSubMenu?: string) => `
 
     <!-- 메뉴 영역 -->
     <nav class="flex-1 py-8 px-4 space-y-8 overflow-y-auto custom-scrollbar relative z-10">
-        <!-- 1. 학사 운영 -->
+        <!-- 맨 위: 종합 대시보드 -->
+        <div class="space-y-1">
+            <a href="/teacher" class="flex items-center px-4 py-3.5 rounded-2xl transition-all duration-300 group ${activeMenu === 'dashboard' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40 border border-white/10' : 'text-gray-400 hover:bg-white/5 hover:text-white'}">
+                <div class="w-8 flex justify-center">
+                    <i class="fas fa-border-all text-sm ${activeMenu === 'dashboard' ? 'text-white' : 'text-gray-400 group-hover:text-blue-400 transition-colors'}"></i>
+                </div>
+                <span class="font-black text-sm tracking-tight">종합 대시보드</span>
+            </a>
+        </div>
+
+        <!-- 학사 운영 관리 -->
         <div class="space-y-2">
             <div class="px-4 flex items-center gap-3 mb-4">
                 <span class="w-1 h-3 bg-blue-500 rounded-full"></span>
                 <span class="text-[10px] font-black text-gray-500 uppercase tracking-widest">학사 운영 관리</span>
             </div>
             <div class="space-y-1">
-                <a href="/teacher" class="flex items-center px-4 py-3.5 rounded-2xl transition-all duration-300 group ${activeMenu === 'dashboard' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40 border border-white/10' : 'text-gray-400 hover:bg-white/5 hover:text-white'}">
-                    <div class="w-8 flex justify-center">
-                        <i class="fas fa-border-all text-sm ${activeMenu === 'dashboard' ? 'text-white' : 'text-gray-400 group-hover:text-blue-400 transition-colors'}"></i>
-                    </div>
-                    <span class="font-black text-sm tracking-tight">종합 대시보드</span>
-                </a>
                 <a href="/teacher/courses" class="flex items-center px-4 py-3.5 rounded-2xl transition-all duration-300 group ${activeMenu === 'courses' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40 border border-white/10' : 'text-gray-400 hover:bg-white/5 hover:text-white'}">
                     <div class="w-8 flex justify-center">
                         <i class="fas fa-chalkboard-teacher text-sm ${activeMenu === 'courses' ? 'text-white' : 'text-gray-400 group-hover:text-blue-400 transition-colors'}"></i>

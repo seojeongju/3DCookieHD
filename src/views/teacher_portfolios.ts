@@ -331,8 +331,10 @@ export const teacherPortfoliosHtml = `
                 container.innerHTML = '<div class="col-span-full py-20 text-center text-slate-400 font-black uppercase text-xs">No clusters available for curation</div>';
                 return;
             }
-            container.innerHTML = allCourses.map(course => 
-                '<div onclick="selectCourse(' + course.id + ', \'' + ((course.title || '').replace(/'/g, "\\\\'")) + '\')" ' +
+            container.innerHTML = allCourses.map(course => {
+                const idSafe = JSON.stringify(course.id);
+                const titleSafe = (course.title || '').replace(/'/g, "\\'");
+                return '<div onclick="selectCourse(' + idSafe + ', \'' + titleSafe + '\')" ' +
                      'class="bento-card bg-white rounded-[2rem] p-8 border border-slate-200/60 flex flex-col justify-between cursor-pointer group shadow-sm hover:border-sky-600/30">' +
                     '<div class="flex justify-between items-start mb-6">' +
                         '<div class="w-14 h-14 rounded-2xl bg-sky-50 flex items-center justify-center text-sky-600 group-hover:bg-sky-600 group-hover:text-white transition-all duration-500 shadow-sm border border-sky-100">' +
@@ -347,8 +349,8 @@ export const teacherPortfoliosHtml = `
                              '<div class="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-50 group-hover:bg-sky-600 group-hover:text-white transition-all shadow-inner"><i class="fas fa-chevron-right text-[10px]"></i></div>' +
                         '</div>' +
                     '</div>' +
-                '</div>'
-            ).join('');
+                '</div>';
+            }).join('');
         }
 
         async function selectCourse(id, title) {
@@ -401,8 +403,9 @@ export const teacherPortfoliosHtml = `
                 container.innerHTML = '<div class="col-span-full py-20 text-center text-slate-400 font-black uppercase text-xs">No intelligence outputs curated in this sector</div>';
                 return;
             }
-            container.innerHTML = allPortfolios.map(p => 
-                '<div class="group bg-white rounded-[2.5rem] border border-slate-200/60 overflow-hidden cursor-pointer hover:shadow-2xl transition-all duration-500 flex flex-col h-full" onclick="openDetailModal(' + p.id + ')">' +
+            container.innerHTML = allPortfolios.map(p => {
+                const pidSafe = JSON.stringify(p.id);
+                return '<div class="group bg-white rounded-[2.5rem] border border-slate-200/60 overflow-hidden cursor-pointer hover:shadow-2xl transition-all duration-500 flex flex-col h-full" onclick="openDetailModal(' + pidSafe + ')">' +
                     '<div class="h-48 relative overflow-hidden bg-slate-900">' +
                         '<img src="' + (p.thumbnail_url || 'https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=800') + '" class="w-full h-full object-cover asset-image-hover opacity-90">' +
                         '<div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-6">' +
@@ -417,13 +420,13 @@ export const teacherPortfoliosHtml = `
                         '<div class="mt-auto pt-6 border-t border-slate-50 flex justify-between items-center text-slate-400">' +
                             '<div class="w-8 h-8 rounded-xl bg-slate-50 flex items-center justify-center text-[10px] font-black group-hover:bg-slate-900 group-hover:text-white transition-all shadow-inner">' + (p.student_name || 'N')[0] + '</div>' +
                             '<div class="flex gap-2">' +
-                                '<button onclick="event.stopPropagation(); openEditPortfolioModalById(' + p.id + ')" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-sky-50 transition-colors"><i class="fas fa-edit text-xs"></i></button>' +
-                                '<button onclick="event.stopPropagation(); deletePortfolioById(' + p.id + ')" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-50 transition-colors"><i class="fas fa-trash-alt text-xs"></i></button>' +
+                                '<button onclick="event.stopPropagation(); openEditPortfolioModalById(' + pidSafe + ')" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-sky-50 transition-colors"><i class="fas fa-edit text-xs"></i></button>' +
+                                '<button onclick="event.stopPropagation(); deletePortfolioById(' + pidSafe + ')" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-50 transition-colors"><i class="fas fa-trash-alt text-xs"></i></button>' +
                             '</div>' +
                         '</div>' +
                     '</div>' +
-                '</div>'
-            ).join('');
+                '</div>';
+            }).join('');
         }
 
         function openAddPortfolioModal() {
