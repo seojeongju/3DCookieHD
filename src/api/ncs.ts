@@ -66,6 +66,74 @@ async function fetchNcsPublicApi(apiKey: string, keyword: string, ncsLclasCd = '
     })).filter((r: { code: string }) => r.code);
 }
 
+/** 대분류 기준 훈련과정 목록 (중·소분류 포함) — 승인받은 NCS 등록용 */
+type TrainingItem = {
+    largeCode: string;
+    largeName: string;
+    midCode: string;
+    midName: string;
+    smallCode: string;
+    smallName: string;
+    unitCode: string;
+    unitName: string;
+};
+
+async function fetchNcsTrainingByLarge(apiKey: string, ncsLclasCd: string): Promise<TrainingItem[]> {
+    const base = 'http://apis.data.go.kr/B490007/ncsTrainingCource';
+    const params = new URLSearchParams({
+        serviceKey: apiKey,
+        pageNo: '1',
+        numOfRows: '100',
+        returnType: 'json',
+        ncsLclasCd: ncsLclasCd || '01',
+        cdName: ' '
+    });
+    const res = await fetch(`${base}?${params.toString()}`);
+    if (!res.ok) return [];
+    const json = await res.json() as { response?: { body?: { items?: { item?: unknown } } } };
+    const item = json?.response?.body?.items?.item;
+    if (item == null) return [];
+    const list = Array.isArray(item) ? item : [item];
+    return list.map((row: Record<string, unknown>) => ({
+        largeCode: String(row.ncsLclasCd ?? row.ncslclascd ?? ''),
+        largeName: String(row.ncsLclasCdnm ?? row.ncslclascdnm ?? ''),
+        midCode: String(row.ncsMclasCd ?? row.ncsmclascd ?? ''),
+        midName: String(row.ncsMclasCdnm ?? row.ncsmclascdnm ?? ''),
+        smallCode: String(row.ncsSclasCd ?? row.ncssclascd ?? ''),
+        smallName: String(row.ncsSclasCdnm ?? row.ncssclascdnm ?? ''),
+        unitCode: String(row.ncsClCd ?? row.ncsclcd ?? ''),
+        unitName: String(row.compeUnitName ?? row.compeunitname ?? '')
+    })).filter((r: TrainingItem) => r.unitCode);
+}
+
+const NCS_MOCK_TRAINING: TrainingItem[] = [
+    { largeCode: '15', largeName: '기계', midCode: '01', midName: '기계제작', smallCode: '01', smallName: '기계요소설계', unitCode: '15010201_19v3', unitName: '기계요소설계' },
+    { largeCode: '15', largeName: '기계', midCode: '01', midName: '기계제작', smallCode: '02', smallName: '3D모델링', unitCode: '1503050101_19v3', unitName: '3D형상모델링' },
+    { largeCode: '15', largeName: '기계', midCode: '03', midName: '3D프린터개발', smallCode: '01', smallName: '3D프린터개발', unitCode: '1503050102_19v3', unitName: '3D프린팅제작' },
+    { largeCode: '01', largeName: '사업관리', midCode: '01', midName: '사업관리', smallCode: '01', smallName: '프로젝트관리', unitCode: '0101010101_17v2', unitName: '프로젝트관리' },
+    { largeCode: '20', largeName: '정보통신', midCode: '01', midName: '응용SW엔지니어링', smallCode: '01', smallName: '응용SW엔지니어링', unitCode: '2001010101_16v2', unitName: '응용SW기초기술활용' },
+];
+
+app.get('/approved/training', async (c) => {
+    try {
+        const ncsLclasCd = c.req.query('ncsLclasCd') || '01';
+        const apiKey = c.env.NCS_API_KEY?.trim();
+        if (apiKey) {
+            try {
+                const fromApi = await fetchNcsTrainingByLarge(apiKey, ncsLclasCd);
+                if (fromApi.length > 0) return c.json({ success: true, data: fromApi });
+            } catch (e) {
+                console.warn('NCS approved/training API failed, using mock:', e);
+            }
+        }
+        const filtered = NCS_MOCK_TRAINING.filter((r) => r.largeCode === ncsLclasCd);
+        return c.json({ success: true, data: filtered.length > 0 ? filtered : NCS_MOCK_TRAINING });
+    } catch (e) {
+        console.error('NCS approved/training error:', e);
+        return c.json({ success: false, error: '훈련과정 조회 실패' }, 500);
+    }
+});
+
 app.get('/search', async (c) => {
     try {
         const keyword = c.req.query('keyword');

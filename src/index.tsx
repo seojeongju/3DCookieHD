@@ -45,6 +45,7 @@ import {
   adminCoursesApprovedHtml,
   adminCoursesApprovedRegisterHtml,
   adminCoursesSessionsHtml,
+  adminCoursesSessionsRegisterHtml,
   adminCoursesCopyHtml,
 } from './views/admin_courses_sub';
 import { adminStudentsListHtml } from './views/admin_students';
@@ -255,6 +256,8 @@ app.get('/admin/courses/approved', (c) => c.html(adminCoursesApprovedHtml()));
 app.get('/admin/courses/approved/register', (c) => c.html(adminCoursesApprovedRegisterHtml()));
 app.get('/admin/courses/approved/register/:id', (c) => c.html(adminCoursesApprovedRegisterHtml(c.req.param('id'))));
 app.get('/admin/courses/sessions', (c) => c.html(adminCoursesSessionsHtml()));
+app.get('/admin/courses/sessions/register', (c) => c.html(adminCoursesSessionsRegisterHtml()));
+app.get('/admin/courses/sessions/register/:id', (c) => c.html(adminCoursesSessionsRegisterHtml(c.req.param('id'))));
 app.get('/admin/courses/copy', (c) => c.html(adminCoursesCopyHtml()));
 app.get('/admin/users', (c) => c.html(adminUsersHtml())); // 회원관리 - 역할 및 권한 관리
 app.get('/admin/hrd', (c) => c.html(adminHrdHtml()));
