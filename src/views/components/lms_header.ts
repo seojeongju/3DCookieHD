@@ -49,6 +49,9 @@ export const lmsHeaderHtml = (activeTab = 'dashboard') => `
                 <a href="dashboard" class="px-6 py-3 rounded-t-lg transition whitespace-nowrap ${activeTab === 'dashboard' ? 'bg-white text-purple-700 font-bold border-b-2 border-purple-700' : 'text-purple-100 hover:bg-white/10 hover:text-white font-medium'}">
                     <i class="fas fa-tachometer-alt mr-2"></i>대시보드
                 </a>
+                <a href="students" class="px-6 py-3 rounded-t-lg transition whitespace-nowrap ${activeTab === 'students' ? 'bg-white text-purple-700 font-bold border-b-2 border-purple-700' : 'text-purple-100 hover:bg-white/10 hover:text-white font-medium'}">
+                    <i class="fas fa-user-graduate mr-2"></i>수강생
+                </a>
                 <a href="attendance" class="px-6 py-3 rounded-t-lg transition whitespace-nowrap ${activeTab === 'attendance' ? 'bg-white text-purple-700 font-bold border-b-2 border-purple-700' : 'text-purple-100 hover:bg-white/10 hover:text-white font-medium'}">
                     <i class="fas fa-user-clock mr-2"></i>출결관리
                 </a>

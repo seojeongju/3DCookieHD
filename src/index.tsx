@@ -50,6 +50,7 @@ import { adminHrdAttendancePrintHtml } from './views/admin_hrd_attendance_print'
 import { adminHrdCounselingHtml } from './views/admin_hrd_counseling';
 import { adminNcsHtml } from './views/admin_ncs';
 import { adminLmsDashboardHtml } from './views/admin_lms_dashboard';
+import { adminLmsStudentsHtml } from './views/admin_lms_students';
 import { adminLmsAttendanceHtml } from './views/admin_lms_attendance';
 import { adminLmsNcsHtml } from './views/admin_lms_ncs';
 import { adminLmsTrainingLogsHtml } from './views/admin_lms_training_logs';
@@ -72,7 +73,6 @@ import { studentExamHtml } from './views/student_exam';
 import { studentDashboardHtml } from './views/student_dashboard';
 import { teacherDashboardHtml } from './views/teacher_dashboard';
 import { teacherPortfoliosHtml } from './views/teacher_portfolios';
-import { teacherSurveysHtml } from './views/teacher_surveys';
 import { teacherProfileHtml } from './views/teacher_profile';
 import { teacherCoursesHtml } from './views/teacher_courses';
 import { teacherStudentsHtml } from './views/teacher_students';
@@ -262,6 +262,7 @@ app.get('/admin/inquiries', (c) => c.html(adminInquiriesHtml(hrdSidebar('inquiri
 
 // 과정별 LMS 상세 관리 (LMS Dashboard & Inner Pages)
 app.get('/admin/courses/:id/lms', (c) => c.html(adminLmsDashboardHtml));
+app.get('/admin/courses/:id/lms/students', (c) => c.html(adminLmsStudentsHtml));
 app.get('/admin/courses/:id/lms/attendance', (c) => c.html(adminLmsAttendanceHtml));
 app.get('/admin/courses/:id/lms/ncs-eval', (c) => c.html(adminLmsNcsHtml));
 app.get('/admin/courses/:id/lms/ncs-report', (c) => c.html(adminLmsNcsReportHtml));
@@ -281,12 +282,15 @@ app.get('/student', (c) => c.html(studentDashboardHtml()));
 // Teacher Dashboard
 app.get('/teacher', (c) => c.html(teacherDashboardHtml));
 app.get('/teacher/portfolios', (c) => c.html(teacherPortfoliosHtml));
-app.get('/teacher/surveys', (c) => c.html(teacherSurveysHtml));
 app.get('/teacher/profile', (c) => c.html(teacherProfileHtml));
-app.get('/teacher/courses', (c) => c.html(teacherCoursesHtml));
-app.get('/teacher/students', (c) => c.html(teacherStudentsHtml));
-app.get('/teacher/attendance', (c) => c.html(teacherAttendanceHtml));
-app.get('/teacher/exams', (c) => c.html(teacherExamsHtml));
+app.get('/teacher/courses', (c) => {
+  const tab = c.req.query('tab');
+  return c.html(teacherCoursesHtml(tab));
+});
+app.get('/teacher/students', (c) => c.redirect('/teacher/courses?tab=students'));
+app.get('/teacher/attendance', (c) => c.redirect('/teacher/courses?tab=attendance'));
+app.get('/teacher/exams', (c) => c.redirect('/teacher/courses?tab=exams'));
+app.get('/teacher/surveys', (c) => c.redirect('/teacher/courses?tab=surveys'));
 app.get('/teacher/posts', (c) => c.html(adminPostsListHtml(teacherSidebar('posts'))));
 
 // ============================================

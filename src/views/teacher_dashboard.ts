@@ -149,7 +149,7 @@ export const teacherDashboardHtml = `
                     </div>
 
                     <!-- 수강생 분석 바로가기 -->
-                    <div onclick="location.href='/teacher/students'" class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 flex flex-col justify-between cursor-pointer group shadow-sm hover:border-orange-200">
+                    <div onclick="location.href='/teacher/courses?tab=students'" class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 flex flex-col justify-between cursor-pointer group shadow-sm hover:border-orange-200">
                         <div class="flex justify-between items-start mb-8">
                             <div class="w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center text-orange-600 group-hover:bg-orange-600 group-hover:text-white transition-all duration-500 shadow-sm border border-orange-100">
                                 <i class="fas fa-user-graduate text-lg"></i>
@@ -167,7 +167,7 @@ export const teacherDashboardHtml = `
                     </div>
 
                     <!-- 출석 관리 바로가기 -->
-                    <div onclick="location.href='/teacher/attendance'" class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 flex flex-col justify-between cursor-pointer group shadow-sm hover:border-emerald-200">
+                    <div onclick="location.href='/teacher/courses?tab=attendance'" class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 flex flex-col justify-between cursor-pointer group shadow-sm hover:border-emerald-200">
                         <div class="flex justify-between items-start mb-8">
                             <div class="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-all duration-500 shadow-sm border border-emerald-100">
                                 <i class="fas fa-calendar-check text-lg"></i>
@@ -185,7 +185,7 @@ export const teacherDashboardHtml = `
                     </div>
 
                     <!-- 채점 대기 바로가기 -->
-                    <div onclick="location.href='/teacher/exams'" class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 flex flex-col justify-between cursor-pointer group shadow-sm hover:border-purple-200">
+                    <div onclick="location.href='/teacher/courses?tab=exams'" class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 flex flex-col justify-between cursor-pointer group shadow-sm hover:border-purple-200">
                         <div class="flex justify-between items-start mb-8">
                             <div class="w-12 h-12 rounded-2xl bg-purple-50 flex items-center justify-center text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-all duration-500 shadow-sm border border-purple-100">
                                 <i class="fas fa-clipboard-check text-lg"></i>
@@ -274,15 +274,15 @@ export const teacherDashboardHtml = `
                                         <i class="fas fa-bullhorn text-xl mb-2 group-hover/btn:scale-110 transition-transform"></i>
                                         <span class="text-[10px] font-bold">공지사항 작성</span>
                                     </a>
-                                    <a href="/teacher/exams" class="flex flex-col items-center justify-center p-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-purple-600 hover:border-purple-500 hover:text-white transition-all text-slate-400 group/btn">
+                                    <a href="/teacher/courses?tab=exams" class="flex flex-col items-center justify-center p-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-purple-600 hover:border-purple-500 hover:text-white transition-all text-slate-400 group/btn">
                                         <i class="fas fa-edit text-xl mb-2 group-hover/btn:scale-110 transition-transform"></i>
                                         <span class="text-[10px] font-bold">시험 출제</span>
                                     </a>
-                                    <a href="/teacher/surveys" class="flex flex-col items-center justify-center p-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-emerald-600 hover:border-emerald-500 hover:text-white transition-all text-slate-400 group/btn">
+                                    <a href="/teacher/courses?tab=surveys" class="flex flex-col items-center justify-center p-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-emerald-600 hover:border-emerald-500 hover:text-white transition-all text-slate-400 group/btn">
                                         <i class="fas fa-poll text-xl mb-2 group-hover/btn:scale-110 transition-transform"></i>
                                         <span class="text-[10px] font-bold">설문 생성</span>
                                     </a>
-                                    <a href="/teacher/attendance" class="flex flex-col items-center justify-center p-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-orange-600 hover:border-orange-500 hover:text-white transition-all text-slate-400 group/btn">
+                                    <a href="/teacher/courses?tab=attendance" class="flex flex-col items-center justify-center p-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-orange-600 hover:border-orange-500 hover:text-white transition-all text-slate-400 group/btn">
                                         <i class="fas fa-qrcode text-xl mb-2 group-hover/btn:scale-110 transition-transform"></i>
                                         <span class="text-[10px] font-bold">QR 출결</span>
                                     </a>
@@ -372,7 +372,7 @@ export const teacherDashboardHtml = `
                                 <h3 class="font-black tracking-tight">인텔리전스 액션</h3>
                             </div>
                             <div class="space-y-3">
-                                <button onclick="location.href='/teacher/attendance'" class="w-full p-4 bg-white/10 hover:bg-white text-indigo-100 hover:text-indigo-900 border border-white/10 rounded-[1.5rem] font-black text-sm transition-all duration-300 flex items-center justify-between group">
+                                <button onclick="location.href='/teacher/courses?tab=attendance'" class="w-full p-4 bg-white/10 hover:bg-white text-indigo-100 hover:text-indigo-900 border border-white/10 rounded-[1.5rem] font-black text-sm transition-all duration-300 flex items-center justify-between group">
                                     <span class="flex items-center gap-3">
                                         <i class="fas fa-qrcode text-indigo-400 group-hover:text-indigo-600 transition-colors"></i>
                                         QR 출결 시스템 가동

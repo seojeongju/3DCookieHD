@@ -6,7 +6,7 @@ export const teacherStudentsHtml = `
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>수강생 성과 지능 - 3D Cookie</title>
+    <title>수강생 성과 분석 - 3D Cookie</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -55,7 +55,7 @@ export const teacherStudentsHtml = `
             <header class="glass-header sticky top-0 z-20 px-8 py-6 flex justify-between items-center">
                 <div class="flex flex-col">
                     <h1 class="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-                        수강생 성과 지능
+                        수강생 성과 분석
                         <span class="text-[10px] bg-orange-500 text-white px-2 py-0.5 rounded-full uppercase tracking-widest font-black">분석</span>
                     </h1>
                     <p class="text-xs font-medium text-slate-500 mt-0.5 tracking-tight uppercase">수강생 데이터 리포지토리 및 성과 지능</p>
@@ -199,7 +199,7 @@ export const teacherStudentsHtml = `
             }
 
             container.innerHTML = allCourses.map(course => 
-                '<div onclick="selectCourse(' + course.id + ', \'' + ((course.title || '').replace(/'/g, "\\\\'")) + '\')" ' +
+                '<div onclick="selectCourse(' + course.id + ', \\'' + ((course.title || '').replace(/'/g, "\\\\'")) + '\\')" ' +
                      'class="bento-card bg-white rounded-[2rem] p-8 border border-slate-200/60 flex flex-col justify-between cursor-pointer group shadow-sm hover:border-indigo-600/30">' +
                     '<div class="flex justify-between items-start mb-6">' +
                         '<div class="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-500 shadow-sm border border-indigo-100">' +
@@ -222,7 +222,7 @@ export const teacherStudentsHtml = `
                                 '<div class="flex flex-col">' +
                                     '<span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Region</span>' +
                                     '<span class="text-sm font-black text-slate-700 font-mono text-[10px] uppercase">' + (course.campus_name || 'Global') + '</span>' +
-                                225:                                 '</div>' +
+                                '</div>' +
                             '</div>' +
                             '<div class="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-50 group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-inner">' +
                                 '<i class="fas fa-chevron-right text-[10px]"></i>' +
@@ -308,7 +308,7 @@ export const teacherStudentsHtml = `
                     '</td>' +
                     '<td class="px-8 py-6 text-right">' +
                         '<div class="flex justify-end gap-2">' +
-                            '<button onclick="viewStudentDetail(' + student.user_id + ')" class="px-4 py-2 bg-white border border-slate-200 text-[9px] font-black rounded-xl hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all uppercase tracking-widest shadow-sm">분석</button>' +
+                            '<button onclick=\\'viewStudentDetail(' + JSON.stringify(student.user_id) + ')\\' class="px-4 py-2 bg-white border border-slate-200 text-[9px] font-black rounded-xl hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all uppercase tracking-widest shadow-sm">분석</button>' +
                             '<button class="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:bg-slate-900 hover:text-white transition-all">' +
                                 '<i class="fas fa-ellipsis-h text-xs"></i>' +
                             '</button>' +

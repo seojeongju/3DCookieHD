@@ -277,7 +277,7 @@ export const teacherExamsHtml = `
                 }
 
                 grid.innerHTML = courses.map(course => 
-                    '<div onclick="selectCourse(' + course.id + ', \'' + (course.title.replace(/'/g, "\\'")) + '\')" class="bento-card bg-white rounded-[2rem] p-8 border border-slate-200/60 flex flex-col justify-between cursor-pointer group shadow-sm hover:border-purple-600/30">' +
+                    '<div onclick="selectCourse(' + course.id + ', \\'' + ((course.title || '').replace(/'/g, "\\\\'")) + '\\')" class="bento-card bg-white rounded-[2rem] p-8 border border-slate-200/60 flex flex-col justify-between cursor-pointer group shadow-sm hover:border-purple-600/30">' +
                         '<div class="flex justify-between items-start mb-6">' +
                             '<div class="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-500 shadow-sm border border-indigo-100">' +
                                 '<i class="fas fa-clipboard-check text-lg"></i>' +
@@ -382,7 +382,7 @@ export const teacherExamsHtml = `
                             '<span class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 font-black text-xs border border-slate-200 shadow-inner group-hover/q:bg-indigo-600 group-hover/q:text-white transition-all duration-500">문제 #' + questionCounter + '</span>' +
                             '<span class="px-3 py-1 bg-slate-50 text-slate-400 text-[9px] font-black rounded-full uppercase tracking-widest border border-slate-100">' + (type === 'multiple_choice' ? '객관식' : (type === 'short_answer' ? '단답형' : '서술형')) + '</span>' +
                         '</div>' +
-                        '<button type="button" onclick="removeQuestion(\'' + qId + '\')" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-500 hover:text-white text-slate-300 transition-all">' +
+                        '<button type="button" onclick="removeQuestion(\\'' + qId + '\\')" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-500 hover:text-white text-slate-300 transition-all">' +
                             '<i class="fas fa-trash-alt text-[10px]"></i>' +
                         '</button>' +
                     '</div>' +
@@ -492,7 +492,7 @@ export const teacherExamsHtml = `
                                     '</td>' +
                                     '<td class="px-6 py-6 font-black text-slate-700 font-mono">' + (s.score !== null ? s.score + ' pt' : '-') + '</td>' +
                                     '<td class="px-8 py-6 text-right">' +
-                                        (s.has_submitted ? '<button onclick="gradeSubmission(' + id + ', ' + s.submission_id + ', \'' + (s.name.replace(/'/g, "\\'")) + '\')" class="px-6 py-3 bg-slate-900 hover:bg-indigo-600 text-white font-black text-[9px] rounded-xl uppercase tracking-widest transition-all shadow-lg">채점 하기</button>' : '-') +
+                                        (s.has_submitted ? '<button onclick="gradeSubmission(' + id + ', ' + s.submission_id + ', \\'' + ((s.name || '').replace(/'/g, "\\\\'")) + '\\')" class="px-6 py-3 bg-slate-900 hover:bg-indigo-600 text-white font-black text-[9px] rounded-xl uppercase tracking-widest transition-all shadow-lg">채점 하기</button>' : '-') +
                                     '</td>' +
                                 '</tr>'
                             ).join('') +

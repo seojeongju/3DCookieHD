@@ -1,4 +1,4 @@
-export const teacherSidebar = (activeMenu: string) => `
+export const teacherSidebar = (activeMenu: string, activeSubMenu?: string) => `
 <aside class="w-72 bg-gray-900 text-white flex flex-col shadow-2xl z-30 flex-shrink-0 border-r border-white/5 relative">
     <!-- Gradient Overlay -->
     <div class="absolute inset-0 bg-gradient-to-b from-blue-600/5 to-transparent pointer-events-none"></div>
@@ -49,27 +49,27 @@ export const teacherSidebar = (activeMenu: string) => `
                 <span class="text-[10px] font-black text-gray-500 uppercase tracking-widest">학생 성과 관리</span>
             </div>
             <div class="space-y-1">
-                <a href="/teacher/students" class="flex items-center px-4 py-3.5 rounded-2xl transition-all duration-300 group ${activeMenu === 'students' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40 border border-white/10' : 'text-gray-400 hover:bg-white/5 hover:text-white'}">
+                <a href="/teacher/courses?tab=students" class="flex items-center px-4 py-3.5 rounded-2xl transition-all duration-300 group ${(activeMenu === 'students' || activeSubMenu === 'students') ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40 border border-white/10' : 'text-gray-400 hover:bg-white/5 hover:text-white'}">
                     <div class="w-8 flex justify-center">
-                        <i class="fas fa-user-graduate text-sm ${activeMenu === 'students' ? 'text-white' : 'text-gray-400 group-hover:text-blue-400 transition-colors'}"></i>
+                        <i class="fas fa-user-graduate text-sm ${(activeMenu === 'students' || activeSubMenu === 'students') ? 'text-white' : 'text-gray-400 group-hover:text-blue-400 transition-colors'}"></i>
                     </div>
                     <span class="font-black text-sm tracking-tight">수강생 분석</span>
                 </a>
-                <a href="/teacher/attendance" class="flex items-center px-4 py-3.5 rounded-2xl transition-all duration-300 group ${activeMenu === 'attendance' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40 border border-white/10' : 'text-gray-400 hover:bg-white/5 hover:text-white'}">
+                <a href="/teacher/courses?tab=attendance" class="flex items-center px-4 py-3.5 rounded-2xl transition-all duration-300 group ${(activeMenu === 'attendance' || activeSubMenu === 'attendance') ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40 border border-white/10' : 'text-gray-400 hover:bg-white/5 hover:text-white'}">
                     <div class="w-8 flex justify-center">
-                        <i class="fas fa-calendar-check text-sm ${activeMenu === 'attendance' ? 'text-white' : 'text-gray-400 group-hover:text-blue-400 transition-colors'}"></i>
+                        <i class="fas fa-calendar-check text-sm ${(activeMenu === 'attendance' || activeSubMenu === 'attendance') ? 'text-white' : 'text-gray-400 group-hover:text-blue-400 transition-colors'}"></i>
                     </div>
                     <span class="font-black text-sm tracking-tight">출석 관리</span>
                 </a>
-                <a href="/teacher/exams" class="flex items-center px-4 py-3.5 rounded-2xl transition-all duration-300 group ${activeMenu === 'exams' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40 border border-white/10' : 'text-gray-400 hover:bg-white/5 hover:text-white'}">
+                <a href="/teacher/courses?tab=exams" class="flex items-center px-4 py-3.5 rounded-2xl transition-all duration-300 group ${(activeMenu === 'exams' || activeSubMenu === 'exams') ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40 border border-white/10' : 'text-gray-400 hover:bg-white/5 hover:text-white'}">
                     <div class="w-8 flex justify-center">
-                        <i class="fas fa-clipboard-check text-sm ${activeMenu === 'exams' ? 'text-white' : 'text-gray-400 group-hover:text-blue-400 transition-colors'}"></i>
+                        <i class="fas fa-clipboard-check text-sm ${(activeMenu === 'exams' || activeSubMenu === 'exams') ? 'text-white' : 'text-gray-400 group-hover:text-blue-400 transition-colors'}"></i>
                     </div>
                     <span class="font-black text-sm tracking-tight">평가 및 채점</span>
                 </a>
-                <a href="/teacher/surveys" class="flex items-center px-4 py-3.5 rounded-2xl transition-all duration-300 group ${activeMenu === 'surveys' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40 border border-white/10' : 'text-gray-400 hover:bg-white/5 hover:text-white'}">
+                <a href="/teacher/courses?tab=surveys" class="flex items-center px-4 py-3.5 rounded-2xl transition-all duration-300 group ${(activeMenu === 'surveys' || activeSubMenu === 'surveys') ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40 border border-white/10' : 'text-gray-400 hover:bg-white/5 hover:text-white'}">
                     <div class="w-8 flex justify-center">
-                        <i class="fas fa-poll text-sm ${activeMenu === 'surveys' ? 'text-white' : 'text-gray-400 group-hover:text-blue-400 transition-colors'}"></i>
+                        <i class="fas fa-poll text-sm ${(activeMenu === 'surveys' || activeSubMenu === 'surveys') ? 'text-white' : 'text-gray-400 group-hover:text-blue-400 transition-colors'}"></i>
                     </div>
                     <span class="font-black text-sm tracking-tight">설문 및 역량진단</span>
                 </a>

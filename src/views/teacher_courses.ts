@@ -1,6 +1,8 @@
 import { teacherSidebar } from './components/teacher_sidebar';
 
-export const teacherCoursesHtml = `
+function teacherCoursesHtmlInner(activeSubMenu?: string) {
+  const tab = activeSubMenu && ['students', 'attendance', 'exams', 'surveys'].includes(activeSubMenu) ? activeSubMenu : undefined;
+  return `
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -26,7 +28,7 @@ export const teacherCoursesHtml = `
 </head>
 <body class="bg-gray-50 font-sans">
     <div class="flex h-screen overflow-hidden">
-        ${teacherSidebar('courses')}
+        ${teacherSidebar('courses', tab)}
         <div class="flex-1 flex flex-col overflow-hidden bg-[#f1f3f5]">
             <header class="bg-white border-b border-gray-100 sticky top-0 z-10">
                 <div class="px-10 py-6 flex justify-between items-center">
@@ -48,6 +50,11 @@ export const teacherCoursesHtml = `
                 </div>
             </header>
             <main class="flex-1 overflow-y-auto p-10 custom-scrollbar">
+                <!-- tab 안내 배너 (나의 강의 → LMS 특정 탭 직행 시) -->
+                <div id="tabHintBanner" class="hidden mb-6 px-6 py-4 bg-blue-50 border border-blue-200/60 rounded-2xl flex items-center gap-3 text-blue-800">
+                    <i class="fas fa-info-circle text-blue-500 text-lg"></i>
+                    <p class="text-sm font-bold" id="tabHintText">과정을 선택하면 해당 과정의 LMS로 이동합니다.</p>
+                </div>
                 <!-- 필터 및 검색 (Bento Filter Card) -->
                 <div class="bg-white border border-gray-200 rounded-[2rem] p-6 mb-10 shadow-sm flex flex-wrap gap-4 items-center justify-between">
                     <div class="flex gap-4 items-center flex-wrap flex-1">
@@ -107,8 +114,21 @@ export const teacherCoursesHtml = `
 
         document.addEventListener('DOMContentLoaded', () => {
             checkLogin();
+            showTabHintIfNeeded();
             loadCourses();
         });
+
+        function showTabHintIfNeeded() {
+            const lmsTab = getLmsTab();
+            const banner = document.getElementById('tabHintBanner');
+            const textEl = document.getElementById('tabHintText');
+            if (!banner || !textEl) return;
+            const labels = { students: '수강생', attendance: '출결관리', cbt: 'CBT/시험', surveys: '설문/평가' };
+            if (lmsTab && labels[lmsTab]) {
+                banner.classList.remove('hidden');
+                textEl.textContent = '과정을 선택하면 해당 과정의 「' + labels[lmsTab] + '」 탭으로 바로 이동합니다.';
+            }
+        }
 
         function checkLogin() {
             const token = localStorage.getItem('token');
@@ -159,6 +179,7 @@ export const teacherCoursesHtml = `
         }
 
         function renderCourses(courses) {
+            console.log('Rendering courses (safe version)', courses);
             const container = document.getElementById('coursesContainer');
             
             if (!courses || courses.length === 0) {
@@ -169,7 +190,7 @@ export const teacherCoursesHtml = `
                         '</div>' +
                         '<h3 class="text-2xl font-black text-gray-900 mb-2 tracking-tight">배정된 강의가 존재하지 않습니다</h3>' +
                         '<p class="text-sm font-bold text-gray-400 uppercase tracking-widest">데이터베이스에 배정된 강의가 없습니다</p>' +
-                        '<button onclick="location.href=\'/teacher\'" class="mt-8 px-8 py-3 bg-gray-900 text-white rounded-2xl font-black text-xs hover:bg-black transition-all shadow-xl">' +
+                        '<button onclick="location.href=\\'/teacher\\'" class="mt-8 px-8 py-3 bg-gray-900 text-white rounded-2xl font-black text-xs hover:bg-black transition-all shadow-xl">' +
                             '대시보드로 돌아가기' +
                         '</button>' +
                     '</div>';
@@ -189,10 +210,21 @@ export const teacherCoursesHtml = `
                     case 'cancelled': statusInfo = { badge: '취소', class: 'bg-red-100 text-red-700' }; break;
                 }
 
-                // Use HTML entities to prevent syntax errors in JS/HTML
-                const safeTitle = (course.title || '제목 없음').replace(/'/g, "&#39;").replace(/"/g, "&quot;");
-                const safeCategory = (course.category || '일반').replace(/'/g, "&#39;").replace(/"/g, "&quot;");
-                const safeThumbnail = (course.thumbnail_url || '').replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+                // Clean strings to prevent syntax errors (remove newlines, escape quotes)
+                const safeTitle = (course.title || '제목 없음')
+                    .replace(/\\n/g, ' ')
+                    .replace(/'/g, "&#39;")
+                    .replace(/"/g, "&quot;");
+                    
+                const safeCategory = (course.category || '일반')
+                    .replace(/\\n/g, ' ')
+                    .replace(/'/g, "&#39;")
+                    .replace(/"/g, "&quot;");
+                    
+                const safeThumbnail = (course.thumbnail_url || '')
+                    .replace(/\\n/g, '')
+                    .replace(/'/g, "&#39;")
+                    .replace(/"/g, "&quot;");
 
                 const thumbnail = safeThumbnail 
                     ? '<img src="' + safeThumbnail + '" alt="' + safeTitle + '" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000">'
@@ -209,6 +241,9 @@ export const teacherCoursesHtml = `
                                         '<span class="text-[10px] font-bold text-gray-400">/ ' + maxStudents + '</span>';
                                         
                 const dateSection = '<span class="text-[11px] font-black text-gray-700">' + (course.start_date ? course.start_date.split('T')[0] : '미정') + '</span>';
+
+                // Use JSON.stringify for ID to be safe regardless of type (number/string)
+                const courseIdSafe = JSON.stringify(course.id);
 
                 return '<div class="bg-white rounded-[2.5rem] border border-gray-200 overflow-hidden hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.1)] transition-all duration-500 group">' +
                         '<div class="relative aspect-[16/10] overflow-hidden">' +
@@ -238,10 +273,10 @@ export const teacherCoursesHtml = `
                                 '</div>' +
                             '</div>' +
                             '<div class="flex gap-3 pt-4 border-t border-gray-50">' +
-                                '<button onclick="viewCourseDetail(' + course.id + ')" class="flex-1 px-4 py-4 bg-gray-50 text-gray-900 rounded-2xl hover:bg-blue-600 hover:text-white transition-all font-black text-[10px] tracking-widest uppercase flex items-center justify-center gap-2 group-hover:bg-blue-50">' +
+                                '<button onclick=\\'viewCourseDetail(' + courseIdSafe + ')\\' class="flex-1 px-4 py-4 bg-gray-50 text-gray-900 rounded-2xl hover:bg-blue-600 hover:text-white transition-all font-black text-[10px] tracking-widest uppercase flex items-center justify-center gap-2 group-hover:bg-blue-50">' +
                                      '<i class="fas fa-door-open text-xs"></i> 강의실 입장' +
                                 '</button>' +
-                                '<button onclick="manageCourse(' + course.id + ')" class="w-14 h-14 bg-gray-900 text-white rounded-2xl hover:bg-black flex items-center justify-center transition-all shadow-xl shadow-gray-200">' +
+                                '<button onclick=\\'manageCourse(' + courseIdSafe + ')\\' class="w-14 h-14 bg-gray-900 text-white rounded-2xl hover:bg-black flex items-center justify-center transition-all shadow-xl shadow-gray-200">' +
                                     '<i class="fas fa-cog"></i>' +
                                 '</button>' +
                             '</div>' +
@@ -295,12 +330,26 @@ export const teacherCoursesHtml = `
             container.innerHTML = pages.join('');
         }
 
+        function getLmsTab() {
+            const params = new URLSearchParams(window.location.search);
+            const tab = (params.get('tab') || '').toLowerCase();
+            if (tab === 'students') return 'students';
+            if (tab === 'attendance') return 'attendance';
+            if (tab === 'exams') return 'cbt';
+            if (tab === 'surveys') return 'surveys';
+            return '';
+        }
+
         function viewCourseDetail(courseId) {
-            window.location.href = '/admin/courses/' + courseId + '/lms';
+            const lmsTab = getLmsTab();
+            const base = '/admin/courses/' + courseId + '/lms';
+            window.location.href = lmsTab ? base + '/' + lmsTab : base;
         }
 
         function manageCourse(courseId) {
-            window.location.href = '/admin/courses/' + courseId + '/lms';
+            const lmsTab = getLmsTab();
+            const base = '/admin/courses/' + courseId + '/lms';
+            window.location.href = lmsTab ? base + '/' + lmsTab : base;
         }
     </script>
     <style>
@@ -327,3 +376,6 @@ export const teacherCoursesHtml = `
 </body>
 </html>
 `;
+}
+
+export const teacherCoursesHtml = (tab?: string) => teacherCoursesHtmlInner(tab);
