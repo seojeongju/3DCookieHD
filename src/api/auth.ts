@@ -7,6 +7,7 @@ import type { Bindings, LoginRequest, RegisterRequest, User, JWTPayload } from '
 import { successResponse, errorResponse, createdResponse } from '../utils/response';
 import { getOne, execute } from '../utils/database';
 import { generateToken, hashPassword, verifyPassword } from '../utils/jwt';
+import { authMiddleware } from '../middleware/auth';
 
 const auth = new Hono<{ Bindings: Bindings, Variables: { user: JWTPayload } }>();
 
@@ -186,7 +187,7 @@ auth.post('/login', async (c) => {
  * GET /api/auth/me
  * 현재 로그인한 사용자 정보 조회
  */
-auth.get('/me', async (c) => {
+auth.get('/me', authMiddleware, async (c) => {
   try {
     const user = c.get('user');
 
@@ -217,7 +218,7 @@ auth.get('/me', async (c) => {
  * PUT /api/auth/profile
  * 프로필 수정
  */
-auth.put('/profile', async (c) => {
+auth.put('/profile', authMiddleware, async (c) => {
   try {
     const user = c.get('user');
 
@@ -278,7 +279,7 @@ auth.put('/profile', async (c) => {
  * POST /api/auth/change-password
  * 비밀번호 변경
  */
-auth.post('/change-password', async (c) => {
+auth.post('/change-password', authMiddleware, async (c) => {
   try {
     const user = c.get('user');
 

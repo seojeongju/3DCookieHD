@@ -7,86 +7,172 @@ export const studentDashboardHtml = () => `
     <title>나의 강의실 - 와우쓰리디홍대센터</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: { sans: ['Inter', 'Apple SD Gothic Neo', 'Malgun Gothic', 'sans-serif'] },
+            colors: {
+              primary: { 50: '#f0f7ff', 100: '#e0effe', 200: '#baddfd', 300: '#7dbcfb', 400: '#3a9bf7', 500: '#5b9bd5', 600: '#4a90e2', 700: '#2d5fa3', 800: '#1e4278', 900: '#132d54' }
+            },
+            borderRadius: { '3xl': '1.5rem', '4xl': '2rem' }
+          }
+        }
+      }
+    </script>
+    <style>
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
+        .bento-card { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .bento-card:hover { transform: translateY(-4px); box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1); }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+    </style>
 </head>
-<body class="bg-gray-50 font-sans">
-    <div class="min-h-screen flex flex-col">
-        <!-- 네비게이션 -->
-        <nav class="bg-white shadow-md sticky top-0 z-50">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="flex justify-between items-center h-16">
-                    <div class="flex items-center">
-                        <a href="/" class="flex items-center">
-                            <img src="/static/logo.png" alt="WOW 3D" class="h-8 w-auto mr-2">
-                            <span class="font-bold text-gray-800">나의 강의실</span>
-                        </a>
-                    </div>
-                    <div class="flex items-center space-x-4">
-                        <div class="flex items-center space-x-3 px-4 py-2 bg-white rounded-lg border border-gray-200 shadow-sm">
-                            <div class="relative">
-                                <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xs shadow-md">S</div>
-                                <div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <p id="userName" class="text-sm font-bold text-gray-800 truncate"></p>
-                                <p class="text-[10px] text-gray-500 font-medium uppercase tracking-tight">Student</p>
-                            </div>
-                            <button onclick="logout()" class="ml-2 w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 transition-all duration-300">
-                                <i class="fas fa-sign-out-alt"></i>
-                            </button>
-                        </div>
-                    </div>
+<body class="bg-slate-50 font-sans text-slate-900 antialiased overflow-hidden">
+    <div class="flex h-screen overflow-hidden flex-col">
+        <!-- 상단 헤더 (강사 대시보드와 동일 스타일) -->
+        <header class="sticky top-0 z-20 px-8 py-6 bg-white/80 backdrop-blur-md border-b border-slate-200/60 flex justify-between items-center shrink-0">
+            <div class="flex items-center gap-4">
+                <a href="/" class="flex items-center gap-2">
+                    <img src="/static/logo.png" alt="WOW 3D" class="h-8 w-auto">
+                </a>
+                <div class="flex flex-col">
+                    <h1 class="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+                        나의 강의실
+                        <span class="text-[10px] bg-sky-600 text-white px-2 py-0.5 rounded-full uppercase tracking-widest font-black">학생</span>
+                    </h1>
+                    <p class="text-xs font-medium text-slate-500 mt-0.5 tracking-tight uppercase">지능형 학습 관리 시스템 (학생 모드)</p>
                 </div>
             </div>
-        </nav>
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-2xl border border-slate-200/60">
+                    <i class="fas fa-clock text-sky-500 text-xs"></i>
+                    <span id="current-time" class="text-xs font-black text-slate-700 tracking-tighter">00:00:00</span>
+                </div>
+                <button onclick="location.href='/'" class="w-10 h-10 flex items-center justify-center rounded-2xl bg-white border border-slate-200/60 text-slate-400 hover:text-sky-600 hover:border-sky-200 transition-all shadow-sm">
+                    <i class="fas fa-external-link-alt text-sm"></i>
+                </button>
+                <div class="h-8 w-px bg-slate-200 mx-2"></div>
+                <div class="flex items-center gap-3 px-4 py-2 bg-white rounded-2xl border border-slate-200/60 shadow-sm">
+                    <div class="text-right flex flex-col">
+                        <span id="userName" class="text-sm font-black text-slate-900">-</span>
+                        <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Student</span>
+                    </div>
+                    <div class="w-10 h-10 rounded-2xl bg-sky-600 flex items-center justify-center text-white shadow-lg shadow-sky-200 border border-white/20">
+                        <i class="fas fa-user-graduate text-sm"></i>
+                    </div>
+                    <button onclick="logout()" class="w-10 h-10 flex items-center justify-center rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all">
+                        <i class="fas fa-sign-out-alt text-sm"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
 
-        <main class="flex-1 max-w-7xl mx-auto w-full px-4 py-8">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <!-- 왼쪽 사이드바 -->
-                <div class="md:col-span-1">
-                    <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
-                        <div class="text-center mb-6">
-                            <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                                <i class="fas fa-user-graduate text-3xl text-blue-600"></i>
+        <main class="flex-1 overflow-y-auto custom-scrollbar relative">
+            <div class="absolute inset-0 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:32px_32px] opacity-40 pointer-events-none"></div>
+            <div class="relative z-10 p-8 max-w-[1600px] mx-auto">
+                <!-- 환영 섹션 (인박스 벤토 스타일) -->
+                <section class="animate-fade-in mb-8" style="animation-delay: 0.1s">
+                    <div class="bg-sky-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-2xl shadow-sky-900/20">
+                        <div class="absolute top-0 right-0 w-[40%] h-full bg-gradient-to-l from-white/10 to-transparent pointer-events-none"></div>
+                        <div class="absolute -right-20 -top-20 w-80 h-80 bg-sky-600/20 rounded-full blur-[100px]"></div>
+                        <div class="relative z-10 flex flex-col md:flex-row justify-between items-center gap-8">
+                            <div>
+                                <h2 class="text-3xl font-black tracking-tight mb-2">반갑습니다, <span id="welcome-name">-</span>님.</h2>
+                                <p class="text-sky-200 text-sm font-medium max-w-lg leading-relaxed">나의 강의실에서 수강 중인 과정, 시험, 성적, NCS·설문·포트폴리오를 한곳에서 확인하세요.</p>
+                                <div class="mt-6 flex gap-3">
+                                    <div class="px-4 py-2 bg-white/10 border border-white/10 rounded-2xl flex items-center gap-2">
+                                        <div class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+                                        <span class="text-xs font-black uppercase tracking-widest text-sky-100">시스템 정상</span>
+                                    </div>
+                                    <div class="px-4 py-2 bg-sky-500/30 border border-white/10 rounded-2xl flex items-center gap-2">
+                                        <i class="fas fa-calendar-alt text-xs text-sky-300"></i>
+                                        <span id="welcome-date" class="text-xs font-black uppercase tracking-widest text-sky-100">-</span>
+                                    </div>
+                                </div>
                             </div>
-                            <h2 id="profileName" class="text-xl font-bold text-gray-800"></h2>
-                            <p id="profileEmail" class="text-sm text-gray-500"></p>
-                        </div>
-                        <div class="space-y-2">
-                            <button onclick="switchTab('exams')" id="btn-exams" class="w-full text-left px-4 py-2 bg-blue-50 text-blue-700 rounded-lg font-medium transition">
-                                <i class="fas fa-book-open mr-2"></i> 나의 시험
-                            </button>
-                            <button onclick="switchTab('lectures')" id="btn-lectures" class="w-full text-left px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition">
-                                <i class="fas fa-video mr-2"></i> 수강 중인 강의
-                            </button>
-                            <button onclick="switchTab('grades')" id="btn-grades" class="w-full text-left px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition">
-                                <i class="fas fa-history mr-2"></i> 성적/결과
-                            </button>
-                            <button onclick="switchTab('ncs')" id="btn-ncs" class="w-full text-left px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition">
-                                <i class="fas fa-certificate mr-2"></i> NCS 평가
-                            </button>
-                            <button onclick="switchTab('surveys')" id="btn-surveys" class="w-full text-left px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition">
-                                <i class="fas fa-poll mr-2"></i> 설문/평가
-                            </button>
-                            <button onclick="switchTab('portfolio')" id="btn-portfolio" class="w-full text-left px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition">
-                                <i class="fas fa-image mr-2"></i> 포트폴리오
-                            </button>
-                            <button onclick="switchTab('employment')" id="btn-employment" class="w-full text-left px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition">
-                                <i class="fas fa-user-tie mr-2"></i> 취업 성과
-                            </button>
+                            <div class="flex gap-8 px-8 py-6 bg-white/5 border border-white/10 rounded-[2rem] backdrop-blur-sm">
+                                <div class="text-center">
+                                    <span class="block text-[10px] font-black uppercase text-sky-300 tracking-[0.2em] mb-1">수강 과정</span>
+                                    <span class="text-3xl font-black" id="stat-enrollments">0</span>
+                                    <span class="block text-[10px] font-black text-sky-300 uppercase mt-1">개</span>
+                                </div>
+                                <div class="w-px h-12 bg-white/10 self-center"></div>
+                                <div class="text-center">
+                                    <span class="block text-[10px] font-black uppercase text-sky-300 tracking-[0.2em] mb-1">진행 중 시험</span>
+                                    <span class="text-3xl font-black" id="stat-active-exams">0</span>
+                                    <span class="block text-[10px] font-black text-sky-300 uppercase mt-1">건</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
+                </section>
 
-                <!-- 메인 컨텐츠 -->
-                <div class="md:col-span-2">
-                    <h2 id="contentTitle" class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
-                        <i class="fas fa-edit mr-3 text-blue-600"></i> 진행 중인 시험
-                    </h2>
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-fade-in" style="animation-delay: 0.2s">
+                    <!-- 왼쪽: 인박스 벤토 그리드 (In-box Bento Grid) - 메뉴 카드 -->
+                    <div class="lg:col-span-4 xl:col-span-3">
+                        <div class="bento-card bg-white rounded-[2.5rem] p-8 border border-slate-200/60 shadow-sm mb-6">
+                            <div class="flex items-center gap-4 mb-8">
+                                <div class="w-14 h-14 rounded-2xl bg-sky-50 flex items-center justify-center text-sky-600 border border-sky-100">
+                                    <i class="fas fa-user-graduate text-xl"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-black text-slate-900 tracking-tight">내 정보</h3>
+                                    <p id="profileName" class="text-sm font-bold text-slate-600 truncate max-w-[180px]">-</p>
+                                    <p id="profileEmail" class="text-[10px] font-black text-slate-400 uppercase tracking-widest truncate max-w-[180px]">-</p>
+                                </div>
+                            </div>
+                            <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">인박스 메뉴 (In-box Menu)</span>
+                            <div class="space-y-2">
+                                <button onclick="switchTab('exams')" id="btn-exams" class="w-full text-left px-5 py-3.5 bg-sky-50 text-sky-700 rounded-2xl font-black text-sm transition border border-sky-100 hover:border-sky-200 flex items-center gap-3">
+                                    <i class="fas fa-book-open text-sky-600 w-5"></i> 나의 시험
+                                </button>
+                                <button onclick="switchTab('lectures')" id="btn-lectures" class="w-full text-left px-5 py-3.5 text-slate-600 hover:bg-slate-50 rounded-2xl font-bold text-sm transition border border-transparent hover:border-slate-200 flex items-center gap-3">
+                                    <i class="fas fa-video text-slate-400 w-5"></i> 수강 중인 강의
+                                </button>
+                                <button onclick="switchTab('grades')" id="btn-grades" class="w-full text-left px-5 py-3.5 text-slate-600 hover:bg-slate-50 rounded-2xl font-bold text-sm transition border border-transparent hover:border-slate-200 flex items-center gap-3">
+                                    <i class="fas fa-history text-slate-400 w-5"></i> 성적/결과
+                                </button>
+                                <button onclick="switchTab('ncs')" id="btn-ncs" class="w-full text-left px-5 py-3.5 text-slate-600 hover:bg-slate-50 rounded-2xl font-bold text-sm transition border border-transparent hover:border-slate-200 flex items-center gap-3">
+                                    <i class="fas fa-certificate text-slate-400 w-5"></i> NCS 평가
+                                </button>
+                                <button onclick="switchTab('surveys')" id="btn-surveys" class="w-full text-left px-5 py-3.5 text-slate-600 hover:bg-slate-50 rounded-2xl font-bold text-sm transition border border-transparent hover:border-slate-200 flex items-center gap-3">
+                                    <i class="fas fa-poll text-slate-400 w-5"></i> 설문/평가
+                                </button>
+                                <button onclick="switchTab('portfolio')" id="btn-portfolio" class="w-full text-left px-5 py-3.5 text-slate-600 hover:bg-slate-50 rounded-2xl font-bold text-sm transition border border-transparent hover:border-slate-200 flex items-center gap-3">
+                                    <i class="fas fa-image text-slate-400 w-5"></i> 포트폴리오
+                                </button>
+                                <button onclick="switchTab('employment')" id="btn-employment" class="w-full text-left px-5 py-3.5 text-slate-600 hover:bg-slate-50 rounded-2xl font-bold text-sm transition border border-transparent hover:border-slate-200 flex items-center gap-3">
+                                    <i class="fas fa-user-tie text-slate-400 w-5"></i> 취업 성과
+                                </button>
+                                <button onclick="switchTab('profile')" id="btn-profile" class="w-full text-left px-5 py-3.5 text-slate-600 hover:bg-slate-50 rounded-2xl font-bold text-sm transition border border-transparent hover:border-slate-200 flex items-center gap-3">
+                                    <i class="fas fa-user-edit text-slate-400 w-5"></i> 수강생 정보수정
+                                </button>
+                            </div>
+                        </div>
+                    </div>
 
-                    <div id="contentArea" class="space-y-4">
-                        <!-- 동적 컨텐츠 로드됨 -->
-                        <div class="text-center py-12">
-                            <i class="fas fa-spinner fa-spin text-3xl text-blue-500"></i>
+                    <!-- 오른쪽: 메인 컨텐츠 (벤토 그리드 스타일) -->
+                    <div class="lg:col-span-8 xl:col-span-9">
+                        <div class="bg-white rounded-[2.5rem] border border-slate-200/60 shadow-sm overflow-hidden mb-6">
+                            <div class="px-8 py-6 border-b border-slate-100 flex items-center gap-4 bg-slate-50/50">
+                                <div id="contentTitleIcon" class="w-10 h-10 rounded-xl bg-sky-600 text-white flex items-center justify-center shadow-lg shadow-sky-100">
+                                    <i class="fas fa-edit text-sm"></i>
+                                </div>
+                                <div>
+                                    <h2 id="contentTitle" class="text-xl font-black text-slate-900 tracking-tight">진행 중인 시험</h2>
+                                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">인박스 컨텐츠 (In-box Content)</p>
+                                </div>
+                            </div>
+                            <div id="contentArea" class="p-8 min-h-[320px]">
+                                <div class="text-center py-12">
+                                    <i class="fas fa-spinner fa-spin text-3xl text-sky-500"></i>
+                                    <p class="text-slate-400 font-bold text-sm mt-4 uppercase tracking-widest">로딩 중...</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -98,8 +184,31 @@ export const studentDashboardHtml = () => `
         document.addEventListener('DOMContentLoaded', () => {
             checkLogin();
             loadProfile();
+            updateWelcomeTime();
+            setInterval(updateWelcomeTime, 1000);
+            loadStudentStats();
             switchTab('exams');
         });
+
+        async function loadStudentStats() {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) return;
+                const [enrRes, examRes] = await Promise.all([
+                    fetch('/api/enrollments?status=approved&limit=1', { headers: { 'Authorization': 'Bearer ' + token } }),
+                    fetch('/api/exams', { headers: { 'Authorization': 'Bearer ' + token } })
+                ]);
+                const enrJson = await enrRes.json();
+                const examJson = await examRes.json();
+                const enrollments = (enrJson.success && enrJson.pagination && typeof enrJson.pagination.total === 'number') ? enrJson.pagination.total : (Array.isArray(enrJson.data) ? enrJson.data.length : 0);
+                const examList = Array.isArray(examJson) ? examJson : (examJson.data || []);
+                const activeExams = examList.filter(e => e.is_active).length;
+                const statEn = document.getElementById('stat-enrollments');
+                const statEx = document.getElementById('stat-active-exams');
+                if (statEn) statEn.textContent = enrollments;
+                if (statEx) statEx.textContent = activeExams;
+            } catch (e) { console.error(e); }
+        }
 
         function checkLogin() {
             const token = localStorage.getItem('token');
@@ -109,13 +218,24 @@ export const studentDashboardHtml = () => `
             }
         }
 
+        function updateWelcomeTime() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const timeEl = document.getElementById('current-time');
+            if (timeEl) timeEl.textContent = timeStr;
+            const dateEl = document.getElementById('welcome-date');
+            if (dateEl) dateEl.textContent = now.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
+        }
+
         function loadProfile() {
             const userStr = localStorage.getItem('user');
             if (userStr) {
                 const user = JSON.parse(userStr);
-                document.getElementById('userName').textContent = user.name;
-                document.getElementById('profileName').textContent = user.name;
-                document.getElementById('profileEmail').textContent = user.email;
+                document.getElementById('userName').textContent = user.name || '-';
+                document.getElementById('profileName').textContent = user.name || '-';
+                document.getElementById('profileEmail').textContent = user.email || '-';
+                const welcomeName = document.getElementById('welcome-name');
+                if (welcomeName) welcomeName.textContent = user.name || '학생';
             }
         }
 
@@ -132,149 +252,221 @@ export const studentDashboardHtml = () => `
             window.logout();
         }
 
+        var tabLabels = { exams: '진행 중인 시험', lectures: '수강 중인 강의', grades: '성적/결과', ncs: 'NCS 능력단위 평가', surveys: '설문 및 역량평가', portfolio: '나의 포트폴리오', employment: '나의 취업 성과', profile: '수강생 정보수정' };
+        var tabIcons = { exams: 'fa-edit', lectures: 'fa-video', grades: 'fa-history', ncs: 'fa-certificate', surveys: 'fa-poll', portfolio: 'fa-image', employment: 'fa-user-tie', profile: 'fa-user-edit' };
+
         function switchTab(tab) {
-            // 버튼 스타일 초기화
-            ['exams', 'lectures', 'grades', 'ncs', 'surveys', 'portfolio', 'employment'].forEach(t => {
+            var iconEl = document.getElementById('contentTitleIcon');
+            if (iconEl && tabIcons[tab]) {
+                iconEl.innerHTML = '<i class="fas ' + tabIcons[tab] + ' text-sm"></i>';
+            }
+            ['exams', 'lectures', 'grades', 'ncs', 'surveys', 'portfolio', 'employment', 'profile'].forEach(t => {
                 const btn = document.getElementById('btn-' + t);
                 if (btn) {
                     if (t === tab) {
-                        btn.className = 'w-full text-left px-4 py-2 bg-blue-50 text-blue-700 rounded-lg font-medium transition';
+                        btn.className = 'w-full text-left px-5 py-3.5 bg-sky-50 text-sky-700 rounded-2xl font-black text-sm transition border border-sky-100 hover:border-sky-200 flex items-center gap-3';
                     } else {
-                        btn.className = 'w-full text-left px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition';
+                        btn.className = 'w-full text-left px-5 py-3.5 text-slate-600 hover:bg-slate-50 rounded-2xl font-bold text-sm transition border border-transparent hover:border-slate-200 flex items-center gap-3';
                     }
                 }
             });
 
-            const title = document.getElementById('contentTitle');
-            const content = document.getElementById('contentArea');
+            const titleEl = document.getElementById('contentTitle');
+            if (titleEl) titleEl.textContent = tabLabels[tab] || tab;
 
-            if (tab === 'exams') {
-                title.innerHTML = '<i class="fas fa-edit mr-3 text-blue-600"></i> 진행 중인 시험';
-                loadExams();
-            } else if (tab === 'lectures') {
-                title.innerHTML = '<i class="fas fa-video mr-3 text-blue-600"></i> 수강 중인 강의';
-                loadLectures();
-            } else if (tab === 'grades') {
-                title.innerHTML = '<i class="fas fa-history mr-3 text-blue-600"></i> 성적/결과';
-                loadGrades();
-            } else if (tab === 'ncs') {
-                title.innerHTML = '<i class="fas fa-certificate mr-3 text-blue-600"></i> NCS 능력단위 평가';
-                loadNcsStatus();
-            } else if (tab === 'surveys') {
-                title.innerHTML = '<i class="fas fa-poll mr-3 text-blue-600"></i> 설문 및 역량평가';
-                loadStudentSurveys();
-            } else if (tab === 'portfolio') {
-                title.innerHTML = '<i class="fas fa-image mr-3 text-blue-600"></i> 나의 포트폴리오';
-                loadStudentPortfolios();
-            } else if (tab === 'employment') {
-                title.innerHTML = '<i class="fas fa-user-tie mr-3 text-blue-600"></i> 나의 취업 성과';
-                loadEmploymentStatus();
+            if (tab === 'exams') loadExams();
+            else if (tab === 'lectures') loadLectures();
+            else if (tab === 'grades') loadGrades();
+            else if (tab === 'ncs') loadNcsStatus();
+            else if (tab === 'surveys') loadStudentSurveys();
+            else if (tab === 'portfolio') loadStudentPortfolios();
+            else if (tab === 'employment') loadEmploymentStatus();
+            else if (tab === 'profile') loadProfileEdit();
+        }
+
+        async function loadProfileEdit() {
+            const container = document.getElementById('contentArea');
+            container.innerHTML = '<div class="text-center py-12"><i class="fas fa-spinner fa-spin text-3xl text-sky-500"></i><p class="text-slate-400 font-bold text-sm mt-4 uppercase tracking-widest">로딩 중...</p></div>';
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch('/api/auth/me', { headers: { 'Authorization': 'Bearer ' + token } });
+                const result = await res.json();
+                if (!result.success || !result.data) {
+                    container.innerHTML = '<div class="text-center py-12 text-red-500 font-bold">사용자 정보를 불러올 수 없습니다.</div>';
+                    return;
+                }
+                const u = result.data;
+                container.innerHTML = \`
+                    <div class="max-w-2xl">
+                        <div class="bento-card bg-white rounded-[2rem] p-8 border border-slate-200/60 shadow-sm">
+                            <form id="profileEditForm" onsubmit="handleProfileUpdate(event)" class="space-y-6">
+                                <div>
+                                    <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-2">이메일 (변경 불가)</label>
+                                    <input type="text" value="\${u.email || ''}" disabled class="w-full px-5 py-3.5 bg-slate-100 border border-slate-200 rounded-2xl font-medium text-slate-500 cursor-not-allowed">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-2">이름 *</label>
+                                    <input type="text" id="profileEditName" required value="\${(u.name || '').replace(/"/g, '&quot;')}" class="w-full px-5 py-3.5 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none font-medium text-slate-900" placeholder="이름을 입력하세요">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-2">연락처</label>
+                                    <input type="tel" id="profileEditPhone" value="\${(u.phone || '').replace(/"/g, '&quot;')}" class="w-full px-5 py-3.5 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none font-medium text-slate-900" placeholder="010-0000-0000">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-2">프로필 이미지 URL (선택)</label>
+                                    <input type="url" id="profileEditImage" value="\${(u.profile_image || '').replace(/"/g, '&quot;')}" class="w-full px-5 py-3.5 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none font-medium text-slate-900" placeholder="https://...">
+                                </div>
+                                <div class="pt-4 flex gap-3">
+                                    <button type="submit" class="flex-1 py-3.5 bg-sky-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-sky-100 hover:bg-slate-900 transition">
+                                        <i class="fas fa-save mr-2"></i> 저장하기
+                                    </button>
+                                    <button type="button" onclick="switchTab('profile'); loadProfileEdit();" class="px-6 py-3.5 border border-slate-200 rounded-2xl font-black text-[10px] text-slate-500 uppercase tracking-widest hover:bg-slate-50 transition">초기화</button>
+                                </div>
+                            </form>
+                        </div>
+                        <p class="text-[10px] text-slate-400 font-bold mt-4 uppercase tracking-wider">이메일은 로그인 계정으로 변경할 수 없습니다.</p>
+                    </div>
+                \`;
+            } catch (e) {
+                console.error(e);
+                container.innerHTML = '<div class="text-center py-12 text-red-500 font-bold">정보를 불러오는 데 실패했습니다.</div>';
+            }
+        }
+
+        async function handleProfileUpdate(e) {
+            e.preventDefault();
+            const name = document.getElementById('profileEditName').value.trim();
+            const phone = document.getElementById('profileEditPhone').value.trim() || null;
+            const profile_image = document.getElementById('profileEditImage').value.trim() || null;
+            if (!name) { alert('이름을 입력해 주세요.'); return; }
+            try {
+                const res = await fetch('/api/auth/profile', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+                    body: JSON.stringify({ name: name, phone: phone || undefined, profile_image: profile_image || undefined })
+                });
+                const result = await res.json();
+                if (result.success) {
+                    var userStr = localStorage.getItem('user');
+                    if (userStr) {
+                        var user = JSON.parse(userStr);
+                        user.name = result.data.name;
+                        user.phone = result.data.phone;
+                        user.profile_image = result.data.profile_image;
+                        localStorage.setItem('user', JSON.stringify(user));
+                    }
+                    loadProfile();
+                    alert('프로필이 수정되었습니다.');
+                } else {
+                    alert(result.message || '수정에 실패했습니다.');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('수정 중 오류가 발생했습니다.');
             }
         }
 
         async function loadLectures() {
             try {
                 const token = localStorage.getItem('token');
-                // Fetch approved enrollments
                 const response = await fetch('/api/enrollments?status=approved', {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
                 const result = await response.json();
-                
                 const container = document.getElementById('contentArea');
-                
-                if (!result.success || result.data.length === 0) {
+                const data = result.success ? (result.data || []) : [];
+                const statEl = document.getElementById('stat-enrollments');
+                if (statEl) statEl.textContent = data.length;
+
+                if (data.length === 0) {
                     container.innerHTML = \`
-                        <div class="bg-white rounded-xl shadow-sm p-8 text-center">
-                            <i class="fas fa-chalkboard text-4xl text-gray-300 mb-3"></i>
-                            <p class="text-gray-500">수강 중인 강의가 없습니다.</p>
-                            <a href="/courses" class="inline-block mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm">과정 둘러보기</a>
+                        <div class="bento-card bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200 p-12 text-center">
+                            <i class="fas fa-chalkboard text-5xl text-slate-300 mb-4"></i>
+                            <p class="font-bold text-slate-500 mb-2">수강 중인 강의가 없습니다.</p>
+                            <a href="/courses" class="inline-flex items-center gap-2 mt-4 px-6 py-3 bg-sky-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition shadow-lg shadow-sky-100">
+                                <i class="fas fa-search"></i> 과정 둘러보기
+                            </a>
                         </div>
                     \`;
                     return;
                 }
 
-                container.innerHTML = result.data.map(item => \`
-                    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition">
+                container.innerHTML = '<div class="space-y-6">' + data.map(item => \`
+                    <div class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm hover:border-sky-200 transition">
                         <div class="flex flex-col md:flex-row gap-6">
-                            <div class="w-full md:w-48 h-32 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
-                                <img src="\${item.course_thumbnail || '/static/images/default-course.jpg'}" class="w-full h-full object-cover" alt="\${item.course_title}">
+                            <div class="w-full md:w-48 h-32 bg-slate-100 rounded-2xl overflow-hidden flex-shrink-0">
+                                <img src="\${item.course_thumbnail || 'https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=400'}" class="w-full h-full object-cover" alt="\${item.course_title}">
                             </div>
                             <div class="flex-1 flex flex-col justify-between">
                                 <div>
                                     <div class="flex items-center gap-2 mb-2">
-                                        <span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-bold rounded">\${item.course_category || '일반'}</span>
-                                        <span class="text-xs text-gray-500"><i class="far fa-calendar-alt mr-1"></i> \${new Date(item.enrolled_at).toLocaleDateString()} 등록</span>
+                                        <span class="px-2 py-0.5 bg-sky-50 text-sky-600 text-[10px] font-black rounded-full uppercase tracking-widest">\${item.course_category || '일반'}</span>
+                                        <span class="text-[10px] text-slate-400 font-bold"><i class="far fa-calendar-alt mr-1"></i> \${new Date(item.enrolled_at).toLocaleDateString()} 등록</span>
                                     </div>
-                                    <h3 class="text-xl font-bold text-gray-800 mb-2">\${item.course_title}</h3>
-                                    <p class="text-sm text-gray-600 mb-4 line-clamp-2">\${item.course_category === '국비지원' ? '국비지원 과정입니다.' : '일반 과정입니다.'}</p>
+                                    <h3 class="text-xl font-black text-slate-800 tracking-tight mb-2">\${item.course_title}</h3>
+                                    <p class="text-sm text-slate-600 mb-4 line-clamp-2">\${item.course_category === '국비지원' ? '국비지원 과정입니다.' : '일반 과정입니다.'}</p>
                                 </div>
-                                <div class="flex items-center justify-between mt-auto">
-                                    <div class="flex items-center gap-4 text-sm text-gray-500">
-                                        <span><i class="fas fa-check-circle text-green-500 mr-1"></i>승인됨</span>
+                                <div class="flex items-center justify-between mt-auto pt-4 border-t border-slate-100">
+                                    <div class="flex items-center gap-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                                        <span><i class="fas fa-check-circle text-emerald-500 mr-1"></i>승인됨</span>
                                         <span><i class="fas fa-school mr-1"></i>\${item.campus_name || '홍대센터'}</span>
                                     </div>
-                                    <a href="/courses/\${item.course_id}" class="text-blue-600 hover:text-blue-800 font-medium text-sm">
-                                        과정 상세 <i class="fas fa-chevron-right ml-1"></i>
+                                    <a href="/courses/\${item.course_id}" class="text-sky-600 hover:text-slate-900 font-black text-[10px] uppercase tracking-widest flex items-center gap-1">
+                                        과정 상세 <i class="fas fa-chevron-right"></i>
                                     </a>
                                 </div>
                             </div>
                         </div>
                     </div>
-                \`).join('');
-
+                \`).join('') + '</div>';
             } catch (e) {
                 console.error(e);
-                document.getElementById('contentArea').innerHTML = '<div class="text-center text-red-500">강의 목록을 불러오는데 실패했습니다.</div>';
+                document.getElementById('contentArea').innerHTML = '<div class="text-center py-12 text-red-500 font-bold">강의 목록을 불러오는데 실패했습니다.</div>';
             }
         }
 
         async function loadExams() {
             try {
                 const token = localStorage.getItem('token');
-                // Use the consolidated exam API
                 const response = await fetch('/api/exams', {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
                 const exams = await response.json();
-                
-                // Wrap in success check if API returns wrapped response
                 const examList = Array.isArray(exams) ? exams : (exams.data || []);
-                
                 const container = document.getElementById('contentArea');
-                
-                // 활성화된 시험만 필터링
                 const activeExams = examList.filter(e => e.is_active);
+
+                const statEl = document.getElementById('stat-active-exams');
+                if (statEl) statEl.textContent = activeExams.length;
 
                 if (activeExams.length === 0) {
                     container.innerHTML = \`
-                        <div class="bg-white rounded-xl shadow-sm p-8 text-center">
-                            <i class="fas fa-clipboard-check text-4xl text-gray-300 mb-3"></i>
-                            <p class="text-gray-500">현재 진행 중인 시험이 없습니다.</p>
+                        <div class="bento-card bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200 p-12 text-center">
+                            <i class="fas fa-clipboard-check text-5xl text-slate-300 mb-4"></i>
+                            <p class="font-bold text-slate-500">현재 진행 중인 시험이 없습니다.</p>
                         </div>
                     \`;
                     return;
                 }
 
-                container.innerHTML = activeExams.map(exam => \`
-                    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition flex justify-between items-center">
-                        <div>
+                container.innerHTML = '<div class="space-y-6">' + activeExams.map(exam => \`
+                    <div class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm hover:border-sky-200 transition flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div class="flex-1">
                             <div class="flex items-center gap-2 mb-1">
-                                <span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-bold rounded">\${exam.course_title || '일반'}</span>
-                                <span class="text-sm text-gray-500"><i class="far fa-clock mr-1"></i> \${exam.time_limit_minutes || exam.time_limit}분</span>
+                                <span class="px-2 py-0.5 bg-sky-50 text-sky-600 text-[10px] font-black rounded-full uppercase tracking-widest">\${exam.course_title || '일반'}</span>
+                                <span class="text-[10px] text-slate-400 font-bold"><i class="far fa-clock mr-1"></i> \${exam.time_limit_minutes || exam.time_limit || 0}분</span>
                             </div>
-                            <h3 class="text-lg font-bold text-gray-800">\${exam.title}</h3>
-                            <p class="text-sm text-gray-600 mt-1">\${exam.description || '설명 없음'}</p>
+                            <h3 class="text-lg font-black text-slate-800 tracking-tight">\${exam.title}</h3>
+                            <p class="text-sm text-slate-600 mt-1">\${exam.description || '설명 없음'}</p>
                         </div>
-                        <button onclick="location.href='/student/exam/\${exam.id}'" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition shadow-sm whitespace-nowrap">
-                            응시하기
+                        <button onclick="location.href='/student/exam/\${exam.id}'" class="px-6 py-3.5 bg-sky-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition shadow-lg shadow-sky-100 whitespace-nowrap flex items-center gap-2">
+                            <i class="fas fa-pen-fancy"></i> 응시하기
                         </button>
                     </div>
-                \`).join('');
-
+                \`).join('') + '</div>';
             } catch (e) {
                 console.error(e);
-                document.getElementById('contentArea').innerHTML = '<div class="text-center text-red-500">목록을 불러오는데 실패했습니다.</div>';
+                document.getElementById('contentArea').innerHTML = '<div class="text-center py-12 text-red-500 font-bold">목록을 불러오는데 실패했습니다.</div>';
             }
         }
 
@@ -292,50 +484,43 @@ export const studentDashboardHtml = () => `
 
                 if (results.length === 0) {
                     container.innerHTML = \`
-                        <div class="bg-white rounded-xl shadow-sm p-8 text-center">
-                            <i class="fas fa-folder-open text-4xl text-gray-300 mb-3"></i>
-                            <p class="text-gray-500">응시한 시험 기록이 없습니다.</p>
+                        <div class="bento-card bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200 p-12 text-center">
+                            <i class="fas fa-folder-open text-5xl text-slate-300 mb-4"></i>
+                            <p class="font-bold text-slate-500">응시한 시험 기록이 없습니다.</p>
                         </div>
                     \`;
                     return;
                 }
 
-                container.innerHTML = results.map(r => {
-                    const scorePercent = (r.score / r.total_points) * 100;
-                    let badgeClass = 'bg-gray-100 text-gray-800';
+                container.innerHTML = '<div class="space-y-6">' + results.map(r => {
+                    const scorePercent = (r.total_points ? (r.score / r.total_points) * 100 : 0);
+                    let badgeClass = 'bg-slate-100 text-slate-800';
                     let statusText = '완료';
-                    
-                    if (scorePercent >= 80) {
-                        badgeClass = 'bg-green-100 text-green-800';
-                        statusText = '우수';
-                    } else if (scorePercent < 60) {
-                        badgeClass = 'bg-red-100 text-red-800';
-                        statusText = '재시험 필요';
-                    }
-
+                    if (scorePercent >= 80) { badgeClass = 'bg-emerald-100 text-emerald-800'; statusText = '우수'; }
+                    else if (scorePercent < 60) { badgeClass = 'bg-rose-100 text-rose-800'; statusText = '재시험 필요'; }
                     return \`
-                        <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition">
+                        <div class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm hover:border-sky-200 transition">
                             <div class="flex justify-between items-start mb-4">
                                 <div>
-                                    <span class="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs font-bold rounded mb-2 inline-block">\${r.course_title || '일반'}</span>
-                                    <h3 class="text-lg font-bold text-gray-800">\${r.exam_title}</h3>
-                                    <p class="text-sm text-gray-500 mt-1">제출일: \${new Date(r.submitted_at).toLocaleString()}</p>
+                                    <span class="px-2 py-0.5 bg-sky-50 text-sky-600 text-[10px] font-black rounded-full uppercase tracking-widest mb-2 inline-block">\${r.course_title || '일반'}</span>
+                                    <h3 class="text-lg font-black text-slate-800 tracking-tight">\${r.exam_title}</h3>
+                                    <p class="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-wider">제출일: \${new Date(r.submitted_at).toLocaleString()}</p>
                                 </div>
-                                <span class="px-3 py-1 rounded-full text-xs font-bold \${badgeClass}">\${statusText}</span>
+                                <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest \${badgeClass}">\${statusText}</span>
                             </div>
-                            <div class="flex items-end justify-between border-t border-gray-100 pt-4">
+                            <div class="flex items-end justify-between border-t border-slate-100 pt-4">
                                 <div>
-                                    <p class="text-sm text-gray-500">총점</p>
-                                    <p class="text-2xl font-bold text-gray-900">\${r.score} <span class="text-sm text-gray-400 font-normal">/ \${r.total_points}</span></p>
+                                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">총점</p>
+                                    <p class="text-2xl font-black text-slate-900">\${r.score} <span class="text-sm text-slate-400 font-bold">/ \${r.total_points}</span></p>
                                 </div>
                                 <div class="text-right">
-                                    <p class="text-sm text-gray-500">백분율</p>
-                                    <p class="text-lg font-bold text-blue-600">\${scorePercent.toFixed(1)}%</p>
+                                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">백분율</p>
+                                    <p class="text-lg font-black text-sky-600">\${scorePercent.toFixed(1)}%</p>
                                 </div>
                             </div>
                         </div>
                     \`;
-                }).join('');
+                }).join('') + '</div>';
 
             } catch (e) {
                 console.error(e);
@@ -357,17 +542,17 @@ export const studentDashboardHtml = () => `
                 const dataPlans = await resPlans.json();
 
                 let html = \`
-                    <div class="space-y-6">
+                    <div class="space-y-8">
                         <section>
-                            <h3 class="text-lg font-bold text-gray-700 mb-4 flex items-center">
-                                <span class="w-1 h-5 bg-blue-600 rounded mr-2"></span> 평가 결과 및 이수 현황
+                            <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                <span class="w-1 h-5 bg-sky-600 rounded"></span> 평가 결과 및 이수 현황
                             </h3>
                             <div class="grid grid-cols-1 gap-4">
                 \`;
 
                 if (dataResults.success && dataResults.data.length > 0) {
                     html += dataResults.data.map(r => \`
-                        <div class="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+                        <div class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm hover:border-sky-200 transition">
                             <div class="flex justify-between items-start mb-3">
                                 <div>
                                     <div class="text-xs text-gray-400 font-medium mb-1">\${r.course_title}</div>
@@ -399,7 +584,7 @@ export const studentDashboardHtml = () => `
                         </div>
                     \`).join('');
                 } else {
-                    html += '<div class="bg-white rounded-xl p-8 text-center text-gray-400 text-sm border border-dashed">아직 평가된 내역이 없습니다.</div>';
+                    html += '<div class="bento-card bg-slate-50 rounded-[2rem] p-8 text-center text-slate-400 text-sm border-2 border-dashed border-slate-200 font-bold">아직 평가된 내역이 없습니다.</div>';
                 }
 
                 html += \`
@@ -407,19 +592,19 @@ export const studentDashboardHtml = () => `
                         </section>
 
                         <section class="mt-8">
-                            <h3 class="text-lg font-bold text-gray-700 mb-4 flex items-center">
-                                <span class="w-1 h-5 bg-purple-600 rounded mr-2"></span> 증빙 자료 (포트폴리오) 제출
+                            <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                <span class="w-1 h-5 bg-purple-600 rounded"></span> 증빙 자료 (포트폴리오) 제출
                             </h3>
-                            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                            <div class="bg-white rounded-[2rem] border border-slate-200/60 shadow-sm overflow-hidden">
                                 <table class="w-full text-left">
-                                    <thead class="bg-gray-50 border-b">
+                                    <thead class="bg-slate-50/80 border-b border-slate-100">
                                         <tr>
-                                            <th class="px-6 py-4 text-xs font-bold text-gray-500">평가 예정 항목</th>
-                                            <th class="px-6 py-4 text-xs font-bold text-gray-500 w-32">상태</th>
-                                            <th class="px-6 py-4 text-xs font-bold text-gray-500 w-32 text-right">관리</th>
+                                            <th class="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">평가 예정 항목</th>
+                                            <th class="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest w-32">상태</th>
+                                            <th class="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest w-32 text-right">관리</th>
                                         </tr>
                                     </thead>
-                                    <tbody class="divide-y divide-gray-50">
+                                    <tbody class="divide-y divide-slate-50">
                 \`;
 
                 if (dataPlans.success && dataPlans.data.length > 0) {
@@ -434,7 +619,7 @@ export const studentDashboardHtml = () => `
                                 <span id="status-plan-\${p.id}" class="text-[10px] font-bold text-gray-400">확인 중...</span>
                             </td>
                             <td class="px-6 py-4 text-right">
-                                <button onclick="openUploadModal(\${p.id}, '\${p.unit_name}')" class="px-3 py-1.5 bg-purple-600 text-white rounded-lg text-xs font-bold hover:bg-purple-700 transition shadow-sm">
+                                <button onclick="openUploadModal(\${p.id}, '\${p.unit_name}')" class="px-4 py-2 bg-purple-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-900 transition shadow-lg shadow-purple-100">
                                     자료제출
                                 </button>
                             </td>
@@ -451,12 +636,12 @@ export const studentDashboardHtml = () => `
                         </section>
                     </div>
 
-                    <!-- 업로드 모달 -->
-                    <div id="uploadModal" class="fixed inset-0 bg-black/60 hidden z-[70] flex items-center justify-center p-4">
-                        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md transform transition-all overflow-hidden">
-                            <div class="px-6 py-4 border-b bg-gray-50 flex justify-between items-center">
-                                <h3 class="font-bold text-gray-800">실기/과제 증빙 제출</h3>
-                                <button onclick="closeUploadModal()" class="text-gray-400 hover:text-gray-600 transition"><i class="fas fa-times text-xl"></i></button>
+                    <!-- 업로드 모달 (벤토 스타일) -->
+                    <div id="uploadModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm hidden z-[70] flex items-center justify-center p-4">
+                        <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md border border-slate-200/60 overflow-hidden">
+                            <div class="px-8 py-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                                <h3 class="font-black text-slate-900 tracking-tight uppercase text-sm">실기/과제 증빙 제출</h3>
+                                <button onclick="closeUploadModal()" class="w-10 h-10 flex items-center justify-center rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 transition"><i class="fas fa-times"></i></button>
                             </div>
                             <div class="p-8 space-y-6">
                                 <input type="hidden" id="uploadPlanId">
@@ -574,8 +759,8 @@ export const studentDashboardHtml = () => `
                 
                 let html = \`
                     <div class="flex justify-end mb-6">
-                        <button onclick="openPortfolioModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center shadow-sm">
-                            <i class="fas fa-plus mr-2"></i> 새 포트폴리오 추가
+                        <button onclick="openPortfolioModal()" class="px-6 py-3.5 bg-sky-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition flex items-center gap-2 shadow-lg shadow-sky-100">
+                            <i class="fas fa-plus"></i> 새 포트폴리오 추가
                         </button>
                     </div>
                 \`;
@@ -584,21 +769,19 @@ export const studentDashboardHtml = () => `
                     html += '<div class="grid grid-cols-1 sm:grid-cols-2 gap-6">';
                     result.data.forEach(p => {
                         html += \`
-                            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden group">
+                            <div class="bento-card bg-white rounded-[2rem] border border-slate-200/60 shadow-sm overflow-hidden group hover:border-sky-200 transition">
                                 <div class="relative h-40 overflow-hidden">
                                     <img src="\${p.thumbnail_url || 'https://images.unsplash.com/photo-1587586062323-836091e6006e?auto=format&fit=crop&q=80&w=800'}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
-                                    <div class="absolute top-2 right-2 px-2 py-1 bg-white/90 rounded text-[10px] font-bold text-gray-600">\${p.category}</div>
+                                    <div class="absolute top-3 right-3 px-2 py-1 bg-white/95 rounded-xl text-[10px] font-black text-slate-600 uppercase tracking-wider shadow-sm">\${p.category}</div>
                                 </div>
-                                <div class="p-4">
-                                    <h4 class="font-bold text-gray-800 mb-1 line-clamp-1">\${p.title}</h4>
-                                    <p class="text-xs text-gray-500 mb-4 line-clamp-2">\${p.description || '설명이 없습니다.'}</p>
-                                    <div class="flex justify-between items-center pt-3 border-t border-gray-50">
-                                        <a href="\${p.content_url || '#'}" target="_blank" class="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1">
+                                <div class="p-6">
+                                    <h4 class="font-black text-slate-800 mb-1 line-clamp-1 tracking-tight">\${p.title}</h4>
+                                    <p class="text-sm text-slate-500 mb-4 line-clamp-2">\${p.description || '설명이 없습니다.'}</p>
+                                    <div class="flex justify-between items-center pt-4 border-t border-slate-100">
+                                        <a href="\${p.content_url || '#'}" target="_blank" class="text-[10px] font-black text-sky-600 hover:text-slate-900 uppercase tracking-widest flex items-center gap-1">
                                             <i class="fas fa-link"></i> 링크보기
                                         </a>
-                                        <div class="flex gap-2">
-                                            <button onclick="deletePortfolio(\${p.id})" class="text-gray-300 hover:text-red-500 transition"><i class="fas fa-trash-alt"></i></button>
-                                        </div>
+                                        <button onclick="deletePortfolio(\${p.id})" class="text-slate-300 hover:text-red-500 transition p-2 rounded-xl hover:bg-red-50"><i class="fas fa-trash-alt text-sm"></i></button>
                                     </div>
                                 </div>
                             </div>
@@ -606,7 +789,7 @@ export const studentDashboardHtml = () => `
                     });
                     html += '</div>';
                 } else {
-                    html += '<div class="text-center py-20 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">등록된 포트폴리오가 없습니다.</div>';
+                    html += '<div class="bento-card bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200 py-20 text-center font-bold text-slate-500">등록된 포트폴리오가 없습니다.</div>';
                 }
                 container.innerHTML = html;
             } catch (e) {
@@ -688,57 +871,39 @@ export const studentDashboardHtml = () => `
                 if (result.success && result.data.length > 0) {
                     let html = '<div class="space-y-6">';
                     result.data.forEach(item => {
-                        let statusText = '';
-                        let statusClass = '';
+                        let statusText = ''; let statusClass = '';
                         switch(item.status) {
-                            case 'employed': statusText = '취업 완료'; statusClass = 'bg-green-100 text-green-700'; break;
+                            case 'employed': statusText = '취업 완료'; statusClass = 'bg-emerald-100 text-emerald-700'; break;
                             case 'seeking': statusText = '구직 중'; statusClass = 'bg-orange-100 text-orange-700'; break;
-                            case 'further_education': statusText = '진학'; statusClass = 'bg-blue-100 text-blue-700'; break;
-                            case 'military': statusText = '군입대'; statusClass = 'bg-gray-100 text-gray-700'; break;
-                            default: statusText = '기타/미정'; statusClass = 'bg-gray-50 text-gray-400';
+                            case 'further_education': statusText = '진학'; statusClass = 'bg-sky-100 text-sky-700'; break;
+                            case 'military': statusText = '군입대'; statusClass = 'bg-slate-100 text-slate-700'; break;
+                            default: statusText = '기타/미정'; statusClass = 'bg-slate-50 text-slate-400';
                         }
-
                         html += \`
-                            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <div class="bento-card bg-white rounded-[2rem] border border-slate-200/60 shadow-sm p-6 hover:border-sky-200 transition">
                                 <div class="flex justify-between items-start mb-4">
                                     <div>
-                                        <h4 class="font-bold text-gray-800 text-lg">\${item.course_title}</h4>
-                                        <p class="text-xs text-gray-500 mt-1">이 과정에 대한 나의 현재 취업 정보입니다.</p>
+                                        <h4 class="font-black text-slate-800 text-lg tracking-tight">\${item.course_title}</h4>
+                                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">이 과정에 대한 나의 현재 취업 정보입니다.</p>
                                     </div>
-                                    <span class="px-3 py-1 \${statusClass} text-xs font-bold rounded-full">\${statusText}</span>
+                                    <span class="px-3 py-1 \${statusClass} text-[10px] font-black rounded-full uppercase tracking-widest">\${statusText}</span>
                                 </div>
-                                <div class="grid grid-cols-2 gap-4 bg-gray-50 rounded-lg p-4 mb-4">
-                                    <div>
-                                        <div class="text-[10px] text-gray-400 uppercase font-black mb-1">취업처</div>
-                                        <div class="text-sm font-bold text-gray-700">\${item.company_name || '-'}</div>
-                                    </div>
-                                    <div>
-                                        <div class="text-[10px] text-gray-400 uppercase font-black mb-1">직무</div>
-                                        <div class="text-sm font-bold text-gray-700">\${item.job_title || '-'}</div>
-                                    </div>
-                                    <div>
-                                        <div class="text-[10px] text-gray-400 uppercase font-black mb-1">취업일자</div>
-                                        <div class="text-sm font-bold text-gray-700">\${item.employment_date || '-'}</div>
-                                    </div>
-                                    <div>
-                                        <div class="text-[10px] text-gray-400 uppercase font-black mb-1">보험가입</div>
-                                        <div class="text-sm font-bold text-gray-700">\${item.insurance_covered ? '가입됨' : '미가입/미확인'}</div>
-                                    </div>
+                                <div class="grid grid-cols-2 gap-4 bg-slate-50 rounded-2xl p-5 mb-4 border border-slate-100">
+                                    <div><div class="text-[10px] text-slate-400 uppercase font-black mb-1">취업처</div><div class="text-sm font-bold text-slate-700">\${item.company_name || '-'}</div></div>
+                                    <div><div class="text-[10px] text-slate-400 uppercase font-black mb-1">직무</div><div class="text-sm font-bold text-slate-700">\${item.job_title || '-'}</div></div>
+                                    <div><div class="text-[10px] text-slate-400 uppercase font-black mb-1">취업일자</div><div class="text-sm font-bold text-slate-700">\${item.employment_date || '-'}</div></div>
+                                    <div><div class="text-[10px] text-slate-400 uppercase font-black mb-1">보험가입</div><div class="text-sm font-bold text-slate-700">\${item.insurance_covered ? '가입됨' : '미가입/미확인'}</div></div>
                                 </div>
                                 <div class="flex justify-end">
-                                    <button onclick="openEmploymentModal(\${JSON.stringify(item).replace(/"/g, '&quot;')})" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition shadow-sm">
-                                        정보 업데이트
-                                    </button>
+                                    <button onclick="openEmploymentModal(\${JSON.stringify(item).replace(/"/g, '&quot;')})" class="px-5 py-2.5 bg-sky-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-900 transition shadow-lg shadow-sky-100">정보 업데이트</button>
                                 </div>
                             </div>
                         \`;
                     });
                     html += '</div>';
-                    
-                    // Modal HTML inside the content area for simplicity or added to body below
                     container.innerHTML = html;
                 } else {
-                    container.innerHTML = '<div class="text-center py-20 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">수강 승인된 과정이 없어 취업 정보를 등록할 수 없습니다.</div>';
+                    container.innerHTML = '<div class="bento-card bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200 py-20 text-center font-bold text-slate-500">수강 승인된 과정이 없어 취업 정보를 등록할 수 없습니다.</div>';
                 }
             } catch (e) {
                 console.error(e);
@@ -776,45 +941,40 @@ export const studentDashboardHtml = () => `
 
                 if (surveys.length === 0) {
                     container.innerHTML = \`
-                        <div class="bg-white rounded-xl shadow-sm p-8 text-center">
-                            <i class="fas fa-poll text-4xl text-gray-300 mb-3"></i>
-                            <p class="text-gray-500">진행 중인 설문이 없습니다.</p>
+                        <div class="bento-card bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200 p-12 text-center">
+                            <i class="fas fa-poll text-5xl text-slate-300 mb-4"></i>
+                            <p class="font-bold text-slate-500">진행 중인 설문이 없습니다.</p>
                         </div>
                     \`;
                     return;
                 }
 
-                container.innerHTML = surveys.map(s => {
+                container.innerHTML = '<div class="space-y-6">' + surveys.map(s => {
                     const isPending = s.status === 'pending';
-                    const badgeClass = isPending ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700';
+                    const badgeClass = isPending ? 'bg-orange-100 text-orange-700' : 'bg-emerald-100 text-emerald-700';
                     const statusText = isPending ? '미참여' : '완료됨';
-                    const btnClass = isPending 
-                        ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-200' 
-                        : 'bg-gray-100 text-gray-400 cursor-not-allowed';
-                    
+                    const btnClass = isPending ? 'px-6 py-3 bg-sky-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 shadow-lg shadow-sky-100' : 'px-6 py-3 bg-slate-100 text-slate-400 rounded-2xl font-black text-[10px] uppercase cursor-not-allowed';
                     return \`
-                        <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition">
+                        <div class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm hover:border-sky-200 transition">
                             <div class="flex flex-col md:flex-row justify-between items-center gap-4">
                                 <div class="flex-1">
                                     <div class="flex items-center gap-2 mb-2">
-                                        <span class="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs font-bold rounded">\${s.courseTitle}</span>
-                                        <span class="px-2 py-0.5 \${s.type === 'diagnosis' ? 'bg-indigo-100 text-indigo-700' : 'bg-blue-100 text-blue-700'} text-xs font-bold rounded">
-                                            \${s.type === 'diagnosis' ? '역량진단' : '설문조사'}
-                                        </span>
+                                        <span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] font-black rounded-full uppercase tracking-widest">\${s.courseTitle}</span>
+                                        <span class="px-2 py-0.5 \${s.type === 'diagnosis' ? 'bg-purple-50 text-purple-600' : 'bg-sky-50 text-sky-600'} text-[10px] font-black rounded-full uppercase tracking-widest">\${s.type === 'diagnosis' ? '역량진단' : '설문조사'}</span>
                                     </div>
-                                    <h3 class="text-lg font-bold text-gray-800">\${s.title}</h3>
-                                    <p class="text-xs text-gray-500 mt-1"><i class="far fa-calendar-alt mr-1"></i> \${s.startDate} ~ \${s.endDate}</p>
+                                    <h3 class="text-lg font-black text-slate-800 tracking-tight">\${s.title}</h3>
+                                    <p class="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-wider"><i class="far fa-calendar-alt mr-1"></i> \${s.startDate} ~ \${s.endDate}</p>
                                 </div>
                                 <div class="flex items-center gap-4">
-                                    <span class="px-3 py-1 rounded-full text-xs font-bold \${badgeClass}">\${statusText}</span>
-                                    <button onclick="\${isPending ? \`alert('설문 페이지로 이동합니다 (구현 예정)')\` : ''}" \${!isPending ? 'disabled' : ''} class="px-6 py-2 rounded-lg font-bold transition shadow-sm \${btnClass}">
+                                    <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest \${badgeClass}">\${statusText}</span>
+                                    <button onclick="\${isPending ? \`alert('설문 페이지로 이동합니다 (구현 예정)')\` : ''}" \${!isPending ? 'disabled' : ''} class="\${btnClass} transition">
                                         \${isPending ? '참여하기' : '완료'}
                                     </button>
                                 </div>
                             </div>
                         </div>
                     \`;
-                }).join('');
+                }).join('') + '</div>';
 
             } catch (e) {
                 console.error(e);
@@ -858,26 +1018,26 @@ export const studentDashboardHtml = () => `
         }
     </script>
 
-    <!-- 포트폴리오 등록 모달 -->
-    <div id="portfolioModal" class="fixed inset-0 bg-black/50 hidden z-[70] flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md transform transition-all overflow-hidden">
-            <div class="px-6 py-4 border-b bg-gray-50 flex justify-between items-center">
-                <h3 class="font-bold text-gray-800">포트폴리오 등록</h3>
-                <button onclick="closePortfolioModal()" class="text-gray-400 hover:text-gray-600 transition"><i class="fas fa-times text-xl"></i></button>
+    <!-- 포트폴리오 등록 모달 (벤토 스타일) -->
+    <div id="portfolioModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm hidden z-[70] flex items-center justify-center p-4">
+        <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md border border-slate-200/60 overflow-hidden">
+            <div class="px-8 py-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                <h3 class="font-black text-slate-900 tracking-tight uppercase text-sm">포트폴리오 등록</h3>
+                <button onclick="closePortfolioModal()" class="w-10 h-10 flex items-center justify-center rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 transition"><i class="fas fa-times"></i></button>
             </div>
-            <form id="portfolioForm" onsubmit="handleSavePortfolio(event)" class="p-6 space-y-4">
+            <form id="portfolioForm" onsubmit="handleSavePortfolio(event)" class="p-8 space-y-5">
                 <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-1">작품 제목 *</label>
-                    <input type="text" id="portfolioTitle" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="예: 3D 캐릭터 모델링">
+                    <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-2">작품 제목 *</label>
+                    <input type="text" id="portfolioTitle" required class="w-full px-5 py-3 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none font-medium" placeholder="예: 3D 캐릭터 모델링">
                 </div>
                 <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-1">설명</label>
-                    <textarea id="portfolioDescription" rows="3" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="작품에 대한 간단한 설명"></textarea>
+                    <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-2">설명</label>
+                    <textarea id="portfolioDescription" rows="3" class="w-full px-5 py-3 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none font-medium" placeholder="작품에 대한 간단한 설명"></textarea>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-1">카테고리</label>
-                        <select id="portfolioCategory" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-2">카테고리</label>
+                        <select id="portfolioCategory" class="w-full px-5 py-3 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none font-bold">
                             <option value="3d_modeling">3D 모델링</option>
                             <option value="design">디자인</option>
                             <option value="coding">코딩/개발</option>
@@ -885,34 +1045,33 @@ export const studentDashboardHtml = () => `
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-1">소속 과정</label>
-                        <select id="portfolioCourseId" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
-                            <!-- JS Load -->
+                        <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-2">소속 과정</label>
+                        <select id="portfolioCourseId" class="w-full px-5 py-3 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none font-bold">
                         </select>
                     </div>
                 </div>
                 <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-1">썸네일 이미지 URL</label>
-                    <input type="url" id="portfolioThumbnail" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="https://...">
+                    <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-2">썸네일 이미지 URL</label>
+                    <input type="url" id="portfolioThumbnail" class="w-full px-5 py-3 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none font-medium" placeholder="https://...">
                 </div>
                 <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-1">작품 링크 (URL)</label>
-                    <input type="url" id="portfolioContent" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-2 focus:ring-blue-500" placeholder="Google Drive, Portfolio site 등">
+                    <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-2">작품 링크 (URL)</label>
+                    <input type="url" id="portfolioContent" class="w-full px-5 py-3 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none font-medium" placeholder="Google Drive, Portfolio site 등">
                 </div>
                 <div class="pt-4 flex gap-3">
-                    <button type="button" onclick="closePortfolioModal()" class="flex-1 py-3 border rounded-xl font-bold text-gray-500">취소</button>
-                    <button type="submit" class="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-100 hover:bg-blue-700 transition">등록하기</button>
+                    <button type="button" onclick="closePortfolioModal()" class="flex-1 py-3.5 border border-slate-200 rounded-2xl font-black text-[10px] text-slate-500 uppercase tracking-widest hover:bg-slate-50 transition">취소</button>
+                    <button type="submit" class="flex-1 py-3.5 bg-sky-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-sky-100 hover:bg-slate-900 transition">등록하기</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- 취업 정보 수정 모달 -->
-    <div id="employmentModal" class="fixed inset-0 bg-black/60 hidden z-[70] flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg transform transition-all overflow-hidden">
-            <div class="px-6 py-4 border-b bg-gray-50 flex justify-between items-center">
-                <h3 class="font-bold text-gray-800">취업 정보 업데이트</h3>
-                <button onclick="closeEmploymentModal()" class="text-gray-400 hover:text-gray-600 transition"><i class="fas fa-times text-xl"></i></button>
+    <!-- 취업 정보 수정 모달 (벤토 스타일) -->
+    <div id="employmentModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm hidden z-[70] flex items-center justify-center p-4">
+        <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg border border-slate-200/60 overflow-hidden">
+            <div class="px-8 py-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                <h3 class="font-black text-slate-900 tracking-tight uppercase text-sm">취업 정보 업데이트</h3>
+                <button onclick="closeEmploymentModal()" class="w-10 h-10 flex items-center justify-center rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 transition"><i class="fas fa-times"></i></button>
             </div>
             <form onsubmit="handleSaveEmployment(event)" class="p-8 space-y-6">
                 <input type="hidden" id="empCourseId">
