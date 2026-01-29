@@ -189,16 +189,21 @@ export const teacherCoursesHtml = `
                     case 'cancelled': statusInfo = { badge: '취소', class: 'bg-red-100 text-red-700' }; break;
                 }
 
-                const thumbnail = course.thumbnail_url 
-                    ? '<img src="' + course.thumbnail_url + '" alt="' + (course.title || '') + '" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000">'
+                // Escape single quotes for JS string safety
+                const safeTitle = (course.title || '제목 없음').replace(/'/g, "\\'");
+                const safeCategory = (course.category || '일반').replace(/'/g, "\\'");
+                const safeThumbnail = (course.thumbnail_url || '').replace(/'/g, "\\'");
+
+                const thumbnail = safeThumbnail 
+                    ? '<img src="' + safeThumbnail + '" alt="' + safeTitle + '" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000">'
                     : '<div class="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center"><i class="fas fa-cube text-5xl text-gray-300"></i></div>';
                 
-                const categoryBadge = '<span class="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider shadow-lg bg-white/90 backdrop-blur-md text-gray-900">' + (course.category || '일반') + '</span>';
+                const categoryBadge = '<span class="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider shadow-lg bg-white/90 backdrop-blur-md text-gray-900">' + safeCategory + '</span>';
                 
                 const statusBadge = '<div class="w-2 h-2 rounded-full ' + (course.status === 'active' ? 'bg-green-500 animate-pulse' : 'bg-gray-400') + '"></div>' +
                                     '<span class="text-[10px] font-black text-white uppercase tracking-widest">' + statusInfo.badge + '</span>';
 
-                const titleSection = '<h3 class="text-xl font-black text-gray-900 tracking-tight line-clamp-2 leading-tight group-hover:text-blue-600 transition-colors">' + (course.title || '제목 없음') + '</h3>';
+                const titleSection = '<h3 class="text-xl font-black text-gray-900 tracking-tight line-clamp-2 leading-tight group-hover:text-blue-600 transition-colors">' + safeTitle + '</h3>';
                 
                 const studentsSection = '<span class="text-xl font-black text-gray-900">' + enrolledCount + '</span>' +
                                         '<span class="text-[10px] font-bold text-gray-400">/ ' + maxStudents + '</span>';
