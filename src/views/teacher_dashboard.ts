@@ -485,8 +485,8 @@ export const teacherDashboardHtml = `
                     alertsList.innerHTML = pendingGradingList.slice(0, 5).map(function (item) {
                         const rawTitle = item.exam_title || '시험';
                         const rawSub = (item.student_name || '학생') + ' - ' + (item.submitted_at ? item.submitted_at.split('T')[0] : '');
-                        const title = String(rawTitle).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                        const sub = String(rawSub).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                        const title = String(rawTitle).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(new RegExp('<', 'g'), '&lt;').replace(new RegExp('>', 'g'), '&gt;');
+                        const sub = String(rawSub).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(new RegExp('<', 'g'), '&lt;').replace(new RegExp('>', 'g'), '&gt;');
                         return '<div class="p-4 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-blue-50 hover:border-blue-100 transition-all cursor-pointer group" onclick="location.href=\'/teacher/courses?tab=exams\'">' +
                             '<div class="flex gap-3">' +
                                 '<div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center flex-shrink-0"><i class="fas fa-file-signature"></i></div>' +
@@ -504,8 +504,8 @@ export const teacherDashboardHtml = `
                     recentAlertsList.innerHTML = pendingGradingList.slice(0, 5).map(function (item) {
                         const rawTitle = item.exam_title || '시험';
                         const rawSub = (item.student_name || '학생') + (item.submitted_at ? ' - ' + item.submitted_at.split('T')[0] : '');
-                        const title = String(rawTitle).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                        const sub = String(rawSub).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                        const title = String(rawTitle).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(new RegExp('<', 'g'), '&lt;').replace(new RegExp('>', 'g'), '&gt;');
+                        const sub = String(rawSub).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(new RegExp('<', 'g'), '&lt;').replace(new RegExp('>', 'g'), '&gt;');
                         return '<div class="p-6 flex items-start gap-4 hover:bg-slate-50 transition-colors cursor-pointer group" onclick="location.href=\'/teacher/courses?tab=exams\'">' +
                             '<div class="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center text-purple-500 flex-shrink-0"><i class="fas fa-clipboard-check text-sm"></i></div>' +
                             '<div class="flex-1 min-w-0">' +
