@@ -180,17 +180,17 @@ export const teacherPortfoliosHtml = `
                         <div class="space-y-8">
                             <div>
                                 <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-3 underline decoration-2 underline-offset-4">학생 선택</label>
-                                <select id="portfolioStudentSelect" required class="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none transition-all font-bold text-slate-900 appearance-none">
+                                <select id="portfolioStudentSelect" name="portfolioStudentSelect" required class="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none transition-all font-bold text-slate-900 appearance-none">
                                     <option value="">학생을 선택하세요</option>
                                 </select>
                             </div>
                             <div>
                                 <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-3 underline decoration-2 underline-offset-4">제목 (Label)</label>
-                                <input type="text" id="portfolioTitle" required class="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none transition-all font-bold text-slate-900" placeholder="제목을 입력하세요...">
+                                <input type="text" id="portfolioTitle" name="portfolioTitle" required class="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none transition-all font-bold text-slate-900" placeholder="제목을 입력하세요...">
                             </div>
                             <div>
                                 <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-3">분류 (Classification)</label>
-                                <select id="portfolioCategory" class="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none transition-all font-bold text-slate-900 appearance-none">
+                                <select id="portfolioCategory" name="portfolioCategory" class="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none transition-all font-bold text-slate-900 appearance-none">
                                     <option value="3d_modeling">3D 모델링</option>
                                     <option value="design">시각 디자인</option>
                                     <option value="coding">개발/코딩</option>
@@ -201,11 +201,11 @@ export const teacherPortfoliosHtml = `
                         <div class="space-y-8">
                             <div>
                                 <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-3">상세 설명 (Description)</label>
-                                <textarea id="portfolioDescription" rows="5" class="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none transition-all font-medium text-slate-600 text-sm" placeholder="작품에 대한 기술적 설명을 입력하세요..."></textarea>
+                                <textarea id="portfolioDescription" name="portfolioDescription" rows="5" class="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none transition-all font-medium text-slate-600 text-sm" placeholder="작품에 대한 기술적 설명을 입력하세요..."></textarea>
                             </div>
                             <div>
                                 <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-3">참조 링크 (URL)</label>
-                                <input type="url" id="portfolioContentUrl" class="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none transition-all font-medium text-slate-900" placeholder="https://external-resource-link.com">
+                                <input type="url" id="portfolioContentUrl" name="portfolioContentUrl" class="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none transition-all font-medium text-slate-900" placeholder="https://external-resource-link.com">
                             </div>
                         </div>
                     </div>
@@ -215,7 +215,7 @@ export const teacherPortfoliosHtml = `
                         <div class="flex flex-col md:flex-row gap-6 items-start">
                             <div class="flex-1 w-full space-y-4">
                                 <div class="flex gap-2">
-                                    <input type="text" id="portfolioThumbnail" placeholder="이미지 주소를 입력하거나 업로드하세요" class="flex-1 px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none transition-all font-medium text-slate-900">
+                                    <input type="text" id="portfolioThumbnail" name="portfolioThumbnail" placeholder="이미지 주소를 입력하거나 업로드하세요" class="flex-1 px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none transition-all font-medium text-slate-900">
                                     <input type="file" id="thumbnailFile" accept="image/*" class="hidden" onchange="handleThumbnailUpload(this)">
                                     <button type="button" onclick="document.getElementById('thumbnailFile').click()" class="px-8 py-4 bg-slate-900 text-white font-black text-[10px] rounded-2xl hover:bg-sky-600 transition-all uppercase tracking-widest shadow-lg">
                                         <i class="fas fa-upload mr-2"></i> 업로드
@@ -228,9 +228,15 @@ export const teacherPortfoliosHtml = `
                                      </div>
                                 </div>
                             </div>
-                            <div class="w-full md:w-96">
-                                <label class="block text-[10px] font-black text-purple-600 uppercase tracking-widest mb-3 underline decoration-2 underline-offset-4">강사 피드백 (멘토링)</label>
-                                <textarea id="portfolioTeacherFeedback" rows="6" class="w-full px-6 py-4 bg-purple-50/30 border border-purple-100 rounded-2xl focus:ring-4 focus:ring-purple-100 outline-none transition-all font-medium text-slate-700 text-sm" placeholder="학생에게 전달할 피드백을 작성하세요..."></textarea>
+                            <div class="w-full md:w-96 space-y-4">
+                                <label class="flex items-center gap-3 cursor-pointer">
+                                    <input type="checkbox" id="portfolioIsFeatured" name="portfolioIsFeatured" class="w-5 h-5 rounded border-slate-300 text-yellow-500 focus:ring-yellow-400">
+                                    <span class="text-[10px] font-black text-slate-700 uppercase tracking-widest">우수작 선정 (Featured)</span>
+                                </label>
+                                <div>
+                                    <label class="block text-[10px] font-black text-purple-600 uppercase tracking-widest mb-3 underline decoration-2 underline-offset-4">강사 피드백 (멘토링)</label>
+                                    <textarea id="portfolioTeacherFeedback" name="portfolioTeacherFeedback" rows="6" class="w-full px-6 py-4 bg-purple-50/30 border border-purple-100 rounded-2xl focus:ring-4 focus:ring-purple-100 outline-none transition-all font-medium text-slate-700 text-sm" placeholder="학생에게 전달할 피드백을 작성하세요..."></textarea>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -277,7 +283,7 @@ export const teacherPortfoliosHtml = `
                             <p id="modalDescription" class="text-slate-600 leading-relaxed font-medium text-sm"></p>
                         </div>
                         
-                        <div id="modalTeacherFeedbackSection" class="p-8 bg-sky-50 rounded-[2rem] border border-sky-100 relative overflow-hidden">
+                        <div id="modalTeacherFeedbackSection" class="hidden p-8 bg-sky-50 rounded-[2rem] border border-sky-100 relative overflow-hidden">
                             <div class="absolute -right-4 -bottom-4 w-20 h-20 bg-sky-200/20 rounded-full blur-2xl"></div>
                             <span class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-3 relative z-10">강사 피드백</span>
                             <p id="modalFeedbackText" class="text-slate-700 text-sm font-bold relative z-10 italic leading-relaxed"></p>
@@ -434,6 +440,8 @@ export const teacherPortfoliosHtml = `
             document.getElementById('modalTitle').textContent = '새 성과물 등록';
             document.getElementById('portfolioForm').reset();
             document.getElementById('portfolioId').value = '';
+            const featuredEl = document.getElementById('portfolioIsFeatured');
+            if (featuredEl) featuredEl.checked = false;
             document.getElementById('thumbnailPreview').classList.add('hidden');
             document.getElementById('portfolioModal').classList.remove('hidden');
         }
@@ -451,6 +459,8 @@ export const teacherPortfoliosHtml = `
             document.getElementById('portfolioThumbnail').value = p.thumbnail_url || '';
             document.getElementById('portfolioContentUrl').value = p.content_url || '';
             document.getElementById('portfolioTeacherFeedback').value = p.teacher_feedback || '';
+            const featuredEl = document.getElementById('portfolioIsFeatured');
+            if (featuredEl) featuredEl.checked = !!p.is_featured;
             if(p.thumbnail_url) {
                 document.getElementById('thumbnailPreview').classList.remove('hidden');
                 document.getElementById('thumbnailPreview').querySelector('img').src = p.thumbnail_url;
@@ -464,23 +474,28 @@ export const teacherPortfoliosHtml = `
 
         async function handleSavePortfolio(e) {
             e.preventDefault();
+            const form = e.target;
             const id = document.getElementById('portfolioId').value;
+            const isFeaturedEl = document.getElementById('portfolioIsFeatured');
             const data = {
-                title: e.target.portfolioTitle.value,
-                description: e.target.portfolioDescription.value,
-                thumbnail_url: e.target.portfolioThumbnail.value,
-                content_url: e.target.portfolioContentUrl.value,
-                category: e.target.portfolioCategory.value,
+                title: form.portfolioTitle?.value ?? document.getElementById('portfolioTitle')?.value,
+                description: form.portfolioDescription?.value ?? document.getElementById('portfolioDescription')?.value,
+                thumbnail_url: form.portfolioThumbnail?.value ?? document.getElementById('portfolioThumbnail')?.value,
+                content_url: form.portfolioContentUrl?.value ?? document.getElementById('portfolioContentUrl')?.value,
+                category: form.portfolioCategory?.value ?? document.getElementById('portfolioCategory')?.value,
                 course_id: selectedCourseId,
-                student_id: e.target.portfolioStudentSelect.value,
-                teacher_feedback: e.target.portfolioTeacherFeedback.value
+                student_id: form.portfolioStudentSelect?.value ?? document.getElementById('portfolioStudentSelect')?.value,
+                teacher_feedback: form.portfolioTeacherFeedback?.value ?? document.getElementById('portfolioTeacherFeedback')?.value,
+                is_featured: isFeaturedEl ? isFeaturedEl.checked : false
             };
             const res = await fetch(id ? '/api/portfolios/' + id : '/api/portfolios', {
                 method: id ? 'PUT' : 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
                 body: JSON.stringify(data)
             });
-            if((await res.json()).success) { alert('성공적으로 저장되었습니다.'); closePortfolioModal(); loadPortfolios(); }
+            const result = await res.json();
+            if (result.success) { alert('성공적으로 저장되었습니다.'); closePortfolioModal(); loadPortfolios(); }
+            else if (result.message) alert(result.message);
         }
 
         async function handleThumbnailUpload(input) {
@@ -506,7 +521,15 @@ export const teacherPortfoliosHtml = `
             document.getElementById('modalStudentName').textContent = p.student_name || '알 수 없음';
             document.getElementById('modalCourseTitle').textContent = p.course_title || '과정 정보 없음';
             document.getElementById('modalStudentInitial').textContent = (p.student_name || 'N')[0];
-            document.getElementById('modalFeedbackText').textContent = p.teacher_feedback || '등록된 강사 피드백이 없습니다.';
+            const feedbackSection = document.getElementById('modalTeacherFeedbackSection');
+            const feedbackText = document.getElementById('modalFeedbackText');
+            if (p.teacher_feedback) {
+                feedbackSection.classList.remove('hidden');
+                feedbackText.textContent = p.teacher_feedback;
+            } else {
+                feedbackSection.classList.add('hidden');
+                feedbackText.textContent = '';
+            }
             document.getElementById('modalContentLink').href = p.content_url || '#';
             document.getElementById('modalFeaturedBtn').innerHTML = p.is_featured ? '우수작 해제' : '우수작 선정';
             document.getElementById('detailModal').classList.remove('hidden');

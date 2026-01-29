@@ -90,20 +90,51 @@ app.get('/my', authMiddleware, async (c) => {
 // ============================================
 // 포트폴리오 등록
 // POST /api/portfolios
+// 학생: 본인만 등록. 강사/관리자: body.student_id 지정 가능.
 // ============================================
 app.post('/', authMiddleware, async (c) => {
     try {
         const { DB } = c.env;
         const user = c.get('user');
         const body = await c.req.json();
-        const { title, description, thumbnail_url, content_url, category, course_id } = body;
+        const { title, description, thumbnail_url, content_url, category, course_id, student_id: bodyStudentId, teacher_feedback, is_featured } = body;
 
         if (!title) return errorResponse(c, '제목은 필수입니다', 400);
 
+        let studentId: string = user.userId;
+
+        if (user.role === 'admin') {
+            if (bodyStudentId) studentId = bodyStudentId;
+        } else if (user.role === 'teacher') {
+            if (bodyStudentId) {
+                const course = course_id
+                    ? await DB.prepare('SELECT id, teacher_id FROM courses WHERE id = ?').bind(course_id).first() as { id: number; teacher_id: string | null } | null
+                    : null;
+                if (!course || course.teacher_id !== user.userId)
+                    return errorResponse(c, '해당 과정에 대한 권한이 없습니다', 403);
+                const enrolled = await DB.prepare(
+                    'SELECT 1 FROM enrollments WHERE course_id = ? AND user_id = ? AND status = ?'
+                ).bind(course_id, bodyStudentId, 'approved').first();
+                if (!enrolled)
+                    return errorResponse(c, '해당 과정의 수강생이 아닙니다', 403);
+                studentId = bodyStudentId;
+            }
+        }
+
         const result = await DB.prepare(`
-            INSERT INTO student_portfolios (student_id, course_id, title, description, thumbnail_url, content_url, category)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        `).bind(user.userId, course_id || null, title, description || null, thumbnail_url || null, content_url || null, category || 'other').run();
+            INSERT INTO student_portfolios (student_id, course_id, title, description, thumbnail_url, content_url, category, teacher_feedback, is_featured)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).bind(
+            studentId,
+            course_id || null,
+            title,
+            description || null,
+            thumbnail_url || null,
+            content_url || null,
+            category || 'other',
+            teacher_feedback ?? null,
+            is_featured ? 1 : 0
+        ).run();
 
         return successResponse(c, { id: result.meta.last_row_id }, '포트폴리오가 등록되었습니다', 201);
     } catch (e: any) {
@@ -121,7 +152,7 @@ app.put('/:id', authMiddleware, async (c) => {
         const id = c.req.param('id');
         const user = c.get('user');
         const body = await c.req.json();
-        const { title, description, thumbnail_url, content_url, category, course_id, teacher_feedback } = body;
+        const { title, description, thumbnail_url, content_url, category, course_id, teacher_feedback, is_featured } = body;
 
         // 권한 확인 (본인, 관리자, 또는 담당 강사)
         const existing: any = await DB.prepare(`
@@ -161,9 +192,9 @@ app.put('/:id', authMiddleware, async (c) => {
         // 동적 쿼리 생성
         const updateFields: string[] = [
             'title = ?', 'description = ?', 'thumbnail_url = ?', 
-            'content_url = ?', 'category = ?', 'course_id = ?', 'updated_at = CURRENT_TIMESTAMP'
+            'content_url = ?', 'category = ?', 'course_id = ?', 'is_featured = ?', 'updated_at = CURRENT_TIMESTAMP'
         ];
-        const params: any[] = [title, description || null, thumbnail_url || null, content_url || null, category || 'other', course_id || null];
+        const params: any[] = [title, description || null, thumbnail_url || null, content_url || null, category || 'other', course_id || null, is_featured ? 1 : 0];
         
         if (hasTeacherFeedback) {
             updateFields.splice(-1, 0, 'teacher_feedback = ?'); // updated_at 앞에 삽입
