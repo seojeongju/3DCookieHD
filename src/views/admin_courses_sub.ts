@@ -112,40 +112,40 @@ export const adminCoursesCategoriesHtml = () =>
             </div>
             <div class="bento-card bg-white rounded-[2.5rem] shadow-sm border border-slate-200/60 overflow-hidden p-6">
                 <div class="flex flex-col sm:flex-row gap-3">
-                    <a href="/admin/courses/approved" class="flex-1 py-3 bg-emerald-600 text-white rounded-2xl font-bold text-sm hover:bg-emerald-700 transition flex items-center justify-center gap-2">승인받은 과정 등록하기</a>
-                    <a href="/admin/courses/sessions" class="flex-1 py-3 bg-emerald-600 text-white rounded-2xl font-bold text-sm hover:bg-emerald-700 transition flex items-center justify-center gap-2">회차별 과정 개설하기</a>
+                    <a href="/admin/courses/approved" class="flex-1 py-3 bg-emerald-600 text-white rounded-2xl font-bold text-sm hover:bg-emerald-700 transition flex items-center justify-center gap-2 whitespace-nowrap">승인받은 과정 등록하기</a>
+                    <a href="/admin/courses/sessions" class="flex-1 py-3 bg-emerald-600 text-white rounded-2xl font-bold text-sm hover:bg-emerald-700 transition flex items-center justify-center gap-2 whitespace-nowrap">회차별 과정 개설하기</a>
                 </div>
-                <p class="mt-3 text-xs text-slate-500 text-center">승인받은과정등록 및 과정개설은 위의 메뉴에서 해주시길 바랍니다.</p>
+                <p class="mt-3 text-xs text-slate-500 text-center break-words leading-relaxed">승인받은 과정 등록 및 회차별 과정 개설은 위 메뉴에서 진행해 주세요.</p>
             </div>
             <!-- 과정분류 등록 참고사항 (핑크 패널) -->
             <div class="bento-card bg-rose-50/80 rounded-[2.5rem] border border-rose-200/60 overflow-hidden p-6">
                 <h3 class="font-black text-slate-800 tracking-tight text-sm flex items-center gap-2 mb-3">
                     <i class="fas fa-exclamation-triangle text-rose-500"></i> 과정분류 등록 참고사항
                 </h3>
-                <ul class="text-sm text-rose-800/90 space-y-2">
-                    <li class="flex items-start gap-2"><span class="text-rose-500 mt-0.5">1.</span> 분류명은 과정명이 아닙니다.</li>
-                    <li class="flex items-start gap-2"><span class="text-rose-500 mt-0.5">2.</span> 과정분류는 과정에 대분류(카테고리)를 부여하는 기능입니다.</li>
-                    <li class="flex items-start gap-2"><span class="text-rose-500 mt-0.5">3.</span> 해당 분류로 과정이 등록되어 있으면 삭제할 수 없습니다.</li>
+                <ul class="text-sm text-rose-800/90 space-y-2 break-words leading-relaxed">
+                    <li class="flex items-start gap-2"><span class="text-rose-500 mt-0.5 shrink-0">1.</span> 분류명은 과정명이 아닙니다.</li>
+                    <li class="flex items-start gap-2"><span class="text-rose-500 mt-0.5 shrink-0">2.</span> 과정분류는 과정에 대분류(카테고리)를 부여하는 기능입니다.</li>
+                    <li class="flex items-start gap-2"><span class="text-rose-500 mt-0.5 shrink-0">3.</span> 해당 분류로 과정이 등록되어 있으면 삭제할 수 없습니다.</li>
                 </ul>
             </div>
         </div>
 
-        <!-- 오른쪽: 등록된 과정분류 목록 -->
+        <!-- 오른쪽: 등록된 과정분류 목록 (수정/삭제 가능) -->
         <div class="bento-card bg-white rounded-[2.5rem] shadow-sm border border-slate-200/60 overflow-hidden">
             <div class="px-6 py-4 border-b border-slate-200/60 bg-slate-50/80">
                 <h2 class="font-black text-slate-800 tracking-tight">등록된 과정분류 목록</h2>
             </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm text-left">
+            <div class="overflow-x-auto custom-scrollbar">
+                <table class="w-full text-sm text-left min-w-[320px]">
                     <thead class="bg-slate-50/50 text-slate-500 font-bold text-xs uppercase tracking-wider">
                         <tr>
-                            <th class="px-6 py-3">과정분류명</th>
-                            <th class="px-6 py-3 w-36">시스템 기본값</th>
-                            <th class="px-6 py-3 w-40 text-right">버튼</th>
+                            <th class="px-4 py-3 min-w-0">과정분류명</th>
+                            <th class="px-4 py-3 w-28 sm:w-36 shrink-0">시스템 기본값</th>
+                            <th class="px-4 py-3 w-36 sm:w-44 text-right shrink-0">동작</th>
                         </tr>
                     </thead>
                     <tbody id="categoryListBody" class="divide-y divide-slate-100">
-                        <tr><td colspan="3" class="px-6 py-8 text-center text-slate-400"><i class="fas fa-spinner fa-spin mr-2"></i> 로딩 중...</td></tr>
+                        <tr><td colspan="3" class="px-4 py-8 text-center text-slate-400"><i class="fas fa-spinner fa-spin mr-2"></i> 로딩 중...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -190,19 +190,20 @@ export const adminCoursesCategoriesHtml = () =>
                     const token = localStorage.getItem('token');
                     const res = await fetch('/api/course-categories', { headers: { 'Authorization': 'Bearer ' + token } });
                     const json = await res.json();
-                    if (!json.success) { tbody.innerHTML = '<tr><td colspan="3" class="px-6 py-8 text-center text-red-500">조회 실패</td></tr>'; return; }
+                    if (!json.success) { tbody.innerHTML = '<tr><td colspan="3" class="px-4 py-8 text-center text-red-500 break-words">조회 실패</td></tr>'; return; }
                     const list = json.data || [];
                     if (list.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="3" class="px-6 py-8 text-center text-slate-400">등록된 분류가 없습니다.</td></tr>';
+                        tbody.innerHTML = '<tr><td colspan="3" class="px-4 py-8 text-center text-slate-400">등록된 분류가 없습니다.</td></tr>';
                         return;
                     }
                     tbody.innerHTML = list.map(function(item) {
                         const isSystem = item.is_system_default === 1;
                         const typeLabel = isSystem ? '시스템 기본값' : '사용자 설정값';
                         const nameEsc = (item.name || '').replace(/"/g, '&quot;').replace(/</g, '&lt;');
-                        const modBtn = isSystem ? '<span class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 bg-slate-100">수정불가</span>' : '<button type="button" class="btn-edit-category px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-orange-500 hover:bg-orange-600 transition" data-id="' + item.id + '" data-name="' + nameEsc + '">수정가능</button>';
-                        const delBtn = isSystem ? '<span class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 bg-slate-100 ml-1">삭제불가</span>' : '<button type="button" class="btn-delete-category px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition ml-1" data-id="' + item.id + '" data-name="' + nameEsc + '">삭제</button>';
-                        return '<tr class="hover:bg-slate-50/50"><td class="px-6 py-4 font-medium text-slate-800">' + (item.name || '').replace(/</g, '&lt;') + '</td><td class="px-6 py-4 text-slate-600 text-xs">' + typeLabel + '</td><td class="px-6 py-4 text-right">' + modBtn + delBtn + '</td></tr>';
+                        const nameDisplay = (item.name || '').replace(/</g, '&lt;');
+                        const modBtn = isSystem ? '<span class="inline-block px-2.5 py-1 rounded-lg text-[11px] font-bold text-slate-400 bg-slate-100 whitespace-nowrap">수정 불가</span>' : '<button type="button" class="btn-edit-category inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold text-white bg-orange-500 hover:bg-orange-600 transition whitespace-nowrap" data-id="' + item.id + '" data-name="' + nameEsc + '"><i class="fas fa-pen mr-1"></i>수정</button>';
+                        const delBtn = isSystem ? '<span class="inline-block px-2.5 py-1 rounded-lg text-[11px] font-bold text-slate-400 bg-slate-100 whitespace-nowrap ml-1.5">삭제 불가</span>' : '<button type="button" class="btn-delete-category inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold text-slate-600 bg-slate-100 hover:bg-red-50 hover:text-red-600 transition ml-1.5 whitespace-nowrap" data-id="' + item.id + '" data-name="' + nameEsc + '"><i class="fas fa-trash-alt mr-1"></i>삭제</button>';
+                        return '<tr class="hover:bg-slate-50/50"><td class="px-4 py-3 font-medium text-slate-800 break-words min-w-0 max-w-[200px] sm:max-w-none">' + nameDisplay + '</td><td class="px-4 py-3 text-slate-600 text-xs whitespace-nowrap">' + typeLabel + '</td><td class="px-4 py-3 text-right whitespace-nowrap">' + modBtn + delBtn + '</td></tr>';
                     }).join('');
                     tbody.querySelectorAll('.btn-edit-category').forEach(function(btn) {
                         btn.addEventListener('click', function() { window.editCategory(parseInt(btn.getAttribute('data-id'), 10), btn.getAttribute('data-name') || ''); });
@@ -211,7 +212,7 @@ export const adminCoursesCategoriesHtml = () =>
                         btn.addEventListener('click', function() { window.deleteCategory(parseInt(btn.getAttribute('data-id'), 10), btn.getAttribute('data-name') || ''); });
                     });
                 } catch (e) {
-                    tbody.innerHTML = '<tr><td colspan="3" class="px-6 py-8 text-center text-red-500">로드 실패</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="3" class="px-4 py-8 text-center text-red-500">로드 실패</td></tr>';
                 }
             }
 
