@@ -12,104 +12,104 @@ export const teacherSidebar = (activeMenu: string) => `
             </div>
             <div class="flex flex-col">
                 <span class="font-black text-lg tracking-tighter text-white uppercase group-hover:text-blue-400 transition-colors">3D COOKIE</span>
-                <span class="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] group-hover:text-white/50 transition-colors">Professor MS</span>
+                <span class="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] group-hover:text-white/50 transition-colors">교수 지원 시스템</span>
             </div>
         </div>
     </div>
 
     <!-- 메뉴 영역 -->
     <nav class="flex-1 py-8 px-4 space-y-8 overflow-y-auto custom-scrollbar relative z-10">
-        <!-- 1. 학사 운영 (Operational Management) -->
+        <!-- 1. 학사 운영 -->
         <div class="space-y-2">
             <div class="px-4 flex items-center gap-3 mb-4">
                 <span class="w-1 h-3 bg-blue-500 rounded-full"></span>
-                <span class="text-[10px] font-black text-gray-500 uppercase tracking-widest">학사 운영 (Operational)</span>
+                <span class="text-[10px] font-black text-gray-500 uppercase tracking-widest">학사 운영 관리</span>
             </div>
             <div class="space-y-1">
                 <a href="/teacher" class="flex items-center px-4 py-3.5 rounded-2xl transition-all duration-300 group ${activeMenu === 'dashboard' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40 border border-white/10' : 'text-gray-400 hover:bg-white/5 hover:text-white'}">
                     <div class="w-8 flex justify-center">
-                        <i class="fas fa-grid-2 text-sm ${activeMenu === 'dashboard' ? 'text-white' : 'text-gray-500 group-hover:text-blue-400 transition-colors'}"></i>
+                        <i class="fas fa-border-all text-sm ${activeMenu === 'dashboard' ? 'text-white' : 'text-gray-400 group-hover:text-blue-400 transition-colors'}"></i>
                     </div>
-                    <span class="font-black text-sm tracking-tight">종합 대시보드 (Dashboard)</span>
+                    <span class="font-black text-sm tracking-tight">종합 대시보드</span>
                 </a>
                 <a href="/teacher/courses" class="flex items-center px-4 py-3.5 rounded-2xl transition-all duration-300 group ${activeMenu === 'courses' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40 border border-white/10' : 'text-gray-400 hover:bg-white/5 hover:text-white'}">
                     <div class="w-8 flex justify-center">
-                        <i class="fas fa-chalkboard-teacher text-sm ${activeMenu === 'courses' ? 'text-white' : 'text-gray-500 group-hover:text-blue-400 transition-colors'}"></i>
+                        <i class="fas fa-chalkboard-teacher text-sm ${activeMenu === 'courses' ? 'text-white' : 'text-gray-400 group-hover:text-blue-400 transition-colors'}"></i>
                     </div>
-                    <span class="font-black text-sm tracking-tight">나의 강의 관리 (My Courses)</span>
+                    <span class="font-black text-sm tracking-tight">나의 강의 관리</span>
                     ${activeMenu === 'courses' ? '<span class="ml-auto w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>' : ''}
                 </a>
             </div>
         </div>
 
-        <!-- 2. 학생 성과 (Student Success) -->
+        <!-- 2. 학생 성과 -->
         <div class="space-y-2">
             <div class="px-4 flex items-center gap-3 mb-4">
                 <span class="w-1 h-3 bg-orange-500 rounded-full"></span>
-                <span class="text-[10px] font-black text-gray-500 uppercase tracking-widest">성과 지능 (Student Success)</span>
+                <span class="text-[10px] font-black text-gray-500 uppercase tracking-widest">학생 성과 관리</span>
             </div>
             <div class="space-y-1">
                 <a href="/teacher/students" class="flex items-center px-4 py-3.5 rounded-2xl transition-all duration-300 group ${activeMenu === 'students' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40 border border-white/10' : 'text-gray-400 hover:bg-white/5 hover:text-white'}">
                     <div class="w-8 flex justify-center">
-                        <i class="fas fa-user-graduate text-sm ${activeMenu === 'students' ? 'text-white' : 'text-gray-500 group-hover:text-blue-400 transition-colors'}"></i>
+                        <i class="fas fa-user-graduate text-sm ${activeMenu === 'students' ? 'text-white' : 'text-gray-400 group-hover:text-blue-400 transition-colors'}"></i>
                     </div>
-                    <span class="font-black text-sm tracking-tight">수강생 관리 (Student Analysis)</span>
+                    <span class="font-black text-sm tracking-tight">수강생 분석</span>
                 </a>
                 <a href="/teacher/attendance" class="flex items-center px-4 py-3.5 rounded-2xl transition-all duration-300 group ${activeMenu === 'attendance' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40 border border-white/10' : 'text-gray-400 hover:bg-white/5 hover:text-white'}">
                     <div class="w-8 flex justify-center">
-                        <i class="fas fa-calendar-check text-sm ${activeMenu === 'attendance' ? 'text-white' : 'text-gray-500 group-hover:text-blue-400 transition-colors'}"></i>
+                        <i class="fas fa-calendar-check text-sm ${activeMenu === 'attendance' ? 'text-white' : 'text-gray-400 group-hover:text-blue-400 transition-colors'}"></i>
                     </div>
-                    <span class="font-black text-sm tracking-tight">출석 관리 (Attendance)</span>
+                    <span class="font-black text-sm tracking-tight">출석 관리</span>
                 </a>
                 <a href="/teacher/exams" class="flex items-center px-4 py-3.5 rounded-2xl transition-all duration-300 group ${activeMenu === 'exams' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40 border border-white/10' : 'text-gray-400 hover:bg-white/5 hover:text-white'}">
                     <div class="w-8 flex justify-center">
-                        <i class="fas fa-clipboard-check text-sm ${activeMenu === 'exams' ? 'text-white' : 'text-gray-500 group-hover:text-blue-400 transition-colors'}"></i>
+                        <i class="fas fa-clipboard-check text-sm ${activeMenu === 'exams' ? 'text-white' : 'text-gray-400 group-hover:text-blue-400 transition-colors'}"></i>
                     </div>
-                    <span class="font-black text-sm tracking-tight">평가 및 채점 (Evaluation)</span>
+                    <span class="font-black text-sm tracking-tight">평가 및 채점</span>
                 </a>
                 <a href="/teacher/surveys" class="flex items-center px-4 py-3.5 rounded-2xl transition-all duration-300 group ${activeMenu === 'surveys' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40 border border-white/10' : 'text-gray-400 hover:bg-white/5 hover:text-white'}">
                     <div class="w-8 flex justify-center">
-                        <i class="fas fa-poll-h text-sm ${activeMenu === 'surveys' ? 'text-white' : 'text-gray-500 group-hover:text-blue-400 transition-colors'}"></i>
+                        <i class="fas fa-poll text-sm ${activeMenu === 'surveys' ? 'text-white' : 'text-gray-400 group-hover:text-blue-400 transition-colors'}"></i>
                     </div>
-                    <span class="font-black text-sm tracking-tight">설문 및 역량진단 (Survey)</span>
+                    <span class="font-black text-sm tracking-tight">설문 및 역량진단</span>
                 </a>
             </div>
         </div>
 
-        <!-- 3. 커뮤니케이션 (Intelligence) -->
+        <!-- 3. 커뮤니케이션 -->
         <div class="space-y-2">
             <div class="px-4 flex items-center gap-3 mb-4">
                 <span class="w-1 h-3 bg-purple-500 rounded-full"></span>
-                <span class="text-[10px] font-black text-gray-500 uppercase tracking-widest">지식 공유 (Intelligence)</span>
+                <span class="text-[10px] font-black text-gray-500 uppercase tracking-widest">지식 공유 및 소통</span>
             </div>
             <div class="space-y-1">
                 <a href="/teacher/posts" class="flex items-center px-4 py-3.5 rounded-2xl transition-all duration-300 group ${activeMenu === 'posts' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40 border border-white/10' : 'text-gray-400 hover:bg-white/5 hover:text-white'}">
                     <div class="w-8 flex justify-center">
-                        <i class="fas fa-comments-alt text-sm ${activeMenu === 'posts' ? 'text-white' : 'text-gray-500 group-hover:text-blue-400 transition-colors'}"></i>
+                        <i class="fas fa-comments text-sm ${activeMenu === 'posts' ? 'text-white' : 'text-gray-400 group-hover:text-blue-400 transition-colors'}"></i>
                     </div>
-                    <span class="font-black text-sm tracking-tight">커뮤니티 관리 (Community)</span>
+                    <span class="font-black text-sm tracking-tight">커뮤니티 관리</span>
                 </a>
                 <a href="/teacher/portfolios" class="flex items-center px-4 py-3.5 rounded-2xl transition-all duration-300 group ${activeMenu === 'portfolios' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40 border border-white/10' : 'text-gray-400 hover:bg-white/5 hover:text-white'}">
                     <div class="w-8 flex justify-center">
-                        <i class="fas fa-portal-enter text-sm ${activeMenu === 'portfolios' ? 'text-white' : 'text-gray-500 group-hover:text-blue-400 transition-colors'}"></i>
+                        <i class="fas fa-briefcase text-sm ${activeMenu === 'portfolios' ? 'text-white' : 'text-gray-400 group-hover:text-blue-400 transition-colors'}"></i>
                     </div>
-                    <span class="font-black text-sm tracking-tight">포트폴리오 관리 (Portfolio)</span>
+                    <span class="font-black text-sm tracking-tight">포트폴리오 관리</span>
                 </a>
             </div>
         </div>
 
-        <!-- 4. 시스템 설정 (Settings) -->
+        <!-- 4. 시스템 설정 -->
         <div class="space-y-2 pb-8">
             <div class="px-4 flex items-center gap-3 mb-4">
                 <span class="w-1 h-3 bg-gray-600 rounded-full"></span>
-                <span class="text-[10px] font-black text-gray-500 uppercase tracking-widest">개인 설정 (Profile)</span>
+                <span class="text-[10px] font-black text-gray-500 uppercase tracking-widest">설정 및 정보</span>
             </div>
             <div class="space-y-1">
                 <a href="/teacher/profile" class="flex items-center px-4 py-3.5 rounded-2xl transition-all duration-300 group ${activeMenu === 'profile' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40 border border-white/10' : 'text-gray-400 hover:bg-white/5 hover:text-white'}">
                     <div class="w-8 flex justify-center">
-                        <i class="fas fa-user-cog text-sm ${activeMenu === 'profile' ? 'text-white' : 'text-gray-500 group-hover:text-blue-400 transition-colors'}"></i>
+                        <i class="fas fa-user-gear text-sm ${activeMenu === 'profile' ? 'text-white' : 'text-gray-400 group-hover:text-blue-400 transition-colors'}"></i>
                     </div>
-                    <span class="font-black text-sm tracking-tight">강사 정보 관리 (Profile)</span>
+                    <span class="font-black text-sm tracking-tight">강사 프로필 수정</span>
                 </a>
             </div>
         </div>
@@ -128,9 +128,9 @@ export const teacherSidebar = (activeMenu: string) => `
                 </div>
                 <div class="flex flex-col min-w-0">
                     <span id="sidebar-teacher-name" class="text-sm font-black text-white truncate tracking-tight">강사</span>
-                    <span class="text-[9px] font-black text-blue-500 uppercase tracking-widest">Authorized</span>
+                    <span class="text-[9px] font-black text-blue-500 uppercase tracking-widest">인증된 강사</span>
                 </div>
-                <button onclick="window.logout()" class="ml-auto w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 text-gray-400 hover:bg-red-500 hover:text-white transition-all duration-500 border border-white/5">
+                <button onclick="window.logout()" class="ml-auto w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 text-gray-400 hover:bg-red-500 hover:text-white transition-all duration-500 border border-white/5" title="로그아웃">
                     <i class="fas fa-sign-out-alt text-sm"></i>
                 </button>
             </div>

@@ -6,7 +6,7 @@ export const teacherAttendanceHtml = `
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Presence Intelligence System - 3D Cookie</title>
+    <title>출결 정밀 관리 - 3D Cookie</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -57,18 +57,18 @@ export const teacherAttendanceHtml = `
                 <div class="flex flex-col">
                     <h1 class="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
                         출결 정밀 관리
-                        <span class="text-[10px] bg-emerald-500 text-white px-2 py-0.5 rounded-full uppercase tracking-widest font-black">Presence</span>
+                        <span class="text-[10px] bg-emerald-500 text-white px-2 py-0.5 rounded-full uppercase tracking-widest font-black">출결</span>
                     </h1>
-                    <p class="text-xs font-medium text-slate-500 mt-0.5 tracking-tight uppercase">Presence Tracking Logic & Attendance Analytics</p>
+                    <p class="text-xs font-medium text-slate-500 mt-0.5 tracking-tight uppercase">실시간 출결 추적 및 통계 분석</p>
                 </div>
                 <div class="flex items-center gap-4">
                     <button onclick="location.href='/teacher'" class="px-4 py-2 bg-white border border-slate-200 text-[10px] font-black rounded-xl hover:bg-slate-50 transition uppercase tracking-widest flex items-center gap-2 shadow-sm">
-                        <i class="fas fa-arrow-left"></i> Dashboard
+                        <i class="fas fa-arrow-left"></i> 대시보드
                     </button>
                     <div class="flex items-center gap-3 pl-4 border-l border-slate-200">
                         <div class="text-right flex flex-col uppercase tracking-tighter">
-                            <span id="header-user-name" class="text-xs font-black text-slate-900">Instructor Name</span>
-                            <span class="text-[9px] font-black text-slate-400">Monitoring Mode</span>
+                            <span id="header-user-name" class="text-xs font-black text-slate-900">강사명</span>
+                            <span class="text-[9px] font-black text-slate-400">관리 모드</span>
                         </div>
                     </div>
                 </div>
@@ -85,7 +85,7 @@ export const teacherAttendanceHtml = `
                             </div>
                             <div>
                                 <h2 class="text-xl font-black text-slate-800 tracking-tight">출결 관리 대상 선택</h2>
-                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Select Academic Module for Presence Scan</p>
+                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">출결 관리할 과정을 선택하세요</p>
                             </div>
                         </div>
 
@@ -93,7 +93,7 @@ export const teacherAttendanceHtml = `
                             <!-- JS Load -->
                             <div class="col-span-full py-20 flex flex-col items-center justify-center bg-white rounded-[2.5rem] border border-dashed border-slate-200">
                                 <i class="fas fa-circle-notch fa-spin text-3xl text-blue-500 mb-4"></i>
-                                <p class="text-slate-400 font-black text-sm uppercase tracking-widest">Scanning Academic Frequencies...</p>
+                                <p class="text-slate-400 font-black text-sm uppercase tracking-widest">과정 목록을 불러오는 중...</p>
                             </div>
                         </div>
                     </div>
@@ -110,33 +110,33 @@ export const teacherAttendanceHtml = `
                                             <div class="w-10 h-10 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center text-white">
                                                 <i class="fas fa-chart-pie text-sm"></i>
                                             </div>
-                                            <h3 class="font-black tracking-tight">실시간 Presence 지표</h3>
+                                            <h3 class="font-black tracking-tight">실시간 출결 지표</h3>
                                         </div>
                                         <div class="space-y-6 mt-8">
                                             <div class="flex justify-between items-end border-b border-white/10 pb-4">
                                                 <div>
-                                                    <span class="block text-[10px] font-black text-indigo-300 uppercase tracking-widest mb-1">Total Nodes</span>
+                                                    <span class="block text-[10px] font-black text-indigo-300 uppercase tracking-widest mb-1">총 수강생</span>
                                                     <span class="text-4xl font-black tracking-tighter" id="stat-total">0</span>
                                                 </div>
                                                 <div class="text-right">
-                                                    <span class="block text-[10px] font-black text-indigo-300 uppercase tracking-widest mb-1">Operational Rate</span>
+                                                    <span class="block text-[10px] font-black text-indigo-300 uppercase tracking-widest mb-1">출석률</span>
                                                     <span class="text-2xl font-black text-emerald-400" id="stat-rate">0%</span>
                                                 </div>
                                             </div>
                                             <div class="grid grid-cols-2 gap-4">
                                                 <div class="p-4 bg-white/5 border border-white/5 rounded-2xl">
-                                                    <span class="block text-[9px] font-black text-indigo-300 uppercase tracking-widest mb-1">Active</span>
+                                                    <span class="block text-[9px] font-black text-indigo-300 uppercase tracking-widest mb-1">출석</span>
                                                     <span class="text-xl font-black" id="stat-present">0</span>
                                                 </div>
                                                 <div class="p-4 bg-white/5 border border-white/5 rounded-2xl">
-                                                    <span class="block text-[9px] font-black text-indigo-300 uppercase tracking-widest mb-1">Offline</span>
+                                                    <span class="block text-[9px] font-black text-indigo-300 uppercase tracking-widest mb-1">결석</span>
                                                     <span class="text-xl font-black text-red-400" id="stat-absent">0</span>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                     <button onclick="saveAttendance()" class="mt-8 w-full py-4 bg-white text-indigo-900 font-black text-[11px] rounded-[1.5rem] hover:bg-emerald-400 hover:text-white transition-all uppercase tracking-widest shadow-xl">
-                                        Sync Intelligence Data
+                                        출결 데이터 저장
                                     </button>
                                 </div>
                             </div>
@@ -145,7 +145,7 @@ export const teacherAttendanceHtml = `
                             <div class="flex-1 bg-white rounded-[2.5rem] border border-slate-200/60 p-8 shadow-sm flex flex-col justify-between">
                                 <div class="flex flex-col md:flex-row gap-6">
                                     <div class="flex-1">
-                                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">SCAN DATE (REF)</label>
+                                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">조회 일자</label>
                                         <div class="relative">
                                             <i class="fas fa-calendar absolute left-4 top-1/2 -translate-y-1/2 text-indigo-500"></i>
                                             <input type="date" id="attendanceDate" onchange="loadAttendance()" 
@@ -153,27 +153,27 @@ export const teacherAttendanceHtml = `
                                         </div>
                                     </div>
                                     <div class="flex-1">
-                                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">INTELLIGENCE FILTER</label>
+                                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">출결 상태 필터</label>
                                         <div class="relative">
                                             <i class="fas fa-filter absolute left-4 top-1/2 -translate-y-1/2 text-indigo-500"></i>
                                             <select id="statusFilter" onchange="filterAttendance()" 
                                                     class="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-100 outline-none transition-all font-black text-sm text-slate-700 tracking-tight appearance-none">
-                                                <option value="all">ALL NODES</option>
-                                                <option value="present">ACTIVE (PRESENT)</option>
-                                                <option value="late">DELAYED (LATE)</option>
-                                                <option value="early_leave">PRE-TERM (EARLY)</option>
-                                                <option value="absent">OFFLINE (ABSENT)</option>
+                                                <option value="all">전체 수강생</option>
+                                                <option value="present">출석</option>
+                                                <option value="late">지각</option>
+                                                <option value="early_leave">조퇴</option>
+                                                <option value="absent">결석</option>
                                             </select>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="mt-8 pt-8 border-t border-slate-100 flex items-center gap-6">
                                     <button onclick="backToCourses()" class="px-6 py-4 bg-slate-100 text-slate-400 font-black text-[10px] rounded-2xl hover:bg-slate-200 transition-all uppercase tracking-widest">
-                                        <i class="fas fa-chevron-left mr-2"></i> Re-Scan
+                                        <i class="fas fa-chevron-left mr-2"></i> 재조회
                                     </button>
                                     <div class="flex-1">
                                         <h4 id="selectedCourseTitle" class="text-lg font-black text-slate-900 tracking-tight line-clamp-1">Module Name</h4>
-                                        <p class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mt-0.5">Academic Core Synchronization</p>
+                                        <p class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mt-0.5">학사 연동 모드</p>
                                     </div>
                                 </div>
                             </div>
@@ -184,11 +184,11 @@ export const teacherAttendanceHtml = `
                             <table class="w-full text-left border-collapse">
                                 <thead>
                                     <tr class="bg-slate-50/50 border-b border-slate-100">
-                                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Node Intelligence</th>
-                                        <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Status Flag</th>
-                                        <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">In Bound</th>
-                                        <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Out Bound</th>
-                                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Parameter Log</th>
+                                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">수강생 정보</th>
+                                        <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">출결 상태</th>
+                                        <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">등교 시간</th>
+                                        <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">하교 시간</th>
+                                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">특이사항 메모</th>
                                     </tr>
                                 </thead>
                                 <tbody id="attendanceTableBody" class="divide-y divide-slate-50">
@@ -237,27 +237,27 @@ export const teacherAttendanceHtml = `
         function renderCourses() {
             const container = document.getElementById('coursesContainer');
             if (allCourses.length === 0) {
-                container.innerHTML = '<div class="col-span-full py-20 text-center text-slate-400 font-black uppercase text-xs">No Presence Data Sources Found</div>';
+                container.innerHTML = '<div class="col-span-full py-20 text-center text-slate-400 font-black uppercase text-xs">출결 관리 가능한 과정이 없습니다.</div>';
                 return;
             }
 
             container.innerHTML = allCourses.map(course => 
-                '<div onclick="selectCourse(' + course.id + ', \'' + ((course.title || '').replace(/'/g, "\\\\'")) + '\')" ' +
+                '<div onclick="selectCourse(' + course.id + ', \\\'' + ((course.title || '').replace(/'/g, "\\\\'")) + '\\\')" ' +
                      'class="bento-card bg-white rounded-[2rem] p-8 border border-slate-200/60 flex flex-col justify-between cursor-pointer group shadow-sm hover:border-indigo-600/30">' +
                     '<div class="flex justify-between items-start mb-6">' +
                         '<div class="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-all duration-500 shadow-sm border border-emerald-100">' +
                             '<i class="fas fa-satellite-dish text-lg font-black"></i>' +
                         '</div>' +
-                        '<span class="px-3 py-1 bg-slate-50 text-slate-400 text-[10px] font-black rounded-full uppercase tracking-widest border border-slate-100 group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-500 transition-all">Scan Ready</span>' +
+                        '<span class="px-3 py-1 bg-slate-50 text-slate-400 text-[10px] font-black rounded-full uppercase tracking-widest border border-slate-100 group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-500 transition-all">대기중</span>' +
                     '</div>' +
                     '<div>' +
                         '<h3 class="text-xl font-black text-slate-900 tracking-tight group-hover:text-indigo-600 transition-colors mb-2 line-clamp-2">' + course.title + '</h3>' +
-                        '<p class="text-[11px] font-medium text-slate-400 line-clamp-2 mb-6 uppercase tracking-tight">Access presence logs and real-time node monitoring for this academic module.</p>' +
+                        '<p class="text-[11px] font-medium text-slate-400 line-clamp-2 mb-6 uppercase tracking-tight">이 과정의 실시간 출결 현황을 모니터링하고 관리합니다.</p>' +
                         
                         '<div class="flex items-center justify-between pt-6 border-t border-slate-50">' +
                             '<div class="flex items-center gap-4">' +
                                 '<div class="flex flex-col">' +
-                                    '<span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Nodes</span>' +
+                                    '<span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">현재 수강생</span>' +
                                     '<span class="text-sm font-black text-slate-700">' + (course.current_students || 0) + '</span>' +
                                 '</div>' +
                             '</div>' +
@@ -309,7 +309,7 @@ export const teacherAttendanceHtml = `
             }
 
             if (filtered.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="px-8 py-20 text-center text-slate-400 font-black uppercase text-xs">No Presence Signatures Recorded</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" class="px-8 py-20 text-center text-slate-400 font-black uppercase text-xs">출결 데이터가 없습니다.</td></tr>';
                 return;
             }
 
@@ -338,10 +338,10 @@ export const teacherAttendanceHtml = `
                                 'data-student-id="' + student.id + '" ' +
                                 'data-enrollment-id="' + student.enrollment_id + '" ' +
                                 'onchange="updateStatusColor(this)">' +
-                                '<option value="present" ' + (status === 'present' ? 'selected' : '') + '>ACTIVE</option>' +
-                                '<option value="late" ' + (status === 'late' ? 'selected' : '') + '>DELAYED</option>' +
-                                '<option value="early_leave" ' + (status === 'early_leave' ? 'selected' : '') + '>PRE-TERM</option>' +
-                                '<option value="absent" ' + (status === 'absent' ? 'selected' : '') + '>OFFLINE</option>' +
+                                '<option value="present" ' + (status === 'present' ? 'selected' : '') + '>출석</option>' +
+                                '<option value="late" ' + (status === 'late' ? 'selected' : '') + '>지각</option>' +
+                                '<option value="early_leave" ' + (status === 'early_leave' ? 'selected' : '') + '>조퇴</option>' +
+                                '<option value="absent" ' + (status === 'absent' ? 'selected' : '') + '>결석</option>' +
                             '</select>' +
                         '</td>' +
                         '<td class="px-6 py-6 text-center">' +
@@ -354,7 +354,7 @@ export const teacherAttendanceHtml = `
                         '</td>' +
                         '<td class="px-8 py-6">' +
                             '<input type="text" class="memo-input w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium outline-none focus:ring-4 focus:ring-indigo-100 transition-all" ' +
-                                   'data-student-id="' + student.id + '" value="' + (student.memo || '') + '" placeholder="Parameter Log...">' +
+                                   'data-student-id="' + student.id + '" value="' + (student.memo || '') + '" placeholder="특이사항 입력...">' +
                         '</td>' +
                 '</tr>';
             }).join('');

@@ -6,7 +6,7 @@ export const teacherSurveysHtml = `
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Feedback Intelligence System - 3D Cookie</title>
+    <title>피드백 지능 시스템 - 3D Cookie</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -59,19 +59,19 @@ export const teacherSurveysHtml = `
             <header class="glass-header sticky top-0 z-20 px-8 py-6 flex justify-between items-center">
                 <div class="flex flex-col">
                     <h1 class="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-                        FEEDBACK INTELLIGENCE
-                        <span class="text-[10px] bg-slate-900 text-white px-2 py-0.5 rounded-full uppercase tracking-widest font-black">Feedback Hub</span>
+                        피드백 지능
+                        <span class="text-[10px] bg-slate-900 text-white px-2 py-0.5 rounded-full uppercase tracking-widest font-black">피드백</span>
                     </h1>
-                    <p class="text-xs font-medium text-slate-500 mt-0.5 tracking-tight uppercase">Survey & Competency Diagnosis Intelligence</p>
+                    <p class="text-xs font-medium text-slate-500 mt-0.5 tracking-tight uppercase">설문 및 역량 진단 지능</p>
                 </div>
                 <div class="flex items-center gap-4">
                     <button onclick="location.href='/teacher'" class="px-4 py-2 bg-white border border-slate-200 text-[10px] font-black rounded-xl hover:bg-slate-50 transition uppercase tracking-widest flex items-center gap-2 shadow-sm">
-                        <i class="fas fa-arrow-left"></i> Hub
+                        <i class="fas fa-arrow-left"></i> 대시보드
                     </button>
                     <div class="flex items-center gap-3 pl-4 border-l border-slate-200">
                         <div class="text-right flex flex-col uppercase tracking-tighter">
-                            <span id="teacherName" class="text-xs font-black text-slate-900">Instructor</span>
-                            <span class="text-[9px] font-black text-slate-400">Feedback Operator</span>
+                            <span id="teacherName" class="text-xs font-black text-slate-900">강사명</span>
+                            <span class="text-[9px] font-black text-slate-400">피드백 관리</span>
                         </div>
                     </div>
                 </div>
@@ -82,7 +82,7 @@ export const teacherSurveysHtml = `
                 <div id="coursesSection" class="max-w-7xl mx-auto space-y-8 animate-fade-in">
                     <div class="flex items-center justify-between">
                         <h2 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                            <i class="fas fa-layer-group text-blue-500"></i> Active Academic Clusters
+                            <i class="fas fa-layer-group text-blue-500"></i> 진행 중인 과정
                         </h2>
                     </div>
                     <div id="coursesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -98,16 +98,16 @@ export const teacherSurveysHtml = `
                                 <i class="fas fa-chevron-left"></i>
                             </button>
                             <div>
-                                <h2 class="text-2xl font-black text-slate-900 tracking-tight" id="selectedCourseTitle">Course Feedback</h2>
-                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Operational Intelligence Node</p>
+                                <h2 class="text-2xl font-black text-slate-900 tracking-tight" id="selectedCourseTitle">과정 피드백</h2>
+                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">운영 지능 관리</p>
                             </div>
                         </div>
                         <div class="flex gap-3">
                             <button onclick="openCreateModal('diagnosis')" class="px-6 py-3 bg-slate-900 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-indigo-600 transition shadow-xl shadow-slate-200">
-                                <i class="fas fa-chart-radar mr-2"></i> Deploy Diagnosis
+                                <i class="fas fa-chart-radar mr-2"></i> 역량 진단 배포
                             </button>
                             <button onclick="openCreateModal('survey')" class="px-6 py-3 bg-white border border-slate-200 text-slate-900 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-slate-50 transition shadow-sm">
-                                <i class="fas fa-poll mr-2"></i> Create Survey
+                                <i class="fas fa-poll mr-2"></i> 새 설문 생성
                             </button>
                         </div>
                     </div>
@@ -116,10 +116,10 @@ export const teacherSurveysHtml = `
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div class="bg-slate-900 rounded-[2rem] p-8 text-white relative overflow-hidden group">
                             <i class="fas fa-users-viewfinder absolute -right-4 -bottom-4 text-8xl text-white/5 group-hover:scale-110 transition-transform duration-700"></i>
-                            <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">Aggregate Participation</h3>
+                            <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">전체 참여율</h3>
                             <div class="flex items-baseline gap-2 mb-2">
                                 <span class="text-4xl font-black tracking-tighter" id="stat-progress">0%</span>
-                                <span class="text-[10px] font-black text-emerald-400 uppercase">Sync Level</span>
+                                <span class="text-[10px] font-black text-emerald-400 uppercase">참여 수준</span>
                             </div>
                             <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden mt-4">
                                 <div id="stat-progress-bar" class="bg-emerald-400 h-full transition-all duration-1000" style="width: 0%"></div>
@@ -128,45 +128,45 @@ export const teacherSurveysHtml = `
 
                         <div class="bg-white rounded-[2rem] border border-slate-200 p-8 relative overflow-hidden group">
                             <i class="fas fa-star absolute -right-4 -bottom-4 text-8xl text-slate-50 group-hover:rotate-12 transition-transform duration-700"></i>
-                            <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">Mean Satisfaction</h3>
+                            <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">평균 만족도</h3>
                             <div class="flex items-baseline gap-2">
                                 <span class="text-4xl font-black text-slate-900 tracking-tighter" id="stat-satisfaction">0.0</span>
-                                <span class="text-[10px] font-black text-slate-400 uppercase">Out of 5.0</span>
+                                <span class="text-[10px] font-black text-slate-400 uppercase">5.0 만점</span>
                             </div>
                             <div class="flex text-yellow-400 text-xs mt-4 gap-1" id="stat-stars"></div>
                         </div>
 
                         <div class="bg-white rounded-[2rem] border border-slate-200 p-8 relative overflow-hidden group">
                             <i class="fas fa-signal-stream absolute -right-4 -bottom-4 text-8xl text-slate-50 group-hover:scale-110 transition-transform duration-700"></i>
-                            <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">Active Operations</h3>
+                            <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">진행 중인 설문</h3>
                             <div class="flex items-baseline gap-2">
                                 <span class="text-4xl font-black text-slate-900 tracking-tighter" id="stat-active">0</span>
-                                <span class="text-[10px] font-black text-blue-500 uppercase">Live Nodes</span>
+                                <span class="text-[10px] font-black text-blue-500 uppercase">실시간</span>
                             </div>
-                            <p class="text-[10px] font-bold text-slate-400 mt-4">Concurrent data collection streams</p>
+                            <p class="text-[10px] font-bold text-slate-400 mt-4">데이터 수집 진행 중</p>
                         </div>
                     </div>
 
                     <!-- Surveys Table -->
                     <div class="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
                         <div class="px-10 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                            <h3 class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Feedback Stream Repository</h3>
+                            <h3 class="text-[11px] font-black text-slate-400 uppercase tracking-widest">피드백 목록</h3>
                             <select id="typeFilter" class="bg-white border border-slate-200 rounded-xl px-4 py-2 text-[10px] font-black uppercase outline-none focus:ring-4 focus:ring-slate-100 transition cursor-pointer">
-                                <option value="all">ALL STREAMS</option>
-                                <option value="diagnosis">COMPETENCY ONLY</option>
-                                <option value="survey">GENERAL SURVEY</option>
+                                <option value="all">전체 보기</option>
+                                <option value="diagnosis">역량 진단만</option>
+                                <option value="survey">일반 설문</option>
                             </select>
                         </div>
                         <div class="overflow-x-auto">
                             <table class="w-full">
                                 <thead>
                                     <tr class="text-left border-b border-slate-50">
-                                        <th class="px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Operation / Logic</th>
-                                        <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Title</th>
-                                        <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Temporal Range</th>
-                                        <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Participation</th>
-                                        <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
-                                        <th class="px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Protocol</th>
+                                        <th class="px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">분류 / 과정</th>
+                                        <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">제목</th>
+                                        <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">참여 기간</th>
+                                        <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">참여 현황</th>
+                                        <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">상태</th>
+                                        <th class="px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">관리</th>
                                     </tr>
                                 </thead>
                                 <tbody id="surveyList" class="divide-y divide-slate-50">
@@ -185,8 +185,8 @@ export const teacherSurveysHtml = `
         <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col animate-fade-in">
             <div class="px-10 py-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                 <div class="flex flex-col">
-                    <h3 class="text-xl font-black text-slate-900 tracking-tight" id="modalTitle">Deploy Feedback Operation</h3>
-                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Logic Stream Configuration</span>
+                    <h3 class="text-xl font-black text-slate-900 tracking-tight" id="modalTitle">새 피드백 생성</h3>
+                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">설문 및 진단 설정</span>
                 </div>
                 <button onclick="closeModal('createModal')" class="w-12 h-12 flex items-center justify-center rounded-2xl hover:bg-red-500 hover:text-white text-slate-400 transition-all">
                     <i class="fas fa-times"></i>
@@ -198,20 +198,20 @@ export const teacherSurveysHtml = `
 
                 <div class="space-y-6">
                     <div>
-                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Operation Designation (Title)</label>
-                        <input type="text" id="surveyTitle" required class="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-black text-slate-800 outline-none focus:ring-4 focus:ring-slate-100 transition" placeholder="e.g. Monthly Performance Feedback">
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">제목</label>
+                        <input type="text" id="surveyTitle" required class="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-black text-slate-800 outline-none focus:ring-4 focus:ring-slate-100 transition" placeholder="예: 월간 성과 피드백">
                     </div>
                     <div>
-                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Intelligence Context (Description)</label>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">설명</label>
                         <textarea id="surveyDesc" rows="3" class="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium text-slate-600 outline-none focus:ring-4 focus:ring-slate-100 transition resize-none"></textarea>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Activation Timestamp</label>
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">시작일</label>
                             <input type="date" id="startDate" required class="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-black text-slate-800 outline-none focus:ring-4 focus:ring-slate-100 transition">
                         </div>
                         <div>
-                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Termination Timestamp</label>
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">종료일</label>
                             <input type="date" id="endDate" required class="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-black text-slate-800 outline-none focus:ring-4 focus:ring-slate-100 transition">
                         </div>
                     </div>
@@ -219,17 +219,17 @@ export const teacherSurveysHtml = `
 
                 <div class="pt-8 border-t border-slate-100">
                     <div class="flex justify-between items-center mb-6">
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Logic Blocks (Questionnaire)</label>
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">질문 관리</label>
                         <button type="button" onclick="addQuestion()" class="px-4 py-2 bg-slate-100 text-slate-900 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-900 hover:text-white transition">
-                            + Logic Block
+                            + 질문 추가
                         </button>
                     </div>
                     <div id="questionContainer" class="space-y-4"></div>
                 </div>
 
                 <div class="pt-8 border-t border-slate-100 flex justify-end gap-3">
-                    <button type="button" onclick="closeModal('createModal')" class="px-8 py-4 bg-slate-50 text-slate-400 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-slate-100 transition">Abort</button>
-                    <button type="submit" class="px-12 py-4 bg-slate-900 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-blue-600 transition shadow-xl shadow-slate-200">Finalize Operation</button>
+                    <button type="button" onclick="closeModal('createModal')" class="px-8 py-4 bg-slate-50 text-slate-400 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-slate-100 transition">취소</button>
+                    <button type="submit" class="px-12 py-4 bg-slate-900 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-blue-600 transition shadow-xl shadow-slate-200">생성 완료</button>
                 </div>
             </form>
         </div>
@@ -240,8 +240,8 @@ export const teacherSurveysHtml = `
         <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col animate-fade-in">
             <div class="px-10 py-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                 <div class="flex flex-col">
-                    <h3 class="text-xl font-black text-slate-900 tracking-tight">Intelligence Result Logic</h3>
-                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Data Synthesis & Comment Audit</span>
+                    <h3 class="text-xl font-black text-slate-900 tracking-tight">피드백 결과 분석</h3>
+                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">데이터 종합 및 의견 확인</span>
                 </div>
                 <button onclick="closeModal('resultModal')" class="w-12 h-12 flex items-center justify-center rounded-2xl hover:bg-red-500 hover:text-white text-slate-400 transition-all">
                     <i class="fas fa-times"></i>
@@ -250,19 +250,19 @@ export const teacherSurveysHtml = `
             <div class="overflow-y-auto p-10 space-y-12 custom-scrollbar">
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
                     <div id="chartContainer" class="bg-slate-50 rounded-[2rem] p-8 border border-slate-200">
-                        <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-8 text-center">Competency Radar Matrix</h4>
+                        <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-8 text-center">역량 진단 레이더 차트</h4>
                         <div class="h-80 w-full flex items-center justify-center">
                             <canvas id="competencyChart"></canvas>
                         </div>
                     </div>
                     <div class="space-y-6">
-                        <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Logic Breakdown Scores</h4>
+                        <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">문항별 점수 상세</h4>
                         <div id="scoreDetails" class="space-y-4"></div>
                     </div>
                 </div>
                 
                 <div class="pt-12 border-t border-slate-100">
-                    <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">Subjective Commits (Student Audit)</h4>
+                    <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">주관식 의견 (수강생 피드백)</h4>
                     <div id="commentsList" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
                 </div>
             </div>
@@ -275,21 +275,21 @@ export const teacherSurveysHtml = `
             <button type="button" onclick="removeQuestion(this)" class="absolute top-4 right-4 text-slate-300 hover:text-red-500 transition-all"><i class="fas fa-trash-alt"></i></button>
             <div class="grid grid-cols-1 gap-4">
                 <div>
-                    <label class="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2">Logic Statement</label>
-                    <input type="text" name="q_text" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-100 transition text-sm font-bold" placeholder="Define logic statement...">
+                    <label class="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2">질문 내용</label>
+                    <input type="text" name="q_text" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-100 transition text-sm font-bold" placeholder="질문을 입력하세요...">
                 </div>
                 <div class="flex gap-4">
                     <div class="w-1/3">
-                        <label class="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2">Block Type</label>
+                        <label class="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2">질문 유형</label>
                         <select name="q_type" class="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase outline-none cursor-pointer" onchange="toggleOptions(this)">
-                            <option value="rating">Scale (1-5)</option>
-                            <option value="choice">Multi Selection</option>
-                            <option value="text">Subjective Logic</option>
+                            <option value="rating">척도형 (1-5점)</option>
+                            <option value="choice">객관식</option>
+                            <option value="text">주관식</option>
                         </select>
                     </div>
                     <div class="flex-1 hidden options-area">
-                        <label class="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2">Selection Parameters (CSV)</label>
-                        <input type="text" class="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs" placeholder="Parameter1, Parameter2, ...">
+                        <label class="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2">선택지 (콤마로 구분)</label>
+                        <input type="text" class="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs" placeholder="보기1, 보기2, ...">
                     </div>
                 </div>
             </div>
@@ -325,7 +325,7 @@ export const teacherSurveysHtml = `
                 const courses = result.success ? result.data : [];
                 
                 if (courses.length === 0) {
-                    grid.innerHTML = '<div class="col-span-full py-20 text-center text-slate-400 font-black uppercase text-xs tracking-widest">No Active Clusters Detected</div>';
+                    grid.innerHTML = '<div class="col-span-full py-20 text-center text-slate-400 font-black uppercase text-xs tracking-widest">진행 중인 과정이 없습니다.</div>';
                     return;
                 }
 
@@ -339,7 +339,7 @@ export const teacherSurveysHtml = `
                         '<div class="space-y-3 pb-8">' +
                             '<div class="flex items-center gap-2 text-[11px] font-black text-slate-400 uppercase tracking-tighter">' +
                                 '<i class="fas fa-users-rays text-slate-200"></i>' +
-                                '<span>Nodes: ' + (course.current_students || 0) + '</span>' +
+                                '<span>수강생: ' + (course.current_students || 0) + '</span>' +
                             '</div>' +
                             '<div class="flex items-center gap-2 text-[11px] font-black text-slate-400 uppercase tracking-tighter">' +
                                 '<i class="fas fa-timeline text-slate-200"></i>' +
@@ -348,13 +348,13 @@ export const teacherSurveysHtml = `
                         '</div>' +
                         '<div class="pt-6 border-t border-slate-50">' +
                             '<div class="flex items-center justify-between group-hover:px-2 transition-all">' +
-                                '<span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Access Protocol</span>' +
+                                '<span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">과정 선택</span>' +
                                 '<i class="fas fa-arrow-right text-slate-200 group-hover:text-blue-500 group-hover:translate-x-1 transition-all"></i>' +
                             '</div>' +
                         '</div>' +
                     '</div>'
                 ).join('');
-            } catch (error) { grid.innerHTML = '<div class="col-span-full py-20 text-center text-red-400 uppercase font-black">Sync Failure</div>'; }
+            } catch (error) { grid.innerHTML = '<div class="col-span-full py-20 text-center text-red-400 uppercase font-black">데이터 동기화 실패</div>'; }
         }
 
         function selectCourse(id, title) {
@@ -389,18 +389,18 @@ export const teacherSurveysHtml = `
                 updateStats(filtered);
 
                 if (finalFiltered.length === 0) {
-                    list.innerHTML = '<tr><td colspan="6" class="py-20 text-center text-slate-400 font-black text-[10px] uppercase tracking-[0.2em]">No Active Intelligence streams Detected</td></tr>';
+                    list.innerHTML = '<tr><td colspan="6" class="py-20 text-center text-slate-400 font-black text-[10px] uppercase tracking-[0.2em]">등록된 설문이 없습니다.</td></tr>';
                     return;
                 }
 
                 list.innerHTML = finalFiltered.map(s => {
                     const typeLabel = s.type === 'diagnosis' 
-                        ? '<span class="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-[9px] font-black uppercase tracking-widest">Diagnosis</span>'
-                        : '<span class="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-[9px] font-black uppercase tracking-widest">Survey</span>';
+                        ? '<span class="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-[9px] font-black uppercase tracking-widest">역량 진단</span>'
+                        : '<span class="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-[9px] font-black uppercase tracking-widest">일반 설문</span>';
                     
                     const statusLabel = s.status === 'active'
-                        ? '<span class="flex items-center gap-1.5 text-emerald-500 font-black text-[9px] uppercase tracking-widest"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>Live</span>'
-                        : '<span class="text-slate-300 font-black text-[9px] uppercase tracking-widest">Terminated</span>';
+                        ? '<span class="flex items-center gap-1.5 text-emerald-500 font-black text-[9px] uppercase tracking-widest"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>진행중</span>'
+                        : '<span class="text-slate-300 font-black text-[9px] uppercase tracking-widest">종료</span>';
                     
                     const rate = s.total_target > 0 ? Math.round((s.response_count / s.total_target) * 100) : 0;
 
@@ -424,10 +424,10 @@ export const teacherSurveysHtml = `
                             '<td class="px-6 py-6 text-center">' + statusLabel + '</td>' +
                             '<td class="px-10 py-6 text-right">' +
                                 '<div class="flex items-center justify-end gap-1 opacity-40 group-hover:opacity-100 transition-opacity">' +
-                                    '<button onclick="viewResults(' + s.id + ', \'' + s.type + '\')" title="Intelligence Analytics" class="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-900 text-white hover:bg-blue-600 transition-all shadow-lg shadow-slate-200"><i class="fas fa-chart-pie text-[10px]"></i></button>' +
-                                    '<button onclick="editSurvey(' + s.id + ')" title="Logic Configuration" class="w-9 h-9 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all shadow-sm"><i class="fas fa-terminal text-[10px]"></i></button>' +
-                                    (s.status === 'active' ? '<button onclick="closeSurvey(' + s.id + ')" title="Terminate Stream" class="w-9 h-9 flex items-center justify-center rounded-xl bg-orange-50 text-orange-500 hover:bg-orange-500 hover:text-white transition-all shadow-sm"><i class="fas fa-power-off text-[10px]"></i></button>' : '') +
-                                    '<button onclick="deleteSurvey(' + s.id + ')" title="Purge Data" class="w-9 h-9 flex items-center justify-center rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm"><i class="fas fa-trash-alt text-[10px]"></i></button>' +
+                                    '<button onclick="viewResults(' + s.id + ', \\\'' + s.type + '\\\')" title="결과 분석" class="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-900 text-white hover:bg-blue-600 transition-all shadow-lg shadow-slate-200"><i class="fas fa-chart-pie text-[10px]"></i></button>' +
+                                    '<button onclick="editSurvey(' + s.id + ')" title="설정 수정" class="w-9 h-9 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all shadow-sm"><i class="fas fa-terminal text-[10px]"></i></button>' +
+                                    (s.status === 'active' ? '<button onclick="closeSurvey(' + s.id + ')" title="설문 종료" class="w-9 h-9 flex items-center justify-center rounded-xl bg-orange-50 text-orange-500 hover:bg-orange-500 hover:text-white transition-all shadow-sm"><i class="fas fa-power-off text-[10px]"></i></button>' : '') +
+                                    '<button onclick="deleteSurvey(' + s.id + ')" title="삭제" class="w-9 h-9 flex items-center justify-center rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm"><i class="fas fa-trash-alt text-[10px]"></i></button>' +
                                 '</div>' +
                             '</td>' +
                         '</tr>';
@@ -455,7 +455,7 @@ export const teacherSurveysHtml = `
             document.getElementById('createForm').reset();
             document.getElementById('questionContainer').innerHTML = '';
             document.getElementById('surveyType').value = type;
-            document.getElementById('modalTitle').textContent = type === 'diagnosis' ? 'Deploy Diagnosis Protocol' : 'Deploy Survey Stream';
+            document.getElementById('modalTitle').textContent = type === 'diagnosis' ? '역량 진단 배포' : '새 설문 생성';
             addQuestion();
             document.getElementById('createModal').classList.remove('hidden');
         };
@@ -526,7 +526,7 @@ export const teacherSurveysHtml = `
                 const s = result.data;
                 currentSurveyId = id;
                 document.getElementById('surveyType').value = s.type;
-                document.getElementById('modalTitle').textContent = 'Modify Stream Protocol';
+                document.getElementById('modalTitle').textContent = '설문 수정';
                 document.getElementById('surveyTitle').value = s.title;
                 document.getElementById('surveyDesc').value = s.description;
                 document.getElementById('startDate').value = s.start_date || '';
@@ -549,7 +549,7 @@ export const teacherSurveysHtml = `
         }
 
         async function deleteSurvey(id) {
-            if(!confirm('Purge this intelligence stream? All response data will be lost.')) return;
+            if(!confirm('이 설문을 삭제하시겠습니까? 모든 응답 데이터가 사라집니다.')) return;
             try {
                 const res = await fetch('/api/surveys/' + id, { 
                     method: 'DELETE', 
@@ -560,7 +560,7 @@ export const teacherSurveysHtml = `
         }
 
         async function closeSurvey(id) {
-            if(!confirm('Terminate this feedback operation? No more responses will be accepted.')) return;
+            if(!confirm('이 설문을 종료하시겠습니까? 더 이상 응답을 받을 수 없습니다.')) return;
             try {
                 const res = await fetch('/api/surveys/' + id + '/close', { 
                     method: 'POST', 
@@ -618,12 +618,12 @@ export const teacherSurveysHtml = `
                             '<div class="w-full bg-slate-50 h-1 rounded-full overflow-hidden">' +
                                 '<div class="bg-blue-600 h-full" style="width: ' + pct + '%"></div>' +
                             '</div>' +
-                            '<div class="text-[8px] font-black text-slate-300 uppercase mt-2 tracking-widest">Responses: ' + q.total_responses + ' Nodes</div>' +
+                            '<div class="text-[8px] font-black text-slate-300 uppercase mt-2 tracking-widest">응답: ' + q.total_responses + '명</div>' +
                         '</div>';
-                }).join('') || '<div class="text-[10px] uppercase font-black text-slate-300 py-10">No quantitative data synthesized</div>';
+                }).join('') || '<div class="text-[10px] uppercase font-black text-slate-300 py-10">정량적 데이터가 없습니다.</div>';
                 
                 // Subjective Commits (Async details omitted for brevity, but follows same pattern as original)
-                document.getElementById('commentsList').innerHTML = '<div class="col-span-full py-10 text-center text-[10px] font-black text-slate-300 uppercase tracking-widest">Commits synthesized from node audit</div>';
+                document.getElementById('commentsList').innerHTML = '<div class="col-span-full py-10 text-center text-[10px] font-black text-slate-300 uppercase tracking-widest">수집된 데이터 없음</div>';
                 
             } catch (e) { console.error(e); }
         };

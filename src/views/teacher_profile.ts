@@ -6,7 +6,7 @@ export const teacherProfileHtml = `
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Identity Core Management - 3D Cookie</title>
+    <title>강사 인사정보 관리 - 3D Cookie</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -59,18 +59,18 @@ export const teacherProfileHtml = `
                 <div class="flex flex-col">
                     <h1 class="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
                         교강사 인적 지능
-                        <span class="text-[10px] bg-slate-900 text-white px-2 py-0.5 rounded-full uppercase tracking-widest font-black">Identity Core</span>
+                        <span class="text-[10px] bg-slate-900 text-white px-2 py-0.5 rounded-full uppercase tracking-widest font-black">인사 정보</span>
                     </h1>
-                    <p class="text-xs font-medium text-slate-500 mt-0.5 tracking-tight uppercase">Instructor Profile & Intellectual Asset Management</p>
+                    <p class="text-xs font-medium text-slate-500 mt-0.5 tracking-tight uppercase">강사 프로필 및 경력 자산 관리</p>
                 </div>
                 <div class="flex items-center gap-4">
                     <button onclick="location.href='/teacher'" class="px-4 py-2 bg-white border border-slate-200 text-[10px] font-black rounded-xl hover:bg-slate-50 transition uppercase tracking-widest flex items-center gap-2 shadow-sm">
-                        <i class="fas fa-arrow-left"></i> Dashboard
+                        <i class="fas fa-arrow-left"></i> 대시보드
                     </button>
                     <div class="flex items-center gap-3 pl-4 border-l border-slate-200">
                         <div class="text-right flex flex-col uppercase tracking-tighter">
-                            <span id="header-user-name" class="text-xs font-black text-slate-900">Instructor Name</span>
-                            <span class="text-[9px] font-black text-slate-400">Admin/Edit Mode</span>
+                            <span id="header-user-name" class="text-xs font-black text-slate-900">강사명</span>
+                            <span class="text-[9px] font-black text-slate-400">인사 정보 관리</span>
                         </div>
                     </div>
                 </div>
@@ -91,7 +91,7 @@ export const teacherProfileHtml = `
                                         <img id="pImagePreview" src="" class="w-full h-full object-cover hidden">
                                         <div class="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
                                             <i class="fas fa-camera text-xl"></i>
-                                            <span class="text-[9px] font-black uppercase tracking-widest">Update Identity</span>
+                                            <span class="text-[9px] font-black uppercase tracking-widest">사진 변경</span>
                                         </div>
                                     </div>
                                     <input type="hidden" name="profile_image" id="pImageUrl">
@@ -101,19 +101,19 @@ export const teacherProfileHtml = `
                                 <div class="flex-1 space-y-6 relative z-10">
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div>
-                                            <label class="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Legal Name</label>
+                                            <label class="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">이름 (실명)</label>
                                             <input type="text" name="name" id="pName" required class="w-full bg-slate-800/50 border border-slate-700 rounded-2xl px-6 py-4 text-white font-black outline-none focus:ring-2 focus:ring-slate-600 transition tracking-tight">
                                         </div>
                                         <div>
-                                            <label class="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Staff Position</label>
-                                            <input type="text" name="position" id="pPosition" class="w-full bg-slate-800/50 border border-slate-700 rounded-2xl px-6 py-4 text-white font-bold outline-none focus:ring-2 focus:ring-slate-600 transition tracking-tight" placeholder="e.g. Senior Instructor">
+                                            <label class="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">직위 / 직급</label>
+                                            <input type="text" name="position" id="pPosition" class="w-full bg-slate-800/50 border border-slate-700 rounded-2xl px-6 py-4 text-white font-bold outline-none focus:ring-2 focus:ring-slate-600 transition tracking-tight" placeholder="예: 전임 강사">
                                         </div>
                                         <div>
-                                            <label class="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Communication Endpoint (Email)</label>
+                                            <label class="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">이메일</label>
                                             <input type="email" name="email" id="pEmail" required class="w-full bg-slate-800/50 border border-slate-700 rounded-2xl px-6 py-4 text-slate-300 font-medium outline-none focus:ring-2 focus:ring-slate-600 transition tracking-tight">
                                         </div>
                                         <div>
-                                            <label class="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Signal Line (Phone)</label>
+                                            <label class="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">전화번호</label>
                                             <input type="text" name="phone" id="pPhone" required class="w-full bg-slate-800/50 border border-slate-700 rounded-2xl px-6 py-4 text-slate-300 font-medium outline-none focus:ring-2 focus:ring-slate-600 transition tracking-tight">
                                         </div>
                                     </div>
@@ -122,19 +122,19 @@ export const teacherProfileHtml = `
 
                             <div class="p-10 bg-white grid grid-cols-1 md:grid-cols-3 gap-8 border-b border-slate-100">
                                 <div>
-                                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Sector Specialization</label>
-                                    <input type="text" name="subject" id="pSubject" class="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-black text-slate-800 outline-none focus:ring-4 focus:ring-slate-100 transition" placeholder="e.g. 3D Modeling, Architecture">
+                                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">전문 분야</label>
+                                    <input type="text" name="subject" id="pSubject" class="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-black text-slate-800 outline-none focus:ring-4 focus:ring-slate-100 transition" placeholder="예: 3D 모델링, 건축 설계">
                                 </div>
                                 <div>
-                                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Deployment Date</label>
+                                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">입사일</label>
                                     <input type="date" name="joined_at" id="pJoined" class="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-black text-slate-800 outline-none focus:ring-4 focus:ring-slate-100 transition">
                                 </div>
                                 <div>
-                                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Classification</label>
+                                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">고용 형태</label>
                                     <select name="type" id="pType" class="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-black text-slate-800 outline-none focus:ring-4 focus:ring-slate-100 transition appearance-none cursor-pointer">
-                                        <option value="full">FULL PERFORMANCE</option>
-                                        <option value="part">PART-TIME OPERATION</option>
-                                        <option value="external">EXTERNAL CLUSTER</option>
+                                        <option value="full">전임 강사</option>
+                                        <option value="part">파트타임/협력</option>
+                                        <option value="external">외부 초빙 권한</option>
                                     </select>
                                 </div>
                             </div>
@@ -143,16 +143,16 @@ export const teacherProfileHtml = `
                             <div class="bg-white px-10 border-b border-slate-100">
                                 <div class="flex items-center gap-10 overflow-x-auto no-scrollbar">
                                     <button type="button" data-tab="education" id="tabEducation" class="tab-btn active px-2 py-6 text-[11px] font-black uppercase tracking-widest flex items-center gap-2">
-                                        <i class="fas fa-graduation-cap text-xs"></i> Academic & Career
+                                        <i class="fas fa-graduation-cap text-xs"></i> 학력 및 경력
                                     </button>
                                     <button type="button" data-tab="certifications" id="tabCertifications" class="tab-btn px-2 py-6 text-[11px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
-                                        <i class="fas fa-certificate text-xs"></i> Credentials
+                                        <i class="fas fa-certificate text-xs"></i> 자격 및 면허
                                     </button>
                                     <button type="button" data-tab="training" id="tabTraining" class="tab-btn px-2 py-6 text-[11px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
-                                        <i class="fas fa-chalkboard-teacher text-xs"></i> Maintenance
+                                        <i class="fas fa-chalkboard-teacher text-xs"></i> 교육 이수
                                     </button>
                                     <button type="button" data-tab="teaching" id="tabTeaching" class="tab-btn px-2 py-6 text-[11px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
-                                        <i class="fas fa-book-open text-xs"></i> Session Logs
+                                        <i class="fas fa-book-open text-xs"></i> 강의 이력
                                     </button>
                                 </div>
                             </div>
@@ -163,10 +163,10 @@ export const teacherProfileHtml = `
                                     <div class="space-y-6">
                                         <div class="flex items-center justify-between">
                                             <h5 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                                                <i class="fas fa-university text-blue-500"></i> Academic Records
+                                                <i class="fas fa-university text-blue-500"></i> 학력 정보
                                             </h5>
                                             <button type="button" onclick="openEducationModal()" class="px-5 py-2.5 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 transition shadow-lg">
-                                                + Academic Entry
+                                                + 학력 추가
                                             </button>
                                         </div>
                                         <div id="educationContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
@@ -174,10 +174,10 @@ export const teacherProfileHtml = `
                                     <div class="space-y-6 pt-12 border-t border-slate-100">
                                         <div class="flex items-center justify-between">
                                             <h5 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                                                <i class="fas fa-briefcase text-purple-500"></i> Industrial Career
+                                                <i class="fas fa-briefcase text-purple-500"></i> 경력 정보
                                             </h5>
                                             <button type="button" onclick="openCareerModal()" class="px-5 py-2.5 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-purple-600 transition shadow-lg">
-                                                + Career Entry
+                                                + 경력 추가
                                             </button>
                                         </div>
                                         <div id="careerContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
@@ -188,10 +188,10 @@ export const teacherProfileHtml = `
                                 <div id="contentCertifications" class="hidden space-y-6">
                                     <div class="flex items-center justify-between">
                                         <h5 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                                            <i class="fas fa-certificate text-orange-500"></i> Validated Credentials
+                                            <i class="fas fa-certificate text-orange-500"></i> 자격증 및 면허
                                         </h5>
                                         <button type="button" onclick="openCertificationModal()" class="px-5 py-2.5 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-orange-600 transition shadow-lg">
-                                            + Certificate
+                                            + 자격증 추가
                                         </button>
                                     </div>
                                     <div id="certificationsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
@@ -201,10 +201,10 @@ export const teacherProfileHtml = `
                                 <div id="contentTraining" class="hidden space-y-6">
                                     <div class="flex items-center justify-between">
                                         <h5 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                                            <i class="fas fa-sync text-emerald-500"></i> Intellectual Maintenance
+                                            <i class="fas fa-sync text-emerald-500"></i> 교육 이수 및 활동
                                         </h5>
                                         <button type="button" onclick="openTrainingModal()" class="px-5 py-2.5 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 transition shadow-lg">
-                                            + Maintenance Log
+                                            + 교육 이수 추가
                                         </button>
                                     </div>
                                     <div id="trainingContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
@@ -214,10 +214,10 @@ export const teacherProfileHtml = `
                                 <div id="contentTeaching" class="hidden space-y-6">
                                     <div class="flex items-center justify-between">
                                         <h5 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                                            <i class="fas fa-history text-indigo-500"></i> Professional Session History
+                                            <i class="fas fa-history text-indigo-500"></i> 강의 활동 이력
                                         </h5>
                                         <button type="button" onclick="openTeachingHistoryModal()" class="px-5 py-2.5 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-600 transition shadow-lg">
-                                            + Session Log
+                                            + 이력 추가
                                         </button>
                                     </div>
                                     <div id="teachingHistoryContainer" class="space-y-4"></div>
@@ -226,9 +226,9 @@ export const teacherProfileHtml = `
 
                             <!-- Footer Actions -->
                             <div class="p-10 bg-slate-50 border-t border-slate-100 flex justify-end gap-4">
-                                <button type="button" onclick="location.href='/teacher'" class="px-8 py-4 bg-white border border-slate-200 text-slate-400 font-black text-[11px] rounded-2xl uppercase tracking-widest hover:bg-slate-100 transition-all">Discard Changes</button>
+                                <button type="button" onclick="location.href='/teacher'" class="px-8 py-4 bg-white border border-slate-200 text-slate-400 font-black text-[11px] rounded-2xl uppercase tracking-widest hover:bg-slate-100 transition-all">변경 취소</button>
                                 <button type="submit" class="px-12 py-4 bg-slate-900 text-white font-black text-[11px] rounded-2xl uppercase tracking-widest hover:bg-blue-600 transition-all shadow-xl shadow-slate-200">
-                                    <i class="fas fa-save mr-2"></i> Commit Identity Sync
+                                    <i class="fas fa-save mr-2"></i> 정보 저장
                                 </button>
                             </div>
                         </div>
@@ -244,7 +244,7 @@ export const teacherProfileHtml = `
     <div id="educationModal" class="fixed inset-0 modal-blur hidden z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
             <div class="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                <h3 class="font-black text-slate-800 uppercase tracking-tight" id="educationModalTitle">Academic Entry</h3>
+                <h3 class="font-black text-slate-800 uppercase tracking-tight" id="educationModalTitle">학력 정보 입력</h3>
                 <button onclick="closeEducationModal()" class="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-red-500 hover:text-white text-slate-400 transition-all"><i class="fas fa-times"></i></button>
             </div>
             <div class="p-10 overflow-y-auto">
@@ -273,15 +273,15 @@ export const teacherProfileHtml = `
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Incept Date</label>
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">입학년월</label>
                             <input type="date" id="educationModalStartDate" class="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-slate-100 outline-none transition font-bold">
                         </div>
                         <div>
-                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Terminal Date</label>
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">졸업년월</label>
                             <input type="date" id="educationModalEndDate" class="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-slate-100 outline-none transition font-bold">
                         </div>
                     </div>
-                    <button type="submit" class="w-full py-4 bg-slate-900 text-white font-black text-[11px] rounded-2xl uppercase tracking-widest hover:bg-blue-600 transition-all">Save Academic Vector</button>
+                    <button type="submit" class="w-full py-4 bg-slate-900 text-white font-black text-[11px] rounded-2xl uppercase tracking-widest hover:bg-blue-600 transition-all">학력 상태 저장</button>
                 </form>
             </div>
         </div>
@@ -291,7 +291,7 @@ export const teacherProfileHtml = `
     <div id="careerModal" class="fixed inset-0 modal-blur hidden z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
             <div class="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                <h3 class="font-black text-slate-800 uppercase tracking-tight" id="careerModalTitle">Career Entry</h3>
+                <h3 class="font-black text-slate-800 uppercase tracking-tight" id="careerModalTitle">경력 정보 입력</h3>
                 <button onclick="closeCareerModal()" class="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-red-500 hover:text-white text-slate-400 transition-all"><i class="fas fa-times"></i></button>
             </div>
             <div class="p-10 overflow-y-auto">
@@ -307,15 +307,15 @@ export const teacherProfileHtml = `
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Join Date</label>
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">입사일</label>
                             <input type="date" id="careerModalStartDate" class="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-slate-100 outline-none transition font-bold">
                         </div>
                         <div>
-                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Exit Date</label>
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">퇴사일</label>
                             <input type="date" id="careerModalEndDate" class="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-slate-100 outline-none transition font-bold">
                         </div>
                     </div>
-                    <button type="submit" class="w-full py-4 bg-slate-900 text-white font-black text-[11px] rounded-2xl uppercase tracking-widest hover:bg-purple-600 transition-all">Save Career Vector</button>
+                    <button type="submit" class="w-full py-4 bg-slate-900 text-white font-black text-[11px] rounded-2xl uppercase tracking-widest hover:bg-purple-600 transition-all">경력 정보 저장</button>
                 </form>
             </div>
         </div>
@@ -325,7 +325,7 @@ export const teacherProfileHtml = `
     <div id="certificationModal" class="fixed inset-0 modal-blur hidden z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
             <div class="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                <h3 class="font-black text-slate-800 uppercase tracking-tight" id="certModalTitle">Credential Entry</h3>
+                <h3 class="font-black text-slate-800 uppercase tracking-tight" id="certModalTitle">자격증 정보 입력</h3>
                 <button onclick="closeCertificationModal()" class="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-red-500 hover:text-white text-slate-400 transition-all"><i class="fas fa-times"></i></button>
             </div>
             <div class="p-10 overflow-y-auto">
@@ -347,14 +347,14 @@ export const teacherProfileHtml = `
                         </div>
                     </div>
                     <div>
-                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Verification Artifacts (Files)</label>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">증빙 자료</label>
                         <input type="file" id="certModalFileInput" multiple class="hidden" onchange="/* Handle in JS */">
                         <button type="button" onclick="document.getElementById('certModalFileInput').click()" class="w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 font-bold hover:border-blue-400 hover:text-blue-500 transition-all text-sm mb-4">
-                            <i class="fas fa-cloud-upload-alt mr-2"></i> Upload Verification Documents
+                            <i class="fas fa-cloud-upload-alt mr-2"></i> 파일 업로드 (PDF, 이미지)
                         </button>
                         <div id="certModalFileList" class="space-y-2"></div>
                     </div>
-                    <button type="submit" class="w-full py-4 bg-slate-900 text-white font-black text-[11px] rounded-2xl uppercase tracking-widest hover:bg-orange-600 transition-all">Save Credential Vector</button>
+                    <button type="submit" class="w-full py-4 bg-slate-900 text-white font-black text-[11px] rounded-2xl uppercase tracking-widest hover:bg-orange-600 transition-all">자격증 정보 저장</button>
                 </form>
             </div>
         </div>
@@ -364,7 +364,7 @@ export const teacherProfileHtml = `
     <div id="trainingModal" class="fixed inset-0 modal-blur hidden z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
             <div class="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                <h3 class="font-black text-slate-800 uppercase tracking-tight" id="trainingModalTitle">Maintenance Entry</h3>
+                <h3 class="font-black text-slate-800 uppercase tracking-tight" id="trainingModalTitle">교육 이수 입력</h3>
                 <button onclick="closeTrainingModal()" class="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-red-500 hover:text-white text-slate-400 transition-all"><i class="fas fa-times"></i></button>
             </div>
             <div class="p-10 overflow-y-auto">
@@ -384,7 +384,7 @@ export const teacherProfileHtml = `
                             <input type="date" id="trainingModalStartDate" class="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-slate-100 outline-none transition font-bold">
                         </div>
                     </div>
-                    <button type="submit" class="w-full py-4 bg-slate-900 text-white font-black text-[11px] rounded-2xl uppercase tracking-widest hover:bg-emerald-600 transition-all">Save Maintenance Vector</button>
+                    <button type="submit" class="w-full py-4 bg-slate-900 text-white font-black text-[11px] rounded-2xl uppercase tracking-widest hover:bg-emerald-600 transition-all">교육 이수 정보 저장</button>
                 </form>
             </div>
         </div>
@@ -401,20 +401,20 @@ export const teacherProfileHtml = `
                 <form id="teachingHistoryForm" onsubmit="handleSaveTeachingHistory(event)" class="space-y-6">
                     <input type="hidden" id="teachingModalId">
                     <div>
-                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Module Designation</label>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">강의명</label>
                         <input type="text" id="teachingModalCourseName" required class="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-slate-100 outline-none transition font-bold">
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Incept Date</label>
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">시작일</label>
                             <input type="date" id="teachingModalStartDate" class="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-slate-100 outline-none transition font-bold">
                         </div>
                         <div>
-                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Terminal Date</label>
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">종료일</label>
                             <input type="date" id="teachingModalEndDate" class="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-slate-100 outline-none transition font-bold">
                         </div>
                     </div>
-                    <button type="submit" class="w-full py-4 bg-slate-900 text-white font-black text-[11px] rounded-2xl uppercase tracking-widest hover:bg-indigo-600 transition-all">Save Session Log Vector</button>
+                    <button type="submit" class="w-full py-4 bg-slate-900 text-white font-black text-[11px] rounded-2xl uppercase tracking-widest hover:bg-indigo-600 transition-all">강의 이력 저장</button>
                 </form>
             </div>
         </div>
@@ -561,7 +561,7 @@ export const teacherProfileHtml = `
                 '</div>'
             ).join('');
         }
-        window.deleteEducation = (idx) => { if(confirm('Purge this academic record?')) { education.splice(idx,1); renderEducation(); } };
+        window.deleteEducation = (idx) => { if(confirm('이 학력 정보를 삭제하시겠습니까?')) { education.splice(idx,1); renderEducation(); } };
 
         // Career Logic
         window.openCareerModal = (idx = null) => {
@@ -607,7 +607,7 @@ export const teacherProfileHtml = `
                 '</div>'
             ).join('');
         }
-        window.deleteCareer = (idx) => { if(confirm('Purge this career record?')) { career.splice(idx,1); renderCareer(); } };
+        window.deleteCareer = (idx) => { if(confirm('이 경력 정보를 삭제하시겠습니까?')) { career.splice(idx,1); renderCareer(); } };
 
         // Certification Logic
         window.openCertificationModal = (idx = null) => {
@@ -665,7 +665,7 @@ export const teacherProfileHtml = `
                 '</div>'
             ).join('');
         }
-        window.deleteCertification = (idx) => { if(confirm('Purge this credential?')) { certifications.splice(idx,1); renderCertifications(); } };
+        window.deleteCertification = (idx) => { if(confirm('이 자격증 정보를 삭제하시겠습니까?')) { certifications.splice(idx,1); renderCertifications(); } };
 
         // Maintenance (Training) Logic
         window.openTrainingModal = (idx = null) => {
@@ -711,7 +711,7 @@ export const teacherProfileHtml = `
                 '</div>'
             ).join('');
         }
-        window.deleteTraining = (idx) => { if(confirm('Purge this maintenance log?')) { training.splice(idx,1); renderTraining(); } };
+        window.deleteTraining = (idx) => { if(confirm('이 교육 이수 기록을 삭제하시겠습니까?')) { training.splice(idx,1); renderTraining(); } };
 
         // Teaching History Logic
         window.openTeachingHistoryModal = (idx = null) => {
@@ -747,20 +747,20 @@ export const teacherProfileHtml = `
                         '<div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center"><i class="fas fa-book-open text-sm"></i></div>' +
                         '<div>' +
                             '<h6 class="font-black text-slate-800 tracking-tight text-lg">' + h.course_name + '</h6>' +
-                            '<div class="flex items-center gap-3 mt-1">' +
+                            <div class="flex items-center gap-3 mt-1">' +
                                 '<span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">' + (h.start_date?.split('T')[0] || '-') + ' ~ ' + (h.end_date?.split('T')[0] || '-') + '</span>' +
-                                '<span class="px-2 py-0.5 bg-slate-100 text-[8px] font-black text-slate-500 rounded-full">HISTORICAL LOG</span>' +
+                                '<span class="px-2 py-0.5 bg-slate-100 text-[8px] font-black text-slate-500 rounded-full">완료된 강의</span>' +
                             '</div>' +
                         '</div>' +
                     '</div>' +
                     '<div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">' +
-                         '<button type="button" onclick="openTeachingHistoryModal(' + idx + ')" class="px-4 py-2 bg-slate-50 text-slate-400 hover:bg-slate-900 hover:text-white rounded-xl text-[10px] font-black uppercase transition-all">Modify</button>' +
-                         '<button type="button" onclick="deleteTeachingHistory(' + idx + ')" class="px-4 py-2 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white rounded-xl text-[10px] font-black uppercase transition-all">Purge</button>' +
+                         '<button type="button" onclick="openTeachingHistoryModal(' + idx + ')" class="px-4 py-2 bg-slate-50 text-slate-400 hover:bg-slate-900 hover:text-white rounded-xl text-[10px] font-black uppercase transition-all">수정</button>' +
+                         '<button type="button" onclick="deleteTeachingHistory(' + idx + ')" class="px-4 py-2 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white rounded-xl text-[10px] font-black uppercase transition-all">삭제</button>' +
                     '</div>' +
                 '</div>'
             ).join('');
         }
-        window.deleteTeachingHistory = (idx) => { if(confirm('Purge this session log?')) { teachingHistory.splice(idx,1); renderTeachingHistory(); } };
+        window.deleteTeachingHistory = (idx) => { if(confirm('이 강의 이력을 삭제하시겠습니까?')) { teachingHistory.splice(idx,1); renderTeachingHistory(); } };
 
         // Profile Save Logic
         async function handlePImage(input) {
@@ -799,7 +799,7 @@ export const teacherProfileHtml = `
                 body: JSON.stringify(data)
             });
             if((await res.json()).success) {
-                alert('Identity Core Synchronized');
+                alert('정보가 성공적으로 저장되었습니다.');
                 const user = JSON.parse(localStorage.getItem('user'));
                 user.name = data.name; user.profile_image = data.profile_image;
                 localStorage.setItem('user', JSON.stringify(user));

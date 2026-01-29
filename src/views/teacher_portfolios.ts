@@ -6,7 +6,7 @@ export const teacherPortfoliosHtml = `
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Academic Asset Management - 3D Cookie</title>
+    <title>강사 포트폴리오 관리 - 3D Cookie</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -59,18 +59,18 @@ export const teacherPortfoliosHtml = `
                 <div class="flex flex-col">
                     <h1 class="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
                         성과물 지능 관리
-                        <span class="text-[10px] bg-sky-600 text-white px-2 py-0.5 rounded-full uppercase tracking-widest font-black">Portfolios</span>
+                        <span class="text-[10px] bg-sky-600 text-white px-2 py-0.5 rounded-full uppercase tracking-widest font-black">포트폴리오</span>
                     </h1>
-                    <p class="text-xs font-medium text-slate-500 mt-0.5 tracking-tight uppercase">Academic Asset Repository & Portfolio Curation</p>
+                    <p class="text-xs font-medium text-slate-500 mt-0.5 tracking-tight uppercase">교과목별 우수 성과물 관리 및 공유</p>
                 </div>
                 <div class="flex items-center gap-4">
                     <button onclick="location.href='/teacher'" class="px-4 py-2 bg-white border border-slate-200 text-[10px] font-black rounded-xl hover:bg-slate-50 transition uppercase tracking-widest flex items-center gap-2 shadow-sm">
-                        <i class="fas fa-arrow-left"></i> Dashboard
+                        <i class="fas fa-arrow-left"></i> 대시보드
                     </button>
                     <div class="flex items-center gap-3 pl-4 border-l border-slate-200">
                         <div class="text-right flex flex-col uppercase tracking-tighter">
-                            <span id="header-user-name" class="text-xs font-black text-slate-900">Instructor Name</span>
-                            <span class="text-[9px] font-black text-slate-400">Curator Mode</span>
+                            <span id="header-user-name" class="text-xs font-black text-slate-900">강사명</span>
+                            <span class="text-[9px] font-black text-slate-400">포트폴리오 관리</span>
                         </div>
                     </div>
                 </div>
@@ -87,7 +87,7 @@ export const teacherPortfoliosHtml = `
                             </div>
                             <div>
                                 <h2 class="text-xl font-black text-slate-800 tracking-tight">자산 관리 대상 선택</h2>
-                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Select Academic Module for Asset Inventory</p>
+                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">포트폴리오를 관리할 과정을 선택하세요.</p>
                             </div>
                         </div>
 
@@ -95,7 +95,7 @@ export const teacherPortfoliosHtml = `
                             <!-- JS Load -->
                             <div class="col-span-full py-20 flex flex-col items-center justify-center bg-white rounded-[2.5rem] border border-dashed border-slate-200">
                                 <i class="fas fa-circle-notch fa-spin text-3xl text-sky-500 mb-4"></i>
-                                <p class="text-slate-400 font-black text-sm uppercase tracking-widest">Scanning Academic Containers...</p>
+                                <p class="text-slate-400 font-black text-sm uppercase tracking-widest">과정 정보를 불러오는 중...</p>
                             </div>
                         </div>
                     </div>
@@ -108,10 +108,10 @@ export const teacherPortfoliosHtml = `
                                     <i class="fas fa-chevron-left text-sm"></i>
                                 </button>
                                 <div>
-                                    <h2 class="text-2xl font-black text-slate-900 tracking-tight" id="selectedCourseTitle">Academic Asset Repository</h2>
+                                    <h2 class="text-2xl font-black text-slate-900 tracking-tight" id="selectedCourseTitle">학술 자산 저장소</h2>
                                     <div class="flex items-center gap-3 mt-1">
                                         <span class="px-2 py-0.5 bg-sky-50 text-sky-600 text-[10px] font-black rounded-full uppercase tracking-widest border border-sky-100/50">Asset Grid</span>
-                                        <span class="text-xs font-bold text-slate-400 uppercase tracking-tight">Curation of student intelligence outputs</span>
+                                        <span class="text-xs font-bold text-slate-400 uppercase tracking-tight">학생 성과물 큐레이션 및 관리</span>
                                     </div>
                                 </div>
                             </div>
@@ -132,15 +132,15 @@ export const teacherPortfoliosHtml = `
                         <!-- 필터 시퀀스 -->
                         <div class="flex gap-3 mb-8 overflow-x-auto pb-2 custom-scrollbar no-scrollbar">
                             <select id="categoryFilter" onchange="loadPortfolios()" class="px-6 py-3 bg-white border border-slate-200 rounded-xl font-black text-[10px] uppercase tracking-widest text-slate-600 focus:ring-4 focus:ring-sky-100 outline-none cursor-pointer">
-                                <option value="">ALL CLASSIFICATIONS</option>
-                                <option value="3d_modeling">3D MODELING</option>
-                                <option value="design">DESIGN</option>
-                                <option value="coding">DEVELOPMENT</option>
-                                <option value="other">OTHER</option>
+                                <option value="">모든 카테고리</option>
+                                <option value="3d_modeling">3D 모델링</option>
+                                <option value="design">디자인</option>
+                                <option value="coding">개발/코딩</option>
+                                <option value="other">기타</option>
                             </select>
                             <select id="featuredFilter" onchange="loadPortfolios()" class="px-6 py-3 bg-white border border-slate-200 rounded-xl font-black text-[10px] uppercase tracking-widest text-slate-600 focus:ring-4 focus:ring-sky-100 outline-none cursor-pointer">
-                                <option value="">ALL ASSETS</option>
-                                <option value="true">FEATURED ONLY</option>
+                                <option value="">모든 중요도</option>
+                                <option value="true">우수작만 보기</option>
                             </select>
                         </div>
 
@@ -163,8 +163,8 @@ export const teacherPortfoliosHtml = `
                         <i class="fas fa-briefcase text-sm"></i>
                     </div>
                     <div>
-                        <h3 class="font-black text-slate-900 uppercase tracking-tight" id="modalTitle">Register Academic Asset</h3>
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Asset Metadata Configuration</p>
+                        <h3 class="font-black text-slate-900 uppercase tracking-tight" id="modalTitle">성과물 등록</h3>
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">포트폴리오 상세 정보 입력</p>
                     </div>
                 </div>
                 <button onclick="closePortfolioModal()" class="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-red-500 hover:text-white text-slate-400 transition-all">
@@ -179,67 +179,67 @@ export const teacherPortfoliosHtml = `
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
                         <div class="space-y-8">
                             <div>
-                                <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-3 underline decoration-2 underline-offset-4">Assigned Node (Student)</label>
+                                <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-3 underline decoration-2 underline-offset-4">학생 선택</label>
                                 <select id="portfolioStudentSelect" required class="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none transition-all font-bold text-slate-900 appearance-none">
-                                    <option value="">SELECT STUDENT NODE...</option>
+                                    <option value="">학생을 선택하세요</option>
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-3 underline decoration-2 underline-offset-4">Asset Label (Title)</label>
-                                <input type="text" id="portfolioTitle" required class="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none transition-all font-bold text-slate-900" placeholder="Enter output title...">
+                                <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-3 underline decoration-2 underline-offset-4">제목 (Label)</label>
+                                <input type="text" id="portfolioTitle" required class="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none transition-all font-bold text-slate-900" placeholder="제목을 입력하세요...">
                             </div>
                             <div>
-                                <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-3">Classification</label>
+                                <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-3">분류 (Classification)</label>
                                 <select id="portfolioCategory" class="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none transition-all font-bold text-slate-900 appearance-none">
-                                    <option value="3d_modeling">3D MODELING</option>
-                                    <option value="design">VISUAL DESIGN</option>
-                                    <option value="coding">CODE ARCHITECTURE</option>
-                                    <option value="other">GENERIC OUTPUT</option>
+                                    <option value="3d_modeling">3D 모델링</option>
+                                    <option value="design">시각 디자인</option>
+                                    <option value="coding">개발/코딩</option>
+                                    <option value="other">기타 성과물</option>
                                 </select>
                             </div>
                         </div>
                         <div class="space-y-8">
                             <div>
-                                <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-3">Asset Intelligence (Description)</label>
-                                <textarea id="portfolioDescription" rows="5" class="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none transition-all font-medium text-slate-600 text-sm" placeholder="Provide technical context for this output..."></textarea>
+                                <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-3">상세 설명 (Description)</label>
+                                <textarea id="portfolioDescription" rows="5" class="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none transition-all font-medium text-slate-600 text-sm" placeholder="작품에 대한 기술적 설명을 입력하세요..."></textarea>
                             </div>
                             <div>
-                                <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-3">Endpoint Verification (Link)</label>
+                                <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-3">참조 링크 (URL)</label>
                                 <input type="url" id="portfolioContentUrl" class="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none transition-all font-medium text-slate-900" placeholder="https://external-resource-link.com">
                             </div>
                         </div>
                     </div>
 
                     <div class="pt-10 border-t border-slate-100">
-                        <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-4">Visual Identity (Thumbnail)</label>
+                        <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-4">대표 이미지 (썸네일)</label>
                         <div class="flex flex-col md:flex-row gap-6 items-start">
                             <div class="flex-1 w-full space-y-4">
                                 <div class="flex gap-2">
-                                    <input type="text" id="portfolioThumbnail" placeholder="Thumbnail URL Vector..." class="flex-1 px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none transition-all font-medium text-slate-900">
+                                    <input type="text" id="portfolioThumbnail" placeholder="이미지 주소를 입력하거나 업로드하세요" class="flex-1 px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none transition-all font-medium text-slate-900">
                                     <input type="file" id="thumbnailFile" accept="image/*" class="hidden" onchange="handleThumbnailUpload(this)">
                                     <button type="button" onclick="document.getElementById('thumbnailFile').click()" class="px-8 py-4 bg-slate-900 text-white font-black text-[10px] rounded-2xl hover:bg-sky-600 transition-all uppercase tracking-widest shadow-lg">
-                                        <i class="fas fa-upload mr-2"></i> Inject
+                                        <i class="fas fa-upload mr-2"></i> 업로드
                                     </button>
                                 </div>
                                 <div id="thumbnailPreview" class="hidden relative group">
                                      <img src="" class="max-h-60 rounded-[2rem] border-4 border-slate-100 shadow-xl object-contain bg-slate-50">
                                      <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-[2rem] flex items-center justify-center">
-                                         <span class="text-white font-black text-[10px] uppercase tracking-widest">Active Vector</span>
+                                         <span class="text-white font-black text-[10px] uppercase tracking-widest">미리보기</span>
                                      </div>
                                 </div>
                             </div>
                             <div class="w-full md:w-96">
-                                <label class="block text-[10px] font-black text-purple-600 uppercase tracking-widest mb-3 underline decoration-2 underline-offset-4">Instructor Feedback (Guidance)</label>
-                                <textarea id="portfolioTeacherFeedback" rows="6" class="w-full px-6 py-4 bg-purple-50/30 border border-purple-100 rounded-2xl focus:ring-4 focus:ring-purple-100 outline-none transition-all font-medium text-slate-700 text-sm" placeholder="Provide professional guidance and critique..."></textarea>
+                                <label class="block text-[10px] font-black text-purple-600 uppercase tracking-widest mb-3 underline decoration-2 underline-offset-4">강사 피드백 (멘토링)</label>
+                                <textarea id="portfolioTeacherFeedback" rows="6" class="w-full px-6 py-4 bg-purple-50/30 border border-purple-100 rounded-2xl focus:ring-4 focus:ring-purple-100 outline-none transition-all font-medium text-slate-700 text-sm" placeholder="학생에게 전달할 피드백을 작성하세요..."></textarea>
                             </div>
                         </div>
                     </div>
                 </form>
             </div>
              <div class="px-12 py-8 bg-slate-50/50 border-t border-slate-100 flex justify-end gap-4">
-                <button type="button" onclick="closePortfolioModal()" class="px-8 py-4 bg-white border border-slate-200 text-slate-400 font-black text-[11px] rounded-2xl uppercase tracking-widest hover:bg-slate-100 transition-all">Abort</button>
+                <button type="button" onclick="closePortfolioModal()" class="px-8 py-4 bg-white border border-slate-200 text-slate-400 font-black text-[11px] rounded-2xl uppercase tracking-widest hover:bg-slate-100 transition-all">취소</button>
                 <button type="submit" form="portfolioForm" class="px-12 py-4 bg-sky-600 text-white font-black text-[11px] rounded-2xl uppercase tracking-widest hover:bg-slate-900 transition-all shadow-xl shadow-sky-100">
-                    <i class="fas fa-save mr-2"></i> Save Asset Intelligence
+                    <i class="fas fa-save mr-2"></i> 성과물 저장
                 </button>
             </div>
         </div>
@@ -262,8 +262,8 @@ export const teacherPortfoliosHtml = `
                         <div class="flex items-center gap-4">
                             <div class="w-12 h-12 rounded-2xl bg-slate-900 flex items-center justify-center text-white font-black shadow-xl" id="modalStudentInitial">S</div>
                             <div>
-                                <h4 class="font-black text-slate-900 tracking-tight" id="modalStudentName">Student Name</h4>
-                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest" id="modalCourseTitle">Academic Module</p>
+                                <h4 class="font-black text-slate-900 tracking-tight" id="modalStudentName">학생 이름</h4>
+                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest" id="modalCourseTitle">과정 명</p>
                             </div>
                         </div>
                         <button onclick="closeDetailModal()" class="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-100 text-slate-400 hover:bg-red-500 hover:text-white transition-all">
@@ -273,29 +273,29 @@ export const teacherPortfoliosHtml = `
 
                     <div class="space-y-10">
                         <div>
-                            <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Technical Description</span>
+                            <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">기술 상세 설명</span>
                             <p id="modalDescription" class="text-slate-600 leading-relaxed font-medium text-sm"></p>
                         </div>
                         
                         <div id="modalTeacherFeedbackSection" class="p-8 bg-sky-50 rounded-[2rem] border border-sky-100 relative overflow-hidden">
                             <div class="absolute -right-4 -bottom-4 w-20 h-20 bg-sky-200/20 rounded-full blur-2xl"></div>
-                            <span class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-3 relative z-10">Instructor Curation</span>
+                            <span class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-3 relative z-10">강사 피드백</span>
                             <p id="modalFeedbackText" class="text-slate-700 text-sm font-bold relative z-10 italic leading-relaxed"></p>
                         </div>
                     </div>
                 </div>
                 <div class="p-12 bg-slate-50 border-t border-slate-100 grid grid-cols-2 gap-4">
                     <a id="modalContentLink" href="#" target="_blank" class="px-6 py-4 bg-slate-900 text-white font-black text-[10px] rounded-2xl hover:bg-sky-600 transition-all text-center uppercase tracking-widest shadow-xl">
-                        View Asset Source
+                        소스 보기
                     </a>
                     <button id="modalFeaturedBtn" onclick="toggleFeatured()" class="px-6 py-4 bg-white border border-slate-200 text-slate-600 font-black text-[10px] rounded-2xl hover:border-yellow-400 hover:text-yellow-600 transition-all text-center uppercase tracking-widest">
-                        Feature Asset
+                        우수작 선정
                     </button>
                     <button onclick="openEditPortfolioModal()" class="px-6 py-4 bg-white border border-slate-200 text-slate-600 font-black text-[10px] rounded-2xl hover:bg-sky-50 transition-all text-center uppercase tracking-widest">
-                        Edit Metadata
+                        정보 수정
                     </button>
                     <button onclick="deletePortfolio()" class="px-6 py-4 bg-white border border-red-100 text-red-400 font-black text-[10px] rounded-2xl hover:bg-red-500 hover:text-white transition-all text-center uppercase tracking-widest">
-                        Purge Asset
+                        영구 삭제
                     </button>
                 </div>
             </div>
@@ -338,12 +338,12 @@ export const teacherPortfoliosHtml = `
                         '<div class="w-14 h-14 rounded-2xl bg-sky-50 flex items-center justify-center text-sky-600 group-hover:bg-sky-600 group-hover:text-white transition-all duration-500 shadow-sm border border-sky-100">' +
                             '<i class="fas fa-cube text-lg font-black"></i>' +
                         '</div>' +
-                        '<span class="px-3 py-1 bg-slate-50 text-slate-400 text-[10px] font-black rounded-full uppercase tracking-widest">Sync Ready</span>' +
+                        '<span class="px-3 py-1 bg-slate-50 text-slate-400 text-[10px] font-black rounded-full uppercase tracking-widest">접속 가능</span>' +
                     '</div>' +
                     '<div>' +
                         '<h3 class="text-xl font-black text-slate-900 tracking-tight group-hover:text-sky-600 transition-colors mb-2 line-clamp-2">' + course.title + '</h3>' +
                         '<div class="mt-6 flex items-center justify-between pt-6 border-t border-slate-50">' +
-                             '<span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">' + (course.current_students || 0) + ' Intelligence Nodes</span>' +
+                             '<span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">' + (course.current_students || 0) + '명의 수강생</span>' +
                              '<div class="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-50 group-hover:bg-sky-600 group-hover:text-white transition-all shadow-inner"><i class="fas fa-chevron-right text-[10px]"></i></div>' +
                         '</div>' +
                     '</div>' +
@@ -427,7 +427,7 @@ export const teacherPortfoliosHtml = `
         }
 
         function openAddPortfolioModal() {
-            document.getElementById('modalTitle').textContent = 'Register Academic Asset';
+            document.getElementById('modalTitle').textContent = '새 성과물 등록';
             document.getElementById('portfolioForm').reset();
             document.getElementById('portfolioId').value = '';
             document.getElementById('thumbnailPreview').classList.add('hidden');
@@ -438,7 +438,7 @@ export const teacherPortfoliosHtml = `
             const p = allPortfolios.find(x => x.id === id);
             if(!p) return;
             currentPortfolio = p;
-            document.getElementById('modalTitle').textContent = 'Edit Asset Metadata';
+            document.getElementById('modalTitle').textContent = '성과물 정보 수정';
             document.getElementById('portfolioId').value = p.id;
             document.getElementById('portfolioStudentSelect').value = p.student_id;
             document.getElementById('portfolioTitle').value = p.title || '';
@@ -476,7 +476,7 @@ export const teacherPortfoliosHtml = `
                 headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
                 body: JSON.stringify(data)
             });
-            if((await res.json()).success) { alert('Asset Vector Synchronized'); closePortfolioModal(); loadPortfolios(); }
+            if((await res.json()).success) { alert('성공적으로 저장되었습니다.'); closePortfolioModal(); loadPortfolios(); }
         }
 
         async function handleThumbnailUpload(input) {
@@ -498,13 +498,13 @@ export const teacherPortfoliosHtml = `
             document.getElementById('modalThumbnail').src = p.thumbnail_url || 'https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=800';
             document.getElementById('modalCategory').textContent = p.category || 'ASSET';
             document.getElementById('modalTitleDetail').textContent = p.title;
-            document.getElementById('modalDescription').textContent = p.description || 'No technical specifications provided.';
-            document.getElementById('modalStudentName').textContent = p.student_name || 'Node Unknown';
-            document.getElementById('modalCourseTitle').textContent = p.course_title || 'Module Unknown';
+            document.getElementById('modalDescription').textContent = p.description || '기술 설명이 제공되지 않았습니다.';
+            document.getElementById('modalStudentName').textContent = p.student_name || '알 수 없음';
+            document.getElementById('modalCourseTitle').textContent = p.course_title || '과정 정보 없음';
             document.getElementById('modalStudentInitial').textContent = (p.student_name || 'N')[0];
-            document.getElementById('modalFeedbackText').textContent = p.teacher_feedback || 'No instructor curation logs detected.';
+            document.getElementById('modalFeedbackText').textContent = p.teacher_feedback || '등록된 강사 피드백이 없습니다.';
             document.getElementById('modalContentLink').href = p.content_url || '#';
-            document.getElementById('modalFeaturedBtn').innerHTML = p.is_featured ? 'UN-FEATURE ASSET' : 'FEATURE ASSET';
+            document.getElementById('modalFeaturedBtn').innerHTML = p.is_featured ? '우수작 해제' : '우수작 선정';
             document.getElementById('detailModal').classList.remove('hidden');
         }
 
@@ -519,9 +519,9 @@ export const teacherPortfoliosHtml = `
         }
 
         async function deletePortfolioById(id) {
-            if(!confirm('Permanently purge this asset from the repository?')) return;
+            if(!confirm('이 성과물을 완전히 삭제하시겠습니까?')) return;
             const res = await fetch('/api/portfolios/' + id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
-            if((await res.json()).success) { alert('Asset Purged'); closeDetailModal(); loadPortfolios(); }
+            if((await res.json()).success) { alert('삭제되었습니다.'); closeDetailModal(); loadPortfolios(); }
         }
 
         function deletePortfolio() { if(currentPortfolio) deletePortfolioById(currentPortfolio.id); }

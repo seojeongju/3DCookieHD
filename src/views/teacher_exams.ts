@@ -6,7 +6,7 @@ export const teacherExamsHtml = `
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Evaluation Intelligence Hub - 3D Cookie</title>
+    <title>평가 지능 허브 - 3D Cookie</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -57,18 +57,18 @@ export const teacherExamsHtml = `
                 <div class="flex flex-col">
                     <h1 class="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
                         평가 및 채점 지능
-                        <span class="text-[10px] bg-purple-600 text-white px-2 py-0.5 rounded-full uppercase tracking-widest font-black">Evaluation</span>
+                        <span class="text-[10px] bg-purple-600 text-white px-2 py-0.5 rounded-full uppercase tracking-widest font-black">평가</span>
                     </h1>
-                    <p class="text-xs font-medium text-slate-500 mt-0.5 tracking-tight uppercase">Outcome Assessment & Logic Validation Engine</p>
+                    <p class="text-xs font-medium text-slate-500 mt-0.5 tracking-tight uppercase">학습 성과 평가 및 채점 시스템</p>
                 </div>
                 <div class="flex items-center gap-4">
                     <button onclick="location.href='/teacher'" class="px-4 py-2 bg-white border border-slate-200 text-[10px] font-black rounded-xl hover:bg-slate-50 transition uppercase tracking-widest flex items-center gap-2 shadow-sm">
-                        <i class="fas fa-arrow-left"></i> Dashboard
+                        <i class="fas fa-arrow-left"></i> 대시보드
                     </button>
                     <div class="flex items-center gap-3 pl-4 border-l border-slate-200">
                         <div class="text-right flex flex-col uppercase tracking-tighter">
-                            <span id="header-user-name" class="text-xs font-black text-slate-900">Instructor Name</span>
-                            <span class="text-[9px] font-black text-slate-400">Validator Mode</span>
+                            <span id="header-user-name" class="text-xs font-black text-slate-900">강사명</span>
+                            <span class="text-[9px] font-black text-slate-400">평가원 모드</span>
                         </div>
                     </div>
                 </div>
@@ -85,7 +85,7 @@ export const teacherExamsHtml = `
                             </div>
                             <div>
                                 <h2 class="text-xl font-black text-slate-800 tracking-tight">평가 대상 과정 선택</h2>
-                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Select Academic Cluster for Outcome Validation</p>
+                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">시험 및 평가를 진행할 과정을 선택하세요</p>
                             </div>
                         </div>
 
@@ -93,7 +93,7 @@ export const teacherExamsHtml = `
                             <!-- JS Load -->
                             <div class="col-span-full py-20 flex flex-col items-center justify-center bg-white rounded-[2.5rem] border border-dashed border-slate-200">
                                 <i class="fas fa-spinner fa-spin text-3xl text-indigo-500 mb-4"></i>
-                                <p class="text-slate-400 font-black text-sm uppercase tracking-widest">Loading Academic Outcome Protocols...</p>
+                                <p class="text-slate-400 font-black text-sm uppercase tracking-widest">평가 데이터를 불러오는 중...</p>
                             </div>
                         </div>
                     </div>
@@ -106,16 +106,16 @@ export const teacherExamsHtml = `
                                     <i class="fas fa-chevron-left text-sm"></i>
                                 </button>
                                 <div>
-                                    <h2 class="text-2xl font-black text-slate-900 tracking-tight" id="selectedCourseTitle">Cluster Evaluation Hub</h2>
+                                    <h2 class="text-2xl font-black text-slate-900 tracking-tight" id="selectedCourseTitle">과정 평가 관리</h2>
                                     <div class="flex items-center gap-3 mt-1">
-                                        <span class="px-2 py-0.5 bg-purple-50 text-purple-600 text-[10px] font-black rounded-full uppercase tracking-widest border border-purple-100/50">Core Metrics</span>
-                                        <span class="text-xs font-bold text-slate-400">Monitoring Evaluation Scripts</span>
+                                        <span class="px-2 py-0.5 bg-purple-50 text-purple-600 text-[10px] font-black rounded-full uppercase tracking-widest border border-purple-100/50">핵심 지표</span>
+                                        <span class="text-xs font-bold text-slate-400">평가 스크립트 모니터링</span>
                                     </div>
                                 </div>
                             </div>
                             
                             <button onclick="openCreateExamModal()" class="px-8 py-4 bg-indigo-600 text-white font-black text-[10px] rounded-2xl hover:bg-slate-900 transition-all uppercase tracking-widest shadow-lg shadow-indigo-100 flex items-center gap-3">
-                                <i class="fas fa-plus"></i> Deploy New Evaluation
+                                <i class="fas fa-plus"></i> 새 평가 출제
                             </button>
                         </div>
 
@@ -124,11 +124,11 @@ export const teacherExamsHtml = `
                             <table class="w-full text-left border-collapse">
                                 <thead>
                                     <tr class="bg-slate-50/50 border-b border-slate-100">
-                                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Evaluation Script</th>
-                                        <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Time Parameter</th>
-                                        <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Execution Status</th>
-                                        <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Deployment Date</th>
-                                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-right">Operational Actions</th>
+                                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">평가 제목</th>
+                                        <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">제한 시간</th>
+                                        <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">진행 상태</th>
+                                        <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">출제일</th>
+                                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-right">관리</th>
                                     </tr>
                                 </thead>
                                 <tbody id="examsTableBody" class="divide-y divide-slate-50 text-sm">
@@ -153,8 +153,8 @@ export const teacherExamsHtml = `
                         <i class="fas fa-terminal text-sm"></i>
                     </div>
                     <div>
-                        <h3 class="font-black text-slate-900 uppercase tracking-tight" id="examModalTitle">Deploly Evaluation Script</h3>
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Outcome Logic Configuration</p>
+                        <h3 class="font-black text-slate-900 uppercase tracking-tight" id="examModalTitle">새 평가 출제</h3>
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">평가 내용 및 채점 기준 설정</p>
                     </div>
                 </div>
                 <button onclick="closeModal('createExamModal')" class="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-red-500 hover:text-white text-slate-400 transition-all">
@@ -168,18 +168,18 @@ export const teacherExamsHtml = `
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
                         <div class="space-y-8">
                             <div>
-                                <label class="block text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-3 underline decoration-2 underline-offset-4">Script Title</label>
-                                <input type="text" id="examTitle" required class="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-100 outline-none transition-all font-bold text-slate-900" placeholder="Enter evaluation script title...">
+                                <label class="block text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-3 underline decoration-2 underline-offset-4">시험 제목</label>
+                                <input type="text" id="examTitle" required class="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-100 outline-none transition-all font-bold text-slate-900" placeholder="시험 제목을 입력하세요...">
                             </div>
                             <div>
-                                <label class="block text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-3">Operational Parameters</label>
+                                <label class="block text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-3">시험 설정</label>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200">
-                                        <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Time limit (Min)</span>
+                                        <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">제한 시간 (분)</span>
                                         <input type="number" id="examTimeLimit" value="60" min="1" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 font-black text-indigo-600 focus:ring-4 focus:ring-indigo-100 outline-none">
                                     </div>
                                     <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200 flex items-center justify-between">
-                                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active State</span>
+                                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">진행 상태</span>
                                         <label class="relative inline-flex items-center cursor-pointer">
                                             <input type="checkbox" id="examIsActive" checked class="sr-only peer">
                                             <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
@@ -189,22 +189,22 @@ export const teacherExamsHtml = `
                             </div>
                         </div>
                         <div>
-                            <label class="block text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-3 underline decoration-2 underline-offset-4">Intelligence Metadata</label>
-                            <textarea id="examDescription" rows="5" class="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-100 outline-none transition-all font-medium text-slate-600 text-sm" placeholder="Provide operational context for this evaluation..."></textarea>
+                            <label class="block text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-3 underline decoration-2 underline-offset-4">시험 설명</label>
+                            <textarea id="examDescription" rows="5" class="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-100 outline-none transition-all font-medium text-slate-600 text-sm" placeholder="시험에 대한 설명 및 유의사항을 입력하세요..."></textarea>
                         </div>
                     </div>
 
                     <div class="pt-12 border-t border-slate-100">
                         <div class="flex flex-col md:flex-row justify-between items-center gap-6 mb-8">
-                            <h4 class="text-xl font-black text-slate-900 uppercase tracking-tight">Outcome Validation Blocks (Questions)</h4>
+                            <h4 class="text-xl font-black text-slate-900 uppercase tracking-tight">문제 관리</h4>
                             <div class="flex items-center gap-3">
                                 <select id="questionTypeSelect" class="bg-slate-100 px-4 py-3 rounded-xl border-none font-black text-[10px] uppercase tracking-widest outline-none focus:ring-4 focus:ring-indigo-100 transition-all">
-                                    <option value="multiple_choice">MULTIPLE CHOICE</option>
-                                    <option value="short_answer">SHORT ANSWER</option>
-                                    <option value="essay">ESSAY LOGIC</option>
+                                    <option value="multiple_choice">객관식</option>
+                                    <option value="short_answer">단답형</option>
+                                    <option value="essay">서술형</option>
                                 </select>
                                 <button type="button" onclick="addQuestion()" class="px-6 py-3 bg-slate-900 text-white font-black text-[10px] rounded-xl hover:bg-indigo-600 transition-all uppercase tracking-widest shadow-lg">
-                                    + Add Block
+                                    + 문제 추가
                                 </button>
                             </div>
                         </div>
@@ -215,9 +215,9 @@ export const teacherExamsHtml = `
                 </form>
             </div>
             <div class="px-12 py-8 bg-slate-50/50 border-t border-slate-100 flex justify-end items-center gap-4">
-                <button type="button" onclick="closeModal('createExamModal')" class="px-8 py-4 bg-white border border-slate-200 text-slate-400 font-black text-[11px] rounded-2xl uppercase tracking-widest hover:bg-slate-100 transition-all">Abort</button>
+                <button type="button" onclick="closeModal('createExamModal')" class="px-8 py-4 bg-white border border-slate-200 text-slate-400 font-black text-[11px] rounded-2xl uppercase tracking-widest hover:bg-slate-100 transition-all">취소</button>
                 <button type="submit" form="examForm" class="px-12 py-4 bg-indigo-600 text-white font-black text-[11px] rounded-2xl uppercase tracking-widest hover:bg-slate-900 transition-all shadow-xl shadow-indigo-100 overflow-hidden relative group">
-                    <span class="relative z-10 flex items-center gap-3"><i class="fas fa-save"></i> Execute Deployment</span>
+                    <span class="relative z-10 flex items-center gap-3"><i class="fas fa-save"></i> 출제 완료</span>
                     <div class="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-700 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 </button>
             </div>
@@ -233,8 +233,8 @@ export const teacherExamsHtml = `
                         <i class="fas fa-check-double text-sm"></i>
                     </div>
                     <div>
-                        <h3 class="font-black text-slate-900 uppercase tracking-tight">Outcome Performance Validation</h3>
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Manual Truth Validation Engine</p>
+                        <h3 class="font-black text-slate-900 uppercase tracking-tight">평가 결과 및 채점</h3>
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">수동 채점 및 결과 확인</p>
                     </div>
                 </div>
                 <button onclick="closeModal('gradeModal')" class="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-red-500 hover:text-white text-slate-400 transition-all">
@@ -272,7 +272,7 @@ export const teacherExamsHtml = `
                 const courses = result.success ? result.data : [];
                 const grid = document.getElementById('coursesGrid');
                 if (courses.length === 0) {
-                    grid.innerHTML = '<div class="col-span-full py-20 text-center text-slate-400 font-black uppercase text-xs">No outcome sources available for validation</div>';
+                    grid.innerHTML = '<div class="col-span-full py-20 text-center text-slate-400 font-black uppercase text-xs">등록된 과정이 없습니다.</div>';
                     return;
                 }
 
@@ -282,19 +282,19 @@ export const teacherExamsHtml = `
                             '<div class="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-500 shadow-sm border border-indigo-100">' +
                                 '<i class="fas fa-clipboard-check text-lg"></i>' +
                             '</div>' +
-                            '<span class="px-2 py-1 bg-slate-50 text-slate-400 text-[10px] font-black rounded-full uppercase tracking-widest border border-slate-100">Ready</span>' +
+                                    '<span class="px-2 py-1 bg-slate-50 text-slate-400 text-[10px] font-black rounded-full uppercase tracking-widest border border-slate-100">출제 가능</span>' +
                         '</div>' +
                         '<div>' +
                             '<h3 class="text-xl font-black text-slate-900 tracking-tight group-hover:text-indigo-600 transition-colors mb-2 line-clamp-2">' + course.title + '</h3>' +
                             '<div class="flex items-center gap-4 mt-6">' +
                                 '<div class="flex flex-col">' +
-                                    '<span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Type</span>' +
-                                    '<span class="text-[10px] font-black text-indigo-500 uppercase">' + (course.category || 'Standard') + '</span>' +
+                                    '<span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">분류</span>' +
+                                    '<span class="text-[10px] font-black text-indigo-500 uppercase">' + (course.category || '일반 과정') + '</span>' +
                                 '</div>' +
                                 '<div class="w-px h-6 bg-slate-100"></div>' +
                                 '<div class="flex flex-col">' +
-                                    '<span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Cluster Size</span>' +
-                                    '<span class="text-[10px] font-black text-indigo-500 uppercase">' + (course.current_students || 0) + ' Nodes</span>' +
+                                    '<span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">수강 인원</span>' +
+                                    '<span class="text-[10px] font-black text-indigo-500 uppercase">' + (course.current_students || 0) + '명</span>' +
                                 '</div>' +
                             '</div>' +
                         '</div>' +
@@ -325,7 +325,7 @@ export const teacherExamsHtml = `
                 const exams = (result.success ? result.data : []).filter(e => e.course_id === selectedCourseId);
                 const tbody = document.getElementById('examsTableBody');
                 if (exams.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5" class="px-8 py-20 text-center text-slate-400 font-black uppercase text-xs">No active evaluation scripts deployed for this cluster</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="5" class="px-8 py-20 text-center text-slate-400 font-black uppercase text-xs">등록된 평가가 없습니다.</td></tr>';
                     return;
                 }
 
@@ -337,14 +337,14 @@ export const teacherExamsHtml = `
                                 '<span class="text-sm font-black text-slate-900 tracking-tight group-hover:text-indigo-600 transition-colors">' + exam.title + '</span>' +
                             '</div>' +
                         '</td>' +
-                        '<td class="px-6 py-6 text-xs font-bold text-slate-500 tracking-tight">' + (exam.time_limit_minutes || 60) + ' MIN DELAY</td>' +
+                        '<td class="px-6 py-6 text-xs font-bold text-slate-500 tracking-tight">' + (exam.time_limit_minutes || 60) + '분</td>' +
                         '<td class="px-6 py-6 text-center">' +
-                            '<span class="px-3 py-1 ' + (exam.is_active ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600') + ' text-[10px] font-black rounded-full uppercase tracking-widest">' + (exam.is_active ? 'Operational' : 'Disabled') + '</span>' +
+                            '<span class="px-3 py-1 ' + (exam.is_active ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600') + ' text-[10px] font-black rounded-full uppercase tracking-widest">' + (exam.is_active ? '진행중' : '마감') + '</span>' +
                         '</td>' +
                         '<td class="px-6 py-6 text-xs font-bold text-slate-400 tracking-widest uppercase">' + (exam.created_at ? exam.created_at.split('T')[0] : '-') + '</td>' +
                         '<td class="px-8 py-6 text-right">' +
                              '<div class="flex justify-end gap-2">' +
-                                '<button onclick="viewExamStatus(' + exam.id + ')" class="w-9 h-9 flex items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all shadow-sm" title="Performance Analysis">' +
+                                '<button onclick="viewExamStatus(' + exam.id + ')" class="w-9 h-9 flex items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all shadow-sm" title="평가 결과 분석">' +
                                     '<i class="fas fa-chart-line text-xs"></i>' +
                                 '</button>' +
                                 '<button onclick="editExam(' + exam.id + ')" class="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:bg-slate-900 hover:text-white transition-all shadow-sm">' +
@@ -362,7 +362,7 @@ export const teacherExamsHtml = `
 
         function openCreateExamModal() {
             currentExamId = null;
-            document.getElementById('examModalTitle').textContent = 'Deploy Evaluation Script';
+            document.getElementById('examModalTitle').textContent = '새 평가 출제';
             document.getElementById('examForm').reset();
             document.getElementById('examId').value = '';
             document.getElementById('questionsContainer').innerHTML = '';
@@ -379,8 +379,8 @@ export const teacherExamsHtml = `
                 '<div class="bg-white rounded-[2.5rem] p-8 border border-slate-200/60 shadow-sm relative overflow-hidden group/q" data-question-id="' + qId + '">' +
                     '<div class="flex justify-between items-center mb-8">' +
                         '<div class="flex items-center gap-4">' +
-                            '<span class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 font-black text-xs border border-slate-200 shadow-inner group-hover/q:bg-indigo-600 group-hover/q:text-white transition-all duration-500">Block #' + questionCounter + '</span>' +
-                            '<span class="px-3 py-1 bg-slate-50 text-slate-400 text-[9px] font-black rounded-full uppercase tracking-widest border border-slate-100">' + type.replace('_', ' ') + '</span>' +
+                            '<span class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 font-black text-xs border border-slate-200 shadow-inner group-hover/q:bg-indigo-600 group-hover/q:text-white transition-all duration-500">문제 #' + questionCounter + '</span>' +
+                            '<span class="px-3 py-1 bg-slate-50 text-slate-400 text-[9px] font-black rounded-full uppercase tracking-widest border border-slate-100">' + (type === 'multiple_choice' ? '객관식' : (type === 'short_answer' ? '단답형' : '서술형')) + '</span>' +
                         '</div>' +
                         '<button type="button" onclick="removeQuestion(\'' + qId + '\')" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-500 hover:text-white text-slate-300 transition-all">' +
                             '<i class="fas fa-trash-alt text-[10px]"></i>' +
@@ -389,20 +389,20 @@ export const teacherExamsHtml = `
                     '<div class="space-y-6">' +
                         '<input type="hidden" class="question-type" value="' + type + '">' +
                         '<div>' +
-                            '<label class="block text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-2 underline decoration-2 underline-offset-4">Logic Statement (Question text)</label>' +
-                            '<textarea class="question-text w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-100 outline-none transition-all font-bold text-slate-900 text-sm" rows="2" placeholder="Input analytical inquiry..."></textarea>' +
+                            '<label class="block text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-2 underline decoration-2 underline-offset-4">질문 내용</label>' +
+                            '<textarea class="question-text w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-100 outline-none transition-all font-bold text-slate-900 text-sm" rows="2" placeholder="질문을 입력하세요..."></textarea>' +
                         '</div>' +
                         '<div id="options_' + qId + '" class="' + (type === 'multiple_choice' ? '' : 'hidden') + '">' +
-                            '<label class="block text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-2 underline decoration-2 underline-offset-4">Logic Parameters (Options)</label>' +
-                            '<textarea class="question-options w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-100 outline-none transition-all font-medium text-slate-600 text-sm" rows="3" placeholder="Param A\\nParam B\\nParam C..."></textarea>' +
+                            '<label class="block text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-2 underline decoration-2 underline-offset-4">보기 항목 (줄바꿈으로 구분)</label>' +
+                            '<textarea class="question-options w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-100 outline-none transition-all font-medium text-slate-600 text-sm" rows="3" placeholder="보기1\\n보기2\\n보기3..."></textarea>' +
                         '</div>' +
                         '<div class="grid grid-cols-1 md:grid-cols-2 gap-6">' +
                             '<div>' +
-                                '<label class="block text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-2 underline decoration-2 underline-offset-4">True Value (Correct Answer)</label>' +
-                                '<input type="text" class="question-answer w-full px-6 py-4 bg-emerald-50/30 border border-emerald-100 rounded-2xl focus:ring-4 focus:ring-emerald-100 outline-none transition-all font-black text-emerald-600 placeholder-emerald-300" placeholder="Expected true value...">' +
+                                '<label class="block text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-2 underline decoration-2 underline-offset-4">정답</label>' +
+                                '<input type="text" class="question-answer w-full px-6 py-4 bg-emerald-50/30 border border-emerald-100 rounded-2xl focus:ring-4 focus:ring-emerald-100 outline-none transition-all font-black text-emerald-600 placeholder-emerald-300" placeholder="정답을 입력하세요...">' +
                             '</div>' +
                             '<div>' +
-                                '<label class="block text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-2 underline decoration-2 underline-offset-4">Weight Pulse (Points)</label>' +
+                                '<label class="block text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-2 underline decoration-2 underline-offset-4">배점</label>' +
                                 '<input type="number" class="question-points w-full px-6 py-4 bg-indigo-50/30 border border-indigo-100 rounded-2xl focus:ring-4 focus:ring-indigo-100 outline-none transition-all font-black text-indigo-600" value="5">' +
                             '</div>' +
                         '</div>' +
@@ -444,7 +444,7 @@ export const teacherExamsHtml = `
                 headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
                 body: JSON.stringify(data)
             });
-            if ((await res.json()).success) { alert('Cluster Evaluation Deployed'); closeModal('createExamModal'); loadExams(); }
+            if ((await res.json()).success) { alert('평가가 등록되었습니다.'); closeModal('createExamModal'); loadExams(); }
         }
 
         async function viewExamStatus(id) {
@@ -475,10 +475,10 @@ export const teacherExamsHtml = `
                     '<table class="w-full text-left">' +
                         '<thead>' +
                             '<tr class="bg-slate-50/50 border-b border-slate-100 uppercase text-[10px] font-black text-slate-400 tracking-widest">' +
-                                '<th class="px-8 py-5">Node Identity</th>' +
-                                '<th class="px-6 py-5">Sync Status</th>' +
-                                '<th class="px-6 py-5">Accuracy Score</th>' +
-                                '<th class="px-8 py-5 text-right">Validation</th>' +
+                                '<th class="px-8 py-5">이름</th>' +
+                                '<th class="px-6 py-5">상태</th>' +
+                                '<th class="px-6 py-5">점수</th>' +
+                                '<th class="px-8 py-5 text-right">채점</th>' +
                             '</tr>' +
                         '</thead>' +
                         '<tbody class="divide-y divide-slate-50">' +
@@ -487,12 +487,12 @@ export const teacherExamsHtml = `
                                     '<td class="px-8 py-6 font-black text-slate-800 tracking-tight">' + s.name + '</td>' +
                                     '<td class="px-6 py-6">' +
                                         '<span class="px-3 py-1 ' + (s.has_submitted ? (s.status === 'graded' ? 'bg-indigo-600 text-white' : 'bg-orange-500 text-white') : 'bg-slate-100 text-slate-400') + ' text-[9px] font-black rounded-full uppercase tracking-widest">' +
-                                            (s.has_submitted ? (s.status === 'graded' ? 'Validated' : 'Requires Review') : 'Pending') +
+                                            (s.has_submitted ? (s.status === 'graded' ? '채점 완료' : '채점 대기') : '미제출') +
                                         '</span>' +
                                     '</td>' +
                                     '<td class="px-6 py-6 font-black text-slate-700 font-mono">' + (s.score !== null ? s.score + ' pt' : '-') + '</td>' +
                                     '<td class="px-8 py-6 text-right">' +
-                                        (s.has_submitted ? '<button onclick="gradeSubmission(' + id + ', ' + s.submission_id + ', \'' + (s.name.replace(/'/g, "\\'")) + '\')" class="px-6 py-3 bg-slate-900 hover:bg-indigo-600 text-white font-black text-[9px] rounded-xl uppercase tracking-widest transition-all shadow-lg">Begin Validation</button>' : '-') +
+                                        (s.has_submitted ? '<button onclick="gradeSubmission(' + id + ', ' + s.submission_id + ', \'' + (s.name.replace(/'/g, "\\'")) + '\')" class="px-6 py-3 bg-slate-900 hover:bg-indigo-600 text-white font-black text-[9px] rounded-xl uppercase tracking-widest transition-all shadow-lg">채점 하기</button>' : '-') +
                                     '</td>' +
                                 '</tr>'
                             ).join('') +
@@ -509,41 +509,41 @@ export const teacherExamsHtml = `
             const { questions, submission } = result.data;
             currentSubmissionId = submissionId;
             let html = '<div class="mb-12">' +
-                    '<h4 class="text-3xl font-black text-slate-900 tracking-tight mb-2 underline decoration-indigo-600/30 underline-offset-8">Truth Validation: ' + name + '</h4>' +
-                    '<p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-4">Sync Timestamp: ' + (submission.submitted_at || 'Unknown') + '</p>' +
+                    '<h4 class="text-3xl font-black text-slate-900 tracking-tight mb-2 underline decoration-indigo-600/30 underline-offset-8">답안 채점: ' + name + '</h4>' +
+                    '<p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-4">제출 시각: ' + (submission.submitted_at || 'Unknown') + '</p>' +
                 '</div>' +
                 '<form id="gradeForm" onsubmit="handleGradeSubmit(event)" class="space-y-8">' +
                      questions.map((q, idx) => 
                         '<div class="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm space-y-8 group/q">' +
                             '<div class="flex justify-between items-center">' +
                                 '<span class="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center text-white font-black text-xs">#' + (idx+1) + '</span>' +
-                                '<span class="px-3 py-1 bg-indigo-50 text-indigo-600 text-[10px] font-black rounded-full uppercase tracking-widest border border-indigo-100">' + q.question_type.toUpperCase() + '</span>' +
+                                '<span class="px-3 py-1 bg-indigo-50 text-indigo-600 text-[10px] font-black rounded-full uppercase tracking-widest border border-indigo-100">' + (q.question_type === 'multiple_choice' ? '객관식' : (q.question_type === 'short_answer' ? '단답형' : '서술형')) + '</span>' +
                             '</div>' +
                             '<div class="grid grid-cols-1 lg:grid-cols-2 gap-12">' +
                                 '<div class="space-y-6">' +
                                     '<div>' +
-                                        '<span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Logic Inquiry</span>' +
+                                        '<span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">질문 내용</span>' +
                                         '<div class="p-6 bg-slate-50 rounded-2xl border border-slate-200 text-sm font-bold text-slate-900 leading-relaxed overflow-x-auto">' + q.question_text + '</div>' +
                                     '</div>' +
                                     '<div>' +
-                                        '<span class="block text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-3">System Truth (Correct Answer)</span>' +
+                                        '<span class="block text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-3">모범 답안</span>' +
                                         '<div class="p-6 bg-emerald-50/30 rounded-2xl border border-emerald-100 text-sm font-black text-emerald-600">' + q.correct_answer + '</div>' +
                                     '</div>' +
                                 '</div>' +
                                 '<div class="space-y-6">' +
                                     '<div>' +
-                                        '<span class="block text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-3 underline decoration-2 underline-offset-4">Node Output (Student Answer)</span>' +
-                                        '<div class="p-6 bg-white rounded-2xl border-2 border-slate-200 text-sm font-black text-slate-900 leading-relaxed min-h-[140px] shadow-inner whitespace-pre-wrap">' + (q.student_answer || '(No response detected)') + '</div>' +
+                                        '<span class="block text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-3 underline decoration-2 underline-offset-4">학습자 답안</span>' +
+                                        '<div class="p-6 bg-white rounded-2xl border-2 border-slate-200 text-sm font-black text-slate-900 leading-relaxed min-h-[140px] shadow-inner whitespace-pre-wrap">' + (q.student_answer || '(미작성)') + '</div>' +
                                     '</div>' +
                                     (q.question_type === 'essay' ? 
                                         '<div>' +
-                                            '<span class="block text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-3">Weight Validation (Max ' + q.points + ')</span>' +
+                                            '<span class="block text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-3">채점 (최대 ' + q.points + '점)</span>' +
                                             '<input type="number" class="question-score w-full px-6 py-4 bg-indigo-50/50 border border-indigo-100 rounded-2xl font-black text-indigo-600 text-xl outline-none focus:ring-4 focus:ring-indigo-100 transition-all" data-question-id="' + q.id + '" step="0.5" max="' + q.points + '" value="' + (q.score_awarded || 0) + '">' +
                                         '</div>'
                                      : 
                                         '<div class="flex items-center gap-4">' +
                                             '<div class="p-8 flex-1 rounded-[2rem] ' + (q.is_correct ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white') + ' shadow-xl">' +
-                                                '<span class="block text-[10px] font-black uppercase tracking-[0.2em] mb-2">' + (q.is_correct ? 'Match Detected' : 'Conflict Detected') + '</span>' +
+                                                '<span class="block text-[10px] font-black uppercase tracking-[0.2em] mb-2">' + (q.is_correct ? '정답' : '오답') + '</span>' +
                                                 '<span class="text-3xl font-black tracking-tighter">' + q.score_awarded + ' / ' + q.points + ' pt</span>' +
                                             '</div>' +
                                         '</div>'
@@ -553,7 +553,7 @@ export const teacherExamsHtml = `
                         '</div>'
                      ).join('') +
                      '<div class="pt-12 flex justify-end">' +
-                         '<button type="submit" class="px-12 py-5 bg-indigo-600 text-white font-black text-[12px] rounded-[2rem] uppercase tracking-widest hover:bg-slate-900 transition-all shadow-2xl shadow-indigo-100">Synchronize Truth Map</button>' +
+                         '<button type="submit" class="px-12 py-5 bg-indigo-600 text-white font-black text-[12px] rounded-[2rem] uppercase tracking-widest hover:bg-slate-900 transition-all shadow-2xl shadow-indigo-100">채점 완료</button>' +
                      '</div>' +
                 '</form>';
             document.getElementById('gradeContent').innerHTML = html;
@@ -568,13 +568,13 @@ export const teacherExamsHtml = `
                 headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
                 body: JSON.stringify({ submission_id: currentSubmissionId, question_scores: scores })
             });
-            if((await res.json()).success) { alert('Truth Matrix Confirmed'); closeModal('gradeModal'); viewExamStatus(currentExamId); }
+            if((await res.json()).success) { alert('채점이 완료되었습니다.'); closeModal('gradeModal'); viewExamStatus(currentExamId); }
         }
 
         async function deleteExam(id) {
-            if(!confirm('Permanently wipe this evaluation script from the cluster?')) return;
+            if(!confirm('이 평가를 정말 삭제하시겠습니까?')) return;
             const res = await fetch('/api/exams/' + id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
-            if((await res.json()).success) { alert('Script Terminated'); loadExams(); }
+            if((await res.json()).success) { alert('삭제되었습니다.'); loadExams(); }
         }
     </script>
 </body>

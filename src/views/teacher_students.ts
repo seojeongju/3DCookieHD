@@ -6,7 +6,7 @@ export const teacherStudentsHtml = `
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Intelligence Analysis - 3D Cookie</title>
+    <title>수강생 성과 지능 - 3D Cookie</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -56,18 +56,18 @@ export const teacherStudentsHtml = `
                 <div class="flex flex-col">
                     <h1 class="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
                         수강생 성과 지능
-                        <span class="text-[10px] bg-orange-500 text-white px-2 py-0.5 rounded-full uppercase tracking-widest font-black">Analysis</span>
+                        <span class="text-[10px] bg-orange-500 text-white px-2 py-0.5 rounded-full uppercase tracking-widest font-black">분석</span>
                     </h1>
-                    <p class="text-xs font-medium text-slate-500 mt-0.5 tracking-tight uppercase">Student Data Repository & Success Intelligence</p>
+                    <p class="text-xs font-medium text-slate-500 mt-0.5 tracking-tight uppercase">수강생 데이터 리포지토리 및 성과 지능</p>
                 </div>
                 <div class="flex items-center gap-4">
                     <button onclick="location.href='/teacher'" class="px-4 py-2 bg-white border border-slate-200 text-[10px] font-black rounded-xl hover:bg-slate-50 transition uppercase tracking-widest flex items-center gap-2 shadow-sm">
-                        <i class="fas fa-arrow-left"></i> Dashboard
+                        <i class="fas fa-arrow-left"></i> 대시보드
                     </button>
                     <div class="flex items-center gap-3 pl-4 border-l border-slate-200">
                         <div class="text-right flex flex-col uppercase tracking-tighter">
-                            <span id="header-user-name" class="text-xs font-black text-slate-900">Instructor Name</span>
-                            <span class="text-[9px] font-black text-slate-400">Analysis Mode</span>
+                            <span id="header-user-name" class="text-xs font-black text-slate-900">강사명</span>
+                            <span class="text-[9px] font-black text-slate-400">분석 모드</span>
                         </div>
                     </div>
                 </div>
@@ -84,7 +84,7 @@ export const teacherStudentsHtml = `
                             </div>
                             <div>
                                 <h2 class="text-xl font-black text-slate-800 tracking-tight">분석 대상 과정 선택</h2>
-                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Select Course to Load Student Intelligence</p>
+                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">수강생 정보를 불러올 과정을 선택하세요</p>
                             </div>
                         </div>
 
@@ -92,7 +92,7 @@ export const teacherStudentsHtml = `
                             <!-- JS Load -->
                             <div class="col-span-full py-20 flex flex-col items-center justify-center bg-white rounded-[2.5rem] border border-dashed border-slate-200">
                                 <i class="fas fa-circle-notch fa-spin text-3xl text-blue-500 mb-4"></i>
-                                <p class="text-slate-400 font-black text-sm uppercase tracking-widest">Loading Academic Containers...</p>
+                                <p class="text-slate-400 font-black text-sm uppercase tracking-widest">과정 데이터를 불러오는 중...</p>
                             </div>
                         </div>
                     </div>
@@ -105,10 +105,10 @@ export const teacherStudentsHtml = `
                                     <i class="fas fa-chevron-left text-sm"></i>
                                 </button>
                                 <div>
-                                    <h2 class="text-2xl font-black text-slate-900 tracking-tight" id="selectedCourseTitle">Course Performance Analysis</h2>
+                                    <h2 class="text-2xl font-black text-slate-900 tracking-tight" id="selectedCourseTitle">과정 성과 분석</h2>
                                     <div class="flex items-center gap-3 mt-1">
-                                        <span class="px-2 py-0.5 bg-indigo-50 text-indigo-600 text-[10px] font-black rounded-full uppercase tracking-widest border border-indigo-100/50">Real-time Grid</span>
-                                        <span id="studentCountLabel" class="text-xs font-bold text-slate-400">0 Students Tracked</span>
+                                        <span class="px-2 py-0.5 bg-indigo-50 text-indigo-600 text-[10px] font-black rounded-full uppercase tracking-widest border border-indigo-100/50">실시간 현황</span>
+                                        <span id="studentCountLabel" class="text-xs font-bold text-slate-400">0명 수강생 조회됨</span>
                                     </div>
                                 </div>
                             </div>
@@ -116,12 +116,12 @@ export const teacherStudentsHtml = `
                             <div class="flex items-center gap-3 w-full md:w-auto">
                                 <div class="relative flex-1 md:flex-none md:w-64">
                                     <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 text-sm"></i>
-                                    <input type="text" id="studentSearch" placeholder="Search Intel ID / Name..." 
+                                    <input type="text" id="studentSearch" placeholder="이름 또는 ID 검색..." 
                                            class="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:bg-white outline-none transition-all text-sm font-medium tracking-tight"
                                            onkeyup="if(event.key==='Enter') filterStudents()">
                                 </div>
                                 <button onclick="filterStudents()" class="px-6 py-4 bg-indigo-600 text-white font-black text-[10px] rounded-2xl hover:bg-slate-900 transition-all uppercase tracking-widest shadow-lg shadow-indigo-100">
-                                    Sync Data
+                                    조회
                                 </button>
                             </div>
                         </div>
@@ -131,11 +131,11 @@ export const teacherStudentsHtml = `
                             <table class="w-full text-left border-collapse">
                                 <thead>
                                     <tr class="bg-slate-50/50 border-b border-slate-100">
-                                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Student Intelligence</th>
-                                        <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Connectivity</th>
-                                        <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Operational Status</th>
-                                        <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Deployment Date</th>
-                                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-right">Actions</th>
+                                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">수강생 정보</th>
+                                        <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">연락처</th>
+                                        <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">상태</th>
+                                        <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">등록일</th>
+                                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-right">관리</th>
                                     </tr>
                                 </thead>
                                 <tbody id="studentsTableBody" class="divide-y divide-slate-50">
@@ -146,7 +146,7 @@ export const teacherStudentsHtml = `
 
                         <!-- 풋터 & 페이지네이션 -->
                         <div class="mt-8 flex justify-between items-center px-8">
-                            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Showing System Snapshots</p>
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">시스템 데이터 표시</p>
                             <div id="paginationContainer" class="flex gap-2"></div>
                         </div>
                     </div>
@@ -184,7 +184,7 @@ export const teacherStudentsHtml = `
                     renderCourses();
                 } else {
                     document.getElementById('coursesContainer').innerHTML = 
-                        '<div class="col-span-full py-20 text-center text-red-500 font-black uppercase text-xs">Failed to synchronize academic containers</div>';
+                        '<div class="col-span-full py-20 text-center text-red-500 font-black uppercase text-xs">학사 데이터를 동기화하지 못했습니다.</div>';
                 }
             } catch (error) {
                 console.error('Error loading courses:', error);
@@ -194,7 +194,7 @@ export const teacherStudentsHtml = `
         function renderCourses() {
             const container = document.getElementById('coursesContainer');
             if (allCourses.length === 0) {
-                container.innerHTML = '<div class="col-span-full py-20 text-center text-slate-400 font-black uppercase text-xs">No active academic containers available</div>';
+                container.innerHTML = '<div class="col-span-full py-20 text-center text-slate-400 font-black uppercase text-xs">활성화된 학사 컨테이너가 없습니다</div>';
                 return;
             }
 
@@ -258,7 +258,7 @@ export const teacherStudentsHtml = `
 
                 if (result.success) {
                     allStudents = result.data || [];
-                    document.getElementById('studentCountLabel').textContent = allStudents.length + ' Students Tracked';
+                    document.getElementById('studentCountLabel').textContent = allStudents.length + '명 수강생 조회됨';
                     renderStudents();
                     renderPagination(result.pagination || {});
                 }
@@ -277,7 +277,7 @@ export const teacherStudentsHtml = `
             }
 
             if (filtered.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="px-8 py-20 text-center text-slate-400 font-black uppercase text-xs tracking-widest">No active intelligence nodes found in this sector</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" class="px-8 py-20 text-center text-slate-400 font-black uppercase text-xs tracking-widest">조회된 수강생이 없습니다.</td></tr>';
                 return;
             }
 
@@ -301,14 +301,14 @@ export const teacherStudentsHtml = `
                         (student.user_phone || '-') +
                     '</td>' +
                     '<td class="px-6 py-6 text-center">' +
-                        '<span class="px-3 py-1 bg-green-50 text-green-600 text-[10px] font-black rounded-full uppercase tracking-widest border border-green-100">Tracking</span>' +
+                        '<span class="px-3 py-1 bg-green-50 text-green-600 text-[10px] font-black rounded-full uppercase tracking-widest border border-green-100">수강중</span>' +
                     '</td>' +
                     '<td class="px-6 py-6 text-xs font-bold text-slate-400 tracking-widest uppercase">' +
                         (student.enrolled_at ? student.enrolled_at.split('T')[0] : '-') +
                     '</td>' +
                     '<td class="px-8 py-6 text-right">' +
                         '<div class="flex justify-end gap-2">' +
-                            '<button onclick="viewStudentDetail(' + student.user_id + ')" class="px-4 py-2 bg-white border border-slate-200 text-[9px] font-black rounded-xl hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all uppercase tracking-widest shadow-sm">Analysis</button>' +
+                            '<button onclick="viewStudentDetail(' + student.user_id + ')" class="px-4 py-2 bg-white border border-slate-200 text-[9px] font-black rounded-xl hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all uppercase tracking-widest shadow-sm">분석</button>' +
                             '<button class="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:bg-slate-900 hover:text-white transition-all">' +
                                 '<i class="fas fa-ellipsis-h text-xs"></i>' +
                             '</button>' +
@@ -327,7 +327,7 @@ export const teacherStudentsHtml = `
             container.innerHTML = '<button class="px-4 py-2 bg-indigo-600 text-white font-black text-[9px] rounded-xl uppercase tracking-widest">Page 1</button>';
         }
 
-        function viewStudentDetail(id) { alert('Intelligence Report for student #' + id + ' is being generated in a separate module.'); }
+        function viewStudentDetail(id) { alert('수강생 #' + id + ' 의 분석 리포트를 생성 중입니다.'); }
     </script>
 </body>
 </html>

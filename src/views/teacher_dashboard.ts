@@ -6,7 +6,7 @@ export const teacherDashboardHtml = `
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Intelligence Teacher Dashboard - 3D Cookie</title>
+    <title>지능형 강사 대시보드 - 3D Cookie</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -62,10 +62,10 @@ export const teacherDashboardHtml = `
             <header class="sticky top-0 z-20 px-8 py-6 bg-white/80 backdrop-blur-md border-b border-slate-200/60 flex justify-between items-center">
                 <div class="flex flex-col">
                     <h1 class="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-                        종합 지능 대시보드
-                        <span class="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded-full uppercase tracking-widest font-black">Core</span>
+                        강사 전용 대시보드
+                        <span class="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded-full uppercase tracking-widest font-black">핵심</span>
                     </h1>
-                    <p class="text-xs font-medium text-slate-500 mt-0.5 tracking-tight uppercase">Intelligence Dashboard V2.0 (Instructor Mode)</p>
+                    <p class="text-xs font-medium text-slate-500 mt-0.5 tracking-tight uppercase">지능형 학습 관리 시스템 V2.0 (강사 모드)</p>
                 </div>
                 <div class="flex items-center gap-4">
                     <div class="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-2xl border border-slate-200/60 group cursor-help transition-all hover:bg-white shadow-sm">
@@ -79,7 +79,7 @@ export const teacherDashboardHtml = `
                     <div class="flex items-center gap-3 pl-2">
                         <div class="text-right flex flex-col">
                             <span id="header-user-name" class="text-sm font-black text-slate-900">-</span>
-                            <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Master Instructor</span>
+                            <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">지도 교수</span>
                         </div>
                         <div class="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-200 border border-white/20">
                             <i class="fas fa-user-tie"></i>
@@ -99,11 +99,11 @@ export const teacherDashboardHtml = `
                         <div class="relative z-10 flex flex-col md:flex-row justify-between items-center gap-8">
                             <div>
                                 <h2 class="text-3xl font-black tracking-tight mb-2">반갑습니다, <span id="welcome-name">-</span> 강사님.</h2>
-                                <p class="text-indigo-200 text-sm font-medium max-w-lg leading-relaxed">오늘은 3D 기술의 미래를 실현하는 소중한 날입니다. 담당하시는 교육생들의 성장을 최우선으로 지원하며, 전문적인 교육 환경을 유지해 주셔서 감사합니다.</p>
+                                <p class="text-indigo-200 text-sm font-medium max-w-lg leading-relaxed">오늘도 3D 기술의 미래를 위한 열정적인 강의 부탁드립니다. 담당하시는 교육생들의 성장을 위해 최적화된 교육 환경을 제공합니다.</p>
                                 <div class="mt-6 flex gap-3">
                                     <div class="px-4 py-2 bg-white/10 border border-white/10 rounded-2xl flex items-center gap-2">
                                         <div class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
-                                        <span class="text-xs font-black uppercase tracking-widest text-indigo-100">System Online</span>
+                                        <span class="text-xs font-black uppercase tracking-widest text-indigo-100">시스템 정상 가동</span>
                                     </div>
                                     <div class="px-4 py-2 bg-indigo-500/30 border border-white/10 rounded-2xl flex items-center gap-2">
                                         <i class="fas fa-calendar-alt text-xs text-indigo-300"></i>
@@ -113,15 +113,15 @@ export const teacherDashboardHtml = `
                             </div>
                             <div class="flex gap-8 px-8 py-6 bg-white/5 border border-white/10 rounded-[2rem] backdrop-blur-sm">
                                 <div class="text-center">
-                                    <span class="block text-[10px] font-black uppercase text-indigo-300 tracking-[0.2em] mb-1">Total Impact</span>
+                                    <span class="block text-[10px] font-black uppercase text-indigo-300 tracking-[0.2em] mb-1">총 수강인원</span>
                                     <span class="text-3xl font-black" id="stat-total-students">0</span>
-                                    <span class="block text-[10px] font-black text-indigo-300 uppercase mt-1">Students</span>
+                                    <span class="block text-[10px] font-black text-indigo-300 uppercase mt-1">명</span>
                                 </div>
                                 <div class="w-px h-12 bg-white/10 self-center"></div>
                                 <div class="text-center">
-                                    <span class="block text-[10px] font-black uppercase text-indigo-300 tracking-[0.2em] mb-1">Active Core</span>
+                                    <span class="block text-[10px] font-black uppercase text-indigo-300 tracking-[0.2em] mb-1">진행 중인 과정</span>
                                     <span class="text-3xl font-black" id="stat-my-courses">0</span>
-                                    <span class="block text-[10px] font-black text-indigo-300 uppercase mt-1">Courses</span>
+                                    <span class="block text-[10px] font-black text-indigo-300 uppercase mt-1">개</span>
                                 </div>
                             </div>
                         </div>
@@ -136,14 +136,14 @@ export const teacherDashboardHtml = `
                             <div class="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all duration-500 shadow-sm border border-blue-100">
                                 <i class="fas fa-chalkboard-teacher text-lg"></i>
                             </div>
-                            <span class="text-[10px] font-black bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full uppercase tracking-widest">Operate</span>
+                            <span class="text-[10px] font-black bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full uppercase tracking-widest">운영</span>
                         </div>
                         <div>
-                            <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Academic Core</span>
+                            <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">학사 운영</span>
                             <h3 class="text-xl font-black text-slate-800 tracking-tight group-hover:text-blue-600 transition-colors">나의 강의 현황</h3>
                             <div class="mt-4 flex items-baseline gap-2">
                                 <span id="card-my-courses" class="text-3xl font-black text-slate-900">-</span>
-                                <span class="text-xs font-bold text-slate-400">Lectures</span>
+                                <span class="text-xs font-bold text-slate-400">강의</span>
                             </div>
                         </div>
                     </div>
@@ -154,14 +154,14 @@ export const teacherDashboardHtml = `
                             <div class="w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center text-orange-600 group-hover:bg-orange-600 group-hover:text-white transition-all duration-500 shadow-sm border border-orange-100">
                                 <i class="fas fa-user-graduate text-lg"></i>
                             </div>
-                            <span class="text-[10px] font-black bg-orange-50 text-orange-600 px-2 py-0.5 rounded-full uppercase tracking-widest">Analyze</span>
+                            <span class="text-[10px] font-black bg-orange-50 text-orange-600 px-2 py-0.5 rounded-full uppercase tracking-widest">분석</span>
                         </div>
                         <div>
-                            <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Human Intelligence</span>
+                            <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">수강생 분석</span>
                             <h3 class="text-xl font-black text-slate-800 tracking-tight group-hover:text-orange-600 transition-colors">수강생 정밀 분석</h3>
                             <div class="mt-4 flex items-baseline gap-2">
                                 <span id="card-total-students" class="text-3xl font-black text-slate-900">-</span>
-                                <span class="text-xs font-bold text-slate-400">Total</span>
+                                <span class="text-xs font-bold text-slate-400">명</span>
                             </div>
                         </div>
                     </div>
@@ -172,14 +172,14 @@ export const teacherDashboardHtml = `
                             <div class="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-all duration-500 shadow-sm border border-emerald-100">
                                 <i class="fas fa-calendar-check text-lg"></i>
                             </div>
-                            <span class="text-[10px] font-black bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full uppercase tracking-widest">Monitor</span>
+                            <span class="text-[10px] font-black bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full uppercase tracking-widest">관리</span>
                         </div>
                         <div>
-                            <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Presence Logic</span>
+                            <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">출결 현황</span>
                             <h3 class="text-xl font-black text-slate-800 tracking-tight group-hover:text-emerald-600 transition-colors">출결 자동 추적</h3>
                             <div class="mt-4 flex items-baseline gap-2">
                                 <span class="text-3xl font-black text-slate-900" id="card-attendance-rate">98<span class="text-lg">%</span></span>
-                                <span class="text-xs font-bold text-slate-400">Real-time</span>
+                                <span class="text-xs font-bold text-slate-400">실시간</span>
                             </div>
                         </div>
                     </div>
@@ -190,18 +190,109 @@ export const teacherDashboardHtml = `
                             <div class="w-12 h-12 rounded-2xl bg-purple-50 flex items-center justify-center text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-all duration-500 shadow-sm border border-purple-100">
                                 <i class="fas fa-clipboard-check text-lg"></i>
                             </div>
-                            <span class="text-[10px] font-black bg-purple-50 text-purple-600 px-2 py-0.5 rounded-full uppercase tracking-widest">Evaluate</span>
+                            <span class="text-[10px] font-black bg-purple-50 text-purple-600 px-2 py-0.5 rounded-full uppercase tracking-widest">평가</span>
                         </div>
                         <div>
-                            <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Action Required</span>
+                            <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">업무 알림</span>
                             <h3 class="text-xl font-black text-slate-800 tracking-tight group-hover:text-purple-600 transition-colors">평가 채점 관리</h3>
                             <div class="mt-4 flex items-baseline gap-2">
                                 <span id="card-pending-grading" class="text-3xl font-black text-slate-900">-</span>
-                                <span class="text-xs font-bold text-slate-400">Tasks</span>
+                                <span class="text-xs font-bold text-slate-400">건</span>
                             </div>
                         </div>
                     </div>
                 </section>
+
+                <div class="grid grid-cols-12 gap-6 animate-fade-in" style="animation-delay: 0.3s">
+                    <!-- 2. 주간 강의 성과 그래프 (Large Widget) -->
+                    <div class="col-span-12 lg:col-span-8 bg-white rounded-[2.5rem] p-8 border border-slate-200/60 shadow-sm relative overflow-hidden group">
+                        <div class="flex justify-between items-start mb-8 relative z-10">
+                            <div>
+                                <h3 class="text-xl font-black text-slate-900 tracking-tight">주간 강의 성과 분석</h3>
+                                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1">학업 성취도 및 출석률 추이</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button class="px-3 py-1.5 rounded-xl bg-slate-100 text-xs font-bold text-slate-500 hover:bg-slate-200 transition-colors">이번 주</button>
+                                <button class="px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors">지난 주</button>
+                            </div>
+                        </div>
+                        <div class="h-64 relative z-10">
+                            <canvas id="weeklyChart"></canvas>
+                        </div>
+                        <!-- Background decoration -->
+                        <div class="absolute -bottom-10 -right-10 w-64 h-64 bg-slate-50 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+                    </div>
+
+                    <!-- 3. 주요 학사 알림 및 빠른 실행 (Side Widgets) -->
+                    <div class="col-span-12 lg:col-span-4 flex flex-col gap-6">
+                        
+                        <!-- 알림 위젯 -->
+                        <div class="bg-white rounded-[2.5rem] p-8 border border-slate-200/60 shadow-sm flex-1">
+                            <div class="flex justify-between items-start mb-6">
+                                <div>
+                                    <h3 class="text-xl font-black text-slate-900 tracking-tight">주요 학사 알림</h3>
+                                    <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1">긴급 확인 필요</p>
+                                </div>
+                                <div class="px-2 py-1 bg-rose-50 text-rose-500 rounded-lg text-[10px] font-black uppercase tracking-wider border border-rose-100 flex items-center gap-1">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
+                                    5건
+                                </div>
+                            </div>
+                            <div class="space-y-3">
+                                <div class="p-4 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-blue-50 hover:border-blue-100 transition-all cursor-pointer group">
+                                    <div class="flex gap-3">
+                                        <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-500 group-hover:text-white transition-colors">
+                                            <i class="fas fa-file-signature"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-bold text-slate-800 text-sm group-hover:text-blue-700">중간고사 성적 입력 마감</h4>
+                                            <p class="text-xs text-slate-500 mt-0.5">3D 모델링 기초 (5일 남음)</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="p-4 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-blue-50 hover:border-blue-100 transition-all cursor-pointer group">
+                                    <div class="flex gap-3">
+                                        <div class="w-10 h-10 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center flex-shrink-0 group-hover:bg-orange-500 group-hover:text-white transition-colors">
+                                            <i class="fas fa-user-clock"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-bold text-slate-800 text-sm group-hover:text-orange-700">장기 결석생 상담 필요</h4>
+                                            <p class="text-xs text-slate-500 mt-0.5">박민수 학생 외 2명</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 빠른 실행 위젯 -->
+                        <div class="bg-slate-900 rounded-[2.5rem] p-8 border border-slate-800 shadow-xl relative overflow-hidden group">
+                           <div class="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-transparent group-hover:opacity-100 transition-opacity"></div>
+                           <div class="relative z-10">
+                                <h3 class="text-xl font-black text-white tracking-tight mb-6">빠른 실행</h3>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <a href="/teacher/posts" class="flex flex-col items-center justify-center p-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-blue-600 hover:border-blue-500 hover:text-white transition-all text-slate-400 group/btn">
+                                        <i class="fas fa-bullhorn text-xl mb-2 group-hover/btn:scale-110 transition-transform"></i>
+                                        <span class="text-[10px] font-bold">공지사항 작성</span>
+                                    </a>
+                                    <a href="/teacher/exams" class="flex flex-col items-center justify-center p-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-purple-600 hover:border-purple-500 hover:text-white transition-all text-slate-400 group/btn">
+                                        <i class="fas fa-edit text-xl mb-2 group-hover/btn:scale-110 transition-transform"></i>
+                                        <span class="text-[10px] font-bold">시험 출제</span>
+                                    </a>
+                                    <a href="/teacher/surveys" class="flex flex-col items-center justify-center p-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-emerald-600 hover:border-emerald-500 hover:text-white transition-all text-slate-400 group/btn">
+                                        <i class="fas fa-poll text-xl mb-2 group-hover/btn:scale-110 transition-transform"></i>
+                                        <span class="text-[10px] font-bold">설문 생성</span>
+                                    </a>
+                                    <a href="/teacher/attendance" class="flex flex-col items-center justify-center p-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-orange-600 hover:border-orange-500 hover:text-white transition-all text-slate-400 group/btn">
+                                        <i class="fas fa-qrcode text-xl mb-2 group-hover/btn:scale-110 transition-transform"></i>
+                                        <span class="text-[10px] font-bold">QR 출결</span>
+                                    </a>
+                                </div>
+                           </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-fade-in" style="animation-delay: 0.3s">
                     <!-- 2. 주간 스케줄 및 알림 (Left Column) -->
@@ -214,12 +305,12 @@ export const teacherDashboardHtml = `
                                     </div>
                                     <div>
                                         <h3 class="font-black text-slate-800 tracking-tight">강의 주간 지표</h3>
-                                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Weekly Performance Analytics</p>
+                                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">주간 성과 분석</p>
                                     </div>
                                 </div>
                                 <div class="flex gap-2">
-                                    <button class="px-4 py-2 bg-white border border-slate-200 text-[10px] font-black rounded-xl hover:bg-slate-50 transition uppercase tracking-widest">Filter</button>
-                                    <button class="px-4 py-2 bg-indigo-600 text-white text-[10px] font-black rounded-xl hover:bg-indigo-700 transition uppercase tracking-widest shadow-lg shadow-indigo-100">Report</button>
+                                    <button class="px-4 py-2 bg-white border border-slate-200 text-[10px] font-black rounded-xl hover:bg-slate-50 transition uppercase tracking-widest">필터</button>
+                                    <button class="px-4 py-2 bg-indigo-600 text-white text-[10px] font-black rounded-xl hover:bg-indigo-700 transition uppercase tracking-widest shadow-lg shadow-indigo-100">보고서</button>
                                 </div>
                             </div>
                             <div class="p-8">
@@ -237,10 +328,10 @@ export const teacherDashboardHtml = `
                                     </div>
                                     <div>
                                         <h3 class="font-black text-slate-800 tracking-tight">최근 학사 알림</h3>
-                                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Critical Notifications</p>
+                                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">주요 알림</p>
                                     </div>
                                 </div>
-                                <span class="px-3 py-1 bg-orange-100 text-orange-600 text-[10px] font-black rounded-full uppercase tracking-widest">3 New</span>
+                                <span class="px-3 py-1 bg-orange-100 text-orange-600 text-[10px] font-black rounded-full uppercase tracking-widest">신규 3건</span>
                             </div>
                             <div class="divide-y divide-slate-50">
                                 <div class="p-6 flex items-start gap-4 hover:bg-slate-50 transition-colors cursor-pointer group">
@@ -250,7 +341,7 @@ export const teacherDashboardHtml = `
                                     <div class="flex-1 min-w-0">
                                         <div class="flex justify-between items-start">
                                             <h4 class="font-bold text-slate-800 text-sm group-hover:text-blue-600 transition-colors tracking-tight">새로운 과제 제출이 확인되었습니다.</h4>
-                                            <span class="text-[10px] text-slate-400 font-bold whitespace-nowrap ml-2">12m ago</span>
+                                            <span class="text-[10px] text-slate-400 font-bold whitespace-nowrap ml-2">12분 전</span>
                                         </div>
                                         <p class="text-xs text-slate-500 mt-1 line-clamp-1">3D 모델링 심화 과정 5기 - 김철수 학생 외 3명</p>
                                     </div>
@@ -262,7 +353,7 @@ export const teacherDashboardHtml = `
                                     <div class="flex-1 min-w-0">
                                         <div class="flex justify-between items-start">
                                             <h4 class="font-bold text-slate-800 text-sm group-hover:text-purple-600 transition-colors tracking-tight">출석률 하락 주의 교육생 발생</h4>
-                                            <span class="text-[10px] text-slate-400 font-bold whitespace-nowrap ml-2">2h ago</span>
+                                            <span class="text-[10px] text-slate-400 font-bold whitespace-nowrap ml-2">2시간 전</span>
                                         </div>
                                         <p class="text-xs text-slate-500 mt-1 line-clamp-1">VR 콘텐츠 기획 - 이영희 학생 (현재 출석률 75%)</p>
                                     </div>
@@ -301,7 +392,7 @@ export const teacherDashboardHtml = `
                         <section class="bg-white rounded-[2.5rem] border border-slate-200/60 shadow-sm p-8">
                             <div class="flex justify-between items-center mb-8">
                                 <h3 class="font-black text-slate-800 tracking-tight">진행 중인 강의</h3>
-                                <button class="text-[10px] font-black text-blue-600 uppercase tracking-widest hover:underline">View All</button>
+                                <button class="text-[10px] font-black text-blue-600 uppercase tracking-widest hover:underline">전체 보기</button>
                             </div>
                             <div id="recent-courses-list" class="space-y-6">
                                 <div class="animate-pulse space-y-4">
