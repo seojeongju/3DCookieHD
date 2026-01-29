@@ -103,45 +103,47 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses')) => `
         </div>
     </div>
 
-    <!-- 과정 개설/수정 모달 -->
-    <div id="createCourseModal" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center backdrop-blur-sm">
-        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-4xl mx-4 max-h-[94vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-300">
-            <div class="px-10 py-6 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-20">
-                <div class="flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-purple-200">
+    <!-- 과정 개설/수정 모달: Soft Glassmorphism 에디션 -->
+    <div id="createCourseModal" class="fixed inset-0 bg-white/30 backdrop-blur-md hidden z-50 flex items-center justify-center p-4">
+        <div class="relative bg-white/80 backdrop-blur-2xl border border-white/60 shadow-[0_20px_50px_rgba(0,0,0,0.1)] rounded-[2.5rem] w-full max-w-4xl max-h-[94vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-500">
+            <!-- Glass Header -->
+            <div class="px-10 py-7 border-b border-white/40 flex justify-between items-center bg-gradient-to-r from-white/40 to-purple-50/30 sticky top-0 z-30">
+                <div class="flex items-center gap-5">
+                    <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white shadow-xl shadow-purple-200/50 transform -rotate-3 hover:rotate-0 transition-transform duration-500">
                         <i class="fas fa-graduation-cap text-2xl"></i>
                     </div>
                     <div>
-                        <h3 class="text-xl font-bold text-gray-900" id="modalTitle">과정 개설</h3>
-                        <p class="text-sm text-gray-500 mt-0.5">교육 과정을 상세하게 구성하고 강사를 배정하세요.</p>
+                        <h3 class="text-2xl font-black text-gray-900 tracking-tight" id="modalTitle">과정 개설</h3>
+                        <p class="text-sm font-medium text-gray-500 mt-0.5">교육의 가치를 디자인하고 미래를 설계하세요.</p>
                     </div>
                 </div>
-                <button onclick="closeModal('createCourseModal')" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-all">
+                <button onclick="closeModal('createCourseModal')" class="w-11 h-11 flex items-center justify-center rounded-2xl bg-white/50 hover:bg-white text-gray-400 hover:text-red-500 hover:rotate-90 transition-all duration-300 border border-white/50 shadow-sm">
                     <i class="fas fa-times text-lg"></i>
                 </button>
             </div>
             
-            <div class="p-0 overflow-y-auto flex-1 custom-scrollbar bg-gray-50/50">
-                <form id="createCourseForm" onsubmit="handleSaveCourse(event)" class="divide-y divide-gray-100">
+            <div class="p-0 overflow-y-auto flex-1 custom-scrollbar">
+                <form id="createCourseForm" onsubmit="handleSaveCourse(event)">
                     <input type="hidden" name="id" id="courseId">
                     
-                    <!-- 섹션 1: 기본 정보 -->
-                    <div class="p-10 space-y-8 bg-white">
-                        <div class="flex items-center gap-2.5">
-                            <div class="w-1.5 h-6 bg-purple-600 rounded-full"></div>
-                            <h4 class="font-bold text-lg text-gray-900">기본 정보 설정</h4>
-                        </div>
+                    <!-- 섹션 1: 기본 정보 (Soft Card) -->
+                    <div class="p-10">
+                        <div class="bg-white/40 border border-white/60 p-8 rounded-[2rem] shadow-sm hover:shadow-md transition-shadow duration-500 space-y-8">
+                            <div class="flex items-center gap-3">
+                                <span class="flex h-2 w-2 rounded-full bg-purple-500"></span>
+                                <h4 class="font-black text-lg text-gray-800 tracking-tight">Core Curriculum Identity</h4>
+                            </div>
                         
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div class="md:col-span-2">
-                                <label class="block text-sm font-bold text-gray-700 mb-2">과정명 <span class="text-red-500 font-bold ml-1">*</span></label>
+                                <label class="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">과정명 (COURSE TITLE)</label>
                                 <input type="text" name="title" id="courseTitle" required placeholder="예: [국비지원] 하이브리드 클라우드 AI 엔지니어 양성과정" 
-                                    class="w-full px-5 py-3.5 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-purple-50 focus:border-purple-600 outline-none transition-all text-gray-800 font-medium">
+                                    class="w-full px-6 py-4 bg-white/50 border border-white/80 rounded-[1.25rem] focus:ring-4 focus:ring-purple-500/10 focus:border-purple-400 outline-none transition-all text-gray-800 font-bold text-lg shadow-inner">
                             </div>
                             
                             <div>
-                                <label class="block text-sm font-bold text-gray-700 mb-2">과정 카테고리</label>
-                                <select name="category" id="courseCategory" class="w-full px-5 py-3.5 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-purple-50 focus:border-purple-600 outline-none transition-all bg-white font-medium">
+                                <label class="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">과정 카테고리</label>
+                                <select name="category" id="courseCategory" class="w-full px-6 py-4 bg-white/50 border border-white/80 rounded-[1.25rem] focus:ring-4 focus:ring-purple-500/10 focus:border-purple-400 outline-none transition-all font-bold cursor-pointer appearance-none">
                                     <option value="국비지원">국비지원과정 (HRD)</option>
                                     <option value="일반과정">일반 유료과정</option>
                                     <option value="특강">단기 특강/워크숍</option>
@@ -149,8 +151,8 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses')) => `
                             </div>
                             
                             <div>
-                                <label class="block text-sm font-bold text-gray-700 mb-2">현재 모집 상태</label>
-                                <select name="status" id="courseStatus" class="w-full px-5 py-3.5 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-purple-50 focus:border-purple-600 outline-none transition-all bg-white font-medium text-purple-700 font-bold">
+                                <label class="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">현재 모집 상태</label>
+                                <select name="status" id="courseStatus" class="w-full px-6 py-4 bg-purple-50/50 border border-purple-100/50 rounded-[1.25rem] focus:ring-4 focus:ring-purple-500/10 focus:border-purple-400 outline-none transition-all font-black text-purple-600 cursor-pointer appearance-none shadow-sm">
                                     <option value="open">현재 모집중 (Active)</option>
                                     <option value="closed">모집 마감 (Closed)</option>
                                     <option value="preparing">준비중 (Draft)</option>
@@ -158,8 +160,8 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses')) => `
                             </div>
 
                             <div>
-                                <label class="block text-sm font-bold text-gray-700 mb-2">메인 담당 강사</label>
-                                <select name="teacher_id" id="courseInstructor" class="w-full px-5 py-3.5 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-purple-50 focus:border-purple-600 outline-none transition-all bg-white font-medium">
+                                <label class="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">메인 담당 강사</label>
+                                <select name="teacher_id" id="courseInstructor" class="w-full px-6 py-4 bg-white/50 border border-white/80 rounded-[1.25rem] focus:ring-4 focus:ring-purple-500/10 focus:border-purple-400 outline-none transition-all font-bold cursor-pointer appearance-none">
                                     <option value="">강사 목록 로드 중...</option>
                                 </select>
                             </div>
@@ -170,42 +172,40 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses')) => `
                                     <option value="1">서울 메인 캠퍼스</option>
                                 </select>
                             </div>
-                        </div>
-                    </div>
-
-                    <!-- 섹션 2: 교육 과목 및 개별 강사 배정 -->
-                    <div class="p-10 space-y-6 bg-gray-50/30">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-2.5">
-                                <div class="w-1.5 h-6 bg-purple-600 rounded-full"></div>
-                                <h4 class="font-bold text-lg text-gray-900">교과목 및 강사 배정</h4>
-                            </div>
-                            <button type="button" onclick="addSubjectRow()" class="px-4 py-2 bg-white text-purple-600 border border-purple-200 rounded-xl hover:bg-purple-600 hover:text-white transition-all text-xs font-bold shadow-sm flex items-center gap-2">
-                                <i class="fas fa-plus"></i> 과목 추가
-                            </button>
-                        </div>
-                        
-                        <div class="bg-gray-100/50 rounded-2xl p-5 border border-gray-200/50">
-                            <div class="hidden sm:grid grid-cols-12 gap-5 px-3 mb-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-                                <div class="col-span-1 text-center">NO</div>
-                                <div class="col-span-5">교육 과목명</div>
-                                <div class="col-span-5">과목 담당 강사</div>
-                                <div class="col-span-1 text-center">삭제</div>
-                            </div>
-                            <div id="subjectListContainer" class="space-y-3">
-                                <!-- Dynamic rows -->
                             </div>
                         </div>
                     </div>
 
-                    <!-- 섹션 3: 일정 및 정원 -->
-                    <div class="p-10 space-y-8 bg-white">
-                        <div class="flex items-center gap-2.5">
-                            <div class="w-1.5 h-6 bg-purple-600 rounded-full"></div>
-                            <h4 class="font-bold text-lg text-gray-900">교육 일정 및 상세 인원</h4>
+                    <!-- 섹션 2: 교육 과목 (Glass Panel) -->
+                    <div class="px-10 mb-10 text-gray-900">
+                        <div class="bg-indigo-50/30 backdrop-blur-md border border-white/60 p-8 rounded-[2.5rem] shadow-sm space-y-6">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <span class="flex h-2 w-2 rounded-full bg-indigo-500"></span>
+                                    <h4 class="font-black text-lg text-gray-800 tracking-tight">Modules & Personnel</h4>
+                                </div>
+                                <button type="button" onclick="addSubjectRow()" class="px-5 py-2.5 bg-white/70 hover:bg-white text-indigo-600 rounded-2xl transition-all text-xs font-black shadow-sm flex items-center gap-2 border border-indigo-100/50">
+                                    <i class="fas fa-plus-circle"></i> ADD MODULE
+                                </button>
+                            </div>
+                            
+                            <div class="bg-white/50 rounded-3xl p-6 border border-white/80">
+                                <div id="subjectListContainer" class="space-y-4">
+                                    <!-- Dynamic rows -->
+                                </div>
+                            </div>
                         </div>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    </div>
+
+                    <!-- 섹션 3: 일정 및 정원 (Floating Card) -->
+                    <div class="px-10 mb-10">
+                        <div class="bg-purple-900/5 border border-purple-200/30 p-10 rounded-[3rem] space-y-10">
+                            <div class="flex items-center gap-3">
+                                <span class="flex h-2 w-2 rounded-full bg-pink-500"></span>
+                                <h4 class="font-black text-lg text-gray-800 tracking-tight">Timeline & Capacity</h4>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                             <div class="space-y-2">
                                 <label class="block text-sm font-bold text-gray-700">시작일</label>
                                 <input type="date" name="start_date" id="courseStartDate" onchange="renderCalendar()" 
@@ -257,10 +257,12 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses')) => `
                                 <button type="button" onclick="presetDays([0,6])" class="px-5 py-2.5 text-xs font-bold bg-white border border-gray-200 text-gray-600 rounded-2xl hover:border-purple-400 hover:text-purple-600 transition-all shadow-sm">주말 마스터반</button>
                              </div>
 
-                             <div id="calendarContainer" class="border border-gray-200 rounded-2xl p-6 bg-white max-h-[480px] overflow-y-auto custom-scrollbar select-none">
+                             <div id="calendarContainer" class="border border-white/60 rounded-[2rem] p-8 bg-white/60 backdrop-blur-sm max-h-[480px] overflow-y-auto custom-scrollbar select-none shadow-inner">
                                 <div class="text-center text-gray-300 py-20 flex flex-col items-center">
-                                    <i class="fas fa-calendar-day text-5xl mb-4 opacity-20"></i>
-                                    <p class="font-bold text-gray-400">교육 시작일과 종료일을 설정해 주세요.</p>
+                                    <div class="w-20 h-20 rounded-full bg-gray-50 flex items-center justify-center mb-5 border border-gray-100">
+                                        <i class="fas fa-calendar-day text-3xl opacity-30"></i>
+                                    </div>
+                                    <p class="font-black text-gray-400 uppercase tracking-widest text-xs">Awaiting Date Range Initialization</p>
                                 </div>
                              </div>
 
@@ -292,11 +294,11 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses')) => `
                         
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
                             <div class="space-y-4">
-                                <label class="block text-sm font-bold text-gray-700">대표 썸네일 이미지</label>
+                                <label class="block text-xs font-black text-gray-400 uppercase tracking-widest ml-1">커버 이미지 (THUMBNAIL)</label>
                                 <div class="flex gap-2">
-                                    <input type="text" name="thumbnail_url" id="courseThumbnail" placeholder="https://" class="flex-1 px-5 py-3.5 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-purple-50 outline-none text-sm">
+                                    <input type="text" name="thumbnail_url" id="courseThumbnail" placeholder="https://" class="flex-1 px-6 py-4 bg-white/50 border border-white/80 rounded-2xl focus:ring-4 focus:ring-purple-500/10 focus:border-purple-400 outline-none text-sm font-medium">
                                     <input type="file" id="thumbnailFile" accept="image/*" class="hidden" onchange="handleThumbnailFile(this)">
-                                    <button type="button" onclick="document.getElementById('thumbnailFile').click()" class="px-5 py-2.5 bg-gray-900 text-white rounded-2xl text-xs font-bold hover:bg-black transition-all shadow-sm">업로드</button>
+                                    <button type="button" onclick="document.getElementById('thumbnailFile').click()" class="px-6 py-2.5 bg-gray-900 text-white rounded-2xl text-xs font-black hover:bg-black transition-all shadow-lg uppercase tracking-tighter">Upload</button>
                                 </div>
                                 <div id="thumbnailPreview" class="hidden relative aspect-video rounded-3xl overflow-hidden border border-gray-100 shadow-xl group">
                                     <img src="" class="w-full h-full object-cover">
@@ -321,9 +323,11 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses')) => `
                         </div>
                     </div>
 
-                    <div class="px-10 py-8 bg-gray-50 flex justify-end items-center gap-4 sticky bottom-0 z-20 border-t border-gray-200/50">
-                        <button type="button" onclick="closeModal('createCourseModal')" class="px-7 py-3 text-gray-500 font-bold hover:bg-white hover:text-gray-900 rounded-2xl transition-all">취소</button>
-                        <button type="submit" class="px-10 py-3.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-2xl font-black text-lg shadow-xl shadow-purple-200 hover:shadow-purple-300 hover:-translate-y-1 active:translate-y-0 transition-all">시큐어 저장 및 개설</button>
+                    <div class="px-10 py-10 bg-white/40 backdrop-blur-xl border-t border-white/60 flex justify-end items-center gap-5 sticky bottom-0 z-30">
+                        <button type="button" onclick="closeModal('createCourseModal')" class="px-8 py-3.5 text-gray-400 font-black hover:text-gray-900 hover:bg-white/50 rounded-2xl transition-all uppercase tracking-widest text-xs">EXIT</button>
+                        <button type="submit" class="px-12 py-4 bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 text-white rounded-[1.5rem] font-black text-lg shadow-[0_15px_30px_-5px_rgba(79,70,229,0.4)] hover:shadow-[0_20px_40px_-5px_rgba(79,70,229,0.5)] hover:-translate-y-1 active:translate-y-0 transition-all duration-300">
+                             DEPLOY COURSE
+                        </button>
                     </div>
                 </form>
             </div>
@@ -368,7 +372,7 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses')) => `
             const container = document.getElementById('subjectListContainer');
             const rowCount = container.children.length;
             const row = document.createElement('div');
-            row.className = 'grid grid-cols-12 gap-5 items-center bg-white p-4 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all animate-in slide-in-from-right-3 duration-300';
+            row.className = 'grid grid-cols-12 gap-5 items-center bg-white/60 backdrop-blur-sm p-4 rounded-3xl border border-white/80 shadow-sm hover:shadow-md transition-all animate-in slide-in-from-bottom-2 duration-500';
             
             const instructorOptions = instructorsData.map(p => 
                 \`<option value="\${p.id}" \${p.id == instructorId ? 'selected' : ''}>\${p.name} (\${p.position})</option>\`
@@ -376,20 +380,20 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses')) => `
 
             row.innerHTML = \`
                 <div class="col-span-1 flex items-center justify-center">
-                    <div class="w-7 h-7 rounded-full bg-gray-50 flex items-center justify-center text-[10px] font-bold text-gray-400 border border-gray-100">\${rowCount + 1}</div>
+                    <div class="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center text-[10px] font-black text-indigo-400 border border-indigo-100/50">\${rowCount + 1}</div>
                 </div>
-                <div class="col-span-5">
-                    <input type="text" class="subject-name w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-100 focus:border-purple-400 outline-none transition-all placeholder:text-gray-300" placeholder="교과목 코드 또는 명칭" value="\${name}">
-                </div>
-                <div class="col-span-5">
-                    <select class="subject-instructor w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-100 focus:border-purple-400 outline-none transition-all">
-                        <option value="">강사 배정</option>
-                        \${instructorOptions}
-                    </select>
+                <div class="col-span-10">
+                    <div class="grid grid-cols-2 gap-4">
+                        <input type="text" class="subject-name w-full px-5 py-2.5 bg-white/50 border border-white/80 rounded-2xl text-sm focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-400 outline-none transition-all placeholder:text-gray-300 font-medium" placeholder="교과목 명칭" value="\${name}">
+                        <select class="subject-instructor w-full px-5 py-2.5 bg-white/50 border border-white/80 rounded-2xl text-sm focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-400 outline-none transition-all font-medium">
+                            <option value="">강사 필수 배정</option>
+                            \${instructorOptions}
+                        </select>
+                    </div>
                 </div>
                 <div class="col-span-1 flex justify-center">
-                    <button type="button" onclick="this.closest('.grid').remove(); updateSubjectIndices();" class="w-9 h-9 flex items-center justify-center rounded-xl bg-gray-50 text-gray-300 hover:text-red-500 hover:bg-red-50 transition-all">
-                        <i class="fas fa-trash text-sm"></i>
+                    <button type="button" onclick="this.closest('.grid').remove(); updateSubjectIndices();" class="w-10 h-10 flex items-center justify-center rounded-2xl bg-white/50 text-gray-400 hover:text-red-500 hover:bg-white transition-all border border-white/80 shadow-sm">
+                        <i class="fas fa-trash-alt text-sm"></i>
                     </button>
                 </div>
             \`;
