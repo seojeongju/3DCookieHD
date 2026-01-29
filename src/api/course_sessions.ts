@@ -1,0 +1,301 @@
+import { Hono } from 'hono';
+import type { Bindings } from '../types';
+import { authMiddleware, requireAdmin } from '../middleware/auth';
+
+const STATUS_VALUES = ['recruiting', 'in_progress', 'completed', 'always_open', 'closed'] as const;
+
+const app = new Hono<{ Bindings: Bindings }>();
+
+/**
+ * GET /api/course-sessions/stats
+ * 진행상황별 건수 (검색 조건 적용)
+ */
+app.get('/stats', authMiddleware, requireAdmin, async (c) => {
+  try {
+    const categoryId = c.req.query('category_id');
+    const name = c.req.query('name');
+    const instructorName = c.req.query('instructor_name');
+    const trainingStartFrom = c.req.query('training_start_from');
+
+    const { DB } = c.env;
+    const params: (string | number)[] = [];
+    const conditions: string[] = ['1=1'];
+    if (categoryId !== undefined && categoryId !== '') {
+      conditions.push('a.category_id = ?');
+      params.push(categoryId);
+    }
+    if (name !== undefined && name !== '') {
+      conditions.push('a.name LIKE ?');
+      params.push('%' + name + '%');
+    }
+    if (instructorName !== undefined && instructorName !== '') {
+      conditions.push('a.instructor_name LIKE ?');
+      params.push('%' + instructorName + '%');
+    }
+    if (trainingStartFrom !== undefined && trainingStartFrom !== '') {
+      conditions.push('s.training_start_date >= ?');
+      params.push(trainingStartFrom);
+    }
+    const whereClause = conditions.join(' AND ');
+
+    const rows = await DB.prepare(
+      `SELECT s.status, COUNT(*) as cnt
+       FROM course_sessions s
+       INNER JOIN approved_courses a ON a.id = s.approved_course_id
+       WHERE ${whereClause}
+       GROUP BY s.status`
+    )
+      .bind(...params)
+      .all();
+
+    const list = (rows.results || []) as { status: string; cnt: number }[];
+    const stats: Record<string, number> = {};
+    STATUS_VALUES.forEach((s) => (stats[s] = 0));
+    list.forEach((r) => (stats[r.status] = r.cnt));
+    return c.json({ success: true, data: stats });
+  } catch (e) {
+    console.error('course-sessions stats:', e);
+    return c.json({ success: false, error: '통계 조회 실패' }, 500);
+  }
+});
+
+/**
+ * GET /api/course-sessions
+ * 회차별 과정 목록 (필터·페이지네이션)
+ */
+app.get('/', authMiddleware, requireAdmin, async (c) => {
+  try {
+    const categoryId = c.req.query('category_id');
+    const status = c.req.query('status');
+    const name = c.req.query('name');
+    const instructorName = c.req.query('instructor_name');
+    const trainingStartFrom = c.req.query('training_start_from');
+    const page = Math.max(1, parseInt(c.req.query('page') || '1', 10));
+    const limit = Math.min(100, Math.max(1, parseInt(c.req.query('limit') || '15', 10)));
+    const offset = (page - 1) * limit;
+
+    const { DB } = c.env;
+    const params: (string | number)[] = [];
+    const conditions: string[] = ['1=1'];
+    if (categoryId !== undefined && categoryId !== '') {
+      conditions.push('a.category_id = ?');
+      params.push(categoryId);
+    }
+    if (status !== undefined && status !== '') {
+      conditions.push('s.status = ?');
+      params.push(status);
+    }
+    if (name !== undefined && name !== '') {
+      conditions.push('a.name LIKE ?');
+      params.push('%' + name + '%');
+    }
+    if (instructorName !== undefined && instructorName !== '') {
+      conditions.push('a.instructor_name LIKE ?');
+      params.push('%' + instructorName + '%');
+    }
+    if (trainingStartFrom !== undefined && trainingStartFrom !== '') {
+      conditions.push('s.training_start_date >= ?');
+      params.push(trainingStartFrom);
+    }
+    const whereClause = conditions.join(' AND ');
+
+    const countRow = await DB.prepare(
+      `SELECT COUNT(*) as total FROM course_sessions s INNER JOIN approved_courses a ON a.id = s.approved_course_id WHERE ${whereClause}`
+    )
+      .bind(...params)
+      .first<{ total: number }>();
+    const total = countRow?.total ?? 0;
+
+    params.push(limit, offset);
+    const rows = await DB.prepare(
+      `SELECT s.id, s.approved_course_id, s.session_number, s.status,
+              s.training_start_date, s.training_end_date, s.url_ncs, s.url_plan, s.url_detail_plan,
+              s.registered_at, s.created_at,
+              a.name as course_name, a.category_id, a.instructor_name,
+              c.name as category_name
+       FROM course_sessions s
+       INNER JOIN approved_courses a ON a.id = s.approved_course_id
+       LEFT JOIN course_categories c ON c.id = a.category_id
+       WHERE ${whereClause}
+       ORDER BY s.training_start_date DESC, s.id DESC
+       LIMIT ? OFFSET ?`
+    )
+      .bind(...params)
+      .all();
+
+    const list = (rows.results || []) as Record<string, unknown>[];
+    return c.json({
+      success: true,
+      data: list,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    });
+  } catch (e) {
+    console.error('course-sessions list:', e);
+    return c.json({ success: false, error: '목록 조회 실패' }, 500);
+  }
+});
+
+/**
+ * POST /api/course-sessions
+ */
+app.post('/', authMiddleware, requireAdmin, async (c) => {
+  try {
+    const body = await c.req.json<{
+      approved_course_id: number;
+      session_number: number;
+      status?: string;
+      training_start_date?: string;
+      training_end_date?: string;
+      url_ncs?: string;
+      url_plan?: string;
+      url_detail_plan?: string;
+      registered_at?: string;
+    }>();
+    const approvedCourseId = body.approved_course_id;
+    const sessionNumber = body.session_number;
+    if (approvedCourseId == null || sessionNumber == null) {
+      return c.json({ success: false, error: '승인과정 ID와 회차를 입력하세요' }, 400);
+    }
+    const status = (body.status && STATUS_VALUES.includes(body.status as any)) ? body.status : 'recruiting';
+    const trainingStart = (body.training_start_date || '').trim() || null;
+    const trainingEnd = (body.training_end_date || '').trim() || null;
+    const urlNcs = (body.url_ncs || '').trim() || null;
+    const urlPlan = (body.url_plan || '').trim() || null;
+    const urlDetailPlan = (body.url_detail_plan || '').trim() || null;
+    const registeredAt = (body.registered_at || '').trim() || null;
+
+    const { DB } = c.env;
+    const existing = await DB.prepare(
+      'SELECT id FROM course_sessions WHERE approved_course_id = ? AND session_number = ?'
+    )
+      .bind(approvedCourseId, sessionNumber)
+      .first();
+    if (existing) return c.json({ success: false, error: '이미 같은 회차가 등록되어 있습니다' }, 400);
+
+    await DB.prepare(
+      `INSERT INTO course_sessions (
+        approved_course_id, session_number, status, training_start_date, training_end_date,
+        url_ncs, url_plan, url_detail_plan, registered_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+      .bind(approvedCourseId, sessionNumber, status, trainingStart, trainingEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt)
+      .run();
+
+    const row = await DB.prepare(
+      `SELECT s.id, s.approved_course_id, s.session_number, s.status,
+              s.training_start_date, s.training_end_date, s.url_ncs, s.url_plan, s.url_detail_plan,
+              s.registered_at, s.created_at, a.name as course_name, c.name as category_name
+       FROM course_sessions s
+       INNER JOIN approved_courses a ON a.id = s.approved_course_id
+       LEFT JOIN course_categories c ON c.id = a.category_id
+       ORDER BY s.id DESC LIMIT 1`
+    ).first();
+    return c.json({ success: true, data: row }, 201);
+  } catch (e) {
+    console.error('course-sessions create:', e);
+    return c.json({ success: false, error: '등록 실패' }, 500);
+  }
+});
+
+/**
+ * GET /api/course-sessions/:id
+ */
+app.get('/:id', authMiddleware, requireAdmin, async (c) => {
+  try {
+    const id = parseInt(c.req.param('id'), 10);
+    if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
+    const { DB } = c.env;
+    const row = await DB.prepare(
+      `SELECT s.id, s.approved_course_id, s.session_number, s.status,
+              s.training_start_date, s.training_end_date, s.url_ncs, s.url_plan, s.url_detail_plan,
+              s.registered_at, s.created_at, a.name as course_name, c.name as category_name
+       FROM course_sessions s
+       INNER JOIN approved_courses a ON a.id = s.approved_course_id
+       LEFT JOIN course_categories c ON c.id = a.category_id
+       WHERE s.id = ?`
+    )
+      .bind(id)
+      .first();
+    if (!row) return c.json({ success: false, error: '회차를 찾을 수 없습니다' }, 404);
+    return c.json({ success: true, data: row });
+  } catch (e) {
+    console.error('course-sessions get:', e);
+    return c.json({ success: false, error: '조회 실패' }, 500);
+  }
+});
+
+/**
+ * PUT /api/course-sessions/:id
+ */
+app.put('/:id', authMiddleware, requireAdmin, async (c) => {
+  try {
+    const id = parseInt(c.req.param('id'), 10);
+    if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
+    const body = await c.req.json<{
+      status?: string;
+      training_start_date?: string;
+      training_end_date?: string;
+      url_ncs?: string;
+      url_plan?: string;
+      url_detail_plan?: string;
+      registered_at?: string;
+    }>();
+
+    const { DB } = c.env;
+    const existing = await DB.prepare('SELECT id FROM course_sessions WHERE id = ?').bind(id).first();
+    if (!existing) return c.json({ success: false, error: '회차를 찾을 수 없습니다' }, 404);
+
+    const status = (body.status && STATUS_VALUES.includes(body.status as any)) ? body.status : undefined;
+    const trainingStart = (body.training_start_date || '').trim() || null;
+    const trainingEnd = (body.training_end_date || '').trim() || null;
+    const urlNcs = (body.url_ncs || '').trim() || null;
+    const urlPlan = (body.url_plan || '').trim() || null;
+    const urlDetailPlan = (body.url_detail_plan || '').trim() || null;
+    const registeredAt = (body.registered_at || '').trim() || null;
+
+    await DB.prepare(
+      `UPDATE course_sessions SET
+        status = COALESCE(?, status), training_start_date = ?, training_end_date = ?,
+        url_ncs = ?, url_plan = ?, url_detail_plan = ?, registered_at = ?
+       WHERE id = ?`
+    )
+      .bind(status ?? null, trainingStart, trainingEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt, id)
+      .run();
+
+    const row = await DB.prepare(
+      `SELECT s.id, s.approved_course_id, s.session_number, s.status,
+              s.training_start_date, s.training_end_date, s.url_ncs, s.url_plan, s.url_detail_plan,
+              s.registered_at, s.created_at, a.name as course_name, c.name as category_name
+       FROM course_sessions s
+       INNER JOIN approved_courses a ON a.id = s.approved_course_id
+       LEFT JOIN course_categories c ON c.id = a.category_id
+       WHERE s.id = ?`
+    )
+      .bind(id)
+      .first();
+    return c.json({ success: true, data: row });
+  } catch (e) {
+    console.error('course-sessions update:', e);
+    return c.json({ success: false, error: '수정 실패' }, 500);
+  }
+});
+
+/**
+ * DELETE /api/course-sessions/:id
+ */
+app.delete('/:id', authMiddleware, requireAdmin, async (c) => {
+  try {
+    const id = parseInt(c.req.param('id'), 10);
+    if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
+    const { DB } = c.env;
+    const existing = await DB.prepare('SELECT id FROM course_sessions WHERE id = ?').bind(id).first();
+    if (!existing) return c.json({ success: false, error: '회차를 찾을 수 없습니다' }, 404);
+    await DB.prepare('DELETE FROM course_sessions WHERE id = ?').bind(id).run();
+    return c.json({ success: true, message: '삭제되었습니다' });
+  } catch (e) {
+    console.error('course-sessions delete:', e);
+    return c.json({ success: false, error: '삭제 실패' }, 500);
+  }
+});
+
+export default app;
