@@ -72,16 +72,6 @@
             .catch(function() {});
     }
 
-    function loadApprovedCourses() {
-        return fetch('/api/approved-courses?limit=500', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } })
-            .then(function(r) { return r.json(); })
-            .then(function(json) {
-                if (!json.success || !json.data) return [];
-                return json.data;
-            })
-            .catch(function() { return []; });
-    }
-
     function loadCategories() {
         return fetch('/api/course-categories', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } })
             .then(function(r) { return r.json(); })
@@ -114,7 +104,7 @@
                     summaryEl.classList.remove('hidden');
                 }
                 if (list.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="8" class="px-4 py-12 text-center text-slate-400"><i class="fas fa-calendar-plus text-3xl mb-3 block"></i> 등록된 회차가 없습니다. 글등록 버튼으로 회차를 추가하세요.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="8" class="px-4 py-12 text-center text-slate-400"><i class="fas fa-calendar-plus text-3xl mb-3 block"></i> 등록된 회차가 없습니다. 회차별 과정개설 등록 버튼으로 회차를 추가하세요.</td></tr>';
                 } else {
                     var startNo = (pagination.page - 1) * (pagination.limit || 15) + 1;
                     var reLt = new RegExp('<', 'g');
@@ -174,88 +164,6 @@
         });
     }
 
-    function openRegisterModal() {
-        document.getElementById('sessionsFormModalTitle').textContent = '회차 등록';
-        document.getElementById('sessionsFormSubmit').textContent = '등록';
-        document.getElementById('sessionsFormId').value = '';
-        document.getElementById('sessionsFormApprovedCourse').value = '';
-        document.getElementById('sessionsFormSessionNumber').value = '';
-        document.getElementById('sessionsFormStatus').value = 'recruiting';
-        document.getElementById('sessionsFormTrainingStart').value = '';
-        document.getElementById('sessionsFormTrainingEnd').value = '';
-        document.getElementById('sessionsFormRegisteredAt').value = '';
-        document.getElementById('sessionsFormUrlNcs').value = '';
-        document.getElementById('sessionsFormUrlPlan').value = '';
-        document.getElementById('sessionsFormUrlDetailPlan').value = '';
-        document.getElementById('sessionsFormModal').classList.remove('hidden');
-    }
-
-    window.openSessionEdit = function(id) {
-        fetch('/api/course-sessions/' + id, { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } })
-            .then(function(r) { return r.json(); })
-            .then(function(json) {
-                if (!json.success || !json.data) { alert('조회 실패'); return; }
-                var d = json.data;
-                document.getElementById('sessionsFormModalTitle').textContent = '회차 수정';
-                document.getElementById('sessionsFormSubmit').textContent = '저장';
-                document.getElementById('sessionsFormId').value = d.id;
-                document.getElementById('sessionsFormApprovedCourse').value = d.approved_course_id != null ? d.approved_course_id : '';
-                document.getElementById('sessionsFormApprovedCourse').disabled = true;
-                document.getElementById('sessionsFormSessionNumber').value = d.session_number != null ? d.session_number : '';
-                document.getElementById('sessionsFormSessionNumber').disabled = true;
-                document.getElementById('sessionsFormStatus').value = d.status || 'recruiting';
-                document.getElementById('sessionsFormTrainingStart').value = (d.training_start_date || '').slice(0, 10);
-                document.getElementById('sessionsFormTrainingEnd').value = (d.training_end_date || '').slice(0, 10);
-                document.getElementById('sessionsFormRegisteredAt').value = (d.registered_at || '').slice(0, 10);
-                document.getElementById('sessionsFormUrlNcs').value = d.url_ncs || '';
-                document.getElementById('sessionsFormUrlPlan').value = d.url_plan || '';
-                document.getElementById('sessionsFormUrlDetailPlan').value = d.url_detail_plan || '';
-                document.getElementById('sessionsFormModal').classList.remove('hidden');
-            })
-            .catch(function() { alert('조회 실패'); });
-    };
-
-    function closeFormModal() {
-        document.getElementById('sessionsFormModal').classList.add('hidden');
-        document.getElementById('sessionsFormApprovedCourse').disabled = false;
-        document.getElementById('sessionsFormSessionNumber').disabled = false;
-    }
-
-    function submitForm() {
-        var id = document.getElementById('sessionsFormId').value;
-        var approvedCourseId = document.getElementById('sessionsFormApprovedCourse').value;
-        var sessionNumber = document.getElementById('sessionsFormSessionNumber').value;
-        if (!approvedCourseId || !sessionNumber) { alert('승인받은 과정과 회차를 선택·입력하세요.'); return; }
-        var payload = {
-            approved_course_id: parseInt(approvedCourseId, 10),
-            session_number: parseInt(sessionNumber, 10),
-            status: document.getElementById('sessionsFormStatus').value || 'recruiting',
-            training_start_date: (document.getElementById('sessionsFormTrainingStart').value || '').trim() || null,
-            training_end_date: (document.getElementById('sessionsFormTrainingEnd').value || '').trim() || null,
-            registered_at: (document.getElementById('sessionsFormRegisteredAt').value || '').trim() || null,
-            url_ncs: (document.getElementById('sessionsFormUrlNcs').value || '').trim() || null,
-            url_plan: (document.getElementById('sessionsFormUrlPlan').value || '').trim() || null,
-            url_detail_plan: (document.getElementById('sessionsFormUrlDetailPlan').value || '').trim() || null
-        };
-        var url = id ? '/api/course-sessions/' + id : '/api/course-sessions';
-        var method = id ? 'PUT' : 'POST';
-        if (id) {
-            delete payload.approved_course_id;
-            delete payload.session_number;
-        }
-        fetch(url, {
-            method: method,
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
-            body: JSON.stringify(payload)
-        })
-            .then(function(r) { return r.json(); })
-            .then(function(json) {
-                if (json.success) { closeFormModal(); loadStats(); loadSessionsList(); return; }
-                alert(json.error || '저장 실패');
-            })
-            .catch(function() { alert('저장 중 오류가 발생했습니다.'); });
-    }
-
     window.deleteSession = function(id) {
         if (!confirm('이 회차를 삭제할까요?')) return;
         fetch('/api/course-sessions/' + id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } })
@@ -276,17 +184,7 @@
         loadSessionsList();
     });
     document.getElementById('sessionsPageSize').addEventListener('change', function() { currentPage = 1; loadSessionsList(); });
-    document.getElementById('sessionsBtnRegister').addEventListener('click', function() {
-        loadApprovedCourses().then(function(list) {
-            var sel = document.getElementById('sessionsFormApprovedCourse');
-            sel.innerHTML = '<option value="">선택</option>' + (list || []).map(function(c) { return '<option value="' + c.id + '">' + (c.name || '').replace(/</g, '&lt;') + '</option>'; }).join('');
-            openRegisterModal();
-        });
-    });
     document.getElementById('sessionsBtnRefresh').addEventListener('click', function() { loadStats(); loadSessionsList(); });
-    document.getElementById('sessionsFormModalClose').addEventListener('click', closeFormModal);
-    document.getElementById('sessionsFormModalClose2').addEventListener('click', closeFormModal);
-    document.getElementById('sessionsFormSubmit').addEventListener('click', submitForm);
 
     loadCategories().then(function() {
         loadStats();

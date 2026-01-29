@@ -330,9 +330,9 @@ export const adminCoursesApprovedHtml = () =>
                     <option value="30">30개씩</option>
                     <option value="50">50개씩</option>
                 </select>
-                <button type="button" id="approvedBtnRegister" class="px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 transition flex items-center gap-2">
+                <a href="/admin/courses/approved/register" class="px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 transition flex items-center gap-2">
                     <i class="fas fa-plus"></i> 승인받은 과정 등록
-                </button>
+                </a>
                 <button type="button" id="approvedBtnRefresh" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-200 transition">새로고침</button>
             </div>
         </div>
@@ -361,15 +361,34 @@ export const adminCoursesApprovedHtml = () =>
         <div id="approvedPagination" class="px-6 py-4 border-t border-slate-200/60 flex justify-end items-center gap-2 flex-wrap"></div>
     </div>
 
-    <!-- 등록/수정 모달 -->
-    <div id="approvedFormModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden border border-slate-200/60 flex flex-col">
-            <div class="p-6 border-b border-slate-200/60 flex justify-between items-center shrink-0">
-                <h3 id="approvedFormModalTitle" class="text-lg font-black text-slate-800 tracking-tight">승인받은 과정 등록</h3>
-                <button type="button" id="approvedFormModalClose" class="text-slate-500 hover:text-slate-700 p-2 rounded-xl hover:bg-slate-100 transition"><i class="fas fa-times"></i></button>
+    <script src="/static/approved-courses.js"></script>
+    `
+  );
+
+/** 승인받은 과정 등록/수정 전용 서브 페이지 (모달 대신 별도 페이지) */
+export const adminCoursesApprovedRegisterHtml = (editId?: string) => {
+  const isEdit = !!editId;
+  const pageTitle = isEdit ? '승인받은 과정 수정' : '승인받은 과정 등록';
+  const breadcrumb = isEdit ? '승인받은과정 > 수정' : '승인받은과정 > 등록';
+  return courseSubPageLayout(
+    'courses-approved',
+    pageTitle,
+    '과정 등록을 위한 기초 데이터 — HRD넷 등 승인받은 과정을 등록·수정합니다.',
+    'fa-check-double',
+    `
+    <div class="bento-card bg-white rounded-[2.5rem] shadow-sm border border-slate-200/60 overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200/60 bg-slate-50/80 flex flex-wrap justify-between items-center gap-3">
+            <div>
+                <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">${breadcrumb}</p>
+                <h2 class="font-black text-slate-800 tracking-tight mt-0.5">${pageTitle}</h2>
             </div>
-            <div class="p-6 overflow-y-auto custom-scrollbar flex-1">
-                <input type="hidden" id="approvedFormId">
+            <a href="/admin/courses/approved" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-200 transition flex items-center gap-2">
+                <i class="fas fa-list"></i> 목록으로
+            </a>
+        </div>
+        <div class="p-6 md:p-8">
+            <form id="approvedRegisterForm" class="space-y-6">
+                <input type="hidden" id="approvedFormId" value="${editId || ''}">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div class="sm:col-span-2">
                         <label class="block text-sm font-bold text-slate-700 mb-1">과정명 <span class="text-red-500">*</span></label>
@@ -425,17 +444,17 @@ export const adminCoursesApprovedHtml = () =>
                         <input type="url" id="approvedFormUrlDetailPlan" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500" placeholder="https://">
                     </div>
                 </div>
-            </div>
-            <div class="p-6 border-t border-slate-200/60 flex gap-3 shrink-0">
-                <button type="button" id="approvedFormModalClose2" class="flex-1 py-2.5 text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 font-bold text-sm transition">취소</button>
-                <button type="button" id="approvedFormSubmit" class="flex-1 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-bold text-sm transition">등록</button>
-            </div>
+                <div class="flex flex-wrap gap-3 pt-4 border-t border-slate-200/60">
+                    <a href="/admin/courses/approved" class="px-6 py-2.5 text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 font-bold text-sm transition">취소</a>
+                    <button type="submit" id="approvedFormSubmit" class="px-6 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-bold text-sm transition">${isEdit ? '저장' : '등록'}</button>
+                </div>
+            </form>
         </div>
     </div>
-
-    <script src="/static/approved-courses.js"></script>
+    <script src="/static/approved-register.js"></script>
     `
   );
+};
 
 export const adminCoursesSessionsHtml = () =>
   courseSubPageLayout(
@@ -507,9 +526,9 @@ export const adminCoursesSessionsHtml = () =>
                     <option value="50">50개씩</option>
                 </select>
                 <span id="sessionsSummary" class="text-sm text-slate-600 hidden sm:inline">Showing 0 entries</span>
-                <button type="button" id="sessionsBtnRegister" class="px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 transition flex items-center gap-2">
-                    <i class="fas fa-plus"></i> 글등록
-                </button>
+                <a href="/admin/courses/sessions/register" class="px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 transition flex items-center gap-2">
+                    <i class="fas fa-plus"></i> 회차별 과정개설 등록
+                </a>
                 <button type="button" id="sessionsBtnRefresh" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-200 transition">새로고침</button>
             </div>
         </div>
@@ -535,15 +554,34 @@ export const adminCoursesSessionsHtml = () =>
         <div id="sessionsPagination" class="px-6 py-4 border-t border-slate-200/60 flex justify-end items-center gap-2 flex-wrap"></div>
     </div>
 
-    <!-- 등록/수정 모달 -->
-    <div id="sessionsFormModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden border border-slate-200/60 flex flex-col">
-            <div class="p-6 border-b border-slate-200/60 flex justify-between items-center shrink-0">
-                <h3 id="sessionsFormModalTitle" class="text-lg font-black text-slate-800 tracking-tight">회차 등록</h3>
-                <button type="button" id="sessionsFormModalClose" class="text-slate-500 hover:text-slate-700 p-2 rounded-xl hover:bg-slate-100 transition"><i class="fas fa-times"></i></button>
+    <script src="/static/course-sessions.js"></script>
+    `
+  );
+
+/** 회차별 과정개설 등록/수정 전용 서브 페이지 */
+export const adminCoursesSessionsRegisterHtml = (editId?: string) => {
+  const isEdit = !!editId;
+  const pageTitle = isEdit ? '회차별 과정개설 수정' : '회차별 과정개설 등록';
+  const breadcrumb = isEdit ? '회차별 과정개설 > 수정' : '회차별 과정개설 > 등록';
+  return courseSubPageLayout(
+    'courses-sessions',
+    pageTitle,
+    '과정 등록을 위한 기초 데이터 — 동일 과정의 회차(1기, 2기 등)를 등록·수정합니다.',
+    'fa-calendar-plus',
+    `
+    <div class="bento-card bg-white rounded-[2.5rem] shadow-sm border border-slate-200/60 overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200/60 bg-slate-50/80 flex flex-wrap justify-between items-center gap-3">
+            <div>
+                <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">${breadcrumb}</p>
+                <h2 class="font-black text-slate-800 tracking-tight mt-0.5">${pageTitle}</h2>
             </div>
-            <div class="p-6 overflow-y-auto custom-scrollbar flex-1">
-                <input type="hidden" id="sessionsFormId">
+            <a href="/admin/courses/sessions" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-200 transition flex items-center gap-2">
+                <i class="fas fa-list"></i> 목록으로
+            </a>
+        </div>
+        <div class="p-6 md:p-8">
+            <form id="sessionsRegisterForm" class="space-y-6">
+                <input type="hidden" id="sessionsFormId" value="${editId || ''}">
                 <div class="space-y-4">
                     <div>
                         <label class="block text-sm font-bold text-slate-700 mb-1">승인받은 과정 <span class="text-red-500">*</span></label>
@@ -590,17 +628,17 @@ export const adminCoursesSessionsHtml = () =>
                         <input type="url" id="sessionsFormUrlDetailPlan" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500" placeholder="https://">
                     </div>
                 </div>
-            </div>
-            <div class="p-6 border-t border-slate-200/60 flex gap-3 shrink-0">
-                <button type="button" id="sessionsFormModalClose2" class="flex-1 py-2.5 text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 font-bold text-sm transition">취소</button>
-                <button type="button" id="sessionsFormSubmit" class="flex-1 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-bold text-sm transition">등록</button>
-            </div>
+                <div class="flex flex-wrap gap-3 pt-4 border-t border-slate-200/60">
+                    <a href="/admin/courses/sessions" class="px-6 py-2.5 text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 font-bold text-sm transition">취소</a>
+                    <button type="submit" id="sessionsFormSubmit" class="px-6 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-bold text-sm transition">${isEdit ? '저장' : '등록'}</button>
+                </div>
+            </form>
         </div>
     </div>
-
-    <script src="/static/course-sessions.js"></script>
+    <script src="/static/course-sessions-register.js"></script>
     `
   );
+};
 
 export const adminCoursesCopyHtml = () =>
   courseSubPageLayout(

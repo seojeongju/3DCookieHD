@@ -20,9 +20,7 @@
                 categories = json.data || [];
                 var reLt = new RegExp('<', 'g');
                 var selFilter = document.getElementById('approvedFilterCategory');
-                var selForm = document.getElementById('approvedFormCategory');
                 if (selFilter) selFilter.innerHTML = '<option value="">전체</option>' + categories.map(function(c) { return '<option value="' + c.id + '">' + (c.name || '').replace(reLt, '&lt;') + '</option>'; }).join('');
-                if (selForm) selForm.innerHTML = '<option value="">선택</option>' + categories.map(function(c) { return '<option value="' + c.id + '">' + (c.name || '').replace(reLt, '&lt;') + '</option>'; }).join('');
             }).catch(function(e) { console.error(e); });
     }
     function buildQuery() {
@@ -83,13 +81,10 @@
                             '<td class="px-4 py-3 text-xs">' + statusLabel + '</td>' +
                             '<td class="px-4 py-3 text-slate-600 text-xs">' + (item.instructor_name || '-') + '</td>' +
                             '<td class="px-4 py-3 text-right whitespace-nowrap">' +
-                            '<button type="button" class="btn-approved-edit inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold text-white bg-orange-500 hover:bg-orange-600 transition mr-1" data-id="' + item.id + '"><i class="fas fa-pen mr-1"></i>수정</button>' +
+                            '<a href="/admin/courses/approved/register/' + item.id + '" class="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold text-white bg-orange-500 hover:bg-orange-600 transition mr-1"><i class="fas fa-pen mr-1"></i>수정</a>' +
                             '<button type="button" class="btn-approved-delete inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold text-slate-600 bg-slate-100 hover:bg-red-50 hover:text-red-600 transition" data-id="' + item.id + '" data-name="' + nameEsc + '"><i class="fas fa-trash-alt mr-1"></i>삭제</button>' +
                             '</td></tr>';
                     }).join('');
-                    tbody.querySelectorAll('.btn-approved-edit').forEach(function(btn) {
-                        btn.addEventListener('click', function() { window.openApprovedEdit(parseInt(btn.getAttribute('data-id'), 10)); });
-                    });
                     tbody.querySelectorAll('.btn-approved-delete').forEach(function(btn) {
                         btn.addEventListener('click', function() { window.deleteApproved(parseInt(btn.getAttribute('data-id'), 10), btn.getAttribute('data-name') || ''); });
                     });
@@ -115,84 +110,6 @@
             });
         });
     }
-    function openRegisterModal() {
-        document.getElementById('approvedFormModalTitle').textContent = '승인받은 과정 등록';
-        document.getElementById('approvedFormSubmit').textContent = '등록';
-        document.getElementById('approvedFormId').value = '';
-        document.getElementById('approvedFormName').value = '';
-        document.getElementById('approvedFormCategory').value = '';
-        document.getElementById('approvedFormCapacity').value = '';
-        document.getElementById('approvedFormTimeStart').value = '';
-        document.getElementById('approvedFormTimeEnd').value = '';
-        document.getElementById('approvedFormInstructor').value = '';
-        document.getElementById('approvedFormApprovalOrg').value = '';
-        document.getElementById('approvedFormRegisteredAt').value = '';
-        document.getElementById('approvedFormStatus').value = 'active';
-        document.getElementById('approvedFormUrlNcs').value = '';
-        document.getElementById('approvedFormUrlPlan').value = '';
-        document.getElementById('approvedFormUrlDetailPlan').value = '';
-        document.getElementById('approvedFormModal').classList.remove('hidden');
-    }
-    window.openApprovedEdit = function(id) {
-        fetch('/api/approved-courses/' + id, { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } })
-            .then(function(r) { return r.json(); })
-            .then(function(json) {
-                if (!json.success || !json.data) { alert('조회 실패'); return; }
-                var d = json.data;
-                document.getElementById('approvedFormModalTitle').textContent = '승인받은 과정 수정';
-                document.getElementById('approvedFormSubmit').textContent = '저장';
-                document.getElementById('approvedFormId').value = d.id;
-                document.getElementById('approvedFormName').value = d.name || '';
-                document.getElementById('approvedFormCategory').value = d.category_id != null ? d.category_id : '';
-                document.getElementById('approvedFormCapacity').value = d.capacity != null ? d.capacity : '';
-                document.getElementById('approvedFormTimeStart').value = d.training_time_start || '';
-                document.getElementById('approvedFormTimeEnd').value = d.training_time_end || '';
-                document.getElementById('approvedFormInstructor').value = d.instructor_name || '';
-                document.getElementById('approvedFormApprovalOrg').value = d.approval_org || '';
-                document.getElementById('approvedFormRegisteredAt').value = (d.registered_at || '').slice(0, 10);
-                document.getElementById('approvedFormStatus').value = d.status || 'active';
-                document.getElementById('approvedFormUrlNcs').value = d.url_ncs || '';
-                document.getElementById('approvedFormUrlPlan').value = d.url_plan || '';
-                document.getElementById('approvedFormUrlDetailPlan').value = d.url_detail_plan || '';
-                document.getElementById('approvedFormModal').classList.remove('hidden');
-            })
-            .catch(function() { alert('조회 실패'); });
-    };
-    function closeFormModal() { document.getElementById('approvedFormModal').classList.add('hidden'); }
-    function submitForm() {
-        var id = document.getElementById('approvedFormId').value;
-        var name = (document.getElementById('approvedFormName').value || '').trim();
-        if (!name) { alert('과정명을 입력하세요.'); return; }
-        var categoryId = document.getElementById('approvedFormCategory').value;
-        var capacity = document.getElementById('approvedFormCapacity').value;
-        var payload = {
-            name: name,
-            category_id: categoryId ? parseInt(categoryId, 10) : null,
-            capacity: capacity !== '' ? parseInt(capacity, 10) : null,
-            training_time_start: (document.getElementById('approvedFormTimeStart').value || '').trim() || null,
-            training_time_end: (document.getElementById('approvedFormTimeEnd').value || '').trim() || null,
-            instructor_name: (document.getElementById('approvedFormInstructor').value || '').trim() || null,
-            approval_org: (document.getElementById('approvedFormApprovalOrg').value || '').trim() || null,
-            registered_at: (document.getElementById('approvedFormRegisteredAt').value || '').trim() || null,
-            status: document.getElementById('approvedFormStatus').value || 'active',
-            url_ncs: (document.getElementById('approvedFormUrlNcs').value || '').trim() || null,
-            url_plan: (document.getElementById('approvedFormUrlPlan').value || '').trim() || null,
-            url_detail_plan: (document.getElementById('approvedFormUrlDetailPlan').value || '').trim() || null
-        };
-        var url = id ? '/api/approved-courses/' + id : '/api/approved-courses';
-        var method = id ? 'PUT' : 'POST';
-        fetch(url, {
-            method: method,
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
-            body: JSON.stringify(payload)
-        })
-            .then(function(r) { return r.json(); })
-            .then(function(json) {
-                if (json.success) { closeFormModal(); loadApprovedList(); return; }
-                alert(json.error || '저장 실패');
-            })
-            .catch(function() { alert('저장 중 오류가 발생했습니다.'); });
-    }
     window.deleteApproved = function(id, nameDisplay) {
         if (!confirm('다음 승인 과정을 삭제할까요?\n' + (nameDisplay || '').replace(/&quot;/g, '"').replace(/&lt;/g, '<'))) return;
         fetch('/api/approved-courses/' + id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } })
@@ -216,11 +133,7 @@
         document.getElementById('approvedFilterTo').disabled = this.checked;
     });
     document.getElementById('approvedPageSize').addEventListener('change', function() { currentPage = 1; loadApprovedList(); });
-    document.getElementById('approvedBtnRegister').addEventListener('click', openRegisterModal);
     document.getElementById('approvedBtnRefresh').addEventListener('click', function() { loadApprovedList(); });
-    document.getElementById('approvedFormModalClose').addEventListener('click', closeFormModal);
-    document.getElementById('approvedFormModalClose2').addEventListener('click', closeFormModal);
-    document.getElementById('approvedFormSubmit').addEventListener('click', submitForm);
     document.getElementById('approvedFilterFrom').disabled = document.getElementById('approvedFilterAllPeriod').checked;
     document.getElementById('approvedFilterTo').disabled = document.getElementById('approvedFilterAllPeriod').checked;
     loadCategories().then(function() { loadApprovedList(); });
