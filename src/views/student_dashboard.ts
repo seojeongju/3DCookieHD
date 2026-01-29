@@ -52,8 +52,9 @@ export const studentDashboardHtml = () => `
                     <i class="fas fa-clock text-sky-500 text-xs"></i>
                     <span id="current-time" class="text-xs font-black text-slate-700 tracking-tighter">00:00:00</span>
                 </div>
-                <button onclick="location.href='/'" class="w-10 h-10 flex items-center justify-center rounded-2xl bg-white border border-slate-200/60 text-slate-400 hover:text-sky-600 hover:border-sky-200 transition-all shadow-sm">
-                    <i class="fas fa-external-link-alt text-sm"></i>
+                <button onclick="location.href='/'" class="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white border border-slate-200/60 text-slate-500 hover:text-sky-600 hover:border-sky-200 transition-all shadow-sm font-bold text-xs">
+                    <i class="fas fa-home text-sm"></i>
+                    <span>홈페이지로 이동</span>
                 </button>
                 <div class="h-8 w-px bg-slate-200 mx-2"></div>
                 <div class="flex items-center gap-3 px-4 py-2 bg-white rounded-2xl border border-slate-200/60 shadow-sm">
@@ -313,8 +314,19 @@ export const studentDashboardHtml = () => `
                                     <input type="tel" id="profileEditPhone" value="\${(u.phone || '').replace(/"/g, '&quot;')}" class="w-full px-5 py-3.5 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none font-medium text-slate-900" placeholder="010-0000-0000">
                                 </div>
                                 <div>
-                                    <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-2">프로필 이미지 URL (선택)</label>
-                                    <input type="url" id="profileEditImage" value="\${(u.profile_image || '').replace(/"/g, '&quot;')}" class="w-full px-5 py-3.5 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none font-medium text-slate-900" placeholder="https://...">
+                                    <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-2">프로필 이미지 (선택)</label>
+                                    <input type="hidden" id="profileEditImage" value="\${(u.profile_image || '').replace(/"/g, '&quot;')}">
+                                    <div class="flex items-center gap-4">
+                                        <div onclick="document.getElementById('profileEditImageFile').click()" class="w-24 h-24 rounded-2xl bg-slate-100 border-2 border-dashed border-slate-200 flex items-center justify-center cursor-pointer hover:border-sky-300 hover:bg-sky-50 transition overflow-hidden">
+                                            <i id="profileEditImagePlaceholder" class="fas fa-camera text-2xl text-slate-400 \${u.profile_image ? 'hidden' : ''}"></i>
+                                            <img id="profileEditImagePreview" src="" class="w-full h-full object-cover \${u.profile_image ? '' : 'hidden'}">
+                                        </div>
+                                        <div class="flex-1">
+                                            <button type="button" onclick="document.getElementById('profileEditImageFile').click()" class="px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-xl font-bold text-[10px] text-slate-600 uppercase tracking-widest hover:bg-sky-50 hover:border-sky-200 transition">로컬에서 이미지 선택</button>
+                                            <p class="text-[10px] text-slate-400 mt-2 font-bold">JPG, PNG, GIF, WEBP (최대 50MB)</p>
+                                        </div>
+                                    </div>
+                                    <input type="file" id="profileEditImageFile" accept="image/*" class="hidden" onchange="handleProfileImageUpload(this)">
                                 </div>
                                 <div class="pt-4 flex gap-3">
                                     <button type="submit" class="flex-1 py-3.5 bg-sky-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-sky-100 hover:bg-slate-900 transition">
@@ -327,10 +339,45 @@ export const studentDashboardHtml = () => `
                         <p class="text-[10px] text-slate-400 font-bold mt-4 uppercase tracking-wider">이메일은 로그인 계정으로 변경할 수 없습니다.</p>
                     </div>
                 \`;
+                if (u.profile_image) {
+                    var preview = document.getElementById('profileEditImagePreview');
+                    if (preview) { preview.src = u.profile_image; preview.classList.remove('hidden'); }
+                    var placeholder = document.getElementById('profileEditImagePlaceholder');
+                    if (placeholder) placeholder.classList.add('hidden');
+                }
             } catch (e) {
                 console.error(e);
                 container.innerHTML = '<div class="text-center py-12 text-red-500 font-bold">정보를 불러오는 데 실패했습니다.</div>';
             }
+        }
+
+        async function handleProfileImageUpload(input) {
+            if (!input || !input.files || !input.files[0]) return;
+            var token = localStorage.getItem('token');
+            if (!token) { alert('로그인이 필요합니다.'); return; }
+            var fd = new FormData();
+            fd.append('file', input.files[0]);
+            fd.append('category', 'images');
+            fd.append('folder', 'profile');
+            var preview = document.getElementById('profileEditImagePreview');
+            var placeholder = document.getElementById('profileEditImagePlaceholder');
+            var urlInput = document.getElementById('profileEditImage');
+            try {
+                var res = await fetch('/api/upload', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token }, body: fd });
+                var result = await res.json();
+                if (result.success && result.data && result.data.url) {
+                    preview.src = result.data.url;
+                    preview.classList.remove('hidden');
+                    if (placeholder) placeholder.classList.add('hidden');
+                    urlInput.value = result.data.url;
+                } else {
+                    alert('이미지 업로드 실패: ' + (result.error || '알 수 없는 오류'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('이미지 업로드 중 오류가 발생했습니다.');
+            }
+            input.value = '';
         }
 
         async function handleProfileUpdate(e) {

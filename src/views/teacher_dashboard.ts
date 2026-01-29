@@ -72,8 +72,9 @@ export const teacherDashboardHtml = `
                         <i class="fas fa-clock text-blue-500 text-xs"></i>
                         <span id="current-time" class="text-xs font-black text-slate-700 tracking-tighter">00:00:00</span>
                     </div>
-                    <button onclick="location.href='/'" class="w-10 h-10 flex items-center justify-center rounded-2xl bg-white border border-slate-200/60 text-slate-400 hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm">
-                        <i class="fas fa-external-link-alt text-sm"></i>
+                    <button onclick="location.href='/'" class="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white border border-slate-200/60 text-slate-500 hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm font-bold text-xs">
+                        <i class="fas fa-home text-sm"></i>
+                        <span>홈페이지로 이동</span>
                     </button>
                     <div class="h-8 w-px bg-slate-200 mx-2"></div>
                     <div class="flex items-center gap-3 pl-2">
