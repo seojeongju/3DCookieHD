@@ -27,48 +27,63 @@ export const teacherCoursesHtml = `
 <body class="bg-gray-50 font-sans">
     <div class="flex h-screen overflow-hidden">
         ${teacherSidebar('courses')}
-        <div class="flex-1 flex flex-col overflow-hidden bg-gray-50">
-            <header class="bg-white shadow-sm sticky top-0 z-10">
-                <div class="px-8 py-4 flex justify-between items-center">
-                    <div>
-                        <h1 class="text-2xl font-bold text-gray-800">나의 강의 관리</h1>
-                        <p class="text-gray-600 mt-1 text-sm">관리자가 배정한 담당 과정을 확인하고 관리합니다.</p>
+        <div class="flex-1 flex flex-col overflow-hidden bg-[#f1f3f5]">
+            <header class="bg-white border-b border-gray-100 sticky top-0 z-10">
+                <div class="px-10 py-6 flex justify-between items-center">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-2xl bg-gray-900 flex items-center justify-center text-white shadow-xl shadow-gray-200">
+                            <i class="fas fa-chalkboard-teacher text-xl"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-xl font-black text-gray-900 tracking-tight">나의 강의 관리 (My Course Management)</h1>
+                            <p class="text-[11px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Academic Operations Control System</p>
+                        </div>
                     </div>
                     <div class="flex items-center space-x-4">
-                        <span class="px-3 py-1 bg-blue-100 text-blue-600 text-xs font-bold rounded-full">TEACHER</span>
-                        <a href="/teacher" class="text-gray-500 hover:text-primary-600 transition">
-                            <i class="fas fa-arrow-left mr-1"></i> 대시보드로
+                        <span class="px-3 py-1 bg-blue-100 text-blue-600 text-[10px] font-black rounded-lg uppercase tracking-wider">Lead Instructor</span>
+                        <a href="/teacher" class="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-50 hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-all border border-gray-100">
+                            <i class="fas fa-chart-pie"></i>
                         </a>
                     </div>
                 </div>
             </header>
-            <main class="flex-1 overflow-y-auto p-8">
-                <!-- 필터 및 검색 -->
-                <div class="bg-white rounded-lg shadow-sm p-4 mb-6 flex flex-wrap gap-4 items-center justify-between">
-                    <div class="flex gap-4 items-center flex-wrap">
-                        <select id="categoryFilter" onchange="loadCourses()" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
-                            <option value="">전체 카테고리</option>
-                            <option value="국비지원">국비지원</option>
-                            <option value="자격증">자격증</option>
-                            <option value="취업연계">취업연계</option>
-                            <option value="기타">기타</option>
-                        </select>
-                        <select id="statusFilter" onchange="loadCourses()" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
-                            <option value="">전체 상태</option>
-                            <option value="active">진행중</option>
-                            <option value="upcoming">예정</option>
-                            <option value="completed">완료</option>
-                            <option value="cancelled">취소</option>
-                        </select>
-                        <input type="text" id="searchInput" placeholder="과정명 검색..." 
-                               class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                               onkeyup="if(event.key==='Enter') loadCourses()">
-                        <button onclick="loadCourses()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm">
-                            <i class="fas fa-search mr-2"></i> 검색
+            <main class="flex-1 overflow-y-auto p-10 custom-scrollbar">
+                <!-- 필터 및 검색 (Bento Filter Card) -->
+                <div class="bg-white border border-gray-200 rounded-[2rem] p-6 mb-10 shadow-sm flex flex-wrap gap-4 items-center justify-between">
+                    <div class="flex gap-4 items-center flex-wrap flex-1">
+                        <div class="relative min-w-[180px]">
+                            <select id="categoryFilter" onchange="loadCourses()" class="w-full pl-5 pr-10 py-3 bg-gray-50 border-transparent rounded-xl focus:bg-white focus:ring-4 focus:ring-blue-500/5 outline-none transition-all font-bold text-gray-700 text-xs appearance-none cursor-pointer">
+                                <option value="">전체 카테고리 (All Categories)</option>
+                                <option value="국비지원">국비지원 (HRD Plan)</option>
+                                <option value="자격증">자격증 (Certificate)</option>
+                                <option value="취업연계">취업연계 (Carrier)</option>
+                                <option value="기타">기타 (Others)</option>
+                            </select>
+                            <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-[10px]"></i>
+                        </div>
+                        <div class="relative min-w-[150px]">
+                            <select id="statusFilter" onchange="loadCourses()" class="w-full pl-5 pr-10 py-3 bg-gray-50 border-transparent rounded-xl focus:bg-white focus:ring-4 focus:ring-blue-500/5 outline-none transition-all font-bold text-gray-700 text-xs appearance-none cursor-pointer">
+                                <option value="">전체 상태 (All Status)</option>
+                                <option value="active">진행중 (Active)</option>
+                                <option value="upcoming">예정 (Upcoming)</option>
+                                <option value="completed">완료 (Completed)</option>
+                                <option value="cancelled">취소 (Cancelled)</option>
+                            </select>
+                            <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-[10px]"></i>
+                        </div>
+                        <div class="relative flex-1 max-w-md group">
+                            <i class="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-blue-500 transition-colors text-sm"></i>
+                            <input type="text" id="searchInput" placeholder="검색어를 입력하세요 (Search course title...)" 
+                                   class="w-full pl-12 pr-6 py-3 bg-gray-50 border-transparent rounded-xl focus:bg-white focus:ring-4 focus:ring-blue-500/5 outline-none transition-all font-bold text-gray-900 text-xs"
+                                   onkeyup="if(event.key==='Enter') loadCourses()">
+                        </div>
+                        <button onclick="loadCourses()" class="px-8 py-3 bg-gray-900 text-white rounded-xl hover:bg-black font-black text-xs transition-all shadow-lg shadow-gray-200">
+                             조회 실행 (Search)
                         </button>
                     </div>
-                    <div class="text-sm text-gray-600">
-                        총 <span id="totalCount" class="font-bold text-blue-600">0</span>개 과정
+                    <div class="flex items-center gap-3 pl-6 border-l border-gray-100">
+                        <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Active Courses</span>
+                        <div class="bg-blue-600 text-white w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shadow-lg shadow-blue-100" id="totalCount">0</div>
                     </div>
                 </div>
 
@@ -148,102 +163,85 @@ export const teacherCoursesHtml = `
             
             if (courses.length === 0) {
                 container.innerHTML = \`
-                    <div class="col-span-full text-center py-16 bg-white rounded-lg shadow-sm">
-                        <i class="fas fa-chalkboard text-5xl text-gray-300 mb-4"></i>
-                        <h3 class="text-xl font-bold text-gray-700 mb-2">배정된 과정이 없습니다</h3>
-                        <p class="text-gray-500 mb-4">관리자(원장)에게 과정 배정을 요청하세요.</p>
-                        <a href="/teacher" class="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-                            <i class="fas fa-arrow-left mr-2"></i> 대시보드로 돌아가기
-                        </a>
+                    <div class="col-span-full text-center py-32 bg-white rounded-[3rem] border border-gray-100 shadow-sm flex flex-col items-center">
+                        <div class="w-24 h-24 rounded-[2rem] bg-gray-50 flex items-center justify-center text-gray-200 mb-6">
+                            <i class="fas fa-chalkboard text-4xl"></i>
+                        </div>
+                        <h3 class="text-2xl font-black text-gray-900 mb-2 tracking-tight">배정된 강의가 존재하지 않습니다</h3>
+                        <p class="text-sm font-bold text-gray-400 uppercase tracking-widest">No Assigned Courses in Database</p>
+                        <button onclick="location.href='/teacher'" class="mt-8 px-8 py-3 bg-gray-900 text-white rounded-2xl font-black text-xs hover:bg-black transition-all shadow-xl">
+                            대시보드로 귀환 (Return to Dashboard)
+                        </button>
                     </div>
                 \`;
                 return;
             }
 
             container.innerHTML = courses.map(course => {
-                // 상태 뱃지
-                let statusBadge = '';
-                let statusColor = '';
+                const enrolledCount = course.current_students || 0;
+                const maxStudents = course.max_students || 0;
+                const progressPercent = maxStudents > 0 ? Math.round((enrolledCount / maxStudents) * 100) : 0;
+                
+                let statusInfo = { badge: '미정', class: 'bg-gray-100 text-gray-600' };
                 switch(course.status) {
-                    case 'active':
-                        statusBadge = '진행중';
-                        statusColor = 'bg-green-100 text-green-800';
-                        break;
-                    case 'upcoming':
-                        statusBadge = '예정';
-                        statusColor = 'bg-blue-100 text-blue-800';
-                        break;
-                    case 'completed':
-                        statusBadge = '완료';
-                        statusColor = 'bg-gray-100 text-gray-800';
-                        break;
-                    case 'cancelled':
-                        statusBadge = '취소';
-                        statusColor = 'bg-red-100 text-red-800';
-                        break;
-                    default:
-                        statusBadge = course.status || '미정';
-                        statusColor = 'bg-gray-100 text-gray-800';
+                    case 'active': statusInfo = { badge: '운영중', class: 'bg-green-100 text-green-700' }; break;
+                    case 'upcoming': statusInfo = { badge: '모집중', class: 'bg-blue-100 text-blue-700' }; break;
+                    case 'completed': statusInfo = { badge: '종료', class: 'bg-gray-900 text-gray-400' }; break;
+                    case 'cancelled': statusInfo = { badge: '취소', class: 'bg-red-100 text-red-700' }; break;
                 }
 
-                // 카테고리 뱃지
-                const categoryColors = {
-                    '국비지원': 'bg-purple-100 text-purple-800',
-                    '자격증': 'bg-orange-100 text-orange-800',
-                    '취업연계': 'bg-blue-100 text-blue-800',
-                    '기타': 'bg-gray-100 text-gray-800'
-                };
-                const categoryColor = categoryColors[course.category] || 'bg-gray-100 text-gray-800';
-
                 return \`
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all">
-                        <div class="relative">
+                    <div class="bg-white rounded-[2.5rem] border border-gray-200 overflow-hidden hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.1)] transition-all duration-500 group">
+                        <div class="relative aspect-[16/10] overflow-hidden">
                             \${course.thumbnail_url 
-                                ? \`<img src="\${course.thumbnail_url}" alt="\${course.title}" class="w-full h-48 object-cover">\`
-                                : \`<div class="w-full h-48 bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center">
-                                    <i class="fas fa-book text-5xl text-gray-400"></i>
+                                ? \`<img src="\${course.thumbnail_url}" alt="\${course.title}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000">\`
+                                : \`<div class="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                                    <i class="fas fa-cube text-5xl text-gray-300"></i>
                                 </div>\`
                             }
-                            <div class="absolute top-3 right-3 flex gap-2">
-                                <span class="px-2 py-1 rounded-full text-xs font-bold \${statusColor}">\${statusBadge}</span>
-                                <span class="px-2 py-1 rounded-full text-xs font-bold \${categoryColor}">\${course.category || '기타'}</span>
+                            <div class="absolute top-6 left-6 flex gap-2">
+                                <span class="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider shadow-lg bg-white/90 backdrop-blur-md text-gray-900">\${course.category || 'GENERAL'}</span>
+                            </div>
+                            <div class="absolute bottom-0 inset-x-0 p-6 bg-gradient-to-t from-black/80 to-transparent">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-2 h-2 rounded-full \${course.status === 'active' ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}"></div>
+                                    <span class="text-[10px] font-black text-white uppercase tracking-widest">\${statusInfo.badge} ( \${course.status} )</span>
+                                </div>
                             </div>
                         </div>
-                        <div class="p-5">
-                            <h3 class="text-lg font-bold text-gray-800 mb-2 line-clamp-2">\${course.title || '과정명 없음'}</h3>
-                            <p class="text-sm text-gray-600 mb-4 line-clamp-2">\${course.description || '설명 없음'}</p>
-                            
-                            <div class="space-y-2 mb-4 text-sm text-gray-600">
-                                \${course.campus_name ? \`
-                                    <div class="flex items-center">
-                                        <i class="fas fa-map-marker-alt w-5 text-gray-400"></i>
-                                        <span>\${course.campus_name}</span>
-                                    </div>
-                                \` : ''}
-                                \${course.start_date ? \`
-                                    <div class="flex items-center">
-                                        <i class="fas fa-calendar-alt w-5 text-gray-400"></i>
-                                        <span>시작일: \${course.start_date.split('T')[0]}</span>
-                                    </div>
-                                \` : ''}
-                                <div class="flex items-center">
-                                    <i class="fas fa-user-graduate w-5 text-gray-400"></i>
-                                    <span>수강생: \${course.current_students || 0}명 / 최대 \${course.max_students || 0}명</span>
-                                </div>
-                                \${course.price ? \`
-                                    <div class="flex items-center">
-                                        <i class="fas fa-won-sign w-5 text-gray-400"></i>
-                                        <span class="font-bold text-blue-600">\${course.price.toLocaleString()}원</span>
-                                    </div>
-                                \` : ''}
+
+                        <div class="p-8 space-y-6">
+                            <div class="min-h-[64px]">
+                                <h3 class="text-xl font-black text-gray-900 tracking-tight line-clamp-2 leading-tight group-hover:text-blue-600 transition-colors">\${course.title || 'Untitled Course'}</h3>
                             </div>
 
-                            <div class="flex gap-2 pt-4 border-t border-gray-100">
-                                <button onclick="viewCourseDetail(\${course.id})" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium">
-                                    <i class="fas fa-eye mr-2"></i> 상세보기
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="bg-gray-50 rounded-2xl p-4 border border-gray-100">
+                                    <span class="block text-[9px] font-black text-gray-400 uppercase tracking-tighter mb-1">Students</span>
+                                    <div class="flex items-baseline gap-1">
+                                        <span class="text-xl font-black text-gray-900">\${enrolledCount}</span>
+                                        <span class="text-[10px] font-bold text-gray-400">/ \${maxStudents}</span>
+                                    </div>
+                                    <div class="mt-2 w-full bg-gray-200 h-1 rounded-full overflow-hidden">
+                                        <div class="bg-blue-600 h-full rounded-full transition-all duration-1000" style="width: \${progressPercent}%"></div>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-50 rounded-2xl p-4 border border-gray-100">
+                                    <span class="block text-[9px] font-black text-gray-400 uppercase tracking-tighter mb-1">Schedule</span>
+                                    <div class="flex items-center gap-2 mt-1">
+                                        <i class="far fa-calendar-alt text-blue-500 text-xs"></i>
+                                        <span class="text-[11px] font-black text-gray-700">\${course.start_date ? course.start_date.split('T')[0] : 'N/A'}</span>
+                                    </div>
+                                    <p class="text-[9px] font-bold text-gray-400 mt-1 uppercase">Commencement Date</p>
+                                </div>
+                            </div>
+
+                            <div class="flex gap-3 pt-4 border-t border-gray-50">
+                                <button onclick="viewCourseDetail(\${course.id})" class="flex-1 px-4 py-4 bg-gray-50 text-gray-900 rounded-2xl hover:bg-gray-100 transition-all font-black text-[10px] tracking-widest uppercase">
+                                     강의 보기 (Overview)
                                 </button>
-                                <button onclick="manageCourse(\${course.id})" class="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium">
-                                    <i class="fas fa-cog mr-2"></i> 관리
+                                <button onclick="manageCourse(\${course.id})" class="w-14 h-14 bg-gray-900 text-white rounded-2xl hover:bg-black flex items-center justify-center transition-all shadow-xl shadow-gray-200">
+                                    <i class="fas fa-cog"></i>
                                 </button>
                             </div>
                         </div>
