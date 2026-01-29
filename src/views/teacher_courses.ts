@@ -310,36 +310,34 @@ export const teacherCoursesHtml = `
         }
 
         function viewCourseDetail(courseId) {
-            // 과정 상세 페이지로 이동 (또는 모달로 표시)
             window.location.href = \`/courses/\${courseId}\`;
         }
 
         function manageCourse(courseId) {
-            // 해당 과정의 LMS(학사관리) 대시보드로 이동
-            window.location.href = `/ admin / courses / ${ courseId }/lms`;
+            window.location.href = \`/admin/courses/\${courseId}/lms\`;
         }
-</script>
+    </script>
     <style>
-    .custom - scrollbar:: -webkit - scrollbar {
-    width: 6px;
-}
-        .custom - scrollbar:: -webkit - scrollbar - track {
-    background: #f1f1f1;
-}
-        .custom - scrollbar:: -webkit - scrollbar - thumb {
-    background: #888;
-    border - radius: 3px;
-}
-        .custom - scrollbar:: -webkit - scrollbar - thumb:hover {
-    background: #555;
-}
-        .line - clamp - 2 {
-    display: -webkit - box;
-    -webkit - line - clamp: 2;
-    -webkit - box - orient: vertical;
-    overflow: hidden;
-}
-</style>
-    </body>
-    </html>
-        `;
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+    </style>
+</body>
+</html>
+`;
