@@ -284,34 +284,413 @@ export const adminCoursesApprovedHtml = () =>
     '과정 등록을 위한 기초 데이터 — HRD넷 등 승인받은 과정 목록을 등록·조회합니다.',
     'fa-check-double',
     `
-    <div class="bg-white rounded-[2.5rem] shadow-sm border border-slate-200/60 overflow-hidden">
-        <div class="px-6 py-4 border-b border-slate-200/60 bg-slate-50/80 flex justify-between items-center">
-            <h2 class="font-black text-slate-800 tracking-tight">승인 과정 목록</h2>
-            <button class="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-200 transition">새로고침</button>
-        </div>
-        <div class="p-8">
-            <div class="rounded-2xl border border-slate-200/60 overflow-hidden">
-                <table class="w-full text-sm text-left">
-                    <thead class="bg-slate-50/50 text-slate-500 font-bold text-xs uppercase tracking-wider">
-                        <tr>
-                            <th class="px-6 py-3">과정명</th>
-                            <th class="px-6 py-3">승인기관</th>
-                            <th class="px-6 py-3">승인일</th>
-                            <th class="px-6 py-3">상태</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        <tr>
-                            <td colspan="4" class="px-6 py-12 text-center text-slate-400">
-                                <i class="fas fa-inbox text-3xl mb-3 block"></i>
-                                기초 데이터로 승인받은 과정을 등록하면 과정등록 시 선택할 수 있습니다.
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+    <!-- SEARCH & TIP -->
+    <div class="bento-card bg-sky-50/80 rounded-[2.5rem] border border-sky-200/60 overflow-hidden">
+        <button type="button" id="approvedTipToggle" class="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-sky-50/50 transition">
+            <span class="font-black text-slate-800 tracking-tight text-sm uppercase">검색 & 팁</span>
+            <i id="approvedTipIcon" class="fas fa-chevron-up text-slate-500 text-sm transition-transform duration-300"></i>
+        </button>
+        <div id="approvedTipContent" class="px-6 pb-5 pt-0 border-t border-sky-200/40">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">과정분류</label>
+                    <select id="approvedFilterCategory" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500">
+                        <option value="">전체</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">과정명</label>
+                    <input type="text" id="approvedFilterName" placeholder="과정명 검색" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">강사명</label>
+                    <input type="text" id="approvedFilterInstructor" placeholder="강사명 검색" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500">
+                </div>
+                <div class="flex items-end gap-2">
+                    <button type="button" id="approvedBtnSearch" class="flex-1 py-2.5 bg-purple-600 text-white rounded-xl text-sm font-bold hover:bg-purple-700 transition">검색</button>
+                    <button type="button" id="approvedBtnReset" class="py-2.5 px-4 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition">초기화</button>
+                </div>
+            </div>
+            <div class="flex flex-wrap gap-4 mt-4 items-center">
+                <span class="text-xs font-bold text-slate-600">검색기간</span>
+                <input type="date" id="approvedFilterFrom" class="px-3 py-2 border border-slate-200 rounded-xl text-sm">
+                <span class="text-slate-400">~</span>
+                <input type="date" id="approvedFilterTo" class="px-3 py-2 border border-slate-200 rounded-xl text-sm">
+                <label class="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" id="approvedFilterAllPeriod" class="rounded text-purple-600"> 전체기간</label>
             </div>
         </div>
     </div>
+
+    <div class="bento-card bg-white rounded-[2.5rem] shadow-sm border border-slate-200/60 overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200/60 bg-slate-50/80 flex flex-wrap justify-between items-center gap-3">
+            <h2 class="font-black text-slate-800 tracking-tight">승인받은과정</h2>
+            <div class="flex items-center gap-2">
+                <select id="approvedPageSize" class="px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20">
+                    <option value="15" selected>15개씩</option>
+                    <option value="30">30개씩</option>
+                    <option value="50">50개씩</option>
+                </select>
+                <button type="button" id="approvedBtnRegister" class="px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 transition flex items-center gap-2">
+                    <i class="fas fa-plus"></i> 승인받은 과정 등록
+                </button>
+                <button type="button" id="approvedBtnRefresh" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-200 transition">새로고침</button>
+            </div>
+        </div>
+        <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full text-sm text-left min-w-[800px]">
+                <thead class="bg-slate-50/50 text-slate-500 font-bold text-xs uppercase tracking-wider">
+                    <tr>
+                        <th class="px-4 py-3 w-12 shrink-0">No</th>
+                        <th class="px-4 py-3 min-w-0">과정명</th>
+                        <th class="px-4 py-3 w-32 shrink-0">과정분류</th>
+                        <th class="px-4 py-3 w-28 shrink-0">훈련시간</th>
+                        <th class="px-4 py-3 w-20 shrink-0">모집인원</th>
+                        <th class="px-4 py-3 w-36 shrink-0">바로가기</th>
+                        <th class="px-4 py-3 w-24 shrink-0">등록일자</th>
+                        <th class="px-4 py-3 w-24 shrink-0">승인기관</th>
+                        <th class="px-4 py-3 w-20 shrink-0">상태</th>
+                        <th class="px-4 py-3 w-24 shrink-0">강사명</th>
+                        <th class="px-4 py-3 w-28 text-right shrink-0">관리</th>
+                    </tr>
+                </thead>
+                <tbody id="approvedListBody" class="divide-y divide-slate-100">
+                    <tr><td colspan="11" class="px-4 py-8 text-center text-slate-400"><i class="fas fa-spinner fa-spin mr-2"></i> 로딩 중...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div id="approvedPagination" class="px-6 py-4 border-t border-slate-200/60 flex justify-end items-center gap-2 flex-wrap"></div>
+    </div>
+
+    <!-- 등록/수정 모달 -->
+    <div id="approvedFormModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden border border-slate-200/60 flex flex-col">
+            <div class="p-6 border-b border-slate-200/60 flex justify-between items-center shrink-0">
+                <h3 id="approvedFormModalTitle" class="text-lg font-black text-slate-800 tracking-tight">승인받은 과정 등록</h3>
+                <button type="button" id="approvedFormModalClose" class="text-slate-500 hover:text-slate-700 p-2 rounded-xl hover:bg-slate-100 transition"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="p-6 overflow-y-auto custom-scrollbar flex-1">
+                <input type="hidden" id="approvedFormId">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="sm:col-span-2">
+                        <label class="block text-sm font-bold text-slate-700 mb-1">과정명 <span class="text-red-500">*</span></label>
+                        <input type="text" id="approvedFormName" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500" placeholder="예: [2026] 퓨전(Fusion) 활동 3D모델링 고급심화">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1">과정분류</label>
+                        <select id="approvedFormCategory" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500">
+                            <option value="">선택</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1">모집인원</label>
+                        <input type="number" id="approvedFormCapacity" min="0" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500" placeholder="0">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1">훈련시간 (시작)</label>
+                        <input type="text" id="approvedFormTimeStart" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500" placeholder="00:00">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1">훈련시간 (종료)</label>
+                        <input type="text" id="approvedFormTimeEnd" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500" placeholder="00:00">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1">강사명</label>
+                        <input type="text" id="approvedFormInstructor" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500" placeholder="강사명">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1">승인기관</label>
+                        <input type="text" id="approvedFormApprovalOrg" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500" placeholder="승인기관">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1">등록일자</label>
+                        <input type="date" id="approvedFormRegisteredAt" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1">상태</label>
+                        <select id="approvedFormStatus" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500">
+                            <option value="active">활성</option>
+                            <option value="inactive">비활성</option>
+                        </select>
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="block text-sm font-bold text-slate-700 mb-1">NCS교과 URL</label>
+                        <input type="url" id="approvedFormUrlNcs" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500" placeholder="https://">
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="block text-sm font-bold text-slate-700 mb-1">교수계획서 설계 URL</label>
+                        <input type="url" id="approvedFormUrlPlan" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500" placeholder="https://">
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="block text-sm font-bold text-slate-700 mb-1">세부교수계획서 설계 URL</label>
+                        <input type="url" id="approvedFormUrlDetailPlan" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500" placeholder="https://">
+                    </div>
+                </div>
+            </div>
+            <div class="p-6 border-t border-slate-200/60 flex gap-3 shrink-0">
+                <button type="button" id="approvedFormModalClose2" class="flex-1 py-2.5 text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 font-bold text-sm transition">취소</button>
+                <button type="button" id="approvedFormSubmit" class="flex-1 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-bold text-sm transition">등록</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        const tipToggle = document.getElementById('approvedTipToggle');
+        const tipContent = document.getElementById('approvedTipContent');
+        const tipIcon = document.getElementById('approvedTipIcon');
+        if (tipToggle && tipContent) {
+            tipToggle.addEventListener('click', function() {
+                const hidden = tipContent.classList.contains('hidden');
+                tipContent.classList.toggle('hidden');
+                if (tipIcon) tipIcon.style.transform = hidden ? 'rotate(180deg)' : 'rotate(0deg)';
+            });
+        }
+
+        let currentPage = 1;
+        let categories = [];
+
+        async function loadCategories() {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch('/api/course-categories', { headers: { 'Authorization': 'Bearer ' + token } });
+                const json = await res.json();
+                if (!json.success) return;
+                categories = json.data || [];
+                const selFilter = document.getElementById('approvedFilterCategory');
+                const selForm = document.getElementById('approvedFormCategory');
+                if (selFilter) {
+                    selFilter.innerHTML = '<option value="">전체</option>' + categories.map(function(c) { return '<option value="' + c.id + '">' + (c.name || '').replace(/</g, '&lt;') + '</option>'; }).join('');
+                }
+                if (selForm) {
+                    selForm.innerHTML = '<option value="">선택</option>' + categories.map(function(c) { return '<option value="' + c.id + '">' + (c.name || '').replace(/</g, '&lt;') + '</option>'; }).join('');
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        function buildQuery() {
+            const categoryId = document.getElementById('approvedFilterCategory').value;
+            const name = (document.getElementById('approvedFilterName').value || '').trim();
+            const instructor = (document.getElementById('approvedFilterInstructor').value || '').trim();
+            const from = document.getElementById('approvedFilterFrom').value;
+            const to = document.getElementById('approvedFilterTo').value;
+            const allPeriod = document.getElementById('approvedFilterAllPeriod').checked;
+            const limit = parseInt(document.getElementById('approvedPageSize').value, 10) || 15;
+            const params = new URLSearchParams();
+            if (categoryId) params.set('category_id', categoryId);
+            if (name) params.set('name', name);
+            if (instructor) params.set('instructor_name', instructor);
+            if (!allPeriod && from) params.set('period_from', from);
+            if (!allPeriod && to) params.set('period_to', to);
+            params.set('page', String(currentPage));
+            params.set('limit', String(limit));
+            return params.toString();
+        }
+
+        async function loadApprovedList() {
+            const tbody = document.getElementById('approvedListBody');
+            try {
+                tbody.innerHTML = '<tr><td colspan="11" class="px-4 py-8 text-center text-slate-400"><i class="fas fa-spinner fa-spin mr-2"></i> 로딩 중...</td></tr>';
+                const token = localStorage.getItem('token');
+                const qs = buildQuery();
+                const res = await fetch('/api/approved-courses?' + qs, { headers: { 'Authorization': 'Bearer ' + token } });
+                const json = await res.json();
+                if (!json.success) {
+                    tbody.innerHTML = '<tr><td colspan="11" class="px-4 py-8 text-center text-red-500">조회 실패</td></tr>';
+                    return;
+                }
+                const list = json.data || [];
+                const pagination = json.pagination || {};
+                if (list.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="11" class="px-4 py-12 text-center text-slate-400"><i class="fas fa-inbox text-3xl mb-3 block"></i> 등록된 승인 과정이 없습니다. 승인받은 과정 등록 버튼으로 추가하세요.</td></tr>';
+                } else {
+                    const startNo = (pagination.page - 1) * (pagination.limit || 15) + 1;
+                    tbody.innerHTML = list.map(function(item, i) {
+                        const no = startNo + i;
+                        const nameEsc = (item.name || '').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+                        const timeStr = [item.training_time_start, item.training_time_end].filter(Boolean).join('-') || '-';
+                        const cap = item.capacity != null ? item.capacity : '-';
+                        const regDate = item.registered_at || (item.created_at || '').slice(0, 10) || '-';
+                        const statusLabel = item.status === 'inactive' ? '비활성' : '활성';
+                        const links = [];
+                        if (item.url_ncs) links.push('<a href="' + (item.url_ncs || '').replace(/"/g, '&quot;') + '" target="_blank" rel="noopener" class="text-purple-600 hover:underline text-xs mr-1">NCS</a>');
+                        if (item.url_plan) links.push('<a href="' + (item.url_plan || '').replace(/"/g, '&quot;') + '" target="_blank" rel="noopener" class="text-purple-600 hover:underline text-xs mr-1">교수</a>');
+                        if (item.url_detail_plan) links.push('<a href="' + (item.url_detail_plan || '').replace(/"/g, '&quot;') + '" target="_blank" rel="noopener" class="text-purple-600 hover:underline text-xs">세부</a>');
+                        const linksHtml = links.length ? links.join('') : '-';
+                        return '<tr class="hover:bg-slate-50/50">' +
+                            '<td class="px-4 py-3 text-slate-500">' + no + '</td>' +
+                            '<td class="px-4 py-3 font-medium text-slate-800 break-words max-w-[200px]">' + nameEsc + '</td>' +
+                            '<td class="px-4 py-3 text-slate-600 text-xs">' + (item.category_name || '-') + '</td>' +
+                            '<td class="px-4 py-3 text-slate-600 text-xs">' + timeStr + '</td>' +
+                            '<td class="px-4 py-3 text-slate-600">' + cap + '</td>' +
+                            '<td class="px-4 py-3 text-xs">' + linksHtml + '</td>' +
+                            '<td class="px-4 py-3 text-slate-600 text-xs">' + regDate + '</td>' +
+                            '<td class="px-4 py-3 text-slate-600 text-xs max-w-[120px] truncate" title="' + (item.approval_org || '').replace(/"/g, '&quot;') + '">' + (item.approval_org || '-') + '</td>' +
+                            '<td class="px-4 py-3 text-xs">' + statusLabel + '</td>' +
+                            '<td class="px-4 py-3 text-slate-600 text-xs">' + (item.instructor_name || '-') + '</td>' +
+                            '<td class="px-4 py-3 text-right whitespace-nowrap">' +
+                            '<button type="button" class="btn-approved-edit inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold text-white bg-orange-500 hover:bg-orange-600 transition mr-1" data-id="' + item.id + '"><i class="fas fa-pen mr-1"></i>수정</button>' +
+                            '<button type="button" class="btn-approved-delete inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold text-slate-600 bg-slate-100 hover:bg-red-50 hover:text-red-600 transition" data-id="' + item.id + '" data-name="' + nameEsc + '"><i class="fas fa-trash-alt mr-1"></i>삭제</button>' +
+                            '</td></tr>';
+                    }).join('');
+                }
+                tbody.querySelectorAll('.btn-approved-edit').forEach(function(btn) {
+                    btn.addEventListener('click', function() { window.openApprovedEdit(parseInt(btn.getAttribute('data-id'), 10)); });
+                });
+                tbody.querySelectorAll('.btn-approved-delete').forEach(function(btn) {
+                    btn.addEventListener('click', function() { window.deleteApproved(parseInt(btn.getAttribute('data-id'), 10), btn.getAttribute('data-name') || ''); });
+                });
+                renderPagination(pagination);
+            } catch (e) {
+                tbody.innerHTML = '<tr><td colspan="11" class="px-4 py-8 text-center text-red-500">로드 실패</td></tr>';
+            }
+        }
+
+        function renderPagination(p) {
+            const el = document.getElementById('approvedPagination');
+            if (!el || !p || p.totalPages <= 1) {
+                if (el) el.innerHTML = p ? 'Showing ' + (p.total || 0) + ' entries' : '';
+                return;
+            }
+            let html = '<span class="text-sm text-slate-600 mr-4">총 ' + (p.total || 0) + '건</span>';
+            html += '<button type="button" class="approved-page-btn px-3 py-1.5 rounded-lg text-sm font-bold border border-slate-200 hover:bg-slate-50 transition" data-page="' + (p.page - 1) + '" ' + (p.page <= 1 ? 'disabled' : '') + '>이전</button>';
+            for (let i = 1; i <= Math.min(5, p.totalPages); i++) {
+                html += '<button type="button" class="approved-page-btn px-3 py-1.5 rounded-lg text-sm font-bold ' + (i === p.page ? 'bg-purple-600 text-white' : 'border border-slate-200 hover:bg-slate-50') + ' transition" data-page="' + i + '">' + i + '</button>';
+            }
+            html += '<button type="button" class="approved-page-btn px-3 py-1.5 rounded-lg text-sm font-bold border border-slate-200 hover:bg-slate-50 transition" data-page="' + (p.page + 1) + '" ' + (p.page >= p.totalPages ? 'disabled' : '') + '>다음</button>';
+            el.innerHTML = html;
+            el.querySelectorAll('.approved-page-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    const page = parseInt(btn.getAttribute('data-page'), 10);
+                    if (page >= 1 && page <= p.totalPages) { currentPage = page; loadApprovedList(); }
+                });
+            });
+        }
+
+        function openRegisterModal() {
+            document.getElementById('approvedFormModalTitle').textContent = '승인받은 과정 등록';
+            document.getElementById('approvedFormSubmit').textContent = '등록';
+            document.getElementById('approvedFormId').value = '';
+            document.getElementById('approvedFormName').value = '';
+            document.getElementById('approvedFormCategory').value = '';
+            document.getElementById('approvedFormCapacity').value = '';
+            document.getElementById('approvedFormTimeStart').value = '';
+            document.getElementById('approvedFormTimeEnd').value = '';
+            document.getElementById('approvedFormInstructor').value = '';
+            document.getElementById('approvedFormApprovalOrg').value = '';
+            document.getElementById('approvedFormRegisteredAt').value = '';
+            document.getElementById('approvedFormStatus').value = 'active';
+            document.getElementById('approvedFormUrlNcs').value = '';
+            document.getElementById('approvedFormUrlPlan').value = '';
+            document.getElementById('approvedFormUrlDetailPlan').value = '';
+            document.getElementById('approvedFormModal').classList.remove('hidden');
+        }
+
+        window.openApprovedEdit = async function(id) {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch('/api/approved-courses/' + id, { headers: { 'Authorization': 'Bearer ' + token } });
+                const json = await res.json();
+                if (!json.success || !json.data) { alert('조회 실패'); return; }
+                const d = json.data;
+                document.getElementById('approvedFormModalTitle').textContent = '승인받은 과정 수정';
+                document.getElementById('approvedFormSubmit').textContent = '저장';
+                document.getElementById('approvedFormId').value = d.id;
+                document.getElementById('approvedFormName').value = d.name || '';
+                document.getElementById('approvedFormCategory').value = d.category_id != null ? d.category_id : '';
+                document.getElementById('approvedFormCapacity').value = d.capacity != null ? d.capacity : '';
+                document.getElementById('approvedFormTimeStart').value = d.training_time_start || '';
+                document.getElementById('approvedFormTimeEnd').value = d.training_time_end || '';
+                document.getElementById('approvedFormInstructor').value = d.instructor_name || '';
+                document.getElementById('approvedFormApprovalOrg').value = d.approval_org || '';
+                document.getElementById('approvedFormRegisteredAt').value = (d.registered_at || '').slice(0, 10);
+                document.getElementById('approvedFormStatus').value = d.status || 'active';
+                document.getElementById('approvedFormUrlNcs').value = d.url_ncs || '';
+                document.getElementById('approvedFormUrlPlan').value = d.url_plan || '';
+                document.getElementById('approvedFormUrlDetailPlan').value = d.url_detail_plan || '';
+                document.getElementById('approvedFormModal').classList.remove('hidden');
+            } catch (e) { alert('조회 실패'); }
+        };
+
+        function closeFormModal() {
+            document.getElementById('approvedFormModal').classList.add('hidden');
+        }
+
+        async function submitForm() {
+            const id = document.getElementById('approvedFormId').value;
+            const name = (document.getElementById('approvedFormName').value || '').trim();
+            if (!name) { alert('과정명을 입력하세요.'); return; }
+            const categoryId = document.getElementById('approvedFormCategory').value;
+            const capacity = document.getElementById('approvedFormCapacity').value;
+            const payload = {
+                name: name,
+                category_id: categoryId ? parseInt(categoryId, 10) : null,
+                capacity: capacity !== '' ? parseInt(capacity, 10) : null,
+                training_time_start: (document.getElementById('approvedFormTimeStart').value || '').trim() || null,
+                training_time_end: (document.getElementById('approvedFormTimeEnd').value || '').trim() || null,
+                instructor_name: (document.getElementById('approvedFormInstructor').value || '').trim() || null,
+                approval_org: (document.getElementById('approvedFormApprovalOrg').value || '').trim() || null,
+                registered_at: (document.getElementById('approvedFormRegisteredAt').value || '').trim() || null,
+                status: document.getElementById('approvedFormStatus').value || 'active',
+                url_ncs: (document.getElementById('approvedFormUrlNcs').value || '').trim() || null,
+                url_plan: (document.getElementById('approvedFormUrlPlan').value || '').trim() || null,
+                url_detail_plan: (document.getElementById('approvedFormUrlDetailPlan').value || '').trim() || null
+            };
+            try {
+                const token = localStorage.getItem('token');
+                const url = id ? '/api/approved-courses/' + id : '/api/approved-courses';
+                const method = id ? 'PUT' : 'POST';
+                const res = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify(payload)
+                });
+                const json = await res.json();
+                if (json.success) { closeFormModal(); loadApprovedList(); return; }
+                alert(json.error || '저장 실패');
+            } catch (e) { alert('저장 중 오류가 발생했습니다.'); }
+        }
+
+        window.deleteApproved = function(id, nameDisplay) {
+            if (!confirm('다음 승인 과정을 삭제할까요?\n' + (nameDisplay || '').replace(/&quot;/g, '"').replace(/&lt;/g, '<'))) return;
+            (async function() {
+                try {
+                    const token = localStorage.getItem('token');
+                    const res = await fetch('/api/approved-courses/' + id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
+                    const json = await res.json();
+                    if (json.success) { loadApprovedList(); return; }
+                    alert(json.error || '삭제 실패');
+                } catch (e) { alert('삭제 중 오류가 발생했습니다.'); }
+            })();
+        };
+
+        document.getElementById('approvedBtnSearch').addEventListener('click', function() { currentPage = 1; loadApprovedList(); });
+        document.getElementById('approvedBtnReset').addEventListener('click', function() {
+            document.getElementById('approvedFilterCategory').value = '';
+            document.getElementById('approvedFilterName').value = '';
+            document.getElementById('approvedFilterInstructor').value = '';
+            document.getElementById('approvedFilterFrom').value = '';
+            document.getElementById('approvedFilterTo').value = '';
+            document.getElementById('approvedFilterAllPeriod').checked = true;
+            currentPage = 1;
+            loadApprovedList();
+        });
+        document.getElementById('approvedFilterAllPeriod').addEventListener('change', function() {
+            document.getElementById('approvedFilterFrom').disabled = this.checked;
+            document.getElementById('approvedFilterTo').disabled = this.checked;
+        });
+        document.getElementById('approvedPageSize').addEventListener('change', function() { currentPage = 1; loadApprovedList(); });
+        document.getElementById('approvedBtnRegister').addEventListener('click', openRegisterModal);
+        document.getElementById('approvedBtnRefresh').addEventListener('click', function() { loadApprovedList(); });
+        document.getElementById('approvedFormModalClose').addEventListener('click', closeFormModal);
+        document.getElementById('approvedFormModalClose2').addEventListener('click', closeFormModal);
+        document.getElementById('approvedFormSubmit').addEventListener('click', submitForm);
+
+        document.getElementById('approvedFilterFrom').disabled = document.getElementById('approvedFilterAllPeriod').checked;
+        document.getElementById('approvedFilterTo').disabled = document.getElementById('approvedFilterAllPeriod').checked;
+
+        loadCategories().then(function() { loadApprovedList(); });
+    })();
+    </script>
     `
   );
 

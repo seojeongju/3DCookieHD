@@ -10,6 +10,7 @@ import { trackingMiddleware } from './middleware/tracking';
 import auth from './api/auth';
 import courses from './api/courses';
 import courseCategories from './api/course_categories';
+import approvedCourses from './api/approved_courses';
 import campuses from './api/campuses';
 import enrollments from './api/enrollments';
 import reviews from './api/reviews';
@@ -145,6 +146,7 @@ app.route('/api/auth', auth);
 // 과정 API
 app.route('/api/courses', courses);
 app.route('/api/course-categories', courseCategories);
+app.route('/api/approved-courses', approvedCourses);
 app.route('/api/surveys', surveys);
 app.route('/api/assignments', assignments);
 app.route('/api/progress', progress);
