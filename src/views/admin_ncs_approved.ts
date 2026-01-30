@@ -463,9 +463,14 @@ function stepContentHtml(step: number, editId?: string): string {
         <a href="/admin/ncs/approved/4${regId ? '?id=' + regId : ''}" class="px-5 py-2.5 text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 font-bold text-sm transition inline-flex items-center gap-2">
           <i class="fas fa-arrow-left"></i> 이전 페이지
         </a>
-        <button type="button" id="ncsStep5BtnSave" class="px-10 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-bold text-base shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 ml-auto">
-          <i class="fas fa-save"></i> 저장하기
-        </button>
+        <div class="ml-auto flex gap-3">
+          <button type="button" id="ncsStep5BtnSave" class="px-6 py-2.5 bg-white text-emerald-600 border border-emerald-200 rounded-xl hover:bg-emerald-50 font-bold text-sm transition flex items-center gap-2">
+            <i class="fas fa-save"></i> 저장
+          </button>
+          <button type="button" id="ncsStep5BtnNext" class="px-8 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-bold text-sm shadow-lg shadow-emerald-600/20 transition flex items-center gap-2">
+            저장 후 다음 <i class="fas fa-arrow-right"></i>
+          </button>
+        </div>
       </div>
     </div>
     <style>
@@ -573,9 +578,14 @@ function stepContentHtml(step: number, editId?: string): string {
         <a href="/admin/ncs/approved/5${regId ? '?id=' + regId : ''}" class="px-5 py-2.5 text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 font-bold text-sm transition inline-flex items-center gap-2">
           <i class="fas fa-arrow-left"></i> 이전 페이지
         </a>
-        <button type="button" id="ncsStep6BtnSave" class="px-10 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-bold text-base shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 ml-auto">
-          <i class="fas fa-save"></i> 저장하기
-        </button>
+        <div class="ml-auto flex gap-3">
+          <button type="button" id="ncsStep6BtnSave" class="px-6 py-2.5 bg-white text-emerald-600 border border-emerald-200 rounded-xl hover:bg-emerald-50 font-bold text-sm transition flex items-center gap-2">
+            <i class="fas fa-save"></i> 저장
+          </button>
+          <button type="button" id="ncsStep6BtnNext" class="px-8 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-bold text-sm shadow-lg shadow-emerald-600/20 transition flex items-center gap-2">
+            저장 후 다음 <i class="fas fa-arrow-right"></i>
+          </button>
+        </div>
       </div>
     </div>
     <style>

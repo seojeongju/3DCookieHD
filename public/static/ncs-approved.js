@@ -1448,7 +1448,7 @@
             alert('정보를 불러오는데 실패했습니다.');
         });
 
-        document.getElementById('ncsStep5BtnSave').addEventListener('click', function () {
+        function saveEvaluation(redirectToNext) {
             var items = [];
             document.querySelectorAll('.curriculum-card').forEach(function (card) {
                 var id = parseInt(card.getAttribute('data-id'), 10);
@@ -1475,25 +1475,38 @@
                 });
             });
 
-            var btn = this;
-            btn.disabled = true;
+            var btnSave = document.getElementById('ncsStep5BtnSave');
+            var btnNext = document.getElementById('ncsStep5BtnNext');
+            if (btnSave) btnSave.disabled = true;
+            if (btnNext) btnNext.disabled = true;
             var t = getToken();
             fetch('/api/ncs/approved/registrations/' + regId + '/evaluation-teaching', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (t || '') },
                 body: JSON.stringify({ items: items })
             }).then(function (r) { return r.json(); }).then(function (json) {
-                btn.disabled = false;
+                if (btnSave) btnSave.disabled = false;
+                if (btnNext) btnNext.disabled = false;
                 if (json.success) {
+                    if (redirectToNext) {
+                        window.location.href = '/admin/ncs/approved/6?id=' + regId;
+                        return;
+                    }
                     alert('저장되었습니다.');
                 } else {
                     alert(json.error || '저장 실패');
                 }
             }).catch(function () {
-                btn.disabled = false;
+                if (btnSave) btnSave.disabled = false;
+                if (btnNext) btnNext.disabled = false;
                 alert('저장 중 오류가 발생했습니다.');
             });
-        });
+        }
+
+        var btnSave5 = document.getElementById('ncsStep5BtnSave');
+        var btnNext5 = document.getElementById('ncsStep5BtnNext');
+        if (btnSave5) btnSave5.addEventListener('click', function () { saveEvaluation(false); });
+        if (btnNext5) btnNext5.addEventListener('click', function () { saveEvaluation(true); });
     }
 
     function initStep6() {
@@ -1645,7 +1658,7 @@
             alert('정보를 불러오는데 실패했습니다.');
         });
 
-        document.getElementById('ncsStep6BtnSave').addEventListener('click', function () {
+        function saveFacilities(redirectToNext) {
             var items = [];
             document.querySelectorAll('.step6-subject-card').forEach(function (card) {
                 var id = parseInt(card.getAttribute('data-id'), 10);
@@ -1665,25 +1678,38 @@
                 });
             });
 
-            var btn = this;
-            btn.disabled = true;
+            var btnSave = document.getElementById('ncsStep6BtnSave');
+            var btnNext = document.getElementById('ncsStep6BtnNext');
+            if (btnSave) btnSave.disabled = true;
+            if (btnNext) btnNext.disabled = true;
             var t = getToken();
             fetch('/api/ncs/approved/registrations/' + regId + '/facilities-equipment', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (t || '') },
                 body: JSON.stringify({ items: items })
             }).then(function (r) { return r.json(); }).then(function (json) {
-                btn.disabled = false;
+                if (btnSave) btnSave.disabled = false;
+                if (btnNext) btnNext.disabled = false;
                 if (json.success) {
+                    if (redirectToNext) {
+                        window.location.href = '/admin/ncs/approved/list';
+                        return;
+                    }
                     alert('저장되었습니다.');
                 } else {
                     alert(json.error || '저장 실패');
                 }
             }).catch(function () {
-                btn.disabled = false;
+                if (btnSave) btnSave.disabled = false;
+                if (btnNext) btnNext.disabled = false;
                 alert('저장 중 오류가 발생했습니다.');
             });
-        });
+        }
+
+        var btnSave6 = document.getElementById('ncsStep6BtnSave');
+        var btnNext6 = document.getElementById('ncsStep6BtnNext');
+        if (btnSave6) btnSave6.addEventListener('click', function () { saveFacilities(false); });
+        if (btnNext6) btnNext6.addEventListener('click', function () { saveFacilities(true); });
     }
 
     if (step === 1) initStep1();
