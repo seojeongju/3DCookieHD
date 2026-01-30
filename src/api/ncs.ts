@@ -109,30 +109,34 @@ async function fetchNcsTrainingPage(apiKey: string, ncsLclasCd: string, pageNo: 
         return { items: [], totalPage: 1 };
     }
     const json = await res.json() as Record<string, unknown>;
-    const header = (json?.response as Record<string, unknown>)?.header as Record<string, unknown> | undefined;
+    const resp = json?.response as Record<string, unknown> | undefined;
+    const header = (resp?.header ?? json?.header) as Record<string, unknown> | undefined;
     const resultCode = header ? String(header.resultCode ?? header.RESULT_CODE ?? '').trim() : '';
     if (resultCode && resultCode !== '00' && resultCode.toLowerCase() !== 'ok') {
         const resultMsg = header ? String(header.resultMsg ?? header.RESULT_MSG ?? '').trim() : '';
         console.warn('NCS public API result error:', resultCode, resultMsg);
         return { items: [], totalPage: 1 };
     }
-    const resp = json?.response as Record<string, unknown> | undefined;
-    const body = (resp?.body ?? json?.body) as Record<string, unknown> | undefined;
-    if (!body) return { items: [], totalPage: 1 };
-    const itemsNode = body.items as Record<string, unknown> | unknown[] | undefined;
-    let itemsRaw: unknown = Array.isArray(itemsNode) ? itemsNode : (itemsNode && typeof itemsNode === 'object' && 'item' in itemsNode ? (itemsNode as { item: unknown }).item : body.item);
-    if (itemsRaw == null && typeof body === 'object') {
+    const body = (resp?.body ?? json?.body ?? json?.data ?? json?.dataInfo) as Record<string, unknown> | unknown[] | undefined;
+    const bodyObj = body && typeof body === 'object' && !Array.isArray(body) ? body as Record<string, unknown> : undefined;
+    const dataArray = Array.isArray(body) ? body : undefined;
+    let itemsRaw: unknown = dataArray ?? (bodyObj ? (bodyObj.items as Record<string, unknown> | unknown[] | undefined) : undefined);
+    if (itemsRaw == null && bodyObj) {
+        const itemsNode = bodyObj.items as Record<string, unknown> | unknown[] | undefined;
+        itemsRaw = Array.isArray(itemsNode) ? itemsNode : (itemsNode && typeof itemsNode === 'object' && 'item' in itemsNode ? (itemsNode as { item: unknown }).item : bodyObj.item);
+    }
+    if (itemsRaw == null && bodyObj) {
         for (const k of ['data', 'list', 'result', 'rows']) {
-            const v = (body as Record<string, unknown>)[k];
+            const v = bodyObj[k];
             if (Array.isArray(v) && v.length > 0) { itemsRaw = v; break; }
         }
         if (itemsRaw == null) {
-            const firstArray = Object.values(body).find((v) => Array.isArray(v) && v.length > 0 && typeof (v as unknown[])[0] === 'object');
+            const firstArray = Object.values(bodyObj).find((v) => Array.isArray(v) && v.length > 0 && typeof (v as unknown[])[0] === 'object');
             if (firstArray) itemsRaw = firstArray;
         }
     }
-    const totalCount = typeof body.totalCount === 'number' ? body.totalCount : (typeof body.totalCount === 'string' ? parseInt(String(body.totalCount), 10) : 0) || 0;
-    const totalPage = typeof body.totalPage === 'number' ? body.totalPage : (typeof body.totalpage === 'number' ? body.totalpage : Math.max(1, Math.ceil(totalCount / 1000)));
+    const totalCount = bodyObj ? (typeof bodyObj.totalCount === 'number' ? bodyObj.totalCount : (typeof bodyObj.totalCount === 'string' ? parseInt(String(bodyObj.totalCount), 10) : 0) || 0) : (dataArray ? dataArray.length : 0);
+    const totalPage = bodyObj ? (typeof bodyObj.totalPage === 'number' ? bodyObj.totalPage : (typeof bodyObj.totalpage === 'number' ? bodyObj.totalpage : Math.max(1, Math.ceil(totalCount / 1000)))) : 1;
     if (itemsRaw == null) return { items: [], totalPage };
     const list = Array.isArray(itemsRaw) ? itemsRaw : [itemsRaw];
     const rowKey = (row: Record<string, unknown>, ...keys: string[]) => {
@@ -250,11 +254,14 @@ app.get('/approved/check', async (c) => {
             const json = await res.json() as Record<string, unknown>;
             responseKeys = Object.keys(json);
             const resp = json?.response as Record<string, unknown> | undefined;
-            const header = resp?.header as Record<string, unknown> | undefined;
+            const header = (resp?.header ?? json?.header) as Record<string, unknown> | undefined;
             resultCode = header ? String(header.resultCode ?? header.RESULT_CODE ?? '').trim() : '';
             resultMsg = header ? String(header.resultMsg ?? header.RESULT_MSG ?? '').trim() : '';
-            const body = (resp?.body ?? json?.body) as Record<string, unknown> | undefined;
-            if (body) {
+            const body = (resp?.body ?? json?.body ?? json?.data ?? json?.dataInfo) as Record<string, unknown> | unknown[] | undefined;
+            if (Array.isArray(body)) {
+                bodyKeys = [];
+                rawItemCount = body.length;
+            } else if (body && typeof body === 'object') {
                 bodyKeys = Object.keys(body);
                 const itemsNode = body.items as Record<string, unknown> | unknown[] | undefined;
                 let raw: unknown = Array.isArray(itemsNode) ? itemsNode : (itemsNode && typeof itemsNode === 'object' && 'item' in itemsNode ? (itemsNode as { item: unknown }).item : body.item);
