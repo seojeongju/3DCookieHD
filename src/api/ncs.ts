@@ -120,7 +120,17 @@ async function fetchNcsTrainingPage(apiKey: string, ncsLclasCd: string, pageNo: 
     const body = (resp?.body ?? json?.body) as Record<string, unknown> | undefined;
     if (!body) return { items: [], totalPage: 1 };
     const itemsNode = body.items as Record<string, unknown> | unknown[] | undefined;
-    const itemsRaw = Array.isArray(itemsNode) ? itemsNode : (itemsNode && typeof itemsNode === 'object' && 'item' in itemsNode ? (itemsNode as { item: unknown }).item : body.item);
+    let itemsRaw: unknown = Array.isArray(itemsNode) ? itemsNode : (itemsNode && typeof itemsNode === 'object' && 'item' in itemsNode ? (itemsNode as { item: unknown }).item : body.item);
+    if (itemsRaw == null && typeof body === 'object') {
+        for (const k of ['data', 'list', 'result', 'rows']) {
+            const v = (body as Record<string, unknown>)[k];
+            if (Array.isArray(v) && v.length > 0) { itemsRaw = v; break; }
+        }
+        if (itemsRaw == null) {
+            const firstArray = Object.values(body).find((v) => Array.isArray(v) && v.length > 0 && typeof (v as unknown[])[0] === 'object');
+            if (firstArray) itemsRaw = firstArray;
+        }
+    }
     const totalCount = typeof body.totalCount === 'number' ? body.totalCount : (typeof body.totalCount === 'string' ? parseInt(String(body.totalCount), 10) : 0) || 0;
     const totalPage = typeof body.totalPage === 'number' ? body.totalPage : (typeof body.totalpage === 'number' ? body.totalpage : Math.max(1, Math.ceil(totalCount / 1000)));
     if (itemsRaw == null) return { items: [], totalPage };
@@ -234,16 +244,30 @@ app.get('/approved/check', async (c) => {
         let resultMsg = '';
         let itemCount = 0;
         let rawItemCount = 0;
+        let responseKeys: string[] = [];
+        let bodyKeys: string[] = [];
         try {
             const json = await res.json() as Record<string, unknown>;
+            responseKeys = Object.keys(json);
             const resp = json?.response as Record<string, unknown> | undefined;
             const header = resp?.header as Record<string, unknown> | undefined;
             resultCode = header ? String(header.resultCode ?? header.RESULT_CODE ?? '').trim() : '';
             resultMsg = header ? String(header.resultMsg ?? header.RESULT_MSG ?? '').trim() : '';
             const body = (resp?.body ?? json?.body) as Record<string, unknown> | undefined;
             if (body) {
+                bodyKeys = Object.keys(body);
                 const itemsNode = body.items as Record<string, unknown> | unknown[] | undefined;
-                const raw = Array.isArray(itemsNode) ? itemsNode : (itemsNode && typeof itemsNode === 'object' && 'item' in itemsNode ? (itemsNode as { item: unknown }).item : body.item);
+                let raw: unknown = Array.isArray(itemsNode) ? itemsNode : (itemsNode && typeof itemsNode === 'object' && 'item' in itemsNode ? (itemsNode as { item: unknown }).item : body.item);
+                if (raw == null) {
+                    for (const k of ['data', 'list', 'result', 'rows']) {
+                        const v = body[k];
+                        if (Array.isArray(v) && v.length > 0) { raw = v; break; }
+                    }
+                    if (raw == null) {
+                        const first = Object.values(body).find((v) => Array.isArray(v) && (v as unknown[]).length > 0 && typeof (v as unknown[])[0] === 'object');
+                        if (first) raw = first;
+                    }
+                }
                 if (Array.isArray(raw)) rawItemCount = raw.length; else if (raw != null) rawItemCount = 1;
             }
         } catch (_) {
@@ -272,7 +296,7 @@ app.get('/approved/check', async (c) => {
                 success: true,
                 publicApi: 'ok_no_data',
                 message: '공공 API는 응답했으나 해당 대분류(' + ncsLclasCd + ')에 항목이 0건이거나, 응답 구조가 다릅니다.',
-                detail: { ncsLclasCd, parsedItemCount: itemCount, rawItemCount }
+                detail: { ncsLclasCd, parsedItemCount: itemCount, rawItemCount, responseKeys, bodyKeys }
             });
         }
         return c.json({
