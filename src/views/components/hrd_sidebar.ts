@@ -51,7 +51,7 @@ export const hrdSidebar = (activeMenu: string) => `
             </a>
             <a href="/admin/courses/approved" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'courses-approved' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
                 <i class="fas fa-check-double w-6 text-sm ${activeMenu === 'courses-approved' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
-                <span class="font-medium text-[13px]">승인받은과정</span>
+                <span class="font-medium text-[13px]">승인받은 과정 등록</span>
             </a>
             <a href="/admin/courses/sessions" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'courses-sessions' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
                 <i class="fas fa-calendar-plus w-6 text-sm ${activeMenu === 'courses-sessions' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
