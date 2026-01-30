@@ -4,6 +4,20 @@ import { authMiddleware, requireAdmin } from '../middleware/auth';
 
 const app = new Hono<{ Bindings: Bindings }>();
 
+function parseIdsJson(row: Record<string, unknown>): Record<string, unknown> {
+  const out = { ...row };
+  ['textbook_ids_json', 'consumable_ids_json', 'equipment_ids_json', 'facility_ids_json'].forEach((key) => {
+    const json = out[key];
+    if (json != null && typeof json === 'string') {
+      try {
+        out[key.replace('_json', '')] = JSON.parse(json);
+      } catch (_) {}
+    }
+    delete out[key];
+  });
+  return out;
+}
+
 /**
  * GET /api/approved-courses
  * 승인받은 과정 목록 (필터·페이지네이션)
@@ -57,6 +71,7 @@ app.get('/', authMiddleware, requireAdmin, async (c) => {
       `SELECT a.id, a.name, a.category_id, a.training_time_start, a.training_time_end,
               a.capacity, a.url_ncs, a.url_plan, a.url_detail_plan, a.approval_org,
               a.status, a.instructor_name, a.registered_at, a.created_at,
+              a.textbook_ids_json, a.consumable_ids_json, a.equipment_ids_json, a.facility_ids_json,
               c.name as category_name
        FROM approved_courses a
        LEFT JOIN course_categories c ON c.id = a.category_id
@@ -67,7 +82,7 @@ app.get('/', authMiddleware, requireAdmin, async (c) => {
       .bind(...params)
       .all();
 
-    const list = (rows.results || []) as Record<string, unknown>[];
+    const list = (rows.results || []).map((r: Record<string, unknown>) => parseIdsJson(r)) as Record<string, unknown>[];
     return c.json({
       success: true,
       data: list,
@@ -98,6 +113,10 @@ app.post('/', authMiddleware, requireAdmin, async (c) => {
       status?: string;
       instructor_name?: string;
       registered_at?: string;
+      textbook_ids?: number[];
+      consumable_ids?: number[];
+      equipment_ids?: number[];
+      facility_ids?: number[];
     }>();
     const name = (body.name || '').trim();
     if (!name) return c.json({ success: false, error: '과정명을 입력하세요' }, 400);
@@ -113,14 +132,19 @@ app.post('/', authMiddleware, requireAdmin, async (c) => {
     const status = (body.status || 'active').trim();
     const instructorName = (body.instructor_name || '').trim() || null;
     const registeredAt = (body.registered_at || '').trim() || null;
+    const textbookIdsJson = Array.isArray(body.textbook_ids) ? JSON.stringify(body.textbook_ids) : null;
+    const consumableIdsJson = Array.isArray(body.consumable_ids) ? JSON.stringify(body.consumable_ids) : null;
+    const equipmentIdsJson = Array.isArray(body.equipment_ids) ? JSON.stringify(body.equipment_ids) : null;
+    const facilityIdsJson = Array.isArray(body.facility_ids) ? JSON.stringify(body.facility_ids) : null;
 
     const { DB } = c.env;
     await DB.prepare(
       `INSERT INTO approved_courses (
         name, category_id, training_time_start, training_time_end,
         capacity, url_ncs, url_plan, url_detail_plan, approval_org,
-        status, instructor_name, registered_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        status, instructor_name, registered_at,
+        textbook_ids_json, consumable_ids_json, equipment_ids_json, facility_ids_json
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
       .bind(
         name,
@@ -134,7 +158,11 @@ app.post('/', authMiddleware, requireAdmin, async (c) => {
         approvalOrg,
         status,
         instructorName,
-        registeredAt
+        registeredAt,
+        textbookIdsJson,
+        consumableIdsJson,
+        equipmentIdsJson,
+        facilityIdsJson
       )
       .run();
 
@@ -142,12 +170,14 @@ app.post('/', authMiddleware, requireAdmin, async (c) => {
       `SELECT a.id, a.name, a.category_id, a.training_time_start, a.training_time_end,
               a.capacity, a.url_ncs, a.url_plan, a.url_detail_plan, a.approval_org,
               a.status, a.instructor_name, a.registered_at, a.created_at,
+              a.textbook_ids_json, a.consumable_ids_json, a.equipment_ids_json, a.facility_ids_json,
               c.name as category_name
        FROM approved_courses a
        LEFT JOIN course_categories c ON c.id = a.category_id
        ORDER BY a.id DESC LIMIT 1`
     ).first();
-    return c.json({ success: true, data: row }, 201);
+    const data = row ? parseIdsJson(row as Record<string, unknown>) : null;
+    return c.json({ success: true, data }, 201);
   } catch (e) {
     console.error('approved-courses create:', e);
     return c.json({ success: false, error: '등록 실패' }, 500);
@@ -166,15 +196,16 @@ app.get('/:id', authMiddleware, requireAdmin, async (c) => {
       `SELECT a.id, a.name, a.category_id, a.training_time_start, a.training_time_end,
               a.capacity, a.url_ncs, a.url_plan, a.url_detail_plan, a.approval_org,
               a.status, a.instructor_name, a.registered_at, a.created_at,
+              a.textbook_ids_json, a.consumable_ids_json, a.equipment_ids_json, a.facility_ids_json,
               c.name as category_name
        FROM approved_courses a
        LEFT JOIN course_categories c ON c.id = a.category_id
        WHERE a.id = ?`
     )
       .bind(id)
-      .first();
+      .first() as Record<string, unknown> | null;
     if (!row) return c.json({ success: false, error: '과정을 찾을 수 없습니다' }, 404);
-    return c.json({ success: true, data: row });
+    return c.json({ success: true, data: parseIdsJson(row) });
   } catch (e) {
     console.error('approved-courses get:', e);
     return c.json({ success: false, error: '조회 실패' }, 500);
@@ -202,6 +233,10 @@ app.put('/:id', authMiddleware, requireAdmin, async (c) => {
       status?: string;
       instructor_name?: string;
       registered_at?: string;
+      textbook_ids?: number[];
+      consumable_ids?: number[];
+      equipment_ids?: number[];
+      facility_ids?: number[];
     }>();
 
     const { DB } = c.env;
@@ -224,12 +259,17 @@ app.put('/:id', authMiddleware, requireAdmin, async (c) => {
     const status = (body.status || 'active').trim();
     const instructorName = (body.instructor_name || '').trim() || null;
     const registeredAt = (body.registered_at || '').trim() || null;
+    const textbookIdsJson = Array.isArray(body.textbook_ids) ? JSON.stringify(body.textbook_ids) : null;
+    const consumableIdsJson = Array.isArray(body.consumable_ids) ? JSON.stringify(body.consumable_ids) : null;
+    const equipmentIdsJson = Array.isArray(body.equipment_ids) ? JSON.stringify(body.equipment_ids) : null;
+    const facilityIdsJson = Array.isArray(body.facility_ids) ? JSON.stringify(body.facility_ids) : null;
 
     await DB.prepare(
       `UPDATE approved_courses SET
         name = ?, category_id = ?, training_time_start = ?, training_time_end = ?,
         capacity = ?, url_ncs = ?, url_plan = ?, url_detail_plan = ?, approval_org = ?,
-        status = ?, instructor_name = ?, registered_at = ?
+        status = ?, instructor_name = ?, registered_at = ?,
+        textbook_ids_json = ?, consumable_ids_json = ?, equipment_ids_json = ?, facility_ids_json = ?
        WHERE id = ?`
     )
       .bind(
@@ -245,6 +285,10 @@ app.put('/:id', authMiddleware, requireAdmin, async (c) => {
         status,
         instructorName,
         registeredAt,
+        textbookIdsJson,
+        consumableIdsJson,
+        equipmentIdsJson,
+        facilityIdsJson,
         id
       )
       .run();
@@ -253,14 +297,15 @@ app.put('/:id', authMiddleware, requireAdmin, async (c) => {
       `SELECT a.id, a.name, a.category_id, a.training_time_start, a.training_time_end,
               a.capacity, a.url_ncs, a.url_plan, a.url_detail_plan, a.approval_org,
               a.status, a.instructor_name, a.registered_at, a.created_at,
+              a.textbook_ids_json, a.consumable_ids_json, a.equipment_ids_json, a.facility_ids_json,
               c.name as category_name
        FROM approved_courses a
        LEFT JOIN course_categories c ON c.id = a.category_id
        WHERE a.id = ?`
     )
       .bind(id)
-      .first();
-    return c.json({ success: true, data: row });
+      .first() as Record<string, unknown> | null;
+    return c.json({ success: true, data: row ? parseIdsJson(row) : null });
   } catch (e) {
     console.error('approved-courses update:', e);
     return c.json({ success: false, error: '수정 실패' }, 500);

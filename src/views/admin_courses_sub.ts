@@ -477,26 +477,6 @@ export const adminCoursesApprovedRegisterHtml = (editId?: string) => {
                             <input type="number" id="approvedFormGovSubsidy" min="0" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm" placeholder="0" value="0">
                         </div>
                     </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-2">훈련시간</label>
-                            <div class="flex flex-wrap items-center gap-4">
-                                <label class="flex items-center gap-2 text-sm"><input type="radio" name="approvedFormTrainingTimeType" value="start" class="rounded text-emerald-600"> 시작</label>
-                                <input type="time" id="approvedFormTimeStart" class="px-3 py-2 border border-slate-200 rounded-lg text-sm" value="00:00">
-                                <label class="flex items-center gap-2 text-sm"><input type="radio" name="approvedFormTrainingTimeType" value="end" class="rounded text-emerald-600"> 종료</label>
-                                <input type="time" id="approvedFormTimeEnd" class="px-3 py-2 border border-slate-200 rounded-lg text-sm" value="00:00">
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-2">점심시간</label>
-                            <div class="flex flex-wrap items-center gap-4">
-                                <label class="flex items-center gap-2 text-sm"><input type="radio" name="approvedFormLunchTimeType" value="start" class="rounded text-emerald-600"> 시작</label>
-                                <input type="time" id="approvedFormLunchStart" class="px-3 py-2 border border-slate-200 rounded-lg text-sm" value="00:00">
-                                <label class="flex items-center gap-2 text-sm"><input type="radio" name="approvedFormLunchTimeType" value="end" class="rounded text-emerald-600"> 종료</label>
-                                <input type="time" id="approvedFormLunchEnd" class="px-3 py-2 border border-slate-200 rounded-lg text-sm" value="00:00">
-                            </div>
-                        </div>
-                    </div>
                 </section>
 
                 <section class="space-y-4">
@@ -530,7 +510,7 @@ export const adminCoursesApprovedRegisterHtml = (editId?: string) => {
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
                         <div class="border border-slate-200 rounded-xl p-4 bg-slate-50/50">
                             <p class="text-xs font-bold text-slate-600 mb-2">전체 교재 품목 <span id="approvedTextbookAllCount">0</span></p>
-                            <input type="text" id="approvedTextbookAllFilter" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm mb-3" placeholder="Filter">
+                            <input type="text" id="approvedTextbookAllFilter" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm mb-3" placeholder="검색">
                             <div id="approvedTextbookAllList" class="min-h-[160px] max-h-[240px] overflow-y-auto space-y-1 text-sm"></div>
                         </div>
                         <div class="flex flex-col items-center justify-center gap-2 py-4">
@@ -541,7 +521,7 @@ export const adminCoursesApprovedRegisterHtml = (editId?: string) => {
                         </div>
                         <div class="border border-slate-200 rounded-xl p-4 bg-white">
                             <p class="text-xs font-bold text-slate-600 mb-2">선택된 교재 품목 <span id="approvedTextbookSelectedCount">0</span></p>
-                            <input type="text" id="approvedTextbookSelectedFilter" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm mb-3" placeholder="Filter">
+                            <input type="text" id="approvedTextbookSelectedFilter" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm mb-3" placeholder="검색">
                             <div id="approvedTextbookSelectedList" class="min-h-[160px] max-h-[240px] overflow-y-auto space-y-1 text-sm"></div>
                         </div>
                     </div>
@@ -552,7 +532,7 @@ export const adminCoursesApprovedRegisterHtml = (editId?: string) => {
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
                         <div class="border border-slate-200 rounded-xl p-4 bg-slate-50/50">
                             <p class="text-xs font-bold text-slate-600 mb-2">전체 소모품 품목 <span id="approvedConsumableAllCount">0</span></p>
-                            <input type="text" id="approvedConsumableAllFilter" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm mb-3" placeholder="Filter">
+                            <input type="text" id="approvedConsumableAllFilter" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm mb-3" placeholder="검색">
                             <div id="approvedConsumableAllList" class="min-h-[160px] max-h-[240px] overflow-y-auto space-y-1 text-sm"></div>
                         </div>
                         <div class="flex flex-col items-center justify-center gap-2 py-4">
@@ -563,8 +543,52 @@ export const adminCoursesApprovedRegisterHtml = (editId?: string) => {
                         </div>
                         <div class="border border-slate-200 rounded-xl p-4 bg-white">
                             <p class="text-xs font-bold text-slate-600 mb-2">선택된 소모품 품목 <span id="approvedConsumableSelectedCount">0</span></p>
-                            <input type="text" id="approvedConsumableSelectedFilter" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm mb-3" placeholder="Filter">
+                            <input type="text" id="approvedConsumableSelectedFilter" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm mb-3" placeholder="검색">
                             <div id="approvedConsumableSelectedList" class="min-h-[160px] max-h-[240px] overflow-y-auto space-y-1 text-sm"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="space-y-4">
+                    <h3 class="text-lg font-bold text-slate-800 border-b border-slate-200 pb-2">장비선택</h3>
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+                        <div class="border border-slate-200 rounded-xl p-4 bg-slate-50/50">
+                            <p class="text-xs font-bold text-slate-600 mb-2">전체 장비 품목 <span id="approvedEquipmentAllCount">0</span></p>
+                            <input type="text" id="approvedEquipmentAllFilter" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm mb-3" placeholder="검색">
+                            <div id="approvedEquipmentAllList" class="min-h-[160px] max-h-[240px] overflow-y-auto space-y-1 text-sm"></div>
+                        </div>
+                        <div class="flex flex-col items-center justify-center gap-2 py-4">
+                            <button type="button" id="approvedEquipmentAddAll" class="px-3 py-1 border border-slate-200 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-100">&gt;&gt;</button>
+                            <button type="button" id="approvedEquipmentAdd" class="px-3 py-1 border border-slate-200 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-100">&gt;</button>
+                            <button type="button" id="approvedEquipmentRemove" class="px-3 py-1 border border-slate-200 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-100">&lt;</button>
+                            <button type="button" id="approvedEquipmentRemoveAll" class="px-3 py-1 border border-slate-200 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-100">&lt;&lt;</button>
+                        </div>
+                        <div class="border border-slate-200 rounded-xl p-4 bg-white">
+                            <p class="text-xs font-bold text-slate-600 mb-2">선택된 장비 품목 <span id="approvedEquipmentSelectedCount">0</span></p>
+                            <input type="text" id="approvedEquipmentSelectedFilter" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm mb-3" placeholder="검색">
+                            <div id="approvedEquipmentSelectedList" class="min-h-[160px] max-h-[240px] overflow-y-auto space-y-1 text-sm"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="space-y-4">
+                    <h3 class="text-lg font-bold text-slate-800 border-b border-slate-200 pb-2">시설선택</h3>
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+                        <div class="border border-slate-200 rounded-xl p-4 bg-slate-50/50">
+                            <p class="text-xs font-bold text-slate-600 mb-2">전체 시설 <span id="approvedFacilityAllCount">0</span></p>
+                            <input type="text" id="approvedFacilityAllFilter" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm mb-3" placeholder="검색">
+                            <div id="approvedFacilityAllList" class="min-h-[160px] max-h-[240px] overflow-y-auto space-y-1 text-sm"></div>
+                        </div>
+                        <div class="flex flex-col items-center justify-center gap-2 py-4">
+                            <button type="button" id="approvedFacilityAddAll" class="px-3 py-1 border border-slate-200 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-100">&gt;&gt;</button>
+                            <button type="button" id="approvedFacilityAdd" class="px-3 py-1 border border-slate-200 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-100">&gt;</button>
+                            <button type="button" id="approvedFacilityRemove" class="px-3 py-1 border border-slate-200 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-100">&lt;</button>
+                            <button type="button" id="approvedFacilityRemoveAll" class="px-3 py-1 border border-slate-200 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-100">&lt;&lt;</button>
+                        </div>
+                        <div class="border border-slate-200 rounded-xl p-4 bg-white">
+                            <p class="text-xs font-bold text-slate-600 mb-2">선택된 시설 <span id="approvedFacilitySelectedCount">0</span></p>
+                            <input type="text" id="approvedFacilitySelectedFilter" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm mb-3" placeholder="검색">
+                            <div id="approvedFacilitySelectedList" class="min-h-[160px] max-h-[240px] overflow-y-auto space-y-1 text-sm"></div>
                         </div>
                     </div>
                 </section>
