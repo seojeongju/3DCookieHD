@@ -913,7 +913,7 @@ export const adminHrdPersonnelHtml = () => `
             }
         }
         window.downloadFile = downloadFile;
-        function escapeJs(s) { return String(s || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\r/g, '').replace(/\n/g, '\\n'); }
+        function escapeJs(s) { return String(s||'').replace(/\\\\/g,'\\\\\\\\').replace(/'/g,"\\\\'").replace(/\\r/g,'').replace(/\\n/g,'\\\\n'); }
         
         // ==========================================
         //  Sub-Modal Management Functions
