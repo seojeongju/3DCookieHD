@@ -149,16 +149,18 @@ function stepContentHtml(step: number, editId?: string): string {
       <input type="hidden" id="ncsApprovedRegId" value="${regId}">
       <h3 class="text-lg font-bold text-slate-800">훈련이수체계도 작성</h3>
       <p class="text-sm text-slate-600">선택된 직종의 능력단위로 교과목 편성에 활용됩니다. 비NCS는 교과목은 <strong>3. 교과목편성</strong>에서 작성됩니다.</p>
+      <p class="text-xs text-slate-500">교과목 편성(3단계)에서 활용할 능력단위를 <strong>여러 개 선택</strong>한 뒤 다음 페이지로 이동하세요.</p>
       <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
         <table class="w-full text-left text-sm min-w-[520px]">
           <thead class="bg-slate-50 border-b border-slate-200">
             <tr>
+              <th class="px-4 py-3 w-12 font-bold text-slate-700">선택</th>
               <th class="px-4 py-3 w-36 font-bold text-slate-700">수준</th>
               <th class="px-4 py-3 font-bold text-slate-700">직종</th>
             </tr>
           </thead>
           <tbody id="ncsTrainingSystemBody" class="divide-y divide-slate-100">
-            <tr><td colspan="2" class="px-4 py-8 text-center text-slate-400"><i class="fas fa-spinner fa-spin mr-2"></i> 로딩 중...</td></tr>
+            <tr><td colspan="3" class="px-4 py-8 text-center text-slate-400"><i class="fas fa-spinner fa-spin mr-2"></i> 로딩 중...</td></tr>
           </tbody>
         </table>
       </div>
@@ -170,7 +172,7 @@ function stepContentHtml(step: number, editId?: string): string {
       <div class="flex flex-wrap gap-3 pt-4 border-t border-slate-200/60">
         <a href="/admin/ncs/approved/list" class="px-5 py-2.5 text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 font-bold text-sm transition inline-flex items-center gap-2"><i class="fas fa-list-ul"></i> 목록</a>
         <a href="/admin/ncs/approved/1${regId ? '?id=' + regId : ''}" class="px-5 py-2.5 text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 font-bold text-sm transition inline-flex items-center gap-2"><i class="fas fa-arrow-left"></i> 이전 페이지</a>
-        <a href="/admin/ncs/approved/3${regId ? '?id=' + regId : ''}" class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-bold text-sm transition inline-flex items-center gap-2"><i class="fas fa-arrow-right"></i> 다음 페이지</a>
+        <button type="button" id="ncsStep2BtnNext" class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-bold text-sm transition inline-flex items-center gap-2"><i class="fas fa-arrow-right"></i> 다음 페이지</button>
       </div>
     </div>`;
   }
@@ -278,13 +280,46 @@ function stepContentHtml(step: number, editId?: string): string {
     </div>`;
   }
   if (step === 4) {
+    const regId = editId || '';
     return `
-    <div class="space-y-4">
-      <h3 class="text-lg font-bold text-slate-800">4. 훈련시간설정</h3>
-      <p class="text-sm text-slate-600">훈련시간을 설정·관리합니다.</p>
-      <div class="border-2 border-dashed border-slate-200 rounded-2xl p-12 text-center text-slate-500 bg-slate-50/50">
-        <i class="fas fa-clock text-4xl mb-3 opacity-50"></i>
-        <p>훈련시간설정 등록 영역 (추후 구현)</p>
+    <div class="space-y-6" id="ncsApprovedStep4Container">
+      <input type="hidden" id="ncsApprovedRegIdStep4" value="${regId}">
+      <h3 class="text-lg font-bold text-slate-800">훈련시간설정</h3>
+      <p class="text-sm text-slate-600">편성된 교과목별 이론·실습 시간을 입력하세요. 합계는 자동 계산됩니다.</p>
+      <div id="ncsStep4NoReg" class="hidden rounded-xl border border-amber-200 bg-amber-50 px-5 py-8 text-center text-slate-600">
+        과정개요 및 교과목 편성을 먼저 등록한 후 3단계에서 <strong>다음 페이지</strong>를 눌러 진행하세요. <a href="/admin/ncs/approved/3${regId ? '?id=' + regId : ''}" class="text-emerald-600 hover:underline ml-1">3. 교과목편성으로 이동</a>
+      </div>
+      <div id="ncsStep4Form" class="space-y-6">
+        <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+          <table class="w-full text-left text-sm min-w-[480px]">
+            <thead class="bg-slate-50 border-b border-slate-200">
+              <tr>
+                <th class="px-4 py-3 w-12 font-bold text-slate-700">No</th>
+                <th class="px-4 py-3 font-bold text-slate-700">교과목명</th>
+                <th class="px-4 py-3 w-28 font-bold text-slate-700">이론(시간)</th>
+                <th class="px-4 py-3 w-28 font-bold text-slate-700">실습(시간)</th>
+                <th class="px-4 py-3 w-24 font-bold text-slate-700">합계</th>
+              </tr>
+            </thead>
+            <tbody id="ncsStep4HoursBody" class="divide-y divide-slate-100">
+              <tr><td colspan="5" class="px-4 py-8 text-center text-slate-400"><i class="fas fa-spinner fa-spin mr-2"></i> 로딩 중...</td></tr>
+            </tbody>
+            <tfoot id="ncsStep4HoursFoot" class="bg-slate-50 border-t-2 border-slate-200 hidden">
+              <tr>
+                <td colspan="2" class="px-4 py-3 font-bold text-slate-700">총계</td>
+                <td id="ncsStep4TotalTheory" class="px-4 py-3 font-bold text-slate-800">0</td>
+                <td id="ncsStep4TotalPractice" class="px-4 py-3 font-bold text-slate-800">0</td>
+                <td id="ncsStep4TotalSum" class="px-4 py-3 font-bold text-slate-800">0</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <div class="flex flex-wrap gap-3 pt-4 border-t border-slate-200/60">
+          <a href="/admin/ncs/approved/list" class="px-5 py-2.5 text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 font-bold text-sm transition inline-flex items-center gap-2"><i class="fas fa-list-ul"></i> 목록</a>
+          <a href="/admin/ncs/approved/3${regId ? '?id=' + regId : ''}" class="px-5 py-2.5 text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 font-bold text-sm transition inline-flex items-center gap-2"><i class="fas fa-arrow-left"></i> 이전 페이지</a>
+          <button type="button" id="ncsStep4BtnSave" class="px-5 py-2.5 text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 font-bold text-sm transition inline-flex items-center gap-2"><i class="fas fa-save"></i> 저장</button>
+          <button type="button" id="ncsStep4BtnNext" class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-bold text-sm transition inline-flex items-center gap-2"><i class="fas fa-arrow-right"></i> 다음 페이지</button>
+        </div>
       </div>
     </div>`;
   }

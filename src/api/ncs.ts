@@ -361,8 +361,17 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
         if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
         const reg = await c.env.DB.prepare(
             'SELECT * FROM ncs_approved_registrations WHERE id = ?'
-        ).bind(id).first() as { unit_code?: string; unit_name?: string; main_job_code?: string; main_job_name?: string; ncs_tab?: string; non_ncs_course_name?: string } | null;
+        ).bind(id).first() as { unit_code?: string; unit_name?: string; main_job_code?: string; main_job_name?: string; ncs_tab?: string; non_ncs_course_name?: string; selected_training_elements_json?: string | null } | null;
         if (!reg) return c.json({ success: false, error: '등록 정보 없음' }, 404);
+
+        let selected: string[] = [];
+        try {
+            const raw = (reg as { selected_training_elements_json?: string | null }).selected_training_elements_json;
+            if (raw && typeof raw === 'string') {
+                const parsed = JSON.parse(raw);
+                selected = Array.isArray(parsed) ? parsed.filter((x: unknown) => typeof x === 'string') : [];
+            }
+        } catch (_) { /* ignore */ }
 
         const mainJob = {
             code: (reg.unit_code || reg.main_job_code || '').trim() || null,
@@ -374,7 +383,8 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
                 data: {
                     mainJob: { code: null, name: (reg.non_ncs_course_name || '').trim() || null },
                     levels: { 5: [], 4: [], 3: [] },
-                    basicAbility: []
+                    basicAbility: [],
+                    selected
                 }
             });
         }
@@ -414,11 +424,31 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
 
         return c.json({
             success: true,
-            data: { mainJob: { code: unitCode || null, name: unitName || null }, levels, basicAbility }
+            data: { mainJob: { code: unitCode || null, name: unitName || null }, levels, basicAbility, selected }
         });
     } catch (e) {
         console.error('ncs approved training-system:', e);
         return c.json({ success: false, error: '훈련이수체계도 조회 실패' }, 500);
+    }
+});
+
+/** 훈련이수체계도(2단계) 선택 직종 저장 — 교과목편성(3단계)에서 사용 */
+app.put('/approved/registrations/:id/training-system-selection', authMiddleware, requireAdmin, async (c) => {
+    try {
+        const id = parseInt(c.req.param('id'), 10);
+        if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
+        const existing = await c.env.DB.prepare('SELECT id FROM ncs_approved_registrations WHERE id = ?').bind(id).first();
+        if (!existing) return c.json({ success: false, error: '등록 정보 없음' }, 404);
+        const body = await c.req.json<{ selected?: string[] }>();
+        const selected = Array.isArray(body.selected) ? body.selected.filter((x): x is string => typeof x === 'string') : [];
+        const json = JSON.stringify(selected);
+        await c.env.DB.prepare(
+            'UPDATE ncs_approved_registrations SET selected_training_elements_json = ?, updated_at = datetime(\'now\') WHERE id = ?'
+        ).bind(json, id).run();
+        return c.json({ success: true, data: { selected } });
+    } catch (e) {
+        console.error('ncs approved training-system-selection put:', e);
+        return c.json({ success: false, error: '선택 저장 실패' }, 500);
     }
 });
 
@@ -471,6 +501,91 @@ app.put('/approved/registrations/:id/curriculum', authMiddleware, requireAdmin, 
     } catch (e) {
         console.error('ncs approved curriculum put:', e);
         return c.json({ success: false, error: '교과목 편성 저장 실패' }, 500);
+    }
+});
+
+/** 훈련시간설정(4단계) 조회 — 교과목 목록 + 교과목별 이론/실습 시간 */
+app.get('/approved/registrations/:id/training-hours', authMiddleware, requireAdmin, async (c) => {
+    try {
+        const id = parseInt(c.req.param('id'), 10);
+        if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
+        const existing = await c.env.DB.prepare('SELECT id FROM ncs_approved_registrations WHERE id = ?').bind(id).first();
+        if (!existing) return c.json({ success: false, error: '등록 정보 없음' }, 404);
+        const { results: curriculum } = await c.env.DB.prepare(
+            'SELECT id, type, name, classification, sort_order FROM ncs_approved_curriculum WHERE registration_id = ? ORDER BY sort_order ASC, id ASC'
+        ).bind(id).all();
+        const curriculumIds = (curriculum || []).map((r: { id: number }) => r.id);
+        let hoursMap: Record<number, { theory_hours: number; practice_hours: number }> = {};
+        if (curriculumIds.length) {
+            const placeholders = curriculumIds.map(() => '?').join(',');
+            const { results: hoursRows } = await c.env.DB.prepare(
+                `SELECT curriculum_id, theory_hours, practice_hours FROM ncs_approved_training_hours WHERE curriculum_id IN (${placeholders})`
+            ).bind(...curriculumIds).all();
+            (hoursRows || []).forEach((row: { curriculum_id: number; theory_hours: number; practice_hours: number }) => {
+                hoursMap[row.curriculum_id] = { theory_hours: row.theory_hours ?? 0, practice_hours: row.practice_hours ?? 0 };
+            });
+        }
+        const data = (curriculum || []).map((row: { id: number; type: string; name: string; classification: string | null; sort_order: number }) => {
+            const h = hoursMap[row.id] || { theory_hours: 0, practice_hours: 0 };
+            return {
+                curriculum_id: row.id,
+                type: row.type,
+                name: row.name,
+                classification: row.classification,
+                sort_order: row.sort_order,
+                theory_hours: h.theory_hours,
+                practice_hours: h.practice_hours
+            };
+        });
+        return c.json({ success: true, data });
+    } catch (e) {
+        console.error('ncs approved training-hours get:', e);
+        return c.json({ success: false, error: '훈련시간 조회 실패' }, 500);
+    }
+});
+
+/** 훈련시간설정(4단계) 저장 — 교과목별 이론/실습 시간 */
+app.put('/approved/registrations/:id/training-hours', authMiddleware, requireAdmin, async (c) => {
+    try {
+        const id = parseInt(c.req.param('id'), 10);
+        if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
+        const existing = await c.env.DB.prepare('SELECT id FROM ncs_approved_registrations WHERE id = ?').bind(id).first();
+        if (!existing) return c.json({ success: false, error: '등록 정보 없음' }, 404);
+        const body = await c.req.json<{ items?: { curriculum_id: number; theory_hours?: number; practice_hours?: number }[] }>();
+        const items = Array.isArray(body.items) ? body.items : [];
+        for (const it of items) {
+            const curriculumId = Number(it.curriculum_id);
+            if (!curriculumId) continue;
+            const theory = Math.max(0, Math.floor(Number(it.theory_hours) || 0));
+            const practice = Math.max(0, Math.floor(Number(it.practice_hours) || 0));
+            await c.env.DB.prepare(
+                `INSERT INTO ncs_approved_training_hours (curriculum_id, theory_hours, practice_hours, updated_at)
+                 VALUES (?, ?, ?, datetime('now'))
+                 ON CONFLICT(curriculum_id) DO UPDATE SET theory_hours = excluded.theory_hours, practice_hours = excluded.practice_hours, updated_at = datetime('now')`
+            ).bind(curriculumId, theory, practice).run();
+        }
+        const { results: curriculum } = await c.env.DB.prepare(
+            'SELECT id FROM ncs_approved_curriculum WHERE registration_id = ?'
+        ).bind(id).all();
+        const curriculumIds = (curriculum || []).map((r: { id: number }) => r.id);
+        let hoursMap: Record<number, { theory_hours: number; practice_hours: number }> = {};
+        if (curriculumIds.length) {
+            const placeholders = curriculumIds.map(() => '?').join(',');
+            const { results: hoursRows } = await c.env.DB.prepare(
+                `SELECT curriculum_id, theory_hours, practice_hours FROM ncs_approved_training_hours WHERE curriculum_id IN (${placeholders})`
+            ).bind(...curriculumIds).all();
+            (hoursRows || []).forEach((row: { curriculum_id: number; theory_hours: number; practice_hours: number }) => {
+                hoursMap[row.curriculum_id] = { theory_hours: row.theory_hours ?? 0, practice_hours: row.practice_hours ?? 0 };
+            });
+        }
+        const data = (curriculum || []).map((r: { id: number }) => ({
+            curriculum_id: r.id,
+            ...(hoursMap[r.id] || { theory_hours: 0, practice_hours: 0 })
+        }));
+        return c.json({ success: true, data });
+    } catch (e) {
+        console.error('ncs approved training-hours put:', e);
+        return c.json({ success: false, error: '훈련시간 저장 실패' }, 500);
     }
 });
 

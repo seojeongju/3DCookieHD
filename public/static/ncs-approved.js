@@ -406,13 +406,12 @@
             el.textContent = s;
             return el.innerHTML;
         }
-        function row(levelLabel, cells) {
-            var inner = cells.map(function(c) { return '<div class="py-1">' + esc(c) + '</div>'; }).join('');
-            return '<tr class="align-top"><td class="px-4 py-3 font-medium text-slate-700">' + esc(levelLabel) + '</td><td class="px-4 py-3 text-slate-600">' + inner + '</td></tr>';
+        function attrEsc(s) {
+            return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         }
 
         if (!regId) {
-            tbody.innerHTML = '<tr><td colspan="2" class="px-4 py-12 text-center text-slate-500">과정개요를 먼저 등록한 후 1단계에서 <strong>다음</strong>을 눌러 진행하세요. <a href="/admin/ncs/approved/1" class="text-emerald-600 hover:underline ml-1">1. 과정개요로 이동</a></td></tr>';
+            tbody.innerHTML = '<tr><td colspan="3" class="px-4 py-12 text-center text-slate-500">과정개요를 먼저 등록한 후 1단계에서 <strong>다음</strong>을 눌러 진행하세요. <a href="/admin/ncs/approved/1" class="text-emerald-600 hover:underline ml-1">1. 과정개요로 이동</a></td></tr>';
             return;
         }
 
@@ -421,27 +420,71 @@
             .then(function(r) { return r.json(); })
             .then(function(json) {
                 if (!json.success || !json.data) {
-                    tbody.innerHTML = '<tr><td colspan="2" class="px-4 py-8 text-center text-red-500">' + esc(json.error || '훈련이수체계도 조회 실패') + '</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="3" class="px-4 py-8 text-center text-red-500">' + esc(json.error || '훈련이수체계도 조회 실패') + '</td></tr>';
                     return;
                 }
                 var d = json.data;
                 var levels = d.levels || { 5: [], 4: [], 3: [] };
                 var mainJob = d.mainJob || { code: null, name: null };
                 var basicAbility = d.basicAbility || [];
+                var selectedSet = {};
+                (d.selected || []).forEach(function(n) { selectedSet[n] = true; });
+
                 var rows = [];
-                var l5 = (levels[5] || []).map(function(x) { return x.name; });
-                var l4 = (levels[4] || []).map(function(x) { return x.name; });
-                var l3 = (levels[3] || []).map(function(x) { return x.name; });
-                if (l5.length) rows.push(row('5수준', l5));
-                if (l4.length) rows.push(row('4수준', l4));
-                if (l3.length) rows.push(row('3수준', l3));
-                rows.push(row('직업 기초 능력', [basicAbility.length ? basicAbility.map(function(x) { return x.name; }).join(', ') : '선택된 직업기초 능력이 없습니다.']));
+                function addSelectableRows(levelLabel, items) {
+                    (items || []).forEach(function(x) {
+                        var name = (x && x.name) ? x.name : String(x);
+                        if (!name) return;
+                        var checked = selectedSet[name] ? ' checked' : '';
+                        rows.push('<tr class="ncs-step2-selectable align-top">' +
+                            '<td class="px-4 py-2"><label class="flex items-center justify-center"><input type="checkbox" class="ncs-step2-cb rounded text-blue-600" value="' + attrEsc(name) + '"' + checked + '></label></td>' +
+                            '<td class="px-4 py-2 font-medium text-slate-700">' + esc(levelLabel) + '</td>' +
+                            '<td class="px-4 py-2 text-slate-800">' + esc(name) + '</td></tr>');
+                    });
+                }
+                addSelectableRows('5수준', levels[5]);
+                addSelectableRows('4수준', levels[4]);
+                addSelectableRows('3수준', levels[3]);
+                if (basicAbility.length) addSelectableRows('직업 기초 능력', basicAbility);
+                else rows.push('<tr class="align-top bg-slate-50/50"><td class="px-4 py-3"></td><td class="px-4 py-3 font-medium text-slate-700">직업 기초 능력</td><td class="px-4 py-3 text-slate-500">' + esc('선택된 직업기초 능력이 없습니다.') + '</td></tr>');
+
                 var mainLabel = mainJob.name ? mainJob.name + (mainJob.code ? ' (' + mainJob.code + ')' : '') + ' (주직종(음영))' : '—';
-                rows.push(row('직종', [mainLabel]));
+                rows.push('<tr class="align-top bg-slate-50/50"><td class="px-4 py-3"></td><td class="px-4 py-3 font-medium text-slate-700">직종</td><td class="px-4 py-3 text-slate-800">' + esc(mainLabel) + '</td></tr>');
+
                 tbody.innerHTML = rows.join('');
+
+                var btnNext = document.getElementById('ncsStep2BtnNext');
+                if (btnNext) {
+                    btnNext.addEventListener('click', function() {
+                        var selected = [];
+                        tbody.querySelectorAll('.ncs-step2-cb:checked').forEach(function(cb) {
+                            var v = (cb.value || '').trim();
+                            if (v) selected.push(v);
+                        });
+                        btnNext.disabled = true;
+                        fetch('/api/ncs/approved/registrations/' + regId + '/training-system-selection', {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (token || '') },
+                            body: JSON.stringify({ selected: selected })
+                        })
+                            .then(function(r) { return r.json(); })
+                            .then(function(res) {
+                                btnNext.disabled = false;
+                                if (res.success) {
+                                    window.location.href = '/admin/ncs/approved/3?id=' + regId;
+                                } else {
+                                    alert(res.error || '선택 저장 실패');
+                                }
+                            })
+                            .catch(function() {
+                                btnNext.disabled = false;
+                                alert('선택 저장 중 오류가 발생했습니다.');
+                            });
+                    });
+                }
             })
             .catch(function() {
-                tbody.innerHTML = '<tr><td colspan="2" class="px-4 py-8 text-center text-red-500">훈련이수체계도를 불러오는데 실패했습니다.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="3" class="px-4 py-8 text-center text-red-500">훈련이수체계도를 불러오는데 실패했습니다.</td></tr>';
             });
     }
 
@@ -726,7 +769,11 @@
                     var levels = d.levels || { 5: [], 4: [], 3: [] };
                     var main = d.mainJob || { name: null };
                     if (jobLabel) jobLabel.textContent = main.name ? main.name : 'NCS 기반 교과';
-                    unitList = (levels[5] || []).concat(levels[4] || []).concat(levels[3] || []);
+                    if (d.selected && Array.isArray(d.selected) && d.selected.length) {
+                        unitList = d.selected.map(function(n) { return { name: n }; });
+                    } else {
+                        unitList = (levels[5] || []).concat(levels[4] || []).concat(levels[3] || []);
+                    }
                 }
                 var rows = ncsRows.querySelectorAll('.ncs-curriculum-row');
                 rows.forEach(function(r) {
@@ -764,7 +811,139 @@
         if (btnNext) btnNext.addEventListener('click', function() { saveCurriculum(true); });
     }
 
+    function initStep4() {
+        var regInput = document.getElementById('ncsApprovedRegIdStep4');
+        var regId = (regInput && regInput.value) ? regInput.value.trim() : '';
+        var noReg = document.getElementById('ncsStep4NoReg');
+        var form = document.getElementById('ncsStep4Form');
+        var tbody = document.getElementById('ncsStep4HoursBody');
+        var foot = document.getElementById('ncsStep4HoursFoot');
+        var totalTheoryEl = document.getElementById('ncsStep4TotalTheory');
+        var totalPracticeEl = document.getElementById('ncsStep4TotalPractice');
+        var totalSumEl = document.getElementById('ncsStep4TotalSum');
+
+        if (!tbody || !form) return;
+
+        if (!regId) {
+            if (noReg) noReg.classList.remove('hidden');
+            form.classList.add('hidden');
+            tbody.innerHTML = '';
+            return;
+        }
+        if (noReg) noReg.classList.add('hidden');
+        form.classList.remove('hidden');
+
+        function attrEsc(s) {
+            return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        function renderRows(items) {
+            if (!items || !items.length) {
+                tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-slate-500">등록된 교과목이 없습니다. 3. 교과목편성에서 먼저 편성하세요.</td></tr>';
+                if (foot) foot.classList.add('hidden');
+                return;
+            }
+            tbody.innerHTML = items.map(function(it, i) {
+                var theory = Number(it.theory_hours) || 0;
+                var practice = Number(it.practice_hours) || 0;
+                var sum = theory + practice;
+                return '<tr class="ncs-step4-row" data-curriculum-id="' + attrEsc(String(it.curriculum_id)) + '">' +
+                    '<td class="px-4 py-2 text-slate-600">' + (i + 1) + '</td>' +
+                    '<td class="px-4 py-2 font-medium text-slate-800">' + attrEsc(it.name || '') + '</td>' +
+                    '<td class="px-4 py-2"><input type="number" min="0" step="1" class="ncs-step4-theory w-20 px-2 py-1.5 border border-slate-200 rounded-lg text-sm" value="' + theory + '"></td>' +
+                    '<td class="px-4 py-2"><input type="number" min="0" step="1" class="ncs-step4-practice w-20 px-2 py-1.5 border border-slate-200 rounded-lg text-sm" value="' + practice + '"></td>' +
+                    '<td class="px-4 py-2 ncs-step4-sum text-slate-700 font-medium">' + sum + '</td></tr>';
+            }).join('');
+            if (foot) foot.classList.remove('hidden');
+            updateTotals();
+            tbody.addEventListener('input', updateTotals);
+            tbody.addEventListener('change', updateTotals);
+        }
+
+        function updateTotals() {
+            var theorySum = 0, practiceSum = 0;
+            tbody.querySelectorAll('.ncs-step4-row').forEach(function(tr) {
+                var theoryIn = tr.querySelector('.ncs-step4-theory');
+                var practiceIn = tr.querySelector('.ncs-step4-practice');
+                var sumEl = tr.querySelector('.ncs-step4-sum');
+                var t = Math.max(0, parseInt(theoryIn && theoryIn.value ? theoryIn.value : 0, 10) || 0);
+                var p = Math.max(0, parseInt(practiceIn && practiceIn.value ? practiceIn.value : 0, 10) || 0);
+                theorySum += t;
+                practiceSum += p;
+                if (sumEl) sumEl.textContent = t + p;
+            });
+            if (totalTheoryEl) totalTheoryEl.textContent = theorySum;
+            if (totalPracticeEl) totalPracticeEl.textContent = practiceSum;
+            if (totalSumEl) totalSumEl.textContent = theorySum + practiceSum;
+        }
+
+        function buildPayload() {
+            var items = [];
+            tbody.querySelectorAll('.ncs-step4-row').forEach(function(tr) {
+                var cid = tr.getAttribute('data-curriculum-id');
+                var theoryIn = tr.querySelector('.ncs-step4-theory');
+                var practiceIn = tr.querySelector('.ncs-step4-practice');
+                var theory = Math.max(0, parseInt(theoryIn && theoryIn.value ? theoryIn.value : 0, 10) || 0);
+                var practice = Math.max(0, parseInt(practiceIn && practiceIn.value ? practiceIn.value : 0, 10) || 0);
+                if (cid) items.push({ curriculum_id: parseInt(cid, 10), theory_hours: theory, practice_hours: practice });
+            });
+            return { items: items };
+        }
+
+        function saveHours(redirectToNext) {
+            var btnSave = document.getElementById('ncsStep4BtnSave');
+            var btnNext = document.getElementById('ncsStep4BtnNext');
+            if (btnSave) btnSave.disabled = true;
+            if (btnNext) btnNext.disabled = true;
+            var token = localStorage.getItem('token');
+            fetch('/api/ncs/approved/registrations/' + regId + '/training-hours', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (token || '') },
+                body: JSON.stringify(buildPayload())
+            })
+                .then(function(r) { return r.json(); })
+                .then(function(json) {
+                    if (btnSave) btnSave.disabled = false;
+                    if (btnNext) btnNext.disabled = false;
+                    if (json.success) {
+                        if (redirectToNext) {
+                            window.location.href = '/admin/ncs/approved/5?id=' + regId;
+                            return;
+                        }
+                        return;
+                    }
+                    alert(json.error || '저장 실패');
+                })
+                .catch(function() {
+                    if (btnSave) btnSave.disabled = false;
+                    if (btnNext) btnNext.disabled = false;
+                    alert('저장 중 오류가 발생했습니다.');
+                });
+        }
+
+        var token = localStorage.getItem('token');
+        fetch('/api/ncs/approved/registrations/' + regId + '/training-hours', { headers: token ? { 'Authorization': 'Bearer ' + token } : {} })
+            .then(function(r) { return r.json(); })
+            .then(function(json) {
+                if (!json.success || !Array.isArray(json.data)) {
+                    renderRows([]);
+                    return;
+                }
+                renderRows(json.data);
+            })
+            .catch(function() {
+                tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-red-500">훈련시간 정보를 불러오는데 실패했습니다.</td></tr>';
+                if (foot) foot.classList.add('hidden');
+            });
+
+        var btnSave = document.getElementById('ncsStep4BtnSave');
+        var btnNext = document.getElementById('ncsStep4BtnNext');
+        if (btnSave) btnSave.addEventListener('click', function() { saveHours(false); });
+        if (btnNext) btnNext.addEventListener('click', function() { saveHours(true); });
+    }
+
     if (step === 1) initStep1();
     if (step === 2) initStep2();
     if (step === 3) initStep3();
+    if (step === 4) initStep4();
 })();
