@@ -135,31 +135,144 @@ function stepContentHtml(step: number, editId?: string): string {
         </div>
       </div>
       <div class="flex flex-wrap gap-3 pt-6 border-t border-slate-200/60">
-        <a href="/admin/ncs/approved/list" class="px-5 py-2.5 text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 font-bold text-sm transition">목록</a>
+        <a href="/admin/ncs/approved/list" class="px-5 py-2.5 text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 font-bold text-sm transition inline-flex items-center gap-2"><i class="fas fa-list-ul"></i> 저장된 목록</a>
         <button type="button" id="ncsApprovedBtnSave" class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-bold text-sm transition">${isEdit ? '수정' : '저장'}</button>
+        <button type="button" id="ncsApprovedBtnNext" class="px-5 py-2.5 bg-slate-700 text-white rounded-xl hover:bg-slate-800 font-bold text-sm transition inline-flex items-center gap-2"><i class="fas fa-arrow-right"></i> 다음</button>
         ${isEdit ? '<button type="button" id="ncsApprovedBtnDelete" class="px-5 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 font-bold text-sm transition">삭제</button>' : ''}
       </div>
     </div>`;
   }
   if (step === 2) {
+    const regId = editId || '';
     return `
-    <div class="space-y-4">
-      <h3 class="text-lg font-bold text-slate-800">2. 훈련이수체계도</h3>
-      <p class="text-sm text-slate-600">훈련이수체계도를 등록·관리합니다.</p>
-      <div class="border-2 border-dashed border-slate-200 rounded-2xl p-12 text-center text-slate-500 bg-slate-50/50">
-        <i class="fas fa-sitemap text-4xl mb-3 opacity-50"></i>
-        <p>훈련이수체계도 등록 영역 (추후 구현)</p>
+    <div class="space-y-6" id="ncsApprovedStep2Container">
+      <input type="hidden" id="ncsApprovedRegId" value="${regId}">
+      <h3 class="text-lg font-bold text-slate-800">훈련이수체계도 작성</h3>
+      <p class="text-sm text-slate-600">선택된 직종의 능력단위로 교과목 편성에 활용됩니다. 비NCS는 교과목은 <strong>3. 교과목편성</strong>에서 작성됩니다.</p>
+      <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+        <table class="w-full text-left text-sm min-w-[520px]">
+          <thead class="bg-slate-50 border-b border-slate-200">
+            <tr>
+              <th class="px-4 py-3 w-36 font-bold text-slate-700">수준</th>
+              <th class="px-4 py-3 font-bold text-slate-700">직종</th>
+            </tr>
+          </thead>
+          <tbody id="ncsTrainingSystemBody" class="divide-y divide-slate-100">
+            <tr><td colspan="2" class="px-4 py-8 text-center text-slate-400"><i class="fas fa-spinner fa-spin mr-2"></i> 로딩 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="rounded-xl border border-red-200 bg-red-50/80 px-4 py-3 text-sm text-red-800">
+        <p class="font-bold mb-1">훈련이수체계도를 삭제할 경우 편성된 교과목도 동시에 삭제됩니다.</p>
+        <p class="mb-1">교과목편성 및 훈련이수체계도 재설정을 원할 경우 훈련이수체계도를 삭제하시면 됩니다.</p>
+        <p class="text-red-700">삭제가 불가능할 경우에는 4번째 단계인 훈련시간설정이 등록되었을 경우에 삭제가 불가능합니다.</p>
+      </div>
+      <div class="flex flex-wrap gap-3 pt-4 border-t border-slate-200/60">
+        <a href="/admin/ncs/approved/list" class="px-5 py-2.5 text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 font-bold text-sm transition inline-flex items-center gap-2"><i class="fas fa-list-ul"></i> 목록</a>
+        <a href="/admin/ncs/approved/1${regId ? '?id=' + regId : ''}" class="px-5 py-2.5 text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 font-bold text-sm transition inline-flex items-center gap-2"><i class="fas fa-arrow-left"></i> 이전 페이지</a>
+        <a href="/admin/ncs/approved/3${regId ? '?id=' + regId : ''}" class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-bold text-sm transition inline-flex items-center gap-2"><i class="fas fa-arrow-right"></i> 다음 페이지</a>
       </div>
     </div>`;
   }
   if (step === 3) {
+    const regId = editId || '';
     return `
-    <div class="space-y-4">
-      <h3 class="text-lg font-bold text-slate-800">3. 교과목편성</h3>
-      <p class="text-sm text-slate-600">교과목을 편성·관리합니다.</p>
-      <div class="border-2 border-dashed border-slate-200 rounded-2xl p-12 text-center text-slate-500 bg-slate-50/50">
-        <i class="fas fa-book text-4xl mb-3 opacity-50"></i>
-        <p>교과목편성 등록 영역 (추후 구현)</p>
+    <div class="space-y-6" id="ncsApprovedStep3Container">
+      <input type="hidden" id="ncsApprovedRegIdStep3" value="${regId}">
+      <h3 class="text-lg font-bold text-slate-800">교과목 편성</h3>
+      <p class="text-sm text-slate-600">편성되는 교과목 기준으로 능력단위 및 능력단위 요소의 훈련시간을 설정합니다.</p>
+      <div id="ncsStep3NoReg" class="hidden rounded-xl border border-amber-200 bg-amber-50 px-5 py-8 text-center text-slate-600">
+        과정개요를 먼저 등록한 후 1단계에서 <strong>다음</strong>을 눌러 진행하세요. <a href="/admin/ncs/approved/1" class="text-emerald-600 hover:underline ml-1">1. 과정개요로 이동</a>
+      </div>
+      <div id="ncsStep3Form" class="space-y-6">
+      <div id="ncsCurriculumSection" class="rounded-xl border border-slate-200 bg-white overflow-hidden">
+        <div class="px-5 py-4 bg-slate-50 border-b border-slate-200 flex flex-wrap justify-between items-center gap-3">
+          <div>
+            <h4 class="font-bold text-slate-800" id="ncsCurriculumJobLabel">NCS 기반 교과</h4>
+            <p class="text-xs text-slate-600 mt-0.5">해당 직종에 관련된 교과목을 설정해주세요.</p>
+          </div>
+          <div class="flex gap-2">
+            <button type="button" id="ncsCurriculumBtnAdd" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700 transition"><i class="fas fa-plus mr-1"></i>추가</button>
+            <button type="button" id="ncsCurriculumBtnDel" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700 transition"><i class="fas fa-minus mr-1"></i>삭제</button>
+          </div>
+        </div>
+        <div id="ncsCurriculumRows" class="p-5 space-y-5">
+          <div class="ncs-curriculum-row rounded-lg border border-slate-200 p-4 bg-white space-y-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">교과목명</label>
+              <input type="text" class="ncs-curriculum-name w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="교과목명을 등록해주세요">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-2">능력단위</label>
+              <div class="ncs-curriculum-unit-checks flex flex-wrap gap-3"></div>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">능력단위요소</label>
+              <p class="text-xs text-slate-500 mb-2">교과목에 포함될 능력단위를 선택해주세요.</p>
+              <div class="ncs-curriculum-selected text-sm text-slate-600 min-h-[2rem] px-3 py-2 rounded-lg bg-slate-50 border border-slate-100"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="nonNcsCurriculumSection" class="rounded-xl border border-slate-200 bg-white overflow-hidden">
+        <div class="px-5 py-4 bg-slate-50 border-b border-slate-200 flex flex-wrap justify-between items-center gap-3">
+          <h4 class="font-bold text-slate-800">비NCS교과</h4>
+          <div class="flex gap-2">
+            <button type="button" id="nonNcsCurriculumBtnAdd" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700 transition"><i class="fas fa-plus mr-1"></i>추가</button>
+            <button type="button" id="nonNcsCurriculumBtnDel" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700 transition"><i class="fas fa-minus mr-1"></i>삭제</button>
+          </div>
+        </div>
+        <div id="nonNcsCurriculumRows" class="p-5 space-y-5">
+          <div class="nonncs-curriculum-row rounded-lg border border-slate-200 p-4 bg-white space-y-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">::교과분류::</label>
+              <select class="nonncs-curriculum-class w-full max-w-xs px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                <option value="">선택</option>
+                <option value="공통">공통</option>
+                <option value="기초">기초</option>
+                <option value="전문">전문</option>
+                <option value="실무">실무</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">교과목명</label>
+              <input type="text" class="nonncs-curriculum-name w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="교과목명을 등록해주세요">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">단원</label>
+              <div class="nonncs-units space-y-2">
+                <div class="flex gap-2">
+                  <input type="text" class="nonncs-unit-item flex-1 px-4 py-2 border border-slate-200 rounded-lg text-sm" placeholder="단원명 입력">
+                  <button type="button" class="nonncs-unit-plus px-3 py-2 text-emerald-600 border border-emerald-200 rounded-lg hover:bg-emerald-50 text-sm">+</button>
+                  <button type="button" class="nonncs-unit-minus px-3 py-2 text-red-600 border border-red-200 rounded-lg hover:bg-red-50 text-sm">−</button>
+                </div>
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">학습목표</label>
+              <div class="nonncs-objectives space-y-2">
+                <div class="flex gap-2">
+                  <input type="text" class="nonncs-obj-item flex-1 px-4 py-2 border border-slate-200 rounded-lg text-sm" placeholder="학습목표(수행준거) 입력">
+                  <button type="button" class="nonncs-obj-plus px-3 py-2 text-emerald-600 border border-emerald-200 rounded-lg hover:bg-emerald-50 text-sm">+</button>
+                  <button type="button" class="nonncs-obj-minus px-3 py-2 text-red-600 border border-red-200 rounded-lg hover:bg-red-50 text-sm">−</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rounded-xl border border-red-200 bg-red-50/80 px-4 py-3 text-sm text-red-800">
+        <p class="font-bold mb-1">교과목편성이 삭제 불가능한 경우</p>
+        <p class="mb-1">4·5·6단계(훈련시간설정, 평가·교수학습방법, 시설·장비)가 이미 등록된 경우, 또는 승인받은 과정에 NCS 등록정보가 반영된 경우 삭제할 수 없습니다.</p>
+      </div>
+
+      <div class="flex flex-wrap gap-3 pt-4 border-t border-slate-200/60">
+        <a href="/admin/ncs/approved/list" class="px-5 py-2.5 text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 font-bold text-sm transition inline-flex items-center gap-2"><i class="fas fa-list-ul"></i> 목록</a>
+        <a href="/admin/ncs/approved/2${regId ? '?id=' + regId : ''}" class="px-5 py-2.5 text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 font-bold text-sm transition inline-flex items-center gap-2"><i class="fas fa-arrow-left"></i> 이전 페이지</a>
+        <a href="/admin/ncs/approved/4${regId ? '?id=' + regId : ''}" class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-bold text-sm transition inline-flex items-center gap-2"><i class="fas fa-arrow-right"></i> 다음 페이지</a>
+      </div>
       </div>
     </div>`;
   }
@@ -220,10 +333,15 @@ export function adminNcsApprovedHtml(stepParam?: string, editId?: string): strin
         ${hrdSidebar('ncs-approved')}
         <main class="flex-1 overflow-x-hidden overflow-y-auto">
             <header class="bg-white shadow-sm sticky top-0 z-10 border-b border-slate-200">
-                <div class="px-8 py-4">
-                    <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">NCS 훈련과정 승인정보</p>
-                    <h1 class="text-xl font-black text-slate-800 mt-0.5">승인받은 NCS 등록 — ${step}. ${STEP_MENU[step - 1].label}</h1>
-                    <p class="text-sm text-slate-600 mt-1">단계별로 승인 NCS 정보를 등록합니다.</p>
+                <div class="px-8 py-4 flex flex-wrap justify-between items-center gap-4">
+                    <div>
+                        <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">NCS 훈련과정 승인정보</p>
+                        <h1 class="text-xl font-black text-slate-800 mt-0.5">승인받은 NCS 등록 — ${step}. ${STEP_MENU[step - 1].label}</h1>
+                        <p class="text-sm text-slate-600 mt-1">단계별로 승인 NCS 정보를 등록합니다.</p>
+                    </div>
+                    <a href="/admin/ncs/approved/list" class="px-5 py-2.5 text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 font-bold text-sm transition flex items-center gap-2 shrink-0">
+                        <i class="fas fa-list-ul"></i> 저장된 목록
+                    </a>
                 </div>
             </header>
             <div class="flex">
@@ -260,7 +378,7 @@ export function adminNcsApprovedListHtml(): string {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>승인받은 NCS 등록 — 목록</title>
+    <title>승인받은 NCS 등록 — 저장된 등록 목록</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
@@ -274,7 +392,7 @@ export function adminNcsApprovedListHtml(): string {
                 <div class="px-8 py-4 flex flex-wrap justify-between items-center gap-4">
                     <div>
                         <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">NCS 훈련과정 승인정보</p>
-                        <h1 class="text-xl font-black text-slate-800 mt-0.5">승인받은 NCS 등록 — 목록</h1>
+                        <h1 class="text-xl font-black text-slate-800 mt-0.5">승인받은 NCS 등록 — 저장된 등록 목록</h1>
                         <p class="text-sm text-slate-600 mt-1">등록된 과정개요를 조회·수정·삭제합니다.</p>
                     </div>
                     <a href="/admin/ncs/approved/1" class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-bold text-sm transition flex items-center gap-2">

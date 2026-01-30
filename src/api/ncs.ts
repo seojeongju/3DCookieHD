@@ -5,6 +5,11 @@ import { forbiddenResponse } from '../utils/response';
 
 const app = new Hono<{ Bindings: Bindings, Variables: Variables }>();
 
+function isD1SchemaError(e: unknown): boolean {
+    const s = String((e as Error)?.message ?? e);
+    return /no such column|no such table|syntax error/i.test(s);
+}
+
 // NCS 능력단위 목록 조회
 app.get('/', async (c) => {
     try {
@@ -85,8 +90,7 @@ async function fetchNcsTrainingPage(apiKey: string, ncsLclasCd: string, pageNo: 
         pageNo: String(pageNo),
         numOfRows: '1000',
         returnType: 'json',
-        ncsLclasCd: ncsLclasCd || '01',
-        cdName: ' '
+        ncsLclasCd: ncsLclasCd || '01'
     });
     const res = await fetch(`${base}?${params.toString()}`);
     if (!res.ok) return { items: [], totalPage: 1 };
@@ -102,7 +106,8 @@ async function fetchNcsTrainingPage(apiKey: string, ncsLclasCd: string, pageNo: 
     };
     const body = json?.response?.body;
     const item = body?.items?.item;
-    const totalPage = body?.totalPage ?? body?.totalpage ?? 1;
+    const totalCount = typeof body?.totalCount === 'number' ? body.totalCount : 0;
+    const totalPage = body?.totalPage ?? body?.totalpage ?? Math.max(1, Math.ceil(totalCount / 1000));
     if (item == null) return { items: [], totalPage };
     const list = Array.isArray(item) ? item : [item];
     const mapped = list.map((row: Record<string, unknown>) => ({
@@ -138,11 +143,18 @@ const NCS_MOCK_TRAINING: TrainingItem[] = [
     { largeCode: '15', largeName: '기계', midCode: '03', midName: '3D프린터개발', smallCode: '01', smallName: '3D프린터개발', unitCode: '1503050102_19v3', unitName: '3D프린팅제작' },
     { largeCode: '01', largeName: '사업관리', midCode: '01', midName: '사업관리', smallCode: '01', smallName: '프로젝트관리', unitCode: '0101010101_17v2', unitName: '프로젝트관리' },
     { largeCode: '20', largeName: '정보통신', midCode: '01', midName: '응용SW엔지니어링', smallCode: '01', smallName: '응용SW엔지니어링', unitCode: '2001010101_16v2', unitName: '응용SW기초기술활용' },
+    { largeCode: '20', largeName: '정보통신', midCode: '01', midName: '응용SW엔지니어링', smallCode: '02', smallName: 'SW개발', unitCode: '2001010201_16v2', unitName: '인터페이스설계' },
     { largeCode: '19', largeName: '전기·전자', midCode: '01', midName: '전기', smallCode: '01', smallName: '전기', unitCode: '1901010101_19v3', unitName: '전기설비설계' },
     { largeCode: '19', largeName: '전기·전자', midCode: '02', midName: '전자기기일반', smallCode: '01', smallName: '전자기기', unitCode: '1902010101_19v3', unitName: '전자기기일반' },
     { largeCode: '19', largeName: '전기·전자', midCode: '03', midName: '전자기기개발', smallCode: '07', smallName: '디스플레이개발', unitCode: '1903070101_19v3', unitName: '디스플레이개발' },
+    { largeCode: '19', largeName: '전기·전자', midCode: '03', midName: '전자기기개발', smallCode: '08', smallName: '로봇개발', unitCode: '1903080101_19v3', unitName: '로봇개발' },
+    { largeCode: '19', largeName: '전기·전자', midCode: '03', midName: '전자기기개발', smallCode: '09', smallName: '의료장비제조', unitCode: '1903090101_19v3', unitName: '의료장비제조' },
+    { largeCode: '19', largeName: '전기·전자', midCode: '03', midName: '전자기기개발', smallCode: '10', smallName: '광기술개발', unitCode: '1903100101_19v3', unitName: '광기술개발' },
     { largeCode: '19', largeName: '전기·전자', midCode: '03', midName: '전자기기개발', smallCode: '11', smallName: '3D프린터개발', unitCode: '1903110101_19v3', unitName: '3D프린터개발' },
     { largeCode: '19', largeName: '전기·전자', midCode: '03', midName: '전자기기개발', smallCode: '11', smallName: '3D프린터개발', unitCode: '1903110201_19v3', unitName: '3D프린터용 제품제작' },
+    { largeCode: '19', largeName: '전기·전자', midCode: '03', midName: '전자기기개발', smallCode: '11', smallName: '3D프린터개발', unitCode: '1903110301_19v3', unitName: '3D프린팅 소재개발' },
+    { largeCode: '19', largeName: '전기·전자', midCode: '03', midName: '전자기기개발', smallCode: '12', smallName: '가상훈련시스템개발', unitCode: '1903120101_19v3', unitName: '가상훈련시스템개발' },
+    { largeCode: '19', largeName: '전기·전자', midCode: '03', midName: '전자기기개발', smallCode: '13', smallName: '착용형스마트기기', unitCode: '1903130101_19v3', unitName: '착용형스마트기기' },
 ];
 
 /** NCS 대분류 24개 고정 목록 (훈련직종 검색용) */
@@ -267,7 +279,10 @@ app.post('/approved/registrations', authMiddleware, requireAdmin, async (c) => {
         return c.json({ success: true, data: row }, 201);
     } catch (e) {
         console.error('ncs approved registration create:', e);
-        return c.json({ success: false, error: '등록 실패' }, 500);
+        const msg = isD1SchemaError(e)
+            ? 'DB 스키마가 최신이 아닙니다. npm run db:migrate:prod 실행 후 다시 시도해 주세요.'
+            : '등록 실패';
+        return c.json({ success: false, error: msg }, 500);
     }
 });
 
@@ -318,7 +333,10 @@ app.put('/approved/registrations/:id', authMiddleware, requireAdmin, async (c) =
         return c.json({ success: true, data: row });
     } catch (e) {
         console.error('ncs approved registration update:', e);
-        return c.json({ success: false, error: '수정 실패' }, 500);
+        const msg = isD1SchemaError(e)
+            ? 'DB 스키마가 최신이 아닙니다. npm run db:migrate:prod 실행 후 다시 시도해 주세요.'
+            : '수정 실패';
+        return c.json({ success: false, error: msg }, 500);
     }
 });
 
@@ -333,6 +351,74 @@ app.delete('/approved/registrations/:id', authMiddleware, requireAdmin, async (c
     } catch (e) {
         console.error('ncs approved registration delete:', e);
         return c.json({ success: false, error: '삭제 실패' }, 500);
+    }
+});
+
+/** 훈련이수체계도용: 등록 id → 주직종 + 수준별 능력단위/요소 */
+app.get('/approved/registrations/:id/training-system', authMiddleware, requireAdmin, async (c) => {
+    try {
+        const id = parseInt(c.req.param('id'), 10);
+        if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
+        const reg = await c.env.DB.prepare(
+            'SELECT * FROM ncs_approved_registrations WHERE id = ?'
+        ).bind(id).first() as { unit_code?: string; unit_name?: string; main_job_code?: string; main_job_name?: string; ncs_tab?: string; non_ncs_course_name?: string } | null;
+        if (!reg) return c.json({ success: false, error: '등록 정보 없음' }, 404);
+
+        const mainJob = {
+            code: (reg.unit_code || reg.main_job_code || '').trim() || null,
+            name: (reg.unit_name || reg.main_job_name || '').trim() || null
+        };
+        if (reg.ncs_tab === 'non_ncs') {
+            return c.json({
+                success: true,
+                data: {
+                    mainJob: { code: null, name: (reg.non_ncs_course_name || '').trim() || null },
+                    levels: { 5: [], 4: [], 3: [] },
+                    basicAbility: []
+                }
+            });
+        }
+
+        const unitCode = mainJob.code || '';
+        const unitName = mainJob.name || '';
+        const levels: { 5: { name: string; code?: string }[]; 4: { name: string; code?: string }[]; 3: { name: string; code?: string }[] } = { 5: [], 4: [], 3: [] };
+        let basicAbility: { name: string; code?: string }[] = [];
+
+        const unit = await c.env.DB.prepare(
+            'SELECT id, level FROM ncs_units WHERE code = ?'
+        ).bind(unitCode).first() as { id: number; level?: number } | null;
+
+        if (unit) {
+            const { results: elements } = await c.env.DB.prepare(
+                'SELECT code, name FROM ncs_elements WHERE ncs_unit_id = ? ORDER BY code ASC'
+            ).bind(unit.id).all() as { results: { code?: string; name: string }[] };
+            const list = (elements || []).map((e) => ({ name: e.name || '', code: (e.code || '').trim() || undefined }));
+            const n = list.length;
+            const g1 = Math.ceil(n / 3);
+            const g2 = Math.ceil((n - g1) / 2) + g1;
+            levels[5] = list.slice(0, g1);
+            levels[4] = list.slice(g1, g2);
+            levels[3] = list.slice(g2);
+        } else if (unitName) {
+            const mock = [
+                { name: unitName + ' 기획', level: 5 as const },
+                { name: unitName + ' 평가', level: 5 as const },
+                { name: unitName + ' 시장조사', level: 4 as const },
+                { name: unitName + ' 개발요소 선정', level: 4 as const },
+                { name: unitName + ' 품질 관리', level: 4 as const },
+                { name: unitName + ' 출력', level: 3 as const },
+                { name: unitName + ' 안전관리', level: 3 as const }
+            ];
+            mock.forEach((m) => levels[m.level].push({ name: m.name }));
+        }
+
+        return c.json({
+            success: true,
+            data: { mainJob: { code: unitCode || null, name: unitName || null }, levels, basicAbility }
+        });
+    } catch (e) {
+        console.error('ncs approved training-system:', e);
+        return c.json({ success: false, error: '훈련이수체계도 조회 실패' }, 500);
     }
 });
 
