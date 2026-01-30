@@ -104,22 +104,29 @@ async function fetchNcsTrainingPage(apiKey: string, ncsLclasCd: string, pageNo: 
             };
         };
     };
-    const body = json?.response?.body;
-    const item = body?.items?.item;
+    const body = json?.response?.body ?? json?.body;
+    const itemsRaw = body?.items?.item ?? body?.items ?? body?.item;
     const totalCount = typeof body?.totalCount === 'number' ? body.totalCount : 0;
     const totalPage = body?.totalPage ?? body?.totalpage ?? Math.max(1, Math.ceil(totalCount / 1000));
-    if (item == null) return { items: [], totalPage };
-    const list = Array.isArray(item) ? item : [item];
+    if (itemsRaw == null) return { items: [], totalPage };
+    const list = Array.isArray(itemsRaw) ? itemsRaw : [itemsRaw];
+    const rowKey = (row: Record<string, unknown>, ...keys: string[]) => {
+        for (const k of keys) {
+            const v = row[k];
+            if (v != null && String(v).trim() !== '') return String(v).trim();
+        }
+        return '';
+    };
     const mapped = list.map((row: Record<string, unknown>) => ({
-        largeCode: String(row.ncsLclasCd ?? row.ncslclascd ?? ''),
-        largeName: String(row.ncsLclasCdnm ?? row.ncslclascdnm ?? ''),
-        midCode: String(row.ncsMclasCd ?? row.ncsmclascd ?? ''),
-        midName: String(row.ncsMclasCdnm ?? row.ncsmclascdnm ?? ''),
-        smallCode: String(row.ncsSclasCd ?? row.ncssclascd ?? ''),
-        smallName: String(row.ncsSclasCdnm ?? row.ncssclascdnm ?? ''),
-        unitCode: String(row.ncsClCd ?? row.ncsclcd ?? ''),
-        unitName: String(row.compeUnitName ?? row.compeunitname ?? '')
-    })).filter((r: TrainingItem) => r.unitCode) as TrainingItem[];
+        largeCode: rowKey(row, 'ncsLclasCd', 'ncslclascd', 'NCS_LCLAS_CD'),
+        largeName: rowKey(row, 'ncsLclasCdnm', 'ncslclascdnm', 'NCS_LCLAS_CDNM'),
+        midCode: rowKey(row, 'ncsMclasCd', 'ncsmclascd', 'NCS_MCLAS_CD'),
+        midName: rowKey(row, 'ncsMclasCdnm', 'ncsmclascdnm', 'NCS_MCLAS_CDNM'),
+        smallCode: rowKey(row, 'ncsSclasCd', 'ncssclascd', 'NCS_SCLAS_CD'),
+        smallName: rowKey(row, 'ncsSclasCdnm', 'ncssclascdnm', 'NCS_SCLAS_CDNM'),
+        unitCode: rowKey(row, 'ncsClCd', 'ncsclcd', 'NCS_CL_CD'),
+        unitName: rowKey(row, 'compeUnitName', 'compeunitname', 'COPE_UNIT_NAME') || rowKey(row, 'trainGoal', 'traingoal')
+    })).filter((r: TrainingItem) => r.largeCode && (r.midCode || r.unitCode)) as TrainingItem[];
     return { items: mapped, totalPage };
 }
 
