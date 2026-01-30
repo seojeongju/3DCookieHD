@@ -267,13 +267,23 @@ export const adminHrdPersonnelHtml = () => `
                     <!-- 탭 3: 보수교육 -->
                     <div id="contentTraining" class="hidden space-y-6">
                         <div class="bg-white rounded-[2rem] p-8 border border-gray-100 shadow-sm">
-                            <div class="flex items-center justify-between mb-6">
+                            <div class="flex items-center justify-between mb-4">
                                 <h5 class="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center">
                                     <i class="fas fa-chalkboard-teacher mr-3 text-green-500"></i> 보수교육 현황
                                 </h5>
                                 <button type="button" onclick="openTrainingModal()" class="px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-bold hover:bg-green-700 transition shadow-lg shadow-green-500/20 flex items-center">
                                     <i class="fas fa-plus mr-2"></i> 보수교육 추가
                                 </button>
+                            </div>
+                            <div class="flex flex-wrap gap-2 mb-4">
+                                <span class="text-xs font-medium text-gray-500 mr-1 self-center">교육 종류:</span>
+                                <button type="button" data-training-type="" onclick="setTrainingFilter('')" id="trainingFilterAll" class="trainingFilterBtn px-3 py-1.5 rounded-lg text-sm font-medium bg-green-600 text-white transition">전체</button>
+                                <button type="button" data-training-type="기초교육" onclick="setTrainingFilter('기초교육')" class="trainingFilterBtn px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition">기초교육</button>
+                                <button type="button" data-training-type="기본교육(교직)" onclick="setTrainingFilter('기본교육(교직)')" class="trainingFilterBtn px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition">기본교육(교직)</button>
+                                <button type="button" data-training-type="기본교육(전공)" onclick="setTrainingFilter('기본교육(전공)')" class="trainingFilterBtn px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition">기본교육(전공)</button>
+                                <button type="button" data-training-type="전문교육" onclick="setTrainingFilter('전문교육')" class="trainingFilterBtn px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition">전문교육</button>
+                                <button type="button" data-training-type="기술교육" onclick="setTrainingFilter('기술교육')" class="trainingFilterBtn px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition">기술교육</button>
+                                <button type="button" data-training-type="융합교육" onclick="setTrainingFilter('융합교육')" class="trainingFilterBtn px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition">융합교육</button>
                             </div>
                             <div id="trainingContainer" class="space-y-4"></div>
                         </div>
@@ -456,6 +466,12 @@ export const adminHrdPersonnelHtml = () => `
                             <label class="text-sm font-medium text-gray-700 mb-2 block">비고</label>
                             <textarea id="educationModalNotes" rows="2" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none resize-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition" placeholder="기타 사항을 입력하세요"></textarea>
                         </div>
+                        <div>
+                            <label class="text-sm font-medium text-gray-700 mb-2 block">졸업장 파일</label>
+                            <input type="file" id="educationModalFileInput" accept=".pdf,.jpg,.jpeg,.png" multiple class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition">
+                            <div id="educationModalFileList" class="mt-3 space-y-2"></div>
+                            <input type="hidden" id="educationModalFileUrls" value="[]">
+                        </div>
                     </div>
                     <div class="mt-6 flex justify-end gap-3">
                         <button type="button" onclick="closeEducationModal()" class="px-6 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition">
@@ -509,6 +525,12 @@ export const adminHrdPersonnelHtml = () => `
                             <label class="text-sm font-medium text-gray-700 mb-2 block">비고</label>
                             <textarea id="careerModalNotes" rows="2" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none resize-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition" placeholder="기타 사항을 입력하세요"></textarea>
                         </div>
+                        <div>
+                            <label class="text-sm font-medium text-gray-700 mb-2 block">경력증명서 파일</label>
+                            <input type="file" id="careerModalFileInput" accept=".pdf,.jpg,.jpeg,.png" multiple class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-300 transition">
+                            <div id="careerModalFileList" class="mt-3 space-y-2"></div>
+                            <input type="hidden" id="careerModalFileUrls" value="[]">
+                        </div>
                     </div>
                     <div class="mt-6 flex justify-end gap-3">
                         <button type="button" onclick="closeCareerModal()" class="px-6 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition">
@@ -557,6 +579,35 @@ export const adminHrdPersonnelHtml = () => `
                         <div>
                             <label class="text-sm font-medium text-gray-700 mb-2 block">교육 기관</label>
                             <input type="text" id="trainingModalInstitution" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition" placeholder="예: 한국산업인력공단">
+                        </div>
+                        <div>
+                            <label class="text-sm font-medium text-gray-700 mb-2 block">교육의 종류</label>
+                            <div class="border border-gray-200 rounded-xl p-4 bg-gray-50 space-y-2">
+                                <div class="flex items-center gap-2">
+                                    <input type="checkbox" name="trainingModalType" value="기초교육" id="trainingTypeBasic" class="rounded border-gray-300 text-green-600 focus:ring-green-500">
+                                    <label for="trainingTypeBasic" class="text-sm text-gray-700">기초교육</label>
+                                </div>
+                                <div class="flex items-center gap-2 pl-4 border-l-2 border-gray-200 ml-1">
+                                    <input type="checkbox" name="trainingModalType" value="기본교육(교직)" id="trainingTypeBasicJob" class="rounded border-gray-300 text-green-600 focus:ring-green-500">
+                                    <label for="trainingTypeBasicJob" class="text-sm text-gray-700">기본교육(교직)</label>
+                                </div>
+                                <div class="flex items-center gap-2 pl-4 border-l-2 border-gray-200 ml-1">
+                                    <input type="checkbox" name="trainingModalType" value="기본교육(전공)" id="trainingTypeBasicMajor" class="rounded border-gray-300 text-green-600 focus:ring-green-500">
+                                    <label for="trainingTypeBasicMajor" class="text-sm text-gray-700">기본교육(전공)</label>
+                                </div>
+                                <div class="flex items-center gap-2 pl-4 border-l-2 border-gray-200 ml-1">
+                                    <input type="checkbox" name="trainingModalType" value="전문교육" id="trainingTypeProfessional" class="rounded border-gray-300 text-green-600 focus:ring-green-500">
+                                    <label for="trainingTypeProfessional" class="text-sm text-gray-700">전문교육</label>
+                                </div>
+                                <div class="flex items-center gap-2 pl-4 border-l-2 border-gray-200 ml-1">
+                                    <input type="checkbox" name="trainingModalType" value="기술교육" id="trainingTypeTechnical" class="rounded border-gray-300 text-green-600 focus:ring-green-500">
+                                    <label for="trainingTypeTechnical" class="text-sm text-gray-700">기술교육</label>
+                                </div>
+                                <div class="flex items-center gap-2 pl-4 border-l-2 border-gray-200 ml-1">
+                                    <input type="checkbox" name="trainingModalType" value="융합교육" id="trainingTypeConvergent" class="rounded border-gray-300 text-green-600 focus:ring-green-500">
+                                    <label for="trainingTypeConvergent" class="text-sm text-gray-700">융합교육</label>
+                                </div>
+                            </div>
                         </div>
                         <div>
                             <label class="text-sm font-medium text-gray-700 mb-2 block">교육 내용</label>
@@ -821,6 +872,7 @@ export const adminHrdPersonnelHtml = () => `
         let careerIdCounter = 0;
         let training = [];
         let trainingIdCounter = 0;
+        let trainingFilterType = '';
         
         let currentEducationIndex = null;
         let currentCareerIndex = null;
@@ -883,6 +935,9 @@ export const adminHrdPersonnelHtml = () => `
             const modal = document.getElementById('educationModal');
             const title = document.getElementById('educationModalTitle');
             const form = document.getElementById('educationForm');
+            const fileInput = document.getElementById('educationModalFileInput');
+            const fileUrlsInput = document.getElementById('educationModalFileUrls');
+            const fileListEl = document.getElementById('educationModalFileList');
             
             if (index !== null && education[index]) {
                 const edu = education[index];
@@ -894,10 +949,21 @@ export const adminHrdPersonnelHtml = () => `
                 document.getElementById('educationModalEndDate').value = edu.end_date ? edu.end_date.split('T')[0] : '';
                 document.getElementById('educationModalDegree').value = edu.degree || '';
                 document.getElementById('educationModalNotes').value = edu.notes || '';
+                const certUrls = edu.certificate_urls || edu.file_urls || [];
+                const certArr = Array.isArray(certUrls) ? certUrls : (certUrls && certUrls.url ? [certUrls] : []);
+                fileUrlsInput.value = JSON.stringify(certArr);
+                if (fileInput) fileInput.value = '';
+                fileListEl.innerHTML = certArr.map(f => {
+                    const url = typeof f === 'string' ? f : f.url;
+                    const name = typeof f === 'string' ? (url.split('/').pop() || '졸업장') : (f.name || f.url.split('/').pop() || '졸업장');
+                    return \`<div class="flex items-center justify-between text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-lg"><span><i class="fas fa-file-pdf mr-2 text-red-500"></i>\${name}</span><a href="\${url}" target="_blank" class="text-blue-600 hover:text-blue-800"><i class="fas fa-external-link-alt"></i></a></div>\`;
+                }).join('');
             } else {
                 title.textContent = '학력 추가';
                 form.reset();
                 document.getElementById('educationModalId').value = '';
+                fileUrlsInput.value = '[]';
+                if (fileListEl) fileListEl.innerHTML = '';
             }
             modal.classList.remove('hidden');
         };
@@ -907,19 +973,42 @@ export const adminHrdPersonnelHtml = () => `
             currentEducationIndex = null;
         };
         
-        window.handleSaveEducation = function(event) {
+        window.handleSaveEducation = async function(event) {
             event.preventDefault();
-            const form = event.target;
+            const eduId = document.getElementById('educationModalId').value || 'edu_' + Date.now();
+            const fileUrlsInput = document.getElementById('educationModalFileUrls');
+            let certificateUrls = JSON.parse(fileUrlsInput.value || '[]');
+            const fileInput = document.getElementById('educationModalFileInput');
+            if (fileInput && fileInput.files && fileInput.files.length > 0) {
+                const token = localStorage.getItem('token');
+                for (let file of fileInput.files) {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('category', 'documents');
+                    formData.append('folder', 'personnel_education_certs/' + eduId);
+                    try {
+                        const response = await fetch('/api/upload', {
+                            method: 'POST',
+                            headers: { 'Authorization': 'Bearer ' + token },
+                            body: formData
+                        });
+                        const result = await response.json();
+                        if (result.success) {
+                            certificateUrls.push({ url: result.data.url, name: result.data.originalName || file.name });
+                        }
+                    } catch (e) { console.error(e); }
+                }
+            }
             const eduData = {
-                id: document.getElementById('educationModalId').value || 'edu_' + Date.now(),
+                id: eduId,
                 school: document.getElementById('educationModalSchool').value,
                 major: document.getElementById('educationModalMajor').value,
                 start_date: document.getElementById('educationModalStartDate').value || null,
                 end_date: document.getElementById('educationModalEndDate').value || null,
                 degree: document.getElementById('educationModalDegree').value || null,
-                notes: document.getElementById('educationModalNotes').value || null
+                notes: document.getElementById('educationModalNotes').value || null,
+                certificate_urls: certificateUrls
             };
-            
             if (currentEducationIndex !== null) {
                 education[currentEducationIndex] = eduData;
             } else {
@@ -927,12 +1016,14 @@ export const adminHrdPersonnelHtml = () => `
             }
             closeEducationModal();
             loadEducation();
+            if (document.getElementById('personnelId')?.value?.trim()) savePersonnelSilent();
         };
 
         window.deleteEducation = function(index) {
             if (!confirm('학력을 삭제하시겠습니까?')) return;
             education.splice(index, 1);
             loadEducation();
+            if (document.getElementById('personnelId')?.value?.trim()) savePersonnelSilent();
         };
         
         function loadEducation() {
@@ -944,11 +1035,21 @@ export const adminHrdPersonnelHtml = () => `
                 return;
             }
             education.forEach((edu, index) => {
+                let certButtonsHtml = '';
+                const certUrls = edu.certificate_urls || edu.file_urls || [];
+                const certArr = Array.isArray(certUrls) ? certUrls : (certUrls && certUrls.url ? [certUrls] : []);
+                if (certArr.length > 0) {
+                    certArr.forEach(f => {
+                        const url = typeof f === 'string' ? f : f.url;
+                        const name = typeof f === 'string' ? (url.split('/').pop() || '졸업장') : (f.name || f.url.split('/').pop() || '졸업장');
+                        certButtonsHtml += \`<button type="button" onclick="event.stopPropagation(); window.open('\${url}', '_blank')" class="text-xs text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-1 rounded inline-flex items-center mr-2 mb-1 mt-1 border border-blue-100"><i class="fas fa-file-certificate mr-1"></i> \${name}</button>\`;
+                    });
+                }
                 const div = document.createElement('div');
                 div.className = 'bg-white p-4 rounded-xl border border-gray-200 shadow-sm relative';
                 div.innerHTML = \`
                     <div class="flex justify-between items-start">
-                        <div>
+                        <div class="flex-1 min-w-0 pr-4">
                             <h4 class="font-bold text-gray-900">\${ edu.school || '-' }</h4>
                             <div class="text-sm text-gray-600 mt-1">
                                 \${ edu.major ? \`<span class="mr-2">\${edu.major}</span>\` : '' }
@@ -958,8 +1059,9 @@ export const adminHrdPersonnelHtml = () => `
                                 \${ edu.start_date || '' } ~ \${ edu.end_date || '' }
                             </div>
                             \${ edu.notes ? \`<p class="text-xs text-gray-400 mt-2">\${edu.notes}</p>\` : '' }
+                            \${ certButtonsHtml ? \`<div class="mt-2 flex flex-wrap">\${certButtonsHtml}</div>\` : '' }
                         </div>
-                        <div class="flex space-x-2">
+                        <div class="flex space-x-2 shrink-0">
                              <button type="button" onclick="openEducationModal(\${index})" class="text-blue-500 hover:text-blue-700"><i class="fas fa-edit"></i></button>
                              <button type="button" onclick="deleteEducation(\${index})" class="text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>
                         </div>
@@ -975,6 +1077,9 @@ export const adminHrdPersonnelHtml = () => `
             const modal = document.getElementById('careerModal');
             const title = document.getElementById('careerModalTitle');
             const form = document.getElementById('careerForm');
+            const fileInput = document.getElementById('careerModalFileInput');
+            const fileUrlsInput = document.getElementById('careerModalFileUrls');
+            const fileListEl = document.getElementById('careerModalFileList');
             
             if (index !== null && career[index]) {
                 const car = career[index];
@@ -986,10 +1091,21 @@ export const adminHrdPersonnelHtml = () => `
                 document.getElementById('careerModalEndDate').value = car.end_date ? car.end_date.split('T')[0] : '';
                 document.getElementById('careerModalDescription').value = car.description || '';
                 document.getElementById('careerModalNotes').value = car.notes || '';
+                const certUrls = car.certificate_urls || car.file_urls || [];
+                const certArr = Array.isArray(certUrls) ? certUrls : (certUrls && certUrls.url ? [certUrls] : []);
+                fileUrlsInput.value = JSON.stringify(certArr);
+                if (fileInput) fileInput.value = '';
+                fileListEl.innerHTML = certArr.map(f => {
+                    const url = typeof f === 'string' ? f : f.url;
+                    const name = typeof f === 'string' ? (url.split('/').pop() || '경력증명서') : (f.name || f.url.split('/').pop() || '경력증명서');
+                    return \`<div class="flex items-center justify-between text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-lg"><span><i class="fas fa-file-pdf mr-2 text-red-500"></i>\${name}</span><a href="\${url}" target="_blank" class="text-purple-600 hover:text-purple-800"><i class="fas fa-external-link-alt"></i></a></div>\`;
+                }).join('');
             } else {
                 title.textContent = '경력 추가';
                 form.reset();
                 document.getElementById('careerModalId').value = '';
+                fileUrlsInput.value = '[]';
+                if (fileListEl) fileListEl.innerHTML = '';
             }
             modal.classList.remove('hidden');
         };
@@ -999,16 +1115,41 @@ export const adminHrdPersonnelHtml = () => `
             currentCareerIndex = null;
         };
 
-        window.handleSaveCareer = function(event) {
+        window.handleSaveCareer = async function(event) {
             event.preventDefault();
+            const carId = document.getElementById('careerModalId').value || 'car_' + Date.now();
+            const fileUrlsInput = document.getElementById('careerModalFileUrls');
+            let certificateUrls = JSON.parse(fileUrlsInput.value || '[]');
+            const fileInput = document.getElementById('careerModalFileInput');
+            if (fileInput && fileInput.files && fileInput.files.length > 0) {
+                const token = localStorage.getItem('token');
+                for (let file of fileInput.files) {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('category', 'documents');
+                    formData.append('folder', 'personnel_career_certs/' + carId);
+                    try {
+                        const response = await fetch('/api/upload', {
+                            method: 'POST',
+                            headers: { 'Authorization': 'Bearer ' + token },
+                            body: formData
+                        });
+                        const result = await response.json();
+                        if (result.success) {
+                            certificateUrls.push({ url: result.data.url, name: result.data.originalName || file.name });
+                        }
+                    } catch (e) { console.error(e); }
+                }
+            }
             const carData = {
-                id: document.getElementById('careerModalId').value || 'car_' + Date.now(),
+                id: carId,
                 company: document.getElementById('careerModalCompany').value,
                 position: document.getElementById('careerModalPosition').value || null,
                 start_date: document.getElementById('careerModalStartDate').value || null,
                 end_date: document.getElementById('careerModalEndDate').value || null,
                 description: document.getElementById('careerModalDescription').value || null,
-                notes: document.getElementById('careerModalNotes').value || null
+                notes: document.getElementById('careerModalNotes').value || null,
+                certificate_urls: certificateUrls
             };
             if (currentCareerIndex !== null) {
                 career[currentCareerIndex] = carData;
@@ -1017,12 +1158,14 @@ export const adminHrdPersonnelHtml = () => `
             }
             closeCareerModal();
             loadCareer();
+            if (document.getElementById('personnelId')?.value?.trim()) savePersonnelSilent();
         };
 
         window.deleteCareer = function(index) {
             if (!confirm('경력을 삭제하시겠습니까?')) return;
             career.splice(index, 1);
             loadCareer();
+            if (document.getElementById('personnelId')?.value?.trim()) savePersonnelSilent();
         };
 
         function loadCareer() {
@@ -1034,11 +1177,21 @@ export const adminHrdPersonnelHtml = () => `
                 return;
             }
             career.forEach((car, index) => {
+                let certButtonsHtml = '';
+                const certUrls = car.certificate_urls || car.file_urls || [];
+                const certArr = Array.isArray(certUrls) ? certUrls : (certUrls && certUrls.url ? [certUrls] : []);
+                if (certArr.length > 0) {
+                    certArr.forEach(f => {
+                        const url = typeof f === 'string' ? f : f.url;
+                        const name = typeof f === 'string' ? (url.split('/').pop() || '경력증명서') : (f.name || f.url.split('/').pop() || '경력증명서');
+                        certButtonsHtml += \`<button type="button" onclick="event.stopPropagation(); window.open('\${url}', '_blank')" class="text-xs text-purple-600 hover:text-purple-800 bg-purple-50 px-2 py-1 rounded inline-flex items-center mr-2 mb-1 mt-1 border border-purple-100"><i class="fas fa-file-certificate mr-1"></i> \${name}</button>\`;
+                    });
+                }
                 const div = document.createElement('div');
                 div.className = 'bg-white p-4 rounded-xl border border-gray-200 shadow-sm relative';
                 div.innerHTML = \`
                     <div class="flex justify-between items-start">
-                        <div>
+                        <div class="flex-1 min-w-0 pr-4">
                             <h4 class="font-bold text-gray-900">\${ car.company || '-' }</h4>
                             <div class="text-sm text-gray-600 mt-1">
                                 \${ car.department ? \`<span class="mr-2">\${car.department}</span>\` : '' }
@@ -1047,9 +1200,10 @@ export const adminHrdPersonnelHtml = () => `
                             <div class="text-xs text-gray-500 mt-1">
                                 \${ car.start_date || '' } ~ \${ car.end_date || '' }
                             </div>
-                            \${ car.tasks ? \`<p class="text-xs text-gray-400 mt-2">\${car.tasks}</p>\` : '' }
+                            \${ car.tasks || car.description ? \`<p class="text-xs text-gray-400 mt-2">\${car.tasks || car.description || ''}</p>\` : '' }
+                            \${ certButtonsHtml ? \`<div class="mt-2 flex flex-wrap">\${certButtonsHtml}</div>\` : '' }
                         </div>
-                        <div class="flex space-x-2">
+                        <div class="flex space-x-2 shrink-0">
                              <button type="button" onclick="openCareerModal(\${index})" class="text-blue-500 hover:text-blue-700"><i class="fas fa-edit"></i></button>
                              <button type="button" onclick="deleteCareer(\${index})" class="text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>
                         </div>
@@ -1089,12 +1243,15 @@ export const adminHrdPersonnelHtml = () => `
                     const name = typeof f === 'string' ? (url.split('/').pop() || '이수증') : (f.name || f.url.split('/').pop() || '이수증');
                     return \`<div class="flex items-center justify-between text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-lg"><span><i class="fas fa-file-pdf mr-2 text-red-500"></i>\${name}</span><a href="\${url}" target="_blank" class="text-green-600 hover:text-green-800"><i class="fas fa-external-link-alt"></i></a></div>\`;
                 }).join('');
+                const educationTypes = tr.education_types || [];
+                document.querySelectorAll('input[name="trainingModalType"]').forEach(cb => { cb.checked = educationTypes.includes(cb.value); });
             } else {
                 title.textContent = '보수교육 추가';
                 form.reset();
                 document.getElementById('trainingModalId').value = '';
                 fileUrlsInput.value = '[]';
                 if (fileListEl) fileListEl.innerHTML = '';
+                document.querySelectorAll('input[name="trainingModalType"]').forEach(cb => { cb.checked = false; });
             }
             modal.classList.remove('hidden');
         };
@@ -1102,6 +1259,16 @@ export const adminHrdPersonnelHtml = () => `
         window.closeTrainingModal = function() {
             document.getElementById('trainingModal').classList.add('hidden');
             currentTrainingIndex = null;
+        };
+
+        window.setTrainingFilter = function(type) {
+            trainingFilterType = type;
+            document.querySelectorAll('.trainingFilterBtn').forEach(btn => {
+                const btnType = btn.getAttribute('data-training-type') || '';
+                const isActive = btnType === type;
+                btn.className = 'trainingFilterBtn px-3 py-1.5 rounded-lg text-sm font-medium transition ' + (isActive ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200');
+            });
+            loadTraining();
         };
 
         window.handleSaveTraining = async function(event) {
@@ -1130,6 +1297,7 @@ export const adminHrdPersonnelHtml = () => `
                     } catch (e) { console.error(e); }
                 }
             }
+            const educationTypes = Array.from(document.querySelectorAll('input[name="trainingModalType"]:checked')).map(el => el.value);
             const trData = {
                 id: trId,
                 name: document.getElementById('trainingModalName').value,
@@ -1139,7 +1307,8 @@ export const adminHrdPersonnelHtml = () => `
                 institution: document.getElementById('trainingModalInstitution').value || null,
                 description: document.getElementById('trainingModalDescription').value || null,
                 notes: document.getElementById('trainingModalNotes').value || null,
-                certificate_urls: certificateUrls
+                certificate_urls: certificateUrls,
+                education_types: educationTypes
             };
             if (currentTrainingIndex !== null) {
                 training[currentTrainingIndex] = trData;
@@ -1148,23 +1317,31 @@ export const adminHrdPersonnelHtml = () => `
             }
             closeTrainingModal();
             loadTraining();
+            if (document.getElementById('personnelId')?.value?.trim()) savePersonnelSilent();
         };
 
         window.deleteTraining = function(index) {
             if (!confirm('삭제하시겠습니까?')) return;
             training.splice(index, 1);
             loadTraining();
+            if (document.getElementById('personnelId')?.value?.trim()) savePersonnelSilent();
         };
 
         function loadTraining() {
             const container = document.getElementById('trainingContainer');
             if(!container) return;
             container.innerHTML = '';
+            const list = trainingFilterType ? (training || []).filter(tr => (tr.education_types || []).includes(trainingFilterType)) : (training || []);
             if (!training || training.length === 0) {
                 container.innerHTML = '<div class="text-center py-8 text-gray-400 text-sm">등록된 보수교육이 없습니다.</div>';
                 return;
             }
+            if (list.length === 0) {
+                container.innerHTML = '<div class="text-center py-8 text-gray-400 text-sm">선택한 교육 종류에 해당하는 보수교육이 없습니다.</div>';
+                return;
+            }
             training.forEach((tr, index) => {
+                if (trainingFilterType && !(tr.education_types || []).includes(trainingFilterType)) return;
                 let certButtonsHtml = '';
                 const certUrls = tr.certificate_urls || tr.file_urls || [];
                 const certArr = Array.isArray(certUrls) ? certUrls : (certUrls && certUrls.url ? [certUrls] : []);
@@ -1175,12 +1352,15 @@ export const adminHrdPersonnelHtml = () => `
                         certButtonsHtml += \`<button type="button" onclick="event.stopPropagation(); window.open('\${url}', '_blank')" class="text-xs text-green-600 hover:text-green-800 bg-green-50 px-2 py-1 rounded inline-flex items-center mr-2 mb-1 mt-1 border border-green-100"><i class="fas fa-file-certificate mr-1"></i> \${name}</button>\`;
                     });
                 }
+                const educationTypes = tr.education_types || [];
+                const typeBadgesHtml = educationTypes.length ? educationTypes.map(t => \`<span class="inline-block px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800 mr-1 mb-1">\${t}</span>\`).join('') : '';
                 const div = document.createElement('div');
                 div.className = 'bg-white p-4 rounded-xl border border-gray-200 shadow-sm relative';
                 div.innerHTML = \`
                     <div class="flex justify-between items-start">
                         <div class="flex-1 min-w-0 pr-4">
                             <h4 class="font-bold text-gray-900">\${ tr.name || '-' }</h4>
+                            \${ typeBadgesHtml ? \`<div class="flex flex-wrap mt-1">\${typeBadgesHtml}</div>\` : '' }
                             <div class="text-sm text-gray-600 mt-1">
                                 \${ tr.institution ? \`<span class="mr-2"><i class="fas fa-building mr-1"></i>\${tr.institution}</span>\` : '' }
                                 \${ tr.hours ? \`<span><i class="fas fa-clock mr-1"></i>\${tr.hours}시간</span>\` : '' }
@@ -1248,12 +1428,14 @@ export const adminHrdPersonnelHtml = () => `
             }
             closeTeachingHistoryModal();
             loadTeachingHistory();
+            if (document.getElementById('personnelId')?.value?.trim()) savePersonnelSilent();
         };
 
         window.deleteTeachingHistory = function(index) {
             if (!confirm('삭제하시겠습니까?')) return;
             teachingHistory.splice(index, 1);
             loadTeachingHistory();
+            if (document.getElementById('personnelId')?.value?.trim()) savePersonnelSilent();
         };
 
         function loadTeachingHistory() {
@@ -1401,12 +1583,14 @@ export const adminHrdPersonnelHtml = () => `
             }
             closeCertificationModal();
             loadCertifications();
+            if (document.getElementById('personnelId')?.value?.trim()) savePersonnelSilent();
         };
 
         window.deleteCertification = function(index) {
              if (!confirm('삭제하시겠습니까?')) return;
              certifications.splice(index, 1);
              loadCertifications();
+             if (document.getElementById('personnelId')?.value?.trim()) savePersonnelSilent();
         };
 
         function loadCertifications(data) {
@@ -1554,6 +1738,33 @@ export const adminHrdPersonnelHtml = () => `
              document.getElementById('pImagePreview').src = '';
              document.getElementById('pImagePlaceholder').classList.remove('hidden');
         };
+
+        /** 하위 모달(학력/경력/훈련/자격) 저장 후, 인사 수정 중이면 서버에 자동 반영하여 파일 등이 유지되도록 함 */
+        async function savePersonnelSilent() {
+            const id = document.getElementById('personnelId')?.value?.trim();
+            if (!id) return;
+            const form = document.getElementById('personnelForm');
+            if (!form) return;
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+            data.education = JSON.stringify(education);
+            data.career = JSON.stringify(career);
+            data.certifications = JSON.stringify(certifications);
+            data.training_history = JSON.stringify(training);
+            data.teaching_history = JSON.stringify(teachingHistory);
+            try {
+                const response = await fetch('/api/hrd/personnel/' + id, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + localStorage.getItem('token')
+                    },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                if (!result.success) console.warn('자동 저장 실패:', result.error || '알 수 없는 오류');
+            } catch (e) { console.error('자동 저장 오류:', e); }
+        }
 
         async function handleSavePersonnel(e) {
             e.preventDefault();

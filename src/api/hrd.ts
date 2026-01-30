@@ -71,6 +71,27 @@ app.get('/personnel', async (c) => {
             return processed;
         });
 
+        // R2에 없는 profile_image는 null로 내려서 프론트 404 방지
+        const R2 = c.env.R2;
+        if (R2 && processedResults.length > 0) {
+            const withValidProfile = await Promise.all(
+                processedResults.map(async (p: any) => {
+                    const url = p.profile_image;
+                    if (!url || typeof url !== 'string' || !url.includes('/api/upload/files/')) return p;
+                    const path = url.replace(/^.*\/api\/upload\/files\//, '').split('?')[0];
+                    if (!path) return p;
+                    try {
+                        const obj = await R2.head(path);
+                        if (!obj) return { ...p, profile_image: null };
+                        return p;
+                    } catch (_) {
+                        return { ...p, profile_image: null };
+                    }
+                })
+            );
+            return c.json({ success: true, data: withValidProfile });
+        }
+
         return c.json({ success: true, data: processedResults });
     } catch (e) {
         console.error('Failed to fetch personnel:', e);
