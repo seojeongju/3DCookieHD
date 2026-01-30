@@ -78,23 +78,34 @@ type TrainingItem = {
     unitName: string;
 };
 
-async function fetchNcsTrainingByLarge(apiKey: string, ncsLclasCd: string): Promise<TrainingItem[]> {
+async function fetchNcsTrainingPage(apiKey: string, ncsLclasCd: string, pageNo: number): Promise<{ items: TrainingItem[]; totalPage: number }> {
     const base = 'http://apis.data.go.kr/B490007/ncsTrainingCource';
     const params = new URLSearchParams({
         serviceKey: apiKey,
-        pageNo: '1',
-        numOfRows: '100',
+        pageNo: String(pageNo),
+        numOfRows: '1000',
         returnType: 'json',
         ncsLclasCd: ncsLclasCd || '01',
         cdName: ' '
     });
     const res = await fetch(`${base}?${params.toString()}`);
-    if (!res.ok) return [];
-    const json = await res.json() as { response?: { body?: { items?: { item?: unknown } } } };
-    const item = json?.response?.body?.items?.item;
-    if (item == null) return [];
+    if (!res.ok) return { items: [], totalPage: 1 };
+    const json = await res.json() as {
+        response?: {
+            body?: {
+                items?: { item?: unknown };
+                totalCount?: number;
+                totalPage?: number;
+                totalpage?: number;
+            };
+        };
+    };
+    const body = json?.response?.body;
+    const item = body?.items?.item;
+    const totalPage = body?.totalPage ?? body?.totalpage ?? 1;
+    if (item == null) return { items: [], totalPage };
     const list = Array.isArray(item) ? item : [item];
-    return list.map((row: Record<string, unknown>) => ({
+    const mapped = list.map((row: Record<string, unknown>) => ({
         largeCode: String(row.ncsLclasCd ?? row.ncslclascd ?? ''),
         largeName: String(row.ncsLclasCdnm ?? row.ncslclascdnm ?? ''),
         midCode: String(row.ncsMclasCd ?? row.ncsmclascd ?? ''),
@@ -103,7 +114,22 @@ async function fetchNcsTrainingByLarge(apiKey: string, ncsLclasCd: string): Prom
         smallName: String(row.ncsSclasCdnm ?? row.ncssclascdnm ?? ''),
         unitCode: String(row.ncsClCd ?? row.ncsclcd ?? ''),
         unitName: String(row.compeUnitName ?? row.compeunitname ?? '')
-    })).filter((r: TrainingItem) => r.unitCode);
+    })).filter((r: TrainingItem) => r.unitCode) as TrainingItem[];
+    return { items: mapped, totalPage };
+}
+
+async function fetchNcsTrainingByLarge(apiKey: string, ncsLclasCd: string): Promise<TrainingItem[]> {
+    const all: TrainingItem[] = [];
+    let pageNo = 1;
+    let totalPage = 1;
+    do {
+        const { items, totalPage: tp } = await fetchNcsTrainingPage(apiKey, ncsLclasCd, pageNo);
+        totalPage = tp;
+        all.push(...items);
+        if (items.length === 0 || pageNo >= totalPage) break;
+        pageNo += 1;
+    } while (pageNo <= totalPage);
+    return all;
 }
 
 const NCS_MOCK_TRAINING: TrainingItem[] = [
@@ -112,7 +138,44 @@ const NCS_MOCK_TRAINING: TrainingItem[] = [
     { largeCode: '15', largeName: '기계', midCode: '03', midName: '3D프린터개발', smallCode: '01', smallName: '3D프린터개발', unitCode: '1503050102_19v3', unitName: '3D프린팅제작' },
     { largeCode: '01', largeName: '사업관리', midCode: '01', midName: '사업관리', smallCode: '01', smallName: '프로젝트관리', unitCode: '0101010101_17v2', unitName: '프로젝트관리' },
     { largeCode: '20', largeName: '정보통신', midCode: '01', midName: '응용SW엔지니어링', smallCode: '01', smallName: '응용SW엔지니어링', unitCode: '2001010101_16v2', unitName: '응용SW기초기술활용' },
+    { largeCode: '19', largeName: '전기·전자', midCode: '01', midName: '전기', smallCode: '01', smallName: '전기', unitCode: '1901010101_19v3', unitName: '전기설비설계' },
+    { largeCode: '19', largeName: '전기·전자', midCode: '02', midName: '전자기기일반', smallCode: '01', smallName: '전자기기', unitCode: '1902010101_19v3', unitName: '전자기기일반' },
+    { largeCode: '19', largeName: '전기·전자', midCode: '03', midName: '전자기기개발', smallCode: '07', smallName: '디스플레이개발', unitCode: '1903070101_19v3', unitName: '디스플레이개발' },
+    { largeCode: '19', largeName: '전기·전자', midCode: '03', midName: '전자기기개발', smallCode: '11', smallName: '3D프린터개발', unitCode: '1903110101_19v3', unitName: '3D프린터개발' },
+    { largeCode: '19', largeName: '전기·전자', midCode: '03', midName: '전자기기개발', smallCode: '11', smallName: '3D프린터개발', unitCode: '1903110201_19v3', unitName: '3D프린터용 제품제작' },
 ];
+
+/** NCS 대분류 24개 고정 목록 (훈련직종 검색용) */
+const NCS_LARGE_CLASSES: { code: string; name: string }[] = [
+    { code: '01', name: '사업관리' },
+    { code: '02', name: '경영·회계·사무' },
+    { code: '03', name: '금융·보험' },
+    { code: '04', name: '교육' },
+    { code: '05', name: '법무·보안' },
+    { code: '06', name: '보건·의료' },
+    { code: '07', name: '사회복지·종교' },
+    { code: '08', name: '문화·예술·디자인·방송' },
+    { code: '09', name: '운송·물류' },
+    { code: '10', name: '영업·판매·고객관리' },
+    { code: '11', name: '숙박·여행·오락·스포츠' },
+    { code: '12', name: '음식·조리' },
+    { code: '13', name: '건설' },
+    { code: '14', name: '부동산·임대' },
+    { code: '15', name: '기계' },
+    { code: '16', name: '금속·재료' },
+    { code: '17', name: '화학' },
+    { code: '18', name: '섬유·의복' },
+    { code: '19', name: '전기·전자' },
+    { code: '20', name: '정보통신' },
+    { code: '21', name: '식품가공' },
+    { code: '22', name: '인쇄·목재·가구·공예' },
+    { code: '23', name: '환경·에너지·안전' },
+    { code: '24', name: '농림·어업' },
+];
+
+app.get('/approved/large-classes', async (c) => {
+    return c.json({ success: true, data: NCS_LARGE_CLASSES });
+});
 
 app.get('/approved/training', async (c) => {
     try {
@@ -127,7 +190,7 @@ app.get('/approved/training', async (c) => {
             }
         }
         const filtered = NCS_MOCK_TRAINING.filter((r) => r.largeCode === ncsLclasCd);
-        return c.json({ success: true, data: filtered.length > 0 ? filtered : NCS_MOCK_TRAINING });
+        return c.json({ success: true, data: filtered });
     } catch (e) {
         console.error('NCS approved/training error:', e);
         return c.json({ success: false, error: '훈련과정 조회 실패' }, 500);
@@ -169,6 +232,7 @@ app.post('/approved/registrations', authMiddleware, requireAdmin, async (c) => {
             overview_content?: string; dev_category?: string; large_code?: string; mid_code?: string;
             small_code?: string; unit_code?: string; unit_name?: string;
             non_ncs_course_name?: string; non_ncs_overview?: string;
+            course_name?: string; training_level?: string; prereq_skill?: string;
         }>();
         const ncsTab = (body.ncs_tab || 'ncs').trim();
         const courseType = (body.course_type || '').trim() || null;
@@ -183,17 +247,20 @@ app.post('/approved/registrations', authMiddleware, requireAdmin, async (c) => {
         const unitName = (body.unit_name || '').trim() || null;
         const nonNcsCourseName = (body.non_ncs_course_name || '').trim() || null;
         const nonNcsOverview = (body.non_ncs_overview || '').trim() || null;
+        const courseName = (body.course_name || '').trim() || null;
+        const trainingLevel = (body.training_level || '').trim() || null;
+        const prereqSkill = (body.prereq_skill || '').trim() || null;
 
         const r = await c.env.DB.prepare(
             `INSERT INTO ncs_approved_registrations (
                 ncs_tab, course_type, main_job_code, main_job_name, overview_content,
                 dev_category, large_code, mid_code, small_code, unit_code, unit_name,
-                non_ncs_course_name, non_ncs_overview
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+                non_ncs_course_name, non_ncs_overview, course_name, training_level, prereq_skill
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
         ).bind(
             ncsTab, courseType, mainJobCode, mainJobName, overviewContent,
             devCategory, largeCode, midCode, smallCode, unitCode, unitName,
-            nonNcsCourseName, nonNcsOverview
+            nonNcsCourseName, nonNcsOverview, courseName, trainingLevel, prereqSkill
         ).run();
         const id = Number(r.meta?.last_row_id ?? 0);
         const row = await c.env.DB.prepare('SELECT * FROM ncs_approved_registrations WHERE id = ?').bind(id).first();
@@ -213,6 +280,7 @@ app.put('/approved/registrations/:id', authMiddleware, requireAdmin, async (c) =
             overview_content?: string; dev_category?: string; large_code?: string; mid_code?: string;
             small_code?: string; unit_code?: string; unit_name?: string;
             non_ncs_course_name?: string; non_ncs_overview?: string;
+            course_name?: string; training_level?: string; prereq_skill?: string;
         }>();
         const existing = await c.env.DB.prepare('SELECT id FROM ncs_approved_registrations WHERE id = ?').bind(id).first();
         if (!existing) return c.json({ success: false, error: '수정할 수 없습니다' }, 404);
@@ -230,18 +298,21 @@ app.put('/approved/registrations/:id', authMiddleware, requireAdmin, async (c) =
         const unitName = (body.unit_name || '').trim() || null;
         const nonNcsCourseName = (body.non_ncs_course_name || '').trim() || null;
         const nonNcsOverview = (body.non_ncs_overview || '').trim() || null;
+        const courseName = (body.course_name || '').trim() || null;
+        const trainingLevel = (body.training_level || '').trim() || null;
+        const prereqSkill = (body.prereq_skill || '').trim() || null;
 
         await c.env.DB.prepare(
             `UPDATE ncs_approved_registrations SET
                 ncs_tab = ?, course_type = ?, main_job_code = ?, main_job_name = ?, overview_content = ?,
                 dev_category = ?, large_code = ?, mid_code = ?, small_code = ?, unit_code = ?, unit_name = ?,
-                non_ncs_course_name = ?, non_ncs_overview = ?,
+                non_ncs_course_name = ?, non_ncs_overview = ?, course_name = ?, training_level = ?, prereq_skill = ?,
                 updated_at = datetime('now')
             WHERE id = ?`
         ).bind(
             ncsTab, courseType, mainJobCode, mainJobName, overviewContent,
             devCategory, largeCode, midCode, smallCode, unitCode, unitName,
-            nonNcsCourseName, nonNcsOverview, id
+            nonNcsCourseName, nonNcsOverview, courseName, trainingLevel, prereqSkill, id
         ).run();
         const row = await c.env.DB.prepare('SELECT * FROM ncs_approved_registrations WHERE id = ?').bind(id).first();
         return c.json({ success: true, data: row });

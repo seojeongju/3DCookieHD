@@ -37,31 +37,84 @@
         var largeClass = document.getElementById('ncsLargeClass');
         var midClass = document.getElementById('ncsMidClass');
         var smallClass = document.getElementById('ncsSmallClass');
-        var mainJob = document.getElementById('ncsMainJob');
+        var jobSelect = document.getElementById('ncsJobSelect');
+        var mainJobPill = document.getElementById('ncsMainJobPill');
+        var mainJobPlaceholder = document.getElementById('ncsMainJobPlaceholder');
 
         if (!largeClass) return;
 
-        if (largeClass.options.length <= 1) {
-            largeClass.innerHTML = '<option value="">선택</option><option value="01">사업관리</option><option value="15">기계</option><option value="20">정보통신</option>';
+        var largeClassesFallback = [
+            { code: '01', name: '사업관리' }, { code: '02', name: '경영·회계·사무' }, { code: '03', name: '금융·보험' },
+            { code: '04', name: '교육' }, { code: '05', name: '법무·보안' }, { code: '06', name: '보건·의료' },
+            { code: '07', name: '사회복지·종교' }, { code: '08', name: '문화·예술·디자인·방송' }, { code: '09', name: '운송·물류' },
+            { code: '10', name: '영업·판매·고객관리' }, { code: '11', name: '숙박·여행·오락·스포츠' }, { code: '12', name: '음식·조리' },
+            { code: '13', name: '건설' }, { code: '14', name: '부동산·임대' }, { code: '15', name: '기계' },
+            { code: '16', name: '금속·재료' }, { code: '17', name: '화학' }, { code: '18', name: '섬유·의복' },
+            { code: '19', name: '전기·전자' }, { code: '20', name: '정보통신' }, { code: '21', name: '식품가공' },
+            { code: '22', name: '인쇄·목재·가구·공예' }, { code: '23', name: '환경·에너지·안전' }, { code: '24', name: '농림·어업' }
+        ];
+
+        function fillLargeClass(list) {
+            var opts = ['<option value="">선택</option>'];
+            (list || []).forEach(function(it) {
+                var c = (it.code || '').replace(/"/g, '&quot;');
+                var n = (it.name || '').replace(/</g, '&lt;');
+                opts.push('<option value="' + c + '">' + (c ? c + '. ' : '') + n + '</option>');
+            });
+            largeClass.innerHTML = opts.join('');
+        }
+
+        function loadLargeClasses() {
+            largeClass.innerHTML = '<option value="">로딩 중...</option>';
+            var token = localStorage.getItem('token');
+            return fetch('/api/ncs/approved/large-classes', { headers: token ? { 'Authorization': 'Bearer ' + token } : {} })
+                .then(function(r) { return r.json(); })
+                .then(function(json) {
+                    if (json.success && Array.isArray(json.data) && json.data.length) fillLargeClass(json.data);
+                    else fillLargeClass(largeClassesFallback);
+                })
+                .catch(function() { fillLargeClass(largeClassesFallback); });
         }
 
         function clearSelect(sel) {
             if (!sel) return;
             sel.innerHTML = '<option value="">선택</option>';
         }
+        function clearJobSelect() {
+            if (jobSelect) jobSelect.innerHTML = '';
+        }
         function clearUnitHidden() {
             if (unitCodeInput) unitCodeInput.value = '';
             if (unitNameInput) unitNameInput.value = '';
+        }
+        function updatePill(code, name) {
+            if (!mainJobPill || !mainJobPlaceholder) return;
+            mainJobPlaceholder.style.display = code && name ? 'none' : '';
+            var wrap = mainJobPill.querySelector('.ncs-main-job-pill-wrap');
+            if (wrap) wrap.remove();
+            if (code && name) {
+                var esc = function(s) { var t = document.createElement('span'); t.textContent = s; return t.innerHTML; };
+                var w = document.createElement('div');
+                w.className = 'ncs-main-job-pill-wrap inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-800 rounded-lg text-sm';
+                w.innerHTML = '<span>● 주직종선택 ' + esc(code + (name ? '. ' + name : '')) + '</span><button type="button" class="ncs-main-job-remove text-red-500 hover:text-red-700"><i class="fas fa-times"></i></button>';
+                mainJobPill.appendChild(w);
+                w.querySelector('.ncs-main-job-remove').addEventListener('click', function() {
+                    clearUnitHidden();
+                    updatePill('', '');
+                    if (jobSelect) jobSelect.selectedIndex = -1;
+                });
+            }
         }
 
         function loadTrainingByLarge() {
             var code = largeClass.value;
             clearUnitHidden();
+            updatePill('', '');
             if (!code) {
                 trainingCache = [];
                 clearSelect(midClass);
                 clearSelect(smallClass);
-                if (mainJob) mainJob.value = '';
+                clearJobSelect();
                 return Promise.resolve();
             }
             var url = '/api/ncs/approved/training?ncsLclasCd=' + encodeURIComponent(code);
@@ -73,6 +126,7 @@
                         trainingCache = [];
                         clearSelect(midClass);
                         clearSelect(smallClass);
+                        clearJobSelect();
                         return;
                     }
                     trainingCache = json.data;
@@ -87,56 +141,85 @@
                     });
                     midClass.innerHTML = opts.join('');
                     clearSelect(smallClass);
-                    if (mainJob) mainJob.value = '';
+                    clearJobSelect();
                 })
                 .catch(function() {
                     trainingCache = [];
                     clearSelect(midClass);
                     clearSelect(smallClass);
+                    clearJobSelect();
                 });
         }
 
         function loadSmallByMid() {
             var mid = midClass.value;
             clearUnitHidden();
+            updatePill('', '');
+            clearJobSelect();
             if (!mid) {
                 clearSelect(smallClass);
-                if (mainJob) mainJob.value = '';
                 return;
             }
             var list = trainingCache.filter(function(item) { return item.midCode === mid; });
+            var seen = {};
             var opts = ['<option value="">선택</option>'];
             list.forEach(function(item) {
-                var code = (item.unitCode || '').replace(/"/g, '&quot;');
-                var name = (item.unitName || item.smallName || '').replace(/</g, '&lt;');
-                opts.push('<option value="' + code + '" data-code="' + code + '" data-name="' + name.replace(/"/g, '&quot;') + '">' + (item.unitCode ? item.unitCode + '. ' : '') + name + '</option>');
+                var k = (item.smallCode || '') + '|' + (item.smallName || '');
+                if (!seen[k]) {
+                    seen[k] = true;
+                    var sc = (item.smallCode || '').replace(/"/g, '&quot;');
+                    var sn = (item.smallName || '').replace(/</g, '&lt;');
+                    opts.push('<option value="' + sc + '">' + (item.smallCode ? item.smallCode + '. ' : '') + sn + '</option>');
+                }
             });
             smallClass.innerHTML = opts.join('');
-            if (mainJob) mainJob.value = '';
         }
 
-        function onSmallChange() {
-            var opt = smallClass.options[smallClass.selectedIndex];
-            if (mainJob && opt && opt.value) {
+        function loadJobBySmall() {
+            var mid = midClass.value;
+            var small = smallClass.value;
+            clearUnitHidden();
+            updatePill('', '');
+            if (!jobSelect) return;
+            jobSelect.innerHTML = '';
+            if (!mid || !small) return;
+            var list = trainingCache.filter(function(item) { return item.midCode === mid && item.smallCode === small; });
+            list.forEach(function(item) {
+                var opt = document.createElement('option');
+                opt.value = (item.unitCode || '').replace(/"/g, '&quot;');
+                opt.setAttribute('data-code', (item.unitCode || '').replace(/"/g, '&quot;'));
+                opt.setAttribute('data-name', (item.unitName || item.smallName || '').replace(/"/g, '&quot;'));
+                opt.textContent = (item.unitCode ? item.unitCode + '. ' : '') + (item.unitName || item.smallName || '');
+                jobSelect.appendChild(opt);
+            });
+        }
+
+        function onJobSelectChange() {
+            var opt = jobSelect && jobSelect.options[jobSelect.selectedIndex];
+            if (opt && opt.value) {
                 var code = opt.getAttribute('data-code') || opt.value;
-                var name = opt.getAttribute('data-name') || opt.text;
-                mainJob.value = (code ? code + '. ' : '') + name;
+                var name = opt.getAttribute('data-name') || opt.textContent || '';
                 if (unitCodeInput) unitCodeInput.value = code || '';
                 if (unitNameInput) unitNameInput.value = name || '';
+                updatePill(code, name);
             } else {
-                if (mainJob) mainJob.value = '';
                 clearUnitHidden();
+                updatePill('', '');
             }
         }
 
         largeClass.addEventListener('change', loadTrainingByLarge);
         midClass.addEventListener('change', loadSmallByMid);
-        smallClass.addEventListener('change', onSmallChange);
+        smallClass.addEventListener('change', loadJobBySmall);
+        if (jobSelect) jobSelect.addEventListener('change', onJobSelectChange);
 
         function buildPayload() {
             var ncsTab = panelNonNcs && panelNonNcs.classList.contains('hidden') ? 'ncs' : 'non_ncs';
             var courseTypeEl = document.querySelector('input[name="courseType"]:checked');
             var courseType = courseTypeEl ? courseTypeEl.value : '';
+            var courseNameEl = document.getElementById('ncsCourseName');
+            var levelEl = document.getElementById('ncsTrainingLevel');
+            var prereqEl = document.getElementById('ncsPrereqSkill');
             var payload = {
                 ncs_tab: ncsTab,
                 course_type: courseType || null,
@@ -150,7 +233,10 @@
                 unit_code: (unitCodeInput && unitCodeInput.value) ? unitCodeInput.value.trim() : null,
                 unit_name: (unitNameInput && unitNameInput.value) ? unitNameInput.value.trim() : null,
                 non_ncs_course_name: (document.getElementById('nonNcsCourseName') && document.getElementById('nonNcsCourseName').value) ? document.getElementById('nonNcsCourseName').value.trim() : null,
-                non_ncs_overview: (document.getElementById('nonNcsOverview') && document.getElementById('nonNcsOverview').value) ? document.getElementById('nonNcsOverview').value.trim() : null
+                non_ncs_overview: (document.getElementById('nonNcsOverview') && document.getElementById('nonNcsOverview').value) ? document.getElementById('nonNcsOverview').value.trim() : null,
+                course_name: (courseNameEl && courseNameEl.value) ? courseNameEl.value.trim() : null,
+                training_level: (levelEl && levelEl.value) ? levelEl.value.trim() : null,
+                prereq_skill: (prereqEl && prereqEl.value) ? prereqEl.value.trim() : null
             };
             return payload;
         }
@@ -211,6 +297,11 @@
         var delBtn = document.getElementById('ncsApprovedBtnDelete');
         if (delBtn) delBtn.addEventListener('click', doDelete);
 
+        function setRegDate(val) {
+            var el = document.getElementById('ncsRegDate');
+            if (el) el.value = val || '';
+        }
+
         function loadForEdit() {
             if (!editId) return;
             var token = localStorage.getItem('token');
@@ -228,6 +319,7 @@
                         var o = document.getElementById('nonNcsOverview');
                         if (n) n.value = d.non_ncs_course_name || '';
                         if (o) o.value = d.non_ncs_overview || '';
+                        setRegDate((d.created_at || '').slice(0, 10));
                         return;
                     }
                     showNcs();
@@ -237,37 +329,52 @@
                     if (ov) ov.value = d.overview_content || '';
                     var dev = document.getElementById('ncsDevCategory');
                     if (dev) dev.value = d.dev_category || '';
-                    if (mainJob) mainJob.value = (d.main_job_code ? d.main_job_code + '. ' : '') + (d.main_job_name || '');
-                    if (unitCodeInput) unitCodeInput.value = d.unit_code || d.main_job_code || '';
-                    if (unitNameInput) unitNameInput.value = d.unit_name || d.main_job_name || '';
+                    var cn = document.getElementById('ncsCourseName');
+                    if (cn) cn.value = d.course_name || '';
+                    var tl = document.getElementById('ncsTrainingLevel');
+                    if (tl) tl.value = d.training_level || '';
+                    var ps = document.getElementById('ncsPrereqSkill');
+                    if (ps) ps.value = d.prereq_skill || '';
+                    setRegDate((d.created_at || '').slice(0, 10));
                     if (!d.large_code || !largeClass) return;
                     largeClass.value = d.large_code;
                     loadTrainingByLarge().then(function() {
                         midClass.value = d.mid_code || '';
                         loadSmallByMid();
+                        smallClass.value = d.small_code || '';
+                        loadJobBySmall();
                         var ucode = d.unit_code || d.main_job_code;
                         var found = false;
-                        for (var i = 0; i < smallClass.options.length; i++) {
-                            if (smallClass.options[i].value === ucode) {
-                                smallClass.selectedIndex = i;
-                                found = true;
-                                onSmallChange();
-                                break;
+                        if (jobSelect) {
+                            for (var i = 0; i < jobSelect.options.length; i++) {
+                                if (jobSelect.options[i].value === ucode) {
+                                    jobSelect.selectedIndex = i;
+                                    found = true;
+                                    onJobSelectChange();
+                                    break;
+                                }
                             }
                         }
                         if (!found && (d.main_job_code || d.main_job_name)) {
-                            mainJob.value = (d.main_job_code ? d.main_job_code + '. ' : '') + (d.main_job_name || '');
                             if (unitCodeInput) unitCodeInput.value = d.unit_code || d.main_job_code || '';
                             if (unitNameInput) unitNameInput.value = d.unit_name || d.main_job_name || '';
+                            updatePill(d.unit_code || d.main_job_code, d.unit_name || d.main_job_name);
                         }
                     });
                 })
                 .catch(function() { alert('조회 실패'); });
         }
 
-        if (editId) {
-            loadForEdit();
-        }
+        loadLargeClasses().then(function() {
+            if (!editId) {
+                var today = new Date();
+                var y = today.getFullYear();
+                var m = String(today.getMonth() + 1).padStart(2, '0');
+                var d = String(today.getDate()).padStart(2, '0');
+                setRegDate(y + '-' + m + '-' + d);
+            }
+            if (editId) loadForEdit();
+        });
     }
 
     if (step === 1) initStep1();

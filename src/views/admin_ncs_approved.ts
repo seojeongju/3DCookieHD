@@ -76,9 +76,43 @@ function stepContentHtml(step: number, editId?: string): string {
               </div>
               <p class="text-xs text-slate-500 mt-1">실업자 대상인 경우 양성과정, 재직자 대상인 경우 향상과정을 선택하시면 됩니다.</p>
             </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">직종선택</label>
+                <select id="ncsJobSelect" size="6" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white"></select>
+                <p class="text-xs text-slate-500 mt-1">소분류 선택 후 직종을 선택하세요.</p>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">추가된 직종 및 주직종</label>
+                <div id="ncsMainJobPill" class="min-h-[2.5rem] px-4 py-3 border border-slate-200 rounded-xl bg-slate-50/50 text-sm flex flex-wrap items-center gap-2">
+                  <span id="ncsMainJobPlaceholder" class="text-slate-400">직종을 검색하여 선택하세요</span>
+                </div>
+              </div>
+            </div>
             <div>
-              <label class="block text-xs font-medium text-slate-600 mb-1">주직종선택</label>
-              <input type="text" id="ncsMainJob" readonly placeholder="직종을 검색하여 선택하세요" class="w-full max-w-md px-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50">
+              <label class="block text-xs font-medium text-slate-600 mb-1">과정명</label>
+              <input type="text" id="ncsCourseName" class="w-full max-w-md px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="과정명 입력">
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">훈련수준</label>
+                <select id="ncsTrainingLevel" class="w-full max-w-xs px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                  <option value="">선택</option>
+                  <option value="1">1 수준</option>
+                  <option value="2">2 수준</option>
+                  <option value="3">3 수준</option>
+                  <option value="4">4 수준</option>
+                  <option value="5">5 수준</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">등록일</label>
+                <input type="text" id="ncsRegDate" readonly class="w-full max-w-xs px-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50" placeholder="—">
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">선수능력</label>
+              <textarea id="ncsPrereqSkill" rows="3" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="선수능력 입력"></textarea>
             </div>
             <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">내용추가</label>
