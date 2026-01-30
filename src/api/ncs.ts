@@ -541,14 +541,14 @@ app.get('/approved/registrations/:id/training-hours', authMiddleware, requireAdm
         }
         const { results: curriculum } = await c.env.DB.prepare(
             'SELECT id, type, name, classification, sort_order FROM ncs_approved_curriculum WHERE registration_id = ? ORDER BY sort_order ASC, id ASC'
-        ).bind(id).all();
+        ).bind(id).all() as { results: any[] };
         const curriculumIds = (curriculum || []).map((r: { id: number }) => r.id);
         let hoursMap: Record<number, { theory_hours: number; practice_hours: number }> = {};
         if (curriculumIds.length) {
             const placeholders = curriculumIds.map(() => '?').join(',');
             const { results: hoursRows } = await c.env.DB.prepare(
                 `SELECT curriculum_id, theory_hours, practice_hours FROM ncs_approved_training_hours WHERE curriculum_id IN (${placeholders})`
-            ).bind(...curriculumIds).all();
+            ).bind(...curriculumIds).all() as { results: any[] };
             (hoursRows || []).forEach((row: { curriculum_id: number; theory_hours: number; practice_hours: number }) => {
                 hoursMap[row.curriculum_id] = { theory_hours: row.theory_hours ?? 0, practice_hours: row.practice_hours ?? 0 };
             });
@@ -613,14 +613,14 @@ app.put('/approved/registrations/:id/training-hours', authMiddleware, requireAdm
         }
         const { results: curriculum } = await c.env.DB.prepare(
             'SELECT id FROM ncs_approved_curriculum WHERE registration_id = ?'
-        ).bind(id).all();
+        ).bind(id).all() as { results: any[] };
         const curriculumIds = (curriculum || []).map((r: { id: number }) => r.id);
         let hoursMap: Record<number, { theory_hours: number; practice_hours: number }> = {};
         if (curriculumIds.length) {
             const placeholders = curriculumIds.map(() => '?').join(',');
             const { results: hoursRows } = await c.env.DB.prepare(
                 `SELECT curriculum_id, theory_hours, practice_hours FROM ncs_approved_training_hours WHERE curriculum_id IN (${placeholders})`
-            ).bind(...curriculumIds).all();
+            ).bind(...curriculumIds).all() as { results: any[] };
             (hoursRows || []).forEach((row: { curriculum_id: number; theory_hours: number; practice_hours: number }) => {
                 hoursMap[row.curriculum_id] = { theory_hours: row.theory_hours ?? 0, practice_hours: row.practice_hours ?? 0 };
             });
@@ -632,7 +632,7 @@ app.put('/approved/registrations/:id/training-hours', authMiddleware, requireAdm
         const regRow = await c.env.DB.prepare(
             'SELECT total_training_days, daily_training_hours, total_training_hours, ncs_lib_arts_pct, ncs_major_pct, non_ncs_pct FROM ncs_approved_registrations WHERE id = ?'
         ).bind(id).first() as { total_training_days?: number | null; daily_training_hours?: number | null; total_training_hours?: number | null; ncs_lib_arts_pct?: number | null; ncs_major_pct?: number | null; non_ncs_pct?: number | null } | null;
-        const params = regRow ? {
+        const resultParams = regRow ? {
             total_training_days: regRow.total_training_days ?? null,
             daily_training_hours: regRow.daily_training_hours ?? null,
             total_training_hours: regRow.total_training_hours ?? null,
@@ -640,7 +640,7 @@ app.put('/approved/registrations/:id/training-hours', authMiddleware, requireAdm
             ncs_major_pct: regRow.ncs_major_pct ?? null,
             non_ncs_pct: regRow.non_ncs_pct ?? null
         } : {};
-        return c.json({ success: true, params, data });
+        return c.json({ success: true, params: resultParams, data });
     } catch (e) {
         console.error('ncs approved training-hours put:', e);
         return c.json({ success: false, error: '훈련시간 저장 실패' }, 500);
