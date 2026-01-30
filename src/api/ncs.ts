@@ -629,9 +629,15 @@ app.put('/approved/registrations/:id/training-hours', authMiddleware, requireAdm
             curriculum_id: r.id,
             ...(hoursMap[r.id] || { theory_hours: 0, practice_hours: 0 })
         }));
-        const regRow = await c.env.DB.prepare(
-            'SELECT total_training_days, daily_training_hours, total_training_hours, ncs_lib_arts_pct, ncs_major_pct, non_ncs_pct FROM ncs_approved_registrations WHERE id = ?'
-        ).bind(id).first() as { total_training_days?: number | null; daily_training_hours?: number | null; total_training_hours?: number | null; ncs_lib_arts_pct?: number | null; ncs_major_pct?: number | null; non_ncs_pct?: number | null } | null;
+        let regRow: any = null;
+        try {
+            regRow = await c.env.DB.prepare(
+                'SELECT total_training_days, daily_training_hours, total_training_hours, ncs_lib_arts_pct, ncs_major_pct, non_ncs_pct FROM ncs_approved_registrations WHERE id = ?'
+            ).bind(id).first();
+        } catch (_) {
+            /* columns may not exist yet */
+        }
+
         const resultParams = regRow ? {
             total_training_days: regRow.total_training_days ?? null,
             daily_training_hours: regRow.daily_training_hours ?? null,
@@ -640,10 +646,181 @@ app.put('/approved/registrations/:id/training-hours', authMiddleware, requireAdm
             ncs_major_pct: regRow.ncs_major_pct ?? null,
             non_ncs_pct: regRow.non_ncs_pct ?? null
         } : {};
+
         return c.json({ success: true, params: resultParams, data });
+    } catch (e: any) {
+        console.error('ncs approved training-hours put error:', e);
+        return c.json({ success: false, error: '훈련시간 저장 실패: ' + (e.message || '서버 오류') }, 500);
+    }
+});
+
+/** 평가·교수학습방법(5단계) 조회 */
+app.get('/approved/registrations/:id/evaluation-teaching', authMiddleware, requireAdmin, async (c) => {
+    try {
+        const id = parseInt(c.req.param('id'), 10);
+        if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
+        const exists = await c.env.DB.prepare('SELECT id FROM ncs_approved_registrations WHERE id = ?').bind(id).first();
+        if (!exists) return c.json({ success: false, error: '등록 정보 없음' }, 404);
+
+        const { results: curriculum } = await c.env.DB.prepare(
+            'SELECT * FROM ncs_approved_curriculum WHERE registration_id = ? ORDER BY sort_order ASC, id ASC'
+        ).all() as { results: any[] };
+
+        return c.json({ success: true, data: curriculum || [] });
     } catch (e) {
-        console.error('ncs approved training-hours put:', e);
-        return c.json({ success: false, error: '훈련시간 저장 실패' }, 500);
+        console.error('ncs approved evaluation-teaching get:', e);
+        return c.json({ success: false, error: '평가·교수학습 정보 조회 실패' }, 500);
+    }
+});
+
+/** 평가·교수학습방법(5단계) 저장 — 전건 교체 (항목별 업데이트) */
+app.put('/approved/registrations/:id/evaluation-teaching', authMiddleware, requireAdmin, async (c) => {
+    try {
+        const id = parseInt(c.req.param('id'), 10);
+        if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
+        const body = await c.req.json<{
+            items?: {
+                id: number;
+                main_instructor_ids?: number[];
+                evaluator_id?: number | null;
+                teaching_methods?: string[];
+                evaluation_methods?: string[];
+                textbook_ids?: number[];
+                material_ids?: number[];
+            }[]
+        }>();
+        const items = Array.isArray(body.items) ? body.items : [];
+
+        for (const it of items) {
+            const curriculumId = Number(it.id);
+            if (!curriculumId) continue;
+
+            const mainInstructorsJson = it.main_instructor_ids ? JSON.stringify(it.main_instructor_ids) : null;
+            const teachingMethodsJson = it.teaching_methods ? JSON.stringify(it.teaching_methods) : null;
+            const evaluationMethodsJson = it.evaluation_methods ? JSON.stringify(it.evaluation_methods) : null;
+            const textbooksJson = it.textbook_ids ? JSON.stringify(it.textbook_ids) : null;
+            const materialsJson = it.material_ids ? JSON.stringify(it.material_ids) : null;
+            const evaluatorId = it.evaluator_id || null;
+
+            await c.env.DB.prepare(
+                `UPDATE ncs_approved_curriculum SET 
+                    main_instructor_ids_json = ?, 
+                    evaluator_id = ?, 
+                    teaching_methods_json = ?, 
+                    evaluation_methods_json = ?, 
+                    textbook_ids_json = ?, 
+                    material_ids_json = ?, 
+                    updated_at = datetime('now') 
+                WHERE id = ? AND registration_id = ?`
+            ).bind(
+                mainInstructorsJson, evaluatorId, teachingMethodsJson, evaluationMethodsJson,
+                textbooksJson, materialsJson, curriculumId, id
+            ).run();
+        }
+
+        return c.json({ success: true });
+    } catch (e) {
+        console.error('ncs approved evaluation-teaching put:', e);
+        return c.json({ success: false, error: '평가·교수학습 정보 저장 실패' }, 500);
+    }
+});
+
+/** 강사 목록 조회 (교강사 배정용) */
+app.get('/approved/instructors', authMiddleware, requireAdmin, async (c) => {
+    try {
+        const { results } = await c.env.DB.prepare(
+            'SELECT u.id, u.name FROM users u JOIN hrd_instructors i ON u.id = i.user_id WHERE i.status = "active" ORDER BY u.name ASC'
+        ).all();
+        return c.json({ success: true, data: results || [] });
+    } catch (e) {
+        console.error('ncs approved instructors get:', e);
+        return c.json({ success: false, error: '강사 목록 조회 실패' }, 500);
+    }
+});
+
+/** 물품 목록 조회 (교재/재료용) */
+app.get('/approved/hrd-items', authMiddleware, requireAdmin, async (c) => {
+    try {
+        const category = c.req.query('category');
+        let query = 'SELECT id, name, category FROM hrd_items WHERE 1=1';
+        const params: any[] = [];
+        if (category) {
+            query += ' AND category = ?';
+            params.push(category);
+        }
+        query += ' ORDER BY name ASC';
+        const { results } = await c.env.DB.prepare(query).bind(...params).all();
+        return c.json({ success: true, data: results || [] });
+    } catch (e) {
+        console.error('ncs approved hrd-items get:', e);
+        return c.json({ success: false, error: '물품 목록 조회 실패' }, 500);
+    }
+});
+
+/** 시설·장비(6단계) 조회 */
+app.get('/approved/registrations/:id/facilities-equipment', authMiddleware, requireAdmin, async (c) => {
+    try {
+        const id = parseInt(c.req.param('id'), 10);
+        if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
+
+        const { results: curriculum } = await c.env.DB.prepare(
+            'SELECT * FROM ncs_approved_curriculum WHERE registration_id = ? ORDER BY sort_order ASC, id ASC'
+        ).all() as { results: any[] };
+
+        return c.json({ success: true, data: curriculum || [] });
+    } catch (e) {
+        console.error('ncs approved facilities-equipment get:', e);
+        return c.json({ success: false, error: '시설·장비 정보 조회 실패' }, 500);
+    }
+});
+
+/** 시설·장비(6단계) 저장 */
+app.put('/approved/registrations/:id/facilities-equipment', authMiddleware, requireAdmin, async (c) => {
+    try {
+        const id = parseInt(c.req.param('id'), 10);
+        if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
+        const body = await c.req.json<{
+            items?: {
+                id: number;
+                facility_ids?: number[];
+                equipment_ids?: number[];
+            }[]
+        }>();
+        const items = Array.isArray(body.items) ? body.items : [];
+
+        for (const it of items) {
+            const curriculumId = Number(it.id);
+            if (!curriculumId) continue;
+
+            const facilitiesJson = it.facility_ids ? JSON.stringify(it.facility_ids) : null;
+            const equipmentJson = it.equipment_ids ? JSON.stringify(it.equipment_ids) : null;
+
+            await c.env.DB.prepare(
+                `UPDATE ncs_approved_curriculum SET 
+                    facility_ids_json = ?, 
+                    equipment_ids_json = ?, 
+                    updated_at = datetime('now') 
+                WHERE id = ? AND registration_id = ?`
+            ).bind(facilitiesJson, equipmentJson, curriculumId, id).run();
+        }
+
+        return c.json({ success: true });
+    } catch (e) {
+        console.error('ncs approved facilities-equipment put:', e);
+        return c.json({ success: false, error: '시설·장비 정보 저장 실패' }, 500);
+    }
+});
+
+/** 시설 목록 조회 */
+app.get('/approved/facilities', authMiddleware, requireAdmin, async (c) => {
+    try {
+        const { results } = await c.env.DB.prepare(
+            'SELECT id, name, room_number FROM hrd_facilities WHERE status = "active" ORDER BY name ASC'
+        ).all();
+        return c.json({ success: true, data: results || [] });
+    } catch (e) {
+        console.error('ncs approved facilities get:', e);
+        return c.json({ success: false, error: '시설 목록 조회 실패' }, 500);
     }
 });
 

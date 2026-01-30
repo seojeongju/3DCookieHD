@@ -410,26 +410,250 @@ function stepContentHtml(step: number, editId?: string): string {
     </div>`;
   }
   if (step === 5) {
+    const regId = editId || '';
     return `
-    <div class="space-y-4">
-      <h3 class="text-lg font-bold text-slate-800">5. 평가·교수학습 방법</h3>
-      <p class="text-sm text-slate-600">평가 및 교수·학습 방법을 등록·관리합니다.</p>
-      <div class="border-2 border-dashed border-slate-200 rounded-2xl p-12 text-center text-slate-500 bg-slate-50/50">
-        <i class="fas fa-chalkboard-teacher text-4xl mb-3 opacity-50"></i>
-        <p>평가·교수학습 방법 등록 영역 (추후 구현)</p>
+    <div class="space-y-6" id="ncsApprovedStep5Container">
+      <input type="hidden" id="ncsApprovedRegIdStep5" value="${regId}">
+      <h3 class="text-lg font-bold text-slate-800">평가·교수학습 방법 설정</h3>
+      <p class="text-sm text-slate-600">각 능력단위(교과목)별 평가방법과 교수학습방법을 설정 하실 수 있습니다.</p>
+      
+      <div id="ncsStep5NoReg" class="hidden rounded-xl border border-amber-200 bg-amber-50 px-5 py-8 text-center text-slate-600">
+        과정개요 및 교과목 편성을 먼저 등록한 후 진행하세요. <a href="/admin/ncs/approved/3${regId ? '?id=' + regId : ''}" class="text-emerald-600 hover:underline ml-1">3. 교과목편성으로 이동</a>
       </div>
-    </div>`;
+
+      <div id="ncsStep5Form" class="space-y-8">
+        <!-- NCS 소양교과 섹션 -->
+        <div class="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
+          <button type="button" class="w-full px-5 py-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center group" onclick="document.getElementById('sectionNcsLib').classList.toggle('hidden'); this.querySelector('i').classList.toggle('fa-chevron-down'); this.querySelector('i').classList.toggle('fa-chevron-up');">
+            <h4 class="font-bold text-slate-800">NCS 소양교과</h4>
+            <i class="fas fa-chevron-up text-slate-400 group-hover:text-slate-600 transition-transform"></i>
+          </button>
+          <div id="sectionNcsLib" class="p-6 space-y-6">
+            <p class="text-center text-slate-400 py-8 text-sm">등록된 교과목이 없습니다.</p>
+          </div>
+        </div>
+
+        <!-- NCS 전공교과 섹션 -->
+        <div class="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
+          <button type="button" class="w-full px-5 py-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center group" onclick="document.getElementById('sectionNcsMajor').classList.toggle('hidden'); this.querySelector('i').classList.toggle('fa-chevron-down'); this.querySelector('i').classList.toggle('fa-chevron-up');">
+            <h4 class="font-bold text-slate-800">NCS 전공교과</h4>
+            <i class="fas fa-chevron-up text-slate-400 group-hover:text-slate-600 transition-transform"></i>
+          </button>
+          <div id="sectionNcsMajor" class="p-6 space-y-6">
+            <p class="text-center text-slate-400 py-8 text-sm">등록된 교과목이 없습니다.</p>
+          </div>
+        </div>
+
+        <!-- 비 NCS 교과 섹션 -->
+        <div class="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
+          <button type="button" class="w-full px-5 py-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center group" onclick="document.getElementById('sectionNonNcs').classList.toggle('hidden'); this.querySelector('i').classList.toggle('fa-chevron-down'); this.querySelector('i').classList.toggle('fa-chevron-up');">
+            <h4 class="font-bold text-slate-800">비 NCS 교과</h4>
+            <i class="fas fa-chevron-up text-slate-400 group-hover:text-slate-600 transition-transform"></i>
+          </button>
+          <div id="sectionNonNcs" class="p-6 space-y-6">
+            <p class="text-center text-slate-400 py-8 text-sm">등록된 교과목이 없습니다.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap gap-3 pt-6 border-t border-slate-200/60 sticky bottom-0 bg-white pb-4 mt-8">
+        <a href="/admin/ncs/approved/list" class="px-5 py-2.5 text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 font-bold text-sm transition inline-flex items-center gap-2">
+          <i class="fas fa-list-ul"></i> 목록
+        </a>
+        <a href="/admin/ncs/approved/4${regId ? '?id=' + regId : ''}" class="px-5 py-2.5 text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 font-bold text-sm transition inline-flex items-center gap-2">
+          <i class="fas fa-arrow-left"></i> 이전 페이지
+        </a>
+        <button type="button" id="ncsStep5BtnSave" class="px-10 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-bold text-base shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 ml-auto">
+          <i class="fas fa-save"></i> 저장하기
+        </button>
+      </div>
+    </div>
+    <style>
+      .curriculum-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 24px;
+        background: #ffffff;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        transition: all 0.2s;
+      }
+      .curriculum-card:hover {
+        border-color: #cbd5e1;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+      }
+      .field-row {
+        display: grid;
+        grid-template-columns: 140px 1fr;
+        gap: 20px;
+        align-items: start;
+        padding: 8px 0;
+      }
+      .field-label {
+        font-weight: 700;
+        color: #475569;
+        font-size: 0.85rem;
+        text-align: right;
+        padding-top: 10px;
+      }
+      .field-content {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .method-item {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+      .method-item:last-child {
+        margin-bottom: 0;
+      }
+      .ability-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 8px;
+        background: #f1f5f9;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        color: #64748b;
+        margin-right: 4px;
+        margin-bottom: 4px;
+      }
+      .btn-plus {
+        width: 36px;
+        height: 36px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #10b981;
+        color: white;
+        border-radius: 8px;
+        transition: background 0.2s;
+      }
+      .btn-plus:hover { background: #059669; }
+      .btn-minus {
+        width: 36px;
+        height: 36px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #ef4444;
+        color: white;
+        border-radius: 8px;
+        transition: background 0.2s;
+      }
+      .btn-minus:hover { background: #dc2626; }
+    </style>
+    `;
   }
   if (step === 6) {
+    const regId = editId || '';
     return `
-    <div class="space-y-4">
-      <h3 class="text-lg font-bold text-slate-800">6. 시설·장비</h3>
-      <p class="text-sm text-slate-600">시설 및 장비 정보를 등록·관리합니다.</p>
-      <div class="border-2 border-dashed border-slate-200 rounded-2xl p-12 text-center text-slate-500 bg-slate-50/50">
-        <i class="fas fa-building text-4xl mb-3 opacity-50"></i>
-        <p>시설·장비 등록 영역 (추후 구현)</p>
+    <div class="space-y-6" id="ncsApprovedStep6Container">
+      <input type="hidden" id="ncsApprovedRegIdStep6" value="${regId}">
+      <div class="text-center mb-8">
+        <h3 class="text-xl font-bold text-slate-800">교과목별 시설 및 장비 설정</h3>
+        <p class="text-sm text-slate-600">교과목별 시설 및 장비를 설정하실 수 있습니다.</p>
       </div>
-    </div>`;
+      
+      <div id="ncsStep6NoReg" class="hidden rounded-xl border border-amber-200 bg-amber-50 px-5 py-8 text-center text-slate-600">
+        과정개요 및 교과목 편성을 먼저 등록한 후 진행하세요. <a href="/admin/ncs/approved/3${regId ? '?id=' + regId : ''}" class="text-emerald-600 hover:underline ml-1">3. 교과목편성으로 이동</a>
+      </div>
+
+      <div id="ncsStep6Form" class="space-y-12">
+        <!-- 교과목 항목들이 동적으로 렌더링될 영역 -->
+      </div>
+
+      <div class="flex flex-wrap gap-3 pt-6 border-t border-slate-200/60 sticky bottom-0 bg-white pb-4 mt-8">
+        <a href="/admin/ncs/approved/list" class="px-5 py-2.5 text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 font-bold text-sm transition inline-flex items-center gap-2">
+          <i class="fas fa-list-ul"></i> 목록
+        </a>
+        <a href="/admin/ncs/approved/5${regId ? '?id=' + regId : ''}" class="px-5 py-2.5 text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 font-bold text-sm transition inline-flex items-center gap-2">
+          <i class="fas fa-arrow-left"></i> 이전 페이지
+        </a>
+        <button type="button" id="ncsStep6BtnSave" class="px-10 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-bold text-base shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 ml-auto">
+          <i class="fas fa-save"></i> 저장하기
+        </button>
+      </div>
+    </div>
+    <style>
+      .step6-subject-card {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      }
+      .dual-list-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-top: 15px;
+      }
+      .list-box-wrapper {
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .list-box-header {
+        background: #f8fafc;
+        padding: 10px 15px;
+        font-weight: 700;
+        font-size: 0.85rem;
+        color: #475569;
+        border-bottom: 1px solid #e2e8f0;
+      }
+      .list-box-toolbar {
+        padding: 8px;
+        border-bottom: 1px solid #e2e8f0;
+        background: #fff;
+      }
+      .list-box-filter {
+        width: 100%;
+        padding: 6px 10px;
+        border: 1px solid #cbd5e1;
+        border-radius: 4px;
+        font-size: 0.8rem;
+      }
+      .list-box-actions {
+        display: flex;
+        border-bottom: 1px solid #e2e8f0;
+      }
+      .list-btn {
+        flex: 1;
+        padding: 6px;
+        background: #fff;
+        border: none;
+        border-right: 1px solid #e2e8f0;
+        font-size: 0.9rem;
+        color: #64748b;
+        cursor: pointer;
+      }
+      .list-btn:last-child { border-right: none; }
+      .list-btn:hover { background: #f1f5f9; color: #1e293b; }
+      
+      .list-content {
+        height: 200px;
+        overflow-y: auto;
+        padding: 5px;
+        background: #fff;
+      }
+      .list-item {
+        padding: 8px 12px;
+        font-size: 0.85rem;
+        color: #334155;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-bottom: 2px;
+      }
+      .list-item:hover { background: #f1f5f9; }
+      .list-item.selected { background: #e0f2fe; color: #0369a1; }
+    </style>
+    `;
   }
   return '<p class="text-slate-500">잘못된 단계입니다.</p>';
 }
