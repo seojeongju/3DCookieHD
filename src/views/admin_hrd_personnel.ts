@@ -145,7 +145,7 @@ export const adminHrdPersonnelHtml = () => `
                         <div class="flex-shrink-0">
                             <div class="w-32 h-32 rounded-[2rem] bg-white border-4 border-white shadow-xl overflow-hidden relative group cursor-pointer" onclick="document.getElementById('pImageFile').click()">
                                 <i class="fas fa-user text-gray-300 text-5xl absolute inset-0 flex items-center justify-center" id="pImagePlaceholder"></i>
-                                <img id="pImagePreview" src="" class="w-full h-full object-cover hidden">
+                                <img id="pImagePreview" src="" class="w-full h-full object-cover hidden" onerror="this.classList.add('hidden');document.getElementById('pImagePlaceholder').classList.remove('hidden');">
                                 <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold">
                                     <i class="fas fa-camera mr-2"></i> 변경
                                 </div>
@@ -566,6 +566,14 @@ export const adminHrdPersonnelHtml = () => `
                             <label class="text-sm font-medium text-gray-700 mb-2 block">비고</label>
                             <textarea id="trainingModalNotes" rows="2" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none resize-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition" placeholder="기타 사항을 입력하세요"></textarea>
                         </div>
+                        <div>
+                            <label class="text-sm font-medium text-gray-700 mb-2 block">이수증 파일</label>
+                            <input type="file" id="trainingModalFileInput" accept=".pdf,.jpg,.jpeg,.png" multiple class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-300 transition">
+                            <div id="trainingModalFileList" class="mt-3 space-y-2">
+                                <!-- 첨부된 이수증 파일 목록 -->
+                            </div>
+                            <input type="hidden" id="trainingModalFileUrls" value="[]">
+                        </div>
                     </div>
                     <div class="mt-6 flex justify-end gap-3">
                         <button type="button" onclick="closeTrainingModal()" class="px-6 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition">
@@ -712,10 +720,12 @@ export const adminHrdPersonnelHtml = () => `
                         </td>
                         <td class="px-6 py-4">
                             <div class="flex items-center">
-                                \${p.profile_image 
-                                    ? \`<img src="\${p.profile_image}" class="w-8 h-8 rounded-full object-cover mr-3">\`
-                                    : \`<div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold mr-3">\${p.name.charAt(0)}</div>\`
-                                }
+                                <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm shrink-0 mr-3 overflow-hidden relative">
+                                    \${p.profile_image 
+                                        ? \`<img src="\${p.profile_image}" class="absolute inset-0 w-full h-full object-cover" onerror="this.style.display='none';var s=this.nextElementSibling;if(s)s.classList.remove('hidden');"><span class="hidden">\${p.name.charAt(0)}</span>\`
+                                        : \`<span>\${p.name.charAt(0)}</span>\`
+                                    }
+                                </div>
                                 <div>
                                     <div class="font-medium text-gray-800">\${p.name}</div>
                                     <div class="text-xs text-gray-500">\${p.position || '-'}</div>
@@ -1055,6 +1065,9 @@ export const adminHrdPersonnelHtml = () => `
             const modal = document.getElementById('trainingModal');
             const title = document.getElementById('trainingModalTitle');
             const form = document.getElementById('trainingForm');
+            const fileInput = document.getElementById('trainingModalFileInput');
+            const fileUrlsInput = document.getElementById('trainingModalFileUrls');
+            const fileListEl = document.getElementById('trainingModalFileList');
             
             if (index !== null && training[index]) {
                 const tr = training[index];
@@ -1067,10 +1080,21 @@ export const adminHrdPersonnelHtml = () => `
                 document.getElementById('trainingModalInstitution').value = tr.institution || '';
                 document.getElementById('trainingModalDescription').value = tr.description || '';
                 document.getElementById('trainingModalNotes').value = tr.notes || '';
+                const certUrls = tr.certificate_urls || tr.file_urls || [];
+                const certArr = Array.isArray(certUrls) ? certUrls : (certUrls.url ? [certUrls] : []);
+                fileUrlsInput.value = JSON.stringify(certArr);
+                if (fileInput) fileInput.value = '';
+                fileListEl.innerHTML = certArr.map(f => {
+                    const url = typeof f === 'string' ? f : f.url;
+                    const name = typeof f === 'string' ? (url.split('/').pop() || '이수증') : (f.name || f.url.split('/').pop() || '이수증');
+                    return \`<div class="flex items-center justify-between text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-lg"><span><i class="fas fa-file-pdf mr-2 text-red-500"></i>\${name}</span><a href="\${url}" target="_blank" class="text-green-600 hover:text-green-800"><i class="fas fa-external-link-alt"></i></a></div>\`;
+                }).join('');
             } else {
                 title.textContent = '보수교육 추가';
                 form.reset();
                 document.getElementById('trainingModalId').value = '';
+                fileUrlsInput.value = '[]';
+                if (fileListEl) fileListEl.innerHTML = '';
             }
             modal.classList.remove('hidden');
         };
@@ -1080,17 +1104,42 @@ export const adminHrdPersonnelHtml = () => `
             currentTrainingIndex = null;
         };
 
-        window.handleSaveTraining = function(event) {
+        window.handleSaveTraining = async function(event) {
             event.preventDefault();
+            const trId = document.getElementById('trainingModalId').value || 'tr_' + Date.now();
+            const fileUrlsInput = document.getElementById('trainingModalFileUrls');
+            let certificateUrls = JSON.parse(fileUrlsInput.value || '[]');
+            const fileInput = document.getElementById('trainingModalFileInput');
+            if (fileInput && fileInput.files && fileInput.files.length > 0) {
+                const token = localStorage.getItem('token');
+                for (let file of fileInput.files) {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('category', 'documents');
+                    formData.append('folder', 'personnel_training_certs/' + trId);
+                    try {
+                        const response = await fetch('/api/upload', {
+                            method: 'POST',
+                            headers: { 'Authorization': 'Bearer ' + token },
+                            body: formData
+                        });
+                        const result = await response.json();
+                        if (result.success) {
+                            certificateUrls.push({ url: result.data.url, name: result.data.originalName || file.name });
+                        }
+                    } catch (e) { console.error(e); }
+                }
+            }
             const trData = {
-                id: document.getElementById('trainingModalId').value || 'tr_' + Date.now(),
+                id: trId,
                 name: document.getElementById('trainingModalName').value,
                 start_date: document.getElementById('trainingModalStartDate').value || null,
                 end_date: document.getElementById('trainingModalEndDate').value || null,
                 hours: document.getElementById('trainingModalHours').value || null,
                 institution: document.getElementById('trainingModalInstitution').value || null,
                 description: document.getElementById('trainingModalDescription').value || null,
-                notes: document.getElementById('trainingModalNotes').value || null
+                notes: document.getElementById('trainingModalNotes').value || null,
+                certificate_urls: certificateUrls
             };
             if (currentTrainingIndex !== null) {
                 training[currentTrainingIndex] = trData;
@@ -1116,11 +1165,21 @@ export const adminHrdPersonnelHtml = () => `
                 return;
             }
             training.forEach((tr, index) => {
+                let certButtonsHtml = '';
+                const certUrls = tr.certificate_urls || tr.file_urls || [];
+                const certArr = Array.isArray(certUrls) ? certUrls : (certUrls && certUrls.url ? [certUrls] : []);
+                if (certArr.length > 0) {
+                    certArr.forEach(f => {
+                        const url = typeof f === 'string' ? f : f.url;
+                        const name = typeof f === 'string' ? (url.split('/').pop() || '이수증') : (f.name || f.url.split('/').pop() || '이수증');
+                        certButtonsHtml += \`<button type="button" onclick="event.stopPropagation(); window.open('\${url}', '_blank')" class="text-xs text-green-600 hover:text-green-800 bg-green-50 px-2 py-1 rounded inline-flex items-center mr-2 mb-1 mt-1 border border-green-100"><i class="fas fa-file-certificate mr-1"></i> \${name}</button>\`;
+                    });
+                }
                 const div = document.createElement('div');
                 div.className = 'bg-white p-4 rounded-xl border border-gray-200 shadow-sm relative';
                 div.innerHTML = \`
                     <div class="flex justify-between items-start">
-                        <div>
+                        <div class="flex-1 min-w-0 pr-4">
                             <h4 class="font-bold text-gray-900">\${ tr.name || '-' }</h4>
                             <div class="text-sm text-gray-600 mt-1">
                                 \${ tr.institution ? \`<span class="mr-2"><i class="fas fa-building mr-1"></i>\${tr.institution}</span>\` : '' }
@@ -1129,8 +1188,9 @@ export const adminHrdPersonnelHtml = () => `
                             <div class="text-xs text-gray-500 mt-1">
                                 \${ tr.start_date || '' } ~ \${ tr.end_date || '' }
                             </div>
+                            \${ certButtonsHtml ? \`<div class="mt-2 flex flex-wrap">\${certButtonsHtml}</div>\` : '' }
                         </div>
-                        <div class="flex space-x-2">
+                        <div class="flex space-x-2 shrink-0">
                              <button type="button" onclick="openTrainingModal(\${index})" class="text-green-500 hover:text-green-700"><i class="fas fa-edit"></i></button>
                              <button type="button" onclick="deleteTraining(\${index})" class="text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>
                         </div>
