@@ -19,10 +19,14 @@ function stepNavHtml(currentStep: number): string {
   ).join('');
 }
 
-function stepContentHtml(step: number): string {
+function stepContentHtml(step: number, editId?: string): string {
   if (step === 1) {
+    const isEdit = !!editId;
     return `
-    <div class="space-y-6">
+    <div class="space-y-6" id="ncsApprovedFormContainer">
+      <input type="hidden" id="ncsApprovedEditId" value="${editId || ''}">
+      <input type="hidden" id="ncsUnitCode" value="">
+      <input type="hidden" id="ncsUnitName" value="">
       <p class="text-xs text-slate-500">등록되는 직종 및 주직종으로 이후에 등록되는 내용에 활용됩니다.</p>
       <!-- 탭: NCS 훈련과정 전용 / 비NCS 훈련과정 전용 -->
       <div class="flex gap-2 border-b border-slate-200 pb-2">
@@ -96,6 +100,11 @@ function stepContentHtml(step: number): string {
           <textarea id="nonNcsOverview" rows="4" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20" placeholder="과정 개요 입력"></textarea>
         </div>
       </div>
+      <div class="flex flex-wrap gap-3 pt-6 border-t border-slate-200/60">
+        <a href="/admin/ncs/approved/list" class="px-5 py-2.5 text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 font-bold text-sm transition">목록</a>
+        <button type="button" id="ncsApprovedBtnSave" class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-bold text-sm transition">${isEdit ? '수정' : '저장'}</button>
+        ${isEdit ? '<button type="button" id="ncsApprovedBtnDelete" class="px-5 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 font-bold text-sm transition">삭제</button>' : ''}
+      </div>
     </div>`;
   }
   if (step === 2) {
@@ -156,10 +165,10 @@ function stepContentHtml(step: number): string {
   return '<p class="text-slate-500">잘못된 단계입니다.</p>';
 }
 
-export function adminNcsApprovedHtml(stepParam?: string): string {
+export function adminNcsApprovedHtml(stepParam?: string, editId?: string): string {
   const step = Math.min(6, Math.max(1, parseInt(stepParam || '1', 10) || 1));
   const stepNav = stepNavHtml(step);
-  const content = stepContentHtml(step);
+  const content = stepContentHtml(step, editId);
   return `
 <!DOCTYPE html>
 <html lang="ko">
@@ -206,6 +215,62 @@ export function adminNcsApprovedHtml(stepParam?: string): string {
         window.NCS_APPROVED_STEP = ${step};
     </script>
     <script src="/static/ncs-approved.js"></script>
+</body>
+</html>`;
+}
+
+export function adminNcsApprovedListHtml(): string {
+  return `
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>승인받은 NCS 등록 — 목록</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>body { font-family: 'Noto Sans KR', sans-serif; }</style>
+</head>
+<body class="bg-slate-50">
+    <div class="flex min-h-screen">
+        ${hrdSidebar('ncs-approved-list')}
+        <main class="flex-1 overflow-x-hidden overflow-y-auto">
+            <header class="bg-white shadow-sm sticky top-0 z-10 border-b border-slate-200">
+                <div class="px-8 py-4 flex flex-wrap justify-between items-center gap-4">
+                    <div>
+                        <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">NCS 훈련과정 승인정보</p>
+                        <h1 class="text-xl font-black text-slate-800 mt-0.5">승인받은 NCS 등록 — 목록</h1>
+                        <p class="text-sm text-slate-600 mt-1">등록된 과정개요를 조회·수정·삭제합니다.</p>
+                    </div>
+                    <a href="/admin/ncs/approved/1" class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-bold text-sm transition flex items-center gap-2">
+                        <i class="fas fa-plus"></i> 과정개요 등록
+                    </a>
+                </div>
+            </header>
+            <div class="p-8">
+                <div class="bg-white rounded-[2rem] shadow-sm border border-slate-200/60 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left min-w-[640px]">
+                            <thead class="bg-slate-50/80 text-slate-500 font-bold text-xs uppercase tracking-wider">
+                                <tr>
+                                    <th class="px-4 py-3 w-12">No</th>
+                                    <th class="px-4 py-3">유형</th>
+                                    <th class="px-4 py-3">주직종 / 과정명</th>
+                                    <th class="px-4 py-3 w-28">등록일</th>
+                                    <th class="px-4 py-3 w-36 text-right">관리</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ncsApprovedListBody" class="divide-y divide-slate-100">
+                                <tr><td colspan="5" class="px-4 py-8 text-center text-slate-400"><i class="fas fa-spinner fa-spin mr-2"></i> 로딩 중...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="/static/ncs-approved-list.js"></script>
 </body>
 </html>`;
 }

@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { Bindings, JWTPayload, Variables } from '../types';
-import { authMiddleware } from '../middleware/auth';
+import { authMiddleware, requireAdmin } from '../middleware/auth';
 import { forbiddenResponse } from '../utils/response';
 
 const app = new Hono<{ Bindings: Bindings, Variables: Variables }>();
@@ -131,6 +131,137 @@ app.get('/approved/training', async (c) => {
     } catch (e) {
         console.error('NCS approved/training error:', e);
         return c.json({ success: false, error: '훈련과정 조회 실패' }, 500);
+    }
+});
+
+// 승인받은 NCS 등록(과정개요) CRUD — 저장/수정/삭제
+app.get('/approved/registrations', authMiddleware, requireAdmin, async (c) => {
+    try {
+        const { results } = await c.env.DB.prepare(
+            'SELECT * FROM ncs_approved_registrations ORDER BY updated_at DESC'
+        ).all();
+        return c.json({ success: true, data: results || [] });
+    } catch (e) {
+        console.error('ncs approved registrations list:', e);
+        return c.json({ success: false, error: '목록 조회 실패' }, 500);
+    }
+});
+
+app.get('/approved/registrations/:id', authMiddleware, requireAdmin, async (c) => {
+    try {
+        const id = parseInt(c.req.param('id'), 10);
+        if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
+        const row = await c.env.DB.prepare(
+            'SELECT * FROM ncs_approved_registrations WHERE id = ?'
+        ).bind(id).first();
+        if (!row) return c.json({ success: false, error: '조회할 수 없습니다' }, 404);
+        return c.json({ success: true, data: row });
+    } catch (e) {
+        console.error('ncs approved registration get:', e);
+        return c.json({ success: false, error: '조회 실패' }, 500);
+    }
+});
+
+app.post('/approved/registrations', authMiddleware, requireAdmin, async (c) => {
+    try {
+        const body = await c.req.json<{
+            ncs_tab?: string; course_type?: string; main_job_code?: string; main_job_name?: string;
+            overview_content?: string; dev_category?: string; large_code?: string; mid_code?: string;
+            small_code?: string; unit_code?: string; unit_name?: string;
+            non_ncs_course_name?: string; non_ncs_overview?: string;
+        }>();
+        const ncsTab = (body.ncs_tab || 'ncs').trim();
+        const courseType = (body.course_type || '').trim() || null;
+        const mainJobCode = (body.main_job_code || '').trim() || null;
+        const mainJobName = (body.main_job_name || '').trim() || null;
+        const overviewContent = (body.overview_content || '').trim() || null;
+        const devCategory = (body.dev_category || '').trim() || null;
+        const largeCode = (body.large_code || '').trim() || null;
+        const midCode = (body.mid_code || '').trim() || null;
+        const smallCode = (body.small_code || '').trim() || null;
+        const unitCode = (body.unit_code || '').trim() || null;
+        const unitName = (body.unit_name || '').trim() || null;
+        const nonNcsCourseName = (body.non_ncs_course_name || '').trim() || null;
+        const nonNcsOverview = (body.non_ncs_overview || '').trim() || null;
+
+        const r = await c.env.DB.prepare(
+            `INSERT INTO ncs_approved_registrations (
+                ncs_tab, course_type, main_job_code, main_job_name, overview_content,
+                dev_category, large_code, mid_code, small_code, unit_code, unit_name,
+                non_ncs_course_name, non_ncs_overview
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        ).bind(
+            ncsTab, courseType, mainJobCode, mainJobName, overviewContent,
+            devCategory, largeCode, midCode, smallCode, unitCode, unitName,
+            nonNcsCourseName, nonNcsOverview
+        ).run();
+        const id = Number(r.meta?.last_row_id ?? 0);
+        const row = await c.env.DB.prepare('SELECT * FROM ncs_approved_registrations WHERE id = ?').bind(id).first();
+        return c.json({ success: true, data: row }, 201);
+    } catch (e) {
+        console.error('ncs approved registration create:', e);
+        return c.json({ success: false, error: '등록 실패' }, 500);
+    }
+});
+
+app.put('/approved/registrations/:id', authMiddleware, requireAdmin, async (c) => {
+    try {
+        const id = parseInt(c.req.param('id'), 10);
+        if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
+        const body = await c.req.json<{
+            ncs_tab?: string; course_type?: string; main_job_code?: string; main_job_name?: string;
+            overview_content?: string; dev_category?: string; large_code?: string; mid_code?: string;
+            small_code?: string; unit_code?: string; unit_name?: string;
+            non_ncs_course_name?: string; non_ncs_overview?: string;
+        }>();
+        const existing = await c.env.DB.prepare('SELECT id FROM ncs_approved_registrations WHERE id = ?').bind(id).first();
+        if (!existing) return c.json({ success: false, error: '수정할 수 없습니다' }, 404);
+
+        const ncsTab = (body.ncs_tab ?? '').toString().trim() || 'ncs';
+        const courseType = (body.course_type || '').trim() || null;
+        const mainJobCode = (body.main_job_code || '').trim() || null;
+        const mainJobName = (body.main_job_name || '').trim() || null;
+        const overviewContent = (body.overview_content || '').trim() || null;
+        const devCategory = (body.dev_category || '').trim() || null;
+        const largeCode = (body.large_code || '').trim() || null;
+        const midCode = (body.mid_code || '').trim() || null;
+        const smallCode = (body.small_code || '').trim() || null;
+        const unitCode = (body.unit_code || '').trim() || null;
+        const unitName = (body.unit_name || '').trim() || null;
+        const nonNcsCourseName = (body.non_ncs_course_name || '').trim() || null;
+        const nonNcsOverview = (body.non_ncs_overview || '').trim() || null;
+
+        await c.env.DB.prepare(
+            `UPDATE ncs_approved_registrations SET
+                ncs_tab = ?, course_type = ?, main_job_code = ?, main_job_name = ?, overview_content = ?,
+                dev_category = ?, large_code = ?, mid_code = ?, small_code = ?, unit_code = ?, unit_name = ?,
+                non_ncs_course_name = ?, non_ncs_overview = ?,
+                updated_at = datetime('now')
+            WHERE id = ?`
+        ).bind(
+            ncsTab, courseType, mainJobCode, mainJobName, overviewContent,
+            devCategory, largeCode, midCode, smallCode, unitCode, unitName,
+            nonNcsCourseName, nonNcsOverview, id
+        ).run();
+        const row = await c.env.DB.prepare('SELECT * FROM ncs_approved_registrations WHERE id = ?').bind(id).first();
+        return c.json({ success: true, data: row });
+    } catch (e) {
+        console.error('ncs approved registration update:', e);
+        return c.json({ success: false, error: '수정 실패' }, 500);
+    }
+});
+
+app.delete('/approved/registrations/:id', authMiddleware, requireAdmin, async (c) => {
+    try {
+        const id = parseInt(c.req.param('id'), 10);
+        if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
+        const existing = await c.env.DB.prepare('SELECT id FROM ncs_approved_registrations WHERE id = ?').bind(id).first();
+        if (!existing) return c.json({ success: false, error: '삭제할 수 없습니다' }, 404);
+        await c.env.DB.prepare('DELETE FROM ncs_approved_registrations WHERE id = ?').bind(id).run();
+        return c.json({ success: true, message: '삭제되었습니다' });
+    } catch (e) {
+        console.error('ncs approved registration delete:', e);
+        return c.json({ success: false, error: '삭제 실패' }, 500);
     }
 });
 
