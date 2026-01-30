@@ -362,6 +362,7 @@ courses.put('/:id', authMiddleware, requireTeacher, verifyCourseOwnership, async
 /**
  * DELETE /api/courses/:id
  * 과정 삭제 (관리자 전용)
+ * FK 제약이 있지만 ON DELETE가 없는 테이블은 API에서 순서대로 정리 후 과정 삭제
  */
 courses.delete('/:id', authMiddleware, requireAdmin, async (c) => {
   try {
@@ -384,8 +385,34 @@ courses.delete('/:id', authMiddleware, requireAdmin, async (c) => {
       return errorResponse(c, '수강생이 있는 과정은 삭제할 수 없습니다', 400);
     }
 
-    // 과정 삭제
-    await execute(c.env.DB, 'DELETE FROM courses WHERE id = ?', [id]);
+    // ON DELETE CASCADE/SET NULL이 없는 테이블: 과정 삭제 전 참조 제거 (순서 유지)
+    const db = c.env.DB;
+
+    // 1) 시험 관련: 제출 → 문제 → 시험
+    await execute(db, 'DELETE FROM exam_submissions WHERE exam_id IN (SELECT id FROM exams WHERE course_id = ?)', [id]);
+    await execute(db, 'DELETE FROM exam_questions WHERE exam_id IN (SELECT id FROM exams WHERE course_id = ?)', [id]);
+    await execute(db, 'DELETE FROM exams WHERE course_id = ?', [id]);
+
+    // 2) 평가 관련: student_scores → evaluations
+    await execute(db, 'DELETE FROM student_scores WHERE evaluation_id IN (SELECT id FROM evaluations WHERE course_id = ?)', [id]);
+    await execute(db, 'DELETE FROM evaluations WHERE course_id = ?', [id]);
+
+    // 3) 훈련 일지, 취업 상태
+    await execute(db, 'DELETE FROM training_logs WHERE course_id = ?', [id]);
+    await execute(db, 'DELETE FROM employment_status WHERE course_id = ?', [id]);
+
+    // 4) 포트폴리오는 course_id만 NULL 처리 (레코드 유지)
+    await execute(db, 'UPDATE student_portfolios SET course_id = NULL WHERE course_id = ?', [id]);
+
+    // 5) 설문은 ON DELETE SET NULL이 있으면 DB가 처리. 없으면 안전을 위해 NULL 처리
+    try {
+      await execute(db, 'UPDATE surveys SET course_id = NULL WHERE course_id = ?', [id]);
+    } catch (_) {
+      // surveys 테이블이 없거나 컬럼 구조가 다를 수 있음
+    }
+
+    // 과정 삭제 (enrollments, reviews 등 ON DELETE CASCADE 테이블은 DB가 처리)
+    await execute(db, 'DELETE FROM courses WHERE id = ?', [id]);
 
     return successResponse(c, null, '과정이 삭제되었습니다');
 

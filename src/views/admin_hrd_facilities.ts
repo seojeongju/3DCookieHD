@@ -187,8 +187,9 @@ export const adminHrdFacilitiesHtml = () => `
     <!-- Inspection Record Modal -->
     <div id="checkModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center backdrop-blur-sm transition-opacity opacity-0">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-95 opacity-0">
+            <input type="hidden" id="checkLogId" value="">
             <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-blue-50/50">
-                <h3 class="text-lg font-bold text-gray-900"><i class="fas fa-clipboard-check text-blue-600 mr-2"></i>시설 점검 기록</h3>
+                <h3 id="checkModalTitle" class="text-lg font-bold text-gray-900"><i class="fas fa-clipboard-check text-blue-600 mr-2"></i>시설 점검 기록</h3>
                 <button onclick="closeCheckModal()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
             </div>
             <div class="p-6 space-y-4">
@@ -216,7 +217,7 @@ export const adminHrdFacilitiesHtml = () => `
             </div>
             <div class="px-6 py-4 bg-gray-50 flex justify-end gap-2">
                 <button onclick="closeCheckModal()" class="px-4 py-2 text-gray-600 font-bold text-sm hover:bg-gray-200 rounded-lg transition-colors">취소</button>
-                <button onclick="submitCheckLog()" class="px-4 py-2 bg-blue-600 text-white font-bold text-sm rounded-lg hover:bg-blue-700 shadow-md transition-all">등록 완료</button>
+                <button onclick="submitCheckLog()" id="checkSubmitBtn" class="px-4 py-2 bg-blue-600 text-white font-bold text-sm rounded-lg hover:bg-blue-700 shadow-md transition-all">등록 완료</button>
             </div>
         </div>
     </div>
@@ -224,8 +225,9 @@ export const adminHrdFacilitiesHtml = () => `
     <!-- Repair Request Modal -->
     <div id="repairModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center backdrop-blur-sm transition-opacity opacity-0">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all scale-95 opacity-0">
+            <input type="hidden" id="repairLogId" value="">
             <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-orange-50/50">
-                <h3 class="text-lg font-bold text-gray-900"><i class="fas fa-tools text-orange-600 mr-2"></i>시설 수리 요청</h3>
+                <h3 id="repairModalTitle" class="text-lg font-bold text-gray-900"><i class="fas fa-tools text-orange-600 mr-2"></i>시설 수리 요청</h3>
                 <button onclick="closeRepairModal()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
             </div>
             <div class="p-6 space-y-4">
@@ -260,7 +262,7 @@ export const adminHrdFacilitiesHtml = () => `
             </div>
             <div class="px-6 py-4 bg-gray-50 flex justify-end gap-2">
                 <button onclick="closeRepairModal()" class="px-4 py-2 text-gray-600 font-bold text-sm hover:bg-gray-200 rounded-lg transition-colors">취소</button>
-                <button onclick="submitRepairLog()" class="px-4 py-2 bg-orange-600 text-white font-bold text-sm rounded-lg hover:bg-orange-700 shadow-md transition-all">요청 등록</button>
+                <button onclick="submitRepairLog()" id="repairSubmitBtn" class="px-4 py-2 bg-orange-600 text-white font-bold text-sm rounded-lg hover:bg-orange-700 shadow-md transition-all">요청 등록</button>
             </div>
         </div>
     </div>
@@ -271,6 +273,8 @@ export const adminHrdFacilitiesHtml = () => `
         let facilities = [];
         let currentDetailId = null;
         let currentTab = 'info';
+        let currentInspections = [];
+        let currentRepairs = [];
 
         document.addEventListener('DOMContentLoaded', () => {
             loadFacilities();
@@ -409,6 +413,8 @@ export const adminHrdFacilitiesHtml = () => `
                 const logs = resLogs.success ? resLogs.data : [];
                 const inspections = logs.filter(l => l.status === 'check');
                 const repairs = logs.filter(l => l.status === 'repair');
+                currentInspections = inspections;
+                currentRepairs = repairs;
 
                 content.innerHTML = \`
                     <!--Hero Image Area-->
@@ -538,11 +544,15 @@ export const adminHrdFacilitiesHtml = () => `
                                                 <span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-bold">점검</span>
                                                 <h5 class="font-bold text-gray-900 text-sm">\${log.title}</h5>
                                             </div>
-                                            <span class="text-xs text-gray-400 font-mono">\${log.date.split('T')[0]}</span>
+                                            <span class="text-xs text-gray-400 font-mono">\${log.date ? log.date.split('T')[0] : '-'}</span>
                                         </div>
                                         <p class="text-sm text-gray-600 mb-2">\${log.memo || '특이사항 없음'}</p>
                                         <div class="flex justify-between items-center text-xs text-gray-400">
                                             <span><i class="fas fa-user-check mr-1"></i> \${log.manager || '관리자'}</span>
+                                            <div class="flex gap-1.5">
+                                                <button onclick="editInspection(\${log.id})" class="px-2 py-1 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 text-xs font-bold transition-colors">수정</button>
+                                                <button onclick="deleteMaintenanceLog(\${log.id})" class="px-2 py-1 bg-red-50 text-red-600 rounded hover:bg-red-100 text-xs font-bold transition-colors">삭제</button>
+                                            </div>
                                         </div>
                                     </div>
                                 \`).join('') : '<div class="text-center py-10 text-gray-400 bg-white rounded-xl border border-dashed border-gray-300">등록된 점검 기록이 없습니다.</div>'
@@ -591,10 +601,12 @@ export const adminHrdFacilitiesHtml = () => `
                                         <p class="text-sm text-gray-600 mb-3">\${log.memo || '-'}</p>
                                         
                                         <!-- Action Buttons -->
-                                        <div class="flex justify-end gap-2 border-t pt-2 mt-2">
+                                        <div class="flex justify-end gap-2 border-t pt-2 mt-2 flex-wrap">
                                             \${progress !== 'in_progress' && progress !== 'completed' ? '<button onclick="updateRepairStatus(\\'' + log.id + '\\', \\'in_progress\\')" class="text-xs px-2 py-1 bg-blue-50 text-blue-600 rounded hover:bg-blue-100">처리중으로 변경</button>' : ''}
                                             \${progress !== 'completed' ? '<button onclick="updateRepairStatus(\\'' + log.id + '\\', \\'completed\\')" class="text-xs px-2 py-1 bg-green-50 text-green-600 rounded hover:bg-green-100">완료 처리</button>' : ''}
                                             \${progress === 'completed' ? '<span class="text-xs text-gray-400 flex items-center"><i class="fas fa-check-circle mr-1"></i>처리 완료됨</span>' : ''}
+                                            <button onclick="editRepair(\${log.id})" class="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">수정</button>
+                                            <button onclick="deleteMaintenanceLog(\${log.id})" class="text-xs px-2 py-1 bg-red-50 text-red-600 rounded hover:bg-red-100">삭제</button>
                                         </div>
                                     </div>
                                     \`;
@@ -866,36 +878,55 @@ async function addLog(type) {
 
 // Inspection Modal Functions
 function openCheckModal() {
+    document.getElementById('checkLogId').value = '';
+    document.getElementById('checkModalTitle').innerHTML = '<i class="fas fa-clipboard-check text-blue-600 mr-2"></i>시설 점검 기록';
+    document.getElementById('checkSubmitBtn').textContent = '등록 완료';
     const modal = document.getElementById('checkModal');
     const content = modal.querySelector('div');
     modal.classList.remove('hidden');
-    // Animation
     setTimeout(() => {
         modal.classList.remove('opacity-0');
         content.classList.remove('scale-95', 'opacity-0');
         content.classList.add('scale-100', 'opacity-100');
     }, 10);
-
     document.getElementById('checkDate').valueAsDate = new Date();
+    document.getElementById('checkManager').value = '관리자';
     document.getElementById('checkTitle').value = '';
-    // Reset status
     const statusRadios = document.getElementsByName('checkStatus');
     if (statusRadios.length > 0) statusRadios[0].checked = true;
 }
 
+function editInspection(logId) {
+    const log = currentInspections.find(l => l.id == logId);
+    if (!log) return;
+    document.getElementById('checkLogId').value = log.id;
+    document.getElementById('checkModalTitle').innerHTML = '<i class="fas fa-clipboard-check text-blue-600 mr-2"></i>점검 기록 수정';
+    document.getElementById('checkSubmitBtn').textContent = '수정 완료';
+    document.getElementById('checkDate').value = log.date ? log.date.split('T')[0] : '';
+    document.getElementById('checkManager').value = log.manager || '관리자';
+    document.getElementById('checkTitle').value = log.title || '';
+    const modal = document.getElementById('checkModal');
+    const content = modal.querySelector('div');
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+        modal.classList.remove('opacity-0');
+        content.classList.remove('scale-95', 'opacity-0');
+        content.classList.add('scale-100', 'opacity-100');
+    }, 10);
+}
+
 function closeCheckModal() {
+    document.getElementById('checkLogId').value = '';
     const modal = document.getElementById('checkModal');
     const content = modal.querySelector('div');
     modal.classList.add('opacity-0');
     content.classList.remove('scale-100', 'opacity-100');
     content.classList.add('scale-95', 'opacity-0');
-
-    setTimeout(() => {
-        modal.classList.add('hidden');
-    }, 200);
+    setTimeout(() => modal.classList.add('hidden'), 200);
 }
 
 async function submitCheckLog() {
+    const logId = document.getElementById('checkLogId').value;
     const date = document.getElementById('checkDate').value;
     const manager = document.getElementById('checkManager').value;
     const title = document.getElementById('checkTitle').value;
@@ -904,67 +935,115 @@ async function submitCheckLog() {
     if (!date) { alert('점검 일자를 입력해주세요.'); return; }
 
     try {
-        const response = await fetch('/api/hrd/facilities/' + currentDetailId + '/maintenance', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                status: 'check',
-                title: title,
-                manager: manager,
-                date: date,
-                memo: title,
-                price: 0
-            })
-        });
-        
-        const result = await response.json();
-        
-        if (!response.ok || !result.success) {
-            console.error('Failed to add check log:', result);
-            alert('점검기록 등록 실패: ' + (result.error || '알 수 없는 오류'));
-            return;
+        if (logId) {
+            const response = await fetch('/api/hrd/facilities/maintenance/' + logId, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title, manager, date, memo: title })
+            });
+            const result = await response.json();
+            if (!response.ok || !result.success) {
+                alert('점검기록 수정 실패: ' + (result.error || '알 수 없는 오류'));
+                return;
+            }
+        } else {
+            const response = await fetch('/api/hrd/facilities/' + currentDetailId + '/maintenance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    status: 'check',
+                    title: title,
+                    manager: manager,
+                    date: date,
+                    memo: title,
+                    price: 0
+                })
+            });
+            const result = await response.json();
+            if (!response.ok || !result.success) {
+                alert('점검기록 등록 실패: ' + (result.error || '알 수 없는 오류'));
+                return;
+            }
         }
-        
         closeCheckModal();
-        openDrawer(currentDetailId); // 리스트 새로고침
+        openDrawer(currentDetailId);
     } catch (e) { 
-        console.error('Error adding check log:', e); 
-        alert('등록 중 오류가 발생했습니다: ' + (e.message || '네트워크 오류'));
+        console.error('Error check log:', e); 
+        alert('처리 중 오류가 발생했습니다.');
     }
 }
 
 // Repair Modal Functions
 function openRepairModal() {
+    document.getElementById('repairLogId').value = '';
+    document.getElementById('repairModalTitle').innerHTML = '<i class="fas fa-tools text-orange-600 mr-2"></i>시설 수리 요청';
+    document.getElementById('repairSubmitBtn').textContent = '요청 등록';
     const modal = document.getElementById('repairModal');
     const content = modal.querySelector('div');
     modal.classList.remove('hidden');
-    // Animation
     setTimeout(() => {
         modal.classList.remove('opacity-0');
         content.classList.remove('scale-95', 'opacity-0');
         content.classList.add('scale-100', 'opacity-100');
     }, 10);
-
     document.getElementById('repairDate').valueAsDate = new Date();
     document.getElementById('repairTitle').value = '';
     document.getElementById('repairPrice').value = '';
     document.getElementById('repairVendor').value = '';
     document.getElementById('repairMemo').value = '';
+    document.getElementById('repairManager').value = '관리자';
+}
+
+function editRepair(logId) {
+    const log = currentRepairs.find(l => l.id == logId);
+    if (!log) return;
+    document.getElementById('repairLogId').value = log.id;
+    document.getElementById('repairModalTitle').innerHTML = '<i class="fas fa-tools text-orange-600 mr-2"></i>수리 요청 수정';
+    document.getElementById('repairSubmitBtn').textContent = '수정 완료';
+    document.getElementById('repairDate').value = log.date ? log.date.split('T')[0] : '';
+    document.getElementById('repairTitle').value = log.title || '';
+    document.getElementById('repairPrice').value = log.price || '';
+    document.getElementById('repairVendor').value = log.vendor || '';
+    document.getElementById('repairMemo').value = log.memo || '';
+    document.getElementById('repairManager').value = log.manager || '관리자';
+    const modal = document.getElementById('repairModal');
+    const content = modal.querySelector('div');
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+        modal.classList.remove('opacity-0');
+        content.classList.remove('scale-95', 'opacity-0');
+        content.classList.add('scale-100', 'opacity-100');
+    }, 10);
 }
 
 function closeRepairModal() {
+    document.getElementById('repairLogId').value = '';
     const modal = document.getElementById('repairModal');
     const content = modal.querySelector('div');
     modal.classList.add('opacity-0');
     content.classList.remove('scale-100', 'opacity-100');
     content.classList.add('scale-95', 'opacity-0');
+    setTimeout(() => modal.classList.add('hidden'), 200);
+}
 
-    setTimeout(() => {
-        modal.classList.add('hidden');
-    }, 200);
+async function deleteMaintenanceLog(logId) {
+    if (!confirm('이 기록을 삭제하시겠습니까?')) return;
+    try {
+        const res = await fetch('/api/hrd/facilities/maintenance/' + logId, { method: 'DELETE' });
+        const result = await res.json();
+        if (res.ok && result.success) {
+            openDrawer(currentDetailId);
+        } else {
+            alert('삭제 실패: ' + (result.error || '알 수 없는 오류'));
+        }
+    } catch (e) {
+        console.error('Delete maintenance log:', e);
+        alert('삭제 중 오류가 발생했습니다.');
+    }
 }
 
 async function submitRepairLog() {
+    const logId = document.getElementById('repairLogId').value;
     const date = document.getElementById('repairDate').value;
     const title = document.getElementById('repairTitle').value;
     const price = document.getElementById('repairPrice').value;
@@ -975,33 +1054,44 @@ async function submitRepairLog() {
     if (!title) { alert('수리 요청 제목을 입력해주세요.'); return; }
 
     try {
-        const response = await fetch('/api/hrd/facilities/' + currentDetailId + '/maintenance', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                status: 'repair',
-                title: title,
-                price: price || 0,
-                vendor: vendor,
-                manager: manager,
-                date: date,
-                memo: memo
-            })
-        });
-        
-        const result = await response.json();
-        
-        if (!response.ok || !result.success) {
-            console.error('Failed to add repair log:', result);
-            alert('수리기록 등록 실패: ' + (result.error || '알 수 없는 오류'));
-            return;
+        if (logId) {
+            const response = await fetch('/api/hrd/facilities/maintenance/' + logId, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title, date, price: price || 0, vendor, manager, memo
+                })
+            });
+            const result = await response.json();
+            if (!response.ok || !result.success) {
+                alert('수리요청 수정 실패: ' + (result.error || '알 수 없는 오류'));
+                return;
+            }
+        } else {
+            const response = await fetch('/api/hrd/facilities/' + currentDetailId + '/maintenance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    status: 'repair',
+                    title: title,
+                    price: price || 0,
+                    vendor: vendor,
+                    manager: manager,
+                    date: date,
+                    memo: memo
+                })
+            });
+            const result = await response.json();
+            if (!response.ok || !result.success) {
+                alert('수리기록 등록 실패: ' + (result.error || '알 수 없는 오류'));
+                return;
+            }
         }
-        
         closeRepairModal();
-        openDrawer(currentDetailId); // 리스트 새로고침
+        openDrawer(currentDetailId);
     } catch (e) { 
-        console.error('Error adding repair log:', e); 
-        alert('등록 중 오류가 발생했습니다: ' + (e.message || '네트워크 오류'));
+        console.error('Error repair log:', e); 
+        alert('처리 중 오류가 발생했습니다.');
     }
 }
 

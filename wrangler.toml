@@ -1,6 +1,8 @@
-name = "3dcookiehd-education-platform"
-main = "src/index.tsx"
-compatibility_date = "2024-01-01"
+
+name = "3dcookiehd"
+compatibility_date = "2025-10-27"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = "dist"
 
 [[d1_databases]]
 binding = "DB"
@@ -9,10 +11,4 @@ database_id = "28fc5bec-bc18-46a9-8aea-fc4a4f6e44db"
 
 [[r2_buckets]]
 binding = "R2"
-bucket_name = "education-platform-files"
-# R2 버킷은 Cloudflare 대시보드에서 먼저 생성해야 합니다
-# wrangler r2 bucket create education-platform-files
-
-[build]
-command = "npm run build"
-
+bucket_name = "education-platform-bucket"

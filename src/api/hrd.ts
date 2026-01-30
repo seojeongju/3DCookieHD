@@ -1068,21 +1068,22 @@ app.get('/facilities/:id/maintenance', async (c) => {
     }
 });
 
-// 시설 관리 대장 항목 수정 (상태 변경 등)
+// 시설 관리 대장 항목 수정 (점검/수리 내용 수정)
 app.put('/facilities/maintenance/:logId', async (c) => {
     try {
         const logId = c.req.param('logId');
         const body = await c.req.json();
-        const { progress, title, price, vendor, memo, date } = body;
+        const { progress, title, price, vendor, manager, memo, date } = body;
 
         // 동적 업데이트 쿼리 (SET 구문을 동적으로 생성)
         const updates: string[] = [];
         const params: any[] = [];
 
         if (progress) { updates.push("progress = ?"); params.push(progress); }
-        if (title) { updates.push("title = ?"); params.push(title); }
+        if (title !== undefined) { updates.push("title = ?"); params.push(title); }
         if (price !== undefined) { updates.push("price = ?"); params.push(parseInt(price || 0)); }
         if (vendor !== undefined) { updates.push("vendor = ?"); params.push(vendor); }
+        if (manager !== undefined) { updates.push("manager = ?"); params.push(manager); }
         if (memo !== undefined) { updates.push("memo = ?"); params.push(memo); }
         if (date) { updates.push("date = ?"); params.push(date); }
 
@@ -1108,6 +1109,20 @@ app.put('/facilities/maintenance/:logId', async (c) => {
             success: false,
             error: '수정 실패: ' + (e instanceof Error ? e.message : String(e))
         }, 500);
+    }
+});
+
+// 시설 관리 대장 항목 삭제 (점검기록/수리요청 삭제)
+app.delete('/facilities/maintenance/:logId', async (c) => {
+    try {
+        const logId = c.req.param('logId');
+        const id = parseInt(logId);
+        if (isNaN(id)) return c.json({ success: false, error: '유효하지 않은 기록 ID입니다.' }, 400);
+        await c.env.DB.prepare('DELETE FROM hrd_facility_maintenance WHERE id = ?').bind(id).run();
+        return c.json({ success: true, message: '삭제되었습니다.' });
+    } catch (e) {
+        console.error('Failed to delete maintenance log:', e);
+        return c.json({ success: false, error: '삭제 실패: ' + (e instanceof Error ? e.message : String(e)) }, 500);
     }
 });
 

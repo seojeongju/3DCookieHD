@@ -720,10 +720,11 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
             if(!confirm('해당 과정을 정말 삭제하시겠습니까? 관련 데이터가 모두 삭제됩니다.')) return;
             try {
                 const res = await fetch('/api/courses/'+id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
-                const r = await res.json();
-                if (r.success) loadCourses(currentPage);
-                else alert(r.error || '삭제 실패');
-            } catch(e) { console.error('Delete error:', e); }
+                let r;
+                try { r = await res.json(); } catch (_) { r = {}; }
+                if (r.success) { loadCourses(currentPage); return; }
+                alert(r.error || (res.status ? '삭제 실패 (' + res.status + ')' : '삭제 실패'));
+            } catch(e) { console.error('Delete error:', e); alert('삭제 중 오류가 발생했습니다. 네트워크를 확인해 주세요.'); }
         }
 
         function editCourse(c) { openModal('createCourseModal', c); }
