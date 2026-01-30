@@ -56,7 +56,7 @@ function stepContentHtml(step: number, editId?: string): string {
         </div>
         <div>
           <h3 class="text-sm font-bold text-slate-700 mb-2">훈련직종 검색</h3>
-          <p class="text-xs text-slate-500 mb-2">훈련직종을 선택하여 소분류까지 검색해주세요.</p>
+          <p class="text-xs text-slate-500 mb-2">훈련직종을 선택하여 소분류까지 검색해주세요. <a href="/api/ncs/approved/check" target="_blank" rel="noopener" class="text-blue-600 hover:underline">공공 API 상태 확인</a></p>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">대분류선택</label>

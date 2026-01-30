@@ -206,6 +206,92 @@ const NCS_LARGE_CLASSES: { code: string; name: string }[] = [
     { code: '24', name: '농림·어업' },
 ];
 
+/** 공공 API 상태 진단 (키·응답·항목 수 확인) — 훈련직종 리스트 문제 원인 확인용 */
+app.get('/approved/check', async (c) => {
+    const rawKey = c.env.NCS_API_KEY?.trim();
+    if (!rawKey) {
+        return c.json({
+            success: false,
+            publicApi: 'key_missing',
+            message: 'NCS_API_KEY가 설정되지 않았습니다. Cloudflare Pages 환경변수에 공공데이터포털 인증키를 등록하세요.',
+            needSetup: true
+        });
+    }
+    const ncsLclasCd = c.req.query('ncsLclasCd') || '15';
+    const base = 'https://apis.data.go.kr/B490007/ncsTrainingCource';
+    const key = decodeServiceKey(rawKey);
+    const params = new URLSearchParams({
+        serviceKey: key,
+        pageNo: '1',
+        numOfRows: '10',
+        returnType: 'json',
+        ncsLclasCd
+    });
+    try {
+        const res = await fetch(`${base}?${params.toString()}`);
+        const httpOk = res.ok;
+        let resultCode = '';
+        let resultMsg = '';
+        let itemCount = 0;
+        let rawItemCount = 0;
+        try {
+            const json = await res.json() as Record<string, unknown>;
+            const resp = json?.response as Record<string, unknown> | undefined;
+            const header = resp?.header as Record<string, unknown> | undefined;
+            resultCode = header ? String(header.resultCode ?? header.RESULT_CODE ?? '').trim() : '';
+            resultMsg = header ? String(header.resultMsg ?? header.RESULT_MSG ?? '').trim() : '';
+            const body = (resp?.body ?? json?.body) as Record<string, unknown> | undefined;
+            if (body) {
+                const itemsNode = body.items as Record<string, unknown> | unknown[] | undefined;
+                const raw = Array.isArray(itemsNode) ? itemsNode : (itemsNode && typeof itemsNode === 'object' && 'item' in itemsNode ? (itemsNode as { item: unknown }).item : body.item);
+                if (Array.isArray(raw)) rawItemCount = raw.length; else if (raw != null) rawItemCount = 1;
+            }
+        } catch (_) {
+            /* parse error */
+        }
+        const fromApi = httpOk && !resultCode ? await fetchNcsTrainingByLarge(rawKey, ncsLclasCd) : [];
+        itemCount = fromApi.length;
+        if (!httpOk) {
+            return c.json({
+                success: false,
+                publicApi: 'http_error',
+                message: '공공 API 서버 HTTP 오류입니다.',
+                detail: { status: res.status, statusText: res.statusText }
+            });
+        }
+        if (resultCode && resultCode !== '00' && resultCode.toLowerCase() !== 'ok') {
+            return c.json({
+                success: false,
+                publicApi: 'api_error',
+                message: '공공 API가 오류를 반환했습니다. 인증키·요청 파라미터를 확인하세요.',
+                detail: { resultCode, resultMsg }
+            });
+        }
+        if (itemCount === 0 && rawItemCount === 0) {
+            return c.json({
+                success: true,
+                publicApi: 'ok_no_data',
+                message: '공공 API는 응답했으나 해당 대분류(' + ncsLclasCd + ')에 항목이 0건이거나, 응답 구조가 다릅니다.',
+                detail: { ncsLclasCd, parsedItemCount: itemCount, rawItemCount }
+            });
+        }
+        return c.json({
+            success: true,
+            publicApi: 'ok',
+            message: '공공 API 정상 동작 중입니다.',
+            detail: { ncsLclasCd, itemCount }
+        });
+    } catch (e) {
+        const errMsg = e instanceof Error ? e.message : String(e);
+        return c.json({
+            success: false,
+            publicApi: 'network_error',
+            message: '공공 API 연결 실패(네트워크/타임아웃 등)입니다.',
+            detail: errMsg
+        });
+    }
+});
+
 app.get('/approved/large-classes', async (c) => {
     return c.json({ success: true, data: NCS_LARGE_CLASSES });
 });
