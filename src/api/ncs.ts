@@ -83,31 +83,45 @@ type TrainingItem = {
     unitName: string;
 };
 
+/** 공공 API 서비스키: 저장 시 URL 인코딩된 경우 디코딩하여 사용 */
+function decodeServiceKey(raw: string): string {
+    try {
+        if (raw.includes('%')) return decodeURIComponent(raw);
+    } catch (_) { /* ignore */ }
+    return raw;
+}
+
 async function fetchNcsTrainingPage(apiKey: string, ncsLclasCd: string, pageNo: number): Promise<{ items: TrainingItem[]; totalPage: number }> {
-    const base = 'http://apis.data.go.kr/B490007/ncsTrainingCource';
+    const base = 'https://apis.data.go.kr/B490007/ncsTrainingCource';
+    const key = decodeServiceKey(apiKey);
     const params = new URLSearchParams({
-        serviceKey: apiKey,
+        serviceKey: key,
         pageNo: String(pageNo),
         numOfRows: '1000',
         returnType: 'json',
         ncsLclasCd: ncsLclasCd || '01'
     });
-    const res = await fetch(`${base}?${params.toString()}`);
-    if (!res.ok) return { items: [], totalPage: 1 };
-    const json = await res.json() as {
-        response?: {
-            body?: {
-                items?: { item?: unknown };
-                totalCount?: number;
-                totalPage?: number;
-                totalpage?: number;
-            };
-        };
-    };
-    const body = json?.response?.body ?? json?.body;
-    const itemsRaw = body?.items?.item ?? body?.items ?? body?.item;
-    const totalCount = typeof body?.totalCount === 'number' ? body.totalCount : 0;
-    const totalPage = body?.totalPage ?? body?.totalpage ?? Math.max(1, Math.ceil(totalCount / 1000));
+    const url = `${base}?${params.toString()}`;
+    const res = await fetch(url);
+    if (!res.ok) {
+        console.warn('NCS public API HTTP error:', res.status, res.statusText);
+        return { items: [], totalPage: 1 };
+    }
+    const json = await res.json() as Record<string, unknown>;
+    const header = (json?.response as Record<string, unknown>)?.header as Record<string, unknown> | undefined;
+    const resultCode = header ? String(header.resultCode ?? header.RESULT_CODE ?? '').trim() : '';
+    if (resultCode && resultCode !== '00' && resultCode.toLowerCase() !== 'ok') {
+        const resultMsg = header ? String(header.resultMsg ?? header.RESULT_MSG ?? '').trim() : '';
+        console.warn('NCS public API result error:', resultCode, resultMsg);
+        return { items: [], totalPage: 1 };
+    }
+    const resp = json?.response as Record<string, unknown> | undefined;
+    const body = (resp?.body ?? json?.body) as Record<string, unknown> | undefined;
+    if (!body) return { items: [], totalPage: 1 };
+    const itemsNode = body.items as Record<string, unknown> | unknown[] | undefined;
+    const itemsRaw = Array.isArray(itemsNode) ? itemsNode : (itemsNode && typeof itemsNode === 'object' && 'item' in itemsNode ? (itemsNode as { item: unknown }).item : body.item);
+    const totalCount = typeof body.totalCount === 'number' ? body.totalCount : (typeof body.totalCount === 'string' ? parseInt(String(body.totalCount), 10) : 0) || 0;
+    const totalPage = typeof body.totalPage === 'number' ? body.totalPage : (typeof body.totalpage === 'number' ? body.totalpage : Math.max(1, Math.ceil(totalCount / 1000)));
     if (itemsRaw == null) return { items: [], totalPage };
     const list = Array.isArray(itemsRaw) ? itemsRaw : [itemsRaw];
     const rowKey = (row: Record<string, unknown>, ...keys: string[]) => {
@@ -118,14 +132,14 @@ async function fetchNcsTrainingPage(apiKey: string, ncsLclasCd: string, pageNo: 
         return '';
     };
     const mapped = list.map((row: Record<string, unknown>) => ({
-        largeCode: rowKey(row, 'ncsLclasCd', 'ncslclascd', 'NCS_LCLAS_CD'),
-        largeName: rowKey(row, 'ncsLclasCdnm', 'ncslclascdnm', 'NCS_LCLAS_CDNM'),
-        midCode: rowKey(row, 'ncsMclasCd', 'ncsmclascd', 'NCS_MCLAS_CD'),
-        midName: rowKey(row, 'ncsMclasCdnm', 'ncsmclascdnm', 'NCS_MCLAS_CDNM'),
-        smallCode: rowKey(row, 'ncsSclasCd', 'ncssclascd', 'NCS_SCLAS_CD'),
-        smallName: rowKey(row, 'ncsSclasCdnm', 'ncssclascdnm', 'NCS_SCLAS_CDNM'),
-        unitCode: rowKey(row, 'ncsClCd', 'ncsclcd', 'NCS_CL_CD'),
-        unitName: rowKey(row, 'compeUnitName', 'compeunitname', 'COPE_UNIT_NAME') || rowKey(row, 'trainGoal', 'traingoal')
+        largeCode: rowKey(row, 'ncsLclasCd', 'NcsLclasCd', 'ncslclascd', 'NCS_LCLAS_CD'),
+        largeName: rowKey(row, 'ncsLclasCdnm', 'NcsLclasCdnm', 'ncslclascdnm', 'NCS_LCLAS_CDNM'),
+        midCode: rowKey(row, 'ncsMclasCd', 'NcsMclasCd', 'ncsmclascd', 'NCS_MCLAS_CD'),
+        midName: rowKey(row, 'ncsMclasCdnm', 'NcsMclasCdnm', 'ncsmclascdnm', 'NCS_MCLAS_CDNM'),
+        smallCode: rowKey(row, 'ncsSclasCd', 'NcsSclasCd', 'ncssclascd', 'NCS_SCLAS_CD'),
+        smallName: rowKey(row, 'ncsSclasCdnm', 'NcsSclasCdnm', 'ncssclascdnm', 'NCS_SCLAS_CDNM'),
+        unitCode: rowKey(row, 'ncsClCd', 'NcsClCd', 'ncsclcd', 'NCS_CL_CD'),
+        unitName: rowKey(row, 'compeUnitName', 'compeunitname', 'COPE_UNIT_NAME', 'trainGoal', 'traingoal')
     })).filter((r: TrainingItem) => r.largeCode && (r.midCode || r.unitCode)) as TrainingItem[];
     return { items: mapped, totalPage };
 }
@@ -199,15 +213,18 @@ app.get('/approved/large-classes', async (c) => {
 app.get('/approved/training', async (c) => {
     try {
         const ncsLclasCd = c.req.query('ncsLclasCd') || '01';
-        const apiKey = c.env.NCS_API_KEY?.trim();
-        if (apiKey) {
+        const rawKey = c.env.NCS_API_KEY?.trim();
+        // NCS_API_KEY가 설정되어 있으면 공공 API만 사용 (Mock 미사용)
+        if (rawKey) {
             try {
-                const fromApi = await fetchNcsTrainingByLarge(apiKey, ncsLclasCd);
-                if (fromApi.length > 0) return c.json({ success: true, data: fromApi });
+                const fromApi = await fetchNcsTrainingByLarge(rawKey, ncsLclasCd);
+                return c.json({ success: true, data: fromApi });
             } catch (e) {
-                console.warn('NCS approved/training API failed, using mock:', e);
+                console.error('NCS approved/training public API error:', e);
+                return c.json({ success: false, error: '공공 API 조회 실패. 키 및 서비스 상태를 확인하세요.' }, 502);
             }
         }
+        // 키 미설정 시에만 Mock 사용
         const filtered = NCS_MOCK_TRAINING.filter((r) => r.largeCode === ncsLclasCd);
         return c.json({ success: true, data: filtered });
     } catch (e) {
