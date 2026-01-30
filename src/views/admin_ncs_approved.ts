@@ -271,7 +271,8 @@ function stepContentHtml(step: number, editId?: string): string {
       <div class="flex flex-wrap gap-3 pt-4 border-t border-slate-200/60">
         <a href="/admin/ncs/approved/list" class="px-5 py-2.5 text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 font-bold text-sm transition inline-flex items-center gap-2"><i class="fas fa-list-ul"></i> 목록</a>
         <a href="/admin/ncs/approved/2${regId ? '?id=' + regId : ''}" class="px-5 py-2.5 text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 font-bold text-sm transition inline-flex items-center gap-2"><i class="fas fa-arrow-left"></i> 이전 페이지</a>
-        <a href="/admin/ncs/approved/4${regId ? '?id=' + regId : ''}" class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-bold text-sm transition inline-flex items-center gap-2"><i class="fas fa-arrow-right"></i> 다음 페이지</a>
+        <button type="button" id="ncsStep3BtnSave" class="px-5 py-2.5 text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 font-bold text-sm transition inline-flex items-center gap-2"><i class="fas fa-save"></i> 저장</button>
+        <button type="button" id="ncsStep3BtnNext" class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-bold text-sm transition inline-flex items-center gap-2"><i class="fas fa-arrow-right"></i> 다음 페이지</button>
       </div>
       </div>
     </div>`;

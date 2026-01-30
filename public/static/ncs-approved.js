@@ -580,6 +580,140 @@
             }
         }
 
+        function buildCurriculumPayload() {
+            var items = [];
+            ncsRows.querySelectorAll('.ncs-curriculum-row').forEach(function(row) {
+                var nameEl = row.querySelector('.ncs-curriculum-name');
+                var name = (nameEl && nameEl.value) ? nameEl.value.trim() : '';
+                var ability_units = [];
+                row.querySelectorAll('.ncs-unit-cb:checked').forEach(function(cb) {
+                    var v = (cb.value || cb.dataset.name || '').trim();
+                    if (v) ability_units.push(v);
+                });
+                items.push({ type: 'ncs', name: name, ability_units: ability_units });
+            });
+            nonNcsRows.querySelectorAll('.nonncs-curriculum-row').forEach(function(row) {
+                var nameEl = row.querySelector('.nonncs-curriculum-name');
+                var classEl = row.querySelector('.nonncs-curriculum-class');
+                var name = (nameEl && nameEl.value) ? nameEl.value.trim() : '';
+                var classification = (classEl && classEl.value) ? classEl.value.trim() : '';
+                var units = [];
+                row.querySelectorAll('.nonncs-unit-item').forEach(function(i) {
+                    var v = (i.value || '').trim();
+                    if (v) units.push(v);
+                });
+                var objectives = [];
+                row.querySelectorAll('.nonncs-obj-item').forEach(function(i) {
+                    var v = (i.value || '').trim();
+                    if (v) objectives.push(v);
+                });
+                items.push({ type: 'non_ncs', name: name, classification: classification, units: units, objectives: objectives });
+            });
+            return { items: items };
+        }
+
+        function saveCurriculum(redirectToNext) {
+            var payload = buildCurriculumPayload();
+            var btnSave = document.getElementById('ncsStep3BtnSave');
+            var btnNext = document.getElementById('ncsStep3BtnNext');
+            if (btnSave) btnSave.disabled = true;
+            if (btnNext) btnNext.disabled = true;
+            var t = localStorage.getItem('token');
+            fetch('/api/ncs/approved/registrations/' + regId + '/curriculum', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (t || '') },
+                body: JSON.stringify(payload)
+            })
+                .then(function(r) { return r.json(); })
+                .then(function(json) {
+                    if (btnSave) btnSave.disabled = false;
+                    if (btnNext) btnNext.disabled = false;
+                    if (json.success) {
+                        if (redirectToNext) {
+                            window.location.href = '/admin/ncs/approved/4?id=' + regId;
+                            return;
+                        }
+                        return;
+                    }
+                    alert(json.error || '저장 실패');
+                })
+                .catch(function() {
+                    if (btnSave) btnSave.disabled = false;
+                    if (btnNext) btnNext.disabled = false;
+                    alert('저장 중 오류가 발생했습니다.');
+                });
+        }
+
+        function loadCurriculum() {
+            var t = localStorage.getItem('token');
+            fetch('/api/ncs/approved/registrations/' + regId + '/curriculum', { headers: t ? { 'Authorization': 'Bearer ' + t } : {} })
+                .then(function(r) { return r.json(); })
+                .then(function(json) {
+                    if (!json.success || !Array.isArray(json.data)) return;
+                    var items = json.data;
+                    var ncsItems = items.filter(function(i) { return (i.type || '') === 'ncs'; });
+                    var nonItems = items.filter(function(i) { return (i.type || '') === 'non_ncs'; });
+
+                    function ensureNcsRows(n) {
+                        var rows = ncsRows.querySelectorAll('.ncs-curriculum-row');
+                        while (rows.length < n) { addNcsRow(); rows = ncsRows.querySelectorAll('.ncs-curriculum-row'); }
+                        while (rows.length > n && rows.length > 1) { delNcsRow(); rows = ncsRows.querySelectorAll('.ncs-curriculum-row'); }
+                    }
+                    function ensureNonRows(n) {
+                        var rows = nonNcsRows.querySelectorAll('.nonncs-curriculum-row');
+                        while (rows.length < n) { addNonNcsRow(); rows = nonNcsRows.querySelectorAll('.nonncs-curriculum-row'); }
+                        while (rows.length > n && rows.length > 1) { delNonNcsRow(); rows = nonNcsRows.querySelectorAll('.nonncs-curriculum-row'); }
+                    }
+                    ensureNcsRows(Math.max(1, ncsItems.length));
+                    ensureNonRows(Math.max(1, nonItems.length));
+
+                    var ncsR = ncsRows.querySelectorAll('.ncs-curriculum-row');
+                    ncsItems.forEach(function(it, i) {
+                        var row = ncsR[i];
+                        if (!row) return;
+                        var ne = row.querySelector('.ncs-curriculum-name');
+                        if (ne) ne.value = it.name || '';
+                        var ab = [];
+                        try { ab = it.ability_units_json ? JSON.parse(it.ability_units_json) : []; } catch (_) {}
+                        row.querySelectorAll('.ncs-unit-cb').forEach(function(cb) {
+                            cb.checked = ab.indexOf(cb.value || cb.dataset.name || '') !== -1;
+                        });
+                        updateSelected(row);
+                    });
+                    var nonR = nonNcsRows.querySelectorAll('.nonncs-curriculum-row');
+                    nonItems.forEach(function(it, i) {
+                        var row = nonR[i];
+                        if (!row) return;
+                        var ce = row.querySelector('.nonncs-curriculum-class');
+                        if (ce) ce.value = it.classification || '';
+                        var ne = row.querySelector('.nonncs-curriculum-name');
+                        if (ne) ne.value = it.name || '';
+                        var uu = row.querySelector('.nonncs-units');
+                        var oo = row.querySelector('.nonncs-objectives');
+                        var units = [];
+                        try { units = it.units_json ? JSON.parse(it.units_json) : []; } catch (_) {}
+                        var objs = [];
+                        try { objs = it.objectives_json ? JSON.parse(it.objectives_json) : []; } catch (_) {}
+                        var flexTpl = '<div class="flex gap-2"><input type="text" class="nonncs-unit-item flex-1 px-4 py-2 border border-slate-200 rounded-lg text-sm" placeholder="단원명 입력"><button type="button" class="nonncs-unit-plus px-3 py-2 text-emerald-600 border border-emerald-200 rounded-lg hover:bg-emerald-50 text-sm">+</button><button type="button" class="nonncs-unit-minus px-3 py-2 text-red-600 border border-red-200 rounded-lg hover:bg-red-50 text-sm">−</button></div>';
+                        var objTpl = '<div class="flex gap-2"><input type="text" class="nonncs-obj-item flex-1 px-4 py-2 border border-slate-200 rounded-lg text-sm" placeholder="학습목표(수행준거) 입력"><button type="button" class="nonncs-obj-plus px-3 py-2 text-emerald-600 border border-emerald-200 rounded-lg hover:bg-emerald-50 text-sm">+</button><button type="button" class="nonncs-obj-minus px-3 py-2 text-red-600 border border-red-200 rounded-lg hover:bg-red-50 text-sm">−</button></div>';
+                        function attrEsc(s) {
+                            return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                        }
+                        if (uu) {
+                            uu.innerHTML = units.length ? units.map(function(u) {
+                                return '<div class="flex gap-2"><input type="text" class="nonncs-unit-item flex-1 px-4 py-2 border border-slate-200 rounded-lg text-sm" placeholder="단원명 입력" value="' + attrEsc(u) + '"><button type="button" class="nonncs-unit-plus px-3 py-2 text-emerald-600 border border-emerald-200 rounded-lg hover:bg-emerald-50 text-sm">+</button><button type="button" class="nonncs-unit-minus px-3 py-2 text-red-600 border border-red-200 rounded-lg hover:bg-red-50 text-sm">−</button></div>';
+                            }).join('') : flexTpl;
+                        }
+                        if (oo) {
+                            oo.innerHTML = objs.length ? objs.map(function(o) {
+                                return '<div class="flex gap-2"><input type="text" class="nonncs-obj-item flex-1 px-4 py-2 border border-slate-200 rounded-lg text-sm" placeholder="학습목표(수행준거) 입력" value="' + attrEsc(o) + '"><button type="button" class="nonncs-obj-plus px-3 py-2 text-emerald-600 border border-emerald-200 rounded-lg hover:bg-emerald-50 text-sm">+</button><button type="button" class="nonncs-obj-minus px-3 py-2 text-red-600 border border-red-200 rounded-lg hover:bg-red-50 text-sm">−</button></div>';
+                            }).join('') : objTpl;
+                        }
+                    });
+                })
+                .catch(function() {});
+        }
+
         var token = localStorage.getItem('token');
         fetch('/api/ncs/approved/registrations/' + regId + '/training-system', { headers: token ? { 'Authorization': 'Bearer ' + token } : {} })
             .then(function(r) { return r.json(); })
@@ -601,6 +735,7 @@
                 });
                 var nonNcsR = nonNcsRows.querySelectorAll('.nonncs-curriculum-row');
                 nonNcsR.forEach(function(r) { wireNonNcsRow(r); });
+                loadCurriculum();
             })
             .catch(function() {
                 if (jobLabel) jobLabel.textContent = 'NCS 기반 교과';
@@ -612,6 +747,7 @@
                 });
                 var nonNcsR = nonNcsRows.querySelectorAll('.nonncs-curriculum-row');
                 nonNcsR.forEach(function(r) { wireNonNcsRow(r); });
+                loadCurriculum();
             });
 
         var addNcs = document.getElementById('ncsCurriculumBtnAdd');
@@ -622,6 +758,10 @@
         var delNon = document.getElementById('nonNcsCurriculumBtnDel');
         if (addNon) addNon.addEventListener('click', addNonNcsRow);
         if (delNon) delNon.addEventListener('click', delNonNcsRow);
+        var btnSave = document.getElementById('ncsStep3BtnSave');
+        var btnNext = document.getElementById('ncsStep3BtnNext');
+        if (btnSave) btnSave.addEventListener('click', function() { saveCurriculum(false); });
+        if (btnNext) btnNext.addEventListener('click', function() { saveCurriculum(true); });
     }
 
     if (step === 1) initStep1();

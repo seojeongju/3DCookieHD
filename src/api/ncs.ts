@@ -422,6 +422,58 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
     }
 });
 
+/** 교과목 편성(3단계) 조회 */
+app.get('/approved/registrations/:id/curriculum', authMiddleware, requireAdmin, async (c) => {
+    try {
+        const id = parseInt(c.req.param('id'), 10);
+        if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
+        const existing = await c.env.DB.prepare('SELECT id FROM ncs_approved_registrations WHERE id = ?').bind(id).first();
+        if (!existing) return c.json({ success: false, error: '등록 정보 없음' }, 404);
+        const { results } = await c.env.DB.prepare(
+            'SELECT * FROM ncs_approved_curriculum WHERE registration_id = ? ORDER BY sort_order ASC, id ASC'
+        ).bind(id).all();
+        return c.json({ success: true, data: results || [] });
+    } catch (e) {
+        console.error('ncs approved curriculum get:', e);
+        return c.json({ success: false, error: '교과목 편성 조회 실패' }, 500);
+    }
+});
+
+/** 교과목 편성(3단계) 저장 — 전건 교체 */
+app.put('/approved/registrations/:id/curriculum', authMiddleware, requireAdmin, async (c) => {
+    try {
+        const id = parseInt(c.req.param('id'), 10);
+        if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
+        const existing = await c.env.DB.prepare('SELECT id FROM ncs_approved_registrations WHERE id = ?').bind(id).first();
+        if (!existing) return c.json({ success: false, error: '등록 정보 없음' }, 404);
+        const body = await c.req.json<{ items?: { type: string; name: string; classification?: string; ability_units?: string[]; units?: string[]; objectives?: string[] }[] }>();
+        const items = Array.isArray(body.items) ? body.items : [];
+
+        await c.env.DB.prepare('DELETE FROM ncs_approved_curriculum WHERE registration_id = ?').bind(id).run();
+        for (let i = 0; i < items.length; i++) {
+            const it = items[i];
+            const type = String(it.type || 'ncs').trim();
+            const name = String(it.name || '').trim();
+            const classification = (it.classification || '').trim() || null;
+            const abilityUnitsJson = it.ability_units && Array.isArray(it.ability_units)
+                ? JSON.stringify(it.ability_units) : null;
+            const unitsJson = it.units && Array.isArray(it.units) ? JSON.stringify(it.units) : null;
+            const objectivesJson = it.objectives && Array.isArray(it.objectives) ? JSON.stringify(it.objectives) : null;
+            await c.env.DB.prepare(
+                `INSERT INTO ncs_approved_curriculum (registration_id, type, name, classification, ability_units_json, units_json, objectives_json, sort_order)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+            ).bind(id, type, name, classification, abilityUnitsJson, unitsJson, objectivesJson, i).run();
+        }
+        const { results } = await c.env.DB.prepare(
+            'SELECT * FROM ncs_approved_curriculum WHERE registration_id = ? ORDER BY sort_order ASC, id ASC'
+        ).bind(id).all();
+        return c.json({ success: true, data: results || [] });
+    } catch (e) {
+        console.error('ncs approved curriculum put:', e);
+        return c.json({ success: false, error: '교과목 편성 저장 실패' }, 500);
+    }
+});
+
 app.get('/search', async (c) => {
     try {
         const keyword = c.req.query('keyword');
