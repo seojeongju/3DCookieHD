@@ -9,6 +9,8 @@ export type Bindings = {
   R2: R2Bucket; // 파일 스토리지
   /** 공공데이터포털 NCS API 인증키 (선택). 설정 시 /api/ncs/search 에서 실제 API 호출 */
   NCS_API_KEY?: string;
+  /** NCS 기준정보조회 API base URL (선택). 미설정 시 api.data.go.kr/openapi/15128213/v1 사용 */
+  NCS_CLASSIFICATION_API_BASE?: string;
 };
 
 export type Variables = {
