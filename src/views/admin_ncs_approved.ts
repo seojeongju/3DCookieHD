@@ -64,11 +64,11 @@ function stepContentHtml(step: number, editId?: string): string {
             </div>
             <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">중분류선택</label>
-              <select id="ncsMidClass" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20"></select>
+              <select id="ncsMidClass" size="12" class="ncs-class-select w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white"></select>
             </div>
             <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">소분류선택</label>
-              <select id="ncsSmallClass" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20"></select>
+              <select id="ncsSmallClass" size="12" class="ncs-class-select w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white"></select>
             </div>
           </div>
           <p id="ncsTrainingApiMessage" class="mt-2 text-sm text-amber-600 hidden" role="alert"></p>
@@ -691,7 +691,7 @@ export function adminNcsApprovedHtml(stepParam?: string, editId?: string): strin
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <style>body { font-family: 'Noto Sans KR', sans-serif; } .ncs-class-select { max-height: 280px; }</style>
+    <style>body { font-family: 'Noto Sans KR', sans-serif; } .ncs-class-select { max-height: 280px; overflow-y: auto; } .ncs-class-select::-webkit-scrollbar { width: 6px; } .ncs-class-select::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 3px; } .ncs-class-select::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }</style>
 </head>
 <body class="bg-slate-50">
     <div class="flex min-h-screen">
