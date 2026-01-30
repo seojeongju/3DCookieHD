@@ -71,7 +71,7 @@ async function fetchNcsPublicApi(apiKey: string, keyword: string, ncsLclasCd = '
     })).filter((r: { code: string }) => r.code);
 }
 
-/** 대분류 기준 훈련과정 목록 (중·소분류 포함) — 승인받은 NCS 등록용 */
+/** 대분류 기준 훈련과정 목록 (중·소·세분류 포함) — 승인받은 NCS 등록용 */
 type TrainingItem = {
     largeCode: string;
     largeName: string;
@@ -79,6 +79,8 @@ type TrainingItem = {
     midName: string;
     smallCode: string;
     smallName: string;
+    subClassCode: string;
+    subClassName: string;
     unitCode: string;
     unitName: string;
 };
@@ -153,6 +155,8 @@ async function fetchNcsTrainingPage(apiKey: string, ncsLclasCd: string, pageNo: 
         midName: rowKey(row, 'ncsMclasCdnm', 'NcsMclasCdnm', 'ncsmclascdnm', 'NCS_MCLAS_CDNM'),
         smallCode: rowKey(row, 'ncsSclasCd', 'NcsSclasCd', 'ncssclascd', 'NCS_SCLAS_CD'),
         smallName: rowKey(row, 'ncsSclasCdnm', 'NcsSclasCdnm', 'ncssclascdnm', 'NCS_SCLAS_CDNM'),
+        subClassCode: rowKey(row, 'ncsDclasCd', 'ncsDclasCd', 'ncsdclascd', 'NCS_DCLAS_CD', 'ncsSubClasCd', 'ncssubclascd'),
+        subClassName: rowKey(row, 'ncsDclasCdnm', 'ncsDclasCdnm', 'ncsdclascdnm', 'NCS_DCLAS_CDNM', 'ncsSubClasCdnm', 'ncssubclascdnm'),
         unitCode: rowKey(row, 'ncsClCd', 'NcsClCd', 'ncsclcd', 'NCS_CL_CD'),
         unitName: rowKey(row, 'compeUnitName', 'compeunitname', 'COPE_UNIT_NAME', 'trainGoal', 'traingoal')
     })).filter((r: TrainingItem) => r.largeCode && (r.midCode || r.unitCode)) as TrainingItem[];
@@ -174,23 +178,23 @@ async function fetchNcsTrainingByLarge(apiKey: string, ncsLclasCd: string): Prom
 }
 
 const NCS_MOCK_TRAINING: TrainingItem[] = [
-    { largeCode: '15', largeName: '기계', midCode: '01', midName: '기계제작', smallCode: '01', smallName: '기계요소설계', unitCode: '15010201_19v3', unitName: '기계요소설계' },
-    { largeCode: '15', largeName: '기계', midCode: '01', midName: '기계제작', smallCode: '02', smallName: '3D모델링', unitCode: '1503050101_19v3', unitName: '3D형상모델링' },
-    { largeCode: '15', largeName: '기계', midCode: '03', midName: '3D프린터개발', smallCode: '01', smallName: '3D프린터개발', unitCode: '1503050102_19v3', unitName: '3D프린팅제작' },
-    { largeCode: '01', largeName: '사업관리', midCode: '01', midName: '사업관리', smallCode: '01', smallName: '프로젝트관리', unitCode: '0101010101_17v2', unitName: '프로젝트관리' },
-    { largeCode: '20', largeName: '정보통신', midCode: '01', midName: '응용SW엔지니어링', smallCode: '01', smallName: '응용SW엔지니어링', unitCode: '2001010101_16v2', unitName: '응용SW기초기술활용' },
-    { largeCode: '20', largeName: '정보통신', midCode: '01', midName: '응용SW엔지니어링', smallCode: '02', smallName: 'SW개발', unitCode: '2001010201_16v2', unitName: '인터페이스설계' },
-    { largeCode: '19', largeName: '전기·전자', midCode: '01', midName: '전기', smallCode: '01', smallName: '전기', unitCode: '1901010101_19v3', unitName: '전기설비설계' },
-    { largeCode: '19', largeName: '전기·전자', midCode: '02', midName: '전자기기일반', smallCode: '01', smallName: '전자기기', unitCode: '1902010101_19v3', unitName: '전자기기일반' },
-    { largeCode: '19', largeName: '전기·전자', midCode: '03', midName: '전자기기개발', smallCode: '07', smallName: '디스플레이개발', unitCode: '1903070101_19v3', unitName: '디스플레이개발' },
-    { largeCode: '19', largeName: '전기·전자', midCode: '03', midName: '전자기기개발', smallCode: '08', smallName: '로봇개발', unitCode: '1903080101_19v3', unitName: '로봇개발' },
-    { largeCode: '19', largeName: '전기·전자', midCode: '03', midName: '전자기기개발', smallCode: '09', smallName: '의료장비제조', unitCode: '1903090101_19v3', unitName: '의료장비제조' },
-    { largeCode: '19', largeName: '전기·전자', midCode: '03', midName: '전자기기개발', smallCode: '10', smallName: '광기술개발', unitCode: '1903100101_19v3', unitName: '광기술개발' },
-    { largeCode: '19', largeName: '전기·전자', midCode: '03', midName: '전자기기개발', smallCode: '11', smallName: '3D프린터개발', unitCode: '1903110101_19v3', unitName: '3D프린터개발' },
-    { largeCode: '19', largeName: '전기·전자', midCode: '03', midName: '전자기기개발', smallCode: '11', smallName: '3D프린터개발', unitCode: '1903110201_19v3', unitName: '3D프린터용 제품제작' },
-    { largeCode: '19', largeName: '전기·전자', midCode: '03', midName: '전자기기개발', smallCode: '11', smallName: '3D프린터개발', unitCode: '1903110301_19v3', unitName: '3D프린팅 소재개발' },
-    { largeCode: '19', largeName: '전기·전자', midCode: '03', midName: '전자기기개발', smallCode: '12', smallName: '가상훈련시스템개발', unitCode: '1903120101_19v3', unitName: '가상훈련시스템개발' },
-    { largeCode: '19', largeName: '전기·전자', midCode: '03', midName: '전자기기개발', smallCode: '13', smallName: '착용형스마트기기', unitCode: '1903130101_19v3', unitName: '착용형스마트기기' },
+    { largeCode: '15', largeName: '기계', midCode: '01', midName: '기계제작', smallCode: '01', smallName: '기계요소설계', subClassCode: '', subClassName: '', unitCode: '15010201_19v3', unitName: '기계요소설계' },
+    { largeCode: '15', largeName: '기계', midCode: '01', midName: '기계제작', smallCode: '02', smallName: '3D모델링', subClassCode: '', subClassName: '', unitCode: '1503050101_19v3', unitName: '3D형상모델링' },
+    { largeCode: '15', largeName: '기계', midCode: '03', midName: '3D프린터개발', smallCode: '01', smallName: '3D프린터개발', subClassCode: '', subClassName: '', unitCode: '1503050102_19v3', unitName: '3D프린팅제작' },
+    { largeCode: '01', largeName: '사업관리', midCode: '01', midName: '사업관리', smallCode: '01', smallName: '프로젝트관리', subClassCode: '', subClassName: '', unitCode: '0101010101_17v2', unitName: '프로젝트관리' },
+    { largeCode: '20', largeName: '정보통신', midCode: '01', midName: '응용SW엔지니어링', smallCode: '01', smallName: '응용SW엔지니어링', subClassCode: '', subClassName: '', unitCode: '2001010101_16v2', unitName: '응용SW기초기술활용' },
+    { largeCode: '20', largeName: '정보통신', midCode: '01', midName: '응용SW엔지니어링', smallCode: '02', smallName: 'SW개발', subClassCode: '', subClassName: '', unitCode: '2001010201_16v2', unitName: '인터페이스설계' },
+    { largeCode: '19', largeName: '전기·전자', midCode: '01', midName: '전기', smallCode: '01', smallName: '전기', subClassCode: '', subClassName: '', unitCode: '1901010101_19v3', unitName: '전기설비설계' },
+    { largeCode: '19', largeName: '전기·전자', midCode: '02', midName: '전자기기일반', smallCode: '01', smallName: '전자기기', subClassCode: '', subClassName: '', unitCode: '1902010101_19v3', unitName: '전자기기일반' },
+    { largeCode: '19', largeName: '전기·전자', midCode: '03', midName: '전자기기개발', smallCode: '07', smallName: '디스플레이개발', subClassCode: '', subClassName: '', unitCode: '1903070101_19v3', unitName: '디스플레이개발' },
+    { largeCode: '19', largeName: '전기·전자', midCode: '03', midName: '전자기기개발', smallCode: '08', smallName: '로봇개발', subClassCode: '', subClassName: '', unitCode: '1903080101_19v3', unitName: '로봇개발' },
+    { largeCode: '19', largeName: '전기·전자', midCode: '03', midName: '전자기기개발', smallCode: '09', smallName: '의료장비제조', subClassCode: '', subClassName: '', unitCode: '1903090101_19v3', unitName: '의료장비제조' },
+    { largeCode: '19', largeName: '전기·전자', midCode: '03', midName: '전자기기개발', smallCode: '10', smallName: '광기술개발', subClassCode: '', subClassName: '', unitCode: '1903100101_19v3', unitName: '광기술개발' },
+    { largeCode: '19', largeName: '전기·전자', midCode: '03', midName: '전자기기개발', smallCode: '11', smallName: '3D프린터개발', subClassCode: '', subClassName: '', unitCode: '1903110101_19v3', unitName: '3D프린터개발' },
+    { largeCode: '19', largeName: '전기·전자', midCode: '03', midName: '전자기기개발', smallCode: '11', smallName: '3D프린터개발', subClassCode: '', subClassName: '', unitCode: '1903110201_19v3', unitName: '3D프린터용 제품제작' },
+    { largeCode: '19', largeName: '전기·전자', midCode: '03', midName: '전자기기개발', smallCode: '11', smallName: '3D프린터개발', subClassCode: '', subClassName: '', unitCode: '1903110301_19v3', unitName: '3D프린팅 소재개발' },
+    { largeCode: '19', largeName: '전기·전자', midCode: '03', midName: '전자기기개발', smallCode: '12', smallName: '가상훈련시스템개발', subClassCode: '', subClassName: '', unitCode: '1903120101_19v3', unitName: '가상훈련시스템개발' },
+    { largeCode: '19', largeName: '전기·전자', midCode: '03', midName: '전자기기개발', smallCode: '13', smallName: '착용형스마트기기', subClassCode: '', subClassName: '', unitCode: '1903130101_19v3', unitName: '착용형스마트기기' },
 ];
 
 /** NCS 대분류 24개 고정 목록 (훈련직종 검색용) */
@@ -387,7 +391,7 @@ app.post('/approved/registrations', authMiddleware, requireAdmin, async (c) => {
         const body = await c.req.json<{
             ncs_tab?: string; course_type?: string; main_job_code?: string; main_job_name?: string;
             overview_content?: string; dev_category?: string; large_code?: string; mid_code?: string;
-            small_code?: string; unit_code?: string; unit_name?: string;
+            small_code?: string; sub_code?: string; unit_code?: string; unit_name?: string;
             non_ncs_course_name?: string; non_ncs_overview?: string;
             course_name?: string; training_level?: string; prereq_skill?: string;
         }>();
@@ -400,6 +404,7 @@ app.post('/approved/registrations', authMiddleware, requireAdmin, async (c) => {
         const largeCode = (body.large_code || '').trim() || null;
         const midCode = (body.mid_code || '').trim() || null;
         const smallCode = (body.small_code || '').trim() || null;
+        const subCode = (body.sub_code || '').trim() || null;
         const unitCode = (body.unit_code || '').trim() || null;
         const unitName = (body.unit_name || '').trim() || null;
         const nonNcsCourseName = (body.non_ncs_course_name || '').trim() || null;
@@ -411,12 +416,12 @@ app.post('/approved/registrations', authMiddleware, requireAdmin, async (c) => {
         const r = await c.env.DB.prepare(
             `INSERT INTO ncs_approved_registrations (
                 ncs_tab, course_type, main_job_code, main_job_name, overview_content,
-                dev_category, large_code, mid_code, small_code, unit_code, unit_name,
+                dev_category, large_code, mid_code, small_code, sub_code, unit_code, unit_name,
                 non_ncs_course_name, non_ncs_overview, course_name, training_level, prereq_skill
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
         ).bind(
             ncsTab, courseType, mainJobCode, mainJobName, overviewContent,
-            devCategory, largeCode, midCode, smallCode, unitCode, unitName,
+            devCategory, largeCode, midCode, smallCode, subCode, unitCode, unitName,
             nonNcsCourseName, nonNcsOverview, courseName, trainingLevel, prereqSkill
         ).run();
         const id = Number(r.meta?.last_row_id ?? 0);
@@ -438,7 +443,7 @@ app.put('/approved/registrations/:id', authMiddleware, requireAdmin, async (c) =
         const body = await c.req.json<{
             ncs_tab?: string; course_type?: string; main_job_code?: string; main_job_name?: string;
             overview_content?: string; dev_category?: string; large_code?: string; mid_code?: string;
-            small_code?: string; unit_code?: string; unit_name?: string;
+            small_code?: string; sub_code?: string; unit_code?: string; unit_name?: string;
             non_ncs_course_name?: string; non_ncs_overview?: string;
             course_name?: string; training_level?: string; prereq_skill?: string;
         }>();
@@ -454,6 +459,7 @@ app.put('/approved/registrations/:id', authMiddleware, requireAdmin, async (c) =
         const largeCode = (body.large_code || '').trim() || null;
         const midCode = (body.mid_code || '').trim() || null;
         const smallCode = (body.small_code || '').trim() || null;
+        const subCode = (body.sub_code || '').trim() || null;
         const unitCode = (body.unit_code || '').trim() || null;
         const unitName = (body.unit_name || '').trim() || null;
         const nonNcsCourseName = (body.non_ncs_course_name || '').trim() || null;
@@ -465,13 +471,13 @@ app.put('/approved/registrations/:id', authMiddleware, requireAdmin, async (c) =
         await c.env.DB.prepare(
             `UPDATE ncs_approved_registrations SET
                 ncs_tab = ?, course_type = ?, main_job_code = ?, main_job_name = ?, overview_content = ?,
-                dev_category = ?, large_code = ?, mid_code = ?, small_code = ?, unit_code = ?, unit_name = ?,
+                dev_category = ?, large_code = ?, mid_code = ?, small_code = ?, sub_code = ?, unit_code = ?, unit_name = ?,
                 non_ncs_course_name = ?, non_ncs_overview = ?, course_name = ?, training_level = ?, prereq_skill = ?,
                 updated_at = datetime('now')
             WHERE id = ?`
         ).bind(
             ncsTab, courseType, mainJobCode, mainJobName, overviewContent,
-            devCategory, largeCode, midCode, smallCode, unitCode, unitName,
+            devCategory, largeCode, midCode, smallCode, subCode, unitCode, unitName,
             nonNcsCourseName, nonNcsOverview, courseName, trainingLevel, prereqSkill, id
         ).run();
         const row = await c.env.DB.prepare('SELECT * FROM ncs_approved_registrations WHERE id = ?').bind(id).first();

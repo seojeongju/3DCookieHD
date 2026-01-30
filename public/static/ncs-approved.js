@@ -37,6 +37,7 @@
         var largeClass = document.getElementById('ncsLargeClass');
         var midClass = document.getElementById('ncsMidClass');
         var smallClass = document.getElementById('ncsSmallClass');
+        var subClass = document.getElementById('ncsSubClass');
         var jobSelect = document.getElementById('ncsJobSelect');
         var mainJobPill = document.getElementById('ncsMainJobPill');
         var mainJobPlaceholder = document.getElementById('ncsMainJobPlaceholder');
@@ -161,12 +162,14 @@
                     });
                     midClass.innerHTML = opts.join('');
                     clearSelect(smallClass);
+                    clearSelect(subClass);
                     clearJobSelect();
                 })
                 .catch(function () {
                     trainingCache = [];
                     clearSelect(midClass);
                     clearSelect(smallClass);
+                    clearSelect(subClass);
                     clearJobSelect();
                     showTrainingApiMessage('공공 API 연결 실패. 네트워크 또는 서버 상태를 확인하세요.', true);
                 });
@@ -176,6 +179,7 @@
             var mid = midClass.value;
             clearUnitHidden();
             updatePill('', '');
+            clearSelect(subClass);
             clearJobSelect();
             if (!mid) {
                 clearSelect(smallClass);
@@ -201,15 +205,57 @@
             smallClass.innerHTML = opts.join('');
         }
 
-        function loadJobBySmall() {
+        function loadSubBySmall() {
             var mid = midClass.value;
             var small = smallClass.value;
+            clearUnitHidden();
+            updatePill('', '');
+            clearJobSelect();
+            if (!subClass) return;
+            if (!mid || !small) {
+                clearSelect(subClass);
+                return;
+            }
+            var list = trainingCache.filter(function (item) { return item.midCode === mid && item.smallCode === small; });
+            var seen = {};
+            var subs = [];
+            list.forEach(function (item) {
+                var code = item.subClassCode || '';
+                var name = item.subClassName || '';
+                var k = code + '|' + name;
+                if (!seen[k]) {
+                    seen[k] = true;
+                    if (code || name) subs.push({ code: code, name: name });
+                }
+            });
+            subs.sort(function (a, b) { return (a.code || '').localeCompare(b.code || '', 'ko'); });
+            var opts = ['<option value="">선택</option>'];
+            if (subs.length === 0) opts.push('<option value="">전체</option>');
+            else {
+                subs.forEach(function (s) {
+                    var sc = (s.code || '').replace(/"/g, '&quot;');
+                    var sn = (s.name || '').replace(/</g, '&lt;');
+                    opts.push('<option value="' + sc + '">' + (s.code ? s.code + '. ' : '') + (sn || '세분류') + '</option>');
+                });
+            }
+            subClass.innerHTML = opts.join('');
+            loadJobBySub();
+        }
+
+        function loadJobBySub() {
+            var mid = midClass.value;
+            var small = smallClass.value;
+            var sub = subClass ? subClass.value : '';
             clearUnitHidden();
             updatePill('', '');
             if (!jobSelect) return;
             jobSelect.innerHTML = '';
             if (!mid || !small) return;
-            var list = trainingCache.filter(function (item) { return item.midCode === mid && item.smallCode === small; });
+            var list = trainingCache.filter(function (item) {
+                if (item.midCode !== mid || item.smallCode !== small) return false;
+                if (sub) return (item.subClassCode || '') === sub;
+                return true;
+            });
             list.forEach(function (item) {
                 var opt = document.createElement('option');
                 opt.value = (item.unitCode || '').replace(/"/g, '&quot;');
@@ -236,7 +282,8 @@
 
         largeClass.addEventListener('change', loadTrainingByLarge);
         midClass.addEventListener('change', loadSmallByMid);
-        smallClass.addEventListener('change', loadJobBySmall);
+        smallClass.addEventListener('change', loadSubBySmall);
+        if (subClass) subClass.addEventListener('change', loadJobBySub);
         if (jobSelect) jobSelect.addEventListener('change', onJobSelectChange);
 
         function buildPayload() {
@@ -443,7 +490,9 @@
                         midClass.value = d.mid_code || '';
                         loadSmallByMid();
                         smallClass.value = d.small_code || '';
-                        loadJobBySmall();
+                        loadSubBySmall();
+                        if (subClass) subClass.value = d.sub_code || '';
+                        loadJobBySub();
                         var ucode = d.unit_code || d.main_job_code;
                         var found = false;
                         if (jobSelect) {

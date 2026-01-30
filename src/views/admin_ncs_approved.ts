@@ -56,8 +56,8 @@ function stepContentHtml(step: number, editId?: string): string {
         </div>
         <div>
           <h3 class="text-sm font-bold text-slate-700 mb-2">훈련직종 검색</h3>
-          <p class="text-xs text-slate-500 mb-2">훈련직종을 선택하여 소분류까지 검색해주세요. <a href="/api/ncs/approved/check" target="_blank" rel="noopener" class="text-blue-600 hover:underline">공공 API 상태 확인</a></p>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <p class="text-xs text-slate-500 mb-2">훈련직종을 선택하여 세분류까지 검색해주세요. <a href="/api/ncs/approved/check" target="_blank" rel="noopener" class="text-blue-600 hover:underline">공공 API 상태 확인</a></p>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">대분류선택</label>
               <select id="ncsLargeClass" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20"></select>
@@ -69,6 +69,10 @@ function stepContentHtml(step: number, editId?: string): string {
             <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">소분류선택</label>
               <select id="ncsSmallClass" size="12" class="ncs-class-select w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white"></select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">세분류선택</label>
+              <select id="ncsSubClass" size="12" class="ncs-class-select w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white"></select>
             </div>
           </div>
           <p id="ncsTrainingApiMessage" class="mt-2 text-sm text-amber-600 hidden" role="alert"></p>
@@ -89,7 +93,7 @@ function stepContentHtml(step: number, editId?: string): string {
               <div>
                 <label class="block text-xs font-medium text-slate-600 mb-1">직종선택</label>
                 <select id="ncsJobSelect" size="6" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white"></select>
-                <p class="text-xs text-slate-500 mt-1">소분류 선택 후 직종을 선택하세요.</p>
+                <p class="text-xs text-slate-500 mt-1">세분류 선택 후 직종을 선택하세요.</p>
               </div>
               <div>
                 <label class="block text-xs font-medium text-slate-600 mb-1">추가된 직종 및 주직종</label>
