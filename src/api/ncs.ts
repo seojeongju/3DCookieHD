@@ -511,13 +511,34 @@ app.put('/approved/registrations/:id/curriculum', authMiddleware, requireAdmin, 
     }
 });
 
-/** 훈련시간설정(4단계) 조회 — 교과목 목록 + 교과목별 이론/실습 시간 */
+/** 훈련시간설정(4단계) 조회 — 전체 파라미터 + 교과목 목록 + 교과목별 이론/실습 시간 */
 app.get('/approved/registrations/:id/training-hours', authMiddleware, requireAdmin, async (c) => {
     try {
         const id = parseInt(c.req.param('id'), 10);
         if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
-        const existing = await c.env.DB.prepare('SELECT id FROM ncs_approved_registrations WHERE id = ?').bind(id).first();
-        if (!existing) return c.json({ success: false, error: '등록 정보 없음' }, 404);
+        const exists = await c.env.DB.prepare('SELECT id FROM ncs_approved_registrations WHERE id = ?').bind(id).first();
+        if (!exists) return c.json({ success: false, error: '등록 정보 없음' }, 404);
+        let params: { total_training_days: number | null; daily_training_hours: number | null; total_training_hours: number | null; ncs_lib_arts_pct: number | null; ncs_major_pct: number | null; non_ncs_pct: number | null } = {
+            total_training_days: null, daily_training_hours: null, total_training_hours: null,
+            ncs_lib_arts_pct: null, ncs_major_pct: null, non_ncs_pct: null
+        };
+        try {
+            const reg = await c.env.DB.prepare(
+                'SELECT total_training_days, daily_training_hours, total_training_hours, ncs_lib_arts_pct, ncs_major_pct, non_ncs_pct FROM ncs_approved_registrations WHERE id = ?'
+            ).bind(id).first() as { total_training_days?: number | null; daily_training_hours?: number | null; total_training_hours?: number | null; ncs_lib_arts_pct?: number | null; ncs_major_pct?: number | null; non_ncs_pct?: number | null } | null;
+            if (reg) {
+                params = {
+                    total_training_days: reg.total_training_days ?? null,
+                    daily_training_hours: reg.daily_training_hours ?? null,
+                    total_training_hours: reg.total_training_hours ?? null,
+                    ncs_lib_arts_pct: reg.ncs_lib_arts_pct ?? null,
+                    ncs_major_pct: reg.ncs_major_pct ?? null,
+                    non_ncs_pct: reg.non_ncs_pct ?? null
+                };
+            }
+        } catch (_) {
+            /* columns may not exist yet */
+        }
         const { results: curriculum } = await c.env.DB.prepare(
             'SELECT id, type, name, classification, sort_order FROM ncs_approved_curriculum WHERE registration_id = ? ORDER BY sort_order ASC, id ASC'
         ).bind(id).all();
@@ -544,21 +565,40 @@ app.get('/approved/registrations/:id/training-hours', authMiddleware, requireAdm
                 practice_hours: h.practice_hours
             };
         });
-        return c.json({ success: true, data });
+        return c.json({ success: true, params, data });
     } catch (e) {
         console.error('ncs approved training-hours get:', e);
         return c.json({ success: false, error: '훈련시간 조회 실패' }, 500);
     }
 });
 
-/** 훈련시간설정(4단계) 저장 — 교과목별 이론/실습 시간 */
+/** 훈련시간설정(4단계) 저장 — 전체 파라미터 + 교과목별 이론/실습 시간 */
 app.put('/approved/registrations/:id/training-hours', authMiddleware, requireAdmin, async (c) => {
     try {
         const id = parseInt(c.req.param('id'), 10);
         if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
         const existing = await c.env.DB.prepare('SELECT id FROM ncs_approved_registrations WHERE id = ?').bind(id).first();
         if (!existing) return c.json({ success: false, error: '등록 정보 없음' }, 404);
-        const body = await c.req.json<{ items?: { curriculum_id: number; theory_hours?: number; practice_hours?: number }[] }>();
+        const body = await c.req.json<{
+            params?: { total_training_days?: number; daily_training_hours?: number; total_training_hours?: number; ncs_lib_arts_pct?: number; ncs_major_pct?: number; non_ncs_pct?: number };
+            items?: { curriculum_id: number; theory_hours?: number; practice_hours?: number }[];
+        }>();
+        const params = body.params;
+        if (params && typeof params === 'object') {
+            try {
+                const totalDays = params.total_training_days != null ? params.total_training_days : null;
+                const dailyHours = params.daily_training_hours != null ? params.daily_training_hours : null;
+                const totalHours = params.total_training_hours != null ? params.total_training_hours : null;
+                const libPct = params.ncs_lib_arts_pct != null ? params.ncs_lib_arts_pct : null;
+                const majorPct = params.ncs_major_pct != null ? params.ncs_major_pct : null;
+                const nonPct = params.non_ncs_pct != null ? params.non_ncs_pct : null;
+                await c.env.DB.prepare(
+                    `UPDATE ncs_approved_registrations SET total_training_days = ?, daily_training_hours = ?, total_training_hours = ?, ncs_lib_arts_pct = ?, ncs_major_pct = ?, non_ncs_pct = ?, updated_at = datetime('now') WHERE id = ?`
+                ).bind(totalDays, dailyHours, totalHours, libPct, majorPct, nonPct, id).run();
+            } catch (_) {
+                /* columns may not exist yet */
+            }
+        }
         const items = Array.isArray(body.items) ? body.items : [];
         for (const it of items) {
             const curriculumId = Number(it.curriculum_id);
@@ -589,7 +629,18 @@ app.put('/approved/registrations/:id/training-hours', authMiddleware, requireAdm
             curriculum_id: r.id,
             ...(hoursMap[r.id] || { theory_hours: 0, practice_hours: 0 })
         }));
-        return c.json({ success: true, data });
+        const regRow = await c.env.DB.prepare(
+            'SELECT total_training_days, daily_training_hours, total_training_hours, ncs_lib_arts_pct, ncs_major_pct, non_ncs_pct FROM ncs_approved_registrations WHERE id = ?'
+        ).bind(id).first() as { total_training_days?: number | null; daily_training_hours?: number | null; total_training_hours?: number | null; ncs_lib_arts_pct?: number | null; ncs_major_pct?: number | null; non_ncs_pct?: number | null } | null;
+        const params = regRow ? {
+            total_training_days: regRow.total_training_days ?? null,
+            daily_training_hours: regRow.daily_training_hours ?? null,
+            total_training_hours: regRow.total_training_hours ?? null,
+            ncs_lib_arts_pct: regRow.ncs_lib_arts_pct ?? null,
+            ncs_major_pct: regRow.ncs_major_pct ?? null,
+            non_ncs_pct: regRow.non_ncs_pct ?? null
+        } : {};
+        return c.json({ success: true, params, data });
     } catch (e) {
         console.error('ncs approved training-hours put:', e);
         return c.json({ success: false, error: '훈련시간 저장 실패' }, 500);

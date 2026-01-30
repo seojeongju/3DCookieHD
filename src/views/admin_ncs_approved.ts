@@ -209,10 +209,15 @@ function stepContentHtml(step: number, editId?: string): string {
               <div class="ncs-curriculum-unit-checks flex flex-wrap gap-3"></div>
               <p class="text-xs text-slate-500 mt-1">교과목에 포함할 능력단위를 선택하세요.</p>
             </div>
-            <div>
-              <label class="block text-xs font-bold text-slate-600 mb-1">능력단위요소</label>
-              <p class="text-xs text-slate-500 mb-2">선택한 능력단위의 하위 요소(수행준거)를 선택하세요.</p>
-              <div class="ncs-curriculum-element-checks flex flex-wrap gap-3 min-h-[2rem]"></div>
+            <div class="ncs-curriculum-elements-wrap border border-slate-200 rounded-lg overflow-hidden">
+              <button type="button" class="ncs-elements-toggle w-full px-4 py-2.5 text-left text-sm font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 flex items-center justify-between transition" aria-expanded="false">
+                <span>능력단위요소 <span class="text-slate-500 font-normal text-xs">(능력단위 선택 시 펼침)</span></span>
+                <i class="fas fa-chevron-down ncs-elements-chevron text-slate-500 transition-transform"></i>
+              </button>
+              <div class="ncs-curriculum-elements-body hidden border-t border-slate-200 p-4 bg-white">
+                <p class="text-xs text-slate-500 mb-2">선택한 능력단위의 하위 요소(수행준거)를 선택하세요.</p>
+                <div class="ncs-curriculum-element-checks flex flex-wrap gap-3 min-h-[2rem]"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -285,13 +290,95 @@ function stepContentHtml(step: number, editId?: string): string {
     return `
     <div class="space-y-6" id="ncsApprovedStep4Container">
       <input type="hidden" id="ncsApprovedRegIdStep4" value="${regId}">
-      <h3 class="text-lg font-bold text-slate-800">훈련시간설정</h3>
-      <p class="text-sm text-slate-600">편성된 교과목별 이론·실습 시간을 입력하세요. 합계는 자동 계산됩니다.</p>
+      <h3 class="text-lg font-bold text-slate-800">교과목별 훈련시간설정</h3>
+      <p class="text-sm text-slate-600">각 교과목의 단위별로 상세 훈련시간을 설정할 수 있습니다.</p>
       <div id="ncsStep4NoReg" class="hidden rounded-xl border border-amber-200 bg-amber-50 px-5 py-8 text-center text-slate-600">
         과정개요 및 교과목 편성을 먼저 등록한 후 3단계에서 <strong>다음 페이지</strong>를 눌러 진행하세요. <a href="/admin/ncs/approved/3${regId ? '?id=' + regId : ''}" class="text-emerald-600 hover:underline ml-1">3. 교과목편성으로 이동</a>
       </div>
       <div id="ncsStep4Form" class="space-y-6">
-        <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+        <div class="rounded-xl border border-slate-200 bg-slate-50/80 p-5 space-y-4">
+          <h4 class="font-bold text-slate-800">훈련시간 설정</h4>
+          <p class="text-sm text-slate-600">총 훈련시간을 NCS진용 훈련과정의 시간기준으로 설정 하실 수 있습니다.</p>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">총 훈련일수</label>
+              <input type="number" id="ncsStep4TotalDays" min="0" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" value="20" placeholder="20">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">일일 훈련시간</label>
+              <input type="number" id="ncsStep4DailyHours" min="0" step="0.1" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" value="5" placeholder="5.0">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">총 훈련시간</label>
+              <input type="number" id="ncsStep4TotalHours" min="0" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" value="100" placeholder="100">
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">NCS 소양교과 %</label>
+              <div class="flex items-center gap-2">
+                <input type="number" id="ncsStep4LibPct" min="0" max="100" step="0.01" class="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm" value="0" placeholder="0.00">
+                <span class="text-slate-500 text-sm">%</span>
+                <label class="flex items-center gap-1 text-xs whitespace-nowrap"><input type="checkbox" id="ncsStep4LibForce" class="rounded text-emerald-600"> 강제입력</label>
+              </div>
+              <p class="text-xs text-slate-500 mt-1">10% 이하 편성</p>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">NCS 전공교과 %</label>
+              <div class="flex items-center gap-2">
+                <input type="number" id="ncsStep4MajorPct" min="0" max="100" step="0.01" class="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm" value="0" placeholder="0.00">
+                <span class="text-slate-500 text-sm">%</span>
+              </div>
+              <p class="text-xs text-slate-500 mt-1">40% 이상 편성(국기)</p>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">비NCS 교과 %</label>
+              <div class="flex items-center gap-2">
+                <input type="number" id="ncsStep4NonPct" min="0" max="100" step="0.01" class="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm" value="0" placeholder="0.00">
+                <span class="text-slate-500 text-sm">%</span>
+              </div>
+              <p class="text-xs text-slate-500 mt-1">남은 % 편성</p>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">NCS 소양교과 (시간)</label>
+              <input type="number" id="ncsStep4LibHours" min="0" readonly class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-100" value="0">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">NCS 전공교과 (시간)</label>
+              <input type="number" id="ncsStep4MajorHours" min="0" readonly class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-100" value="0">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">비NCS 교과 (시간)</label>
+              <input type="number" id="ncsStep4NonHours" min="0" readonly class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-100" value="0">
+            </div>
+          </div>
+        </div>
+        <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          <p class="font-bold">훈련시간의 비율은 100%로 설정하셔야합니다.</p>
+          <p>재산된 중 훈련시간 기준으로 입력된 비율을 계산하여 각 교과목 분류에 적용 됩니다.</p>
+        </div>
+        <div class="flex items-center gap-2 text-slate-700">
+          <i class="fas fa-clock text-slate-500"></i>
+          <span id="ncsStep4CalculatedApplied">0 / 0 시간</span>
+          <span class="text-xs text-slate-500">(계산된 시간 / 적용된 시간)</span>
+        </div>
+        <div class="flex flex-wrap gap-2 border-b border-slate-200 pb-3">
+          <button type="button" class="ncs-step4-tab px-4 py-2 rounded-t-lg text-sm font-bold bg-slate-100 text-slate-600 hover:bg-slate-200" data-tab="basic">직업기초능력 <span id="ncsStep4TabBasic">(0/0)시간</span></button>
+          <button type="button" class="ncs-step4-tab px-4 py-2 rounded-t-lg text-sm font-bold bg-emerald-600 text-white" data-tab="ncs">NCS 교과목 <span id="ncsStep4TabNcs">(0/0)시간</span></button>
+          <button type="button" class="ncs-step4-tab px-4 py-2 rounded-t-lg text-sm font-bold bg-slate-100 text-slate-600 hover:bg-slate-200" data-tab="nonncs">비 NCS 교과목 <span id="ncsStep4TabNonncs">(0/0)시간</span></button>
+        </div>
+        <div id="ncsStep4TabContentBasic" class="ncs-step4-tab-content hidden rounded-xl border border-slate-200 bg-white p-5 space-y-4">
+          <div id="ncsStep4BasicSubjectList" class="space-y-4"></div>
+        </div>
+        <div id="ncsStep4TabContentNcs" class="ncs-step4-tab-content rounded-xl border border-slate-200 bg-white p-5 space-y-4">
+          <div id="ncsStep4NcsSubjectList" class="space-y-4"></div>
+        </div>
+        <div id="ncsStep4TabContentNonncs" class="ncs-step4-tab-content hidden rounded-xl border border-slate-200 bg-white p-5 space-y-4">
+          <div id="ncsStep4NonncsSubjectList" class="space-y-4"></div>
+        </div>
+        <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white mt-4">
           <table class="w-full text-left text-sm min-w-[480px]">
             <thead class="bg-slate-50 border-b border-slate-200">
               <tr>
@@ -302,9 +389,7 @@ function stepContentHtml(step: number, editId?: string): string {
                 <th class="px-4 py-3 w-24 font-bold text-slate-700">합계</th>
               </tr>
             </thead>
-            <tbody id="ncsStep4HoursBody" class="divide-y divide-slate-100">
-              <tr><td colspan="5" class="px-4 py-8 text-center text-slate-400"><i class="fas fa-spinner fa-spin mr-2"></i> 로딩 중...</td></tr>
-            </tbody>
+            <tbody id="ncsStep4HoursBody" class="divide-y divide-slate-100"></tbody>
             <tfoot id="ncsStep4HoursFoot" class="bg-slate-50 border-t-2 border-slate-200 hidden">
               <tr>
                 <td colspan="2" class="px-4 py-3 font-bold text-slate-700">총계</td>

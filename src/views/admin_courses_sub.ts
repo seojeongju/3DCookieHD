@@ -376,6 +376,20 @@ export const adminCoursesApprovedRegisterHtml = (editId?: string) => {
     '과정 등록을 위한 기초 데이터 — HRD넷 등 승인받은 과정을 등록·수정합니다.',
     'fa-check-double',
     `
+    <div class="rounded-xl bg-slate-100 border border-slate-200 px-4 py-3 text-sm text-slate-700 mb-6">
+        과정을 개설하기 위해선 승인받은과정이 사진등록이 되어야 합니다.
+    </div>
+    <div class="flex flex-wrap gap-2 border-b border-slate-200 pb-4 mb-6">
+        <a href="#" class="approved-tab px-4 py-2 rounded-t-lg font-bold text-sm bg-emerald-600 text-white">승인받은 과정 상세</a>
+        <a href="#" class="approved-tab px-4 py-2 rounded-t-lg font-bold text-sm bg-slate-100 text-slate-600 hover:bg-slate-200">NCS 훈련과정 정보</a>
+        <a href="#" class="approved-tab px-4 py-2 rounded-t-lg font-bold text-sm bg-slate-100 text-slate-600 hover:bg-slate-200">교수계획서 설계</a>
+        <a href="#" class="approved-tab px-4 py-2 rounded-t-lg font-bold text-sm bg-slate-100 text-slate-600 hover:bg-slate-200">세부교수계획서 설계</a>
+    </div>
+    <p class="text-sm text-slate-600 mb-2" id="approvedNcsCourseLabel">해당과정은 NCS 훈련과정 입니다. (과정분류 선택 시 표시)</p>
+    <div class="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800 mb-6">
+        NCS 훈련과정은 과정등록 이후 NCS 훈련과정 정보를 등록하시면 됩니다.
+    </div>
+
     <div class="bento-card bg-white rounded-[2.5rem] shadow-sm border border-slate-200/60 overflow-hidden">
         <div class="px-6 py-4 border-b border-slate-200/60 bg-slate-50/80 flex flex-wrap justify-between items-center gap-3">
             <div>
@@ -387,63 +401,201 @@ export const adminCoursesApprovedRegisterHtml = (editId?: string) => {
             </a>
         </div>
         <div class="p-6 md:p-8">
-            <form id="approvedRegisterForm" class="space-y-6">
+            <form id="approvedRegisterForm" class="space-y-8">
                 <input type="hidden" id="approvedFormId" value="${editId || ''}">
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+                <section class="space-y-4">
+                    <h3 class="text-lg font-bold text-slate-800 border-b border-slate-200 pb-2">기본정보</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="sm:col-span-2">
+                            <label class="block text-sm font-bold text-slate-700 mb-2">과정분류</label>
+                            <div class="flex flex-wrap gap-4">
+                                <label class="flex items-center gap-2 text-sm"><input type="radio" name="approvedFormCourseType" value="통합과정" class="rounded text-emerald-600" checked> 통합과정</label>
+                                <label class="flex items-center gap-2 text-sm"><input type="radio" name="approvedFormCourseType" value="내일배움" class="rounded text-emerald-600"> 내일배움(계좌제)</label>
+                                <label class="flex items-center gap-2 text-sm"><input type="radio" name="approvedFormCourseType" value="국가기간전략" class="rounded text-emerald-600"> 국가기간전략산업직종</label>
+                                <label class="flex items-center gap-2 text-sm"><input type="radio" name="approvedFormCourseType" value="근로자직무" class="rounded text-emerald-600"> 근로자직무능력향상</label>
+                                <label class="flex items-center gap-2 text-sm"><input type="radio" name="approvedFormCourseType" value="사업주위탁" class="rounded text-emerald-600"> 사업주위탁</label>
+                                <label class="flex items-center gap-2 text-sm"><input type="radio" name="approvedFormCourseType" value="일반대학생" class="rounded text-emerald-600"> 일반·대학생</label>
+                                <label class="flex items-center gap-2 text-sm"><input type="radio" name="approvedFormCourseType" value="일반" class="rounded text-emerald-600"> 일반</label>
+                                <label class="flex items-center gap-2 text-sm"><input type="radio" name="approvedFormCourseType" value="재직자통합" class="rounded text-emerald-600"> 재직자내일배움/일반 통합과정</label>
+                                <label class="flex items-center gap-2 text-sm"><input type="radio" name="approvedFormCourseType" value="소상공인" class="rounded text-emerald-600"> 소상공인 전문기술교육</label>
+                            </div>
+                        </div>
+                        <div class="sm:col-span-2">
+                            <label class="block text-sm font-bold text-slate-700 mb-1">과정명 <span class="text-red-500">*</span> <i class="fas fa-info-circle text-red-500 text-xs"></i></label>
+                            <input type="text" id="approvedFormName" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500" placeholder="예: [2026] 퓨전(Fusion) 활동 3D모델링 고급심화">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">모집인원</label>
+                            <input type="number" id="approvedFormCapacity" min="0" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500" placeholder="10">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">수업계획서</label>
+                            <div class="flex gap-2">
+                                <input type="text" id="approvedFormPlanFile" readonly class="flex-1 px-4 py-3 border border-slate-200 rounded-xl text-sm bg-slate-50" placeholder="파일 선택">
+                                <button type="button" id="approvedFormPlanAttach" class="px-4 py-3 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition">파일첨부</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">등록일</label>
+                            <input type="date" id="approvedFormRegisteredAt" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">과정분류(드롭다운)</label>
+                            <select id="approvedFormCategory" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500">
+                                <option value="">선택</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">승인기관</label>
+                            <input type="text" id="approvedFormApprovalOrg" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500" placeholder="승인기관">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">상태</label>
+                            <select id="approvedFormStatus" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500">
+                                <option value="active">활성</option>
+                                <option value="inactive">비활성</option>
+                            </select>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="space-y-4">
+                    <h3 class="text-lg font-bold text-slate-800 border-b border-slate-200 pb-2">시간설정</h3>
+                    <div class="rounded-xl bg-emerald-600 text-white px-4 py-3 text-sm font-bold mb-4">
+                        시간을 설정 하시면 월별 과정매출이 계산됩니다.
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">시간당 단가</label>
+                            <input type="number" id="approvedFormHourlyRate" min="0" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm" placeholder="0" value="0">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">총 훈련일수</label>
+                            <input type="number" id="approvedFormTotalDays" min="0" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm" placeholder="20" value="20">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">총 훈련비</label>
+                            <input type="number" id="approvedFormTotalCost" min="0" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm" placeholder="0" value="0">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">총 훈련시간</label>
+                            <input type="number" id="approvedFormTotalHours" min="0" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm" placeholder="100" value="100">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">일일 훈련시간</label>
+                            <input type="number" id="approvedFormDailyHours" min="0" step="0.5" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm" placeholder="5" value="5">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">정부지원금</label>
+                            <input type="number" id="approvedFormGovSubsidy" min="0" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm" placeholder="0" value="0">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2">훈련시간</label>
+                            <div class="flex flex-wrap items-center gap-4">
+                                <label class="flex items-center gap-2 text-sm"><input type="radio" name="approvedFormTrainingTimeType" value="start" class="rounded text-emerald-600"> 시작</label>
+                                <input type="time" id="approvedFormTimeStart" class="px-3 py-2 border border-slate-200 rounded-lg text-sm" value="00:00">
+                                <label class="flex items-center gap-2 text-sm"><input type="radio" name="approvedFormTrainingTimeType" value="end" class="rounded text-emerald-600"> 종료</label>
+                                <input type="time" id="approvedFormTimeEnd" class="px-3 py-2 border border-slate-200 rounded-lg text-sm" value="00:00">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2">점심시간</label>
+                            <div class="flex flex-wrap items-center gap-4">
+                                <label class="flex items-center gap-2 text-sm"><input type="radio" name="approvedFormLunchTimeType" value="start" class="rounded text-emerald-600"> 시작</label>
+                                <input type="time" id="approvedFormLunchStart" class="px-3 py-2 border border-slate-200 rounded-lg text-sm" value="00:00">
+                                <label class="flex items-center gap-2 text-sm"><input type="radio" name="approvedFormLunchTimeType" value="end" class="rounded text-emerald-600"> 종료</label>
+                                <input type="time" id="approvedFormLunchEnd" class="px-3 py-2 border border-slate-200 rounded-lg text-sm" value="00:00">
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="space-y-4">
+                    <h3 class="text-lg font-bold text-slate-800 border-b border-slate-200 pb-2">교직원(교강사) 선택</h3>
+                    <p class="text-sm text-slate-600">등록된 교직원(교강사) 목록에서 선택하세요.</p>
+                    <div id="approvedFormInstructorList" class="flex flex-wrap gap-3 p-4 border border-slate-200 rounded-xl bg-slate-50/50 min-h-[120px]">
+                        <span class="text-slate-500 text-sm">로딩 중...</span>
+                    </div>
+                    <div class="flex flex-wrap items-end gap-3 p-4 border border-slate-200 rounded-xl bg-white">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-1">교직원(교강사) 간편등록</label>
+                            <select id="approvedFormInstructorType" class="px-3 py-2 border border-slate-200 rounded-lg text-sm mr-2">
+                                <option value="정규직">정규직 강사</option>
+                                <option value="비정규직">비정규직 강사</option>
+                            </select>
+                            <input type="text" id="approvedFormInstructorNameQuick" class="px-3 py-2 border border-slate-200 rounded-lg text-sm w-40" placeholder="강사명 입력">
+                            <button type="button" id="approvedFormInstructorAdd" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700 transition">강사추가</button>
+                        </div>
+                    </div>
+                    <div class="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
+                        간편등록 이후 상세내용은 인사 &gt; 교직원관리 에서 등록해주세요.
+                    </div>
                     <div class="sm:col-span-2">
-                        <label class="block text-sm font-bold text-slate-700 mb-1">과정명 <span class="text-red-500">*</span></label>
-                        <input type="text" id="approvedFormName" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500" placeholder="예: [2026] 퓨전(Fusion) 활동 3D모델링 고급심화">
+                        <label class="block text-sm font-bold text-slate-700 mb-1">강사명 (기존 단일 입력)</label>
+                        <input type="text" id="approvedFormInstructor" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm" placeholder="강사명">
                     </div>
-                    <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-1">과정분류</label>
-                        <select id="approvedFormCategory" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500">
-                            <option value="">선택</option>
-                        </select>
+                </section>
+
+                <section class="space-y-4">
+                    <h3 class="text-lg font-bold text-slate-800 border-b border-slate-200 pb-2">교재선택</h3>
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+                        <div class="border border-slate-200 rounded-xl p-4 bg-slate-50/50">
+                            <p class="text-xs font-bold text-slate-600 mb-2">전체 교재 품목 <span id="approvedTextbookAllCount">0</span></p>
+                            <input type="text" id="approvedTextbookAllFilter" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm mb-3" placeholder="Filter">
+                            <div id="approvedTextbookAllList" class="min-h-[160px] max-h-[240px] overflow-y-auto space-y-1 text-sm"></div>
+                        </div>
+                        <div class="flex flex-col items-center justify-center gap-2 py-4">
+                            <button type="button" id="approvedTextbookAddAll" class="px-3 py-1 border border-slate-200 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-100">&gt;&gt;</button>
+                            <button type="button" id="approvedTextbookAdd" class="px-3 py-1 border border-slate-200 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-100">&gt;</button>
+                            <button type="button" id="approvedTextbookRemove" class="px-3 py-1 border border-slate-200 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-100">&lt;</button>
+                            <button type="button" id="approvedTextbookRemoveAll" class="px-3 py-1 border border-slate-200 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-100">&lt;&lt;</button>
+                        </div>
+                        <div class="border border-slate-200 rounded-xl p-4 bg-white">
+                            <p class="text-xs font-bold text-slate-600 mb-2">선택된 교재 품목 <span id="approvedTextbookSelectedCount">0</span></p>
+                            <input type="text" id="approvedTextbookSelectedFilter" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm mb-3" placeholder="Filter">
+                            <div id="approvedTextbookSelectedList" class="min-h-[160px] max-h-[240px] overflow-y-auto space-y-1 text-sm"></div>
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-1">모집인원</label>
-                        <input type="number" id="approvedFormCapacity" min="0" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500" placeholder="0">
+                </section>
+
+                <section class="space-y-4">
+                    <h3 class="text-lg font-bold text-slate-800 border-b border-slate-200 pb-2">소모품선택</h3>
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+                        <div class="border border-slate-200 rounded-xl p-4 bg-slate-50/50">
+                            <p class="text-xs font-bold text-slate-600 mb-2">전체 소모품 품목 <span id="approvedConsumableAllCount">0</span></p>
+                            <input type="text" id="approvedConsumableAllFilter" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm mb-3" placeholder="Filter">
+                            <div id="approvedConsumableAllList" class="min-h-[160px] max-h-[240px] overflow-y-auto space-y-1 text-sm"></div>
+                        </div>
+                        <div class="flex flex-col items-center justify-center gap-2 py-4">
+                            <button type="button" id="approvedConsumableAddAll" class="px-3 py-1 border border-slate-200 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-100">&gt;&gt;</button>
+                            <button type="button" id="approvedConsumableAdd" class="px-3 py-1 border border-slate-200 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-100">&gt;</button>
+                            <button type="button" id="approvedConsumableRemove" class="px-3 py-1 border border-slate-200 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-100">&lt;</button>
+                            <button type="button" id="approvedConsumableRemoveAll" class="px-3 py-1 border border-slate-200 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-100">&lt;&lt;</button>
+                        </div>
+                        <div class="border border-slate-200 rounded-xl p-4 bg-white">
+                            <p class="text-xs font-bold text-slate-600 mb-2">선택된 소모품 품목 <span id="approvedConsumableSelectedCount">0</span></p>
+                            <input type="text" id="approvedConsumableSelectedFilter" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm mb-3" placeholder="Filter">
+                            <div id="approvedConsumableSelectedList" class="min-h-[160px] max-h-[240px] overflow-y-auto space-y-1 text-sm"></div>
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-1">훈련시간 (시작)</label>
-                        <input type="text" id="approvedFormTimeStart" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500" placeholder="00:00">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-1">훈련시간 (종료)</label>
-                        <input type="text" id="approvedFormTimeEnd" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500" placeholder="00:00">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-1">강사명</label>
-                        <input type="text" id="approvedFormInstructor" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500" placeholder="강사명">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-1">승인기관</label>
-                        <input type="text" id="approvedFormApprovalOrg" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500" placeholder="승인기관">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-1">등록일자</label>
-                        <input type="date" id="approvedFormRegisteredAt" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-1">상태</label>
-                        <select id="approvedFormStatus" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500">
-                            <option value="active">활성</option>
-                            <option value="inactive">비활성</option>
-                        </select>
-                    </div>
-                    <div class="sm:col-span-2">
-                        <label class="block text-sm font-bold text-slate-700 mb-1">NCS교과 URL</label>
-                        <input type="url" id="approvedFormUrlNcs" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500" placeholder="https://">
-                    </div>
-                    <div class="sm:col-span-2">
-                        <label class="block text-sm font-bold text-slate-700 mb-1">교수계획서 설계 URL</label>
-                        <input type="url" id="approvedFormUrlPlan" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500" placeholder="https://">
-                    </div>
-                    <div class="sm:col-span-2">
-                        <label class="block text-sm font-bold text-slate-700 mb-1">세부교수계획서 설계 URL</label>
-                        <input type="url" id="approvedFormUrlDetailPlan" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500" placeholder="https://">
-                    </div>
+                </section>
+
+                <div class="sm:col-span-2">
+                    <label class="block text-sm font-bold text-slate-700 mb-1">NCS교과 URL</label>
+                    <input type="url" id="approvedFormUrlNcs" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm" placeholder="https://">
                 </div>
+                <div class="sm:col-span-2">
+                    <label class="block text-sm font-bold text-slate-700 mb-1">교수계획서 설계 URL</label>
+                    <input type="url" id="approvedFormUrlPlan" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm" placeholder="https://">
+                </div>
+                <div class="sm:col-span-2">
+                    <label class="block text-sm font-bold text-slate-700 mb-1">세부교수계획서 설계 URL</label>
+                    <input type="url" id="approvedFormUrlDetailPlan" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm" placeholder="https://">
+                </div>
+
                 <div class="flex flex-wrap gap-3 pt-4 border-t border-slate-200/60">
                     <a href="/admin/courses/approved" class="px-6 py-2.5 text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 font-bold text-sm transition">취소</a>
                     <button type="submit" id="approvedFormSubmit" class="px-6 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-bold text-sm transition">${isEdit ? '저장' : '등록'}</button>
