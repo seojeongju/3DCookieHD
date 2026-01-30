@@ -482,7 +482,7 @@ export const adminCoursesApprovedRegisterHtml = (editId?: string) => {
                 <section class="space-y-4">
                     <h3 class="text-lg font-bold text-slate-800 border-b border-slate-200 pb-2">교직원(교강사) 선택</h3>
                     <p class="text-sm text-slate-600">등록된 교직원(교강사) 목록에서 선택하세요.</p>
-                    <div id="approvedFormInstructorList" class="flex flex-wrap gap-3 p-4 border border-slate-200 rounded-xl bg-slate-50/50 min-h-[120px]">
+                    <div id="approvedFormInstructorList" class="flex flex-col gap-2 p-4 border border-slate-200 rounded-xl bg-slate-50/50 min-h-[120px] max-h-[280px] overflow-y-auto custom-scrollbar">
                         <span class="text-slate-500 text-sm">로딩 중...</span>
                     </div>
                     <div class="flex flex-wrap items-end gap-3 p-4 border border-slate-200 rounded-xl bg-white">

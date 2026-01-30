@@ -75,7 +75,7 @@
                 container.innerHTML = list.map(function(p) {
                     var name = (p.name || '').trim() || '(이름 없음)';
                     var id = p.id != null ? p.id : '';
-                    return '<label class="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 cursor-pointer"><input type="checkbox" class="approved-instructor-cb rounded text-emerald-600" value="' + id + '" data-name="' + name.replace(/"/g, '&quot;') + '"> <span class="text-sm text-slate-800">' + name.replace(/</g, '&lt;') + '</span></label>';
+                    return '<label class="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 cursor-pointer shrink-0"><input type="checkbox" class="approved-instructor-cb rounded text-emerald-600" value="' + id + '" data-name="' + name.replace(/"/g, '&quot;') + '"> <span class="text-sm text-slate-800">' + name.replace(/</g, '&lt;') + '</span></label>';
                 }).join('');
             })
             .catch(function() {
