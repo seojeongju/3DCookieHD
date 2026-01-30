@@ -91,8 +91,9 @@ function decodeServiceKey(raw: string): string {
     return raw;
 }
 
+const NCS_TRAINING_API_BASE = 'https://apis.data.go.kr/B490007/ncsTrainingCource/openapi18';
+
 async function fetchNcsTrainingPage(apiKey: string, ncsLclasCd: string, pageNo: number): Promise<{ items: TrainingItem[]; totalPage: number }> {
-    const base = 'https://apis.data.go.kr/B490007/ncsTrainingCource';
     const key = decodeServiceKey(apiKey);
     const params = new URLSearchParams({
         serviceKey: key,
@@ -101,7 +102,7 @@ async function fetchNcsTrainingPage(apiKey: string, ncsLclasCd: string, pageNo: 
         returnType: 'json',
         ncsLclasCd: ncsLclasCd || '01'
     });
-    const url = `${base}?${params.toString()}`;
+    const url = `${NCS_TRAINING_API_BASE}?${params.toString()}`;
     const res = await fetch(url);
     if (!res.ok) {
         console.warn('NCS public API HTTP error:', res.status, res.statusText);
@@ -218,7 +219,6 @@ app.get('/approved/check', async (c) => {
         });
     }
     const ncsLclasCd = c.req.query('ncsLclasCd') || '15';
-    const base = 'https://apis.data.go.kr/B490007/ncsTrainingCource';
     const key = decodeServiceKey(rawKey);
     const params = new URLSearchParams({
         serviceKey: key,
@@ -228,7 +228,7 @@ app.get('/approved/check', async (c) => {
         ncsLclasCd
     });
     try {
-        const res = await fetch(`${base}?${params.toString()}`);
+        const res = await fetch(`${NCS_TRAINING_API_BASE}?${params.toString()}`);
         const httpOk = res.ok;
         let resultCode = '';
         let resultMsg = '';
