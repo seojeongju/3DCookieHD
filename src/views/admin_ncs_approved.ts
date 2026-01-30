@@ -76,6 +76,11 @@ function stepContentHtml(step: number): string {
               <label class="block text-xs font-medium text-slate-600 mb-1">주직종선택</label>
               <input type="text" id="ncsMainJob" readonly placeholder="직종을 검색하여 선택하세요" class="w-full max-w-md px-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50">
             </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">내용추가</label>
+              <textarea id="ncsOverviewContent" rows="4" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="과정개요 추가 내용을 입력하세요"></textarea>
+              <p class="text-xs text-slate-500 mt-1">과정개요 보충 설명, 유의사항 등을 자유롭게 입력할 수 있습니다.</p>
+            </div>
           </div>
         </div>
       </div>
