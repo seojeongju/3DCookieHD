@@ -106,10 +106,18 @@
             }
         }
 
+        var apiMessageEl = document.getElementById('ncsTrainingApiMessage');
+        function showTrainingApiMessage(text, isError) {
+            if (!apiMessageEl) return;
+            apiMessageEl.textContent = text || '';
+            apiMessageEl.className = 'mt-2 text-sm ' + (isError ? 'text-red-600' : 'text-amber-600');
+            if (text) apiMessageEl.classList.remove('hidden'); else apiMessageEl.classList.add('hidden');
+        }
         function loadTrainingByLarge() {
             var code = largeClass.value;
             clearUnitHidden();
             updatePill('', '');
+            showTrainingApiMessage('');
             if (!code) {
                 trainingCache = [];
                 clearSelect(midClass);
@@ -120,16 +128,23 @@
             var url = '/api/ncs/approved/training?ncsLclasCd=' + encodeURIComponent(code);
             var token = localStorage.getItem('token');
             return fetch(url, { headers: token ? { 'Authorization': 'Bearer ' + token } : {} })
-                .then(function (r) { return r.json(); })
+                .then(function (r) { return r.json().catch(function () { return { success: false, error: '응답 파싱 실패' }; }); })
                 .then(function (json) {
-                    if (!json.success || !json.data) {
+                    if (!json.success) {
                         trainingCache = [];
                         clearSelect(midClass);
                         clearSelect(smallClass);
                         clearJobSelect();
+                        showTrainingApiMessage(json.error || '공공 API 조회 실패. 인증키 및 서비스 상태를 확인하세요.', true);
                         return;
                     }
-                    trainingCache = json.data;
+                    var data = json.data || [];
+                    if (data.length === 0 && json._meta && json._meta.hint) {
+                        showTrainingApiMessage(json._meta.hint, false);
+                    } else if (data.length > 0) {
+                        showTrainingApiMessage('');
+                    }
+                    trainingCache = data;
                     var seen = {};
                     var mids = [];
                     trainingCache.forEach(function (item) {
@@ -153,6 +168,7 @@
                     clearSelect(midClass);
                     clearSelect(smallClass);
                     clearJobSelect();
+                    showTrainingApiMessage('공공 API 연결 실패. 네트워크 또는 서버 상태를 확인하세요.', true);
                 });
         }
 

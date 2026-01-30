@@ -64,13 +64,14 @@ function stepContentHtml(step: number, editId?: string): string {
             </div>
             <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">중분류선택</label>
-              <select id="ncsMidClass" size="12" class="ncs-class-select w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white"></select>
+              <select id="ncsMidClass" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20"></select>
             </div>
             <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">소분류선택</label>
-              <select id="ncsSmallClass" size="12" class="ncs-class-select w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white"></select>
+              <select id="ncsSmallClass" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20"></select>
             </div>
           </div>
+          <p id="ncsTrainingApiMessage" class="mt-2 text-sm text-amber-600 hidden" role="alert"></p>
         </div>
         <div>
           <h3 class="text-sm font-bold text-slate-700 mb-2">과정개요 정보 <span class="text-red-500">(! 필수등록)</span></h3>

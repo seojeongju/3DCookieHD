@@ -218,10 +218,14 @@ app.get('/approved/training', async (c) => {
         if (rawKey) {
             try {
                 const fromApi = await fetchNcsTrainingByLarge(rawKey, ncsLclasCd);
-                return c.json({ success: true, data: fromApi });
+                const meta = { source: 'public_api' as const, count: fromApi.length };
+                const hint = fromApi.length === 0
+                    ? '공공 API가 항목을 반환하지 않았습니다. 인증키·대분류코드·공공데이터포털 서비스 상태를 확인하세요.'
+                    : undefined;
+                return c.json({ success: true, data: fromApi, _meta: { ...meta, hint } });
             } catch (e) {
                 console.error('NCS approved/training public API error:', e);
-                return c.json({ success: false, error: '공공 API 조회 실패. 키 및 서비스 상태를 확인하세요.' }, 502);
+                return c.json({ success: false, error: '공공 API 조회 실패. 인증키 및 서비스 상태를 확인하세요.' }, 502);
             }
         }
         // 키 미설정 시에만 Mock 사용
