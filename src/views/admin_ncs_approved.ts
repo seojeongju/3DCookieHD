@@ -207,11 +207,12 @@ function stepContentHtml(step: number, editId?: string): string {
             <div>
               <label class="block text-xs font-bold text-slate-600 mb-2">능력단위</label>
               <div class="ncs-curriculum-unit-checks flex flex-wrap gap-3"></div>
+              <p class="text-xs text-slate-500 mt-1">교과목에 포함할 능력단위를 선택하세요.</p>
             </div>
             <div>
               <label class="block text-xs font-bold text-slate-600 mb-1">능력단위요소</label>
-              <p class="text-xs text-slate-500 mb-2">교과목에 포함될 능력단위를 선택해주세요.</p>
-              <div class="ncs-curriculum-selected text-sm text-slate-600 min-h-[2rem] px-3 py-2 rounded-lg bg-slate-50 border border-slate-100"></div>
+              <p class="text-xs text-slate-500 mb-2">선택한 능력단위의 하위 요소(수행준거)를 선택하세요.</p>
+              <div class="ncs-curriculum-element-checks flex flex-wrap gap-3 min-h-[2rem]"></div>
             </div>
           </div>
         </div>

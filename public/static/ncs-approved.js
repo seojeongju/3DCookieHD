@@ -508,6 +508,7 @@
         form.classList.remove('hidden');
 
         var unitList = [];
+        var elementList = [];
 
         function esc(s) {
             if (s == null) return '';
@@ -531,6 +532,28 @@
                 container.appendChild(label);
             });
         }
+        function fillElementChecks(container) {
+            if (!container) return;
+            container.innerHTML = '';
+            if (!elementList.length) {
+                container.innerHTML = '<span class="text-slate-500 text-sm">등록된 능력단위요소가 없습니다. NCS 능력단위에 해당 직종의 요소가 등록되어 있으면 여기에 표시됩니다.</span>';
+                return;
+            }
+            elementList.forEach(function(e) {
+                var name = (e && e.name) ? e.name : String(e);
+                if (!name) return;
+                var label = document.createElement('label');
+                label.className = 'flex items-center gap-2 text-sm text-slate-700';
+                var cb = document.createElement('input');
+                cb.type = 'checkbox';
+                cb.className = 'ncs-element-cb rounded text-blue-600';
+                cb.value = name;
+                cb.dataset.name = name;
+                label.appendChild(cb);
+                label.appendChild(document.createTextNode(name));
+                container.appendChild(label);
+            });
+        }
         function updateSelected(row) {
             var sel = row && row.querySelector('.ncs-curriculum-selected');
             if (!sel) return;
@@ -548,12 +571,13 @@
             if (!first) return;
             var clone = first.cloneNode(true);
             clone.querySelectorAll('input').forEach(function(i) { i.value = ''; });
-            var sel = clone.querySelector('.ncs-curriculum-selected');
-            if (sel) sel.textContent = '';
             var checks = clone.querySelector('.ncs-curriculum-unit-checks');
             if (checks) checks.innerHTML = '';
+            var elChecks = clone.querySelector('.ncs-curriculum-element-checks');
+            if (elChecks) elChecks.innerHTML = '';
             ncsRows.appendChild(clone);
             fillUnitChecks(clone.querySelector('.ncs-curriculum-unit-checks'));
+            fillElementChecks(clone.querySelector('.ncs-curriculum-element-checks'));
             wireUnitChecks(clone);
         }
         function delNcsRow() {
@@ -774,10 +798,12 @@
                     } else {
                         unitList = (levels[5] || []).concat(levels[4] || []).concat(levels[3] || []);
                     }
+                    elementList = (d.elements && Array.isArray(d.elements)) ? d.elements : [];
                 }
                 var rows = ncsRows.querySelectorAll('.ncs-curriculum-row');
                 rows.forEach(function(r) {
                     fillUnitChecks(r.querySelector('.ncs-curriculum-unit-checks'));
+                    fillElementChecks(r.querySelector('.ncs-curriculum-element-checks'));
                     wireUnitChecks(r);
                 });
                 var nonNcsR = nonNcsRows.querySelectorAll('.nonncs-curriculum-row');
@@ -787,9 +813,11 @@
             .catch(function() {
                 if (jobLabel) jobLabel.textContent = 'NCS 기반 교과';
                 unitList = [];
+                elementList = [];
                 var rows = ncsRows.querySelectorAll('.ncs-curriculum-row');
                 rows.forEach(function(r) {
                     fillUnitChecks(r.querySelector('.ncs-curriculum-unit-checks'));
+                    fillElementChecks(r.querySelector('.ncs-curriculum-element-checks'));
                     wireUnitChecks(r);
                 });
                 var nonNcsR = nonNcsRows.querySelectorAll('.nonncs-curriculum-row');

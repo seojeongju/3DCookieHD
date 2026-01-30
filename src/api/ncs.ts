@@ -384,7 +384,8 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
                     mainJob: { code: null, name: (reg.non_ncs_course_name || '').trim() || null },
                     levels: { 5: [], 4: [], 3: [] },
                     basicAbility: [],
-                    selected
+                    selected,
+                    elements: []
                 }
             });
         }
@@ -393,6 +394,7 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
         const unitName = mainJob.name || '';
         const levels: { 5: { name: string; code?: string }[]; 4: { name: string; code?: string }[]; 3: { name: string; code?: string }[] } = { 5: [], 4: [], 3: [] };
         let basicAbility: { name: string; code?: string }[] = [];
+        let elementsFlat: { name: string; code?: string }[] = [];
 
         const unit = await c.env.DB.prepare(
             'SELECT id, level FROM ncs_units WHERE code = ?'
@@ -403,6 +405,7 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
                 'SELECT code, name FROM ncs_elements WHERE ncs_unit_id = ? ORDER BY code ASC'
             ).bind(unit.id).all() as { results: { code?: string; name: string }[] };
             const list = (elements || []).map((e) => ({ name: e.name || '', code: (e.code || '').trim() || undefined }));
+            elementsFlat = list;
             const n = list.length;
             const g1 = Math.ceil(n / 3);
             const g2 = Math.ceil((n - g1) / 2) + g1;
@@ -420,11 +423,12 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
                 { name: unitName + ' 안전관리', level: 3 as const }
             ];
             mock.forEach((m) => levels[m.level].push({ name: m.name }));
+            elementsFlat = [...levels[5], ...levels[4], ...levels[3]];
         }
 
         return c.json({
             success: true,
-            data: { mainJob: { code: unitCode || null, name: unitName || null }, levels, basicAbility, selected }
+            data: { mainJob: { code: unitCode || null, name: unitName || null }, levels, basicAbility, selected, elements: elementsFlat }
         });
     } catch (e) {
         console.error('ncs approved training-system:', e);
@@ -448,6 +452,9 @@ app.put('/approved/registrations/:id/training-system-selection', authMiddleware,
         return c.json({ success: true, data: { selected } });
     } catch (e) {
         console.error('ncs approved training-system-selection put:', e);
+        if (isD1SchemaError(e)) {
+            return c.json({ success: false, error: '선택 저장을 위해 DB 마이그레이션이 필요합니다. migrations/0041_add_selected_training_elements.sql 을 적용해 주세요.' }, 503);
+        }
         return c.json({ success: false, error: '선택 저장 실패' }, 500);
     }
 });
