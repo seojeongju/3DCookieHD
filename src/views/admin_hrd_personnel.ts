@@ -880,33 +880,22 @@ export const adminHrdPersonnelHtml = () => `
         let currentCertIndex = null;
         let currentTeachingIndex = null;
 
-        // 파일 다운로드 함수
+        // 파일 다운로드 함수 (전역 노출: 모든 업로드 파일 옆 다운로드 메뉴에서 사용)
         async function downloadFile(fileUrl, fileName) {
             try {
-                console.log('Downloading file:', fileUrl);
-                console.log('File name:', fileName);
-                
                 const token = localStorage.getItem('token');
-                
-                // URL이 상대 경로인 경우 절대 경로로 변환
                 let downloadUrl = fileUrl;
                 if (fileUrl.startsWith('/')) {
                     downloadUrl = fileUrl;
                 } else if (!fileUrl.startsWith('http')) {
                     downloadUrl = '/' + fileUrl;
                 }
-                
                 const fullUrl = downloadUrl + (downloadUrl.includes('?') ? '&' : '?') + 'download=true';
-                
                 const response = await fetch(fullUrl, {
                     method: 'GET',
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
-                
-                if (!response.ok) {
-                    throw new Error(\`파일 다운로드 실패: \${ response.status }\`);
-                }
-                
+                if (!response.ok) throw new Error('파일 다운로드 실패: ' + response.status);
                 const blob = await response.blob();
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -914,7 +903,6 @@ export const adminHrdPersonnelHtml = () => `
                 a.download = fileName || fileUrl.split('/').pop() || '파일';
                 document.body.appendChild(a);
                 a.click();
-                
                 setTimeout(() => {
                     window.URL.revokeObjectURL(url);
                     document.body.removeChild(a);
@@ -924,6 +912,8 @@ export const adminHrdPersonnelHtml = () => `
                 alert('파일 다운로드 중 오류가 발생했습니다: ' + (error.message || error));
             }
         }
+        window.downloadFile = downloadFile;
+        function escapeJs(s) { return String(s || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\r/g, '').replace(/\n/g, '\\n'); }
         
         // ==========================================
         //  Sub-Modal Management Functions
@@ -1042,7 +1032,7 @@ export const adminHrdPersonnelHtml = () => `
                     certArr.forEach(f => {
                         const url = typeof f === 'string' ? f : f.url;
                         const name = typeof f === 'string' ? (url.split('/').pop() || '졸업장') : (f.name || f.url.split('/').pop() || '졸업장');
-                        certButtonsHtml += \`<button type="button" onclick="event.stopPropagation(); window.open('\${url}', '_blank')" class="text-xs text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-1 rounded inline-flex items-center mr-2 mb-1 mt-1 border border-blue-100"><i class="fas fa-file-certificate mr-1"></i> \${name}</button>\`;
+                        certButtonsHtml += \`<span class="inline-flex items-center gap-1 mr-2 mb-1 mt-1 flex-wrap"><span class="text-xs text-blue-700 bg-blue-50 px-2 py-1 rounded border border-blue-100">\${name}</span><button type="button" onclick="event.stopPropagation(); window.open('\${escapeJs(url)}', '_blank')" class="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 rounded border border-blue-100" title="새 탭에서 보기"><i class="fas fa-external-link-alt mr-1"></i>보기</button><button type="button" onclick="event.stopPropagation(); downloadFile('\${escapeJs(url)}', '\${escapeJs(name)}')" class="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 rounded border border-blue-100" title="파일 다운로드"><i class="fas fa-download mr-1"></i>다운로드</button></span>\`;
                     });
                 }
                 const div = document.createElement('div');
@@ -1184,7 +1174,7 @@ export const adminHrdPersonnelHtml = () => `
                     certArr.forEach(f => {
                         const url = typeof f === 'string' ? f : f.url;
                         const name = typeof f === 'string' ? (url.split('/').pop() || '경력증명서') : (f.name || f.url.split('/').pop() || '경력증명서');
-                        certButtonsHtml += \`<button type="button" onclick="event.stopPropagation(); window.open('\${url}', '_blank')" class="text-xs text-purple-600 hover:text-purple-800 bg-purple-50 px-2 py-1 rounded inline-flex items-center mr-2 mb-1 mt-1 border border-purple-100"><i class="fas fa-file-certificate mr-1"></i> \${name}</button>\`;
+                        certButtonsHtml += \`<span class="inline-flex items-center gap-1 mr-2 mb-1 mt-1 flex-wrap"><span class="text-xs text-purple-700 bg-purple-50 px-2 py-1 rounded border border-purple-100">\${name}</span><button type="button" onclick="event.stopPropagation(); window.open('\${escapeJs(url)}', '_blank')" class="text-xs text-purple-600 hover:text-purple-800 px-2 py-1 rounded border border-purple-100" title="새 탭에서 보기"><i class="fas fa-external-link-alt mr-1"></i>보기</button><button type="button" onclick="event.stopPropagation(); downloadFile('\${escapeJs(url)}', '\${escapeJs(name)}')" class="text-xs text-purple-600 hover:text-purple-800 px-2 py-1 rounded border border-purple-100" title="파일 다운로드"><i class="fas fa-download mr-1"></i>다운로드</button></span>\`;
                     });
                 }
                 const div = document.createElement('div');
@@ -1349,7 +1339,7 @@ export const adminHrdPersonnelHtml = () => `
                     certArr.forEach(f => {
                         const url = typeof f === 'string' ? f : f.url;
                         const name = typeof f === 'string' ? (url.split('/').pop() || '이수증') : (f.name || f.url.split('/').pop() || '이수증');
-                        certButtonsHtml += \`<button type="button" onclick="event.stopPropagation(); window.open('\${url}', '_blank')" class="text-xs text-green-600 hover:text-green-800 bg-green-50 px-2 py-1 rounded inline-flex items-center mr-2 mb-1 mt-1 border border-green-100"><i class="fas fa-file-certificate mr-1"></i> \${name}</button>\`;
+                        certButtonsHtml += \`<span class="inline-flex items-center gap-1 mr-2 mb-1 mt-1 flex-wrap"><span class="text-xs text-green-700 bg-green-50 px-2 py-1 rounded border border-green-100">\${name}</span><button type="button" onclick="event.stopPropagation(); window.open('\${escapeJs(url)}', '_blank')" class="text-xs text-green-600 hover:text-green-800 px-2 py-1 rounded border border-green-100" title="새 탭에서 보기"><i class="fas fa-external-link-alt mr-1"></i>보기</button><button type="button" onclick="event.stopPropagation(); downloadFile('\${escapeJs(url)}', '\${escapeJs(name)}')" class="text-xs text-green-600 hover:text-green-800 px-2 py-1 rounded border border-green-100" title="파일 다운로드"><i class="fas fa-download mr-1"></i>다운로드</button></span>\`;
                     });
                 }
                 const educationTypes = tr.education_types || [];
@@ -1518,7 +1508,7 @@ export const adminHrdPersonnelHtml = () => `
                 div.innerHTML = \`
                     <span class="text-sm text-gray-700 flex items-center"><i class="fas fa-file-pdf text-red-500 mr-2"></i>\${fileName}</span>
                     <div class="flex items-center gap-2">
-                        <button type="button" class="text-blue-600 hover:text-blue-800 text-sm" onclick="downloadFile('\${fileUrl}', '\${fileName}')"><i class="fas fa-download"></i></button>
+                        <button type="button" class="text-blue-600 hover:text-blue-800 text-sm" onclick="downloadFile('\${escapeJs(fileUrl)}', '\${escapeJs(fileName)}')" title="파일 다운로드"><i class="fas fa-download mr-1"></i>다운로드</button>
                         <button type="button" class="text-red-600 hover:text-red-800 text-sm" onclick="removeCertModalFile(\${index})"><i class="fas fa-trash"></i></button>
                     </div>
                 \`;
@@ -1617,12 +1607,12 @@ export const adminHrdPersonnelHtml = () => `
                      cert.file_urls.forEach(f => {
                          const url = typeof f === 'string' ? f : f.url;
                          const name = typeof f === 'string' ? (url.split('/').pop() || '파일') : (f.name || f.url.split('/').pop() || '파일');
-                         fileButtonsHtml += \`<button type="button" onclick="event.stopPropagation(); downloadFile('\${url}', '\${name}')" class="text-xs text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-1 rounded inline-flex items-center mr-2 mb-1 mt-1 border border-blue-100"><i class="fas fa-download mr-1"></i> \${name}</button>\`;
+                         fileButtonsHtml += \`<span class="inline-flex items-center gap-1 mr-2 mb-1 mt-1 flex-wrap"><span class="text-xs text-blue-700 bg-blue-50 px-2 py-1 rounded border border-blue-100">\${name}</span><button type="button" onclick="event.stopPropagation(); window.open('\${escapeJs(url)}', '_blank')" class="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 rounded border border-blue-100" title="새 탭에서 보기"><i class="fas fa-external-link-alt mr-1"></i>보기</button><button type="button" onclick="event.stopPropagation(); downloadFile('\${escapeJs(url)}', '\${escapeJs(name)}')" class="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 rounded border border-blue-100" title="파일 다운로드"><i class="fas fa-download mr-1"></i>다운로드</button></span>\`;
                      });
                  } else if (cert.file_url) {
                       const url = cert.file_url;
                       const name = url.split('/').pop() || '파일';
-                      fileButtonsHtml = \`<button type="button" onclick="event.stopPropagation(); downloadFile('\${url}', '\${name}')" class="text-xs text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-1 rounded inline-flex items-center mr-2 mb-1 mt-1 border border-blue-100"><i class="fas fa-download mr-1"></i> \${name}</button>\`;
+                      fileButtonsHtml = \`<span class="inline-flex items-center gap-1 mr-2 mb-1 mt-1 flex-wrap"><span class="text-xs text-blue-700 bg-blue-50 px-2 py-1 rounded border border-blue-100">\${name}</span><button type="button" onclick="event.stopPropagation(); window.open('\${escapeJs(url)}', '_blank')" class="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 rounded border border-blue-100" title="새 탭에서 보기"><i class="fas fa-external-link-alt mr-1"></i>보기</button><button type="button" onclick="event.stopPropagation(); downloadFile('\${escapeJs(url)}', '\${escapeJs(name)}')" class="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 rounded border border-blue-100" title="파일 다운로드"><i class="fas fa-download mr-1"></i>다운로드</button></span>\`;
                  }
 
                  const div = document.createElement('div');
