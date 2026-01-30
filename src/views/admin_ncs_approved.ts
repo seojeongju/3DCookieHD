@@ -25,8 +25,16 @@ function stepContentHtml(step: number, editId?: string): string {
     return `
     <div class="space-y-6" id="ncsApprovedFormContainer">
       <input type="hidden" id="ncsApprovedEditId" value="${editId || ''}">
+      <input type="hidden" id="ncsApprovedCourseId" value="">
       <input type="hidden" id="ncsUnitCode" value="">
       <input type="hidden" id="ncsUnitName" value="">
+      <div class="rounded-xl border border-slate-200 bg-slate-50/80 p-5">
+        <h3 class="text-sm font-bold text-slate-700 mb-2">승인받은 과정 (교육과정 기초데이터)</h3>
+        <p class="text-xs text-slate-500 mb-3">목록에서 과정을 클릭하면 과정개요 정보가 자동으로 채워집니다. 이후 아래에서 상세를 입력한 뒤 저장·다음 단계로 진행하세요.</p>
+        <div id="ncsApprovedCourseListContainer" class="max-h-48 overflow-y-auto rounded-lg border border-slate-200 bg-white p-2 space-y-1">
+          <div class="py-6 text-center text-slate-400 text-sm"><i class="fas fa-spinner fa-spin mr-2"></i> 목록 로딩 중...</div>
+        </div>
+      </div>
       <p class="text-xs text-slate-500">등록되는 직종 및 주직종으로 이후에 등록되는 내용에 활용됩니다.</p>
       <!-- 탭: NCS 훈련과정 전용 / 비NCS 훈련과정 전용 -->
       <div class="flex gap-2 border-b border-slate-200 pb-2">

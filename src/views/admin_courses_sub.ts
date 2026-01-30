@@ -408,20 +408,6 @@ export const adminCoursesApprovedRegisterHtml = (editId?: string) => {
                     <h3 class="text-lg font-bold text-slate-800 border-b border-slate-200 pb-2">기본정보</h3>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div class="sm:col-span-2">
-                            <label class="block text-sm font-bold text-slate-700 mb-2">과정분류</label>
-                            <div class="flex flex-wrap gap-4">
-                                <label class="flex items-center gap-2 text-sm"><input type="radio" name="approvedFormCourseType" value="통합과정" class="rounded text-emerald-600" checked> 통합과정</label>
-                                <label class="flex items-center gap-2 text-sm"><input type="radio" name="approvedFormCourseType" value="내일배움" class="rounded text-emerald-600"> 내일배움(계좌제)</label>
-                                <label class="flex items-center gap-2 text-sm"><input type="radio" name="approvedFormCourseType" value="국가기간전략" class="rounded text-emerald-600"> 국가기간전략산업직종</label>
-                                <label class="flex items-center gap-2 text-sm"><input type="radio" name="approvedFormCourseType" value="근로자직무" class="rounded text-emerald-600"> 근로자직무능력향상</label>
-                                <label class="flex items-center gap-2 text-sm"><input type="radio" name="approvedFormCourseType" value="사업주위탁" class="rounded text-emerald-600"> 사업주위탁</label>
-                                <label class="flex items-center gap-2 text-sm"><input type="radio" name="approvedFormCourseType" value="일반대학생" class="rounded text-emerald-600"> 일반·대학생</label>
-                                <label class="flex items-center gap-2 text-sm"><input type="radio" name="approvedFormCourseType" value="일반" class="rounded text-emerald-600"> 일반</label>
-                                <label class="flex items-center gap-2 text-sm"><input type="radio" name="approvedFormCourseType" value="재직자통합" class="rounded text-emerald-600"> 재직자내일배움/일반 통합과정</label>
-                                <label class="flex items-center gap-2 text-sm"><input type="radio" name="approvedFormCourseType" value="소상공인" class="rounded text-emerald-600"> 소상공인 전문기술교육</label>
-                            </div>
-                        </div>
-                        <div class="sm:col-span-2">
                             <label class="block text-sm font-bold text-slate-700 mb-1">과정명 <span class="text-red-500">*</span> <i class="fas fa-info-circle text-red-500 text-xs"></i></label>
                             <input type="text" id="approvedFormName" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500" placeholder="예: [2026] 퓨전(Fusion) 활동 3D모델링 고급심화">
                         </div>
@@ -441,7 +427,7 @@ export const adminCoursesApprovedRegisterHtml = (editId?: string) => {
                             <input type="date" id="approvedFormRegisteredAt" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500">
                         </div>
                         <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-1">과정분류(드롭다운)</label>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">과정분류</label>
                             <select id="approvedFormCategory" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500">
                                 <option value="">선택</option>
                             </select>
