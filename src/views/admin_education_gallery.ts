@@ -35,9 +35,14 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
                         <h1 class="text-2xl font-bold text-gray-800">교육사진 갤러리 관리</h1>
                         <p class="text-gray-600 mt-1">교육사진 갤러리 게시글을 관리합니다.</p>
                     </div>
-                    <button onclick="openModal(null)" class="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition flex items-center">
-                        <i class="fas fa-plus mr-2"></i> 교육사진 등록
-                    </button>
+                    <div class="flex gap-2">
+                        <button onclick="openCsvImportModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center">
+                            <i class="fas fa-file-csv mr-2"></i> CSV 일괄 등록
+                        </button>
+                        <button onclick="openModal(null)" class="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition flex items-center">
+                            <i class="fas fa-plus mr-2"></i> 교육사진 등록
+                        </button>
+                    </div>
                 </div>
             </div>
             <main class="flex-1 overflow-y-auto p-8 custom-scrollbar">
@@ -73,6 +78,39 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
                 </div>
                 <div class="mt-4 flex justify-center" id="pagination"></div>
             </main>
+        </div>
+    </div>
+
+    <!-- CSV 일괄 등록 모달 -->
+    <div id="csvImportModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="text-xl font-bold text-gray-800">구 사이트 CSV 일괄 등록</h3>
+                <button onclick="closeCsvImportModal()" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1">
+                <p class="text-gray-600 text-sm mb-4">구 사이트 관리자에서 <strong>3D프린팅 교육사진</strong> 목록을 CSV로 다운받은 파일을 선택하세요. 제목·등록자·등록일자·이미지 URL(있으면) 컬럼을 인식해 교육사진으로 등록합니다.</p>
+                <div class="mb-4">
+                    <label class="block text-gray-700 font-medium mb-2">CSV 파일 선택</label>
+                    <input type="file" id="csvFileInput" accept=".csv,text/csv,application/csv" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                </div>
+                <div id="csvPreview" class="hidden mb-4 p-4 bg-gray-50 rounded-lg text-sm">
+                    <span id="csvPreviewText"></span>
+                </div>
+                <div id="csvProgress" class="hidden mb-4">
+                    <div class="flex justify-between text-sm text-gray-600 mb-1">
+                        <span id="csvProgressText">0 / 0 등록 중...</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div id="csvProgressBar" class="bg-blue-600 h-2 rounded-full transition-all" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div id="csvResult" class="hidden p-4 rounded-lg text-sm"></div>
+            </div>
+            <div class="p-6 border-t border-gray-200 flex justify-end gap-2">
+                <button type="button" onclick="closeCsvImportModal()" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">닫기</button>
+                <button type="button" id="csvStartBtn" onclick="startCsvImport()" disabled class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">등록 시작</button>
+            </div>
         </div>
     </div>
 
@@ -126,6 +164,43 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
 
         document.addEventListener('DOMContentLoaded', () => {
             loadPosts(1);
+            const csvInput = document.getElementById('csvFileInput');
+            if (csvInput) {
+                csvInput.addEventListener('change', function() {
+                    const file = this.files && this.files[0];
+                    if (!file) {
+                        csvParsedList = [];
+                        document.getElementById('csvPreview').classList.add('hidden');
+                        document.getElementById('csvStartBtn').disabled = true;
+                        return;
+                    }
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        try {
+                            const text = (e.target && e.target.result) || '';
+                            csvParsedList = parseCSVToEducationList(text);
+                            const preview = document.getElementById('csvPreview');
+                            const previewText = document.getElementById('csvPreviewText');
+                            if (csvParsedList.length === 0) {
+                                previewText.textContent = '제목 컬럼을 찾을 수 없거나 유효한 행이 없습니다. CSV에 "제목" 컬럼이 있는지 확인하세요.';
+                                preview.classList.remove('hidden');
+                                document.getElementById('csvStartBtn').disabled = true;
+                            } else {
+                                const noImage = csvParsedList.filter(i => !i.imageUrl).length;
+                                previewText.textContent = '총 ' + csvParsedList.length + '건 확인.' + (noImage > 0 ? ' (이미지 URL 없는 항목 ' + noImage + '건은 제목·내용만 등록됩니다.)' : '');
+                                preview.classList.remove('hidden');
+                                document.getElementById('csvStartBtn').disabled = false;
+                            }
+                        } catch (err) {
+                            console.error(err);
+                            document.getElementById('csvPreviewText').textContent = 'CSV 파싱 중 오류: ' + err.message;
+                            document.getElementById('csvPreview').classList.remove('hidden');
+                            document.getElementById('csvStartBtn').disabled = true;
+                        }
+                    };
+                    reader.readAsText(file, 'UTF-8');
+                });
+            }
         });
 
         function openModal(post) {
@@ -338,6 +413,149 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
                 console.error(err);
                 alert('삭제 중 오류가 발생했습니다.');
             }
+        }
+
+        // --- CSV 일괄 등록 ---
+        let csvParsedList = [];
+
+        function parseCSVLine(line) {
+            const out = [];
+            let cur = '';
+            let inQuotes = false;
+            for (let i = 0; i < line.length; i++) {
+                const c = line[i];
+                if (c === '"') { inQuotes = !inQuotes; continue; }
+                if (!inQuotes && (c === ',' || c === '\\t')) {
+                    out.push(cur.trim());
+                    cur = '';
+                    continue;
+                }
+                cur += c;
+            }
+            out.push(cur.trim());
+            return out;
+        }
+
+        function parseCSV(text) {
+            const lines = text.split(/\\r?\\n/).map(l => l.trim()).filter(Boolean);
+            if (lines.length === 0) return { headers: [], rows: [] };
+            const headers = parseCSVLine(lines[0]);
+            const rows = [];
+            for (let i = 1; i < lines.length; i++) {
+                const values = parseCSVLine(lines[i]);
+                const row = {};
+                headers.forEach((h, j) => { row[h] = values[j] !== undefined ? values[j] : ''; });
+                rows.push(row);
+            }
+            return { headers, rows };
+        }
+
+        function findColumn(headers, candidates) {
+            const lower = s => String(s).toLowerCase();
+            for (const c of candidates) {
+                const found = headers.find(h => lower(h) === lower(c) || h === c);
+                if (found) return found;
+            }
+            return null;
+        }
+
+        function parseCSVToEducationList(raw) {
+            const { headers, rows } = parseCSV(raw);
+            if (headers.length === 0 || rows.length === 0) return [];
+            const titleCol = findColumn(headers, ['제목', 'title', 'Title']);
+            if (!titleCol) return [];
+            const registrantCol = findColumn(headers, ['등록자', 'registrant', 'Registrant']);
+            const dateCol = findColumn(headers, ['등록일자', '등록일', 'date', 'Date']);
+            const imageCol = findColumn(headers, ['이미지', 'imageUrl', 'image', '이미지URL', 'img', 'url']);
+            const list = [];
+            for (const row of rows) {
+                const title = String(row[titleCol] || '').trim();
+                if (!title) continue;
+                const contentParts = [];
+                if (registrantCol && row[registrantCol]) contentParts.push('등록자: ' + row[registrantCol]);
+                if (dateCol && row[dateCol]) contentParts.push('등록일: ' + row[dateCol]);
+                const content = contentParts.length ? contentParts.join(', ') : '';
+                const item = { title, content: content || '' };
+                if (imageCol && row[imageCol]) {
+                    const url = String(row[imageCol]).trim();
+                    if (url) item.imageUrl = url;
+                }
+                list.push(item);
+            }
+            return list;
+        }
+
+        function openCsvImportModal() {
+            csvParsedList = [];
+            document.getElementById('csvFileInput').value = '';
+            document.getElementById('csvPreview').classList.add('hidden');
+            document.getElementById('csvProgress').classList.add('hidden');
+            document.getElementById('csvResult').classList.add('hidden');
+            document.getElementById('csvStartBtn').disabled = true;
+            document.getElementById('csvImportModal').classList.remove('hidden');
+        }
+
+        function closeCsvImportModal() {
+            document.getElementById('csvImportModal').classList.add('hidden');
+        }
+
+        async function startCsvImport() {
+            if (csvParsedList.length === 0) return;
+            const token = localStorage.getItem('token');
+            if (!token) {
+                alert('로그인이 필요합니다.');
+                return;
+            }
+            const total = csvParsedList.length;
+            let ok = 0, fail = 0;
+            document.getElementById('csvStartBtn').disabled = true;
+            document.getElementById('csvProgress').classList.remove('hidden');
+            document.getElementById('csvResult').classList.add('hidden');
+            const progressText = document.getElementById('csvProgressText');
+            const progressBar = document.getElementById('csvProgressBar');
+
+            for (let i = 0; i < csvParsedList.length; i++) {
+                const item = csvParsedList[i];
+                progressText.textContent = (i + 1) + ' / ' + total + ' 등록 중...';
+                progressBar.style.width = ((i + 1) / total * 100) + '%';
+
+                const images = [];
+                if (item.imageUrl) images.push(item.imageUrl);
+                const body = {
+                    title: item.title,
+                    content: item.content || '',
+                    category: 'education_photo',
+                    status: 'published',
+                    images: images,
+                    pinned: false
+                };
+                try {
+                    const res = await fetch('/api/posts', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                        body: JSON.stringify(body)
+                    });
+                    if (res.status === 401) {
+                        alert('로그인 세션이 만료되었습니다.');
+                        window.location.href = '/login';
+                        return;
+                    }
+                    const json = await res.json().catch(() => ({}));
+                    if (res.ok && json.success) ok++; else fail++;
+                } catch (err) {
+                    fail++;
+                }
+                await new Promise(r => setTimeout(r, 200));
+            }
+
+            progressBar.style.width = '100%';
+            progressText.textContent = '완료';
+            const resultEl = document.getElementById('csvResult');
+            resultEl.className = 'p-4 rounded-lg text-sm ' + (fail > 0 ? 'bg-amber-50 text-amber-800' : 'bg-green-50 text-green-800');
+            resultEl.innerHTML = '일괄 등록 완료: 성공 <strong>' + ok + '</strong>건, 실패 <strong>' + fail + '</strong>건';
+            resultEl.classList.remove('hidden');
+            document.getElementById('csvStartBtn').disabled = false;
+            loadPosts(1);
         }
     </script>
 </body>
