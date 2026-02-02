@@ -595,6 +595,8 @@
                             var code = (x && x.code) ? String(x.code).trim() : '';
                             var value = code || name;
                             var isChecked = selectedSet[value] || selectedSet[name];
+                            var jobNames = Array.isArray(x.jobNames) && x.jobNames.length ? x.jobNames.join(', ') : '';
+                            var jobBadge = jobNames ? '<span class="ml-2 text-xs text-slate-400 font-normal">(' + esc(jobNames) + ')</span>' : '';
 
                             // Style calculation
                             // Selected: Bold Green Border, Light Green Background, Dark Green Text
@@ -605,7 +607,7 @@
                                 : 'cursor-pointer px-4 py-3 rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition flex items-center justify-between group';
 
                             contentHtml += '<label class="' + className + '">' +
-                                '<span class="flex-1">' + esc(name) + '</span>' +
+                                '<span class="flex-1">' + esc(name) + jobBadge + '</span>' +
                                 '<input type="checkbox" class="ncs-step2-cb hidden" value="' + attrEsc(value) + '"' + (isChecked ? ' checked' : '') + ' onchange="var p=this.parentElement; var i=p.querySelector(\'i\'); if(this.checked){ p.className=\'cursor-pointer px-4 py-3 rounded-lg border-2 border-emerald-500 bg-emerald-50 text-emerald-900 font-bold shadow-md transition flex items-center justify-between group\'; i.className=\'fas fa-check text-emerald-600 transition\'; } else { p.className=\'cursor-pointer px-4 py-3 rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition flex items-center justify-between group\'; i.className=\'fas fa-check text-transparent group-hover:text-slate-300 transition\'; }">' +
                                 '<i class="fas fa-check ' + (isChecked ? 'text-emerald-600' : 'text-transparent group-hover:text-slate-300') + ' transition"></i>' +
                                 '</label>';

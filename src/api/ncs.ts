@@ -139,7 +139,7 @@ async function fetchClassificationAllPages(
     const out: Record<string, unknown>[] = [];
     let pageNo = 1;
     const perPage = CLASSIFICATION_PAGE_SIZE;
-    for (;;) {
+    for (; ;) {
         const q = new URLSearchParams({ serviceKey: key, type: 'json', pageNo: String(pageNo), numOfRows: String(perPage), ...params });
         const url = `${base}/${path}?${q.toString()}`;
         const res = await fetch(url);
@@ -819,8 +819,9 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
             });
         }
 
-        const levels: { 6: { name: string; code?: string }[]; 5: { name: string; code?: string }[]; 4: { name: string; code?: string }[]; 3: { name: string; code?: string }[]; 2: { name: string; code?: string }[] } = { 6: [], 5: [], 4: [], 3: [], 2: [] };
-        const seenCodes = new Set<string>();
+        const levels: { 6: { name: string; code?: string; jobNames?: string[] }[]; 5: { name: string; code?: string; jobNames?: string[] }[]; 4: { name: string; code?: string; jobNames?: string[] }[]; 3: { name: string; code?: string; jobNames?: string[] }[]; 2: { name: string; code?: string; jobNames?: string[] }[] } = { 6: [], 5: [], 4: [], 3: [], 2: [] };
+        // Map code -> item reference to allow updating jobNames
+        const codeMap = new Map<string, { name: string; code?: string; jobNames: string[] }>();
         let basicAbility: { name: string; code?: string }[] = [];
         const elementsFlat: { name: string; code?: string }[] = [];
 
@@ -829,6 +830,20 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
             const jobCode8 = jobCode.length >= 8 ? jobCode.slice(0, 8) : jobCode;
             const jobName = job.name || '';
 
+            // Helper to add/update item
+            const addItem = (name: string, code: string, level: number) => {
+                const band = mapLevelToBand(level);
+                if (code && codeMap.has(code)) {
+                    const existing = codeMap.get(code)!;
+                    if (!existing.jobNames.includes(jobName)) existing.jobNames.push(jobName);
+                } else {
+                    const item = { name, code, jobNames: [jobName] };
+                    if (code) codeMap.set(code, item);
+                    levels[band].push(item);
+                    elementsFlat.push({ name, code });
+                }
+            };
+
             const { results: units } = await c.env.DB.prepare(
                 'SELECT code, name, level FROM ncs_units WHERE code LIKE ? ORDER BY level DESC, code ASC'
             ).bind(jobCode8 + '%').all() as { results: { code?: string; name?: string; level?: number }[] };
@@ -836,13 +851,10 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
             if (units && units.length > 0) {
                 for (const u of units) {
                     const code = (u.code || '').trim();
-                    if (!code || seenCodes.has(code)) continue;
-                    seenCodes.add(code);
+                    if (!code) continue;
                     const name = (u.name || '').trim() || code;
                     const lv = typeof u.level === 'number' ? u.level : 3;
-                    const band = mapLevelToBand(lv);
-                    levels[band].push({ name, code });
-                    elementsFlat.push({ name, code });
+                    addItem(name, code, lv);
                 }
                 continue;
             }
@@ -855,16 +867,15 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
                     const items = await fetchNcsTrainingByLarge(key, largeCode);
                     const prefix = jobCode8;
                     for (const it of items) {
-                        const numPart = (it.unitCode || '').replace(/_.*$/, '').slice(0, 8);
-                        if (numPart !== prefix) continue;
+                        const numPart = (it.unitCode || '').replace(/_.*$/, '').replace(/\D/g, '').slice(0, 8);
+                        // Relaxed matching: check if unitCode contains jobCode8 (some APIs return slightly diff format)
+                        if (!numPart.startsWith(prefix) && !String(it.unitCode).includes(prefix)) continue;
+
                         const code = (it.unitCode || '').trim();
-                        if (!code || seenCodes.has(code)) continue;
-                        seenCodes.add(code);
+                        if (!code) continue;
                         const name = (it.unitName || '').trim() || code;
                         const lv = it.level != null ? it.level : 3;
-                        const band = mapLevelToBand(lv);
-                        levels[band].push({ name, code });
-                        elementsFlat.push({ name, code });
+                        addItem(name, code, lv);
                     }
                 } catch (_) { /* ignore */ }
                 continue;
@@ -881,11 +892,8 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
                     { name: jobName + ' 안전관리', level: 3 as const }
                 ];
                 mock.forEach((m) => {
-                    const name = m.name;
-                    if (seenCodes.has(name)) return;
-                    seenCodes.add(name);
-                    levels[m.level].push({ name });
-                    elementsFlat.push({ name });
+                    // For mock items, code is name
+                    addItem(m.name, m.name, m.level);
                 });
             }
         }
