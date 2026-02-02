@@ -581,29 +581,86 @@
 
                 var rows = [];
                 function addSelectableRows(levelLabel, items) {
-                    (items || []).forEach(function (x) {
-                        var name = (x && x.name) ? x.name : String(x);
-                        if (!name) return;
-                        var code = (x && x.code) ? String(x.code).trim() : '';
-                        var value = code || name;
-                        var checked = selectedSet[value] || selectedSet[name] ? ' checked' : '';
-                        rows.push('<tr class="ncs-step2-selectable align-top">' +
-                            '<td class="px-4 py-2"><label class="flex items-center justify-center"><input type="checkbox" class="ncs-step2-cb rounded text-blue-600" value="' + attrEsc(value) + '"' + checked + '></label></td>' +
-                            '<td class="px-4 py-2 font-medium text-slate-700">' + esc(levelLabel) + '</td>' +
-                            '<td class="px-4 py-2 text-slate-800">' + esc(name) + '</td></tr>');
-                    });
+                    // Check if items exist
+                    var hasItems = items && items.length > 0;
+
+                    var contentHtml = '';
+                    if (!hasItems) {
+                        contentHtml = '<span class="text-slate-300 text-sm">해당 없음</span>';
+                    } else {
+                        contentHtml = '<div class="flex flex-col gap-2">';
+                        (items || []).forEach(function (x) {
+                            var name = (x && x.name) ? x.name : String(x);
+                            if (!name) return;
+                            var code = (x && x.code) ? String(x.code).trim() : '';
+                            var value = code || name;
+                            var isChecked = selectedSet[value] || selectedSet[name];
+
+                            // Style calculation
+                            // Selected: White background with border (based on image observation "Element Tolerance Review" is white). 
+                            // Unselected: Gray background? Or maybe user wants them all selectable.
+                            // The image shows "Hydraulic Element Design" (유압요소설계) as gray. The others are white. 
+                            // Let's assume White = Selected/Active, Gray = Unselected/Inactive? 
+                            // Or White = Default.
+                            // Let's use a standard toggle component style
+                            // White box with border for unchecked, Colored/Active for checked?
+                            // Actually, in the image, "Element Tolerance Review" (White) has text. "Hydraulic" (Gray) has text.
+                            // The "Gray" one looks like a disabled or unselected state.
+                            // Let's implement: Checked = White/Blue Border, Unchecked = Gray/Transparent?
+
+                            // Let's go with:
+                            // Checked: bg-white border-slate-200 shadow-sm text-slate-700
+                            // Unchecked: bg-slate-100 border-transparent text-slate-400
+                            // BUT wait, usuallly "Active" is highlighted.
+                            // Let's stick to a safe UI: 
+                            // Checkbox hidden.
+                            // Container acts as label.
+                            // Checked: ring-1 ring-emerald-500 bg-white text-emerald-700 font-medium
+                            // Unchecked: border border-slate-200 bg-slate-50 text-slate-500
+
+                            var className = isChecked
+                                ? 'cursor-pointer px-4 py-3 rounded-lg border border-slate-200 bg-white shadow-sm text-slate-800 font-medium hover:border-emerald-400 transition flex items-center justify-between group'
+                                : 'cursor-pointer px-4 py-3 rounded-lg border border-slate-100 bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700 transition flex items-center justify-between group';
+
+                            contentHtml += '<label class="' + className + '">' +
+                                '<span class="flex-1">' + esc(name) + '</span>' +
+                                '<input type="checkbox" class="ncs-step2-cb hidden" value="' + attrEsc(value) + '"' + (isChecked ? ' checked' : '') + ' onchange="var p=this.parentElement; if(this.checked){ p.className=\'cursor-pointer px-4 py-3 rounded-lg border border-slate-200 bg-white shadow-sm text-slate-800 font-medium hover:border-emerald-400 transition flex items-center justify-between group\'; } else { p.className=\'cursor-pointer px-4 py-3 rounded-lg border border-slate-100 bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700 transition flex items-center justify-between group\'; }">' +
+                                '<i class="fas fa-check ' + (isChecked ? 'text-emerald-500' : 'text-transparent group-hover:text-slate-300') + ' transition"></i>' +
+                                '</label>';
+                        });
+                        contentHtml += '</div>';
+                    }
+
+                    rows.push('<tr class="border-b border-slate-100 last:border-0">' +
+                        '<td class="px-6 py-6 text-center font-bold text-slate-600 w-40 border-r border-slate-100">' + esc(levelLabel) + '</td>' +
+                        '<td class="px-6 py-4 bg-slate-50/30">' + contentHtml + '</td></tr>');
                 }
+
                 addSelectableRows('6수준', levels[6]);
                 addSelectableRows('5수준', levels[5]);
                 addSelectableRows('4수준', levels[4]);
                 addSelectableRows('3수준', levels[3]);
                 addSelectableRows('2수준', levels[2]);
-                if (basicAbility.length) addSelectableRows('직업 기초 능력', basicAbility);
-                else rows.push('<tr class="align-top bg-slate-50/50"><td class="px-4 py-3"></td><td class="px-4 py-3 font-medium text-slate-700">직업 기초 능력</td><td class="px-4 py-3 text-slate-500">' + esc('선택된 직업기초 능력이 없습니다.') + '</td></tr>');
+
+                var basicItems = basicAbility.length ? basicAbility : [];
+                if (basicItems.length === 0) {
+                    // Special case for empty basic ability to match image style "선택된 직업기초 능력이 없습니다."
+                    rows.push('<tr class="border-b border-slate-100 last:border-0">' +
+                        '<td class="px-6 py-6 text-center font-bold text-slate-600 w-40 border-r border-slate-100">직업<br>기초<br>능력</td>' +
+                        '<td class="px-6 py-6 bg-slate-50/30 text-slate-400 text-sm">선택된 직업기초 능력이 없습니다.</td></tr>');
+                } else {
+                    addSelectableRows('직업 기초 능력', basicItems);
+                }
 
                 var mainLabels = mainJobs.map(function (j) { return (j.name || '') ? (j.name + (j.code ? ' (' + j.code + ')' : '')) : (j.code || '—'); }).filter(Boolean);
                 var mainLabel = mainLabels.length ? mainLabels.join(', ') : '—';
-                rows.push('<tr class="align-top bg-slate-50/50"><td class="px-4 py-3"></td><td class="px-4 py-3 font-medium text-slate-700">선택된 직종</td><td class="px-4 py-3 text-slate-800">' + esc(mainLabel) + '</td></tr>');
+
+                // Footer Row for Job Info
+                rows.push('<tr class="border-t-2 border-slate-200">' +
+                    '<td class="px-6 py-4 text-center font-bold text-slate-700 bg-slate-100 border-r border-slate-200">직종</td>' +
+                    '<td class="px-6 py-4 bg-slate-100 font-bold text-slate-800">' +
+                    '<div class="px-4 py-3 rounded-lg bg-slate-200/50 border border-slate-300/50 text-slate-700">' + esc(mainLabel) + '</div>' +
+                    '</td></tr>');
 
                 tbody.innerHTML = rows.join('');
 
