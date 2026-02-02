@@ -115,8 +115,24 @@ export const homeHtml = `
         </div>
     </section>
 
+    <!-- 과정 목록 섹션 -->
+    <section id="courses" class="py-16 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-4xl font-bold text-gray-800 mb-4">교육 과정</h2>
+                <p class="text-xl text-gray-600">다양한 분야의 전문 교육 프로그램</p>
+            </div>
+            <div id="courseList" class="grid md:grid-cols-3 gap-8">
+                <!-- 로딩 표시 -->
+                <div class="col-span-3 text-center py-12">
+                    <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- 교육사진 섹션 -->
-    <section id="education-photos" class="py-16 bg-gray-50">
+    <section id="education-photos" class="py-16 bg-white border-t border-gray-100">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-12">
                 <h2 class="text-4xl font-bold text-gray-800 mb-4">교육사진</h2>
@@ -145,7 +161,7 @@ export const homeHtml = `
     </section>
 
     <!-- 시제품 제작 사진 섹션 -->
-    <section id="prototype-gallery" class="py-16 bg-white border-t border-gray-100">
+    <section id="prototype-gallery" class="py-16 bg-gray-50 border-t border-gray-100">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-12">
                 <h2 class="text-4xl font-bold text-gray-800 mb-4">시제품 제작 사진</h2>
@@ -169,22 +185,6 @@ export const homeHtml = `
                 <a href="/posts?category=prototype" class="inline-flex items-center gap-2 px-8 py-4 bg-gray-800 text-white font-bold rounded-xl hover:bg-gray-900 transition shadow-lg">
                     시제품·작품 더 보기 <i class="fas fa-arrow-right"></i>
                 </a>
-            </div>
-        </div>
-    </section>
-
-    <!-- 과정 목록 섹션 -->
-    <section id="courses" class="py-16 bg-gray-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-12">
-                <h2 class="text-4xl font-bold text-gray-800 mb-4">교육 과정</h2>
-                <p class="text-xl text-gray-600">다양한 분야의 전문 교육 프로그램</p>
-            </div>
-            <div id="courseList" class="grid md:grid-cols-3 gap-8">
-                <!-- 로딩 표시 -->
-                <div class="col-span-3 text-center py-12">
-                    <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-                </div>
             </div>
         </div>
     </section>

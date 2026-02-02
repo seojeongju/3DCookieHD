@@ -33,6 +33,7 @@ import assignments from './api/assignments';
 import progress from './api/progress';
 import attendance_qr from './api/attendance_qr';
 import upload from './api/upload';
+import partnerUniversities from './api/partner_universities';
 import { setupApi } from './api/setup';
 import { adminDashboardHtml } from './views/admin';
 import { adminJobsListHtml } from './views/admin_jobs';
@@ -101,6 +102,7 @@ import { registerHtml } from './views/register';
 import { adminReviewsListHtml } from './views/admin_reviews';
 import { adminPostsListHtml } from './views/admin_posts';
 import { adminInquiriesHtml } from './views/admin_inquiries';
+import { adminPartnerUniversitiesHtml } from './views/admin_partner_universities';
 // import { adminPortfoliosHtml } from './views/admin_portfolios'; // 게시판 관리에서 통합 관리
 import { portfoliosListHtml } from './views/portfolios';
 import { postsListHtml } from './views/posts';
@@ -194,6 +196,9 @@ app.route('/api/students', students);
 // 회원 관리 API (역할 및 권한)
 app.route('/api/users', users);
 
+// 협력대학 API (공개 GET + 관리자 CRUD)
+app.route('/api/partner-universities', partnerUniversities);
+
 // HRD 행정 API
 app.route('/api/hrd', hrd);
 app.route('/api/dashboard', dashboard);
@@ -261,6 +266,7 @@ app.get('/admin/courses/sessions', (c) => c.html(adminCoursesSessionsHtml()));
 app.get('/admin/courses/sessions/register', (c) => c.html(adminCoursesSessionsRegisterHtml()));
 app.get('/admin/courses/sessions/register/:id', (c) => c.html(adminCoursesSessionsRegisterHtml(c.req.param('id'))));
 app.get('/admin/courses/copy', (c) => c.html(adminCoursesCopyHtml()));
+app.get('/admin/partner-universities', (c) => c.html(adminPartnerUniversitiesHtml));
 app.get('/admin/users', (c) => c.html(adminUsersHtml())); // 회원관리 - 역할 및 권한 관리
 app.get('/admin/hrd', (c) => c.html(adminHrdHtml()));
 app.get('/admin/personnel', (c) => c.html(adminHrdPersonnelHtml()));
@@ -3523,42 +3529,41 @@ app.get('/university-education', (c) => {
                                                                                                                                                                                         </div>
                                                                                                                                                                                     </div>
 
-                                                                                                                                                                                    <!-- 협력 대학 -->
-                                                                                                                                                                                    <div class="bg-white rounded-lg shadow-lg p-8 mb-12">
+                                                                                                                                                                                    <!-- 협력 대학 (오른쪽→왼쪽 슬라이드) -->
+                                                                                                                                                                                    <div class="bg-white rounded-lg shadow-lg p-8 mb-12 overflow-hidden">
                                                                                                                                                                                         <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">주요 협력 대학</h2>
-                                                                                                                                                                                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                                                                                                                                                                            <div class="text-center p-4 bg-gray-50 rounded-lg">
-                                                                                                                                                                                                <div class="font-semibold text-gray-800">서울대학교</div>
-                                                                                                                                                                                                                                                                                                                                                                                      </div>
-                                                                                                                                                                                            <div class="text-center p-4 bg-gray-50 rounded-lg">
-                                                                                                                                                                                                <div class="font-semibold text-gray-800">국립금오공과과대학교</div>
-                                                                                                                                                                                              
-                                                                                                                                                                                            </div>
-                                                                                                                                                                                            <div class="text-center p-4 bg-gray-50 rounded-lg">
-                                                                                                                                                                                                <div class="font-semibold text-gray-800">경운운대학교</div>
-                                                                                                                                                                                                
-                                                                                                                                                                                            </div>
-                                                                                                                                                                                            <div class="text-center p-4 bg-gray-50 rounded-lg">
-                                                                                                                                                                                                <div class="font-semibold text-gray-800">마산산대학교</div>
-                                                                                                                                                                                                
-                                                                                                                                                                                            </div>
-                                                                                                                                                                                            <div class="text-center p-4 bg-gray-50 rounded-lg">
-                                                                                                                                                                                                <div class="font-semibold text-gray-800">연성성대학교</div>
-                                                                                                                                                                                                
-                                                                                                                                                                                            </div>
-                                                                                                                                                                                            <div class="text-center p-4 bg-gray-50 rounded-lg">
-                                                                                                                                                                                                <div class="font-semibold text-gray-800">호남대학교</div>
-                                                                                                                                                                                                
-                                                                                                                                                                                            </div>
-                                                                                                                                                                                            <div class="text-center p-4 bg-gray-50 rounded-lg">
-                                                                                                                                                                                                <div class="font-semibold text-gray-800">김천대학교</div>
-                                                                                                                                                                                                
-                                                                                                                                                                                            </div>
-                                                                                                                                                                                            <div class="text-center p-4 bg-gray-50 rounded-lg">
-                                                                                                                                                                                                <div class="font-semibold text-gray-800">원광광대학교</div>
-                                                                                                                                                                                                
+                                                                                                                                                                                        <div class="partner-marquee-wrap overflow-hidden">
+                                                                                                                                                                                            <div id="partnerMarqueeTrack" class="partner-marquee-track flex gap-6 whitespace-nowrap">
+                                                                                                                                                                                                <!-- API로 채워짐 -->
+                                                                                                                                                                                                <div class="col-span-full text-center py-8 text-gray-400 text-sm">로딩 중...</div>
                                                                                                                                                                                             </div>
                                                                                                                                                                                         </div>
+                                                                                                                                                                                        <style>
+                                                                                                                                                                                            .partner-marquee-wrap { mask-image: linear-gradient(90deg, transparent, black 5%, black 95%, transparent); -webkit-mask-image: linear-gradient(90deg, transparent, black 5%, black 95%, transparent); }
+                                                                                                                                                                                            .partner-marquee-track { animation: partnerSlide 40s linear infinite; }
+                                                                                                                                                                                            .partner-marquee-track > * { flex-shrink: 0; }
+                                                                                                                                                                                            @keyframes partnerSlide { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+                                                                                                                                                                                        </style>
+                                                                                                                                                                                        <script>
+                                                                                                                                                                                            (function() {
+                                                                                                                                                                                                fetch('/api/partner-universities').then(function(r) { return r.json(); }).then(function(res) {
+                                                                                                                                                                                                    var list = (res && res.data) ? res.data : [];
+                                                                                                                                                                                                    var track = document.getElementById('partnerMarqueeTrack');
+                                                                                                                                                                                                    if (!track) return;
+                                                                                                                                                                                                    if (list.length === 0) { track.innerHTML = '<div class="text-gray-400 text-sm py-4">등록된 협력대학이 없습니다.</div>'; return; }
+                                                                                                                                                                                                    var itemHtml = function(u) {
+                                                                                                                                                                                                        return '<div class="inline-flex items-center justify-center px-8 py-4 bg-gray-50 rounded-xl border border-gray-100">' +
+                                                                                                                                                                                                            (u.logo_url ? '<img src="' + u.logo_url.replace(/"/g, '&quot;') + '" alt="" class="h-10 w-auto max-w-[140px] object-contain">' : '<span class="font-semibold text-gray-800">' + (u.name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</span>') +
+                                                                                                                                                                                                            '</div>';
+                                                                                                                                                                                                    };
+                                                                                                                                                                                                    var html = list.map(itemHtml).join('') + list.map(itemHtml).join('');
+                                                                                                                                                                                                    track.innerHTML = html;
+                                                                                                                                                                                                }).catch(function() {
+                                                                                                                                                                                                    var track = document.getElementById('partnerMarqueeTrack');
+                                                                                                                                                                                                    if (track) track.innerHTML = '<div class="text-gray-500 text-sm py-4">목록을 불러올 수 없습니다.</div>';
+                                                                                                                                                                                                });
+                                                                                                                                                                                            })();
+                                                                                                                                                                                        </script>
                                                                                                                                                                                     </div>
 
                                                                                                                                                                                     <!-- 문의하기 -->
