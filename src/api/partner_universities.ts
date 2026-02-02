@@ -14,8 +14,12 @@ app.get('/', async (c) => {
     `).all();
     const list = (rows.results || []) as { id: number; name: string; logo_url: string | null; sort_order: number }[];
     return c.json({ success: true, data: list });
-  } catch (e) {
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
     console.error('partner-universities list:', e);
+    if (msg.includes('no such table') || msg.includes('partner_universities')) {
+      return c.json({ success: false, error: '협력대학 테이블이 없습니다. 관리자에게 마이그레이션(0048) 실행을 요청하세요.' }, 503);
+    }
     return c.json({ success: false, error: '목록 조회 실패' }, 500);
   }
 });
@@ -23,11 +27,11 @@ app.get('/', async (c) => {
 /** POST /api/partner-universities - 협력대학 추가 (관리자) */
 app.post('/', authMiddleware, requireAdmin, async (c) => {
   try {
-    const body = await c.req.json<{ name: string; logo_url?: string; sort_order?: number }>();
-    const name = (body.name || '').trim();
+    const body = await c.req.json<{ name?: string; logo_url?: string; sort_order?: number }>();
+    const name = (body.name != null ? String(body.name) : '').trim();
     if (!name) return c.json({ success: false, error: '대학명을 입력하세요' }, 400);
 
-    const logoUrl = (body.logo_url || '').trim() || null;
+    const logoUrl = body.logo_url != null && String(body.logo_url).trim() !== '' ? String(body.logo_url).trim() : null;
     const sortOrder = typeof body.sort_order === 'number' ? body.sort_order : 0;
 
     const maxSort = await c.env.DB.prepare('SELECT COALESCE(MAX(sort_order), 0) as mx FROM partner_universities').first<{ mx: number }>();
@@ -40,8 +44,12 @@ app.post('/', authMiddleware, requireAdmin, async (c) => {
 
     const row = await c.env.DB.prepare('SELECT id, name, logo_url, sort_order, created_at FROM partner_universities ORDER BY id DESC LIMIT 1').first();
     return c.json({ success: true, data: row }, 201);
-  } catch (e) {
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
     console.error('partner-universities create:', e);
+    if (msg.includes('no such table') || msg.includes('partner_universities')) {
+      return c.json({ success: false, error: '협력대학 테이블이 없습니다. 마이그레이션(0048_partner_universities.sql)을 실행해 주세요.' }, 503);
+    }
     return c.json({ success: false, error: '등록 실패' }, 500);
   }
 });
@@ -70,8 +78,12 @@ app.put('/:id', authMiddleware, requireAdmin, async (c) => {
 
     const row = await c.env.DB.prepare('SELECT id, name, logo_url, sort_order, created_at FROM partner_universities WHERE id = ?').bind(id).first();
     return c.json({ success: true, data: row });
-  } catch (e) {
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
     console.error('partner-universities update:', e);
+    if (msg.includes('no such table') || msg.includes('partner_universities')) {
+      return c.json({ success: false, error: '협력대학 테이블이 없습니다. 마이그레이션(0048)을 실행해 주세요.' }, 503);
+    }
     return c.json({ success: false, error: '수정 실패' }, 500);
   }
 });
@@ -83,8 +95,12 @@ app.delete('/:id', authMiddleware, requireAdmin, async (c) => {
     if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
     await c.env.DB.prepare('DELETE FROM partner_universities WHERE id = ?').bind(id).run();
     return c.json({ success: true });
-  } catch (e) {
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
     console.error('partner-universities delete:', e);
+    if (msg.includes('no such table') || msg.includes('partner_universities')) {
+      return c.json({ success: false, error: '협력대학 테이블이 없습니다. 마이그레이션(0048)을 실행해 주세요.' }, 503);
+    }
     return c.json({ success: false, error: '삭제 실패' }, 500);
   }
 });

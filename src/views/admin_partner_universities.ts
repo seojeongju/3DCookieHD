@@ -30,7 +30,7 @@ export const adminPartnerUniversitiesHtml = `
                             <tr>
                                 <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">순서</th>
                                 <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">대학명</th>
-                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">로고 URL</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">로고</th>
                                 <th class="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase">관리</th>
                             </tr>
                         </thead>
@@ -56,8 +56,11 @@ export const adminPartnerUniversitiesHtml = `
                     <input type="text" id="name" required class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="예: 서울대학교">
                 </div>
                 <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-1">로고 URL</label>
-                    <input type="url" id="logo_url" class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="https://...">
+                    <label class="block text-sm font-bold text-gray-700 mb-1">로고 이미지 (로컬 파일)</label>
+                    <input type="file" id="logo_file" accept="image/jpeg,image/png,image/gif,image/webp" class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" onchange="onLogoFileChange(this)">
+                    <p class="text-xs text-gray-500 mt-1">선택하지 않으면 기존 로고를 유지합니다. (추가 시 생략 가능)</p>
+                    <input type="hidden" id="logo_url" value="">
+                    <div id="logo_preview" class="mt-2 hidden"><img id="logo_preview_img" src="" alt="미리보기" class="h-16 object-contain border border-gray-200 rounded"></div>
                 </div>
                 <div>
                     <label class="block text-sm font-bold text-gray-700 mb-1">표시 순서</label>
@@ -104,8 +107,12 @@ export const adminPartnerUniversitiesHtml = `
             document.getElementById('editId').value = '';
             document.getElementById('modalTitle').textContent = '대학 추가';
             document.getElementById('name').value = '';
+            var logoFile = document.getElementById('logo_file');
+            if (logoFile) logoFile.value = '';
             document.getElementById('logo_url').value = '';
             document.getElementById('sort_order').value = '0';
+            var prev = document.getElementById('logo_preview');
+            if (prev) { prev.classList.add('hidden'); var pi = prev.querySelector('img'); if (pi) pi.src = ''; }
             document.getElementById('modal').classList.remove('hidden');
         }
 
@@ -121,18 +128,54 @@ export const adminPartnerUniversitiesHtml = `
             document.getElementById('editId').value = u.id;
             document.getElementById('modalTitle').textContent = '대학 수정';
             document.getElementById('name').value = u.name || '';
+            var logoFile = document.getElementById('logo_file');
+            if (logoFile) logoFile.value = '';
             document.getElementById('logo_url').value = u.logo_url || '';
             document.getElementById('sort_order').value = u.sort_order != null ? u.sort_order : '';
+            var prev = document.getElementById('logo_preview');
+            var prevImg = prev && prev.querySelector('img');
+            if (u.logo_url && prevImg) { prevImg.src = u.logo_url; prev.classList.remove('hidden'); } else if (prev) { prev.classList.add('hidden'); if (prevImg) prevImg.src = ''; }
             document.getElementById('modal').classList.remove('hidden');
+        }
+
+        function onLogoFileChange(input) {
+            var file = input && input.files && input.files[0];
+            var prev = document.getElementById('logo_preview');
+            var prevImg = prev && prev.querySelector('img');
+            if (file && /^image\\/(jpeg|png|gif|webp)$/i.test(file.type)) {
+                var url = URL.createObjectURL(file);
+                if (prevImg) prevImg.src = url;
+                if (prev) prev.classList.remove('hidden');
+            } else {
+                if (prev) prev.classList.add('hidden');
+                if (prevImg) prevImg.src = '';
+            }
         }
 
         async function save(e) {
             e.preventDefault();
             const id = document.getElementById('editId').value;
             const name = document.getElementById('name').value.trim();
-            const logo_url = document.getElementById('logo_url').value.trim() || null;
-            const sort_order = parseInt(document.getElementById('sort_order').value, 10) || 0;
+            var logo_url = document.getElementById('logo_url').value.trim() || null;
+            const logoFileInput = document.getElementById('logo_file');
             const token = localStorage.getItem('token');
+            if (!token) { alert('로그인이 필요합니다.'); return; }
+            if (logoFileInput && logoFileInput.files && logoFileInput.files[0]) {
+                try {
+                    const fd = new FormData();
+                    fd.append('file', logoFileInput.files[0]);
+                    fd.append('category', 'images');
+                    fd.append('folder', 'partner-universities');
+                    const upRes = await fetch('/api/upload', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token }, body: fd });
+                    const upJson = await upRes.json();
+                    if (!upJson.success) { alert(upJson.error || '로고 업로드 실패'); return; }
+                    logo_url = (upJson.data && (upJson.data.url || upJson.data.file_url)) || logo_url;
+                } catch (err) {
+                    alert('로고 업로드 중 오류가 발생했습니다.');
+                    return;
+                }
+            }
+            const sort_order = parseInt(document.getElementById('sort_order').value, 10) || 0;
             const url = id ? '/api/partner-universities/' + id : '/api/partner-universities';
             const method = id ? 'PUT' : 'POST';
             const body = id ? { name, logo_url, sort_order } : { name, logo_url, sort_order };

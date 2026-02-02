@@ -131,26 +131,17 @@ export const homeHtml = `
         </div>
     </section>
 
-    <!-- 교육사진 섹션 -->
+    <!-- 교육사진 섹션 (실데이터) -->
     <section id="education-photos" class="py-16 bg-white border-t border-gray-100">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-12">
                 <h2 class="text-4xl font-bold text-gray-800 mb-4">교육사진</h2>
                 <p class="text-xl text-gray-600">생생한 교육 현장과 수업 모습을 소개합니다.</p>
             </div>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                <a href="/education-photos" class="block rounded-xl overflow-hidden shadow-md hover:shadow-xl transition aspect-square bg-gray-200">
-                    <img src="/static/hero1.jpg" alt="교육 현장" class="w-full h-full object-cover hover:scale-105 transition duration-500">
-                </a>
-                <a href="/education-photos" class="block rounded-xl overflow-hidden shadow-md hover:shadow-xl transition aspect-square bg-gray-200">
-                    <img src="/static/hero2.jpg" alt="교육 현장" class="w-full h-full object-cover hover:scale-105 transition duration-500">
-                </a>
-                <a href="/education-photos" class="block rounded-xl overflow-hidden shadow-md hover:shadow-xl transition aspect-square bg-gray-200">
-                    <img src="/static/hero3.jpg" alt="교육 현장" class="w-full h-full object-cover hover:scale-105 transition duration-500">
-                </a>
-                <a href="/education-photos" class="block rounded-xl overflow-hidden shadow-md hover:shadow-xl transition aspect-square bg-gray-200">
-                    <img src="/static/hero4.jpg" alt="교육 현장" class="w-full h-full object-cover hover:scale-105 transition duration-500">
-                </a>
+            <div id="educationPhotoList" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div class="col-span-2 md:col-span-4 flex justify-center py-12">
+                    <div class="inline-block animate-spin rounded-full h-10 w-10 border-2 border-primary-600 border-t-transparent"></div>
+                </div>
             </div>
             <div class="text-center">
                 <a href="/education-photos" class="inline-flex items-center gap-2 px-8 py-4 bg-primary-600 text-white font-bold rounded-xl hover:bg-primary-700 transition shadow-lg">
@@ -295,9 +286,48 @@ export const homeHtml = `
                 container.innerHTML = '<div class="col-span-2 md:col-span-4 text-center py-12 text-gray-500">시제품 목록을 불러오지 못했습니다.</div>';
             }
         }
+        async function loadEducationPhotos() {
+            var container = document.getElementById('educationPhotoList');
+            if (!container) return;
+            try {
+                var res = await fetch('/api/posts?category=education_photo&status=published&limit=8');
+                var result = await res.json();
+                if (!result.success) {
+                    container.innerHTML = '<div class="col-span-2 md:col-span-4 text-center py-12 text-gray-500">교육사진 목록을 불러오지 못했습니다.</div>';
+                    return;
+                }
+                var list = result.data || [];
+                if (list.length === 0) {
+                    container.innerHTML = '<div class="col-span-2 md:col-span-4 text-center py-12">' +
+                        '<p class="text-gray-500 mb-6">등록된 교육사진이 없습니다.</p>' +
+                        '<a href="/education-photos" class="inline-flex items-center gap-2 px-6 py-3 bg-primary-100 text-primary-700 font-bold rounded-xl hover:bg-primary-200 transition">교육사진 갤러리 보기 <i class="fas fa-arrow-right"></i></a></div>';
+                    return;
+                }
+                container.innerHTML = list.map(function(p) {
+                    var img = (p.images && p.images.length) ? p.images[0] : '';
+                    if (!img && p.content) {
+                        var m = p.content.match(/<img[^>]+src=["']([^"']+)["']/i);
+                        if (m && m[1]) img = m[1];
+                    }
+                    var title = (p.title || '').substring(0, 20);
+                    if ((p.title || '').length > 20) title += '…';
+                    var safeTitle = (p.title || '교육사진').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    return '<a href="/education-photos" class="relative block rounded-xl overflow-hidden shadow-md hover:shadow-xl transition aspect-square bg-gray-200 group">' +
+                        (img ? '<img src="' + img + '" alt="' + safeTitle + '" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">' :
+                        '<div class="w-full h-full flex flex-col items-center justify-center text-primary-300"><i class="fas fa-images text-4xl mb-2"></i><span class="text-xs font-medium">' + title + '</span></div>') +
+                        '<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-3">' +
+                        '<span class="text-white text-sm font-bold truncate w-full">' + (p.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</span>' +
+                        '</div></a>';
+                }).join('');
+            } catch (e) {
+                console.error('loadEducationPhotos error:', e);
+                container.innerHTML = '<div class="col-span-2 md:col-span-4 text-center py-12 text-gray-500">교육사진 목록을 불러오지 못했습니다.</div>';
+            }
+        }
         document.addEventListener('DOMContentLoaded', function() {
             loadCourses();
             loadPrototypes();
+            loadEducationPhotos();
         });
     </script>
 `;
