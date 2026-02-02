@@ -613,10 +613,33 @@ app.get('/approved/registrations/:id', authMiddleware, requireAdmin, async (c) =
     }
 });
 
+function parseMainJobs(body: { main_jobs?: { code?: string; name?: string }[]; main_job_code?: string; main_job_name?: string }): { mainJobsJson: string | null; mainJobCode: string | null; mainJobName: string | null } {
+    const raw = body.main_jobs;
+    if (Array.isArray(raw) && raw.length > 0) {
+        const arr = raw
+            .filter((j): j is { code?: string; name?: string } => j != null && typeof j === 'object')
+            .map((j) => ({ code: (j.code ?? '').toString().trim(), name: (j.name ?? '').toString().trim() }))
+            .filter((j) => j.code || j.name);
+        if (arr.length > 0) {
+            const first = arr[0];
+            return {
+                mainJobsJson: JSON.stringify(arr),
+                mainJobCode: first.code || null,
+                mainJobName: first.name || null,
+            };
+        }
+    }
+    const code = (body.main_job_code || '').toString().trim() || null;
+    const name = (body.main_job_name || '').toString().trim() || null;
+    const mainJobsJson = code || name ? JSON.stringify([{ code: code ?? '', name: name ?? '' }]) : null;
+    return { mainJobsJson, mainJobCode: code, mainJobName: name };
+}
+
 app.post('/approved/registrations', authMiddleware, requireAdmin, async (c) => {
     try {
         const body = await c.req.json<{
             ncs_tab?: string; course_type?: string; main_job_code?: string; main_job_name?: string;
+            main_jobs?: { code?: string; name?: string }[];
             overview_content?: string; dev_category?: string; large_code?: string; mid_code?: string;
             small_code?: string; sub_code?: string; unit_code?: string; unit_name?: string;
             non_ncs_course_name?: string; non_ncs_overview?: string;
@@ -624,8 +647,7 @@ app.post('/approved/registrations', authMiddleware, requireAdmin, async (c) => {
         }>();
         const ncsTab = (body.ncs_tab || 'ncs').trim();
         const courseType = (body.course_type || '').trim() || null;
-        const mainJobCode = (body.main_job_code || '').trim() || null;
-        const mainJobName = (body.main_job_name || '').trim() || null;
+        const { mainJobsJson, mainJobCode, mainJobName } = parseMainJobs(body);
         const overviewContent = (body.overview_content || '').trim() || null;
         const devCategory = (body.dev_category || '').trim() || null;
         const largeCode = (body.large_code || '').trim() || null;
@@ -642,12 +664,12 @@ app.post('/approved/registrations', authMiddleware, requireAdmin, async (c) => {
 
         const r = await c.env.DB.prepare(
             `INSERT INTO ncs_approved_registrations (
-                ncs_tab, course_type, main_job_code, main_job_name, overview_content,
+                ncs_tab, course_type, main_job_code, main_job_name, main_jobs_json, overview_content,
                 dev_category, large_code, mid_code, small_code, sub_code, unit_code, unit_name,
                 non_ncs_course_name, non_ncs_overview, course_name, training_level, prereq_skill
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
         ).bind(
-            ncsTab, courseType, mainJobCode, mainJobName, overviewContent,
+            ncsTab, courseType, mainJobCode, mainJobName, mainJobsJson, overviewContent,
             devCategory, largeCode, midCode, smallCode, subCode, unitCode, unitName,
             nonNcsCourseName, nonNcsOverview, courseName, trainingLevel, prereqSkill
         ).run();
@@ -697,13 +719,13 @@ app.put('/approved/registrations/:id', authMiddleware, requireAdmin, async (c) =
 
         await c.env.DB.prepare(
             `UPDATE ncs_approved_registrations SET
-                ncs_tab = ?, course_type = ?, main_job_code = ?, main_job_name = ?, overview_content = ?,
+                ncs_tab = ?, course_type = ?, main_job_code = ?, main_job_name = ?, main_jobs_json = ?, overview_content = ?,
                 dev_category = ?, large_code = ?, mid_code = ?, small_code = ?, sub_code = ?, unit_code = ?, unit_name = ?,
                 non_ncs_course_name = ?, non_ncs_overview = ?, course_name = ?, training_level = ?, prereq_skill = ?,
                 updated_at = datetime('now')
             WHERE id = ?`
         ).bind(
-            ncsTab, courseType, mainJobCode, mainJobName, overviewContent,
+            ncsTab, courseType, mainJobCode, mainJobName, mainJobsJson, overviewContent,
             devCategory, largeCode, midCode, smallCode, subCode, unitCode, unitName,
             nonNcsCourseName, nonNcsOverview, courseName, trainingLevel, prereqSkill, id
         ).run();
@@ -739,7 +761,7 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
         if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
         const reg = await c.env.DB.prepare(
             'SELECT * FROM ncs_approved_registrations WHERE id = ?'
-        ).bind(id).first() as { unit_code?: string; unit_name?: string; main_job_code?: string; main_job_name?: string; ncs_tab?: string; non_ncs_course_name?: string; selected_training_elements_json?: string | null } | null;
+        ).bind(id).first() as { unit_code?: string; unit_name?: string; main_job_code?: string; main_job_name?: string; main_jobs_json?: string | null; ncs_tab?: string; non_ncs_course_name?: string; selected_training_elements_json?: string | null } | null;
         if (!reg) return c.json({ success: false, error: '등록 정보 없음' }, 404);
 
         let selected: string[] = [];
@@ -751,10 +773,19 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
             }
         } catch (_) { /* ignore */ }
 
-        const mainJob = {
+        let mainJob = {
             code: (reg.unit_code || reg.main_job_code || '').trim() || null,
             name: (reg.unit_name || reg.main_job_name || '').trim() || null
         };
+        const mainJobsRaw = (reg as { main_jobs_json?: string | null }).main_jobs_json;
+        if (mainJobsRaw && typeof mainJobsRaw === 'string') {
+            try {
+                const arr = JSON.parse(mainJobsRaw) as { code?: string; name?: string }[];
+                if (Array.isArray(arr) && arr.length > 0 && (arr[0].code || arr[0].name)) {
+                    mainJob = { code: (arr[0].code ?? '').toString().trim() || null, name: (arr[0].name ?? '').toString().trim() || null };
+                }
+            } catch (_) { /* ignore */ }
+        }
         if (reg.ncs_tab === 'non_ncs') {
             return c.json({
                 success: true,
