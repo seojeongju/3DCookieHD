@@ -7,6 +7,20 @@
 - **관리자 화면에서 CSV 일괄 등록**: 새 사이트 **관리자 > 교육사진 갤러리 관리**에서 **CSV 일괄 등록** 버튼을 누른 뒤, 구 사이트에서 다운받은 CSV 파일을 선택하면 바로 일괄 등록됩니다. (별도 스크립트 실행 불필요)
 - **명령줄/스크립트로 진행**: **방법 0-2**에서 CSV를 JSON으로 변환한 뒤 `import-education-photos.js`로 일괄 등록할 수 있습니다.
 
+### CSV로 등록했는데 사진이 안 나올 때
+
+CSV에는 **제목·등록자·등록일**만 있고 **이미지 URL이 없어서** 갤러리에 사진이 안 보일 수 있습니다. 다음 중 하나를 쓰세요.
+
+1. **관리자 > 이미지 URL 일괄 입력** (권장)  
+   - **교육사진 갤러리 관리**에서 **이미지 URL 일괄 입력** 버튼 클릭  
+   - 구 사이트에서 각 게시글 상세 페이지를 열고, 이미지에 마우스 오른쪽 → **이미지 주소 복사**  
+   - 모달에 **목록 순서대로 한 줄에 하나씩** URL 붙여넣기 → **적용하기**
+
+2. **스크래퍼로 이미지 URL까지 추출**  
+   - 구 사이트가 **3dcookiehd.co.kr**이면 **방법 0** (`scrape-education-photos.cjs`)  
+   - 구 사이트가 **HRD Market(hrdmarket.co.kr)**이면 **방법 0-HRD** (`scrape-education-photos-hrdmarket.cjs`)  
+   - 실행 후 나온 JSON으로 **방법 1** 임포트 스크립트 실행
+
 ---
 
 ## 방법 0: 구 사이트 아이디/비밀번호로 자동 추출 (권장)
@@ -46,6 +60,29 @@ node scripts/scrape-education-photos.cjs
 
 - **로그인 폼을 못 찾을 때**: `HEADLESS=0` 으로 실행하면 브라우저가 보입니다. 직접 로그인한 뒤 터미널에서 Enter를 누르면 목록 추출이 이어집니다.
 - 구 사이트 HTML 구조가 다르면 **scripts/scrape-education-photos.cjs** 안의 셀렉터(테이블 행, 링크, 상세 이미지 등)를 해당 사이트에 맞게 수정해야 할 수 있습니다.
+
+---
+
+## 방법 0-HRD: HRD Market(hrdmarket.co.kr)에서 교육사진+이미지 URL 추출
+
+데이터가 **HRD Market 학사행정관리시스템**에 있을 때 사용합니다. 로그인 후 3D프린팅 교육사진 목록·상세 페이지에서 **이미지 URL**을 자동으로 추출해 JSON으로 저장합니다.
+
+### 실행 방법 (PowerShell)
+
+```powershell
+cd d:\Documents\program_DEV\3DCookieHD-education-platform
+
+# HRD Market 계정 (환경변수로만 전달, Git에 넣지 마세요)
+$env:HRD_USER="cookiehd2"
+$env:HRD_PASSWORD="비밀번호"
+
+node scripts/scrape-education-photos-hrdmarket.cjs
+```
+
+- 목록 URL이 다르면: `$env:HRD_LIST_URL="https://hrdmarket.co.kr/hrd/bbs/..."` 로 지정
+- 브라우저를 보면서 진행하려면: `$env:HEADLESS="0"`
+
+실행이 끝나면 **scripts/education-photos-backup.json** 에 제목·이미지 URL·설명이 저장됩니다. 이어서 **방법 1** 3단계(임포트 스크립트)로 새 사이트에 등록하면 됩니다.
 
 ---
 

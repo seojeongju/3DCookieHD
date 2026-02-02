@@ -35,7 +35,10 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
                         <h1 class="text-2xl font-bold text-gray-800">교육사진 갤러리 관리</h1>
                         <p class="text-gray-600 mt-1">교육사진 갤러리 게시글을 관리합니다.</p>
                     </div>
-                    <div class="flex gap-2">
+                    <div class="flex gap-2 flex-wrap">
+                        <button onclick="openBulkImageModal()" class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition flex items-center">
+                            <i class="fas fa-link mr-2"></i> 이미지 URL 일괄 입력
+                        </button>
                         <button onclick="openCsvImportModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center">
                             <i class="fas fa-file-csv mr-2"></i> CSV 일괄 등록
                         </button>
@@ -110,6 +113,31 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
             <div class="p-6 border-t border-gray-200 flex justify-end gap-2">
                 <button type="button" onclick="closeCsvImportModal()" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">닫기</button>
                 <button type="button" id="csvStartBtn" onclick="startCsvImport()" disabled class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">등록 시작</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 이미지 URL 일괄 입력 모달 (CSV로 등록한 뒤 사진만 채울 때) -->
+    <div id="bulkImageModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="text-xl font-bold text-gray-800">이미지 URL 일괄 입력</h3>
+                <button onclick="closeBulkImageModal()" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1">
+                <p class="text-gray-600 text-sm mb-4">CSV로 등록한 글에 <strong>사진이 없을 때</strong> 사용하세요. 구 사이트에서 각 게시글 상세 페이지를 열고 이미지에 마우스 오른쪽 → <strong>이미지 주소 복사</strong>한 뒤, 아래에 <strong>목록 순서대로 한 줄에 하나씩</strong> 붙여넣으세요.</p>
+                <div id="bulkImageListInfo" class="mb-2 text-sm text-gray-500">교육사진 목록 불러오는 중...</div>
+                <label class="block text-gray-700 font-medium mb-2">이미지 URL (한 줄에 하나)</label>
+                <textarea id="bulkImageUrls" rows="12" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 font-mono text-sm" placeholder="https://example.com/photo1.jpg&#10;https://example.com/photo2.jpg"></textarea>
+                <div id="bulkImageProgress" class="hidden mt-4">
+                    <div class="flex justify-between text-sm text-gray-600 mb-1"><span id="bulkImageProgressText">0 / 0 적용 중...</span></div>
+                    <div class="w-full bg-gray-200 rounded-full h-2"><div id="bulkImageProgressBar" class="bg-emerald-600 h-2 rounded-full transition-all" style="width: 0%"></div></div>
+                </div>
+                <div id="bulkImageResult" class="hidden mt-4 p-4 rounded-lg text-sm"></div>
+            </div>
+            <div class="p-6 border-t border-gray-200 flex justify-end gap-2">
+                <button type="button" onclick="closeBulkImageModal()" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">닫기</button>
+                <button type="button" id="bulkImageApplyBtn" onclick="applyBulkImageUrls()" class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">적용하기</button>
             </div>
         </div>
     </div>
@@ -497,6 +525,86 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
 
         function closeCsvImportModal() {
             document.getElementById('csvImportModal').classList.add('hidden');
+        }
+
+        let bulkImagePostList = [];
+        async function openBulkImageModal() {
+            document.getElementById('bulkImageModal').classList.remove('hidden');
+            document.getElementById('bulkImageListInfo').textContent = '교육사진 목록 불러오는 중...';
+            document.getElementById('bulkImageUrls').value = '';
+            document.getElementById('bulkImageProgress').classList.add('hidden');
+            document.getElementById('bulkImageResult').classList.add('hidden');
+            const token = localStorage.getItem('token');
+            if (!token) {
+                document.getElementById('bulkImageListInfo').textContent = '로그인이 필요합니다.';
+                return;
+            }
+            try {
+                const res = await fetch('/api/posts?category=education_photo&limit=500');
+                const result = await res.json();
+                if (!result.success || !result.data || result.data.length === 0) {
+                    document.getElementById('bulkImageListInfo').textContent = '등록된 교육사진이 없습니다.';
+                    bulkImagePostList = [];
+                    return;
+                }
+                bulkImagePostList = result.data;
+                document.getElementById('bulkImageListInfo').textContent = '총 ' + bulkImagePostList.length + '건. 아래에 목록 순서대로 한 줄에 하나씩 이미지 URL을 붙여넣으세요.';
+            } catch (e) {
+                document.getElementById('bulkImageListInfo').textContent = '목록을 불러오지 못했습니다.';
+                bulkImagePostList = [];
+            }
+        }
+        function closeBulkImageModal() {
+            document.getElementById('bulkImageModal').classList.add('hidden');
+        }
+        async function applyBulkImageUrls() {
+            const token = localStorage.getItem('token');
+            if (!token) { alert('로그인이 필요합니다.'); return; }
+            const raw = document.getElementById('bulkImageUrls').value || '';
+            const urls = raw.split(/\\r?\\n/).map(s => s.trim()).filter(Boolean);
+            if (urls.length === 0) {
+                alert('한 줄에 하나씩 이미지 URL을 입력해 주세요.');
+                return;
+            }
+            if (bulkImagePostList.length === 0) {
+                alert('적용할 게시글이 없습니다. 모달을 다시 열어 주세요.');
+                return;
+            }
+            const total = Math.min(urls.length, bulkImagePostList.length);
+            document.getElementById('bulkImageApplyBtn').disabled = true;
+            document.getElementById('bulkImageProgress').classList.remove('hidden');
+            const progressText = document.getElementById('bulkImageProgressText');
+            const progressBar = document.getElementById('bulkImageProgressBar');
+            let ok = 0, fail = 0;
+            for (let i = 0; i < total; i++) {
+                progressText.textContent = (i + 1) + ' / ' + total + ' 적용 중...';
+                progressBar.style.width = ((i + 1) / total * 100) + '%';
+                const post = bulkImagePostList[i];
+                const url = urls[i];
+                try {
+                    const res = await fetch('/api/posts/' + post.id, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                        body: JSON.stringify({ images: [url] })
+                    });
+                    if (res.status === 401) {
+                        alert('로그인 세션이 만료되었습니다.');
+                        window.location.href = '/login';
+                        return;
+                    }
+                    const json = await res.json().catch(() => ({}));
+                    if (res.ok && json.success) ok++; else fail++;
+                } catch (e) { fail++; }
+                await new Promise(r => setTimeout(r, 150));
+            }
+            progressBar.style.width = '100%';
+            progressText.textContent = '완료';
+            const resultEl = document.getElementById('bulkImageResult');
+            resultEl.className = 'mt-4 p-4 rounded-lg text-sm ' + (fail > 0 ? 'bg-amber-50 text-amber-800' : 'bg-green-50 text-green-800');
+            resultEl.innerHTML = '적용 완료: 성공 <strong>' + ok + '</strong>건, 실패 <strong>' + fail + '</strong>건';
+            resultEl.classList.remove('hidden');
+            document.getElementById('bulkImageApplyBtn').disabled = false;
+            loadPosts(currentPage);
         }
 
         async function startCsvImport() {
