@@ -177,9 +177,14 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
                                 </div>
                                 <div class="space-y-2">
                                     <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">메인 책임 교수 (Lead Instructor)</label>
-                                    <select name="teacher_id" id="courseInstructor" class="w-full px-5 py-3.5 bg-white/5 border border-white/10 rounded-2xl focus:bg-white/10 focus:border-blue-500/30 outline-none transition-all font-bold text-gray-300 text-sm appearance-none cursor-pointer">
-                                        <option value="">데이터 로딩중 (Loading...)</option>
-                                    </select>
+                                    <div class="flex gap-2 items-center">
+                                        <select name="teacher_id" id="courseInstructor" class="flex-1 px-5 py-3.5 bg-white/5 border border-white/10 rounded-2xl focus:bg-white/10 focus:border-blue-500/30 outline-none transition-all font-bold text-gray-300 text-sm appearance-none cursor-pointer">
+                                            <option value="">데이터 로딩중 (Loading...)</option>
+                                        </select>
+                                        <button type="button" onclick="clearCourseInstructor()" class="px-4 py-3.5 rounded-2xl border border-white/20 text-xs font-bold text-amber-300 hover:bg-amber-500/20 hover:border-amber-400/30 transition-all whitespace-nowrap" title="강사 배정 삭제">배정 해제</button>
+                                        <button type="button" onclick="saveCourseInstructorOnly()" class="px-4 py-3.5 rounded-2xl bg-blue-500/30 border border-blue-400/30 text-xs font-bold text-blue-200 hover:bg-blue-500/50 transition-all whitespace-nowrap" title="강사 배정만 저장">강사 저장</button>
+                                    </div>
+                                    <p class="text-[9px] text-gray-500 mt-1">수정: 강사 선택 후 [강사 저장] 클릭. 삭제: [배정 해제] 후 [강사 저장] 클릭.</p>
                                 </div>
                             </div>
                         </div>
@@ -252,6 +257,22 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
                         </div>
                         <div id="subjectListContainer" class="space-y-4 max-h-[400px] overflow-y-auto px-1 custom-scrollbar">
                             <!-- Rows go here -->
+                        </div>
+                    </div>
+
+                    <!-- 수강생 관리 (과정 수정 시에만 표시, 수강 취소 후 과정 삭제 가능) -->
+                    <div id="courseEnrollmentSection" class="col-span-12 bg-amber-50/80 border border-amber-200 rounded-[2.5rem] p-8 space-y-4 hidden">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600">
+                                <i class="fas fa-user-graduate text-sm"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-black text-gray-900 tracking-tight">수강생 관리 (Enrolled Students)</h4>
+                                <p class="text-xs text-amber-800 mt-0.5">수강생이 있으면 과정 삭제가 불가합니다. 수강 취소 후 삭제할 수 있습니다.</p>
+                            </div>
+                        </div>
+                        <div id="courseEnrollmentList" class="bg-white rounded-2xl border border-amber-200/60 p-4 max-h-[280px] overflow-y-auto custom-scrollbar space-y-2">
+                            <!-- 동적 로딩 -->
                         </div>
                     </div>
 
@@ -582,8 +603,12 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
                     } catch(e) {}
                 }
                 initTinyMCE(course.description || '');
+                const enrollSection = document.getElementById('courseEnrollmentSection');
+                if (enrollSection) { enrollSection.classList.remove('hidden'); loadCourseEnrollments(course.id); }
             } else {
                 document.getElementById('modalTitle').textContent = '신규 과정 개설';
+                const enrollSection = document.getElementById('courseEnrollmentSection');
+                if (enrollSection) enrollSection.classList.add('hidden');
                 f.reset();
                 document.getElementById('courseId').value = '';
                 document.getElementById('courseStatus').value = 'preparing';
@@ -728,6 +753,58 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
         }
 
         function editCourse(c) { openModal('createCourseModal', c); }
+
+        async function loadCourseEnrollments(courseId) {
+            const container = document.getElementById('courseEnrollmentList');
+            if (!container) return;
+            container.innerHTML = '<p class="text-gray-400 text-sm py-4 text-center"><i class="fas fa-spinner fa-spin mr-2"></i> 로딩 중...</p>';
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch('/api/enrollments?course_id=' + courseId + '&limit=500', { headers: { 'Authorization': 'Bearer ' + token } });
+                const json = await res.json();
+                if (!json.success || !Array.isArray(json.data)) {
+                    container.innerHTML = '<p class="text-gray-500 text-sm py-4 text-center">수강생 목록을 불러올 수 없습니다.</p>';
+                    return;
+                }
+                const list = json.data.filter(function(e) { return e.status === 'approved' || e.status === 'pending'; });
+                if (list.length === 0) {
+                    container.innerHTML = '<p class="text-gray-500 text-sm py-4 text-center">수강 중인 학생이 없습니다. 과정 삭제가 가능합니다.</p>';
+                    return;
+                }
+                container.innerHTML = list.map(function(e) {
+                    var name = (e.user_name || e.name || '').trim() || '(이름 없음)';
+                    var statusText = e.status === 'approved' ? '수강중' : e.status === 'pending' ? '대기' : e.status || '';
+                    return '<div class="flex items-center justify-between py-2 px-3 rounded-xl bg-gray-50 border border-gray-100">' +
+                        '<span class="text-sm font-bold text-gray-800">' + (name.replace(/</g, '&lt;')) + '</span>' +
+                        '<span class="text-xs text-gray-500 mr-2">' + statusText + '</span>' +
+                        '<button type="button" onclick="cancelEnrollment(' + e.id + ',' + courseId + ')" class="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-bold hover:bg-red-100 transition">수강 취소</button>' +
+                        '</div>';
+                }).join('');
+            } catch (e) {
+                console.error('loadCourseEnrollments', e);
+                container.innerHTML = '<p class="text-red-500 text-sm py-4 text-center">목록 로드 실패</p>';
+            }
+        }
+
+        async function cancelEnrollment(enrollmentId, courseId) {
+            if (!confirm('이 수강생의 수강을 취소하시겠습니까?')) return;
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch('/api/enrollments/' + enrollmentId + '/status', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({ status: 'cancelled' })
+                });
+                const json = await res.json();
+                if (json.success) {
+                    alert('수강이 취소되었습니다.');
+                    loadCourseEnrollments(courseId);
+                } else alert(json.error || '취소 실패');
+            } catch (e) {
+                console.error('cancelEnrollment', e);
+                alert('수강 취소 중 오류가 발생했습니다.');
+            }
+        }
         
         function presetDays(days) {
             const startStr = document.getElementById('courseStartDate').value;

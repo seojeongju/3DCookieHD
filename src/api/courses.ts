@@ -382,7 +382,7 @@ courses.delete('/:id', authMiddleware, requireAdmin, async (c) => {
     );
 
     if (enrollmentCount && enrollmentCount.count > 0) {
-      return errorResponse(c, '수강생이 있는 과정은 삭제할 수 없습니다', 400);
+      return errorResponse(c, '수강생이 있는 과정은 삭제할 수 없습니다. 교육과정 수정에서 수강생 관리 → 수강 취소 후 삭제해 주세요.', 400);
     }
 
     // ON DELETE CASCADE/SET NULL이 없는 테이블: 과정 삭제 전 참조 제거 (순서 유지)

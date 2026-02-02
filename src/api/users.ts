@@ -163,11 +163,29 @@ app.delete('/:id', authMiddleware, requireAdmin, async (c) => {
             return c.json({ success: false, error: 'Cannot delete your own account' }, 400);
         }
 
+        // 강사/사용자 배정 등 FK 제약으로 삭제 불가 시 원인 안내 (500 대신 400 + 메시지)
+        const trainingLog = await db.prepare('SELECT 1 FROM training_logs WHERE instructor_id = ? LIMIT 1').bind(userId).first();
+        if (trainingLog) {
+            return c.json({ success: false, error: '이 사용자는 훈련일지에 강사로 등록되어 있어 삭제할 수 없습니다. 훈련일지에서 강사 배정을 해제한 후 삭제해 주세요.' }, 400);
+        }
+        const assignment = await db.prepare('SELECT 1 FROM assignments WHERE teacher_id = ? LIMIT 1').bind(userId).first();
+        if (assignment) {
+            return c.json({ success: false, error: '이 사용자는 과제에 강사로 배정되어 있어 삭제할 수 없습니다. 과제 배정을 해제한 후 삭제해 주세요.' }, 400);
+        }
+        const courseTeacher = await db.prepare('SELECT 1 FROM courses WHERE teacher_id = ? LIMIT 1').bind(userId).first();
+        if (courseTeacher) {
+            return c.json({ success: false, error: '이 사용자는 과정에 강사로 배정되어 있어 삭제할 수 없습니다. 과정 관리에서 강사 배정을 해제한 후 삭제해 주세요.' }, 400);
+        }
+
         await db.prepare('DELETE FROM users WHERE id = ?').bind(userId).run();
 
         return c.json({ success: true });
     } catch (error) {
         console.error('[Users API] Delete failed:', error);
+        const msg = error instanceof Error ? error.message : String(error);
+        if (/foreign key|constraint|FOREIGN KEY/i.test(msg)) {
+            return c.json({ success: false, error: '이 사용자는 과정·훈련일지·과제·교직원 등에 연결되어 있어 삭제할 수 없습니다. 관련 배정을 해제한 후 삭제해 주세요.' }, 400);
+        }
         return c.json({ success: false, error: 'Failed to delete user' }, 500);
     }
 });
