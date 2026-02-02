@@ -35,9 +35,17 @@ export const adminPrototypeGalleryHtml = (sidebar: string) => `
                         <h1 class="text-2xl font-bold text-gray-800">시제품 제작사진 관리</h1>
                         <p class="text-gray-600 mt-1">시제품 갤러리 게시글을 관리합니다.</p>
                     </div>
-                    <button onclick="openModal(null)" class="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition flex items-center">
-                        <i class="fas fa-plus mr-2"></i> 시제품 등록
-                    </button>
+                    <div class="flex gap-2 flex-wrap">
+                        <button onclick="openCsvImportModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center">
+                            <i class="fas fa-file-csv mr-2"></i> CSV 일괄 등록
+                        </button>
+                        <button onclick="openBulkImageModal()" class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition flex items-center">
+                            <i class="fas fa-link mr-2"></i> 이미지 URL 일괄 입력
+                        </button>
+                        <button onclick="openModal(null)" class="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition flex items-center">
+                            <i class="fas fa-plus mr-2"></i> 시제품 등록
+                        </button>
+                    </div>
                 </div>
             </div>
             <main class="flex-1 overflow-y-auto p-8 custom-scrollbar">
@@ -73,6 +81,110 @@ export const adminPrototypeGalleryHtml = (sidebar: string) => `
                 </div>
                 <div class="mt-4 flex justify-center" id="pagination"></div>
             </main>
+        </div>
+    </div>
+
+    <!-- CSV 일괄 등록 모달 -->
+    <div id="csvImportModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="text-xl font-bold text-gray-800">구 사이트 시제품 CSV 일괄 등록</h3>
+                <button onclick="closeCsvImportModal()" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1">
+                <p class="text-gray-600 text-sm mb-4">구 사이트 관리자에서 <strong>시제품 제작 사진</strong> 목록을 CSV로 다운받은 파일을 선택하세요. 제목·등록자·등록일자·이미지 URL(있으면) 컬럼을 인식해 시제품으로 등록합니다.</p>
+                <div class="mb-4">
+                    <label class="block text-gray-700 font-medium mb-2">CSV 파일 선택</label>
+                    <input type="file" id="csvFileInput" accept=".csv,text/csv,application/csv" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                </div>
+                <div id="csvPreview" class="hidden mb-4 p-4 bg-gray-50 rounded-lg text-sm"><span id="csvPreviewText"></span></div>
+                <div id="csvProgress" class="hidden mb-4">
+                    <div class="flex justify-between text-sm text-gray-600 mb-1"><span id="csvProgressText">0 / 0 등록 중...</span></div>
+                    <div class="w-full bg-gray-200 rounded-full h-2"><div id="csvProgressBar" class="bg-blue-600 h-2 rounded-full transition-all" style="width: 0%"></div></div>
+                </div>
+                <div id="csvResult" class="hidden p-4 rounded-lg text-sm"></div>
+            </div>
+            <div class="p-6 border-t border-gray-200 flex justify-end gap-2">
+                <button type="button" onclick="closeCsvImportModal()" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">닫기</button>
+                <button type="button" id="csvStartBtn" onclick="startCsvImport()" disabled class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">등록 시작</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 이미지 URL 일괄 입력 모달 -->
+    <div id="bulkImageModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="text-xl font-bold text-gray-800">이미지 URL 일괄 입력</h3>
+                <button onclick="closeBulkImageModal()" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1">
+                <p class="text-gray-600 text-sm mb-4">CSV로 등록한 글에 <strong>사진이 없을 때</strong> 사용하세요. 구 사이트에서 각 게시글 상세 페이지를 열고 이미지에 마우스 오른쪽 → <strong>이미지 주소 복사</strong>한 뒤, 아래에 <strong>목록 순서대로 한 줄에 하나씩</strong> 붙여넣으세요.</p>
+                <div id="bulkImageListInfo" class="mb-2 text-sm text-gray-500">시제품 목록 불러오는 중...</div>
+                <label class="block text-gray-700 font-medium mb-2">이미지 URL (한 줄에 하나)</label>
+                <textarea id="bulkImageUrls" rows="12" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 font-mono text-sm" placeholder="https://example.com/photo1.jpg&#10;https://example.com/photo2.jpg"></textarea>
+                <div id="bulkImageProgress" class="hidden mt-4">
+                    <div class="flex justify-between text-sm text-gray-600 mb-1"><span id="bulkImageProgressText">0 / 0 적용 중...</span></div>
+                    <div class="w-full bg-gray-200 rounded-full h-2"><div id="bulkImageProgressBar" class="bg-emerald-600 h-2 rounded-full transition-all" style="width: 0%"></div></div>
+                </div>
+                <div id="bulkImageResult" class="hidden mt-4 p-4 rounded-lg text-sm"></div>
+            </div>
+            <div class="p-6 border-t border-gray-200 flex justify-end gap-2">
+                <button type="button" onclick="closeBulkImageModal()" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">닫기</button>
+                <button type="button" id="bulkImageApplyBtn" onclick="applyBulkImageUrls()" class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">적용하기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CSV 일괄 등록 모달 -->
+    <div id="csvImportModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="text-xl font-bold text-gray-800">구 사이트 CSV 일괄 등록 (시제품)</h3>
+                <button onclick="closeCsvImportModal()" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1">
+                <p class="text-gray-600 text-sm mb-4">구 사이트 관리자에서 <strong>시제품 제작 사진</strong> 목록을 CSV로 다운받은 파일을 선택하세요. 제목·등록자·등록일자·이미지 URL(있으면) 컬럼을 인식해 시제품으로 등록합니다.</p>
+                <div class="mb-4">
+                    <label class="block text-gray-700 font-medium mb-2">CSV 파일 선택</label>
+                    <input type="file" id="csvFileInput" accept=".csv,text/csv,application/csv" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                </div>
+                <div id="csvPreview" class="hidden mb-4 p-4 bg-gray-50 rounded-lg text-sm"><span id="csvPreviewText"></span></div>
+                <div id="csvProgress" class="hidden mb-4">
+                    <div class="flex justify-between text-sm text-gray-600 mb-1"><span id="csvProgressText">0 / 0 등록 중...</span></div>
+                    <div class="w-full bg-gray-200 rounded-full h-2"><div id="csvProgressBar" class="bg-blue-600 h-2 rounded-full transition-all" style="width: 0%"></div></div>
+                </div>
+                <div id="csvResult" class="hidden p-4 rounded-lg text-sm"></div>
+            </div>
+            <div class="p-6 border-t border-gray-200 flex justify-end gap-2">
+                <button type="button" onclick="closeCsvImportModal()" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">닫기</button>
+                <button type="button" id="csvStartBtn" onclick="startCsvImport()" disabled class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">등록 시작</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 이미지 URL 일괄 입력 모달 -->
+    <div id="bulkImageModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="text-xl font-bold text-gray-800">이미지 URL 일괄 입력</h3>
+                <button onclick="closeBulkImageModal()" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1">
+                <p class="text-gray-600 text-sm mb-4">CSV로 등록한 글에 <strong>사진이 없을 때</strong> 사용하세요. 구 사이트에서 각 게시글 상세 페이지를 열고 이미지에 마우스 오른쪽 → <strong>이미지 주소 복사</strong>한 뒤, 아래에 <strong>목록 순서대로 한 줄에 하나씩</strong> 붙여넣으세요.</p>
+                <div id="bulkImageListInfo" class="mb-2 text-sm text-gray-500">시제품 목록 불러오는 중...</div>
+                <label class="block text-gray-700 font-medium mb-2">이미지 URL (한 줄에 하나)</label>
+                <textarea id="bulkImageUrls" rows="12" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 font-mono text-sm" placeholder="https://example.com/photo1.jpg&#10;https://example.com/photo2.jpg"></textarea>
+                <div id="bulkImageProgress" class="hidden mt-4">
+                    <div class="flex justify-between text-sm text-gray-600 mb-1"><span id="bulkImageProgressText">0 / 0 적용 중...</span></div>
+                    <div class="w-full bg-gray-200 rounded-full h-2"><div id="bulkImageProgressBar" class="bg-emerald-600 h-2 rounded-full transition-all" style="width: 0%"></div></div>
+                </div>
+                <div id="bulkImageResult" class="hidden mt-4 p-4 rounded-lg text-sm"></div>
+            </div>
+            <div class="p-6 border-t border-gray-200 flex justify-end gap-2">
+                <button type="button" onclick="closeBulkImageModal()" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">닫기</button>
+                <button type="button" id="bulkImageApplyBtn" onclick="applyBulkImageUrls()" class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">적용하기</button>
+            </div>
         </div>
     </div>
 
@@ -126,7 +238,208 @@ export const adminPrototypeGalleryHtml = (sidebar: string) => `
 
         document.addEventListener('DOMContentLoaded', () => {
             loadPosts(1);
+            const csvInput = document.getElementById('csvFileInput');
+            if (csvInput) {
+                csvInput.addEventListener('change', function() {
+                    const file = this.files && this.files[0];
+                    if (!file) {
+                        csvParsedList = [];
+                        document.getElementById('csvPreview').classList.add('hidden');
+                        document.getElementById('csvStartBtn').disabled = true;
+                        return;
+                    }
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        try {
+                            const text = (e.target && e.target.result) || '';
+                            csvParsedList = parseCSVToList(text);
+                            const preview = document.getElementById('csvPreview');
+                            const previewText = document.getElementById('csvPreviewText');
+                            if (csvParsedList.length === 0) {
+                                previewText.textContent = '제목 컬럼을 찾을 수 없거나 유효한 행이 없습니다. CSV에 "제목" 컬럼이 있는지 확인하세요.';
+                                preview.classList.remove('hidden');
+                                document.getElementById('csvStartBtn').disabled = true;
+                            } else {
+                                const noImage = csvParsedList.filter(i => !i.imageUrl).length;
+                                previewText.textContent = '총 ' + csvParsedList.length + '건 확인.' + (noImage > 0 ? ' (이미지 URL 없는 항목 ' + noImage + '건은 제목·내용만 등록됩니다.)' : '');
+                                preview.classList.remove('hidden');
+                                document.getElementById('csvStartBtn').disabled = false;
+                            }
+                        } catch (err) {
+                            document.getElementById('csvPreviewText').textContent = 'CSV 파싱 중 오류: ' + err.message;
+                            document.getElementById('csvPreview').classList.remove('hidden');
+                            document.getElementById('csvStartBtn').disabled = true;
+                        }
+                    };
+                    reader.readAsText(file, 'UTF-8');
+                });
+            }
         });
+
+        let csvParsedList = [];
+        function parseCSVLine(line) {
+            const out = [];
+            let cur = '';
+            let inQuotes = false;
+            for (let i = 0; i < line.length; i++) {
+                const c = line[i];
+                if (c === '"') { inQuotes = !inQuotes; continue; }
+                if (!inQuotes && (c === ',' || c === '\\t')) { out.push(cur.trim()); cur = ''; continue; }
+                cur += c;
+            }
+            out.push(cur.trim());
+            return out;
+        }
+        function parseCSV(text) {
+            const lines = text.split(/\\r?\\n/).map(l => l.trim()).filter(Boolean);
+            if (lines.length === 0) return { headers: [], rows: [] };
+            const headers = parseCSVLine(lines[0]);
+            const rows = [];
+            for (let i = 1; i < lines.length; i++) {
+                const values = parseCSVLine(lines[i]);
+                const row = {};
+                headers.forEach((h, j) => { row[h] = values[j] !== undefined ? values[j] : ''; });
+                rows.push(row);
+            }
+            return { headers, rows };
+        }
+        function findColumn(headers, candidates) {
+            const lower = s => String(s).toLowerCase();
+            for (const c of candidates) {
+                const found = headers.find(h => lower(h) === lower(c) || h === c);
+                if (found) return found;
+            }
+            return null;
+        }
+        function parseCSVToList(raw) {
+            const { headers, rows } = parseCSV(raw);
+            if (headers.length === 0 || rows.length === 0) return [];
+            const titleCol = findColumn(headers, ['제목', 'title', 'Title']);
+            if (!titleCol) return [];
+            const registrantCol = findColumn(headers, ['등록자', 'registrant', 'Registrant']);
+            const dateCol = findColumn(headers, ['등록일자', '등록일', 'date', 'Date']);
+            const imageCol = findColumn(headers, ['이미지', 'imageUrl', 'image', '이미지URL', 'img', 'url']);
+            const list = [];
+            for (const row of rows) {
+                const title = String(row[titleCol] || '').trim();
+                if (!title) continue;
+                const contentParts = [];
+                if (registrantCol && row[registrantCol]) contentParts.push('등록자: ' + row[registrantCol]);
+                if (dateCol && row[dateCol]) contentParts.push('등록일: ' + row[dateCol]);
+                const content = contentParts.length ? contentParts.join(', ') : '';
+                const item = { title, content: content || '' };
+                if (imageCol && row[imageCol]) { const url = String(row[imageCol]).trim(); if (url) item.imageUrl = url; }
+                list.push(item);
+            }
+            return list;
+        }
+        function openCsvImportModal() {
+            csvParsedList = [];
+            document.getElementById('csvFileInput').value = '';
+            document.getElementById('csvPreview').classList.add('hidden');
+            document.getElementById('csvProgress').classList.add('hidden');
+            document.getElementById('csvResult').classList.add('hidden');
+            document.getElementById('csvStartBtn').disabled = true;
+            document.getElementById('csvImportModal').classList.remove('hidden');
+        }
+        function closeCsvImportModal() { document.getElementById('csvImportModal').classList.add('hidden'); }
+        async function startCsvImport() {
+            if (csvParsedList.length === 0) return;
+            const token = localStorage.getItem('token');
+            if (!token) { alert('로그인이 필요합니다.'); return; }
+            const total = csvParsedList.length;
+            const BULK_SIZE = 100;
+            let ok = 0, fail = 0;
+            document.getElementById('csvStartBtn').disabled = true;
+            document.getElementById('csvProgress').classList.remove('hidden');
+            const progressText = document.getElementById('csvProgressText');
+            const progressBar = document.getElementById('csvProgressBar');
+            for (let offset = 0; offset < csvParsedList.length; offset += BULK_SIZE) {
+                const chunk = csvParsedList.slice(offset, offset + BULK_SIZE);
+                progressText.textContent = (offset + chunk.length) + ' / ' + total + ' 등록 중...';
+                progressBar.style.width = (Math.min(offset + BULK_SIZE, total) / total * 100) + '%';
+                const items = chunk.map(function(item) {
+                    const images = item.imageUrl ? [item.imageUrl] : [];
+                    return { title: item.title, content: item.content || '', category: 'prototype', status: 'published', images };
+                });
+                try {
+                    const res = await fetch('/api/posts/bulk', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ items: items }) });
+                    if (res.status === 401) { alert('로그인 세션이 만료되었습니다.'); window.location.href = '/login'; return; }
+                    const json = await res.json().catch(() => ({}));
+                    if (json.success && json.data) { ok += json.data.ok || 0; fail += json.data.fail || 0; } else { fail += chunk.length; }
+                } catch (e) { fail += chunk.length; }
+                await new Promise(r => setTimeout(r, 50));
+            }
+            progressBar.style.width = '100%';
+            progressText.textContent = '완료';
+            const resultEl = document.getElementById('csvResult');
+            resultEl.className = 'p-4 rounded-lg text-sm ' + (fail > 0 ? 'bg-amber-50 text-amber-800' : 'bg-green-50 text-green-800');
+            resultEl.innerHTML = '일괄 등록 완료: 성공 <strong>' + ok + '</strong>건, 실패 <strong>' + fail + '</strong>건';
+            resultEl.classList.remove('hidden');
+            document.getElementById('csvStartBtn').disabled = false;
+            loadPosts(1);
+        }
+
+        let bulkImagePostList = [];
+        async function openBulkImageModal() {
+            document.getElementById('bulkImageModal').classList.remove('hidden');
+            document.getElementById('bulkImageListInfo').textContent = '시제품 목록 불러오는 중...';
+            document.getElementById('bulkImageUrls').value = '';
+            document.getElementById('bulkImageProgress').classList.add('hidden');
+            document.getElementById('bulkImageResult').classList.add('hidden');
+            const token = localStorage.getItem('token');
+            if (!token) { document.getElementById('bulkImageListInfo').textContent = '로그인이 필요합니다.'; return; }
+            try {
+                const res = await fetch('/api/posts?category=prototype&limit=500');
+                const result = await res.json();
+                if (!result.success || !result.data || result.data.length === 0) {
+                    document.getElementById('bulkImageListInfo').textContent = '등록된 시제품이 없습니다.';
+                    bulkImagePostList = [];
+                    return;
+                }
+                bulkImagePostList = result.data;
+                document.getElementById('bulkImageListInfo').textContent = '총 ' + bulkImagePostList.length + '건. 아래에 목록 순서대로 한 줄에 하나씩 이미지 URL을 붙여넣으세요.';
+            } catch (e) {
+                document.getElementById('bulkImageListInfo').textContent = '목록을 불러오지 못했습니다.';
+                bulkImagePostList = [];
+            }
+        }
+        function closeBulkImageModal() { document.getElementById('bulkImageModal').classList.add('hidden'); }
+        async function applyBulkImageUrls() {
+            const token = localStorage.getItem('token');
+            if (!token) { alert('로그인이 필요합니다.'); return; }
+            const raw = document.getElementById('bulkImageUrls').value || '';
+            const urls = raw.split(/\\r?\\n/).map(s => s.trim()).filter(Boolean);
+            if (urls.length === 0) { alert('한 줄에 하나씩 이미지 URL을 입력해 주세요.'); return; }
+            if (bulkImagePostList.length === 0) { alert('적용할 게시글이 없습니다. 모달을 다시 열어 주세요.'); return; }
+            const total = Math.min(urls.length, bulkImagePostList.length);
+            document.getElementById('bulkImageApplyBtn').disabled = true;
+            document.getElementById('bulkImageProgress').classList.remove('hidden');
+            const progressText = document.getElementById('bulkImageProgressText');
+            const progressBar = document.getElementById('bulkImageProgressBar');
+            let ok = 0, fail = 0;
+            for (let i = 0; i < total; i++) {
+                progressText.textContent = (i + 1) + ' / ' + total + ' 적용 중...';
+                progressBar.style.width = ((i + 1) / total * 100) + '%';
+                const post = bulkImagePostList[i];
+                const url = urls[i];
+                try {
+                    const res = await fetch('/api/posts/' + post.id, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ images: [url] }) });
+                    if (res.status === 401) { alert('로그인 세션이 만료되었습니다.'); window.location.href = '/login'; return; }
+                    const json = await res.json().catch(() => ({}));
+                    if (res.ok && json.success) ok++; else fail++;
+                } catch (e) { fail++; }
+                await new Promise(r => setTimeout(r, 150));
+            }
+            progressBar.style.width = '100%';
+            progressText.textContent = '완료';
+            const resultEl = document.getElementById('bulkImageResult');
+            resultEl.className = 'mt-4 p-4 rounded-lg text-sm ' + (fail > 0 ? 'bg-amber-50 text-amber-800' : 'bg-green-50 text-green-800');
+            resultEl.innerHTML = '적용 완료: 성공 <strong>' + ok + '</strong>건, 실패 <strong>' + fail + '</strong>건';
+            resultEl.classList.remove('hidden');
+            document.getElementById('bulkImageApplyBtn').disabled = false;
+            loadPosts(currentPage);
+        }
 
         function openModal(post) {
             document.getElementById('postCategory').value = 'prototype';

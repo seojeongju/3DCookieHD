@@ -365,6 +365,117 @@ app.post('/', authMiddleware, async (c) => {
   }
 });
 
+const BULK_MAX_ITEMS = 100;
+
+// ============================================
+// 게시글 일괄 작성 (CSV 등 대량 등록용, 1회 최대 100건)
+// POST /api/posts/bulk
+// ============================================
+app.post('/bulk', authMiddleware, async (c) => {
+  let body: any;
+  try {
+    body = await c.req.json();
+  } catch (e: any) {
+    return c.json({ success: false, error: '요청 본문이 올바른 JSON이 아닙니다' }, 400);
+  }
+
+  const rawItems = body?.items;
+  if (!Array.isArray(rawItems) || rawItems.length === 0) {
+    return c.json({ success: false, error: 'items 배열이 비어있거나 없습니다' }, 400);
+  }
+  if (rawItems.length > BULK_MAX_ITEMS) {
+    return c.json({ success: false, error: `1회 최대 ${BULK_MAX_ITEMS}건까지 등록 가능합니다` }, 400);
+  }
+
+  try {
+    const { DB } = c.env;
+    const user = c.get('user');
+    if (!user || !user.userId) {
+      return c.json({ success: false, error: '인증 정보가 올바르지 않습니다' }, 401);
+    }
+
+    const CONTENT_SIZE_LIMIT = 50 * 1024;
+    const results: { ok: number; fail: number; errors: string[] } = { ok: 0, fail: 0, errors: [] };
+
+    for (let idx = 0; idx < rawItems.length; idx++) {
+      const item = rawItems[idx];
+      const tit = item?.title != null ? String(item.title).trim() : '';
+      const cont = item?.content != null ? String(item.content) : '';
+      const cat = item?.category != null ? String(item.category).trim() : '';
+      if (!tit || !cat) {
+        results.fail++;
+        results.errors.push(`[${idx + 1}] 제목·카테고리 필수`);
+        continue;
+      }
+
+      let imagesJson = '[]';
+      try {
+        if (item.images != null) {
+          if (Array.isArray(item.images)) imagesJson = JSON.stringify(item.images);
+          else if (typeof item.images === 'string') imagesJson = item.images.trim() || '[]';
+        }
+      } catch {
+        imagesJson = '[]';
+      }
+      if (imagesJson.length > CONTENT_SIZE_LIMIT) {
+        results.fail++;
+        results.errors.push(`[${idx + 1}] 이미지 정보 과다`);
+        continue;
+      }
+
+      const st = item?.status && ['draft', 'published', 'hidden'].includes(String(item.status))
+        ? String(item.status)
+        : 'published';
+
+      let finalContent = cont;
+      if (cont.length > CONTENT_SIZE_LIMIT) {
+        const { R2 } = c.env;
+        if (!R2) {
+          results.fail++;
+          results.errors.push(`[${idx + 1}] 콘텐츠 과대( R2 미설정)`);
+          continue;
+        }
+        try {
+          const filePath = `posts/content/${Date.now()}_${idx}_${user.userId}.html`;
+          await R2.put(filePath, new TextEncoder().encode(cont), {
+            httpMetadata: { contentType: 'text/html; charset=utf-8', cacheControl: 'public, max-age=31536000' },
+            customMetadata: { postTitle: tit.substring(0, 100) },
+          });
+          finalContent = `[R2:/api/upload/files/${filePath}]`;
+        } catch (r2Err: any) {
+          results.fail++;
+          results.errors.push(`[${idx + 1}] R2 저장 실패`);
+          continue;
+        }
+      }
+
+      try {
+        await DB.prepare(`
+          INSERT INTO posts ( author_id, title, content, category, images, views, likes, pinned, status, created_at, updated_at )
+          VALUES (?, ?, ?, ?, ?, 0, 0, 0, ?, datetime('now'), datetime('now'))
+        `).bind(user.userId, tit, finalContent, cat, imagesJson, st).run();
+        results.ok++;
+      } catch (insErr: any) {
+        results.fail++;
+        results.errors.push(`[${idx + 1}] ${(insErr?.message || 'DB 오류').substring(0, 80)}`);
+      }
+    }
+
+    return c.json({
+      success: true,
+      data: {
+        ok: results.ok,
+        fail: results.fail,
+        total: rawItems.length,
+        errors: results.errors.length > 20 ? results.errors.slice(0, 20).concat([`... 외 ${results.errors.length - 20}건`]) : results.errors,
+      },
+    }, 200);
+  } catch (error: any) {
+    console.error('POST /api/posts/bulk:', error?.message ?? error);
+    return c.json({ success: false, error: '일괄 등록 중 오류가 발생했습니다' }, 500);
+  }
+});
+
 // ============================================
 // 게시글 수정
 // PUT /api/posts/:id

@@ -43,6 +43,15 @@ export const prototypeGalleryHtml = `
         </div>
     </div>
 
+    <!-- 보기 옵션 -->
+    <div class="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 -mt-6 relative z-20">
+        <div class="bg-white rounded-2xl shadow-xl p-4 flex justify-end border border-gray-100">
+            <span class="text-xs text-gray-400 font-medium mr-2">보기:</span>
+            <button type="button" id="viewBtnGrid" onclick="setViewMode('grid')" class="view-mode-btn px-3 py-2 rounded-lg text-sm font-bold bg-primary-100 text-primary-700 transition" data-view="grid" title="그리드"><i class="fas fa-th-large mr-1"></i>그리드</button>
+            <button type="button" id="viewBtnImage" onclick="setViewMode('image')" class="view-mode-btn px-3 py-2 rounded-lg text-sm font-bold bg-gray-100 text-gray-600 hover:bg-gray-200 transition" data-view="image" title="이미지 크게"><i class="fas fa-image mr-1"></i>이미지</button>
+        </div>
+    </div>
+
     <!-- 갤러리 -->
     <main class="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-16">
         <div id="galleryGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
@@ -57,7 +66,7 @@ export const prototypeGalleryHtml = `
     <!-- 상세 모달 -->
     <div id="detailModal" class="fixed inset-0 bg-black/90 hidden z-[70] flex items-center justify-center p-4 backdrop-blur-md">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <div class="relative">
+            <div class="relative" id="modalImageWrap">
                 <img id="modalImage" src="" alt="" class="w-full h-80 object-cover rounded-t-2xl">
                 <button onclick="closeDetailModal()" class="absolute top-4 right-4 w-12 h-12 bg-white/90 hover:bg-white text-gray-800 rounded-full flex items-center justify-center transition">
                     <i class="fas fa-times text-xl"></i>
@@ -79,22 +88,23 @@ export const prototypeGalleryHtml = `
 
     <script>
         let currentPage = 1;
+        let galleryViewMode = 'grid';
+        let itemsPerPage = 12;
         let currentList = [];
-        const limit = 12;
 
         document.addEventListener('DOMContentLoaded', () => {
-            loadItems(1);
+            loadAll();
             updateAuthMenu();
         });
 
         function updateAuthMenu() {
-            const token = localStorage.getItem('token');
-            const userStr = localStorage.getItem('user');
-            const authMenu = document.getElementById('authMenu');
+            var token = localStorage.getItem('token');
+            var userStr = localStorage.getItem('user');
+            var authMenu = document.getElementById('authMenu');
             if (!authMenu) return;
             if (token && userStr) {
-                const user = JSON.parse(userStr);
-                let html = '';
+                var user = JSON.parse(userStr);
+                var html = '';
                 if (user.role === 'admin') html += '<a href="/admin" class="text-purple-600 hover:text-purple-700 font-bold mr-4"><i class="fas fa-cog mr-1"></i>관리자</a>';
                 html += '<span class="text-gray-700 mr-2 font-bold">' + (user.name || '') + '님</span>';
                 html += '<button onclick="logout()" class="text-gray-500 hover:text-red-600 text-sm">로그아웃</button>';
@@ -103,72 +113,133 @@ export const prototypeGalleryHtml = `
         }
         function logout() { localStorage.removeItem('token'); localStorage.removeItem('user'); location.href = '/'; }
 
-        async function loadItems(page) {
-            currentPage = page;
-            const grid = document.getElementById('galleryGrid');
+        function parseContentRegDate(content) {
+            if (!content) return null;
+            var text = typeof content === 'string' ? content.replace(/<[^>]+>/g, ' ') : '';
+            var m = text.match(/등록일\\s*[:：]\\s*(\\d{4})[-.](\\d{1,2})[-.](\\d{1,2})/);
+            if (!m) return null;
+            var y = m[1], mon = m[2].padStart(2, '0'), d = m[3].padStart(2, '0');
+            return y + '-' + mon + '-' + d;
+        }
+
+        async function loadAll() {
             try {
-                const url = \`/api/posts?page=\${page}&limit=\${limit}&category=prototype&status=published\`;
-                const res = await fetch(url);
-                const result = await res.json();
+                var res = await fetch('/api/posts?category=prototype&status=published&limit=100');
+                var result = await res.json();
                 if (!result.success) {
-                    grid.innerHTML = '<div class="col-span-full py-20 text-center text-red-500">데이터를 불러오는데 실패했습니다.</div>';
+                    document.getElementById('galleryGrid').innerHTML = '<div class="col-span-full py-20 text-center text-red-500">데이터를 불러오는데 실패했습니다.</div>';
                     return;
                 }
-                currentList = result.data || [];
-                if (currentList.length === 0) {
-                    grid.innerHTML = '<div class="col-span-full py-20 text-center text-gray-500 font-medium">등록된 시제품 사진이 없습니다.</div>';
-                    document.getElementById('pagination').innerHTML = '';
-                    return;
-                }
-                grid.innerHTML = currentList.map((post, idx) => {
-                    const img = (post.images && post.images.length) ? post.images[0] : '';
-                    const title = (post.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                    return \`
-                        <div class="group bg-white rounded-2xl shadow-sm hover:shadow-xl border border-gray-100 overflow-hidden transition-all cursor-pointer" onclick="openDetailByIndex(\${idx})">
-                            <div class="aspect-square bg-gray-200 overflow-hidden">
-                                \${img ? \`<img src="\${img}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" alt="">\` : \`<div class="w-full h-full flex items-center justify-center text-gray-400"><i class="fas fa-cube text-5xl"></i></div>\`}
-                            </div>
-                            <div class="p-5">
-                                <h3 class="font-bold text-gray-800 truncate">\${title}</h3>
-                                <p class="text-sm text-gray-500 mt-1">\${(post.author_name || '관리자')} · \${new Date(post.created_at).toLocaleDateString('ko-KR')}</p>
-                            </div>
-                        </div>
-                    \`;
-                }).join('');
-                renderPagination(result.pagination);
+                currentList = (result.data || []).map(function(p) {
+                    p._date = parseContentRegDate(p.content) || p.created_at;
+                    return p;
+                });
+                currentList.sort(function(a, b) { return new Date(b._date || 0) - new Date(a._date || 0); });
+                currentPage = 1;
+                renderGrid();
             } catch (e) {
                 console.error(e);
-                grid.innerHTML = '<div class="col-span-full py-20 text-center text-red-500">오류가 발생했습니다.</div>';
+                document.getElementById('galleryGrid').innerHTML = '<div class="col-span-full py-20 text-center text-red-500">오류가 발생했습니다.</div>';
             }
         }
 
-        function renderPagination(p) {
-            if (!p || p.totalPages <= 1) {
-                document.getElementById('pagination').innerHTML = '';
+        function setViewMode(mode) {
+            galleryViewMode = mode;
+            var gridBtn = document.getElementById('viewBtnGrid');
+            var imageBtn = document.getElementById('viewBtnImage');
+            if (gridBtn) gridBtn.className = mode === 'grid' ? 'view-mode-btn px-3 py-2 rounded-lg text-sm font-bold bg-primary-100 text-primary-700 transition' : 'view-mode-btn px-3 py-2 rounded-lg text-sm font-bold bg-gray-100 text-gray-600 hover:bg-gray-200 transition';
+            if (imageBtn) imageBtn.className = mode === 'image' ? 'view-mode-btn px-3 py-2 rounded-lg text-sm font-bold bg-primary-100 text-primary-700 transition' : 'view-mode-btn px-3 py-2 rounded-lg text-sm font-bold bg-gray-100 text-gray-600 hover:bg-gray-200 transition';
+            currentPage = 1;
+            renderGrid();
+        }
+
+        function goToPage(page) {
+            var totalPages = Math.max(1, Math.ceil((currentList.length || 0) / itemsPerPage));
+            if (page < 1 || page > totalPages) return;
+            currentPage = page;
+            renderGrid();
+            window.scrollTo({ top: document.getElementById('galleryGrid').offsetTop - 80, behavior: 'smooth' });
+        }
+
+        function renderGrid() {
+            var grid = document.getElementById('galleryGrid');
+            var paginationEl = document.getElementById('pagination');
+            if (!grid) return;
+            var total = currentList.length || 0;
+            var totalPages = Math.max(1, Math.ceil(total / itemsPerPage));
+            var start = (currentPage - 1) * itemsPerPage;
+            var pageList = currentList.slice(start, start + itemsPerPage);
+            var isImageMode = galleryViewMode === 'image';
+            grid.className = isImageMode ? 'grid grid-cols-1 sm:grid-cols-2 gap-6' : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6';
+
+            if (!pageList.length) {
+                grid.innerHTML = '<div class="col-span-full py-20 text-center text-gray-500 font-medium">등록된 시제품 사진이 없습니다.</div>';
+                if (paginationEl) paginationEl.innerHTML = '';
                 return;
             }
-            let html = '<nav class="flex gap-2">';
-            for (let i = 1; i <= p.totalPages; i++) {
-                html += '<button onclick="loadItems(' + i + ')" class="px-4 py-2 rounded-lg ' + (i === p.page ? 'bg-primary-600 text-white' : 'bg-white border text-gray-700 hover:bg-gray-50') + '">' + i + '</button>';
+
+            grid.innerHTML = pageList.map(function(item, pageIdx) {
+                var idx = start + pageIdx;
+                var img = (item.images && item.images.length) ? item.images[0] : '';
+                var hasImage = !!img;
+                var titleEsc = (item.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                var contentPlain = (item.content || '').replace(/<[^>]+>/g, '').trim().substring(0, 80);
+                if ((item.content || '').replace(/<[^>]+>/g, '').trim().length > 80) contentPlain += '…';
+                if (hasImage) {
+                    var aspectClass = isImageMode ? 'aspect-[4/3]' : 'aspect-square';
+                    return '<div class="rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition bg-white border border-gray-100 cursor-pointer" onclick="openDetail(' + idx + ')">' +
+                        '<div class="' + aspectClass + ' bg-gray-200 relative">' +
+                        '<img src="' + img.replace(/"/g, '&quot;') + '" alt="" class="w-full h-full object-cover hover:scale-105 transition duration-500">' +
+                        '</div>' +
+                        '<div class="p-5">' +
+                        '<h3 class="font-bold text-gray-800 truncate">' + titleEsc + '</h3>' +
+                        '<p class="text-sm text-gray-500 mt-1">' + (item.author_name || '-') + ' · ' + new Date(item._date).toLocaleDateString('ko-KR') + '</p>' +
+                        '</div></div>';
+                }
+                return '<div class="col-span-full rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition cursor-pointer flex items-center gap-4 px-5 py-4 text-left" onclick="openDetail(' + idx + ')">' +
+                    '<span class="shrink-0 w-10 h-10 rounded-lg bg-gray-200 text-gray-600 flex items-center justify-center"><i class="fas fa-cube"></i></span>' +
+                    '<div class="min-w-0 flex-1">' +
+                    '<h3 class="font-bold text-gray-800 truncate">' + titleEsc + '</h3>' +
+                    (contentPlain ? '<p class="text-sm text-gray-500 mt-0.5 truncate">' + contentPlain.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</p>' : '') +
+                    '</div>' +
+                    '<p class="text-sm text-gray-400 shrink-0">' + (item.author_name || '-') + ' · ' + new Date(item._date).toLocaleDateString('ko-KR') + '</p>' +
+                    '</div>';
+            }).join('');
+
+            if (paginationEl) {
+                if (totalPages <= 1) { paginationEl.innerHTML = ''; return; }
+                var prevDisabled = currentPage <= 1 ? ' opacity-50 pointer-events-none' : '';
+                var nextDisabled = currentPage >= totalPages ? ' opacity-50 pointer-events-none' : '';
+                var html = '<nav class="flex items-center justify-center gap-2 flex-wrap" aria-label="페이지 이동">';
+                html += '<button type="button" onclick="goToPage(' + (currentPage - 1) + ')" class="px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition' + prevDisabled + '"><i class="fas fa-chevron-left"></i></button>';
+                html += '<span class="px-3 py-2 text-sm text-gray-600">' + currentPage + ' / ' + totalPages + '</span>';
+                var maxShow = 5, from = Math.max(1, currentPage - Math.floor(maxShow / 2)), to = Math.min(totalPages, from + maxShow - 1);
+                if (to - from < maxShow - 1) from = Math.max(1, to - maxShow + 1);
+                for (var p = from; p <= to; p++) {
+                    var active = p === currentPage ? ' bg-primary-600 text-white border-primary-600' : ' border-gray-300 text-gray-700 hover:bg-gray-50';
+                    html += '<button type="button" onclick="goToPage(' + p + ')" class="px-3 py-2 rounded-lg border transition min-w-[2.5rem]' + active + '">' + p + '</button>';
+                }
+                html += '<button type="button" onclick="goToPage(' + (currentPage + 1) + ')" class="px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition' + nextDisabled + '"><i class="fas fa-chevron-right"></i></button>';
+                html += '</nav>';
+                paginationEl.innerHTML = html;
             }
-            html += '</nav>';
-            document.getElementById('pagination').innerHTML = html;
         }
 
-        function openDetailByIndex(idx) {
-            const post = currentList[idx];
-            if (!post) return;
-            openDetail(post);
-        }
-        function openDetail(post) {
-            const img = (post.images && post.images.length) ? post.images[0] : '';
-            document.getElementById('modalImage').src = img || '';
-            document.getElementById('modalImage').style.display = img ? 'block' : 'none';
-            document.getElementById('modalTitle').textContent = post.title || '';
-            document.getElementById('modalAuthor').textContent = post.author_name || '관리자';
-            document.getElementById('modalDate').textContent = new Date(post.created_at).toLocaleDateString('ko-KR');
-            document.getElementById('modalViews').textContent = post.views || 0;
-            document.getElementById('modalContent').innerHTML = post.content || '<p class="text-gray-500">내용이 없습니다.</p>';
+        function openDetail(idx) {
+            var item = currentList[idx];
+            if (!item) return;
+            var img = (item.images && item.images.length) ? item.images[0] : '';
+            var modalImgEl = document.getElementById('modalImage');
+            var modalImgWrap = document.getElementById('modalImageWrap');
+            if (modalImgEl) modalImgEl.src = img || '';
+            if (modalImgEl) modalImgEl.style.display = img ? 'block' : 'none';
+            if (modalImgWrap) modalImgWrap.style.display = img ? 'block' : 'none';
+            document.getElementById('modalTitle').textContent = item.title || '';
+            document.getElementById('modalAuthor').textContent = item.author_name || '관리자';
+            document.getElementById('modalDate').textContent = new Date(item._date).toLocaleDateString('ko-KR');
+            document.getElementById('modalViews').textContent = item.views || 0;
+            var content = item.content || '';
+            document.getElementById('modalContent').innerHTML = content || '<p class="text-gray-500">내용이 없습니다.</p>';
             document.getElementById('detailModal').classList.remove('hidden');
             document.body.style.overflow = 'hidden';
         }

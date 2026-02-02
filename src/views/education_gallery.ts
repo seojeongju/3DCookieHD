@@ -191,6 +191,15 @@ export const educationGalleryHtml = `
         }
         function logout() { localStorage.removeItem('token'); localStorage.removeItem('user'); location.href = '/'; }
 
+        function parseContentRegDate(content) {
+            if (!content) return null;
+            var text = typeof content === 'string' ? content.replace(/<[^>]+>/g, ' ') : '';
+            var m = text.match(/등록일\\s*[:：]\\s*(\\d{4})[-.](\\d{1,2})[-.](\\d{1,2})/);
+            if (!m) return null;
+            var y = m[1], mon = m[2].padStart(2, '0'), d = m[3].padStart(2, '0');
+            return y + '-' + mon + '-' + d;
+        }
+
         async function loadAll() {
             try {
                 var [eduRes, portRes] = await Promise.all([
@@ -199,7 +208,11 @@ export const educationGalleryHtml = `
                 ]);
                 var eduData = await eduRes.json();
                 var portData = await portRes.json();
-                educationList = (eduData.success && eduData.data) ? eduData.data.map(function(p) { p._type = 'education_photo'; p._date = p.created_at; return p; }) : [];
+                educationList = (eduData.success && eduData.data) ? eduData.data.map(function(p) {
+                    p._type = 'education_photo';
+                    p._date = parseContentRegDate(p.content) || p.created_at;
+                    return p;
+                }) : [];
                 portfolioList = (portData.success && portData.data) ? portData.data.map(function(p) { p._type = 'portfolio'; p._date = p.created_at; return p; }) : [];
                 mergeAndRender();
             } catch (e) {
@@ -210,7 +223,7 @@ export const educationGalleryHtml = `
 
         function mergeAndRender() {
             mergedList = educationList.concat(portfolioList);
-            mergedList.sort(function(a, b) { return new Date(b._date) - new Date(a._date); });
+            mergedList.sort(function(a, b) { return new Date(b._date || 0) - new Date(a._date || 0); });
             setFilter(currentFilter);
         }
 

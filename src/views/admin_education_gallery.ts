@@ -615,6 +615,7 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
                 return;
             }
             const total = csvParsedList.length;
+            const BULK_SIZE = 100;
             let ok = 0, fail = 0;
             document.getElementById('csvStartBtn').disabled = true;
             document.getElementById('csvProgress').classList.remove('hidden');
@@ -622,26 +623,27 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
             const progressText = document.getElementById('csvProgressText');
             const progressBar = document.getElementById('csvProgressBar');
 
-            for (let i = 0; i < csvParsedList.length; i++) {
-                const item = csvParsedList[i];
-                progressText.textContent = (i + 1) + ' / ' + total + ' 등록 중...';
-                progressBar.style.width = ((i + 1) / total * 100) + '%';
+            for (let offset = 0; offset < csvParsedList.length; offset += BULK_SIZE) {
+                const chunk = csvParsedList.slice(offset, offset + BULK_SIZE);
+                progressText.textContent = (offset + chunk.length) + ' / ' + total + ' 등록 중...';
+                progressBar.style.width = (Math.min(offset + BULK_SIZE, total) / total * 100) + '%';
 
-                const images = [];
-                if (item.imageUrl) images.push(item.imageUrl);
-                const body = {
-                    title: item.title,
-                    content: item.content || '',
-                    category: 'education_photo',
-                    status: 'published',
-                    images: images,
-                    pinned: false
-                };
+                const items = chunk.map(function(item) {
+                    const images = [];
+                    if (item.imageUrl) images.push(item.imageUrl);
+                    return {
+                        title: item.title,
+                        content: item.content || '',
+                        category: 'education_photo',
+                        status: 'published',
+                        images: images
+                    };
+                });
                 try {
-                    const res = await fetch('/api/posts', {
+                    const res = await fetch('/api/posts/bulk', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-                        body: JSON.stringify(body)
+                        body: JSON.stringify({ items: items })
                     });
                     if (res.status === 401) {
                         alert('로그인 세션이 만료되었습니다.');
@@ -649,11 +651,16 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
                         return;
                     }
                     const json = await res.json().catch(() => ({}));
-                    if (res.ok && json.success) ok++; else fail++;
+                    if (json.success && json.data) {
+                        ok += json.data.ok || 0;
+                        fail += json.data.fail || 0;
+                    } else {
+                        fail += chunk.length;
+                    }
                 } catch (err) {
-                    fail++;
+                    fail += chunk.length;
                 }
-                await new Promise(r => setTimeout(r, 200));
+                await new Promise(r => setTimeout(r, 50));
             }
 
             progressBar.style.width = '100%';

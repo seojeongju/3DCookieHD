@@ -41,45 +41,48 @@ function stepContentHtml(step: number, editId?: string): string {
         <button type="button" id="tabNcsOnly" class="ncs-approved-tab px-4 py-2 rounded-t-lg font-bold text-sm bg-emerald-600 text-white">NCS 훈련과정 전용</button>
         <button type="button" id="tabNonNcs" class="ncs-approved-tab px-4 py-2 rounded-t-lg font-bold text-sm bg-slate-100 text-slate-600 hover:bg-slate-200">비NCS 훈련과정 전용</button>
       </div>
-      <!-- NCS 훈련과정 전용 패널 -->
+      <!-- NCS 훈련과정 전용 패널 (이미지와 동일한 필드·기능) -->
       <div id="panelNcsOnly" class="ncs-approved-panel space-y-6">
-        <div>
-          <h3 class="text-sm font-bold text-slate-700 mb-2">개발분류선택</h3>
-          <select id="ncsDevCategory" class="w-full max-w-md px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
-            <option value="">선택</option>
-            <option value="24">24년 NCS기반 훈련기준(1083직종)</option>
-            <option value="23">23년 NCS기반 훈련기준(1039직종)</option>
-            <option value="21">21년 NCS기반 훈련기준(1039직종)</option>
-            <option value="20">20년 NCS기반 훈련기준(1022직종)</option>
-            <option value="19">19년 NCS기반 훈련기준(1001직종)</option>
-          </select>
-        </div>
-        <div>
-          <h3 class="text-sm font-bold text-slate-700 mb-2">훈련직종 검색</h3>
-          <p class="text-xs text-slate-500 mb-2">훈련직종을 선택하여 세분류까지 검색해주세요. <a href="/api/ncs/approved/check" target="_blank" rel="noopener" class="text-blue-600 hover:underline">공공 API 상태 확인</a></p>
+        <p class="text-sm text-slate-600">선택된 직종으로 훈련이수체계도 및 교과목을 전송합니다.</p>
+        <!-- 훈련직종 검색 -->
+        <div id="ncsJobSearchSection" class="rounded-xl border border-slate-200 bg-white p-5">
+          <h3 class="text-sm font-bold text-slate-700 mb-1">훈련직종 검색</h3>
+          <p class="text-xs text-slate-500 mb-4">훈련직종을 선택하여 소분류까지 검색해주세요. <a href="/api/ncs/approved/check" target="_blank" rel="noopener" class="text-blue-600 hover:underline">공공 API 상태 확인</a></p>
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">개발분류선택</label>
+              <select id="ncsDevCategory" size="8" class="ncs-class-select w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white min-h-[200px]">
+                <option value="24">24년 NCS기반 훈련기준(1083직종)</option>
+                <option value="23">23년 NCS기반 훈련기준(1039직종)</option>
+                <option value="21">21년 NCS기반 훈련기준(1039직종)</option>
+                <option value="20">20년 NCS기반 훈련기준(1022직종)</option>
+                <option value="19">19년 NCS기반 훈련기준(1001직종)</option>
+                <option value="18">18년 NCS기반 훈련기준(948직종)</option>
+              </select>
+            </div>
+            <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">대분류선택</label>
-              <select id="ncsLargeClass" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20"></select>
+              <select id="ncsLargeClass" size="12" class="ncs-class-select w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white min-h-[200px]"></select>
             </div>
             <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">중분류선택</label>
-              <select id="ncsMidClass" size="12" class="ncs-class-select w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white"></select>
+              <select id="ncsMidClass" size="12" class="ncs-class-select w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white min-h-[200px]"></select>
             </div>
             <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">소분류선택</label>
-              <select id="ncsSmallClass" size="12" class="ncs-class-select w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white"></select>
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-slate-600 mb-1">세분류선택</label>
-              <select id="ncsSubClass" size="12" class="ncs-class-select w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white"></select>
+              <select id="ncsSmallClass" size="12" class="ncs-class-select w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white min-h-[200px]"></select>
             </div>
           </div>
           <p id="ncsTrainingApiMessage" class="mt-2 text-sm text-amber-600 hidden" role="alert"></p>
+          <div id="ncsBannerJobSearchLocked" class="hidden mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 flex items-center gap-2">
+            <i class="fas fa-exclamation-triangle text-red-500"></i>
+            훈련이수체계도가 등록되어 더 이상 직종을 검색 하실 수 없습니다.
+          </div>
         </div>
-        <div>
+        <!-- 과정개요 정보 -->
+        <div class="rounded-xl border border-slate-200 bg-white p-5">
           <h3 class="text-sm font-bold text-slate-700 mb-2">과정개요 정보 <span class="text-red-500">(! 필수등록)</span></h3>
-          <p class="text-xs text-slate-500 mb-3">선택된 직종으로 과정개요를 등록해주세요.</p>
+          <p class="text-xs text-slate-500 mb-4">선택된 직종으로 과정개요를 등록해주세요.</p>
           <div class="space-y-4">
             <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">과정편성분류</label>
@@ -89,49 +92,44 @@ function stepContentHtml(step: number, editId?: string): string {
               </div>
               <p class="text-xs text-slate-500 mt-1">실업자 대상인 경우 양성과정, 재직자 대상인 경우 향상과정을 선택하시면 됩니다.</p>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-xs font-medium text-slate-600 mb-1">직종선택</label>
-                <select id="ncsJobSelect" size="6" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white"></select>
-                <p class="text-xs text-slate-500 mt-1">세분류 선택 후 직종을 선택하세요.</p>
-              </div>
-              <div>
-                <label class="block text-xs font-medium text-slate-600 mb-1">추가된 직종 및 주직종</label>
-                <div id="ncsMainJobPill" class="min-h-[2.5rem] px-4 py-3 border border-slate-200 rounded-xl bg-slate-50/50 text-sm flex flex-wrap items-center gap-2">
-                  <span id="ncsMainJobPlaceholder" class="text-slate-400">직종을 검색하여 선택하세요</span>
-                </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">직종선택 <span class="text-red-500">!</span></label>
+              <div id="ncsJobRadioGroup" class="min-h-[2.5rem] px-4 py-3 border border-slate-200 rounded-xl bg-slate-50/50 text-sm flex flex-wrap items-center gap-4">
+                <span id="ncsJobRadioPlaceholder" class="text-slate-400">소분류 선택 후 직종(주직종)을 선택하세요</span>
               </div>
             </div>
             <div>
-              <label class="block text-xs font-medium text-slate-600 mb-1">과정명</label>
+              <label class="block text-xs font-medium text-slate-600 mb-1">과정명 <span class="text-red-500">!</span></label>
               <input type="text" id="ncsCourseName" class="w-full max-w-md px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="과정명 입력">
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-xs font-medium text-slate-600 mb-1">훈련수준</label>
-                <select id="ncsTrainingLevel" class="w-full max-w-xs px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
-                  <option value="">선택</option>
-                  <option value="1">1 수준</option>
-                  <option value="2">2 수준</option>
-                  <option value="3">3 수준</option>
-                  <option value="4">4 수준</option>
-                  <option value="5">5 수준</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-xs font-medium text-slate-600 mb-1">등록일</label>
-                <input type="text" id="ncsRegDate" readonly class="w-full max-w-xs px-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50" placeholder="—">
-              </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">훈련수준 <span class="text-red-500">!</span></label>
+              <select id="ncsTrainingLevel" class="w-full max-w-xs px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white">
+                <option value="">선택</option>
+                <option value="1">1 수준</option>
+                <option value="2">2 수준</option>
+                <option value="3">3 수준</option>
+                <option value="4">4 수준</option>
+                <option value="5">5 수준</option>
+              </select>
             </div>
             <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">선수능력</label>
               <textarea id="ncsPrereqSkill" rows="3" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="선수능력 입력"></textarea>
             </div>
             <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">등록일 <span class="text-red-500">!</span></label>
+              <input type="text" id="ncsRegDate" readonly class="w-full max-w-xs px-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50" placeholder="—">
+            </div>
+            <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">내용추가</label>
               <textarea id="ncsOverviewContent" rows="4" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="과정개요 추가 내용을 입력하세요"></textarea>
               <p class="text-xs text-slate-500 mt-1">과정개요 보충 설명, 유의사항 등을 자유롭게 입력할 수 있습니다.</p>
             </div>
+          </div>
+          <div class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 flex items-center gap-2">
+            <i class="fas fa-exclamation-triangle text-red-500"></i>
+            훈련이수체계도가 등록이 완료 될 경우 삭제가 불가능합니다.
           </div>
         </div>
       </div>
@@ -147,11 +145,16 @@ function stepContentHtml(step: number, editId?: string): string {
           <textarea id="nonNcsOverview" rows="4" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20" placeholder="과정 개요 입력"></textarea>
         </div>
       </div>
-      <div class="flex flex-wrap gap-3 pt-6 border-t border-slate-200/60">
-        <a href="/admin/ncs/approved/list" class="px-5 py-2.5 text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 font-bold text-sm transition inline-flex items-center gap-2"><i class="fas fa-list-ul"></i> 저장된 목록</a>
-        <button type="button" id="ncsApprovedBtnSave" class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-bold text-sm transition">${isEdit ? '수정' : '저장'}</button>
-        <button type="button" id="ncsApprovedBtnNext" class="px-5 py-2.5 bg-slate-700 text-white rounded-xl hover:bg-slate-800 font-bold text-sm transition inline-flex items-center gap-2"><i class="fas fa-arrow-right"></i> 다음</button>
-        ${isEdit ? '<button type="button" id="ncsApprovedBtnDelete" class="px-5 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 font-bold text-sm transition">삭제</button>' : ''}
+      <div class="pt-6 border-t border-slate-200/60 space-y-2">
+        <div class="flex flex-wrap gap-3 items-center">
+          <a href="/admin/ncs/approved/list" class="px-5 py-2.5 text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 font-bold text-sm transition inline-flex items-center gap-2"><i class="fas fa-list-ul"></i> 목록</a>
+          <a href="/admin/ncs/approved/list" class="px-5 py-2.5 text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 font-bold text-sm transition inline-flex items-center gap-2"><i class="fas fa-arrow-left"></i> 이전 페이지</a>
+          ${isEdit ? '<button type="button" id="ncsApprovedBtnDeleteDisabled" class="hidden px-5 py-2.5 bg-red-100 text-red-700 rounded-xl font-bold text-sm cursor-not-allowed inline-flex items-center gap-2" disabled><i class="fas fa-exclamation-triangle"></i> 삭제 불가</button>' : ''}
+          ${isEdit ? '<button type="button" id="ncsApprovedBtnDelete" class="px-5 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 font-bold text-sm transition">삭제</button>' : ''}
+          <button type="button" id="ncsApprovedBtnSave" class="px-5 py-2.5 bg-amber-500 text-white rounded-xl hover:bg-amber-600 font-bold text-sm transition">${isEdit ? '수정하기' : '저장'}</button>
+          ${!isEdit ? '<button type="button" id="ncsApprovedBtnNext" class="px-5 py-2.5 bg-slate-700 text-white rounded-xl hover:bg-slate-800 font-bold text-sm transition inline-flex items-center gap-2"><i class="fas fa-arrow-right"></i> 다음</button>' : ''}
+        </div>
+        ${isEdit ? '<p class="text-xs text-slate-500">변경된 정보로 수정이 됩니다.</p>' : ''}
       </div>
     </div>`;
   }
@@ -161,7 +164,7 @@ function stepContentHtml(step: number, editId?: string): string {
     <div class="space-y-6" id="ncsApprovedStep2Container">
       <input type="hidden" id="ncsApprovedRegId" value="${regId}">
       <h3 class="text-lg font-bold text-slate-800">훈련이수체계도 작성</h3>
-      <p class="text-sm text-slate-600">선택된 직종의 능력단위로 교과목 편성에 활용됩니다. 비NCS는 교과목은 <strong>3. 교과목편성</strong>에서 작성됩니다.</p>
+      <p class="text-sm text-slate-600">1단계에서 선택한 소분류에 대한 <strong>세분류·수준·요소</strong>를 여기에서 선택·설계합니다. 선택된 직종의 능력단위로 교과목 편성(3단계)에 활용됩니다. 비NCS는 교과목을 <strong>3. 교과목편성</strong>에서 작성합니다.</p>
       <p class="text-xs text-slate-500">교과목 편성(3단계)에서 활용할 능력단위를 <strong>여러 개 선택</strong>한 뒤 다음 페이지로 이동하세요.</p>
       <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
         <table class="w-full text-left text-sm min-w-[520px]">
