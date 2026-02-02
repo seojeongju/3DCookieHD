@@ -374,10 +374,10 @@ courses.delete('/:id', authMiddleware, requireAdmin, async (c) => {
       return notFoundResponse(c, '과정을 찾을 수 없습니다');
     }
 
-    // 수강생이 있는지 확인
+    // 진행 중인 수강생(approved, pending)이 있는지 확인 — 취소(cancelled)된 수강은 제외
     const enrollmentCount = await getOne<{ count: number }>(
       c.env.DB,
-      'SELECT COUNT(*) as count FROM enrollments WHERE course_id = ?',
+      "SELECT COUNT(*) as count FROM enrollments WHERE course_id = ? AND status IN ('approved', 'pending')",
       [id]
     );
 

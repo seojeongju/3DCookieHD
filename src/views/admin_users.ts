@@ -193,6 +193,33 @@ export const adminUsersHtml = (activeMenu: string = 'users') => `
         </div>
     </div>
 
+    <!-- 배정 해제 모달 (삭제 불가 시 표시) -->
+    <div id="assignmentsModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div id="assignmentsBackdrop" class="absolute inset-0 bg-black/50 backdrop-blur-sm opacity-0 transition-opacity duration-300"></div>
+        <div id="assignmentsPanel" class="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col scale-95 opacity-0 transition-all duration-300">
+            <div class="flex-none border-b border-gray-100 p-6 rounded-t-3xl">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-900">삭제를 막는 배정 목록</h3>
+                        <p id="assignmentsModalMessage" class="text-sm text-gray-500 mt-1">아래 항목에서 배정을 해제한 후 회원 삭제를 시도해 주세요.</p>
+                    </div>
+                    <button type="button" onclick="closeAssignmentsModal()" class="w-10 h-10 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition">
+                        <i class="fas fa-times text-gray-600"></i>
+                    </button>
+                </div>
+            </div>
+            <div id="assignmentsContent" class="flex-1 overflow-y-auto p-6 space-y-6">
+                <!-- 과정, 훈련일지, 과제 목록이 여기 채워짐 -->
+            </div>
+            <div class="flex-none border-t border-gray-100 p-6 rounded-b-3xl flex gap-3">
+                <button type="button" onclick="closeAssignmentsModal()" class="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold text-sm hover:bg-gray-200 transition">닫기</button>
+                <button type="button" id="assignmentsRetryDeleteBtn" onclick="retryDeleteAfterAssignments()" class="flex-1 py-3 bg-red-600 text-white rounded-xl font-bold text-sm hover:bg-red-700 transition hidden">
+                    <i class="fas fa-trash-alt mr-2"></i>삭제 다시 시도
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let usersData = [];
 
@@ -403,6 +430,8 @@ export const adminUsersHtml = (activeMenu: string = 'users') => `
             }
         }
 
+        let _assignmentsUserId = null;
+
         async function deleteUser(id) {
             if (!confirm('정말 이 회원을 삭제하시겠습니까?\\n\\n이 작업은 되돌릴 수 없습니다.')) return;
 
@@ -418,12 +447,150 @@ export const adminUsersHtml = (activeMenu: string = 'users') => `
                     alert('회원이 삭제되었습니다.');
                     await loadUsers();
                 } else {
-                    alert('삭제 실패: ' + (result.error || '알 수 없는 오류'));
+                    if (result.assignments && (result.assignments.courses?.length || result.assignments.training_logs?.length || result.assignments.assignments?.length)) {
+                        _assignmentsUserId = id;
+                        openAssignmentsModal(id, result.error, result.assignments);
+                    } else {
+                        alert('삭제 실패: ' + (result.error || '알 수 없는 오류'));
+                    }
                 }
             } catch (e) {
                 console.error('삭제 실패:', e);
                 alert('서버 연결 실패');
             }
+        }
+
+        function openAssignmentsModal(userId, message, data) {
+            document.getElementById('assignmentsModal').classList.remove('hidden');
+            document.getElementById('assignmentsModalMessage').textContent = message || '아래 항목에서 배정을 해제한 후 삭제해 주세요.';
+            document.getElementById('assignmentsRetryDeleteBtn').classList.add('hidden');
+            renderAssignmentsContent(data);
+            setTimeout(() => {
+                document.getElementById('assignmentsBackdrop').classList.add('opacity-100');
+                document.getElementById('assignmentsPanel').classList.remove('scale-95', 'opacity-0');
+                document.getElementById('assignmentsPanel').classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        function closeAssignmentsModal() {
+            document.getElementById('assignmentsBackdrop').classList.remove('opacity-100');
+            document.getElementById('assignmentsPanel').classList.remove('scale-100', 'opacity-100');
+            document.getElementById('assignmentsPanel').classList.add('scale-95', 'opacity-0');
+            setTimeout(() => { document.getElementById('assignmentsModal').classList.add('hidden'); _assignmentsUserId = null; }, 300);
+        }
+
+        function renderAssignmentsContent(data) {
+            const d = data || { courses: [], training_logs: [], assignments: [] };
+            const courses = d.courses || [];
+            const logs = d.training_logs || [];
+            const assignments = d.assignments || [];
+            const html = [
+                courses.length ? \`
+                    <div>
+                        <h4 class="text-sm font-bold text-gray-700 mb-2 flex items-center"><i class="fas fa-chalkboard-teacher mr-2 text-purple-500"></i>과정 강사 배정 (\${courses.length}건)</h4>
+                        <ul class="space-y-2">
+                            \${courses.map(c => \`
+                                <li class="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-xl">
+                                    <span class="text-sm text-gray-800">\${escapeHtml(c.title || '과정 #'+c.id)}</span>
+                                    <button type="button" onclick="unassignCourse(\${c.id})" class="px-3 py-1.5 bg-amber-100 text-amber-800 rounded-lg text-xs font-bold hover:bg-amber-200 transition">배정 해제</button>
+                                </li>
+                            \`).join('')}
+                        </ul>
+                    </div>
+                \` : '',
+                logs.length ? \`
+                    <div>
+                        <h4 class="text-sm font-bold text-gray-700 mb-2 flex items-center"><i class="fas fa-clipboard-list mr-2 text-blue-500"></i>훈련일지 강사 배정 (\${logs.length}건)</h4>
+                        <ul class="space-y-2">
+                            \${logs.map(l => \`
+                                <li class="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-xl">
+                                    <span class="text-sm text-gray-800">\${escapeHtml((l.course_title || '과정') + ' · ' + (l.date || '') + (l.topic ? ' · ' + l.topic : ''))}</span>
+                                    <button type="button" onclick="unassignTrainingLog(\${l.id})" class="px-3 py-1.5 bg-amber-100 text-amber-800 rounded-lg text-xs font-bold hover:bg-amber-200 transition">배정 해제</button>
+                                </li>
+                            \`).join('')}
+                        </ul>
+                    </div>
+                \` : '',
+                assignments.length ? \`
+                    <div>
+                        <h4 class="text-sm font-bold text-gray-700 mb-2 flex items-center"><i class="fas fa-tasks mr-2 text-green-500"></i>과제 담당자 배정 (\${assignments.length}건)</h4>
+                        <ul class="space-y-2">
+                            \${assignments.map(a => \`
+                                <li class="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-xl">
+                                    <span class="text-sm text-gray-800">\${escapeHtml((a.course_title || '과정') + ' · ' + (a.title || '과제 #'+a.id))}</span>
+                                    <button type="button" onclick="unassignAssignment(\${a.id})" class="px-3 py-1.5 bg-amber-100 text-amber-800 rounded-lg text-xs font-bold hover:bg-amber-200 transition">배정 해제</button>
+                                </li>
+                            \`).join('')}
+                        </ul>
+                    </div>
+                \` : '',
+                (!courses.length && !logs.length && !assignments.length) ? '<p class="text-sm text-gray-500 py-4 text-center">해제할 배정이 없습니다. 삭제를 다시 시도해 주세요.</p>' : ''
+            ].filter(Boolean).join('');
+            document.getElementById('assignmentsContent').innerHTML = html || '<p class="text-sm text-gray-500 py-4 text-center">로딩 중...</p>';
+            const total = courses.length + logs.length + assignments.length;
+            document.getElementById('assignmentsRetryDeleteBtn').classList.toggle('hidden', total > 0);
+        }
+
+        function escapeHtml(s) {
+            if (s == null) return '';
+            const div = document.createElement('div');
+            div.textContent = s;
+            return div.innerHTML;
+        }
+
+        async function unassignCourse(courseId) {
+            const token = localStorage.getItem('token');
+            const res = await fetch(\`/api/courses/\${courseId}\`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                body: JSON.stringify({ teacher_id: null })
+            });
+            const json = await res.json();
+            if (json.success) { await refreshAssignmentsModal(); return; }
+            alert('과정 배정 해제 실패: ' + (json.error || res.status));
+        }
+
+        async function unassignTrainingLog(logId) {
+            const token = localStorage.getItem('token');
+            const res = await fetch(\`/api/hrd/training-logs/\${logId}\`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                body: JSON.stringify({ instructor_id: null })
+            });
+            const json = await res.json();
+            if (json.success) { await refreshAssignmentsModal(); return; }
+            alert('훈련일지 배정 해제 실패: ' + (json.error || res.status));
+        }
+
+        async function unassignAssignment(assignmentId) {
+            const token = localStorage.getItem('token');
+            const res = await fetch(\`/api/assignments/\${assignmentId}\`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                body: JSON.stringify({ teacher_id: null })
+            });
+            const json = await res.json();
+            if (json.success) { await refreshAssignmentsModal(); return; }
+            alert('과제 배정 해제 실패: ' + (json.error || res.status));
+        }
+
+        async function refreshAssignmentsModal() {
+            if (!_assignmentsUserId) return;
+            const token = localStorage.getItem('token');
+            const res = await fetch(\`/api/users/\${_assignmentsUserId}/assignments\`, { headers: { 'Authorization': 'Bearer ' + token } });
+            const json = await res.json();
+            if (json.success && json.data) {
+                renderAssignmentsContent(json.data);
+                const d = json.data;
+                const total = (d.courses?.length || 0) + (d.training_logs?.length || 0) + (d.assignments?.length || 0);
+                document.getElementById('assignmentsRetryDeleteBtn').classList.toggle('hidden', total > 0);
+            }
+        }
+
+        async function retryDeleteAfterAssignments() {
+            if (!_assignmentsUserId) return;
+            closeAssignmentsModal();
+            await deleteUser(_assignmentsUserId);
         }
     </script>
 </body>

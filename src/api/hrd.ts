@@ -1727,12 +1727,17 @@ app.post('/training-logs', async (c) => {
         const { id, course_id, instructor_id, date, topic, content, teaching_method, ncs_unit_id, training_hours, ncs_elements_json } = body;
 
         if (id) {
-            // 수정
+            // 수정 (instructor_id 포함 — 배정 해제 시 null 가능)
+            const updates: string[] = ['topic = ?', 'content = ?', 'teaching_method = ?', 'ncs_unit_id = ?', 'training_hours = ?', 'ncs_elements_json = ?', 'updated_at = CURRENT_TIMESTAMP'];
+            const bindParams: any[] = [topic, content, teaching_method, ncs_unit_id, training_hours, ncs_elements_json];
+            if (body.instructor_id !== undefined) {
+                updates.push('instructor_id = ?');
+                bindParams.push(body.instructor_id === '' || body.instructor_id === null ? null : body.instructor_id);
+            }
+            bindParams.push(id);
             await c.env.DB.prepare(`
-                UPDATE training_logs 
-                SET topic = ?, content = ?, teaching_method = ?, ncs_unit_id = ?, training_hours = ?, ncs_elements_json = ?, updated_at = CURRENT_TIMESTAMP
-                WHERE id = ?
-            `).bind(topic, content, teaching_method, ncs_unit_id, training_hours, ncs_elements_json, id).run();
+                UPDATE training_logs SET ${updates.join(', ')} WHERE id = ?
+            `).bind(...bindParams).run();
         } else {
             // 등록
             await c.env.DB.prepare(`
@@ -1742,6 +1747,24 @@ app.post('/training-logs', async (c) => {
         }
 
         return c.json({ success: true, message: id ? '일지가 수정되었습니다.' : '일지가 등록되었습니다.' });
+    } catch (e: any) {
+        return errorResponse(c, e.message, 500);
+    }
+});
+
+// 훈련 일지 강사 배정 해제 (instructor_id 만 변경)
+app.patch('/training-logs/:id', async (c) => {
+    try {
+        const id = c.req.param('id');
+        const body = await c.req.json();
+        const instructor_id = body.instructor_id === undefined ? undefined : (body.instructor_id === '' || body.instructor_id === null ? null : body.instructor_id);
+        if (instructor_id === undefined) {
+            return c.json({ success: false, error: 'instructor_id is required' }, 400);
+        }
+        await c.env.DB.prepare(`
+            UPDATE training_logs SET instructor_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
+        `).bind(instructor_id, id).run();
+        return c.json({ success: true, message: '강사 배정이 해제되었습니다.' });
     } catch (e: any) {
         return errorResponse(c, e.message, 500);
     }

@@ -1,4 +1,4 @@
-﻿import { Hono } from 'hono';
+import { Hono } from 'hono';
 import { logger } from 'hono/logger';
 import { serveStatic } from 'hono/cloudflare-workers';
 import type { Bindings } from './types';
@@ -332,7 +332,7 @@ app.get('/courses', (c) => c.html(coursesListHtml));
 app.get('/portfolios', (c) => c.html(portfoliosListHtml));
 app.get('/posts', (c) => c.html(postsListHtml));
 app.get('/schedule', (c) => c.html(scheduleHtml));
-app.get('/locations', (c) => c.html(locationsHtml));
+app.get('/locations', (c) => c.html(locationsHtml({ kakaoMapAppKey: (c.env as Record<string, string>).KAKAO_MAP_APPKEY })));
 app.get('/achievements', (c) => c.html(achievementsHtml));
 app.get('/reviews', (c) => c.html(reviewsListHtml));
 

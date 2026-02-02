@@ -147,6 +147,47 @@ app.put('/', authMiddleware, requireAdmin, async (c) => {
     }
 });
 
+// 사용자별 삭제를 막는 배정 목록 조회 (관리자 전용)
+app.get('/:id/assignments', authMiddleware, requireAdmin, async (c) => {
+    const db = c.env.DB;
+    const userId = parseInt(c.req.param('id'));
+    if (!userId) {
+        return c.json({ success: false, error: 'Invalid user ID' }, 400);
+    }
+    try {
+        const [courses, trainingLogs, assignments] = await Promise.all([
+            db.prepare(`
+                SELECT id, title FROM courses WHERE teacher_id = ? ORDER BY title
+            `).bind(userId).all(),
+            db.prepare(`
+                SELECT t.id, t.date, t.topic, c.title as course_title
+                FROM training_logs t
+                LEFT JOIN courses c ON t.course_id = c.id
+                WHERE t.instructor_id = ?
+                ORDER BY t.date DESC
+            `).bind(userId).all(),
+            db.prepare(`
+                SELECT a.id, a.title, c.title as course_title
+                FROM assignments a
+                LEFT JOIN courses c ON a.course_id = c.id
+                WHERE a.teacher_id = ?
+                ORDER BY a.due_date DESC
+            `).bind(userId).all()
+        ]);
+        return c.json({
+            success: true,
+            data: {
+                courses: courses.results || [],
+                training_logs: trainingLogs.results || [],
+                assignments: assignments.results || []
+            }
+        });
+    } catch (error) {
+        console.error('[Users API] Assignments fetch failed:', error);
+        return c.json({ success: false, error: 'Failed to fetch assignments' }, 500);
+    }
+});
+
 // 사용자 삭제 (관리자 전용)
 app.delete('/:id', authMiddleware, requireAdmin, async (c) => {
     const user = c.get('user');
@@ -163,18 +204,43 @@ app.delete('/:id', authMiddleware, requireAdmin, async (c) => {
             return c.json({ success: false, error: 'Cannot delete your own account' }, 400);
         }
 
-        // 강사/사용자 배정 등 FK 제약으로 삭제 불가 시 원인 안내 (500 대신 400 + 메시지)
-        const trainingLog = await db.prepare('SELECT 1 FROM training_logs WHERE instructor_id = ? LIMIT 1').bind(userId).first();
-        if (trainingLog) {
-            return c.json({ success: false, error: '이 사용자는 훈련일지에 강사로 등록되어 있어 삭제할 수 없습니다. 훈련일지에서 강사 배정을 해제한 후 삭제해 주세요.' }, 400);
+        // 삭제를 막는 배정 수집 (목록 포함해 400 응답에 반환)
+        const courses = await db.prepare('SELECT id, title FROM courses WHERE teacher_id = ?').bind(userId).all();
+        const trainingLogs = await db.prepare(`
+            SELECT t.id, t.date, t.topic, c.title as course_title
+            FROM training_logs t LEFT JOIN courses c ON t.course_id = c.id
+            WHERE t.instructor_id = ?
+        `).bind(userId).all();
+        const assignments = await db.prepare(`
+            SELECT a.id, a.title, c.title as course_title
+            FROM assignments a LEFT JOIN courses c ON a.course_id = c.id
+            WHERE a.teacher_id = ?
+        `).bind(userId).all();
+
+        const courseList = courses.results || [];
+        const logList = trainingLogs.results || [];
+        const assignList = assignments.results || [];
+
+        if (logList.length > 0) {
+            return c.json({
+                success: false,
+                error: '이 사용자는 훈련일지에 강사로 등록되어 있어 삭제할 수 없습니다. 아래 목록에서 배정을 해제한 후 삭제해 주세요.',
+                assignments: { courses: courseList, training_logs: logList, assignments: assignList }
+            }, 400);
         }
-        const assignment = await db.prepare('SELECT 1 FROM assignments WHERE teacher_id = ? LIMIT 1').bind(userId).first();
-        if (assignment) {
-            return c.json({ success: false, error: '이 사용자는 과제에 강사로 배정되어 있어 삭제할 수 없습니다. 과제 배정을 해제한 후 삭제해 주세요.' }, 400);
+        if (assignList.length > 0) {
+            return c.json({
+                success: false,
+                error: '이 사용자는 과제에 강사로 배정되어 있어 삭제할 수 없습니다. 아래 목록에서 배정을 해제한 후 삭제해 주세요.',
+                assignments: { courses: courseList, training_logs: logList, assignments: assignList }
+            }, 400);
         }
-        const courseTeacher = await db.prepare('SELECT 1 FROM courses WHERE teacher_id = ? LIMIT 1').bind(userId).first();
-        if (courseTeacher) {
-            return c.json({ success: false, error: '이 사용자는 과정에 강사로 배정되어 있어 삭제할 수 없습니다. 과정 관리에서 강사 배정을 해제한 후 삭제해 주세요.' }, 400);
+        if (courseList.length > 0) {
+            return c.json({
+                success: false,
+                error: '이 사용자는 과정에 강사로 배정되어 있어 삭제할 수 없습니다. 아래 목록에서 배정을 해제한 후 삭제해 주세요.',
+                assignments: { courses: courseList, training_logs: logList, assignments: assignList }
+            }, 400);
         }
 
         await db.prepare('DELETE FROM users WHERE id = ?').bind(userId).run();
@@ -184,7 +250,28 @@ app.delete('/:id', authMiddleware, requireAdmin, async (c) => {
         console.error('[Users API] Delete failed:', error);
         const msg = error instanceof Error ? error.message : String(error);
         if (/foreign key|constraint|FOREIGN KEY/i.test(msg)) {
-            return c.json({ success: false, error: '이 사용자는 과정·훈련일지·과제·교직원 등에 연결되어 있어 삭제할 수 없습니다. 관련 배정을 해제한 후 삭제해 주세요.' }, 400);
+            try {
+                const courses = await db.prepare('SELECT id, title FROM courses WHERE teacher_id = ?').bind(userId).all();
+                const trainingLogs = await db.prepare(`
+                    SELECT t.id, t.date, t.topic, c.title as course_title
+                    FROM training_logs t LEFT JOIN courses c ON t.course_id = c.id WHERE t.instructor_id = ?
+                `).bind(userId).all();
+                const assignments = await db.prepare(`
+                    SELECT a.id, a.title, c.title as course_title
+                    FROM assignments a LEFT JOIN courses c ON a.course_id = c.id WHERE a.teacher_id = ?
+                `).bind(userId).all();
+                return c.json({
+                    success: false,
+                    error: '이 사용자는 과정·훈련일지·과제 등에 연결되어 있어 삭제할 수 없습니다. 관련 배정을 해제한 후 삭제해 주세요.',
+                    assignments: {
+                        courses: courses.results || [],
+                        training_logs: trainingLogs.results || [],
+                        assignments: assignments.results || []
+                    }
+                }, 400);
+            } catch (_) {
+                return c.json({ success: false, error: '이 사용자는 과정·훈련일지·과제·교직원 등에 연결되어 있어 삭제할 수 없습니다. 관련 배정을 해제한 후 삭제해 주세요.' }, 400);
+            }
         }
         return c.json({ success: false, error: 'Failed to delete user' }, 500);
     }

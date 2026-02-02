@@ -3,13 +3,17 @@ import { footerHtml } from './footer';
 
 import { navigationHtml } from './components/navigation';
 
-export const locationsHtml = `
+/** 옵션: kakaoMapAppKey 있으면 지도 표시 (Cloudflare Pages에서는 Secrets에 KAKAO_MAP_APPKEY 설정) */
+export function locationsHtml(options?: { kakaoMapAppKey?: string }) {
+  const appKey = (options && options.kakaoMapAppKey) ? options.kakaoMapAppKey : '';
+  return `
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>오시는길 - 와우쓰리디홍대센터</title>
+    <meta name="kakao-map-appkey" content="${appKey.replace(/"/g, '&quot;')}">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <script>
@@ -76,17 +80,15 @@ export const locationsHtml = `
         <!-- 홍대센터 컨텐츠 -->
         <div id="content-hongdae" class="center-content">
             <div class="bg-white rounded-lg shadow-lg overflow-hidden">
-                <!-- 지도 영역 -->
-                <div class="w-full h-96 bg-gray-200 flex items-center justify-center relative">
-                    <div class="absolute inset-0 bg-gray-300 flex items-center justify-center">
+                <!-- 지도 영역 (카카오맵 또는 플레이스홀더) -->
+                <div class="relative w-full h-96 bg-gray-200" style="min-height: 24rem;">
+                    <div id="map-hongdae" class="absolute inset-0 w-full h-full" style="z-index: 0;"></div>
+                    <div id="map-hongdae-placeholder" class="absolute inset-0 flex items-center justify-center bg-gray-200" style="z-index: 1;">
                         <div class="text-center">
                             <i class="fas fa-map-marked-alt text-6xl text-gray-400 mb-4"></i>
                             <p class="text-gray-500 font-medium">서울 홍대센터 지도</p>
+                            <p class="text-xs text-gray-400 mt-2">카카오맵 앱키를 설정하면 지도가 표시됩니다.</p>
                         </div>
-                    </div>
-                    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-full -mt-4">
-                        <div class="bg-primary-600 text-white px-3 py-1 rounded shadow-lg text-sm font-bold mb-1 whitespace-nowrap">와우쓰리디홍대센터</div>
-                        <div class="text-primary-600 text-center text-3xl drop-shadow-md"><i class="fas fa-map-marker-alt"></i></div>
                     </div>
                 </div>
                 
@@ -99,7 +101,7 @@ export const locationsHtml = `
                             <ul class="space-y-4 text-gray-600">
                                 <li class="flex items-start">
                                     <span class="font-bold w-20 flex-shrink-0">주소</span>
-                                    <span>서울 마포구 홍익로 123, 와우빌딩 3층</span>
+                                    <span>서울 마포구 독막로 93 상수빌딩4층 3D쿠키홍대센터터</span>
                                 </li>
                                 <li class="flex items-start">
                                     <span class="font-bold w-20 flex-shrink-0">전화</span>
@@ -129,7 +131,7 @@ export const locationsHtml = `
                                 <li class="flex items-start">
                                     <span class="font-bold w-20 flex-shrink-0 text-blue-600"><i class="fas fa-bus"></i> 버스</span>
                                     <div>
-                                        <p>홍대입구역 정류장 하차</p>
+                                        <p>6호선 상수역2번 출구 전방 100m</p>
                                     </div>
                                 </li>
                             </ul>
@@ -142,17 +144,14 @@ export const locationsHtml = `
         <!-- 구미센터 컨텐츠 -->
         <div id="content-gumi" class="center-content hidden">
             <div class="bg-white rounded-lg shadow-lg overflow-hidden">
-                <!-- 지도 영역 -->
-                <div class="w-full h-96 bg-gray-200 flex items-center justify-center relative">
-                    <div class="absolute inset-0 bg-gray-300 flex items-center justify-center">
+                <div class="relative w-full h-96 bg-gray-200" style="min-height: 24rem;">
+                    <div id="map-gumi" class="absolute inset-0 w-full h-full" style="z-index: 0;"></div>
+                    <div id="map-gumi-placeholder" class="absolute inset-0 flex items-center justify-center bg-gray-200" style="z-index: 1;">
                         <div class="text-center">
                             <i class="fas fa-map-marked-alt text-6xl text-gray-400 mb-4"></i>
                             <p class="text-gray-500 font-medium">경북 구미센터 지도</p>
+                            <p class="text-xs text-gray-400 mt-2">카카오맵 앱키를 설정하면 지도가 표시됩니다.</p>
                         </div>
-                    </div>
-                    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-full -mt-4">
-                        <div class="bg-green-600 text-white px-3 py-1 rounded shadow-lg text-sm font-bold mb-1 whitespace-nowrap">와우쓰리디구미센터</div>
-                        <div class="text-green-600 text-center text-3xl drop-shadow-md"><i class="fas fa-map-marker-alt"></i></div>
                     </div>
                 </div>
                 
@@ -194,17 +193,14 @@ export const locationsHtml = `
         <!-- 전주센터 컨텐츠 -->
         <div id="content-jeonju" class="center-content hidden">
             <div class="bg-white rounded-lg shadow-lg overflow-hidden">
-                <!-- 지도 영역 -->
-                <div class="w-full h-96 bg-gray-200 flex items-center justify-center relative">
-                    <div class="absolute inset-0 bg-gray-300 flex items-center justify-center">
+                <div class="relative w-full h-96 bg-gray-200" style="min-height: 24rem;">
+                    <div id="map-jeonju" class="absolute inset-0 w-full h-full" style="z-index: 0;"></div>
+                    <div id="map-jeonju-placeholder" class="absolute inset-0 flex items-center justify-center bg-gray-200" style="z-index: 1;">
                         <div class="text-center">
                             <i class="fas fa-map-marked-alt text-6xl text-gray-400 mb-4"></i>
                             <p class="text-gray-500 font-medium">전북 전주센터 지도</p>
+                            <p class="text-xs text-gray-400 mt-2">카카오맵 앱키를 설정하면 지도가 표시됩니다.</p>
                         </div>
-                    </div>
-                    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-full -mt-4">
-                        <div class="bg-orange-600 text-white px-3 py-1 rounded shadow-lg text-sm font-bold mb-1 whitespace-nowrap">와우쓰리디전주센터</div>
-                        <div class="text-orange-600 text-center text-3xl drop-shadow-md"><i class="fas fa-map-marker-alt"></i></div>
                     </div>
                 </div>
                 
@@ -221,7 +217,7 @@ export const locationsHtml = `
                                 </li>
                                 <li class="flex items-start">
                                     <span class="font-bold w-20 flex-shrink-0">전화</span>
-                                    <span>063-XXX-XXXX</span>
+                                    <span>02-3144-3137</span>
                                 </li>
                                 <li class="flex items-start">
                                     <span class="font-bold w-20 flex-shrink-0">이메일</span>
@@ -250,27 +246,63 @@ export const locationsHtml = `
     ${footerHtml()}
 
     <script>
+        var locationMaps = {}; // centerId -> { map, marker }
+        var CENTERS = {
+            hongdae: { lat: 37.5475, lng: 126.9240, name: '와우쓰리디홍대센터', address: '서울 마포구 독막로 93 상수빌딩4층' },
+            gumi:     { lat: 36.1194, lng: 128.3442, name: '와우쓰리디구미센터', address: '경북 구미시 산호대로 253 구미첨단의료기술타워606호' },
+            jeonju:   { lat: 35.8242, lng: 127.1480, name: '와우쓰리디전주센터', address: '전북특별자치도 전주시 덕진구 반룡로 109 A동 207호' }
+        };
+
         function switchTab(center) {
-            // 모든 탭 버튼 비활성화
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.classList.remove('active');
                 btn.classList.remove('bg-primary-600', 'text-white');
                 btn.classList.add('bg-white', 'text-gray-900');
             });
-            
-            // 선택된 탭 활성화
             const activeBtn = document.getElementById('tab-' + center);
             activeBtn.classList.add('active');
-            
-            // 모든 컨텐츠 숨기기
-            document.querySelectorAll('.center-content').forEach(content => {
-                content.classList.add('hidden');
-            });
-            
-            // 선택된 컨텐츠 표시
+            document.querySelectorAll('.center-content').forEach(content => content.classList.add('hidden'));
             document.getElementById('content-' + center).classList.remove('hidden');
+            if (window.kakao && window.kakao.maps && !locationMaps[center]) initMap(center);
+            if (locationMaps[center] && locationMaps[center].map) locationMaps[center].map.relayout();
         }
+
+        function initMap(centerId) {
+            if (locationMaps[centerId]) return;
+            var el = document.getElementById('map-' + centerId);
+            var ph = document.getElementById('map-' + centerId + '-placeholder');
+            if (!el || !ph) return;
+            var c = CENTERS[centerId];
+            if (!c) return;
+            var container = el;
+            var options = { center: new kakao.maps.LatLng(c.lat, c.lng), level: 3 };
+            var map = new kakao.maps.Map(container, options);
+            var markerPosition = new kakao.maps.LatLng(c.lat, c.lng);
+            var marker = new kakao.maps.Marker({ position: markerPosition });
+            marker.setMap(map);
+            var iw = new kakao.maps.InfoWindow({ content: '<div style="padding:8px 10px;font-size:13px;font-weight:bold;white-space:nowrap;">' + c.name + '</div>' });
+            iw.open(map, marker);
+            locationMaps[centerId] = { map: map, marker: marker };
+            ph.style.display = 'none';
+        }
+
+        (function loadKakaoMap() {
+            var meta = document.querySelector('meta[name="kakao-map-appkey"]');
+            var appkey = (meta && meta.getAttribute('content')) ? meta.getAttribute('content').trim() : '';
+            if (!appkey) return;
+            var s = document.createElement('script');
+            s.src = 'https://dapi.kakao.com/v2/maps/sdk.js?appkey=' + encodeURIComponent(appkey) + '&autoload=false';
+            s.async = true;
+            s.onload = function() {
+                kakao.maps.load(function() {
+                    initMap('hongdae');
+                });
+            };
+            document.head.appendChild(s);
+        })();
     </script>
 </body>
 </html>
 `;
+}
+

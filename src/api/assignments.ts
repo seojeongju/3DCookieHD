@@ -66,18 +66,28 @@ app.post('/', async (c) => {
     }
 });
 
-// 과제 수정
+// 과제 수정 (teacher_id 포함 — 배정 해제 시 null 가능)
 app.put('/:id', async (c) => {
     try {
         const id = c.req.param('id');
         const body = await c.req.json();
-        const { title, description, due_date, max_score, attachment_url } = body;
+        const { title, description, due_date, max_score, attachment_url, teacher_id } = body;
 
+        const updates: string[] = ['updated_at = CURRENT_TIMESTAMP'];
+        const params: any[] = [];
+        if (title !== undefined) { updates.push('title = ?'); params.push(title); }
+        if (description !== undefined) { updates.push('description = ?'); params.push(description); }
+        if (due_date !== undefined) { updates.push('due_date = ?'); params.push(due_date); }
+        if (max_score !== undefined) { updates.push('max_score = ?'); params.push(max_score); }
+        if (attachment_url !== undefined) { updates.push('attachment_url = ?'); params.push(attachment_url); }
+        if (teacher_id !== undefined) { updates.push('teacher_id = ?'); params.push(teacher_id === '' || teacher_id === null ? null : teacher_id); }
+        if (params.length === 0) {
+            return c.json({ success: false, error: 'No fields to update' }, 400);
+        }
+        params.push(id);
         await c.env.DB.prepare(`
-            UPDATE assignments 
-            SET title = ?, description = ?, due_date = ?, max_score = ?, attachment_url = ?, updated_at = CURRENT_TIMESTAMP
-            WHERE id = ?
-        `).bind(title, description, due_date, max_score, attachment_url, id).run();
+            UPDATE assignments SET ${updates.join(', ')} WHERE id = ?
+        `).bind(...params).run();
 
         return c.json({ success: true });
     } catch (e) {
