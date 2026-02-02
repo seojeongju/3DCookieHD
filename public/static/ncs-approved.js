@@ -579,46 +579,98 @@
                 var selectedSet = {};
                 (d.selected || []).forEach(function (n) { selectedSet[n] = true; });
 
+                var hasJobs = mainJobs && mainJobs.length > 0;
+
+                // Build Table Header
+                var theadHtml = '<tr><th class="px-6 py-3 w-28 font-bold text-center border-r border-emerald-400">수준</th>';
+                if (hasJobs) {
+                    mainJobs.forEach(function (j) {
+                        var jName = (j.name || '').trim() || (j.code || '직종');
+                        theadHtml += '<th class="px-6 py-3 font-bold text-center border-r border-emerald-400 last:border-0">' + esc(jName) + '</th>';
+                    });
+                } else {
+                    theadHtml += '<th class="px-6 py-3 font-bold text-center">능력단위</th>';
+                }
+                theadHtml += '</tr>';
+                var thead = document.querySelector('#ncsApprovedStep2Container thead');
+                if (thead) thead.innerHTML = theadHtml;
+
                 var rows = [];
-                function addSelectableRows(levelLabel, items) {
-                    // Check if items exist
-                    var hasItems = items && items.length > 0;
+                function addSelectableRows(levelLabel, allItems) {
+                    var rowHtml = '<tr class="border-b border-slate-100 last:border-0">';
+                    rowHtml += '<td class="px-4 py-6 text-center font-bold text-slate-600 border-r border-slate-100">' + esc(levelLabel) + '</td>';
 
-                    var contentHtml = '';
-                    if (!hasItems) {
-                        contentHtml = '<span class="text-slate-300 text-sm">해당 없음</span>';
+                    if (hasJobs) {
+                        mainJobs.forEach(function (job) {
+                            var jobName = (job.name || '').trim();
+                            // If jobName is empty, it might be tricky. Assume valid jobs.
+                            var jobItems = (allItems || []).filter(function (it) {
+                                if (it.jobNames && Array.isArray(it.jobNames)) {
+                                    return it.jobNames.includes(jobName);
+                                }
+                                return true;
+                            });
+
+                            var contentHtml = '';
+                            if (!jobItems.length) {
+                                contentHtml = '<span class="text-slate-300 text-xs">해당 없음</span>';
+                            } else {
+                                contentHtml = '<div class="flex flex-col gap-2">';
+                                jobItems.sort(function (a, b) { return (a.name || '').localeCompare(b.name || ''); });
+                                jobItems.forEach(function (x) {
+                                    var name = (x && x.name) ? x.name : String(x);
+                                    if (!name) return;
+                                    var code = (x && x.code) ? String(x.code).trim() : '';
+                                    var value = code || name;
+                                    var isChecked = selectedSet[value] || selectedSet[name];
+
+                                    var className = isChecked
+                                        ? 'cursor-pointer px-3 py-2.5 rounded-lg border-2 border-emerald-500 bg-emerald-50 text-emerald-900 font-bold shadow-md transition flex items-center justify-between group'
+                                        : 'cursor-pointer px-3 py-2.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition flex items-center justify-between group';
+
+                                    contentHtml += '<label class="' + className + '" data-unit-value="' + attrEsc(value) + '">' +
+                                        '<span class="flex-1 text-sm">' + esc(name) + '</span>' +
+                                        '<input type="checkbox" class="ncs-step2-cb hidden" value="' + attrEsc(value) + '"' + (isChecked ? ' checked' : '') + ' onchange="updateUnitSelection(this)">' +
+                                        '<i class="fas fa-check ' + (isChecked ? 'text-emerald-600' : 'text-transparent group-hover:text-slate-300') + ' transition"></i>' +
+                                        '</label>';
+                                });
+                                contentHtml += '</div>';
+                            }
+                            rowHtml += '<td class="px-3 py-4 bg-slate-50/30 border-r border-slate-100 last:border-0 align-top min-w-[200px]">' + contentHtml + '</td>';
+                        });
                     } else {
-                        contentHtml = '<div class="flex flex-col gap-2">';
-                        (items || []).forEach(function (x) {
+                        var contentHtml = '<div class="flex flex-col gap-2">';
+                        (allItems || []).forEach(function (x) {
                             var name = (x && x.name) ? x.name : String(x);
-                            if (!name) return;
-                            var code = (x && x.code) ? String(x.code).trim() : '';
-                            var value = code || name;
+                            var value = x.code || name;
                             var isChecked = selectedSet[value] || selectedSet[name];
-                            var jobNames = Array.isArray(x.jobNames) && x.jobNames.length ? x.jobNames.join(', ') : '';
-                            var jobBadge = jobNames ? '<span class="ml-2 text-xs text-slate-400 font-normal">(' + esc(jobNames) + ')</span>' : '';
-
-                            // Style calculation
-                            // Selected: Bold Green Border, Light Green Background, Dark Green Text
-                            // Unselected: Gray Background, Gray Text
-
-                            var className = isChecked
-                                ? 'cursor-pointer px-4 py-3 rounded-lg border-2 border-emerald-500 bg-emerald-50 text-emerald-900 font-bold shadow-md transition flex items-center justify-between group'
-                                : 'cursor-pointer px-4 py-3 rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition flex items-center justify-between group';
-
-                            contentHtml += '<label class="' + className + '">' +
-                                '<span class="flex-1">' + esc(name) + jobBadge + '</span>' +
-                                '<input type="checkbox" class="ncs-step2-cb hidden" value="' + attrEsc(value) + '"' + (isChecked ? ' checked' : '') + ' onchange="var p=this.parentElement; var i=p.querySelector(\'i\'); if(this.checked){ p.className=\'cursor-pointer px-4 py-3 rounded-lg border-2 border-emerald-500 bg-emerald-50 text-emerald-900 font-bold shadow-md transition flex items-center justify-between group\'; i.className=\'fas fa-check text-emerald-600 transition\'; } else { p.className=\'cursor-pointer px-4 py-3 rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition flex items-center justify-between group\'; i.className=\'fas fa-check text-transparent group-hover:text-slate-300 transition\'; }">' +
-                                '<i class="fas fa-check ' + (isChecked ? 'text-emerald-600' : 'text-transparent group-hover:text-slate-300') + ' transition"></i>' +
-                                '</label>';
+                            var className = isChecked ? 'cursor-pointer px-3 py-2.5 rounded-lg border-2 border-emerald-500 bg-emerald-50 text-emerald-900 font-bold shadow-md transition flex items-center justify-between group' : 'cursor-pointer px-3 py-2.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition flex items-center justify-between group';
+                            contentHtml += '<label class="' + className + '"><span class="flex-1 text-sm">' + esc(name) + '</span><input type="checkbox" class="ncs-step2-cb hidden" value="' + attrEsc(value) + '"' + (isChecked ? ' checked' : '') + ' onchange="updateUnitSelection(this)"><i class="fas fa-check ' + (isChecked ? 'text-emerald-600' : 'text-transparent group-hover:text-slate-300') + ' transition"></i></label>';
                         });
                         contentHtml += '</div>';
+                        rowHtml += '<td class="px-6 py-4 bg-slate-50/30">' + contentHtml + '</td>';
                     }
-
-                    rows.push('<tr class="border-b border-slate-100 last:border-0">' +
-                        '<td class="px-6 py-6 text-center font-bold text-slate-600 w-40 border-r border-slate-100">' + esc(levelLabel) + '</td>' +
-                        '<td class="px-6 py-4 bg-slate-50/30">' + contentHtml + '</td></tr>');
+                    rowHtml += '</tr>';
+                    rows.push(rowHtml);
                 }
+
+                window.updateUnitSelection = function (trigger) {
+                    var val = trigger.value;
+                    var checked = trigger.checked;
+                    var allCbs = document.querySelectorAll('.ncs-step2-cb[value="' + CSS.escape(val) + '"]');
+                    allCbs.forEach(function (cb) {
+                        cb.checked = checked;
+                        var p = cb.parentElement;
+                        var i = p.querySelector('i');
+                        if (checked) {
+                            p.className = 'cursor-pointer px-3 py-2.5 rounded-lg border-2 border-emerald-500 bg-emerald-50 text-emerald-900 font-bold shadow-md transition flex items-center justify-between group';
+                            if (i) i.className = 'fas fa-check text-emerald-600 transition';
+                        } else {
+                            p.className = 'cursor-pointer px-3 py-2.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition flex items-center justify-between group';
+                            if (i) i.className = 'fas fa-check text-transparent group-hover:text-slate-300 transition';
+                        }
+                    });
+                };
 
                 addSelectableRows('6수준', levels[6]);
                 addSelectableRows('5수준', levels[5]);
@@ -627,24 +679,30 @@
                 addSelectableRows('2수준', levels[2]);
 
                 var basicItems = basicAbility.length ? basicAbility : [];
-                if (basicItems.length === 0) {
-                    // Special case for empty basic ability to match image style "선택된 직업기초 능력이 없습니다."
-                    rows.push('<tr class="border-b border-slate-100 last:border-0">' +
-                        '<td class="px-6 py-6 text-center font-bold text-slate-600 w-40 border-r border-slate-100">직업<br>기초<br>능력</td>' +
-                        '<td class="px-6 py-6 bg-slate-50/30 text-slate-400 text-sm">선택된 직업기초 능력이 없습니다.</td></tr>');
+                var basicRowHtml = '<tr class="border-b border-slate-100 last:border-0">';
+                basicRowHtml += '<td class="px-4 py-6 text-center font-bold text-slate-600 w-28 border-r border-slate-100">직업<br>기초<br>능력</td>';
+                basicRowHtml += '<td colspan="' + (hasJobs ? mainJobs.length : 1) + '" class="px-3 py-4 bg-slate-50/30">';
+                if (!basicItems.length) {
+                    basicRowHtml += '<span class="text-slate-300 text-sm">선택된 직업기초 능력이 없습니다.</span>';
                 } else {
-                    addSelectableRows('직업 기초 능력', basicItems);
+                    basicRowHtml += '<div class="grid grid-cols-2 md:grid-cols-3 gap-2">';
+                    basicItems.forEach(function (x) {
+                        var name = (x && x.name) ? x.name : String(x);
+                        var value = x.code || name;
+                        var isChecked = selectedSet[value] || selectedSet[name];
+                        var className = isChecked
+                            ? 'cursor-pointer px-3 py-2.5 rounded-lg border-2 border-emerald-500 bg-emerald-50 text-emerald-900 font-bold shadow-md transition flex items-center justify-between group'
+                            : 'cursor-pointer px-3 py-2.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition flex items-center justify-between group';
+                        basicRowHtml += '<label class="' + className + '">' +
+                            '<span class="flex-1 text-sm">' + esc(name) + '</span>' +
+                            '<input type="checkbox" class="ncs-step2-cb hidden" value="' + attrEsc(value) + '"' + (isChecked ? ' checked' : '') + ' onchange="updateUnitSelection(this)">' +
+                            '<i class="fas fa-check ' + (isChecked ? 'text-emerald-600' : 'text-transparent group-hover:text-slate-300') + ' transition"></i>' +
+                            '</label>';
+                    });
+                    basicRowHtml += '</div>';
                 }
-
-                var mainLabels = mainJobs.map(function (j) { return (j.name || '') ? (j.name + (j.code ? ' (' + j.code + ')' : '')) : (j.code || '—'); }).filter(Boolean);
-                var mainLabel = mainLabels.length ? mainLabels.join(', ') : '—';
-
-                // Footer Row for Job Info
-                rows.push('<tr class="border-t-2 border-slate-200">' +
-                    '<td class="px-6 py-4 text-center font-bold text-slate-700 bg-slate-100 border-r border-slate-200">직종</td>' +
-                    '<td class="px-6 py-4 bg-slate-100 font-bold text-slate-800">' +
-                    '<div class="px-4 py-3 rounded-lg bg-slate-200/50 border border-slate-300/50 text-slate-700">' + esc(mainLabel) + '</div>' +
-                    '</td></tr>');
+                basicRowHtml += '</td></tr>';
+                rows.push(basicRowHtml);
 
                 tbody.innerHTML = rows.join('');
 
