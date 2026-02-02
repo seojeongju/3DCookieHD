@@ -695,6 +695,7 @@ app.put('/approved/registrations/:id', authMiddleware, requireAdmin, async (c) =
         if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
         const body = await c.req.json<{
             ncs_tab?: string; course_type?: string; main_job_code?: string; main_job_name?: string;
+            main_jobs?: { code?: string; name?: string }[];
             overview_content?: string; dev_category?: string; large_code?: string; mid_code?: string;
             small_code?: string; sub_code?: string; unit_code?: string; unit_name?: string;
             non_ncs_course_name?: string; non_ncs_overview?: string;
@@ -705,8 +706,7 @@ app.put('/approved/registrations/:id', authMiddleware, requireAdmin, async (c) =
 
         const ncsTab = (body.ncs_tab ?? '').toString().trim() || 'ncs';
         const courseType = (body.course_type || '').trim() || null;
-        const mainJobCode = (body.main_job_code || '').trim() || null;
-        const mainJobName = (body.main_job_name || '').trim() || null;
+        const { mainJobsJson, mainJobCode, mainJobName } = parseMainJobs(body);
         const overviewContent = (body.overview_content || '').trim() || null;
         const devCategory = (body.dev_category || '').trim() || null;
         const largeCode = (body.large_code || '').trim() || null;

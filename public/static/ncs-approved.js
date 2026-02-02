@@ -303,7 +303,9 @@
             var mid = midClass ? midClass.value : '';
             var small = smallClass ? smallClass.value : '';
             var mainJobs = [];
-            if (jobRadioGroup) {
+            if (selectedJobsStore && selectedJobsStore.length) {
+                mainJobs = selectedJobsStore.map(function (j) { return { code: j.code || '', name: j.name || '' }; });
+            } else if (jobRadioGroup) {
                 jobRadioGroup.querySelectorAll('.ncs-job-check:checked').forEach(function (cb) {
                     var code = (cb.value || '').trim();
                     var name = (cb.getAttribute('data-name') || '').trim();
@@ -512,21 +514,16 @@
                         midClass.value = d.mid_code || '';
                         loadSmallByMid();
                         smallClass.value = d.small_code || '';
-                        loadJobRadios();
-                        var codesToCheck = [];
+                        selectedJobsStore.length = 0;
                         try {
                             var raw = d.main_jobs_json;
                             if (raw && typeof raw === 'string') {
                                 var arr = JSON.parse(raw);
-                                if (Array.isArray(arr)) arr.forEach(function (j) { if (j && (j.code || j.name)) codesToCheck.push((j.code || '').toString().trim()); });
+                                if (Array.isArray(arr)) arr.forEach(function (j) { if (j && (j.code || j.name)) selectedJobsStore.push({ code: (j.code || '').toString().trim(), name: (j.name || '').toString().trim() }); });
                             }
                         } catch (e) { }
-                        if (codesToCheck.length === 0 && (d.main_job_code || d.unit_code)) codesToCheck.push((d.unit_code || d.main_job_code || '').trim());
-                        if (jobRadioGroup && codesToCheck.length) {
-                            jobRadioGroup.querySelectorAll('.ncs-job-check').forEach(function (cb) {
-                                cb.checked = codesToCheck.indexOf((cb.value || '').trim()) !== -1;
-                            });
-                        }
+                        if (selectedJobsStore.length === 0 && (d.main_job_code || d.unit_code)) selectedJobsStore.push({ code: (d.unit_code || d.main_job_code || '').trim(), name: (d.main_job_name || d.unit_name || '').trim() });
+                        loadJobRadios();
                         updateSelectedJobsResult();
                     });
                 })
