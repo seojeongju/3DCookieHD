@@ -115,6 +115,64 @@ export const homeHtml = `
         </div>
     </section>
 
+    <!-- 교육사진 섹션 -->
+    <section id="education-photos" class="py-16 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-4xl font-bold text-gray-800 mb-4">교육사진</h2>
+                <p class="text-xl text-gray-600">생생한 교육 현장과 수업 모습을 소개합니다.</p>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <a href="/education-photos" class="block rounded-xl overflow-hidden shadow-md hover:shadow-xl transition aspect-square bg-gray-200">
+                    <img src="/static/hero1.jpg" alt="교육 현장" class="w-full h-full object-cover hover:scale-105 transition duration-500">
+                </a>
+                <a href="/education-photos" class="block rounded-xl overflow-hidden shadow-md hover:shadow-xl transition aspect-square bg-gray-200">
+                    <img src="/static/hero2.jpg" alt="교육 현장" class="w-full h-full object-cover hover:scale-105 transition duration-500">
+                </a>
+                <a href="/education-photos" class="block rounded-xl overflow-hidden shadow-md hover:shadow-xl transition aspect-square bg-gray-200">
+                    <img src="/static/hero3.jpg" alt="교육 현장" class="w-full h-full object-cover hover:scale-105 transition duration-500">
+                </a>
+                <a href="/education-photos" class="block rounded-xl overflow-hidden shadow-md hover:shadow-xl transition aspect-square bg-gray-200">
+                    <img src="/static/hero4.jpg" alt="교육 현장" class="w-full h-full object-cover hover:scale-105 transition duration-500">
+                </a>
+            </div>
+            <div class="text-center">
+                <a href="/education-photos" class="inline-flex items-center gap-2 px-8 py-4 bg-primary-600 text-white font-bold rounded-xl hover:bg-primary-700 transition shadow-lg">
+                    교육사진 갤러리 보기 <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- 시제품 제작 사진 섹션 -->
+    <section id="prototype-gallery" class="py-16 bg-white border-t border-gray-100">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-4xl font-bold text-gray-800 mb-4">시제품 제작 사진</h2>
+                <p class="text-xl text-gray-600">3D 프린팅으로 제작한 시제품과 프로젝트 결과물을 소개합니다.</p>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div class="rounded-xl overflow-hidden shadow-md bg-gray-100 aspect-square flex items-center justify-center">
+                    <i class="fas fa-cube text-5xl text-primary-300"></i>
+                </div>
+                <div class="rounded-xl overflow-hidden shadow-md bg-gray-100 aspect-square flex items-center justify-center">
+                    <i class="fas fa-print text-5xl text-primary-300"></i>
+                </div>
+                <div class="rounded-xl overflow-hidden shadow-md bg-gray-100 aspect-square flex items-center justify-center">
+                    <i class="fas fa-tools text-5xl text-primary-300"></i>
+                </div>
+                <div class="rounded-xl overflow-hidden shadow-md bg-gray-100 aspect-square flex items-center justify-center">
+                    <i class="fas fa-industry text-5xl text-primary-300"></i>
+                </div>
+            </div>
+            <div class="text-center">
+                <a href="/posts?category=prototype" class="inline-flex items-center gap-2 px-8 py-4 bg-gray-800 text-white font-bold rounded-xl hover:bg-gray-900 transition shadow-lg">
+                    시제품·작품 더 보기 <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+    </section>
+
     <!-- 과정 목록 섹션 -->
     <section id="courses" class="py-16 bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
