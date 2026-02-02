@@ -215,6 +215,12 @@ export const hrdSidebar = (activeMenu: string) => `
             <span class="font-medium text-[14px]">시제품 제작사진 관리</span>
         </a>
 
+        <a href="/admin/education-gallery" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'education-gallery' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
+             ${activeMenu === 'education-gallery' ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
+            <i class="fas fa-images w-6 text-lg ${activeMenu === 'education-gallery' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
+            <span class="font-medium text-[14px]">교육사진 갤러리 관리</span>
+        </a>
+
         <a href="/admin/inquiries" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'inquiries' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
              ${activeMenu === 'inquiries' ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
             <i class="fas fa-headset w-6 text-lg ${activeMenu === 'inquiries' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>

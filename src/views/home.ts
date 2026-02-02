@@ -167,18 +167,9 @@ export const homeHtml = `
                 <h2 class="text-4xl font-bold text-gray-800 mb-4">시제품 제작 사진</h2>
                 <p class="text-xl text-gray-600">3D 프린팅으로 제작한 시제품과 프로젝트 결과물을 소개합니다.</p>
             </div>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                <div class="rounded-xl overflow-hidden shadow-md bg-gray-100 aspect-square flex items-center justify-center">
-                    <i class="fas fa-cube text-5xl text-primary-300"></i>
-                </div>
-                <div class="rounded-xl overflow-hidden shadow-md bg-gray-100 aspect-square flex items-center justify-center">
-                    <i class="fas fa-print text-5xl text-primary-300"></i>
-                </div>
-                <div class="rounded-xl overflow-hidden shadow-md bg-gray-100 aspect-square flex items-center justify-center">
-                    <i class="fas fa-tools text-5xl text-primary-300"></i>
-                </div>
-                <div class="rounded-xl overflow-hidden shadow-md bg-gray-100 aspect-square flex items-center justify-center">
-                    <i class="fas fa-industry text-5xl text-primary-300"></i>
+            <div id="prototypeList" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div class="col-span-2 md:col-span-4 flex justify-center py-12">
+                    <div class="inline-block animate-spin rounded-full h-10 w-10 border-2 border-primary-600 border-t-transparent"></div>
                 </div>
             </div>
             <div class="text-center">
@@ -267,6 +258,45 @@ export const homeHtml = `
                 container.innerHTML = '<div class="col-span-3 text-center py-12"><p class="text-gray-500">연결에 실패했습니다. 잠시 후 다시 시도해 주세요.</p><button onclick="loadCourses()" class="mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">다시 시도</button></div>';
             }
         }
-        document.addEventListener('DOMContentLoaded', loadCourses);
+        async function loadPrototypes() {
+            var container = document.getElementById('prototypeList');
+            if (!container) return;
+            try {
+                var res = await fetch('/api/posts?category=prototype&status=published&limit=8');
+                var result = await res.json();
+                if (!result.success) {
+                    container.innerHTML = '<div class="col-span-2 md:col-span-4 text-center py-12 text-gray-500">시제품 목록을 불러오지 못했습니다.</div>';
+                    return;
+                }
+                var list = result.data || [];
+                if (list.length === 0) {
+                    container.innerHTML = '<div class="col-span-2 md:col-span-4 grid grid-cols-2 md:grid-cols-4 gap-4">' +
+                        '<div class="rounded-xl overflow-hidden shadow-md bg-gray-100 aspect-square flex items-center justify-center"><i class="fas fa-cube text-5xl text-primary-300"></i></div>' +
+                        '<div class="rounded-xl overflow-hidden shadow-md bg-gray-100 aspect-square flex items-center justify-center"><i class="fas fa-print text-5xl text-primary-300"></i></div>' +
+                        '<div class="rounded-xl overflow-hidden shadow-md bg-gray-100 aspect-square flex items-center justify-center"><i class="fas fa-tools text-5xl text-primary-300"></i></div>' +
+                        '<div class="rounded-xl overflow-hidden shadow-md bg-gray-100 aspect-square flex items-center justify-center"><i class="fas fa-industry text-5xl text-primary-300"></i></div>' +
+                        '</div>';
+                    return;
+                }
+                container.innerHTML = list.map(function(p) {
+                    var img = (p.images && p.images.length) ? p.images[0] : '';
+                    var title = (p.title || '').substring(0, 20);
+                    if ((p.title || '').length > 20) title += '…';
+                    return '<a href="/prototype-gallery" class="relative block rounded-xl overflow-hidden shadow-md hover:shadow-xl transition aspect-square bg-gray-200 group">' +
+                        (img ? '<img src="' + img + '" alt="' + (p.title || '시제품').replace(/"/g, '&quot;') + '" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">' :
+                        '<div class="w-full h-full flex flex-col items-center justify-center text-gray-400"><i class="fas fa-cube text-4xl mb-2"></i><span class="text-xs font-medium">' + title + '</span></div>') +
+                        '<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-3">' +
+                        '<span class="text-white text-sm font-bold truncate w-full">' + (p.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</span>' +
+                        '</div></a>';
+                }).join('');
+            } catch (e) {
+                console.error('loadPrototypes error:', e);
+                container.innerHTML = '<div class="col-span-2 md:col-span-4 text-center py-12 text-gray-500">시제품 목록을 불러오지 못했습니다.</div>';
+            }
+        }
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCourses();
+            loadPrototypes();
+        });
     </script>
 `;
