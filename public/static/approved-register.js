@@ -1,4 +1,4 @@
-(function() {
+(function () {
     var form = document.getElementById('approvedRegisterForm');
     if (!form) return;
     var formIdEl = document.getElementById('approvedFormId');
@@ -14,41 +14,41 @@
     var facilityAll = [];
     var facilitySelected = [];
 
-    var token = function() { return localStorage.getItem('token'); };
+    var token = function () { return localStorage.getItem('token'); };
 
     function loadHrdItems(category, setAll) {
         return fetch('/api/hrd/items?category=' + encodeURIComponent(category) + '&limit=500', { headers: token() ? { 'Authorization': 'Bearer ' + token() } : {} })
-            .then(function(r) { return r.json(); })
-            .then(function(json) {
-                if (json.success && Array.isArray(json.data)) setAll(json.data.map(function(it) { return { id: it.id, name: (it.name || '').trim() || '-' }; }));
+            .then(function (r) { return r.json(); })
+            .then(function (json) {
+                if (json.success && Array.isArray(json.data)) setAll(json.data.map(function (it) { return { id: it.id, name: (it.name || '').trim() || '-' }; }));
             })
-            .catch(function(e) { console.error('loadHrdItems', category, e); });
+            .catch(function (e) { console.error('loadHrdItems', category, e); });
     }
 
     function loadFacilities(setAll) {
         return fetch('/api/hrd/facilities', { headers: token() ? { 'Authorization': 'Bearer ' + token() } : {} })
-            .then(function(r) { return r.json(); })
-            .then(function(json) {
-                if (json.success && Array.isArray(json.data)) setAll(json.data.map(function(it) { return { id: it.id, name: (it.name || '').trim() || '-' }; }));
+            .then(function (r) { return r.json(); })
+            .then(function (json) {
+                if (json.success && Array.isArray(json.data)) setAll(json.data.map(function (it) { return { id: it.id, name: (it.name || '').trim() || '-' }; }));
             })
-            .catch(function(e) { console.error('loadFacilities', e); });
+            .catch(function (e) { console.error('loadFacilities', e); });
     }
 
     function loadCategories() {
         return fetch('/api/course-categories', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } })
-            .then(function(r) { return r.json(); })
-            .then(function(json) {
+            .then(function (r) { return r.json(); })
+            .then(function (json) {
                 if (!json.success || !json.data) return;
                 var reLt = new RegExp('<', 'g');
                 var sel = document.getElementById('approvedFormCategory');
                 if (sel) {
-                    (json.data || []).forEach(function(c) {
+                    (json.data || []).forEach(function (c) {
                         categoryNames[c.id] = c.name || '';
                     });
-                    sel.innerHTML = '<option value="">선택</option>' + json.data.map(function(c) {
+                    sel.innerHTML = '<option value="">선택</option>' + json.data.map(function (c) {
                         return '<option value="' + c.id + '">' + (c.name || '').replace(reLt, '&lt;') + '</option>';
                     }).join('');
-                    sel.addEventListener('change', function() {
+                    sel.addEventListener('change', function () {
                         var label = document.getElementById('approvedNcsCourseLabel');
                         if (label) {
                             var id = sel.value;
@@ -58,27 +58,27 @@
                     });
                 }
             })
-            .catch(function(e) { console.error(e); });
+            .catch(function (e) { console.error(e); });
     }
 
     function loadPersonnel() {
         var container = document.getElementById('approvedFormInstructorList');
         if (!container) return;
         fetch('/api/hrd/personnel', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } })
-            .then(function(r) { return r.json(); })
-            .then(function(json) {
+            .then(function (r) { return r.json(); })
+            .then(function (json) {
                 if (!json.success || !Array.isArray(json.data)) {
                     container.innerHTML = '<span class="text-slate-500 text-sm">등록된 교직원이 없습니다.</span>';
                     return;
                 }
                 var list = json.data;
-                container.innerHTML = list.map(function(p) {
+                container.innerHTML = list.map(function (p) {
                     var name = (p.name || '').trim() || '(이름 없음)';
                     var id = p.id != null ? p.id : '';
                     return '<label class="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 cursor-pointer shrink-0"><input type="checkbox" class="approved-instructor-cb rounded text-emerald-600" value="' + id + '" data-name="' + name.replace(/"/g, '&quot;') + '"> <span class="text-sm text-slate-800">' + name.replace(/</g, '&lt;') + '</span></label>';
                 }).join('');
             })
-            .catch(function() {
+            .catch(function () {
                 container.innerHTML = '<span class="text-slate-500 text-sm">교직원 목록을 불러올 수 없습니다.</span>';
             });
     }
@@ -88,10 +88,10 @@
         var selEl = document.getElementById(selectedContainerId);
         var allCountEl = document.getElementById(allCountId);
         var selCountEl = document.getElementById(selectedCountId);
-        if (allEl) allEl.innerHTML = allList.length ? allList.map(function(item) {
+        if (allEl) allEl.innerHTML = allList.length ? allList.map(function (item) {
             return '<label class="flex items-center gap-2 py-1 px-2 rounded hover:bg-slate-100 cursor-pointer"><input type="checkbox" class="dual-list-cb" data-id="' + (item.id || '') + '" data-name="' + (item.name || '').replace(/"/g, '&quot;') + '"> <span>' + (item.name || '').replace(/</g, '&lt;') + '</span></label>';
         }).join('') : '<p class="text-slate-500 text-sm py-2">Empty list</p>';
-        if (selEl) selEl.innerHTML = selectedList.length ? selectedList.map(function(item) {
+        if (selEl) selEl.innerHTML = selectedList.length ? selectedList.map(function (item) {
             return '<label class="flex items-center gap-2 py-1 px-2 rounded hover:bg-slate-100 cursor-pointer"><input type="checkbox" class="dual-list-selected-cb" data-id="' + (item.id || '') + '" data-name="' + (item.name || '').replace(/"/g, '&quot;') + '"> <span>' + (item.name || '').replace(/</g, '&lt;') + '</span></label>';
         }).join('') : '<p class="text-slate-500 text-sm py-2">Empty list</p>';
         if (allCountEl) allCountEl.textContent = allList.length;
@@ -157,11 +157,11 @@
             var container = document.getElementById(allListId);
             if (!container) return;
             var checked = container.querySelectorAll('.dual-list-cb:checked');
-            checked.forEach(function(cb) {
+            checked.forEach(function (cb) {
                 var id = cb.getAttribute('data-id');
                 var name = cb.getAttribute('data-name') || '';
                 var item = { id: id, name: name };
-                var idx = allArr.findIndex(function(x) { return String(x.id) === String(id); });
+                var idx = allArr.findIndex(function (x) { return String(x.id) === String(id); });
                 if (idx >= 0) {
                     allArr.splice(idx, 1);
                     selectedArr.push(item);
@@ -182,11 +182,11 @@
             var container = document.getElementById(selListId);
             if (!container) return;
             var checked = container.querySelectorAll('.dual-list-selected-cb:checked');
-            checked.forEach(function(cb) {
+            checked.forEach(function (cb) {
                 var id = cb.getAttribute('data-id');
                 var name = cb.getAttribute('data-name') || '';
                 var item = { id: id, name: name };
-                var idx = selectedArr.findIndex(function(x) { return String(x.id) === String(id); });
+                var idx = selectedArr.findIndex(function (x) { return String(x.id) === String(id); });
                 if (idx >= 0) {
                     selectedArr.splice(idx, 1);
                     allArr.push(item);
@@ -216,7 +216,7 @@
     function applySelectedIds(allArr, selectedArr, ids) {
         if (!Array.isArray(ids)) return;
         var idSet = {};
-        ids.forEach(function(id) { idSet[String(id)] = true; });
+        ids.forEach(function (id) { idSet[String(id)] = true; });
         for (var i = allArr.length - 1; i >= 0; i--) {
             if (idSet[String(allArr[i].id)]) {
                 selectedArr.push(allArr.splice(i, 1)[0]);
@@ -226,8 +226,8 @@
 
     function loadCourse(id) {
         return fetch('/api/approved-courses/' + id, { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } })
-            .then(function(r) { return r.json(); })
-            .then(function(json) {
+            .then(function (r) { return r.json(); })
+            .then(function (json) {
                 if (!json.success || !json.data) return;
                 var d = json.data;
                 document.getElementById('approvedFormName').value = d.name || '';
@@ -245,6 +245,15 @@
                 document.getElementById('approvedFormUrlNcs').value = d.url_ncs || '';
                 document.getElementById('approvedFormUrlPlan').value = d.url_plan || '';
                 document.getElementById('approvedFormUrlDetailPlan').value = d.url_detail_plan || '';
+
+                // Add financial and time fields
+                document.getElementById('approvedFormHourlyRate').value = d.hourly_rate != null ? d.hourly_rate : '';
+                document.getElementById('approvedFormTotalDays').value = d.total_days != null ? d.total_days : '';
+                document.getElementById('approvedFormTotalCost').value = d.total_cost != null ? d.total_cost : '';
+                document.getElementById('approvedFormTotalHours').value = d.total_hours != null ? d.total_hours : '';
+                document.getElementById('approvedFormDailyHours').value = d.daily_hours != null ? d.daily_hours : '';
+                document.getElementById('approvedFormGovSubsidy').value = d.gov_subsidy != null ? d.gov_subsidy : '';
+
                 applySelectedIds(textbookAll, textbookSelected, d.textbook_ids);
                 applySelectedIds(consumableAll, consumableSelected, d.consumable_ids);
                 applySelectedIds(equipmentAll, equipmentSelected, d.equipment_ids);
@@ -254,7 +263,7 @@
                 initEquipmentDualList();
                 initFacilityDualList();
             })
-            .catch(function() { alert('조회 실패'); });
+            .catch(function () { alert('조회 실패'); });
     }
 
     function submitForm(e) {
@@ -264,6 +273,14 @@
         if (!name) { alert('과정명을 입력하세요.'); return; }
         var categoryId = document.getElementById('approvedFormCategory').value;
         var capacity = document.getElementById('approvedFormCapacity').value;
+
+        var hourlyRate = document.getElementById('approvedFormHourlyRate').value;
+        var totalDays = document.getElementById('approvedFormTotalDays').value;
+        var totalCost = document.getElementById('approvedFormTotalCost').value;
+        var totalHours = document.getElementById('approvedFormTotalHours').value;
+        var dailyHours = document.getElementById('approvedFormDailyHours').value;
+        var govSubsidy = document.getElementById('approvedFormGovSubsidy').value;
+
         var payload = {
             name: name,
             category_id: categoryId ? parseInt(categoryId, 10) : null,
@@ -277,10 +294,17 @@
             url_ncs: (document.getElementById('approvedFormUrlNcs').value || '').trim() || null,
             url_plan: (document.getElementById('approvedFormUrlPlan').value || '').trim() || null,
             url_detail_plan: (document.getElementById('approvedFormUrlDetailPlan').value || '').trim() || null,
-            textbook_ids: textbookSelected.map(function(i) { return parseInt(i.id, 10); }),
-            consumable_ids: consumableSelected.map(function(i) { return parseInt(i.id, 10); }),
-            equipment_ids: equipmentSelected.map(function(i) { return parseInt(i.id, 10); }),
-            facility_ids: facilitySelected.map(function(i) { return parseInt(i.id, 10); })
+            textbook_ids: textbookSelected.map(function (i) { return parseInt(i.id, 10); }),
+            consumable_ids: consumableSelected.map(function (i) { return parseInt(i.id, 10); }),
+            equipment_ids: equipmentSelected.map(function (i) { return parseInt(i.id, 10); }),
+            facility_ids: facilitySelected.map(function (i) { return parseInt(i.id, 10); }),
+
+            hourly_rate: hourlyRate !== '' ? parseInt(hourlyRate, 10) : null,
+            total_days: totalDays !== '' ? parseInt(totalDays, 10) : null,
+            total_cost: totalCost !== '' ? parseInt(totalCost, 10) : null,
+            total_hours: totalHours !== '' ? parseInt(totalHours, 10) : null,
+            daily_hours: dailyHours !== '' ? parseFloat(dailyHours) : null,
+            gov_subsidy: govSubsidy !== '' ? parseInt(govSubsidy, 10) : null
         };
         var url = id ? '/api/approved-courses/' + id : '/api/approved-courses';
         var method = id ? 'PUT' : 'POST';
@@ -291,13 +315,13 @@
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
             body: JSON.stringify(payload)
         })
-            .then(function(r) { return r.json(); })
-            .then(function(json) {
+            .then(function (r) { return r.json(); })
+            .then(function (json) {
                 if (btn) btn.disabled = false;
                 if (json.success) { window.location.href = '/admin/courses/approved'; return; }
                 alert(json.error || '저장 실패');
             })
-            .catch(function() {
+            .catch(function () {
                 if (btn) btn.disabled = false;
                 alert('저장 중 오류가 발생했습니다.');
             });
@@ -305,14 +329,14 @@
 
     var planAttach = document.getElementById('approvedFormPlanAttach');
     if (planAttach) {
-        planAttach.addEventListener('click', function() {
+        planAttach.addEventListener('click', function () {
             alert('수업계획서 파일첨부는 추후 업로드 API 연동 후 사용 가능합니다.');
         });
     }
 
     var instructorAdd = document.getElementById('approvedFormInstructorAdd');
     if (instructorAdd) {
-        instructorAdd.addEventListener('click', function() {
+        instructorAdd.addEventListener('click', function () {
             var nameInput = document.getElementById('approvedFormInstructorNameQuick');
             var name = (nameInput && nameInput.value) ? nameInput.value.trim() : '';
             if (!name) { alert('강사명을 입력하세요.'); return; }
@@ -321,14 +345,14 @@
     }
 
     form.addEventListener('submit', submitForm);
-    loadCategories().then(function() {
+    loadCategories().then(function () {
         loadPersonnel();
         Promise.all([
-            loadHrdItems('textbook', function(arr) { textbookAll = arr || []; }),
-            loadHrdItems('consumable', function(arr) { consumableAll = arr || []; }),
-            loadHrdItems('equipment', function(arr) { equipmentAll = arr || []; }),
-            loadFacilities(function(arr) { facilityAll = arr || []; })
-        ]).then(function() {
+            loadHrdItems('textbook', function (arr) { textbookAll = arr || []; }),
+            loadHrdItems('consumable', function (arr) { consumableAll = arr || []; }),
+            loadHrdItems('equipment', function (arr) { equipmentAll = arr || []; }),
+            loadFacilities(function (arr) { facilityAll = arr || []; })
+        ]).then(function () {
             initTextbookDualList();
             initConsumableDualList();
             initEquipmentDualList();

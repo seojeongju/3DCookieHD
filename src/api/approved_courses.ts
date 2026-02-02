@@ -11,7 +11,7 @@ function parseIdsJson(row: Record<string, unknown>): Record<string, unknown> {
     if (json != null && typeof json === 'string') {
       try {
         out[key.replace('_json', '')] = JSON.parse(json);
-      } catch (_) {}
+      } catch (_) { }
     }
     delete out[key];
   });
@@ -117,6 +117,12 @@ app.post('/', authMiddleware, requireAdmin, async (c) => {
       consumable_ids?: number[];
       equipment_ids?: number[];
       facility_ids?: number[];
+      hourly_rate?: number | null;
+      total_days?: number | null;
+      total_cost?: number | null;
+      total_hours?: number | null;
+      daily_hours?: number | null;
+      gov_subsidy?: number | null;
     }>();
     const name = (body.name || '').trim();
     if (!name) return c.json({ success: false, error: '과정명을 입력하세요' }, 400);
@@ -137,14 +143,22 @@ app.post('/', authMiddleware, requireAdmin, async (c) => {
     const equipmentIdsJson = Array.isArray(body.equipment_ids) ? JSON.stringify(body.equipment_ids) : null;
     const facilityIdsJson = Array.isArray(body.facility_ids) ? JSON.stringify(body.facility_ids) : null;
 
+    const hourlyRate = body.hourly_rate != null ? body.hourly_rate : null;
+    const totalDays = body.total_days != null ? body.total_days : null;
+    const totalCost = body.total_cost != null ? body.total_cost : null;
+    const totalHours = body.total_hours != null ? body.total_hours : null;
+    const dailyHours = body.daily_hours != null ? body.daily_hours : null;
+    const govSubsidy = body.gov_subsidy != null ? body.gov_subsidy : null;
+
     const { DB } = c.env;
     await DB.prepare(
       `INSERT INTO approved_courses (
         name, category_id, training_time_start, training_time_end,
         capacity, url_ncs, url_plan, url_detail_plan, approval_org,
         status, instructor_name, registered_at,
-        textbook_ids_json, consumable_ids_json, equipment_ids_json, facility_ids_json
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        textbook_ids_json, consumable_ids_json, equipment_ids_json, facility_ids_json,
+        hourly_rate, total_days, total_cost, total_hours, daily_hours, gov_subsidy
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
       .bind(
         name,
@@ -162,7 +176,13 @@ app.post('/', authMiddleware, requireAdmin, async (c) => {
         textbookIdsJson,
         consumableIdsJson,
         equipmentIdsJson,
-        facilityIdsJson
+        facilityIdsJson,
+        hourlyRate,
+        totalDays,
+        totalCost,
+        totalHours,
+        dailyHours,
+        govSubsidy
       )
       .run();
 
@@ -171,6 +191,7 @@ app.post('/', authMiddleware, requireAdmin, async (c) => {
               a.capacity, a.url_ncs, a.url_plan, a.url_detail_plan, a.approval_org,
               a.status, a.instructor_name, a.registered_at, a.created_at,
               a.textbook_ids_json, a.consumable_ids_json, a.equipment_ids_json, a.facility_ids_json,
+              a.hourly_rate, a.total_days, a.total_cost, a.total_hours, a.daily_hours, a.gov_subsidy,
               c.name as category_name
        FROM approved_courses a
        LEFT JOIN course_categories c ON c.id = a.category_id
@@ -197,6 +218,7 @@ app.get('/:id', authMiddleware, requireAdmin, async (c) => {
               a.capacity, a.url_ncs, a.url_plan, a.url_detail_plan, a.approval_org,
               a.status, a.instructor_name, a.registered_at, a.created_at,
               a.textbook_ids_json, a.consumable_ids_json, a.equipment_ids_json, a.facility_ids_json,
+              a.hourly_rate, a.total_days, a.total_cost, a.total_hours, a.daily_hours, a.gov_subsidy,
               c.name as category_name
        FROM approved_courses a
        LEFT JOIN course_categories c ON c.id = a.category_id
@@ -237,6 +259,12 @@ app.put('/:id', authMiddleware, requireAdmin, async (c) => {
       consumable_ids?: number[];
       equipment_ids?: number[];
       facility_ids?: number[];
+      hourly_rate?: number | null;
+      total_days?: number | null;
+      total_cost?: number | null;
+      total_hours?: number | null;
+      daily_hours?: number | null;
+      gov_subsidy?: number | null;
     }>();
 
     const { DB } = c.env;
@@ -264,12 +292,20 @@ app.put('/:id', authMiddleware, requireAdmin, async (c) => {
     const equipmentIdsJson = Array.isArray(body.equipment_ids) ? JSON.stringify(body.equipment_ids) : null;
     const facilityIdsJson = Array.isArray(body.facility_ids) ? JSON.stringify(body.facility_ids) : null;
 
+    const hourlyRate = body.hourly_rate != null ? body.hourly_rate : null;
+    const totalDays = body.total_days != null ? body.total_days : null;
+    const totalCost = body.total_cost != null ? body.total_cost : null;
+    const totalHours = body.total_hours != null ? body.total_hours : null;
+    const dailyHours = body.daily_hours != null ? body.daily_hours : null;
+    const govSubsidy = body.gov_subsidy != null ? body.gov_subsidy : null;
+
     await DB.prepare(
       `UPDATE approved_courses SET
         name = ?, category_id = ?, training_time_start = ?, training_time_end = ?,
         capacity = ?, url_ncs = ?, url_plan = ?, url_detail_plan = ?, approval_org = ?,
         status = ?, instructor_name = ?, registered_at = ?,
-        textbook_ids_json = ?, consumable_ids_json = ?, equipment_ids_json = ?, facility_ids_json = ?
+        textbook_ids_json = ?, consumable_ids_json = ?, equipment_ids_json = ?, facility_ids_json = ?,
+        hourly_rate = ?, total_days = ?, total_cost = ?, total_hours = ?, daily_hours = ?, gov_subsidy = ?
        WHERE id = ?`
     )
       .bind(
@@ -289,6 +325,12 @@ app.put('/:id', authMiddleware, requireAdmin, async (c) => {
         consumableIdsJson,
         equipmentIdsJson,
         facilityIdsJson,
+        hourlyRate,
+        totalDays,
+        totalCost,
+        totalHours,
+        dailyHours,
+        govSubsidy,
         id
       )
       .run();
@@ -298,6 +340,7 @@ app.put('/:id', authMiddleware, requireAdmin, async (c) => {
               a.capacity, a.url_ncs, a.url_plan, a.url_detail_plan, a.approval_org,
               a.status, a.instructor_name, a.registered_at, a.created_at,
               a.textbook_ids_json, a.consumable_ids_json, a.equipment_ids_json, a.facility_ids_json,
+              a.hourly_rate, a.total_days, a.total_cost, a.total_hours, a.daily_hours, a.gov_subsidy,
               c.name as category_name
        FROM approved_courses a
        LEFT JOIN course_categories c ON c.id = a.category_id
