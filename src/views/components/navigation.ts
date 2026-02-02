@@ -51,7 +51,7 @@ export const navigationHtml = (activeMenu = '') => `
 
                     <!-- 게시판 (수강후기 포함) -->
                     <div class="relative group">
-                        <button class="px-3 py-2 ${['board', 'reviews', 'portfolios'].includes(activeMenu) ? 'text-primary-600 font-bold' : 'text-gray-600 font-medium'} hover:text-primary-600 text-sm flex items-center transition-colors">
+                        <button class="px-3 py-2 ${['board', 'reviews', 'portfolios', 'prototype'].includes(activeMenu) ? 'text-primary-600 font-bold' : 'text-gray-600 font-medium'} hover:text-primary-600 text-sm flex items-center transition-colors">
                             게시판
                             <i class="fas fa-chevron-down ml-1 text-[10px] text-gray-400"></i>
                         </button>
@@ -59,9 +59,10 @@ export const navigationHtml = (activeMenu = '') => `
                             <div class="py-1">
                                 <a href="/posts?category=notice" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">공지사항</a>
                                 <a href="/posts?category=faq" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">FAQ</a>
-                                <a href="/portfolios" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">포트폴리오</a>
-                                <a href="/reviews" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">수강후기</a>
                                 <a href="/posts?category=qna" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">Q&A</a>
+                                <a href="/reviews" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">수강후기</a>
+                                <a href="/portfolios" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">포트폴리오</a>
+                                <a href="/prototype-gallery" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">시제품 제작사진</a>
                             </div>
                         </div>
                     </div>

@@ -182,7 +182,7 @@ export const homeHtml = `
                 </div>
             </div>
             <div class="text-center">
-                <a href="/posts?category=prototype" class="inline-flex items-center gap-2 px-8 py-4 bg-gray-800 text-white font-bold rounded-xl hover:bg-gray-900 transition shadow-lg">
+                <a href="/prototype-gallery" class="inline-flex items-center gap-2 px-8 py-4 bg-gray-800 text-white font-bold rounded-xl hover:bg-gray-900 transition shadow-lg">
                     시제품·작품 더 보기 <i class="fas fa-arrow-right"></i>
                 </a>
             </div>

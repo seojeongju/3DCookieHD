@@ -1,4 +1,4 @@
-﻿import { footerHtml } from './footer';
+import { footerHtml } from './footer';
 import { navigationHtml } from './components/navigation';
 
 export const postsListHtml = `
@@ -96,7 +96,7 @@ export const postsListHtml = `
 
     <!-- 메인 컨텐츠 -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <!-- 탭 메뉴 -->
+        <!-- 탭 메뉴 (순서: 공지사항 → FAQ → Q&A → 포트폴리오) -->
         <div class="flex border-b border-gray-200 mb-8 overflow-x-auto">
             <button onclick="filterCategory('notice')" class="tab-btn px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent whitespace-nowrap" data-category="notice">
                 공지사항
@@ -104,11 +104,11 @@ export const postsListHtml = `
             <button onclick="filterCategory('faq')" class="tab-btn px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent whitespace-nowrap" data-category="faq">
                 FAQ
             </button>
-            <button onclick="filterCategory('portfolio')" class="tab-btn px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent whitespace-nowrap" data-category="portfolio">
-                포트폴리오
-            </button>
             <button onclick="filterCategory('qna')" class="tab-btn px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent whitespace-nowrap" data-category="qna">
                 Q&A
+            </button>
+            <button onclick="filterCategory('portfolio')" class="tab-btn px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent whitespace-nowrap" data-category="portfolio">
+                포트폴리오
             </button>
         </div>
 
@@ -265,14 +265,14 @@ export const postsListHtml = `
             
             const user = JSON.parse(userStr);
             
-            // 관리자는 모든 카테고리 작성 가능
-            if (user.role === 'admin') {
-                writeBtn.classList.remove('hidden');
+            // 공지사항, FAQ: 관리자만 작성
+            if (currentCategory === 'notice' || currentCategory === 'faq') {
+                if (user.role === 'admin') writeBtn.classList.remove('hidden');
+                else writeBtn.classList.add('hidden');
                 return;
             }
-            
-            // 일반 사용자는 Q&A만 작성 가능
-            if (currentCategory === 'qna') {
+            // Q&A, 포트폴리오(게시글): 관리자·수강생 작성 가능
+            if (currentCategory === 'qna' || currentCategory === 'portfolio') {
                 writeBtn.classList.remove('hidden');
             } else {
                 writeBtn.classList.add('hidden');

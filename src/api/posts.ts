@@ -225,8 +225,9 @@ app.post('/', authMiddleware, async (c) => {
       return c.json({ success: false, error: '내용은 필수입니다' }, 400);
     }
 
-    if (cat === 'notice' && user.role !== 'admin') {
-      return c.json({ success: false, error: '공지사항은 관리자만 작성할 수 있습니다' }, 403);
+    // 공지사항, FAQ: 관리자만 작성 가능 / Q&A: 관리자·수강생 작성 가능
+    if ((cat === 'notice' || cat === 'faq') && user.role !== 'admin') {
+      return c.json({ success: false, error: '공지사항과 FAQ는 관리자만 작성할 수 있습니다' }, 403);
     }
 
     const pin = pinned === true || pinned === 1 || pinned === '1';

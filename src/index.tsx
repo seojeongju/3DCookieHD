@@ -106,6 +106,8 @@ import { adminPartnerUniversitiesHtml } from './views/admin_partner_universities
 // import { adminPortfoliosHtml } from './views/admin_portfolios'; // 게시판 관리에서 통합 관리
 import { portfoliosListHtml } from './views/portfolios';
 import { postsListHtml } from './views/posts';
+import { prototypeGalleryHtml } from './views/prototype_gallery';
+import { adminPrototypeGalleryHtml } from './views/admin_prototype_gallery';
 import { scheduleHtml } from './views/schedule';
 import { locationsHtml } from './views/locations';
 import { coursesListHtml } from './views/courses';
@@ -292,6 +294,7 @@ app.get('/admin/surveys', (c) => c.html(adminHrdSurveysHtml()));
 // app.get('/admin/portfolios', (c) => c.html(adminPortfoliosHtml)); // 게시판 관리에서 통합 관리
 app.get('/admin/reviews', (c) => c.html(adminReviewsListHtml(hrdSidebar('reviews'))));
 app.get('/admin/posts', (c) => c.html(adminPostsListHtml(hrdSidebar('posts'))));
+app.get('/admin/prototype-gallery', (c) => c.html(adminPrototypeGalleryHtml(hrdSidebar('prototype-gallery'))));
 app.get('/admin/inquiries', (c) => c.html(adminInquiriesHtml(hrdSidebar('inquiries'))));
 
 // 과정별 LMS 상세 관리 (LMS Dashboard & Inner Pages)
@@ -337,6 +340,7 @@ app.get('/jobseekers', (c) => c.html(jobseekersListHtml));
 app.get('/courses', (c) => c.html(coursesListHtml));
 app.get('/portfolios', (c) => c.html(portfoliosListHtml));
 app.get('/posts', (c) => c.html(postsListHtml));
+app.get('/prototype-gallery', (c) => c.html(prototypeGalleryHtml));
 app.get('/schedule', (c) => c.html(scheduleHtml));
 app.get('/locations', (c) => c.html(locationsHtml({ kakaoMapAppKey: (c.env as Record<string, string>).KAKAO_MAP_APPKEY })));
 app.get('/achievements', (c) => c.html(achievementsHtml));
@@ -438,24 +442,7 @@ app.get('/terms', (c) => {
                             <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
                             </head>
                             <body class="bg-gray-50">
-                                <!-- 네비게이션 -->
-                                <nav class="bg-white shadow-md sticky top-0 z-50">
-                                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                                        <div class="flex justify-between items-center h-20">
-                                            <div class="flex items-center space-x-4">
-                                                <a href="/" class="flex items-center space-x-4">
-                                                    <img src="/static/logo.png" alt="WOW 3D" class="h-12">
-                                                        <span class="text-xl font-bold text-gray-800">와우쓰리디홍대센터</span>
-                                                </a>
-                                            </div>
-                                            <div class="flex items-center space-x-4">
-                                                <a href="/" class="text-gray-700 hover:text-primary-600 font-medium">
-                                                    <i class="fas fa-home mr-2"></i>홈으로
-                                                </a>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </nav>
+                                ${navigationHtml('')}
 
                                 <!-- 컨텐츠 -->
                                 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -547,24 +534,7 @@ app.get('/privacy', (c) => {
                                         <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
                                         </head>
                                         <body class="bg-gray-50">
-                                            <!-- 네비게이션 -->
-                                            <nav class="bg-white shadow-md sticky top-0 z-50">
-                                                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                                                    <div class="flex justify-between items-center h-20">
-                                                        <div class="flex items-center space-x-4">
-                                                            <a href="/" class="flex items-center space-x-4">
-                                                                <img src="/static/logo.png" alt="WOW 3D" class="h-12">
-                                                                    <span class="text-xl font-bold text-gray-800">와우쓰리디홍대센터</span>
-                                                            </a>
-                                                        </div>
-                                                        <div class="flex items-center space-x-4">
-                                                            <a href="/" class="text-gray-700 hover:text-primary-600 font-medium">
-                                                                <i class="fas fa-home mr-2"></i>홈으로
-                                                            </a>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </nav>
+                                            ${navigationHtml('')}
 
                                             <!-- 컨텐츠 -->
                                             <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -679,24 +649,7 @@ app.get('/partnership', (c) => {
                                                     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
                                                     </head>
                                                     <body class="bg-gray-50">
-                                                        <!-- 네비게이션 -->
-                                                        <nav class="bg-white shadow-md sticky top-0 z-50">
-                                                            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                                                                <div class="flex justify-between items-center h-20">
-                                                                    <div class="flex items-center space-x-4">
-                                                                        <a href="/" class="flex items-center space-x-4">
-                                                                            <img src="/static/logo.png" alt="WOW 3D" class="h-12">
-                                                                                <span class="text-xl font-bold text-gray-800">와우쓰리디홍대센터</span>
-                                                                        </a>
-                                                                    </div>
-                                                                    <div class="flex items-center space-x-4">
-                                                                        <a href="/" class="text-gray-700 hover:text-primary-600 font-medium">
-                                                                            <i class="fas fa-home mr-2"></i>홈으로
-                                                                        </a>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </nav>
+                                                        ${navigationHtml('')}
 
                                                         <!-- 컨텐츠 -->
                                                         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -820,24 +773,7 @@ app.get('/sitemap', (c) => {
                                                                 <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
                                                                 </head>
                                                                 <body class="bg-gray-50">
-                                                                    <!-- 네비게이션 -->
-                                                                    <nav class="bg-white shadow-md sticky top-0 z-50">
-                                                                        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                                                                            <div class="flex justify-between items-center h-20">
-                                                                                <div class="flex items-center space-x-4">
-                                                                                    <a href="/" class="flex items-center space-x-4">
-                                                                                        <img src="/static/logo.png" alt="WOW 3D" class="h-12">
-                                                                                            <span class="text-xl font-bold text-gray-800">와우쓰리디홍대센터</span>
-                                                                                    </a>
-                                                                                </div>
-                                                                                <div class="flex items-center space-x-4">
-                                                                                    <a href="/" class="text-gray-700 hover:text-primary-600 font-medium">
-                                                                                        <i class="fas fa-home mr-2"></i>홈으로
-                                                                                    </a>
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
-                                                                    </nav>
+                                                                    ${navigationHtml('')}
 
                                                                     <!-- 컨텐츠 -->
                                                                     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -999,24 +935,7 @@ app.get('/student-admin', (c) => {
                                                                                 </script>
                                                                             </head>
                                                                             <body class="bg-gray-50">
-                                                                                <!-- 네비게이션 -->
-                                                                                <nav class="bg-white shadow-md sticky top-0 z-50">
-                                                                                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                                                                                        <div class="flex justify-between items-center h-20">
-                                                                                            <div class="flex items-center space-x-4">
-                                                                                                <a href="/" class="flex items-center space-x-4">
-                                                                                                    <img src="/static/logo.png" alt="WOW 3D" class="h-12">
-                                                                                                        <span class="text-xl font-bold text-gray-800">와우쓰리디홍대센터</span>
-                                                                                                </a>
-                                                                                            </div>
-                                                                                            <div class="flex items-center space-x-4">
-                                                                                                <a href="/" class="text-gray-700 hover:text-primary-600 font-medium">
-                                                                                                    <i class="fas fa-home mr-2"></i>홈으로
-                                                                                                </a>
-                                                                                            </div>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                </nav>
+                                                                                ${navigationHtml('')}
 
                                                                                 <!-- 헤더 -->
                                                                                 <div class="bg-gradient-to-r from-primary-600 to-primary-800 text-white py-12">
@@ -1199,24 +1118,7 @@ app.get('/teacher-admin', (c) => {
                                                                                             </script>
                                                                                         </head>
                                                                                         <body class="bg-gray-50">
-                                                                                            <!-- 네비게이션 -->
-                                                                                            <nav class="bg-white shadow-md sticky top-0 z-50">
-                                                                                                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                                                                                                    <div class="flex justify-between items-center h-20">
-                                                                                                        <div class="flex items-center space-x-4">
-                                                                                                            <a href="/" class="flex items-center space-x-4">
-                                                                                                                <img src="/static/logo.png" alt="WOW 3D" class="h-12">
-                                                                                                                    <span class="text-xl font-bold text-gray-800">와우쓰리디홍대센터</span>
-                                                                                                            </a>
-                                                                                                        </div>
-                                                                                                        <div class="flex items-center space-x-4">
-                                                                                                            <a href="/" class="text-gray-700 hover:text-primary-600 font-medium">
-                                                                                                                <i class="fas fa-home mr-2"></i>홈으로
-                                                                                                            </a>
-                                                                                                        </div>
-                                                                                                    </div>
-                                                                                                </div>
-                                                                                            </nav>
+                                                                                            ${navigationHtml('')}
 
                                                                                             <!-- 헤더 -->
                                                                                             <div class="bg-gradient-to-r from-green-600 to-teal-700 text-white py-12">
@@ -1509,24 +1411,7 @@ app.get('/greeting', (c) => {
                                                                                                         </script>
                                                                                                     </head>
                                                                                                     <body class="bg-gray-50">
-                                                                                                        <!-- 네비게이션 -->
-                                                                                                        <nav class="bg-white shadow-md sticky top-0 z-50">
-                                                                                                            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                                                                                                                <div class="flex justify-between items-center h-20">
-                                                                                                                    <div class="flex items-center space-x-4">
-                                                                                                                        <a href="/" class="flex items-center space-x-4">
-                                                                                                                            <img src="/static/logo.png" alt="WOW 3D" class="h-12">
-                                                                                                                                <span class="text-xl font-bold text-gray-800">와우쓰리디홍대센터</span>
-                                                                                                                        </a>
-                                                                                                                    </div>
-                                                                                                                    <div class="flex items-center space-x-4">
-                                                                                                                        <a href="/" class="text-gray-700 hover:text-primary-600 font-medium">
-                                                                                                                            <i class="fas fa-home mr-2"></i>홈으로
-                                                                                                                        </a>
-                                                                                                                    </div>
-                                                                                                                </div>
-                                                                                                            </div>
-                                                                                                        </nav>
+                                                                                                        ${navigationHtml('greeting')}
 
                                                                                                         <!-- 헤더 -->
                                                                                                         <div class="bg-gradient-to-r from-primary-600 to-blue-700 text-white py-16">
@@ -1765,24 +1650,7 @@ app.get('/education-photos', (c) => {
                                                                                                                     </style>
                                                                                                                 </head>
                                                                                                                 <body class="bg-gray-50">
-                                                                                                                    <!-- 네비게이션 -->
-                                                                                                                    <nav class="bg-white shadow-md sticky top-0 z-50">
-                                                                                                                        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                                                                                                                            <div class="flex justify-between items-center h-20">
-                                                                                                                                <div class="flex items-center space-x-4">
-                                                                                                                                    <a href="/" class="flex items-center space-x-4">
-                                                                                                                                        <img src="/static/logo.png" alt="WOW 3D" class="h-12">
-                                                                                                                                            <span class="text-xl font-bold text-gray-800">와우쓰리디홍대센터</span>
-                                                                                                                                    </a>
-                                                                                                                                </div>
-                                                                                                                                <div class="flex items-center space-x-4">
-                                                                                                                                    <a href="/" class="text-gray-700 hover:text-primary-600 font-medium">
-                                                                                                                                        <i class="fas fa-home mr-2"></i>홈으로
-                                                                                                                                    </a>
-                                                                                                                                </div>
-                                                                                                                            </div>
-                                                                                                                        </div>
-                                                                                                                    </nav>
+                                                                                                                    ${navigationHtml('')}
 
                                                                                                                     <!-- 헤더 -->
                                                                                                                     <div class="bg-gradient-to-r from-purple-600 to-pink-600 text-white py-16">
@@ -2059,24 +1927,7 @@ app.get('/facilities', (c) => {
                                                                                                                                 </script>
                                                                                                                             </head>
                                                                                                                             <body class="bg-gray-50">
-                                                                                                                                <!-- 네비게이션 -->
-                                                                                                                                <nav class="bg-white shadow-md sticky top-0 z-50">
-                                                                                                                                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                                                                                                                                        <div class="flex justify-between items-center h-20">
-                                                                                                                                            <div class="flex items-center space-x-4">
-                                                                                                                                                <a href="/" class="flex items-center space-x-4">
-                                                                                                                                                    <img src="/static/logo.png" alt="WOW 3D" class="h-12">
-                                                                                                                                                        <span class="text-xl font-bold text-gray-800">와우쓰리디홍대센터</span>
-                                                                                                                                                </a>
-                                                                                                                                            </div>
-                                                                                                                                            <div class="flex items-center space-x-4">
-                                                                                                                                                <a href="/" class="text-gray-700 hover:text-primary-600 font-medium">
-                                                                                                                                                    <i class="fas fa-home mr-2"></i>홈으로
-                                                                                                                                                </a>
-                                                                                                                                            </div>
-                                                                                                                                        </div>
-                                                                                                                                    </div>
-                                                                                                                                </nav>
+                                                                                                                                ${navigationHtml('facilities')}
 
                                                                                                                                 <!-- 헤더 -->
                                                                                                                                 <div class="bg-gradient-to-r from-indigo-600 to-purple-700 text-white py-16">
@@ -2475,24 +2326,7 @@ app.get('/locations', (c) => {
                                                                                                                                             </script>
                                                                                                                                         </head>
                                                                                                                                         <body class="bg-gray-50">
-                                                                                                                                            <!-- 네비게이션 -->
-                                                                                                                                            <nav class="bg-white shadow-md sticky top-0 z-50">
-                                                                                                                                                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                                                                                                                                                    <div class="flex justify-between items-center h-20">
-                                                                                                                                                        <div class="flex items-center space-x-4">
-                                                                                                                                                            <a href="/" class="flex items-center space-x-4">
-                                                                                                                                                                <img src="/static/logo.png" alt="WOW 3D" class="h-12">
-                                                                                                                                                                    <span class="text-xl font-bold text-gray-800">와우쓰리디홍대센터</span>
-                                                                                                                                                            </a>
-                                                                                                                                                        </div>
-                                                                                                                                                        <div class="flex items-center space-x-4">
-                                                                                                                                                            <a href="/" class="text-gray-700 hover:text-primary-600 font-medium">
-                                                                                                                                                                <i class="fas fa-home mr-2"></i>홈으로
-                                                                                                                                                            </a>
-                                                                                                                                                        </div>
-                                                                                                                                                    </div>
-                                                                                                                                                </div>
-                                                                                                                                            </nav>
+                                                                                                                                            ${navigationHtml('locations')}
 
                                                                                                                                             <!-- 헤더 -->
                                                                                                                                             <div class="bg-gradient-to-r from-green-600 to-teal-700 text-white py-16">
@@ -2969,24 +2803,7 @@ app.get('/online-consulting', (c) => {
                                                                                                                                                         </script>
                                                                                                                                                     </head>
                                                                                                                                                     <body class="bg-gray-50">
-                                                                                                                                                        <!-- 네비게이션 -->
-                                                                                                                                                        <nav class="bg-white shadow-md sticky top-0 z-50">
-                                                                                                                                                            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                                                                                                                                                                <div class="flex justify-between items-center h-20">
-                                                                                                                                                                    <div class="flex items-center space-x-4">
-                                                                                                                                                                        <a href="/" class="flex items-center space-x-4">
-                                                                                                                                                                            <img src="/static/logo.png" alt="WOW 3D" class="h-12">
-                                                                                                                                                                                <span class="text-xl font-bold text-gray-800">와우쓰리디홍대센터</span>
-                                                                                                                                                                        </a>
-                                                                                                                                                                    </div>
-                                                                                                                                                                    <div class="flex items-center space-x-4">
-                                                                                                                                                                        <a href="/" class="text-gray-700 hover:text-primary-600 font-medium">
-                                                                                                                                                                            <i class="fas fa-home mr-2"></i>홈으로
-                                                                                                                                                                        </a>
-                                                                                                                                                                    </div>
-                                                                                                                                                                </div>
-                                                                                                                                                            </div>
-                                                                                                                                                        </nav>
+                                                                                                                                                        ${navigationHtml('consulting')}
 
                                                                                                                                                         <!-- 헤더 -->
                                                                                                                                                         <div class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-12">
@@ -3158,24 +2975,7 @@ app.get('/corporate-education', (c) => {
                                                                                                                                                                     </script>
                                                                                                                                                                 </head>
                                                                                                                                                                 <body class="bg-gray-50">
-                                                                                                                                                                    <!-- 네비게이션 -->
-                                                                                                                                                                    <nav class="bg-white shadow-md sticky top-0 z-50">
-                                                                                                                                                                        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                                                                                                                                                                            <div class="flex justify-between items-center h-20">
-                                                                                                                                                                                <div class="flex items-center space-x-4">
-                                                                                                                                                                                    <a href="/" class="flex items-center space-x-4">
-                                                                                                                                                                                        <img src="/static/logo.png" alt="WOW 3D" class="h-12">
-                                                                                                                                                                                            <span class="text-xl font-bold text-gray-800">와우쓰리디홍대센터</span>
-                                                                                                                                                                                    </a>
-                                                                                                                                                                                </div>
-                                                                                                                                                                                <div class="flex items-center space-x-4">
-                                                                                                                                                                                    <a href="/" class="text-gray-700 hover:text-primary-600 font-medium">
-                                                                                                                                                                                        <i class="fas fa-home mr-2"></i>홈으로
-                                                                                                                                                                                    </a>
-                                                                                                                                                                                </div>
-                                                                                                                                                                            </div>
-                                                                                                                                                                        </div>
-                                                                                                                                                                    </nav>
+                                                                                                                                                                    ${navigationHtml('courses')}
 
                                                                                                                                                                     <!-- 헤더 -->
                                                                                                                                                                     <div class="bg-gradient-to-r from-purple-600 to-pink-600 text-white py-12">
@@ -3396,24 +3196,7 @@ app.get('/university-education', (c) => {
                                                                                                                                                                                 </script>
                                                                                                                                                                             </head>
                                                                                                                                                                             <body class="bg-gray-50">
-                                                                                                                                                                                <!-- 네비게이션 -->
-                                                                                                                                                                                <nav class="bg-white shadow-md sticky top-0 z-50">
-                                                                                                                                                                                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                                                                                                                                                                                        <div class="flex justify-between items-center h-20">
-                                                                                                                                                                                            <div class="flex items-center space-x-4">
-                                                                                                                                                                                                <a href="/" class="flex items-center space-x-4">
-                                                                                                                                                                                                    <img src="/static/logo.png" alt="WOW 3D" class="h-12">
-                                                                                                                                                                                                        <span class="text-xl font-bold text-gray-800">와우쓰리디홍대센터</span>
-                                                                                                                                                                                                </a>
-                                                                                                                                                                                            </div>
-                                                                                                                                                                                            <div class="flex items-center space-x-4">
-                                                                                                                                                                                                <a href="/" class="text-gray-700 hover:text-primary-600 font-medium">
-                                                                                                                                                                                                    <i class="fas fa-home mr-2"></i>홈으로
-                                                                                                                                                                                                </a>
-                                                                                                                                                                                            </div>
-                                                                                                                                                                                        </div>
-                                                                                                                                                                                    </div>
-                                                                                                                                                                                </nav>
+                                                                                                                                                                                ${navigationHtml('courses')}
 
                                                                                                                                                                                 <!-- 헤더 -->
                                                                                                                                                                                 <div class="bg-gradient-to-r from-teal-600 to-cyan-600 text-white py-12">

@@ -34,7 +34,8 @@ export const coursesListHtml = `
     </script>
 </head>
 <body class="bg-gray-50">
-
+    <!-- 네비게이션 (메인 헤더) -->
+    ${navigationHtml('courses')}
 
     <script>
         // 로그인 상태 확인 및 메뉴 업데이트
