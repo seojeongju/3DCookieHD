@@ -426,11 +426,6 @@ app.get('/', (c) => {
 });
 
 // ============================================
-// 온라인 상담 신청 리다이렉트
-// ============================================
-app.get('/online-consulting', (c) => c.redirect('/#contact'));
-
-// ============================================
 // 이용약관 페이지
 // ============================================
 app.get('/terms', (c) => {
@@ -845,7 +840,7 @@ app.get('/sitemap', (c) => {
                                                                                     고객 지원
                                                                                 </h2>
                                                                                 <ul class="space-y-2">
-                                                                                    <li><a href="/#contact" class="text-gray-600 hover:text-blue-600 transition">상담 신청</a></li>
+                                                                                    <li><a href="/online-consulting" class="text-gray-600 hover:text-blue-600 transition">상담 신청</a></li>
                                                                                     <li><a href="/#board" class="text-gray-600 hover:text-blue-600 transition">게시판</a></li>
                                                                                     <li><a href="/#search" class="text-gray-600 hover:text-blue-600 transition">수강료 조회</a></li>
                                                                                 </ul>
@@ -1568,7 +1563,7 @@ app.get('/greeting', (c) => {
 
                                                                                                             <!-- CTA 버튼 -->
                                                                                                             <div class="text-center">
-                                                                                                                <a href="/#contact" class="inline-block bg-gradient-to-r from-primary-600 to-blue-700 text-white px-8 py-4 rounded-lg font-bold text-lg hover:from-primary-700 hover:to-blue-800 transition shadow-lg hover:shadow-xl">
+                                                                                                                <a href="/online-consulting" class="inline-block bg-gradient-to-r from-primary-600 to-blue-700 text-white px-8 py-4 rounded-lg font-bold text-lg hover:from-primary-700 hover:to-blue-800 transition shadow-lg hover:shadow-xl">
                                                                                                                     <i class="fas fa-comments mr-2"></i>
                                                                                                                     상담 신청하기
                                                                                                                 </a>
@@ -2520,13 +2515,13 @@ app.get('/online-consulting', (c) => {
                                                                                                                                                             <!-- 상담 신청 폼 -->
                                                                                                                                                             <div class="bg-white rounded-lg shadow-lg p-8 mb-8">
                                                                                                                                                                 <h2 class="text-2xl font-bold text-gray-800 mb-6">상담 신청서</h2>
-                                                                                                                                                                <form class="space-y-6">
+                                                                                                                                                                <form id="consultForm" class="space-y-6" onsubmit="return submitConsultation(event)">
                                                                                                                                                                     <!-- 이름 -->
                                                                                                                                                                     <div>
                                                                                                                                                                         <label class="block text-gray-700 font-semibold mb-2">
                                                                                                                                                                             이름 <span class="text-red-500">*</span>
                                                                                                                                                                         </label>
-                                                                                                                                                                        <input type="text" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-600" placeholder="이름을 입력해주세요" required>
+                                                                                                                                                                        <input type="text" name="name" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-600" placeholder="이름을 입력해주세요" required>
                                                                                                                                                                     </div>
 
                                                                                                                                                                     <!-- 연락처 -->
@@ -2534,7 +2529,7 @@ app.get('/online-consulting', (c) => {
                                                                                                                                                                         <label class="block text-gray-700 font-semibold mb-2">
                                                                                                                                                                             연락처 <span class="text-red-500">*</span>
                                                                                                                                                                         </label>
-                                                                                                                                                                        <input type="tel" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-600" placeholder="010-0000-0000" required>
+                                                                                                                                                                        <input type="tel" name="phone" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-600" placeholder="010-0000-0000" required>
                                                                                                                                                                     </div>
 
                                                                                                                                                                     <!-- 이메일 -->
@@ -2542,7 +2537,7 @@ app.get('/online-consulting', (c) => {
                                                                                                                                                                         <label class="block text-gray-700 font-semibold mb-2">
                                                                                                                                                                             이메일 <span class="text-red-500">*</span>
                                                                                                                                                                         </label>
-                                                                                                                                                                        <input type="email" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-600" placeholder="email@example.com" required>
+                                                                                                                                                                        <input type="email" name="email" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-600" placeholder="email@example.com" required>
                                                                                                                                                                     </div>
 
                                                                                                                                                                     <!-- 상담 유형 -->
@@ -2550,7 +2545,7 @@ app.get('/online-consulting', (c) => {
                                                                                                                                                                         <label class="block text-gray-700 font-semibold mb-2">
                                                                                                                                                                             상담 유형 <span class="text-red-500">*</span>
                                                                                                                                                                         </label>
-                                                                                                                                                                        <select class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-600" required>
+                                                                                                                                                                        <select name="category" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-600" required>
                                                                                                                                                                             <option value="">선택해주세요</option>
                                                                                                                                                                             <option value="course">과정 문의</option>
                                                                                                                                                                             <option value="schedule">일정 문의</option>
@@ -2565,7 +2560,7 @@ app.get('/online-consulting', (c) => {
                                                                                                                                                                         <label class="block text-gray-700 font-semibold mb-2">
                                                                                                                                                                             관심 과정
                                                                                                                                                                         </label>
-                                                                                                                                                                        <select class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-600">
+                                                                                                                                                                        <select name="interest_course" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-600">
                                                                                                                                                                             <option value="">선택해주세요</option>
                                                                                                                                                                             <option value="basic">3D 프린팅 기초과정</option>
                                                                                                                                                                             <option value="fusion360">Fusion 360 모델링</option>
@@ -2580,19 +2575,19 @@ app.get('/online-consulting', (c) => {
                                                                                                                                                                         <label class="block text-gray-700 font-semibold mb-2">
                                                                                                                                                                             상담 내용 <span class="text-red-500">*</span>
                                                                                                                                                                         </label>
-                                                                                                                                                                        <textarea rows="6" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-600" placeholder="궁금하신 사항을 자유롭게 작성해주세요" required></textarea>
+                                                                                                                                                                        <textarea name="message" rows="6" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-600" placeholder="궁금하신 사항을 자유롭게 작성해주세요" required></textarea>
                                                                                                                                                                     </div>
 
                                                                                                                                                                     <!-- 개인정보 동의 -->
                                                                                                                                                                     <div class="flex items-start">
-                                                                                                                                                                        <input type="checkbox" id="privacy" class="mt-1 mr-2" required>
+                                                                                                                                                                        <input type="checkbox" id="privacy" name="privacy_agree" class="mt-1 mr-2" required>
                                                                                                                                                                             <label for="privacy" class="text-sm text-gray-600">
                                                                                                                                                                                 개인정보 수집 및 이용에 동의합니다. (필수)
                                                                                                                                                                             </label>
                                                                                                                                                                     </div>
 
                                                                                                                                                                     <!-- 제출 버튼 -->
-                                                                                                                                                                    <button type="submit" class="w-full bg-primary-600 text-white py-4 rounded-lg font-semibold hover:bg-primary-700 transition text-lg">
+                                                                                                                                                                    <button type="submit" id="consultSubmitBtn" class="w-full bg-primary-600 text-white py-4 rounded-lg font-semibold hover:bg-primary-700 transition text-lg">
                                                                                                                                                                         상담 신청하기
                                                                                                                                                                     </button>
                                                                                                                                                                 </form>
@@ -2625,6 +2620,37 @@ app.get('/online-consulting', (c) => {
                                                                                                                                                                 </div>
                                                                                                                                                             </div>
                                                                                                                                                         </div>
+
+                                                                                                                                                        <script>
+                                                                                                                                                        async function submitConsultation(e) {
+                                                                                                                                                            e.preventDefault();
+                                                                                                                                                            var form = document.getElementById('consultForm');
+                                                                                                                                                            var btn = document.getElementById('consultSubmitBtn');
+                                                                                                                                                            var name = (form.name && form.name.value) ? form.name.value.trim() : '';
+                                                                                                                                                            var phone = (form.phone && form.phone.value) ? form.phone.value.trim() : '';
+                                                                                                                                                            var email = (form.email && form.email.value) ? form.email.value.trim() : '';
+                                                                                                                                                            var category = (form.category && form.category.value) ? form.category.value : '';
+                                                                                                                                                            var interest = (form.interest_course && form.interest_course.value) ? form.interest_course.value : '';
+                                                                                                                                                            var message = (form.message && form.message.value) ? form.message.value.trim() : '';
+                                                                                                                                                            var privacy = form.privacy_agree && form.privacy_agree.checked;
+                                                                                                                                                            if (!name || !phone || !privacy) { alert('이름, 연락처, 개인정보 동의는 필수입니다.'); return false; }
+                                                                                                                                                            var fullMessage = (email ? '[이메일: ' + email + ']\\n' : '') + (category ? '[상담유형: ' + category + ']\\n' : '') + (interest ? '[관심과정: ' + interest + ']\\n' : '') + '\\n' + message;
+                                                                                                                                                            btn.disabled = true;
+                                                                                                                                                            btn.textContent = '접수 중...';
+                                                                                                                                                            try {
+                                                                                                                                                                var res = await fetch('/api/consultations', {
+                                                                                                                                                                    method: 'POST',
+                                                                                                                                                                    headers: { 'Content-Type': 'application/json' },
+                                                                                                                                                                    body: JSON.stringify({ name: name, phone: phone, category: category, message: fullMessage, privacy_agree: true })
+                                                                                                                                                                });
+                                                                                                                                                                var json = await res.json();
+                                                                                                                                                                if (json.success) { alert('상담 신청이 접수되었습니다. 빠른 시일 내에 연락드리겠습니다.'); form.reset(); } else { alert(json.error || '접수에 실패했습니다.'); }
+                                                                                                                                                            } catch (err) { alert('접수 중 오류가 발생했습니다.'); }
+                                                                                                                                                            btn.disabled = false;
+                                                                                                                                                            btn.textContent = '상담 신청하기';
+                                                                                                                                                            return false;
+                                                                                                                                                        }
+                                                                                                                                                        </script>
 
                                                                                                                                                         <!-- 푸터 -->
                                                                                                                                                         <footer class="bg-gray-800 text-white py-8 mt-12">
@@ -3066,7 +3092,7 @@ app.get('/university-education', (c) => {
                                                                                                                                                                                                     <p class="text-sm text-gray-500 mt-1">24시간 접수 가능</p>
                                                                                                                                                                                                 </div>
                                                                                                                                                                                             </div>
-                                                                                                                                                                                            <a href="/#contact" class="block w-full bg-primary-600 text-white text-center py-4 rounded-lg font-semibold hover:bg-primary-700 transition text-lg">
+                                                                                                                                                                                            <a href="/online-consulting" class="block w-full bg-primary-600 text-white text-center py-4 rounded-lg font-semibold hover:bg-primary-700 transition text-lg">
                                                                                                                                                                                                 협력 제안서 신청하기
                                                                                                                                                                                             </a>
                                                                                                                                                                                         </div>

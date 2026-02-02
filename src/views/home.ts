@@ -270,16 +270,17 @@ export const homeHtml = `
                 }
                 var list = result.data || [];
                 if (list.length === 0) {
-                    container.innerHTML = '<div class="col-span-2 md:col-span-4 grid grid-cols-2 md:grid-cols-4 gap-4">' +
-                        '<div class="rounded-xl overflow-hidden shadow-md bg-gray-100 aspect-square flex items-center justify-center"><i class="fas fa-cube text-5xl text-primary-300"></i></div>' +
-                        '<div class="rounded-xl overflow-hidden shadow-md bg-gray-100 aspect-square flex items-center justify-center"><i class="fas fa-print text-5xl text-primary-300"></i></div>' +
-                        '<div class="rounded-xl overflow-hidden shadow-md bg-gray-100 aspect-square flex items-center justify-center"><i class="fas fa-tools text-5xl text-primary-300"></i></div>' +
-                        '<div class="rounded-xl overflow-hidden shadow-md bg-gray-100 aspect-square flex items-center justify-center"><i class="fas fa-industry text-5xl text-primary-300"></i></div>' +
-                        '</div>';
+                    container.innerHTML = '<div class="col-span-2 md:col-span-4 text-center py-12">' +
+                        '<p class="text-gray-500 mb-6">등록된 시제품이 없습니다.</p>' +
+                        '<a href="/prototype-gallery" class="inline-flex items-center gap-2 px-6 py-3 bg-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-300 transition">시제품 갤러리 보기 <i class="fas fa-arrow-right"></i></a></div>';
                     return;
                 }
                 container.innerHTML = list.map(function(p) {
                     var img = (p.images && p.images.length) ? p.images[0] : '';
+                    if (!img && p.content) {
+                        var m = p.content.match(/<img[^>]+src=["']([^"']+)["']/i);
+                        if (m && m[1]) img = m[1];
+                    }
                     var title = (p.title || '').substring(0, 20);
                     if ((p.title || '').length > 20) title += '…';
                     return '<a href="/prototype-gallery" class="relative block rounded-xl overflow-hidden shadow-md hover:shadow-xl transition aspect-square bg-gray-200 group">' +

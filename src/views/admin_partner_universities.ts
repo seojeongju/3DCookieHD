@@ -84,13 +84,15 @@ export const adminPartnerUniversitiesHtml = `
                     return;
                 }
                 tbody.innerHTML = list.map(function(u) {
+                    var rawName = u.name || '';
+                    var safeName = rawName.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
                     return '<tr class="hover:bg-gray-50">' +
-                        '<td class="px-6 py-4 text-sm text-gray-600">' + (u.sort_order || '-') + '</td>' +
-                        '<td class="px-6 py-4 font-medium text-gray-800">' + (u.name || '') + '</td>' +
+                        '<td class="px-6 py-4 text-sm text-gray-600">' + (u.sort_order != null ? u.sort_order : '-') + '</td>' +
+                        '<td class="px-6 py-4 font-medium text-gray-800">' + safeName + '</td>' +
                         '<td class="px-6 py-4 text-sm text-gray-500">' + (u.logo_url ? '<span class="text-blue-600">URL 등록됨</span>' : '-') + '</td>' +
                         '<td class="px-6 py-4 text-right">' +
                         '<button type="button" onclick="edit(' + u.id + ')" class="px-3 py-1.5 text-blue-600 hover:bg-blue-50 rounded-lg text-sm font-medium">수정</button> ' +
-                        '<button type="button" onclick="del(' + u.id + ', \'' + (u.name || '').replace(/'/g, "\\'") + '\')" class="px-3 py-1.5 text-red-600 hover:bg-red-50 rounded-lg text-sm font-medium">삭제</button>' +
+                        '<button type="button" onclick="delBtn(this)" class="px-3 py-1.5 text-red-600 hover:bg-red-50 rounded-lg text-sm font-medium" data-id="' + u.id + '" data-name="' + safeName + '">삭제</button>' +
                         '</td></tr>';
                 }).join('');
             } catch (e) {
@@ -146,6 +148,14 @@ export const adminPartnerUniversitiesHtml = `
             } catch (err) {
                 alert('연결 실패');
             }
+        }
+
+        function delBtn(btn) {
+            var id = btn.getAttribute('data-id');
+            var nameEl = document.createElement('div');
+            nameEl.innerHTML = btn.getAttribute('data-name') || '';
+            var name = nameEl.textContent || nameEl.innerText || '';
+            del(id, name);
         }
 
         async function del(id, name) {

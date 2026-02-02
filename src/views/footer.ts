@@ -26,6 +26,7 @@ export const footerHtml = () => `
                 <ul class="space-y-2 text-sm">
                     <li><a href="/courses" class="hover:text-primary-400 transition">교육과정</a></li>
                     <li><a href="/schedule" class="hover:text-primary-400 transition">교육일정</a></li>
+                    <li><a href="/online-consulting" class="hover:text-primary-400 transition">온라인 상담 신청</a></li>
                     <li><a href="/posts?category=notice" class="hover:text-primary-400 transition">공지사항</a></li>
                     <li><a href="/reviews" class="hover:text-primary-400 transition">수강후기</a></li>
                     <li><a href="/locations" class="hover:text-primary-400 transition">오시는 길</a></li>
