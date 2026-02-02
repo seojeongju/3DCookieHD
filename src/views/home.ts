@@ -7,9 +7,11 @@ export const homeHtml = `
       }
       .hero-slider {
         position: relative;
+        min-height: 600px;
         height: 600px;
         overflow: hidden;
         border-radius: 0 0 2rem 2rem;
+        background: linear-gradient(135deg, #2d5fa3 0%, #4a90e2 50%, #5b9bd5 100%);
       }
       .hero-slide {
         position: absolute;
@@ -17,6 +19,7 @@ export const homeHtml = `
         left: 0;
         width: 100%;
         height: 100%;
+        background-color: #2d5fa3;
         background-size: cover;
         background-position: center;
         opacity: 0;
@@ -68,23 +71,48 @@ export const homeHtml = `
       }
     </style>
 
-    <!-- 히어로 섹션 (슬라이드쇼) -->
-    <section class="hero-slider">
-        <!-- Slide 1: 화이트 테마 -->
-        <div class="hero-slide active" style="background-image: url('/static/hero1.jpg')">
+    <!-- 히어로 섹션 -->
+    <section class="hero-slider" aria-label="메인 비주얼">
+        <div class="hero-slide active" style="background-image: url('/static/hero1.jpg'); background-color: #2d5fa3;">
             <div class="hero-overlay"></div>
             <div class="hero-content">
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <h1 class="text-4xl md:text-6xl font-bold mb-6 drop-shadow-lg">상상을 현실로, 미래를 디자인하다!</h1>
                     <p class="text-xl md:text-2xl mb-8 drop-shadow-lg">와우쓰리디홍대센터에서 3D모델링과 프린팅을 마스터하세요.</p>
-                    <div class="flex justify-center gap-4">
-                        <button onclick="scrollToSection('courses')" class="bg-white text-primary-600 px-8 py-4 rounded-lg font-semibold hover:bg-blue-50 transition text-lg shadow-lg">과정 둘러보기</button>
-                        <button onclick="scrollToSection('contact')" class="border-2 border-white text-white px-8 py-4 rounded-lg font-semibold hover:bg-white hover:text-primary-600 transition text-lg">상담 신청</button>
+                    <div class="flex justify-center gap-4 flex-wrap">
+                        <button type="button" onclick="scrollToSection('courses')" class="bg-white text-primary-600 px-8 py-4 rounded-lg font-semibold hover:bg-blue-50 transition text-lg shadow-lg">과정 둘러보기</button>
+                        <button type="button" onclick="scrollToSection('contact')" class="border-2 border-white text-white px-8 py-4 rounded-lg font-semibold hover:bg-white hover:text-primary-600 transition text-lg">상담 신청</button>
                     </div>
                 </div>
             </div>
         </div>
-        <!-- ... (more slides here ... I will truncated for now to keep it manageable but I should move all of them) -->
+    </section>
+
+    <!-- 센터 소개 -->
+    <section class="py-16 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-4xl font-bold text-gray-800 mb-4">와우쓰리디홍대센터</h2>
+                <p class="text-xl text-gray-600 max-w-2xl mx-auto">4차산업 3D프린팅 교육 전문 기관으로, 실무 중심의 커리큘럼과 최신 장비로 여러분의 성장을 지원합니다.</p>
+            </div>
+            <div class="grid md:grid-cols-3 gap-8 text-center">
+                <div class="p-6 rounded-2xl bg-gray-50 border border-gray-100">
+                    <div class="w-14 h-14 mx-auto mb-4 rounded-xl bg-primary-100 text-primary-600 flex items-center justify-center"><i class="fas fa-cube text-2xl"></i></div>
+                    <h3 class="text-lg font-bold text-gray-800 mb-2">3D 모델링·프린팅</h3>
+                    <p class="text-gray-600 text-sm">산업용 3D프린터와 전문 소프트웨어로 실무 역량을 키웁니다.</p>
+                </div>
+                <div class="p-6 rounded-2xl bg-gray-50 border border-gray-100">
+                    <div class="w-14 h-14 mx-auto mb-4 rounded-xl bg-primary-100 text-primary-600 flex items-center justify-center"><i class="fas fa-graduation-cap text-2xl"></i></div>
+                    <h3 class="text-lg font-bold text-gray-800 mb-2">국비지원 과정</h3>
+                    <p class="text-gray-600 text-sm">맞춤형 국비지원 과정으로 부담 없이 학습할 수 있습니다.</p>
+                </div>
+                <div class="p-6 rounded-2xl bg-gray-50 border border-gray-100">
+                    <div class="w-14 h-14 mx-auto mb-4 rounded-xl bg-primary-100 text-primary-600 flex items-center justify-center"><i class="fas fa-map-marker-alt text-2xl"></i></div>
+                    <h3 class="text-lg font-bold text-gray-800 mb-2">홍대·구미·전주</h3>
+                    <p class="text-gray-600 text-sm">전국 3개 센터에서 편리한 위치에서 수강할 수 있습니다.</p>
+                </div>
+            </div>
+        </div>
     </section>
 
     <!-- 과정 목록 섹션 -->
@@ -99,6 +127,31 @@ export const homeHtml = `
                 <div class="col-span-3 text-center py-12">
                     <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
                 </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 상담 신청 섹션 -->
+    <section id="contact" class="py-16 bg-white border-t border-gray-100">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-4xl font-bold text-gray-800 mb-4">상담·문의</h2>
+                <p class="text-xl text-gray-600">과정 안내, 수강 신청, 시설 견학 등 편하게 문의해 주세요.</p>
+            </div>
+            <div class="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                <a href="/online-consulting" class="block p-8 rounded-2xl bg-primary-50 border-2 border-primary-100 hover:border-primary-300 hover:bg-primary-100 transition text-center">
+                    <i class="fas fa-envelope text-4xl text-primary-600 mb-4"></i>
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">온라인 상담 신청</h3>
+                    <p class="text-gray-600 text-sm">24시간 접수 가능합니다.</p>
+                </a>
+                <a href="/locations" class="block p-8 rounded-2xl bg-gray-50 border-2 border-gray-100 hover:border-primary-200 hover:bg-gray-100 transition text-center">
+                    <i class="fas fa-map-marker-alt text-4xl text-primary-600 mb-4"></i>
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">오시는 길</h3>
+                    <p class="text-gray-600 text-sm">홍대·구미·전주 센터 위치 안내</p>
+                </a>
+            </div>
+            <div class="mt-10 text-center text-gray-600">
+                <p class="font-medium">전화 문의 <a href="tel:02-3144-3137" class="text-primary-600 font-bold hover:underline">02-3144-3137</a></p>
             </div>
         </div>
     </section>
