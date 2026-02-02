@@ -597,35 +597,17 @@
                             var isChecked = selectedSet[value] || selectedSet[name];
 
                             // Style calculation
-                            // Selected: White background with border (based on image observation "Element Tolerance Review" is white). 
-                            // Unselected: Gray background? Or maybe user wants them all selectable.
-                            // The image shows "Hydraulic Element Design" (유압요소설계) as gray. The others are white. 
-                            // Let's assume White = Selected/Active, Gray = Unselected/Inactive? 
-                            // Or White = Default.
-                            // Let's use a standard toggle component style
-                            // White box with border for unchecked, Colored/Active for checked?
-                            // Actually, in the image, "Element Tolerance Review" (White) has text. "Hydraulic" (Gray) has text.
-                            // The "Gray" one looks like a disabled or unselected state.
-                            // Let's implement: Checked = White/Blue Border, Unchecked = Gray/Transparent?
-
-                            // Let's go with:
-                            // Checked: bg-white border-slate-200 shadow-sm text-slate-700
-                            // Unchecked: bg-slate-100 border-transparent text-slate-400
-                            // BUT wait, usuallly "Active" is highlighted.
-                            // Let's stick to a safe UI: 
-                            // Checkbox hidden.
-                            // Container acts as label.
-                            // Checked: ring-1 ring-emerald-500 bg-white text-emerald-700 font-medium
-                            // Unchecked: border border-slate-200 bg-slate-50 text-slate-500
+                            // Selected: Bold Green Border, Light Green Background, Dark Green Text
+                            // Unselected: Gray Background, Gray Text
 
                             var className = isChecked
-                                ? 'cursor-pointer px-4 py-3 rounded-lg border border-slate-200 bg-white shadow-sm text-slate-800 font-medium hover:border-emerald-400 transition flex items-center justify-between group'
-                                : 'cursor-pointer px-4 py-3 rounded-lg border border-slate-100 bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700 transition flex items-center justify-between group';
+                                ? 'cursor-pointer px-4 py-3 rounded-lg border-2 border-emerald-500 bg-emerald-50 text-emerald-900 font-bold shadow-md transition flex items-center justify-between group'
+                                : 'cursor-pointer px-4 py-3 rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition flex items-center justify-between group';
 
                             contentHtml += '<label class="' + className + '">' +
                                 '<span class="flex-1">' + esc(name) + '</span>' +
-                                '<input type="checkbox" class="ncs-step2-cb hidden" value="' + attrEsc(value) + '"' + (isChecked ? ' checked' : '') + ' onchange="var p=this.parentElement; if(this.checked){ p.className=\'cursor-pointer px-4 py-3 rounded-lg border border-slate-200 bg-white shadow-sm text-slate-800 font-medium hover:border-emerald-400 transition flex items-center justify-between group\'; } else { p.className=\'cursor-pointer px-4 py-3 rounded-lg border border-slate-100 bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700 transition flex items-center justify-between group\'; }">' +
-                                '<i class="fas fa-check ' + (isChecked ? 'text-emerald-500' : 'text-transparent group-hover:text-slate-300') + ' transition"></i>' +
+                                '<input type="checkbox" class="ncs-step2-cb hidden" value="' + attrEsc(value) + '"' + (isChecked ? ' checked' : '') + ' onchange="var p=this.parentElement; var i=p.querySelector(\'i\'); if(this.checked){ p.className=\'cursor-pointer px-4 py-3 rounded-lg border-2 border-emerald-500 bg-emerald-50 text-emerald-900 font-bold shadow-md transition flex items-center justify-between group\'; i.className=\'fas fa-check text-emerald-600 transition\'; } else { p.className=\'cursor-pointer px-4 py-3 rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition flex items-center justify-between group\'; i.className=\'fas fa-check text-transparent group-hover:text-slate-300 transition\'; }">' +
+                                '<i class="fas fa-check ' + (isChecked ? 'text-emerald-600' : 'text-transparent group-hover:text-slate-300') + ' transition"></i>' +
                                 '</label>';
                         });
                         contentHtml += '</div>';
