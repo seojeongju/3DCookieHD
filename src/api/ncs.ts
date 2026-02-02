@@ -83,6 +83,8 @@ type TrainingItem = {
     subClassName: string;
     unitCode: string;
     unitName: string;
+    /** 수준(1~8). 공공 API compeUnitLevel */
+    level?: number;
 };
 
 /** 공공 API 서비스키: 저장 시 URL 인코딩된 경우 디코딩하여 사용 */
@@ -268,13 +270,15 @@ async function fetchNcsTrainingPage(apiKey: string, ncsLclasCd: string, pageNo: 
         let subClassName = rowKey(row, 'ncsSubdCdnm', 'ncsSubdCdnm', 'ncssubdcdnm', 'NCS_SUBD_CDNM', 'ncsDclasCdnm', 'ncsdclascdnm', 'NCS_DCLAS_CDNM', 'ncsSubClasCdnm', 'ncssubclascdnm');
         const unitCode = rowKey(row, 'ncsClCd', 'NcsClCd', 'ncsclcd', 'NCS_CL_CD');
         const unitName = rowKey(row, 'compeUnitName', 'compeunitname', 'COPE_UNIT_NAME', 'trainGoal', 'traingoal');
+        const levelRaw = (row.compeUnitLevel ?? row.compeunitlevel ?? row.COMPE_UNIT_LEVEL) as number | string | undefined;
+        const level = levelRaw != null ? (typeof levelRaw === 'number' ? levelRaw : parseInt(String(levelRaw), 10)) : undefined;
         // API에 세분류 필드가 없을 때: 능력단위코드(10자리)에서 7~8자리가 세분류코드 (대2+중2+소2+세2+일련2)
         if (!subClassCode && unitCode && unitCode.length >= 8) {
             const numPart = unitCode.replace(/_.*$/, '');
             if (numPart.length >= 8) subClassCode = numPart.slice(6, 8);
             if (!subClassName && unitName) subClassName = unitName;
         }
-        return { largeCode, largeName, midCode, midName, smallCode, smallName, subClassCode, subClassName, unitCode, unitName };
+        return { largeCode, largeName, midCode, midName, smallCode, smallName, subClassCode, subClassName, unitCode, unitName, level: Number.isFinite(level) ? level : undefined };
     }).filter((r: TrainingItem) => r.largeCode && (r.midCode || r.unitCode)) as TrainingItem[];
     return { items: mapped, totalPage };
 }
@@ -754,7 +758,16 @@ app.delete('/approved/registrations/:id', authMiddleware, requireAdmin, async (c
     }
 });
 
-/** 훈련이수체계도용: 등록 id → 주직종 + 수준별 능력단위/요소 */
+/** 수준(1~8)을 훈련이수체계도 구간(2~6)으로 매핑 */
+function mapLevelToBand(level: number): 2 | 3 | 4 | 5 | 6 {
+    if (level >= 6) return 6;
+    if (level === 5) return 5;
+    if (level === 4) return 4;
+    if (level === 3) return 3;
+    return 2;
+}
+
+/** 훈련이수체계도용: 등록 id → 선택된 모든 직종 + 수준별 능력단위 (자동 표시, 멀티선택) */
 app.get('/approved/registrations/:id/training-system', authMiddleware, requireAdmin, async (c) => {
     try {
         const id = parseInt(c.req.param('id'), 10);
@@ -773,25 +786,32 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
             }
         } catch (_) { /* ignore */ }
 
-        let mainJob = {
-            code: (reg.unit_code || reg.main_job_code || '').trim() || null,
-            name: (reg.unit_name || reg.main_job_name || '').trim() || null
-        };
+        const mainJobs: { code: string | null; name: string | null }[] = [];
         const mainJobsRaw = (reg as { main_jobs_json?: string | null }).main_jobs_json;
         if (mainJobsRaw && typeof mainJobsRaw === 'string') {
             try {
                 const arr = JSON.parse(mainJobsRaw) as { code?: string; name?: string }[];
-                if (Array.isArray(arr) && arr.length > 0 && (arr[0].code || arr[0].name)) {
-                    mainJob = { code: (arr[0].code ?? '').toString().trim() || null, name: (arr[0].name ?? '').toString().trim() || null };
+                if (Array.isArray(arr)) {
+                    arr.forEach((j) => {
+                        const code = (j.code ?? '').toString().trim() || null;
+                        const name = (j.name ?? '').toString().trim() || null;
+                        if (code || name) mainJobs.push({ code, name });
+                    });
                 }
             } catch (_) { /* ignore */ }
         }
+        if (mainJobs.length === 0) {
+            const code = (reg.unit_code || reg.main_job_code || '').trim() || null;
+            const name = (reg.unit_name || reg.main_job_name || '').trim() || null;
+            if (code || name) mainJobs.push({ code, name });
+        }
+
         if (reg.ncs_tab === 'non_ncs') {
             return c.json({
                 success: true,
                 data: {
-                    mainJob: { code: null, name: (reg.non_ncs_course_name || '').trim() || null },
-                    levels: { 5: [], 4: [], 3: [] },
+                    mainJobs: [{ code: null, name: (reg.non_ncs_course_name || '').trim() || null }],
+                    levels: { 6: [], 5: [], 4: [], 3: [], 2: [] },
                     basicAbility: [],
                     selected,
                     elements: []
@@ -799,45 +819,80 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
             });
         }
 
-        const unitCode = mainJob.code || '';
-        const unitName = mainJob.name || '';
-        const levels: { 5: { name: string; code?: string }[]; 4: { name: string; code?: string }[]; 3: { name: string; code?: string }[] } = { 5: [], 4: [], 3: [] };
+        const levels: { 6: { name: string; code?: string }[]; 5: { name: string; code?: string }[]; 4: { name: string; code?: string }[]; 3: { name: string; code?: string }[]; 2: { name: string; code?: string }[] } = { 6: [], 5: [], 4: [], 3: [], 2: [] };
+        const seenCodes = new Set<string>();
         let basicAbility: { name: string; code?: string }[] = [];
-        let elementsFlat: { name: string; code?: string }[] = [];
+        const elementsFlat: { name: string; code?: string }[] = [];
 
-        const unit = await c.env.DB.prepare(
-            'SELECT id, level FROM ncs_units WHERE code = ?'
-        ).bind(unitCode).first() as { id: number; level?: number } | null;
+        for (const job of mainJobs) {
+            const jobCode = (job.code || '').replace(/\s/g, '');
+            const jobCode8 = jobCode.length >= 8 ? jobCode.slice(0, 8) : jobCode;
+            const jobName = job.name || '';
 
-        if (unit) {
-            const { results: elements } = await c.env.DB.prepare(
-                'SELECT code, name FROM ncs_elements WHERE ncs_unit_id = ? ORDER BY code ASC'
-            ).bind(unit.id).all() as { results: { code?: string; name: string }[] };
-            const list = (elements || []).map((e) => ({ name: e.name || '', code: (e.code || '').trim() || undefined }));
-            elementsFlat = list;
-            const n = list.length;
-            const g1 = Math.ceil(n / 3);
-            const g2 = Math.ceil((n - g1) / 2) + g1;
-            levels[5] = list.slice(0, g1);
-            levels[4] = list.slice(g1, g2);
-            levels[3] = list.slice(g2);
-        } else if (unitName) {
-            const mock = [
-                { name: unitName + ' 기획', level: 5 as const },
-                { name: unitName + ' 평가', level: 5 as const },
-                { name: unitName + ' 시장조사', level: 4 as const },
-                { name: unitName + ' 개발요소 선정', level: 4 as const },
-                { name: unitName + ' 품질 관리', level: 4 as const },
-                { name: unitName + ' 출력', level: 3 as const },
-                { name: unitName + ' 안전관리', level: 3 as const }
-            ];
-            mock.forEach((m) => levels[m.level].push({ name: m.name }));
-            elementsFlat = [...levels[5], ...levels[4], ...levels[3]];
+            const { results: units } = await c.env.DB.prepare(
+                'SELECT code, name, level FROM ncs_units WHERE code LIKE ? ORDER BY level DESC, code ASC'
+            ).bind(jobCode8 + '%').all() as { results: { code?: string; name?: string; level?: number }[] };
+
+            if (units && units.length > 0) {
+                for (const u of units) {
+                    const code = (u.code || '').trim();
+                    if (!code || seenCodes.has(code)) continue;
+                    seenCodes.add(code);
+                    const name = (u.name || '').trim() || code;
+                    const lv = typeof u.level === 'number' ? u.level : 3;
+                    const band = mapLevelToBand(lv);
+                    levels[band].push({ name, code });
+                    elementsFlat.push({ name, code });
+                }
+                continue;
+            }
+
+            const apiKey = (c.env.NCS_API_KEY || '').trim();
+            if (apiKey && jobCode8.length >= 2) {
+                const largeCode = jobCode8.slice(0, 2);
+                try {
+                    const key = decodeServiceKey(apiKey);
+                    const items = await fetchNcsTrainingByLarge(key, largeCode);
+                    const prefix = jobCode8;
+                    for (const it of items) {
+                        const numPart = (it.unitCode || '').replace(/_.*$/, '').slice(0, 8);
+                        if (numPart !== prefix) continue;
+                        const code = (it.unitCode || '').trim();
+                        if (!code || seenCodes.has(code)) continue;
+                        seenCodes.add(code);
+                        const name = (it.unitName || '').trim() || code;
+                        const lv = it.level != null ? it.level : 3;
+                        const band = mapLevelToBand(lv);
+                        levels[band].push({ name, code });
+                        elementsFlat.push({ name, code });
+                    }
+                } catch (_) { /* ignore */ }
+                continue;
+            }
+
+            if (jobName) {
+                const mock = [
+                    { name: jobName + ' 기획', level: 5 as const },
+                    { name: jobName + ' 평가', level: 5 as const },
+                    { name: jobName + ' 시장조사', level: 4 as const },
+                    { name: jobName + ' 개발요소 선정', level: 4 as const },
+                    { name: jobName + ' 품질 관리', level: 4 as const },
+                    { name: jobName + ' 출력', level: 3 as const },
+                    { name: jobName + ' 안전관리', level: 3 as const }
+                ];
+                mock.forEach((m) => {
+                    const name = m.name;
+                    if (seenCodes.has(name)) return;
+                    seenCodes.add(name);
+                    levels[m.level].push({ name });
+                    elementsFlat.push({ name });
+                });
+            }
         }
 
         return c.json({
             success: true,
-            data: { mainJob: { code: unitCode || null, name: unitName || null }, levels, basicAbility, selected, elements: elementsFlat }
+            data: { mainJobs, levels, basicAbility, selected, elements: elementsFlat }
         });
     } catch (e) {
         console.error('ncs approved training-system:', e);

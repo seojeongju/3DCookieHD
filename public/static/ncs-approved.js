@@ -576,8 +576,8 @@
                     return;
                 }
                 var d = json.data;
-                var levels = d.levels || { 5: [], 4: [], 3: [] };
-                var mainJob = d.mainJob || { code: null, name: null };
+                var levels = d.levels || { 6: [], 5: [], 4: [], 3: [], 2: [] };
+                var mainJobs = Array.isArray(d.mainJobs) && d.mainJobs.length ? d.mainJobs : (d.mainJob ? [d.mainJob] : []);
                 var basicAbility = d.basicAbility || [];
                 var selectedSet = {};
                 (d.selected || []).forEach(function (n) { selectedSet[n] = true; });
@@ -587,21 +587,26 @@
                     (items || []).forEach(function (x) {
                         var name = (x && x.name) ? x.name : String(x);
                         if (!name) return;
-                        var checked = selectedSet[name] ? ' checked' : '';
+                        var code = (x && x.code) ? String(x.code).trim() : '';
+                        var value = code || name;
+                        var checked = selectedSet[value] || selectedSet[name] ? ' checked' : '';
                         rows.push('<tr class="ncs-step2-selectable align-top">' +
-                            '<td class="px-4 py-2"><label class="flex items-center justify-center"><input type="checkbox" class="ncs-step2-cb rounded text-blue-600" value="' + attrEsc(name) + '"' + checked + '></label></td>' +
+                            '<td class="px-4 py-2"><label class="flex items-center justify-center"><input type="checkbox" class="ncs-step2-cb rounded text-blue-600" value="' + attrEsc(value) + '"' + checked + '></label></td>' +
                             '<td class="px-4 py-2 font-medium text-slate-700">' + esc(levelLabel) + '</td>' +
                             '<td class="px-4 py-2 text-slate-800">' + esc(name) + '</td></tr>');
                     });
                 }
+                addSelectableRows('6수준', levels[6]);
                 addSelectableRows('5수준', levels[5]);
                 addSelectableRows('4수준', levels[4]);
                 addSelectableRows('3수준', levels[3]);
+                addSelectableRows('2수준', levels[2]);
                 if (basicAbility.length) addSelectableRows('직업 기초 능력', basicAbility);
                 else rows.push('<tr class="align-top bg-slate-50/50"><td class="px-4 py-3"></td><td class="px-4 py-3 font-medium text-slate-700">직업 기초 능력</td><td class="px-4 py-3 text-slate-500">' + esc('선택된 직업기초 능력이 없습니다.') + '</td></tr>');
 
-                var mainLabel = mainJob.name ? mainJob.name + (mainJob.code ? ' (' + mainJob.code + ')' : '') + ' (주직종(음영))' : '—';
-                rows.push('<tr class="align-top bg-slate-50/50"><td class="px-4 py-3"></td><td class="px-4 py-3 font-medium text-slate-700">직종</td><td class="px-4 py-3 text-slate-800">' + esc(mainLabel) + '</td></tr>');
+                var mainLabels = mainJobs.map(function (j) { return (j.name || '') ? (j.name + (j.code ? ' (' + j.code + ')' : '')) : (j.code || '—'); }).filter(Boolean);
+                var mainLabel = mainLabels.length ? mainLabels.join(', ') : '—';
+                rows.push('<tr class="align-top bg-slate-50/50"><td class="px-4 py-3"></td><td class="px-4 py-3 font-medium text-slate-700">선택된 직종</td><td class="px-4 py-3 text-slate-800">' + esc(mainLabel) + '</td></tr>');
 
                 tbody.innerHTML = rows.join('');
 
@@ -974,13 +979,14 @@
                     unitList = [];
                 } else {
                     var d = json.data;
-                    var levels = d.levels || { 5: [], 4: [], 3: [] };
-                    var main = d.mainJob || { name: null };
-                    if (jobLabel) jobLabel.textContent = main.name ? main.name : 'NCS 기반 교과';
+                    var levels = d.levels || { 6: [], 5: [], 4: [], 3: [], 2: [] };
+                    var mainJobs = Array.isArray(d.mainJobs) && d.mainJobs.length ? d.mainJobs : (d.mainJob ? [d.mainJob] : []);
+                    var firstMain = mainJobs[0] || { name: null };
+                    if (jobLabel) jobLabel.textContent = firstMain.name ? firstMain.name : 'NCS 기반 교과';
                     if (d.selected && Array.isArray(d.selected) && d.selected.length) {
                         unitList = d.selected.map(function (n) { return { name: n }; });
                     } else {
-                        unitList = (levels[5] || []).concat(levels[4] || []).concat(levels[3] || []);
+                        unitList = (levels[6] || []).concat(levels[5] || []).concat(levels[4] || []).concat(levels[3] || []).concat(levels[2] || []);
                     }
                     elementList = (d.elements && Array.isArray(d.elements)) ? d.elements : [];
                 }

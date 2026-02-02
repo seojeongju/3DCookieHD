@@ -180,7 +180,7 @@ function stepContentHtml(step: number, editId?: string): string {
             <tr>
               <th class="px-4 py-3 w-12 font-bold text-slate-700">선택</th>
               <th class="px-4 py-3 w-36 font-bold text-slate-700">수준</th>
-              <th class="px-4 py-3 font-bold text-slate-700">직종</th>
+              <th class="px-4 py-3 font-bold text-slate-700">능력단위</th>
             </tr>
           </thead>
           <tbody id="ncsTrainingSystemBody" class="divide-y divide-slate-100">
@@ -188,6 +188,7 @@ function stepContentHtml(step: number, editId?: string): string {
           </tbody>
         </table>
       </div>
+      <p class="text-xs text-slate-500 mt-2">선택된 직종의 능력단위가 위 표에 자동으로 표시됩니다. 교과목 편성에 활용할 항목을 여러 개 선택한 뒤 다음 페이지로 이동하세요.</p>
       <div class="rounded-xl border border-red-200 bg-red-50/80 px-4 py-3 text-sm text-red-800">
         <p class="font-bold mb-1">훈련이수체계도를 삭제할 경우 편성된 교과목도 동시에 삭제됩니다.</p>
         <p class="mb-1">교과목편성 및 훈련이수체계도 재설정을 원할 경우 훈련이수체계도를 삭제하시면 됩니다.</p>
