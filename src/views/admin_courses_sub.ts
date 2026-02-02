@@ -480,29 +480,36 @@ export const adminCoursesApprovedRegisterHtml = (editId?: string) => {
                 </section>
 
                 <section class="space-y-4">
-                    <h3 class="text-lg font-bold text-slate-800 border-b border-slate-200 pb-2">교직원(교강사) 선택</h3>
-                    <p class="text-sm text-slate-600">등록된 교직원(교강사) 목록에서 선택하세요.</p>
-                    <div id="approvedFormInstructorList" class="flex flex-col gap-2 p-4 border border-slate-200 rounded-xl bg-slate-50/50 min-h-[120px] max-h-[280px] overflow-y-auto custom-scrollbar">
-                        <span class="text-slate-500 text-sm">로딩 중...</span>
-                    </div>
-                    <div class="flex flex-wrap items-end gap-3 p-4 border border-slate-200 rounded-xl bg-white">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-600 mb-1">교직원(교강사) 간편등록</label>
-                            <select id="approvedFormInstructorType" class="px-3 py-2 border border-slate-200 rounded-lg text-sm mr-2">
-                                <option value="정규직">정규직 강사</option>
-                                <option value="비정규직">비정규직 강사</option>
-                            </select>
-                            <input type="text" id="approvedFormInstructorNameQuick" class="px-3 py-2 border border-slate-200 rounded-lg text-sm w-40" placeholder="강사명 입력">
-                            <button type="button" id="approvedFormInstructorAdd" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700 transition">강사추가</button>
+                    <details id="approvedFormInstructorDetails" class="group border border-slate-200 rounded-xl overflow-hidden bg-white">
+                        <summary class="list-none cursor-pointer px-5 py-4 flex items-center justify-between gap-2 text-lg font-bold text-slate-800 bg-slate-50/80 hover:bg-slate-100 transition [&::-webkit-details-marker]:hidden">
+                            <span>교직원(교강사) 선택</span>
+                            <span class="text-slate-500 text-sm transition-transform duration-200 shrink-0 group-open:rotate-180" aria-hidden="true">▼</span>
+                        </summary>
+                        <div class="px-5 pb-5 pt-1 space-y-4 border-t border-slate-200">
+                            <p class="text-sm text-slate-600">등록된 교직원(교강사) 목록에서 선택하세요.</p>
+                            <div id="approvedFormInstructorList" class="flex flex-col gap-2 p-4 border border-slate-200 rounded-xl bg-slate-50/50 min-h-[120px] max-h-[280px] overflow-y-auto custom-scrollbar">
+                                <span class="text-slate-500 text-sm">로딩 중...</span>
+                            </div>
+                            <div class="flex flex-wrap items-end gap-3 p-4 border border-slate-200 rounded-xl bg-white">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-600 mb-1">교직원(교강사) 간편등록</label>
+                                    <select id="approvedFormInstructorType" class="px-3 py-2 border border-slate-200 rounded-lg text-sm mr-2">
+                                        <option value="정규직">정규직 강사</option>
+                                        <option value="비정규직">비정규직 강사</option>
+                                    </select>
+                                    <input type="text" id="approvedFormInstructorNameQuick" class="px-3 py-2 border border-slate-200 rounded-lg text-sm w-40" placeholder="강사명 입력">
+                                    <button type="button" id="approvedFormInstructorAdd" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700 transition">강사추가</button>
+                                </div>
+                            </div>
+                            <div class="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
+                                간편등록 이후 상세내용은 인사 &gt; 교직원관리 에서 등록해주세요.
+                            </div>
+                            <div class="sm:col-span-2">
+                                <label class="block text-sm font-bold text-slate-700 mb-1">강사명 (기존 단일 입력)</label>
+                                <input type="text" id="approvedFormInstructor" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm" placeholder="강사명">
+                            </div>
                         </div>
-                    </div>
-                    <div class="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
-                        간편등록 이후 상세내용은 인사 &gt; 교직원관리 에서 등록해주세요.
-                    </div>
-                    <div class="sm:col-span-2">
-                        <label class="block text-sm font-bold text-slate-700 mb-1">강사명 (기존 단일 입력)</label>
-                        <input type="text" id="approvedFormInstructor" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm" placeholder="강사명">
-                    </div>
+                    </details>
                 </section>
 
                 <section class="space-y-4">

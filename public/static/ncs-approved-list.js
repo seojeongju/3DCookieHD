@@ -9,11 +9,27 @@
         return a.innerHTML;
     }
 
+    function redirectToLogin() {
+        var returnUrl = encodeURIComponent(window.location.pathname + (window.location.search || ''));
+        window.location.href = '/login?redirect=' + returnUrl;
+    }
+
     function load() {
         var token = localStorage.getItem('token');
-        fetch('/api/ncs/approved/registrations', { headers: token ? { 'Authorization': 'Bearer ' + token } : {} })
-            .then(function(r) { return r.json(); })
+        if (!token) {
+            redirectToLogin();
+            return;
+        }
+        fetch('/api/ncs/approved/registrations', { headers: { 'Authorization': 'Bearer ' + token } })
+            .then(function(r) {
+                if (r.status === 401) {
+                    redirectToLogin();
+                    return Promise.reject(new Error('Unauthorized'));
+                }
+                return r.json();
+            })
             .then(function(json) {
+                if (!json) return;
                 if (!json.success || !Array.isArray(json.data)) {
                     tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-slate-500">목록을 불러올 수 없습니다.</td></tr>';
                     return;
@@ -44,12 +60,17 @@
                         var id = btn.getAttribute('data-id');
                         if (!id || !confirm('이 과정개요를 삭제하시겠습니까?')) return;
                         var token = localStorage.getItem('token');
+                        if (!token) { redirectToLogin(); return; }
                         fetch('/api/ncs/approved/registrations/' + id, {
                             method: 'DELETE',
-                            headers: token ? { 'Authorization': 'Bearer ' + token } : {}
+                            headers: { 'Authorization': 'Bearer ' + token }
                         })
-                            .then(function(r) { return r.json(); })
+                            .then(function(r) {
+                                if (r.status === 401) { redirectToLogin(); return null; }
+                                return r.json();
+                            })
                             .then(function(json) {
+                                if (!json) return;
                                 if (json.success) load();
                                 else alert(json.error || '삭제 실패');
                             })
@@ -57,7 +78,8 @@
                     });
                 });
             })
-            .catch(function() {
+            .catch(function(err) {
+                if (err && err.message === 'Unauthorized') return;
                 tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-red-500">목록을 불러오는데 실패했습니다.</td></tr>';
             });
     }

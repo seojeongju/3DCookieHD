@@ -122,7 +122,11 @@ export const loginHtml = `
                         const { user, token } = result.data;
                         localStorage.setItem('token', token);
                         localStorage.setItem('user', JSON.stringify(user));
-                        
+                        const redirect = new URLSearchParams(location.search).get('redirect');
+                        if (redirect && redirect.startsWith('/') && !redirect.startsWith('//') && !redirect.toLowerCase().startsWith('/login')) {
+                            location.href = redirect;
+                            return;
+                        }
                         if (user.role === 'admin') {
                             location.href = '/admin';
                         } else if (user.role === 'teacher') {
