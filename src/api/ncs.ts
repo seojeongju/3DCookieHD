@@ -105,7 +105,12 @@ function parseClassificationItems(raw: unknown): Record<string, unknown>[] {
     const body = obj.body ?? obj.data ?? obj.items ?? obj.response;
     if (Array.isArray(body)) return body.filter((r) => r && typeof r === 'object') as Record<string, unknown>[];
     const b = body && typeof body === 'object' ? body as Record<string, unknown> : undefined;
-    const arr = b?.items ?? b?.data ?? b?.list;
+    let arr = b?.items ?? b?.data ?? b?.list;
+    // 공공 API 15128213: items가 { item: [...] } 또는 { item: {...} } 형태로 오는 경우
+    if (arr && typeof arr === 'object' && !Array.isArray(arr)) {
+        const item = (arr as Record<string, unknown>).item;
+        arr = Array.isArray(item) ? item : item != null ? [item] : [];
+    }
     if (Array.isArray(arr)) return arr.filter((r) => r && typeof r === 'object') as Record<string, unknown>[];
     const single = b?.item ?? (Array.isArray(raw) ? undefined : raw);
     if (single && typeof single === 'object') return [single as Record<string, unknown>];
@@ -120,7 +125,36 @@ function rowVal(row: Record<string, unknown>, ...keys: string[]): string {
     return '';
 }
 
-/** 기준정보 API로 대분류 기준 전체 트리 조회 (중·소·세·능력단위). 실패 시 null. */
+const CLASSIFICATION_PAGE_SIZE = 100;
+
+/** 기준정보 API 한 오퍼레이션을 페이지네이션으로 전부 조회 (공공 API가 100건 제한인 경우 대비) */
+async function fetchClassificationAllPages(
+    base: string,
+    key: string,
+    path: string,
+    params: Record<string, string>
+): Promise<Record<string, unknown>[]> {
+    const out: Record<string, unknown>[] = [];
+    let pageNo = 1;
+    const perPage = CLASSIFICATION_PAGE_SIZE;
+    for (;;) {
+        const q = new URLSearchParams({ serviceKey: key, type: 'json', pageNo: String(pageNo), numOfRows: String(perPage), ...params });
+        const url = `${base}/${path}?${q.toString()}`;
+        const res = await fetch(url);
+        if (!res.ok) break;
+        const json = await res.json().catch(() => null);
+        let list = parseClassificationItems(json?.response ?? json?.body ?? json?.data ?? json);
+        if (list.length === 0) list = parseClassificationItems(json);
+        if (list.length === 0) break;
+        out.push(...list);
+        if (list.length < perPage) break;
+        pageNo += 1;
+        if (pageNo > 50) break; // 무한 방지
+    }
+    return out;
+}
+
+/** 기준정보 API로 대분류 기준 전체 트리 조회 (중·소·세·능력단위). 페이지네이션으로 전부 수집. */
 async function fetchNcsClassificationByLarge(apiKey: string, ncsLclasCd: string, baseUrl?: string): Promise<TrainingItem[] | null> {
     const key = decodeServiceKey(apiKey);
     const base = (baseUrl || NCS_CLASSIFICATION_API_BASE_DEFAULT).replace(/\/$/, '');
@@ -128,55 +162,24 @@ async function fetchNcsClassificationByLarge(apiKey: string, ncsLclasCd: string,
     const largeName = NCS_LARGE_CLASSES.find((c) => c.code === ncsLclasCd)?.name ?? '';
 
     try {
-        // 1) 중분류 조회 (오퍼레이션명은 공공데이터포털 Swagger 기준으로 조정 가능)
-        const midRes = await fetch(
-            `${base}/getNcsMidClass?serviceKey=${encodeURIComponent(key)}&type=json&pageNo=1&numOfRows=100&ncsLclasCd=${encodeURIComponent(ncsLclasCd)}`
-        );
-        if (!midRes.ok) return null;
-        const midJson = await midRes.json().catch(() => null);
-        const midList = parseClassificationItems(midJson?.response ?? midJson?.body ?? midJson?.data ?? midJson);
-        if (midList.length === 0) {
-            // 응답 구조가 다를 수 있음: response.body.items 등
-            const alt = parseClassificationItems(midJson);
-            if (alt.length === 0) return null;
-            midList.push(...alt);
-        }
+        // 1) 중분류 — 전체 페이지 수집
+        const midList = await fetchClassificationAllPages(base, key, 'getNcsMidClass', { ncsLclasCd });
+        if (midList.length === 0) return null;
         const mids = midList.map((r) => ({ code: rowVal(r, 'ncsMclasCd', 'NcsMclasCd', 'mclasCd', 'midCd'), name: rowVal(r, 'ncsMclasCdnm', 'NcsMclasCdnm', 'mclasCdnm', 'midNm') })).filter((m) => m.code);
 
         for (const mid of mids) {
-            // 2) 소분류 조회
-            const smallRes = await fetch(
-                `${base}/getNcsSmallClass?serviceKey=${encodeURIComponent(key)}&type=json&pageNo=1&numOfRows=100&ncsLclasCd=${encodeURIComponent(ncsLclasCd)}&ncsMclasCd=${encodeURIComponent(mid.code)}`
-            );
-            if (!smallRes.ok) continue;
-            const smallJson = await smallRes.json().catch(() => null);
-            let smallList = parseClassificationItems(smallJson?.response ?? smallJson?.body ?? smallJson?.data ?? smallJson);
-            if (smallList.length === 0) smallList = parseClassificationItems(smallJson);
-            const smalls = smallList.map((r) => ({ code: rowVal(r, 'ncsSclasCd', 'sclasCd', 'smallCd'), name: rowVal(r, 'ncsSclasCdnm', 'sclasCdnm', 'smallNm') })).filter((s) => s.code);
+            // 2) 소분류 — 전체 페이지 수집
+            const smallList = await fetchClassificationAllPages(base, key, 'getNcsSmallClass', { ncsLclasCd, ncsMclasCd: mid.code });
+            const smalls = smallList.map((r) => ({ code: rowVal(r, 'ncsSclasCd', 'sclasCd', 'smallCd'), name: rowVal(r, 'ncsSclasCdnm', 'NcsSclasCdnm', 'sclasCdnm', 'smallNm') })).filter((s) => s.code);
 
             for (const small of smalls) {
-                // 3) 세분류 조회
-                const subRes = await fetch(
-                    `${base}/getNcsSubClass?serviceKey=${encodeURIComponent(key)}&type=json&pageNo=1&numOfRows=100&ncsLclasCd=${encodeURIComponent(ncsLclasCd)}&ncsMclasCd=${encodeURIComponent(mid.code)}&ncsSclasCd=${encodeURIComponent(small.code)}`
-                );
-                if (!subRes.ok) continue;
-                const subJson = await subRes.json().catch(() => null);
-                let subList = parseClassificationItems(subJson?.response ?? subJson?.body ?? subJson?.data ?? subJson);
-                if (subList.length === 0) subList = parseClassificationItems(subJson);
+                // 3) 세분류 — 전체 페이지 수집
+                const subList = await fetchClassificationAllPages(base, key, 'getNcsSubClass', { ncsLclasCd, ncsMclasCd: mid.code, ncsSclasCd: small.code });
                 const subs = subList.map((r) => ({ code: rowVal(r, 'ncsSubdCd', 'ncsDclasCd', 'subdCd', 'subCd'), name: rowVal(r, 'ncsSubdCdnm', 'ncsDclasCdnm', 'subdCdnm', 'subNm') })).filter((s) => s.code);
 
                 for (const sub of subs) {
                     const dutyCd = `${ncsLclasCd}${mid.code}${small.code}${sub.code}`;
-                    const unitRes = await fetch(
-                        `${base}/getNcsAbilityUnit?serviceKey=${encodeURIComponent(key)}&type=json&pageNo=1&numOfRows=100&dutyCd=${encodeURIComponent(dutyCd)}`
-                    );
-                    if (!unitRes.ok) {
-                        all.push({ largeCode: ncsLclasCd, largeName, midCode: mid.code, midName: mid.name, smallCode: small.code, smallName: small.name, subClassCode: sub.code, subClassName: sub.name, unitCode: '', unitName: '' });
-                        continue;
-                    }
-                    const unitJson = await unitRes.json().catch(() => null);
-                    let unitList = parseClassificationItems(unitJson?.response ?? unitJson?.body ?? unitJson?.data ?? unitJson);
-                    if (unitList.length === 0) unitList = parseClassificationItems(unitJson);
+                    const unitList = await fetchClassificationAllPages(base, key, 'getNcsAbilityUnit', { dutyCd });
                     if (unitList.length === 0) {
                         all.push({ largeCode: ncsLclasCd, largeName, midCode: mid.code, midName: mid.name, smallCode: small.code, smallName: small.name, subClassCode: sub.code, subClassName: sub.name, unitCode: '', unitName: '' });
                         continue;
@@ -457,6 +460,34 @@ app.get('/approved/large-classes', async (c) => {
     return c.json({ success: true, data: NCS_LARGE_CLASSES });
 });
 
+/** 기준정보 API 1차 요청(중분류) 진단 — 실패 원인 확인용. */
+async function diagnoseClassificationFirstCall(
+    base: string,
+    key: string,
+    ncsLclasCd: string
+): Promise<{ url: string; status: number; statusText: string; bodySnippet: string; parsedCount: number; error?: string }> {
+    const path = 'getNcsMidClass';
+    const q = new URLSearchParams({ serviceKey: key, type: 'json', pageNo: '1', numOfRows: '10', ncsLclasCd });
+    const url = `${base}/${path}?${q.toString()}`;
+    const safeUrl = `${base}/${path}?serviceKey=***&type=json&pageNo=1&numOfRows=10&ncsLclasCd=${ncsLclasCd}`;
+    try {
+        const res = await fetch(url);
+        const text = await res.text();
+        let parsedCount = 0;
+        try {
+            const json = JSON.parse(text);
+            const list = parseClassificationItems(json?.response ?? json?.body ?? json?.data ?? json);
+            if (list.length === 0) list.push(...parseClassificationItems(json));
+            parsedCount = list.length;
+        } catch (_) { /* ignore */ }
+        const bodySnippet = text.length > 800 ? text.slice(0, 800) + '...' : text;
+        return { url: safeUrl, status: res.status, statusText: res.statusText, bodySnippet, parsedCount };
+    } catch (e) {
+        const errMsg = e instanceof Error ? e.message : String(e);
+        return { url: safeUrl, status: 0, statusText: '', bodySnippet: '', parsedCount: 0, error: errMsg };
+    }
+}
+
 /** 기준정보 API 전용 조회 (전체 분류체계). 테스트/디버깅용. */
 app.get('/approved/classification', async (c) => {
     try {
@@ -464,12 +495,41 @@ app.get('/approved/classification', async (c) => {
         const rawKey = c.env.NCS_API_KEY?.trim();
         if (!rawKey) return c.json({ success: false, error: 'NCS_API_KEY 미설정' }, 400);
         const classificationBase = (c.env as { NCS_CLASSIFICATION_API_BASE?: string }).NCS_CLASSIFICATION_API_BASE?.trim();
+        const base = (classificationBase || NCS_CLASSIFICATION_API_BASE_DEFAULT).replace(/\/$/, '');
+        const key = decodeServiceKey(rawKey);
         const data = await fetchNcsClassificationByLarge(rawKey, ncsLclasCd, classificationBase);
-        if (data === null) return c.json({ success: false, error: '기준정보 API 조회 실패 또는 응답 없음', _meta: { hint: 'NCS_CLASSIFICATION_API_BASE·오퍼레이션명·인증키 확인' } }, 502);
+        if (data === null) {
+            const diag = await diagnoseClassificationFirstCall(base, key, ncsLclasCd);
+            return c.json({
+                success: false,
+                error: '기준정보 API 조회 실패 또는 응답 없음',
+                _meta: {
+                    hint: 'NCS_CLASSIFICATION_API_BASE·오퍼레이션명·인증키 확인. 공공데이터포털에서 15128213(NCS 기준정보조회) 활용신청 필요할 수 있음.',
+                    diagnose: diag
+                }
+            }, 502);
+        }
         return c.json({ success: true, data, _meta: { source: 'classification_api', count: data.length } });
     } catch (e) {
         console.error('NCS approved/classification error:', e);
         return c.json({ success: false, error: '기준정보 조회 실패' }, 500);
+    }
+});
+
+/** 기준정보 API 진단 전용 — 첫 요청 URL·상태·응답 일부 반환 (원인 파악용). */
+app.get('/approved/classification-debug', async (c) => {
+    try {
+        const ncsLclasCd = c.req.query('ncsLclasCd') || '19';
+        const rawKey = c.env.NCS_API_KEY?.trim();
+        if (!rawKey) return c.json({ success: false, error: 'NCS_API_KEY 미설정' }, 400);
+        const classificationBase = (c.env as { NCS_CLASSIFICATION_API_BASE?: string }).NCS_CLASSIFICATION_API_BASE?.trim();
+        const base = (classificationBase || NCS_CLASSIFICATION_API_BASE_DEFAULT).replace(/\/$/, '');
+        const key = decodeServiceKey(rawKey);
+        const diag = await diagnoseClassificationFirstCall(base, key, ncsLclasCd);
+        return c.json({ success: true, diagnose: diag, baseUrl: base });
+    } catch (e) {
+        console.error('NCS classification-debug error:', e);
+        return c.json({ success: false, error: String(e instanceof Error ? e.message : e) }, 500);
     }
 });
 

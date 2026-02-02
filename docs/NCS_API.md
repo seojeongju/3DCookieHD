@@ -37,6 +37,8 @@
 - **같은 인증키**(`NCS_API_KEY`)로 두 API를 모두 사용합니다. 기준정보 API(15128213)는 공공데이터포털에서 별도 활용신청이 필요할 수 있습니다.
 - **기준정보 API base URL** 이 제공처와 다르면 환경변수 `NCS_CLASSIFICATION_API_BASE` 에 올바른 URL을 넣으면 됩니다. (미설정 시 `https://api.data.go.kr/openapi/15128213/v1` 사용)
 - **테스트용** 엔드포인트: `GET /api/ncs/approved/classification?ncsLclasCd=19` — 기준정보 API만 호출한 결과를 반환합니다.
+- **실패 시 원인 확인**: 같은 요청이 실패하면 응답 `_meta.diagnose` 에 첫 요청 URL·HTTP 상태·응답 본문 일부가 포함됩니다. 또는 `GET /api/ncs/approved/classification-debug?ncsLclasCd=19` 로 진단 전용 응답을 볼 수 있습니다.
+- **"기준정보 API 조회 실패"** 가 나오면: 공공데이터포털에서 **15128213 (한국산업인력공단_NCS 기준정보조회)** 를 검색해 **별도 활용신청**을 한 뒤, 같은 인증키로 다시 시도하세요. 훈련과정정보 API(B490007)만 신청한 경우 기준정보 API는 사용할 수 없을 수 있습니다.
 
 ---
 
