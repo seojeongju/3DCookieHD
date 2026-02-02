@@ -92,38 +92,41 @@
         function loadJobRadios() {
             if (!jobRadioGroup || !jobRadioPlaceholder) return;
             clearUnitHidden();
+            var large = largeClass ? largeClass.value : '';
             var mid = midClass ? midClass.value : '';
             var small = smallClass ? smallClass.value : '';
             jobRadioPlaceholder.style.display = '';
             var wrap = jobRadioGroup.querySelector('.ncs-job-radio-wrap');
             if (wrap) wrap.remove();
             if (!mid || !small || !trainingCache.length) {
-                jobRadioPlaceholder.textContent = '소분류 선택 후 직종(주직종)을 선택하세요';
+                jobRadioPlaceholder.textContent = '소분류 선택 후 직종(주직종)을 선택하세요. 능력단위·수준은 2단계 훈련이수체계도에서 선택합니다.';
                 return;
             }
             var list = trainingCache.filter(function (item) { return item.midCode === mid && item.smallCode === small; });
-            var seen = {};
-            var jobs = [];
+            var jobByCode8 = {};
             list.forEach(function (item) {
-                var code = (item.unitCode || '').trim();
-                var name = (item.unitName || item.smallName || '').trim();
-                var k = code + '|' + name;
-                if (!seen[k] && (code || name)) {
-                    seen[k] = true;
-                    jobs.push({ code: code, name: name });
+                var raw = (item.unitCode || '').trim();
+                var code8 = raw ? (raw.split('_')[0] || raw).slice(0, 8) : '';
+                if (!code8) return;
+                if (!jobByCode8[code8]) {
+                    jobByCode8[code8] = {
+                        code: code8,
+                        name: (item.subClassName || item.unitName || item.smallName || '').trim()
+                    };
                 }
             });
+            var jobs = Object.keys(jobByCode8).sort().map(function (k) { return jobByCode8[k]; });
             if (jobs.length === 0) {
-                jobRadioPlaceholder.textContent = '이 소분류에 해당하는 직종(능력단위)이 없습니다.';
+                jobRadioPlaceholder.textContent = '이 소분류에 해당하는 직종이 없습니다.';
                 return;
             }
             jobRadioPlaceholder.style.display = 'none';
             var w = document.createElement('div');
-            w.className = 'ncs-job-radio-wrap flex flex-wrap gap-4';
+            w.className = 'ncs-job-radio-wrap space-y-2';
             jobs.forEach(function (j) {
                 var esc = function (s) { var t = document.createElement('span'); t.textContent = s == null ? '' : s; return t.innerHTML; };
                 var id = 'ncsJob_' + (j.code || '').replace(/\s/g, '_');
-                w.innerHTML += '<label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="ncsJobRadio" class="ncs-job-radio rounded text-blue-600" value="' + esc(j.code) + '" data-name="' + esc(j.name) + '" id="' + id + '"> <span>주직종 ' + esc(j.code) + (j.name ? '. ' + j.name : '') + '</span></label>';
+                w.innerHTML += '<label class="flex items-center gap-2 cursor-pointer py-1.5"><input type="radio" name="ncsJobRadio" class="ncs-job-radio rounded text-blue-600" value="' + esc(j.code) + '" data-name="' + esc(j.name) + '" id="' + id + '"> <span>주직종 ' + esc(j.code) + (j.name ? '. ' + j.name : '') + '</span></label>';
             });
             jobRadioGroup.appendChild(w);
             w.querySelectorAll('.ncs-job-radio').forEach(function (radio) {
@@ -241,12 +244,10 @@
             var large = largeClass ? largeClass.value : '';
             var mid = midClass ? midClass.value : '';
             var small = smallClass ? smallClass.value : '';
-            var unitCode = (unitCodeInput && unitCodeInput.value) ? unitCodeInput.value.trim() : null;
-            var unitName = (unitNameInput && unitNameInput.value) ? unitNameInput.value.trim() : null;
-            var opt = smallClass && smallClass.options[smallClass.selectedIndex];
-            var smallName = (opt && opt.getAttribute('data-name')) ? opt.getAttribute('data-name') : (opt ? opt.textContent.replace(/^[\d.\s]+/, '').trim() : '');
-            var mainJobCode = unitCode || ((large && mid && small) ? (large + mid + small) : null);
-            var mainJobName = unitName || ((mainJobCode && smallName) ? smallName : null);
+            var jobCode = (unitCodeInput && unitCodeInput.value) ? unitCodeInput.value.trim() : null;
+            var jobName = (unitNameInput && unitNameInput.value) ? unitNameInput.value.trim() : null;
+            var mainJobCode = jobCode || null;
+            var mainJobName = jobName || null;
             var payload = {
                 ncs_tab: ncsTab,
                 course_type: courseType || null,
@@ -257,8 +258,8 @@
                 large_code: large || null,
                 mid_code: mid || null,
                 small_code: small || null,
-                unit_code: unitCode,
-                unit_name: unitName,
+                unit_code: null,
+                unit_name: null,
                 non_ncs_course_name: (document.getElementById('nonNcsCourseName') && document.getElementById('nonNcsCourseName').value) ? document.getElementById('nonNcsCourseName').value.trim() : null,
                 non_ncs_overview: (document.getElementById('nonNcsOverview') && document.getElementById('nonNcsOverview').value) ? document.getElementById('nonNcsOverview').value.trim() : null,
                 course_name: (courseNameEl && courseNameEl.value) ? courseNameEl.value.trim() : null,

@@ -82,7 +82,7 @@ function stepContentHtml(step: number, editId?: string): string {
         <!-- 과정개요 정보 -->
         <div class="rounded-xl border border-slate-200 bg-white p-5">
           <h3 class="text-sm font-bold text-slate-700 mb-2">과정개요 정보 <span class="text-red-500">(! 필수등록)</span></h3>
-          <p class="text-xs text-slate-500 mb-4">선택된 직종으로 과정개요를 등록해주세요.</p>
+          <p class="text-xs text-slate-500 mb-4">선택된 직종으로 과정개요를 등록해주세요! (!필수등록)</p>
           <div class="space-y-4">
             <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">과정편성분류</label>
@@ -94,8 +94,8 @@ function stepContentHtml(step: number, editId?: string): string {
             </div>
             <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">직종선택 <span class="text-red-500">!</span></label>
-              <div id="ncsJobRadioGroup" class="min-h-[2.5rem] px-4 py-3 border border-slate-200 rounded-xl bg-slate-50/50 text-sm flex flex-wrap items-center gap-4">
-                <span id="ncsJobRadioPlaceholder" class="text-slate-400">소분류 선택 후 직종(주직종)을 선택하세요</span>
+              <div id="ncsJobRadioGroup" class="min-h-[2.5rem] px-4 py-3 border border-slate-200 rounded-xl bg-slate-50/50 text-sm">
+                <span id="ncsJobRadioPlaceholder" class="text-slate-400">소분류 선택 후 직종(주직종)을 선택하세요. 능력단위·수준은 2단계 훈련이수체계도에서 선택합니다.</span>
               </div>
             </div>
             <div>
