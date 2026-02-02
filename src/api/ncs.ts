@@ -829,6 +829,7 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
             const jobCode = (job.code || '').replace(/\s/g, '');
             const jobCode8 = jobCode.length >= 8 ? jobCode.slice(0, 8) : jobCode;
             const jobName = job.name || '';
+            let foundAny = false;
 
             // Helper to add/update item
             const addItem = (name: string, code: string, level: number) => {
@@ -855,8 +856,8 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
                     const name = (u.name || '').trim() || code;
                     const lv = typeof u.level === 'number' ? u.level : 3;
                     addItem(name, code, lv);
+                    foundAny = true;
                 }
-                continue;
             }
 
             const apiKey = (c.env.NCS_API_KEY || '').trim();
@@ -878,10 +879,9 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
                         addItem(name, code, lv);
                     }
                 } catch (_) { /* ignore */ }
-                continue;
             }
 
-            if (jobName) {
+            if (!foundAny && jobName) {
                 const mock = [
                     { name: jobName + ' 기획', level: 5 as const },
                     { name: jobName + ' 평가', level: 5 as const },
