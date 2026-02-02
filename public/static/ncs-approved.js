@@ -50,6 +50,8 @@
 
         if (!largeClass) return;
 
+        var selectedJobsStore = [];
+
         var largeClassesFallback = [
             { code: '01', name: '사업관리' }, { code: '02', name: '경영·회계·사무' }, { code: '03', name: '금융·보험' },
             { code: '04', name: '교육' }, { code: '05', name: '법무·보안' }, { code: '06', name: '보건·의료' },
@@ -102,12 +104,7 @@
             if (wrap) wrap.remove();
             if (!mid || !small || !trainingCache.length) {
                 jobRadioPlaceholder.textContent = '소분류 선택 후 직종을 선택하세요. 여러 직종을 선택할 수 있습니다. 능력단위·수준은 2단계 훈련이수체계도에서 선택합니다.';
-                if (selectedJobsResult && selectedJobsPlaceholder) {
-                    var w = selectedJobsResult.querySelector('.ncs-selected-jobs-list');
-                    if (w) w.remove();
-                    selectedJobsPlaceholder.style.display = '';
-                    selectedJobsPlaceholder.textContent = '왼쪽에서 직종을 선택하세요';
-                }
+                updateSelectedJobsResult();
                 return;
             }
             var list = trainingCache.filter(function (item) { return item.midCode === mid && item.smallCode === small; });
@@ -126,12 +123,7 @@
             var jobs = Object.keys(jobByCode8).sort().map(function (k) { return jobByCode8[k]; });
             if (jobs.length === 0) {
                 jobRadioPlaceholder.textContent = '이 소분류에 해당하는 직종이 없습니다.';
-                if (selectedJobsResult && selectedJobsPlaceholder) {
-                    var w = selectedJobsResult.querySelector('.ncs-selected-jobs-list');
-                    if (w) w.remove();
-                    selectedJobsPlaceholder.style.display = '';
-                    selectedJobsPlaceholder.textContent = '왼쪽에서 직종을 선택하세요';
-                }
+                updateSelectedJobsResult();
                 return;
             }
             jobRadioPlaceholder.style.display = 'none';
@@ -140,32 +132,37 @@
             jobs.forEach(function (j) {
                 var esc = function (s) { var t = document.createElement('span'); t.textContent = s == null ? '' : s; return t.innerHTML; };
                 var id = 'ncsJob_' + (j.code || '').replace(/\s/g, '_');
-                w.innerHTML += '<label class="flex items-center gap-2 cursor-pointer py-1.5"><input type="checkbox" name="ncsJobCheck" class="ncs-job-check rounded text-blue-600" value="' + esc(j.code) + '" data-name="' + esc(j.name) + '" id="' + id + '"> <span>주직종 ' + esc(j.code) + (j.name ? '. ' + j.name : '') + '</span></label>';
+                var isInStore = selectedJobsStore.some(function (x) { return (x.code || '') === (j.code || ''); });
+                w.innerHTML += '<label class="flex items-center gap-2 cursor-pointer py-1.5"><input type="checkbox" name="ncsJobCheck" class="ncs-job-check rounded text-blue-600" value="' + esc(j.code) + '" data-name="' + esc(j.name) + '" id="' + id + '"' + (isInStore ? ' checked' : '') + '> <span>주직종 ' + esc(j.code) + (j.name ? '. ' + j.name : '') + '</span></label>';
             });
             jobRadioGroup.appendChild(w);
             w.querySelectorAll('.ncs-job-check').forEach(function (cb) {
-                cb.addEventListener('change', updateSelectedJobsResult);
+                cb.addEventListener('change', function () {
+                    var code = (cb.value || '').trim();
+                    var name = (cb.getAttribute('data-name') || '').trim();
+                    if (cb.checked) {
+                        if (!selectedJobsStore.some(function (x) { return (x.code || '') === code; })) {
+                            selectedJobsStore.push({ code: code, name: name });
+                        }
+                    } else {
+                        selectedJobsStore = selectedJobsStore.filter(function (x) { return (x.code || '') !== code; });
+                    }
+                    updateSelectedJobsResult();
+                });
             });
             updateSelectedJobsResult();
         }
 
         function updateSelectedJobsResult() {
             if (!selectedJobsResult || !selectedJobsPlaceholder) return;
-            var items = [];
-            if (jobRadioGroup) {
-                jobRadioGroup.querySelectorAll('.ncs-job-check:checked').forEach(function (cb) {
-                    var code = (cb.value || '').trim();
-                    var name = (cb.getAttribute('data-name') || '').trim();
-                    if (code || name) items.push({ code: code, name: name });
-                });
-            }
             var wrap = selectedJobsResult.querySelector('.ncs-selected-jobs-list');
             if (wrap) wrap.remove();
-            selectedJobsPlaceholder.style.display = items.length ? 'none' : '';
-            if (items.length === 0) return;
+            selectedJobsPlaceholder.style.display = selectedJobsStore.length ? 'none' : '';
+            selectedJobsPlaceholder.textContent = '왼쪽에서 직종을 선택하세요';
+            if (selectedJobsStore.length === 0) return;
             var listEl = document.createElement('div');
             listEl.className = 'ncs-selected-jobs-list space-y-1';
-            items.forEach(function (it) {
+            selectedJobsStore.forEach(function (it) {
                 var line = document.createElement('div');
                 line.className = 'flex items-center gap-2 text-slate-800';
                 var icon = document.createElement('i');
