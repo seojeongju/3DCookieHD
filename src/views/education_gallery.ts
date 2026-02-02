@@ -42,10 +42,14 @@ export const educationGalleryHtml = `
     <!-- 필터 + 올리기 -->
     <div class="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 -mt-6 relative z-20">
         <div class="bg-white rounded-2xl shadow-xl p-4 flex flex-col sm:flex-row gap-4 items-center justify-between border border-gray-100">
-            <div class="flex gap-2 flex-wrap">
+            <div class="flex gap-2 flex-wrap items-center">
                 <button type="button" onclick="setFilter('all')" class="filter-btn px-5 py-2.5 rounded-xl text-sm font-bold bg-primary-600 text-white transition" data-filter="all">전체</button>
                 <button type="button" onclick="setFilter('education_photo')" class="filter-btn px-5 py-2.5 rounded-xl text-sm font-bold bg-gray-100 text-gray-600 hover:bg-gray-200 transition" data-filter="education_photo">교육 사진</button>
                 <button type="button" onclick="setFilter('portfolio')" class="filter-btn px-5 py-2.5 rounded-xl text-sm font-bold bg-gray-100 text-gray-600 hover:bg-gray-200 transition" data-filter="portfolio">포트폴리오</button>
+                <span class="hidden sm:inline-block w-px h-6 bg-gray-200 mx-1"></span>
+                <span class="text-xs text-gray-400 font-medium mr-1">보기:</span>
+                <button type="button" id="viewBtnGrid" onclick="setViewMode('grid')" class="view-mode-btn px-3 py-2 rounded-lg text-sm font-bold bg-primary-100 text-primary-700 transition" data-view="grid" title="그리드"><i class="fas fa-th-large mr-1"></i>그리드</button>
+                <button type="button" id="viewBtnImage" onclick="setViewMode('image')" class="view-mode-btn px-3 py-2 rounded-lg text-sm font-bold bg-gray-100 text-gray-600 hover:bg-gray-200 transition" data-view="image" title="이미지 크게"><i class="fas fa-image mr-1"></i>이미지</button>
             </div>
             <div id="uploadArea" class="hidden flex gap-2">
                 <button type="button" onclick="openEducationPhotoModal()" class="px-4 py-2.5 bg-primary-600 text-white rounded-xl font-bold text-sm hover:bg-primary-700 transition"><i class="fas fa-camera mr-2"></i>교육 사진 올리기</button>
@@ -158,6 +162,9 @@ export const educationGalleryHtml = `
 
     <script>
         let currentFilter = 'all';
+        let galleryViewMode = 'grid';
+        let currentPage = 1;
+        let itemsPerPage = 12;
         let educationList = [];
         let portfolioList = [];
         let mergedList = [];
@@ -209,6 +216,7 @@ export const educationGalleryHtml = `
 
         function setFilter(filter) {
             currentFilter = filter;
+            currentPage = 1;
             document.querySelectorAll('.filter-btn').forEach(function(btn) {
                 if (btn.dataset.filter === filter) {
                     btn.className = 'filter-btn px-5 py-2.5 rounded-xl text-sm font-bold bg-primary-600 text-white transition';
@@ -216,18 +224,55 @@ export const educationGalleryHtml = `
                     btn.className = 'filter-btn px-5 py-2.5 rounded-xl text-sm font-bold bg-gray-100 text-gray-600 hover:bg-gray-200 transition';
                 }
             });
-            var list = filter === 'all' ? mergedList : filter === 'education_photo' ? educationList : portfolioList;
-            renderGrid(list);
+            renderGrid();
         }
 
-        function renderGrid(list) {
+        function setViewMode(mode) {
+            galleryViewMode = mode;
+            var gridBtn = document.getElementById('viewBtnGrid');
+            var imageBtn = document.getElementById('viewBtnImage');
+            if (gridBtn) {
+                gridBtn.className = mode === 'grid' ? 'view-mode-btn px-3 py-2 rounded-lg text-sm font-bold bg-primary-100 text-primary-700 transition' : 'view-mode-btn px-3 py-2 rounded-lg text-sm font-bold bg-gray-100 text-gray-600 hover:bg-gray-200 transition';
+            }
+            if (imageBtn) {
+                imageBtn.className = mode === 'image' ? 'view-mode-btn px-3 py-2 rounded-lg text-sm font-bold bg-primary-100 text-primary-700 transition' : 'view-mode-btn px-3 py-2 rounded-lg text-sm font-bold bg-gray-100 text-gray-600 hover:bg-gray-200 transition';
+            }
+            currentPage = 1;
+            renderGrid();
+        }
+
+        function goToPage(page) {
+            var list = getCurrentList();
+            var totalPages = Math.max(1, Math.ceil((list.length || 0) / itemsPerPage));
+            if (page < 1 || page > totalPages) return;
+            currentPage = page;
+            renderGrid();
+            window.scrollTo({ top: document.getElementById('galleryGrid').offsetTop - 80, behavior: 'smooth' });
+        }
+
+        function renderGrid() {
             var grid = document.getElementById('galleryGrid');
-            if (!list || list.length === 0) {
+            var paginationEl = document.getElementById('pagination');
+            if (!grid) return;
+            var fullList = getCurrentList();
+            var total = fullList.length || 0;
+            var totalPages = Math.max(1, Math.ceil(total / itemsPerPage));
+            var start = (currentPage - 1) * itemsPerPage;
+            var pageList = fullList.slice(start, start + itemsPerPage);
+
+            var isImageMode = galleryViewMode === 'image';
+            grid.className = isImageMode
+                ? 'grid grid-cols-1 sm:grid-cols-2 gap-6'
+                : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6';
+
+            if (!pageList.length) {
                 grid.innerHTML = '<div class="col-span-full py-20 text-center text-gray-500">등록된 항목이 없습니다.</div>';
-                document.getElementById('pagination').innerHTML = '';
+                if (paginationEl) paginationEl.innerHTML = '';
                 return;
             }
-            grid.innerHTML = list.map(function(item, idx) {
+
+            grid.innerHTML = pageList.map(function(item, pageIdx) {
+                var idx = start + pageIdx;
                 var typeLabel = item._type === 'education_photo' ? '교육 사진' : '포트폴리오';
                 var typeClass = item._type === 'education_photo' ? 'bg-primary-600' : 'bg-gray-700';
                 var img = (item.images && item.images.length) ? item.images[0] : (item.thumbnail_url || '');
@@ -236,10 +281,9 @@ export const educationGalleryHtml = `
                 var contentPlain = (item.content || item.description || '').replace(/<[^>]+>/g, '').trim().substring(0, 80);
                 if ((item.content || item.description || '').replace(/<[^>]+>/g, '').trim().length > 80) contentPlain += '…';
                 if (hasImage) {
-                    var titleShort = (item.title || '').substring(0, 30);
-                    if ((item.title || '').length > 30) titleShort += '…';
+                    var aspectClass = isImageMode ? 'aspect-[4/3]' : 'aspect-square';
                     return '<div class="rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition bg-white border border-gray-100 cursor-pointer" onclick="openDetail(' + idx + ')" data-idx="' + idx + '">' +
-                        '<div class="aspect-square bg-gray-200 relative">' +
+                        '<div class="' + aspectClass + ' bg-gray-200 relative">' +
                         '<img src="' + img.replace(/"/g, '&quot;') + '" alt="" class="w-full h-full object-cover hover:scale-105 transition duration-500">' +
                         '<span class="absolute top-2 left-2 px-2 py-1 rounded-lg text-xs font-bold text-white ' + typeClass + '">' + typeLabel + '</span>' +
                         '</div>' +
@@ -257,7 +301,29 @@ export const educationGalleryHtml = `
                     '<p class="text-sm text-gray-400 shrink-0">' + (item.author_name || item.student_name || '-') + ' · ' + new Date(item._date).toLocaleDateString('ko-KR') + '</p>' +
                     '</div>';
             }).join('');
-            document.getElementById('pagination').innerHTML = '';
+
+            if (paginationEl) {
+                if (totalPages <= 1) {
+                    paginationEl.innerHTML = '';
+                } else {
+                    var prevDisabled = currentPage <= 1 ? ' opacity-50 pointer-events-none' : '';
+                    var nextDisabled = currentPage >= totalPages ? ' opacity-50 pointer-events-none' : '';
+                    var html = '<nav class="flex items-center justify-center gap-2 flex-wrap" aria-label="페이지 이동">';
+                    html += '<button type="button" onclick="goToPage(' + (currentPage - 1) + ')" class="px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition' + prevDisabled + '"><i class="fas fa-chevron-left"></i></button>';
+                    html += '<span class="px-3 py-2 text-sm text-gray-600">' + currentPage + ' / ' + totalPages + '</span>';
+                    var maxShow = 5;
+                    var from = Math.max(1, currentPage - Math.floor(maxShow / 2));
+                    var to = Math.min(totalPages, from + maxShow - 1);
+                    if (to - from < maxShow - 1) from = Math.max(1, to - maxShow + 1);
+                    for (var p = from; p <= to; p++) {
+                        var active = p === currentPage ? ' bg-primary-600 text-white border-primary-600' : ' border-gray-300 text-gray-700 hover:bg-gray-50';
+                        html += '<button type="button" onclick="goToPage(' + p + ')" class="px-3 py-2 rounded-lg border transition min-w-[2.5rem]' + active + '">' + p + '</button>';
+                    }
+                    html += '<button type="button" onclick="goToPage(' + (currentPage + 1) + ')" class="px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition' + nextDisabled + '"><i class="fas fa-chevron-right"></i></button>';
+                    html += '</nav>';
+                    paginationEl.innerHTML = html;
+                }
+            }
         }
 
         function getCurrentList() {
