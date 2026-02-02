@@ -548,7 +548,23 @@ app.get('/approved/training', async (c) => {
                     data = fromClassification;
                     source = 'classification_api';
                 } else {
-                    data = await fetchNcsTrainingByLarge(rawKey, ncsLclasCd);
+                    const fromTraining = await fetchNcsTrainingByLarge(rawKey, ncsLclasCd);
+                    // 기준정보 API 미동작 시 훈련과정 API만 쓰면 소분류가 적게 나옴 → 같은 대분류 Mock 항목 병합
+                    const keySet = new Set(fromTraining.map((r) => `${r.largeCode}|${r.midCode}|${r.smallCode}|${r.subClassCode}|${r.unitCode}`));
+                    const mockSameLarge = NCS_MOCK_TRAINING.filter((r) => r.largeCode === ncsLclasCd);
+                    for (const m of mockSameLarge) {
+                        const k = `${m.largeCode}|${m.midCode}|${m.smallCode}|${m.subClassCode}|${m.unitCode}`;
+                        if (!keySet.has(k)) {
+                            keySet.add(k);
+                            fromTraining.push(m);
+                        }
+                    }
+                    fromTraining.sort((a, b) =>
+                        (a.midCode || '').localeCompare(b.midCode || '', 'ko') ||
+                        (a.smallCode || '').localeCompare(b.smallCode || '', 'ko') ||
+                        (a.subClassCode || '').localeCompare(b.subClassCode || '', 'ko')
+                    );
+                    data = fromTraining;
                 }
                 const meta = { source, count: data.length };
                 const hint = data.length === 0
