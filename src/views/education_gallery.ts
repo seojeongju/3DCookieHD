@@ -186,14 +186,14 @@ export const educationGalleryHtml = `
 
         async function loadAll() {
             try {
-                var [postsRes, portRes] = await Promise.all([
+                var [eduRes, portRes] = await Promise.all([
                     fetch('/api/posts?category=education_photo&status=published&limit=100'),
-                    fetch('/api/portfolios')
+                    fetch('/api/posts?category=portfolio&status=published&limit=100')
                 ]);
-                var postsData = await postsRes.json();
+                var eduData = await eduRes.json();
                 var portData = await portRes.json();
-                educationList = (postsData.success && postsData.data) ? postsData.data.map(function(p) { p._type = 'education_photo'; p._date = p.created_at; return p; }) : [];
-                portfolioList = (portData.success && portData.data) ? portData.data.map(function(p) { p._type = 'portfolio'; p._date = p.created_at; p.author_name = p.student_name; return p; }) : [];
+                educationList = (eduData.success && eduData.data) ? eduData.data.map(function(p) { p._type = 'education_photo'; p._date = p.created_at; return p; }) : [];
+                portfolioList = (portData.success && portData.data) ? portData.data.map(function(p) { p._type = 'portfolio'; p._date = p.created_at; return p; }) : [];
                 mergeAndRender();
             } catch (e) {
                 console.error(e);
@@ -230,12 +230,7 @@ export const educationGalleryHtml = `
             grid.innerHTML = list.map(function(item, idx) {
                 var typeLabel = item._type === 'education_photo' ? '교육 사진' : '포트폴리오';
                 var typeClass = item._type === 'education_photo' ? 'bg-primary-600' : 'bg-gray-700';
-                var img = '';
-                if (item._type === 'education_photo') {
-                    img = (item.images && item.images.length) ? item.images[0] : '';
-                } else {
-                    img = item.thumbnail_url || '';
-                }
+                var img = (item.images && item.images.length) ? item.images[0] : (item.thumbnail_url || '');
                 var title = (item.title || '').substring(0, 30);
                 if ((item.title || '').length > 30) title += '…';
                 return '<div class="rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition bg-white border border-gray-100 cursor-pointer" onclick="openDetail(' + idx + ')" data-idx="' + idx + '">' +
@@ -259,14 +254,14 @@ export const educationGalleryHtml = `
             var list = getCurrentList();
             var item = list[idx];
             if (!item) return;
-            var img = item._type === 'education_photo' ? ((item.images && item.images.length) ? item.images[0] : '') : (item.thumbnail_url || '');
+            var img = (item.images && item.images.length) ? item.images[0] : (item.thumbnail_url || '');
             document.getElementById('modalImage').src = img || '';
             document.getElementById('modalImage').style.display = img ? 'block' : 'none';
             document.getElementById('modalTypeBadge').textContent = item._type === 'education_photo' ? '교육 사진' : '포트폴리오';
             document.getElementById('modalTitle').textContent = item.title || '';
             document.getElementById('modalAuthor').textContent = (item.author_name || item.student_name || '-');
             document.getElementById('modalDate').textContent = new Date(item._date).toLocaleDateString('ko-KR');
-            var content = item._type === 'education_photo' ? (item.content || '') : (item.description || '');
+            var content = item.content || item.description || '';
             document.getElementById('modalContent').innerHTML = content ? content.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\\n/g, '<br>') : '<p class="text-gray-500">설명이 없습니다.</p>';
             document.getElementById('detailModal').classList.remove('hidden');
             document.body.style.overflow = 'hidden';
@@ -333,23 +328,26 @@ export const educationGalleryHtml = `
             e.preventDefault();
             var title = document.getElementById('pfTitle').value.trim();
             var description = document.getElementById('pfDescription').value.trim();
-            var thumbnail_url = document.getElementById('pfThumbnail').value.trim() || null;
-            var content_url = document.getElementById('pfContentUrl').value.trim() || null;
-            var category = document.getElementById('pfCategory').value;
+            var thumbnail_url = document.getElementById('pfThumbnail').value.trim() || '';
+            var content_url = document.getElementById('pfContentUrl').value.trim() || '';
             if (!title) { alert('제목을 입력하세요.'); return; }
             var token = localStorage.getItem('token');
             if (!token) { alert('로그인이 필요합니다.'); return; }
+            var images = [];
+            if (thumbnail_url) images.push(thumbnail_url);
+            if (content_url && content_url !== thumbnail_url) images.push(content_url);
+            if (images.length === 0) { alert('썸네일 URL 또는 콘텐츠 URL 중 하나는 입력하세요.'); return; }
             try {
-                var res = await fetch('/api/portfolios', {
+                var res = await fetch('/api/posts', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
                     body: JSON.stringify({
                         title: title,
-                        description: description || null,
-                        thumbnail_url: thumbnail_url,
-                        content_url: content_url,
-                        category: category,
-                        course_id: null
+                        content: description || '',
+                        category: 'portfolio',
+                        status: 'published',
+                        images: images,
+                        pinned: false
                     })
                 });
                 var result = await res.json();
