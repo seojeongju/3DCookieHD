@@ -296,7 +296,14 @@ export const homeHtml = `
                     container.innerHTML = '<div class="col-span-2 md:col-span-4 text-center py-12 text-gray-500">교육사진 목록을 불러오지 못했습니다.</div>';
                     return;
                 }
-                var list = result.data || [];
+                var list = (result.data || []).filter(function(p) {
+                    var img = (p.images && p.images.length) ? p.images[0] : '';
+                    if (!img && p.content) {
+                        var m = p.content.match(/<img[^>]+src=["']([^"']+)["']/i);
+                        if (m && m[1]) img = m[1];
+                    }
+                    return !!img;
+                }).slice(0, 8);
                 if (list.length === 0) {
                     container.innerHTML = '<div class="col-span-2 md:col-span-4 text-center py-12">' +
                         '<p class="text-gray-500 mb-6">등록된 교육사진이 없습니다.</p>' +
@@ -309,12 +316,9 @@ export const homeHtml = `
                         var m = p.content.match(/<img[^>]+src=["']([^"']+)["']/i);
                         if (m && m[1]) img = m[1];
                     }
-                    var title = (p.title || '').substring(0, 20);
-                    if ((p.title || '').length > 20) title += '…';
                     var safeTitle = (p.title || '교육사진').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                     return '<a href="/education-photos" class="relative block rounded-xl overflow-hidden shadow-md hover:shadow-xl transition aspect-square bg-gray-200 group">' +
-                        (img ? '<img src="' + img + '" alt="' + safeTitle + '" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">' :
-                        '<div class="w-full h-full flex flex-col items-center justify-center text-primary-300"><i class="fas fa-images text-4xl mb-2"></i><span class="text-xs font-medium">' + title + '</span></div>') +
+                        '<img src="' + img + '" alt="' + safeTitle + '" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">' +
                         '<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-3">' +
                         '<span class="text-white text-sm font-bold truncate w-full">' + (p.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</span>' +
                         '</div></a>';

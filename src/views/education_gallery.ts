@@ -231,17 +231,31 @@ export const educationGalleryHtml = `
                 var typeLabel = item._type === 'education_photo' ? '교육 사진' : '포트폴리오';
                 var typeClass = item._type === 'education_photo' ? 'bg-primary-600' : 'bg-gray-700';
                 var img = (item.images && item.images.length) ? item.images[0] : (item.thumbnail_url || '');
-                var title = (item.title || '').substring(0, 30);
-                if ((item.title || '').length > 30) title += '…';
-                return '<div class="rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition bg-white border border-gray-100 cursor-pointer" onclick="openDetail(' + idx + ')" data-idx="' + idx + '">' +
-                    '<div class="aspect-square bg-gray-200 relative">' +
-                    (img ? '<img src="' + img.replace(/"/g, '&quot;') + '" alt="" class="w-full h-full object-cover hover:scale-105 transition duration-500">' : '<div class="w-full h-full flex items-center justify-center text-gray-400"><i class="fas fa-image text-5xl"></i></div>') +
-                    '<span class="absolute top-2 left-2 px-2 py-1 rounded-lg text-xs font-bold text-white ' + typeClass + '">' + typeLabel + '</span>' +
+                var hasImage = !!img;
+                var titleEsc = (item.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                var contentPlain = (item.content || item.description || '').replace(/<[^>]+>/g, '').trim().substring(0, 80);
+                if ((item.content || item.description || '').replace(/<[^>]+>/g, '').trim().length > 80) contentPlain += '…';
+                if (hasImage) {
+                    var titleShort = (item.title || '').substring(0, 30);
+                    if ((item.title || '').length > 30) titleShort += '…';
+                    return '<div class="rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition bg-white border border-gray-100 cursor-pointer" onclick="openDetail(' + idx + ')" data-idx="' + idx + '">' +
+                        '<div class="aspect-square bg-gray-200 relative">' +
+                        '<img src="' + img.replace(/"/g, '&quot;') + '" alt="" class="w-full h-full object-cover hover:scale-105 transition duration-500">' +
+                        '<span class="absolute top-2 left-2 px-2 py-1 rounded-lg text-xs font-bold text-white ' + typeClass + '">' + typeLabel + '</span>' +
+                        '</div>' +
+                        '<div class="p-4">' +
+                        '<h3 class="font-bold text-gray-800 truncate">' + titleEsc + '</h3>' +
+                        '<p class="text-sm text-gray-500 mt-1">' + (item.author_name || item.student_name || '-') + ' · ' + new Date(item._date).toLocaleDateString('ko-KR') + '</p>' +
+                        '</div></div>';
+                }
+                return '<div class="col-span-full rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition cursor-pointer flex items-center gap-4 px-5 py-4 text-left" onclick="openDetail(' + idx + ')" data-idx="' + idx + '">' +
+                    '<span class="shrink-0 px-2 py-1 rounded-lg text-xs font-bold text-white ' + typeClass + '">' + typeLabel + '</span>' +
+                    '<div class="min-w-0 flex-1">' +
+                    '<h3 class="font-bold text-gray-800 truncate">' + titleEsc + '</h3>' +
+                    (contentPlain ? '<p class="text-sm text-gray-500 mt-0.5 truncate">' + contentPlain.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</p>' : '') +
                     '</div>' +
-                    '<div class="p-4">' +
-                    '<h3 class="font-bold text-gray-800 truncate">' + (item.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</h3>' +
-                    '<p class="text-sm text-gray-500 mt-1">' + (item.author_name || item.student_name || '-') + ' · ' + new Date(item._date).toLocaleDateString('ko-KR') + '</p>' +
-                    '</div></div>';
+                    '<p class="text-sm text-gray-400 shrink-0">' + (item.author_name || item.student_name || '-') + ' · ' + new Date(item._date).toLocaleDateString('ko-KR') + '</p>' +
+                    '</div>';
             }).join('');
             document.getElementById('pagination').innerHTML = '';
         }
@@ -255,8 +269,11 @@ export const educationGalleryHtml = `
             var item = list[idx];
             if (!item) return;
             var img = (item.images && item.images.length) ? item.images[0] : (item.thumbnail_url || '');
-            document.getElementById('modalImage').src = img || '';
-            document.getElementById('modalImage').style.display = img ? 'block' : 'none';
+            var modalImgEl = document.getElementById('modalImage');
+            var modalImgWrap = modalImgEl && modalImgEl.parentElement;
+            if (modalImgEl) modalImgEl.src = img || '';
+            if (modalImgEl) modalImgEl.style.display = img ? 'block' : 'none';
+            if (modalImgWrap) modalImgWrap.style.display = img ? 'block' : 'none';
             document.getElementById('modalTypeBadge').textContent = item._type === 'education_photo' ? '교육 사진' : '포트폴리오';
             document.getElementById('modalTitle').textContent = item.title || '';
             document.getElementById('modalAuthor').textContent = (item.author_name || item.student_name || '-');
