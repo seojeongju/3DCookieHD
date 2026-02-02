@@ -40,6 +40,8 @@
         var smallClass = document.getElementById('ncsSmallClass');
         var jobRadioGroup = document.getElementById('ncsJobRadioGroup');
         var jobRadioPlaceholder = document.getElementById('ncsJobRadioPlaceholder');
+        var selectedJobsResult = document.getElementById('ncsSelectedJobsResult');
+        var selectedJobsPlaceholder = document.getElementById('ncsSelectedJobsPlaceholder');
         var trainingLevelEl = document.getElementById('ncsTrainingLevel');
         var bannerJobSearchLocked = document.getElementById('ncsBannerJobSearchLocked');
         var jobSearchSection = document.getElementById('ncsJobSearchSection');
@@ -100,6 +102,12 @@
             if (wrap) wrap.remove();
             if (!mid || !small || !trainingCache.length) {
                 jobRadioPlaceholder.textContent = '소분류 선택 후 직종을 선택하세요. 여러 직종을 선택할 수 있습니다. 능력단위·수준은 2단계 훈련이수체계도에서 선택합니다.';
+                if (selectedJobsResult && selectedJobsPlaceholder) {
+                    var w = selectedJobsResult.querySelector('.ncs-selected-jobs-list');
+                    if (w) w.remove();
+                    selectedJobsPlaceholder.style.display = '';
+                    selectedJobsPlaceholder.textContent = '왼쪽에서 직종을 선택하세요';
+                }
                 return;
             }
             var list = trainingCache.filter(function (item) { return item.midCode === mid && item.smallCode === small; });
@@ -118,6 +126,12 @@
             var jobs = Object.keys(jobByCode8).sort().map(function (k) { return jobByCode8[k]; });
             if (jobs.length === 0) {
                 jobRadioPlaceholder.textContent = '이 소분류에 해당하는 직종이 없습니다.';
+                if (selectedJobsResult && selectedJobsPlaceholder) {
+                    var w = selectedJobsResult.querySelector('.ncs-selected-jobs-list');
+                    if (w) w.remove();
+                    selectedJobsPlaceholder.style.display = '';
+                    selectedJobsPlaceholder.textContent = '왼쪽에서 직종을 선택하세요';
+                }
                 return;
             }
             jobRadioPlaceholder.style.display = 'none';
@@ -129,6 +143,40 @@
                 w.innerHTML += '<label class="flex items-center gap-2 cursor-pointer py-1.5"><input type="checkbox" name="ncsJobCheck" class="ncs-job-check rounded text-blue-600" value="' + esc(j.code) + '" data-name="' + esc(j.name) + '" id="' + id + '"> <span>주직종 ' + esc(j.code) + (j.name ? '. ' + j.name : '') + '</span></label>';
             });
             jobRadioGroup.appendChild(w);
+            w.querySelectorAll('.ncs-job-check').forEach(function (cb) {
+                cb.addEventListener('change', updateSelectedJobsResult);
+            });
+            updateSelectedJobsResult();
+        }
+
+        function updateSelectedJobsResult() {
+            if (!selectedJobsResult || !selectedJobsPlaceholder) return;
+            var items = [];
+            if (jobRadioGroup) {
+                jobRadioGroup.querySelectorAll('.ncs-job-check:checked').forEach(function (cb) {
+                    var code = (cb.value || '').trim();
+                    var name = (cb.getAttribute('data-name') || '').trim();
+                    if (code || name) items.push({ code: code, name: name });
+                });
+            }
+            var wrap = selectedJobsResult.querySelector('.ncs-selected-jobs-list');
+            if (wrap) wrap.remove();
+            selectedJobsPlaceholder.style.display = items.length ? 'none' : '';
+            if (items.length === 0) return;
+            var listEl = document.createElement('div');
+            listEl.className = 'ncs-selected-jobs-list space-y-1';
+            items.forEach(function (it) {
+                var line = document.createElement('div');
+                line.className = 'flex items-center gap-2 text-slate-800';
+                var icon = document.createElement('i');
+                icon.className = 'fas fa-check text-blue-600 text-xs w-4';
+                var span = document.createElement('span');
+                span.textContent = '주직종 ' + (it.code || '') + (it.name ? '. ' + it.name : '');
+                line.appendChild(icon);
+                line.appendChild(span);
+                listEl.appendChild(line);
+            });
+            selectedJobsResult.appendChild(listEl);
         }
 
         var apiMessageEl = document.getElementById('ncsTrainingApiMessage');
@@ -463,6 +511,7 @@
                                 cb.checked = codesToCheck.indexOf((cb.value || '').trim()) !== -1;
                             });
                         }
+                        updateSelectedJobsResult();
                     });
                 })
                 .catch(function () { alert('조회 실패'); });

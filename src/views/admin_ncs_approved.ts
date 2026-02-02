@@ -94,8 +94,16 @@ function stepContentHtml(step: number, editId?: string): string {
             </div>
             <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">직종선택 <span class="text-red-500">!</span></label>
-              <div id="ncsJobRadioGroup" class="min-h-[2.5rem] px-4 py-3 border border-slate-200 rounded-xl bg-slate-50/50 text-sm">
-                <span id="ncsJobRadioPlaceholder" class="text-slate-400">소분류 선택 후 직종을 선택하세요. 여러 직종을 선택할 수 있습니다. 능력단위·수준은 2단계 훈련이수체계도에서 선택합니다.</span>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div id="ncsJobRadioGroup" class="min-h-[2.5rem] px-4 py-3 border border-slate-200 rounded-xl bg-slate-50/50 text-sm">
+                  <span id="ncsJobRadioPlaceholder" class="text-slate-400">소분류 선택 후 직종을 선택하세요. 여러 직종을 선택할 수 있습니다. 능력단위·수준은 2단계 훈련이수체계도에서 선택합니다.</span>
+                </div>
+                <div class="min-h-[2.5rem] px-4 py-3 border border-slate-200 rounded-xl bg-blue-50/50 text-sm">
+                  <div class="text-xs font-medium text-slate-600 mb-2">선택된 직종</div>
+                  <div id="ncsSelectedJobsResult" class="space-y-1.5 text-slate-700">
+                    <span id="ncsSelectedJobsPlaceholder" class="text-slate-400">왼쪽에서 직종을 선택하세요</span>
+                  </div>
+                </div>
               </div>
             </div>
             <div>
