@@ -164,16 +164,35 @@
             listEl.className = 'ncs-selected-jobs-list space-y-1';
             selectedJobsStore.forEach(function (it) {
                 var line = document.createElement('div');
-                line.className = 'flex items-center gap-2 text-slate-800';
+                line.className = 'flex items-center gap-2 text-slate-800 group';
                 var icon = document.createElement('i');
-                icon.className = 'fas fa-check text-blue-600 text-xs w-4';
+                icon.className = 'fas fa-check text-blue-600 text-xs w-4 shrink-0';
                 var span = document.createElement('span');
+                span.className = 'flex-1 min-w-0';
                 span.textContent = '주직종 ' + (it.code || '') + (it.name ? '. ' + it.name : '');
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'ncs-selected-job-remove shrink-0 p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 focus:outline-none focus:ring-1 focus:ring-red-300';
+                btn.setAttribute('title', '선택 해제');
+                btn.setAttribute('data-code', it.code || '');
+                var btnIcon = document.createElement('i');
+                btnIcon.className = 'fas fa-times text-xs';
+                btn.appendChild(btnIcon);
                 line.appendChild(icon);
                 line.appendChild(span);
+                line.appendChild(btn);
                 listEl.appendChild(line);
             });
             selectedJobsResult.appendChild(listEl);
+            listEl.querySelectorAll('.ncs-selected-job-remove').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var code = (btn.getAttribute('data-code') || '').trim();
+                    selectedJobsStore = selectedJobsStore.filter(function (x) { return (x.code || '') !== code; });
+                    var cbs = jobRadioGroup ? jobRadioGroup.querySelectorAll('.ncs-job-check') : [];
+                    for (var i = 0; i < cbs.length; i++) { if (cbs[i].value === code) { cbs[i].checked = false; break; } }
+                    updateSelectedJobsResult();
+                });
+            });
         }
 
         var apiMessageEl = document.getElementById('ncsTrainingApiMessage');
