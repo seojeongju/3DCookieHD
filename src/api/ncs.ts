@@ -1018,7 +1018,24 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
         for (const job of mainJobs) {
             const jobCode = (job.code || '').replace(/\s/g, '');
             const jobCode8 = jobCode.length >= 8 ? jobCode.slice(0, 8) : jobCode;
-            const jobName = job.name || '';
+            const jobName = (job.name || '').trim();
+
+            // Derive targetCode early
+            let targetCode = jobCode8;
+            if (!targetCode && jobName) {
+                const normalized = jobName.replace(/\s/g, '');
+                const nameToCode: Record<string, string> = {
+                    '3D프린터용제품제작': '19031102',
+                    '3D프린터용제품업': '19031102',
+                    '3D프린터제품제작': '19031102',
+                    '3D프린터운용기능사': '19031102',
+                    '기계요소설계': '15010201',
+                    '기계요소': '15010201',
+                    '3D프린터개발': '19031101'
+                };
+                targetCode = nameToCode[normalized] || '';
+            }
+
             let foundAny = false;
 
             // Helper to add/update item
@@ -1026,8 +1043,8 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
                 const band = mapLevelToBand(level);
 
                 // Overlay fallback elements if not provided
-                if ((!elements || elements.length === 0) && code && jobCode8) {
-                    const fallbackList = FALLBACK_NCS_UNITS[jobCode8];
+                if ((!elements || elements.length === 0) && code && targetCode) {
+                    const fallbackList = FALLBACK_NCS_UNITS[targetCode];
                     if (fallbackList) {
                         const fbItem = fallbackList.find(f => f.code === code || f.name === name); // Try code match then name
                         if (fbItem && fbItem.elements) {
@@ -1052,18 +1069,20 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
                 }
             };
 
-            const { results: units } = await c.env.DB.prepare(
-                'SELECT code, name, level FROM ncs_units WHERE code LIKE ? ORDER BY level DESC, code ASC'
-            ).bind(jobCode8 + '%').all() as { results: { code?: string; name?: string; level?: number }[] };
+            if (jobCode8 && jobCode8.length >= 4) {
+                const { results: units } = await c.env.DB.prepare(
+                    'SELECT code, name, level FROM ncs_units WHERE code LIKE ? ORDER BY level DESC, code ASC'
+                ).bind(jobCode8 + '%').all() as { results: { code?: string; name?: string; level?: number }[] };
 
-            if (units && units.length > 0) {
-                for (const u of units) {
-                    const code = (u.code || '').trim();
-                    if (!code) continue;
-                    const name = (u.name || '').trim() || code;
-                    const lv = typeof u.level === 'number' ? u.level : 3;
-                    addItem(name, code, lv);
-                    foundAny = true;
+                if (units && units.length > 0) {
+                    for (const u of units) {
+                        const code = (u.code || '').trim();
+                        if (!code) continue;
+                        const name = (u.name || '').trim() || code;
+                        const lv = typeof u.level === 'number' ? u.level : 3;
+                        addItem(name, code, lv);
+                        foundAny = true;
+                    }
                 }
             }
 
@@ -1119,21 +1138,6 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
             }
 
             // 3. Last Resort Fallback - Only if API didn't found anything for this job
-            let targetCode = jobCode8;
-
-            // If code is missing but name matches known jobs, map it to the code
-            if (!targetCode && jobName) {
-                const nameToCode: Record<string, string> = {
-                    '3D프린터용 제품제작': '19031102',
-                    '3D프린터용제품제작': '19031102',
-                    '기계요소설계': '15010201',
-                    '기계요소 설계': '15010201',
-                    '3D프린터개발': '19031101',
-                    '3D프린터 개발': '19031101'
-                };
-                targetCode = nameToCode[jobName.trim()] || '';
-            }
-
             if (!foundFromApi && targetCode && FALLBACK_NCS_UNITS[targetCode]) {
                 const fbList = FALLBACK_NCS_UNITS[targetCode];
                 for (const fb of fbList) {
