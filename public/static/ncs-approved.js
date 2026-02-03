@@ -479,7 +479,9 @@
 
                             if (redirectToStep2) {
                                 if (isRealEmbedded) {
+                                    console.log('Redirecting to Step 2 in Embedded Mode...');
                                     if (window.loadNcsStep) window.loadNcsStep(2);
+                                    else console.error('window.loadNcsStep is not defined!');
                                 } else {
                                     var targetUrl = idToUse ? '/admin/ncs/approved/2?id=' + idToUse : '/admin/ncs/approved/list';
                                     console.log('Attempting navigation to Step 2:', targetUrl);
@@ -2324,12 +2326,24 @@
     }
 
     window.loadNcsStep = function (stepNum) {
-        if (!window.NCS_EMBED_COURSE_ID) return;
+        if (!window.NCS_EMBED_COURSE_ID) {
+            console.error('loadNcsStep failed: window.NCS_EMBED_COURSE_ID is missing');
+            return;
+        }
+        console.log('loadNcsStep executing for step:', stepNum, 'courseId:', window.NCS_EMBED_COURSE_ID);
+        var loader = document.getElementById('ncsContentLoader');
+        if (loader) loader.classList.remove('hidden');
+
         var url = '/api/ncs/approved/render-step?step=' + stepNum + '&courseId=' + window.NCS_EMBED_COURSE_ID;
         var token = localStorage.getItem('token');
         fetch(url, { headers: token ? { 'Authorization': 'Bearer ' + token } : {} })
-            .then(function (r) { return r.text(); })
+            .then(function (r) {
+                if (!r.ok) throw new Error('HTTP Error: ' + r.status);
+                return r.text();
+            })
             .then(function (html) {
+                console.log('Step content fetched successfully for step:', stepNum);
+                if (loader) loader.classList.add('hidden');
                 var container = document.getElementById('ncsApprovedStepContent');
                 if (container) {
                     container.innerHTML = html;

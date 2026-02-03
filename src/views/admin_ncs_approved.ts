@@ -1104,9 +1104,11 @@ export function adminNcsEmbedHtml(courseId: string, initialStep: number = 1): st
     
     <!-- NCS 관련 JS 로직 (임베디드용) -->
     <script>
-        // 전역 변수로 현재 과정 ID, Step 설정
-        window.NCS_EMBED_COURSE_ID = "${courseId}";
-        window.NCS_CURRENT_STEP = ${step};
+        // 전역 변수로 현재 과정 ID, Step 설정 (재선언 방지를 위해 var 사용)
+        var NCS_EMBED_COURSE_ID = "${courseId}";
+        var NCS_CURRENT_STEP = ${step};
+        window.NCS_EMBED_COURSE_ID = NCS_EMBED_COURSE_ID;
+        window.NCS_CURRENT_STEP = NCS_CURRENT_STEP;
     </script>
     `;
 }
