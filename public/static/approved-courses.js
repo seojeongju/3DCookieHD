@@ -125,24 +125,49 @@
             .then(function (json) { if (json.success) loadApprovedList(); else alert(json.error || '삭제 실패'); })
             .catch(function () { alert('삭제 중 오류가 발생했습니다.'); });
     };
-    document.getElementById('approvedBtnSearch').addEventListener('click', function () { currentPage = 1; loadApprovedList(); });
-    document.getElementById('approvedBtnReset').addEventListener('click', function () {
-        document.getElementById('approvedFilterCategory').value = '';
-        document.getElementById('approvedFilterName').value = '';
-        document.getElementById('approvedFilterInstructor').value = '';
-        document.getElementById('approvedFilterFrom').value = '';
-        document.getElementById('approvedFilterTo').value = '';
-        document.getElementById('approvedFilterAllPeriod').checked = true;
-        currentPage = 1;
-        loadApprovedList();
-    });
-    document.getElementById('approvedFilterAllPeriod').addEventListener('change', function () {
-        document.getElementById('approvedFilterFrom').disabled = this.checked;
-        document.getElementById('approvedFilterTo').disabled = this.checked;
-    });
-    document.getElementById('approvedPageSize').addEventListener('change', function () { currentPage = 1; loadApprovedList(); });
-    document.getElementById('approvedBtnRefresh').addEventListener('click', function () { loadApprovedList(); });
-    document.getElementById('approvedFilterFrom').disabled = document.getElementById('approvedFilterAllPeriod').checked;
-    document.getElementById('approvedFilterTo').disabled = document.getElementById('approvedFilterAllPeriod').checked;
+    var btnSearch = document.getElementById('approvedBtnSearch');
+    if (btnSearch) btnSearch.addEventListener('click', function () { currentPage = 1; loadApprovedList(); });
+
+    var btnReset = document.getElementById('approvedBtnReset');
+    if (btnReset) {
+        btnReset.addEventListener('click', function () {
+            var elCat = document.getElementById('approvedFilterCategory');
+            var elName = document.getElementById('approvedFilterName');
+            var elInst = document.getElementById('approvedFilterInstructor');
+            var elFrom = document.getElementById('approvedFilterFrom');
+            var elTo = document.getElementById('approvedFilterTo');
+            var elAll = document.getElementById('approvedFilterAllPeriod');
+            if (elCat) elCat.value = '';
+            if (elName) elName.value = '';
+            if (elInst) elInst.value = '';
+            if (elFrom) elFrom.value = '';
+            if (elTo) elTo.value = '';
+            if (elAll) elAll.checked = true;
+            currentPage = 1;
+            loadApprovedList();
+        });
+    }
+    var filterAllPeriod = document.getElementById('approvedFilterAllPeriod');
+    if (filterAllPeriod) {
+        filterAllPeriod.addEventListener('change', function () {
+            var f = document.getElementById('approvedFilterFrom');
+            var t = document.getElementById('approvedFilterTo');
+            if (f) f.disabled = this.checked;
+            if (t) t.disabled = this.checked;
+        });
+    }
+    var selPageSize = document.getElementById('approvedPageSize');
+    if (selPageSize) selPageSize.addEventListener('change', function () { currentPage = 1; loadApprovedList(); });
+
+    var btnRefresh = document.getElementById('approvedBtnRefresh');
+    if (btnRefresh) btnRefresh.addEventListener('click', function () { loadApprovedList(); });
+
+    if (filterAllPeriod) {
+        var elFrom = document.getElementById('approvedFilterFrom');
+        var elTo = document.getElementById('approvedFilterTo');
+        if (elFrom) elFrom.disabled = filterAllPeriod.checked;
+        if (elTo) elTo.disabled = filterAllPeriod.checked;
+    }
+
     loadCategories().then(function () { loadApprovedList(); });
 })();
