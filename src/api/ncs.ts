@@ -1438,6 +1438,87 @@ app.put('/approved/registrations/:id/training-system-selection', authMiddleware,
     }
 });
 
+/** 훈련이수체계도(2단계)에서 선택된 능력단위로 교과목 편성(3단계) 자동 생성 */
+app.post('/approved/registrations/:id/generate-curriculum-from-training', authMiddleware, requireAdmin, async (c) => {
+    try {
+        const id = parseInt(c.req.param('id'), 10);
+        if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
+
+        // 1. Get registration and training system data
+        const reg = await c.env.DB.prepare('SELECT * FROM ncs_approved_registrations WHERE id = ?').bind(id).first();
+        if (!reg) return c.json({ success: false, error: '등록 정보 없음' }, 404);
+
+        const selectedJson = (reg as any).selected_training_elements_json;
+        if (!selectedJson) {
+            return c.json({ success: false, error: '선택된 훈련이수체계도 데이터가 없습니다.' }, 400);
+        }
+
+        let selected: { code: string; name: string; level?: number; elements?: { code: string; name: string }[] }[] = [];
+        try {
+            const parsed = JSON.parse(selectedJson);
+            selected = Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+            return c.json({ success: false, error: '훈련이수체계도 데이터 파싱 실패' }, 400);
+        }
+
+        if (selected.length === 0) {
+            return c.json({ success: false, error: '선택된 능력단위가 없습니다.' }, 400);
+        }
+
+        // 2. Generate curriculum items from selected units
+        const curriculumItems: {
+            type: string;
+            name: string;
+            classification: string;
+            ability_units: string[];
+            units: string[];
+            objectives: string[];
+        }[] = [];
+
+        for (const unit of selected) {
+            if (!unit.code || !unit.name) continue;
+
+            curriculumItems.push({
+                type: 'ncs',
+                name: unit.name,
+                classification: unit.code,
+                ability_units: [unit.code],
+                units: unit.elements ? unit.elements.map((e) => e.code) : [],
+                objectives: unit.elements ? unit.elements.map((e) => e.name) : []
+            });
+        }
+
+        // 3. Save to curriculum table (replace all existing)
+        await c.env.DB.prepare('DELETE FROM ncs_approved_curriculum WHERE registration_id = ?').bind(id).run();
+
+        for (let i = 0; i < curriculumItems.length; i++) {
+            const it = curriculumItems[i];
+            const abilityUnitsJson = JSON.stringify(it.ability_units);
+            const unitsJson = JSON.stringify(it.units);
+            const objectivesJson = JSON.stringify(it.objectives);
+
+            await c.env.DB.prepare(
+                `INSERT INTO ncs_approved_curriculum (registration_id, type, name, classification, ability_units_json, units_json, objectives_json, sort_order)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+            ).bind(id, it.type, it.name, it.classification, abilityUnitsJson, unitsJson, objectivesJson, i).run();
+        }
+
+        // 4. Return the generated curriculum
+        const { results } = await c.env.DB.prepare(
+            'SELECT * FROM ncs_approved_curriculum WHERE registration_id = ? ORDER BY sort_order ASC, id ASC'
+        ).bind(id).all();
+
+        return c.json({
+            success: true,
+            data: results || [],
+            _meta: { generatedCount: curriculumItems.length, message: `${curriculumItems.length}개의 교과목이 자동 생성되었습니다.` }
+        });
+    } catch (e) {
+        console.error('generate-curriculum-from-training error:', e);
+        return c.json({ success: false, error: '교과목 자동 생성 실패' }, 500);
+    }
+});
+
 /** 교과목 편성(3단계) 조회 */
 app.get('/approved/registrations/:id/curriculum', authMiddleware, requireAdmin, async (c) => {
     try {
