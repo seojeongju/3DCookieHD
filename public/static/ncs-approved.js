@@ -134,58 +134,72 @@
             var large = largeClass ? largeClass.value : '';
             var mid = midClass ? midClass.value : '';
             var small = smallClass ? smallClass.value : '';
-            jobRadioPlaceholder.style.display = '';
+
             var wrap = jobRadioGroup.querySelector('.ncs-job-radio-wrap');
             if (wrap) wrap.remove();
-            if (!mid || !small || !trainingCache.length) {
-                jobRadioPlaceholder.textContent = '소분류 선택 후 직종을 선택하세요. 여러 직종을 선택할 수 있습니다. 능력단위·수준은 2단계 훈련이수체계도에서 선택합니다.';
+
+            if (!large || !mid || !small) {
+                jobRadioPlaceholder.style.display = '';
+                jobRadioPlaceholder.textContent = '소분류 선택 후 직종을 선택하세요. 여러 직종을 선택할 수 있습니다.';
                 updateSelectedJobsResult();
                 return;
             }
-            var list = trainingCache.filter(function (item) { return item.midCode === mid && item.smallCode === small; });
-            var jobByCode8 = {};
-            list.forEach(function (item) {
-                var raw = (item.unitCode || '').trim();
-                var code8 = raw ? (raw.split('_')[0] || raw).slice(0, 8) : '';
-                if (!code8) return;
-                if (!jobByCode8[code8]) {
-                    jobByCode8[code8] = {
-                        code: code8,
-                        name: (item.subClassName || item.unitName || item.smallName || '').trim()
-                    };
-                }
-            });
-            var jobs = Object.keys(jobByCode8).sort().map(function (k) { return jobByCode8[k]; });
-            if (jobs.length === 0) {
-                jobRadioPlaceholder.textContent = '이 소분류에 해당하는 직종이 없습니다.';
-                updateSelectedJobsResult();
-                return;
-            }
-            jobRadioPlaceholder.style.display = 'none';
-            var w = document.createElement('div');
-            w.className = 'ncs-job-radio-wrap space-y-2';
-            jobs.forEach(function (j) {
-                var esc = function (s) { var t = document.createElement('span'); t.textContent = s == null ? '' : s; return t.innerHTML; };
-                var id = 'ncsJob_' + (j.code || '').replace(/\s/g, '_');
-                var isInStore = selectedJobsStore.some(function (x) { return (x.code || '') === (j.code || ''); });
-                w.innerHTML += '<label class="flex items-center gap-2 cursor-pointer py-1.5"><input type="checkbox" name="ncsJobCheck" class="ncs-job-check rounded text-blue-600" value="' + esc(j.code) + '" data-name="' + esc(j.name) + '" id="' + id + '"' + (isInStore ? ' checked' : '') + '> <span>주직종 ' + esc(j.code) + (j.name ? '. ' + j.name : '') + '</span></label>';
-            });
-            jobRadioGroup.appendChild(w);
-            w.querySelectorAll('.ncs-job-check').forEach(function (cb) {
-                cb.addEventListener('change', function () {
-                    var code = (cb.value || '').trim();
-                    var name = (cb.getAttribute('data-name') || '').trim();
-                    if (cb.checked) {
-                        if (!selectedJobsStore.some(function (x) { return (x.code || '') === code; })) {
-                            selectedJobsStore.push({ code: code, name: name });
-                        }
-                    } else {
-                        selectedJobsStore = selectedJobsStore.filter(function (x) { return (x.code || '') !== code; });
+
+            jobRadioPlaceholder.style.display = '';
+            jobRadioPlaceholder.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> 직종 목록을 불러오는 중...';
+
+            var token = localStorage.getItem('token');
+            var url = '/api/ncs/approved/jobs?l=' + encodeURIComponent(large) + '&m=' + encodeURIComponent(mid) + '&s=' + encodeURIComponent(small);
+
+            fetch(url, { headers: token ? { 'Authorization': 'Bearer ' + token } : {} })
+                .then(function (r) { return r.json(); })
+                .then(function (json) {
+                    if (!json.success || !Array.isArray(json.data) || json.data.length === 0) {
+                        jobRadioPlaceholder.textContent = '해당 분류에 등록된 세분류(직종) 정보가 없거나 불러오지 못했습니다.';
+                        return;
                     }
+
+                    jobRadioPlaceholder.style.display = 'none';
+                    var jobs = json.data;
+                    var w = document.createElement('div');
+                    w.className = 'ncs-job-radio-wrap space-y-2';
+
+                    jobs.forEach(function (j) {
+                        var esc = function (s) { var t = document.createElement('span'); t.textContent = s == null ? '' : s; return t.innerHTML; };
+                        var code = (j.code || '').trim();
+                        var name = (j.name || '').trim();
+                        if (!code) return;
+
+                        var id = 'ncsJob_' + code.replace(/\s/g, '_');
+                        var isInStore = selectedJobsStore.some(function (x) { return (x.code || '') === code; });
+
+                        w.innerHTML += '<label class="flex items-center gap-2 cursor-pointer py-1.5 hover:bg-slate-50 px-2 rounded-lg transition-colors">' +
+                            '<input type="checkbox" name="ncsJobCheck" class="ncs-job-check rounded text-blue-600 focus:ring-blue-500" value="' + esc(code) + '" data-name="' + esc(name) + '" id="' + id + '"' + (isInStore ? ' checked' : '') + '> ' +
+                            '<span class="text-sm text-slate-700">[' + esc(code) + '] ' + esc(name) + '</span>' +
+                            '</label>';
+                    });
+
+                    jobRadioGroup.appendChild(w);
+                    w.querySelectorAll('.ncs-job-check').forEach(function (cb) {
+                        cb.addEventListener('change', function () {
+                            var code = (cb.value || '').trim();
+                            var name = (cb.getAttribute('data-name') || '').trim();
+                            if (cb.checked) {
+                                if (!selectedJobsStore.some(function (x) { return (x.code || '') === code; })) {
+                                    selectedJobsStore.push({ code: code, name: name });
+                                }
+                            } else {
+                                selectedJobsStore = selectedJobsStore.filter(function (x) { return (x.code || '') !== code; });
+                            }
+                            updateSelectedJobsResult();
+                        });
+                    });
                     updateSelectedJobsResult();
+                })
+                .catch(function (e) {
+                    console.error('Jobs fetch error:', e);
+                    jobRadioPlaceholder.textContent = '직종 정보를 불러오는 중 오류가 발생했습니다.';
                 });
-            });
-            updateSelectedJobsResult();
         }
 
         function updateSelectedJobsResult() {

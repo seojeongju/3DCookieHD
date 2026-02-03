@@ -165,14 +165,14 @@ async function fetchClassificationAllPages(
     return out;
 }
 
-/** 기준정보 API로 대분류 기준 전체 트리 조회 (중·소·세). Promise.all 병렬 호출로 속도 대폭 개선. */
+/** 기준정보 API로 대분류 기준 전체 트리 조회 (중·소). 속도를 위해 세분류(Jobs)는 제외하고 on-demand로 처리 권장. */
 async function fetchNcsClassificationByLarge(apiKey: string, ncsLclasCd: string, baseUrl?: string): Promise<TrainingItem[] | null> {
     const key = decodeServiceKey(apiKey);
     const base = (baseUrl || NCS_CLASSIFICATION_API_BASE_DEFAULT).replace(/\/$/, '');
     const largeName = NCS_LARGE_CLASSES.find((c) => c.code === ncsLclasCd)?.name ?? '';
 
     try {
-        // 1) 중분류 목록 수집
+        // 1) 중분류 목록 병렬 수집 (NCS002)
         const midListRaw = await fetchClassificationAllPages(base, key, 'NCS002', { NCS_LCLAS_CD: ncsLclasCd });
         if (!midListRaw || midListRaw.length === 0) return null;
 
@@ -184,7 +184,7 @@ async function fetchNcsClassificationByLarge(apiKey: string, ncsLclasCd: string,
             }))
             .filter((m) => m.code);
 
-        // 2) 중분류별 소분류 병렬 수집
+        // 2) 모든 중분류에 대한 소분류 목록을 한꺼번에 병렬 수집
         const midToSmalls = await Promise.all(mids.map(async (mid) => {
             const list = await fetchClassificationAllPages(base, key, 'NCS003', { NCS_LCLAS_CD: ncsLclasCd, NCS_MCLAS_CD: mid.code });
             const smalls = list
@@ -197,58 +197,48 @@ async function fetchNcsClassificationByLarge(apiKey: string, ncsLclasCd: string,
             return { mid, smalls };
         }));
 
-        // 3) 소분류별 세분류 병렬 수집 (주의: Cloudflare Worker는 동시 요청 제한이 있을 수 있으나 소분류는 보통 수십개 내외)
         const allItems: TrainingItem[] = [];
-
-        // 소분류 전체 리스트를 펼쳐서 병렬 처리
-        const smallTasks = midToSmalls.flatMap(({ mid, smalls }) => {
+        for (const { mid, smalls } of midToSmalls) {
             if (smalls.length === 0) {
-                // If no smalls for a mid, add a placeholder for mid
-                return [{ mid, small: { code: '', name: '' } }];
-            }
-            return smalls.map(small => ({ mid, small }));
-        });
-
-        const smallToSubs = await Promise.all(smallTasks.map(async ({ mid, small }) => {
-            if (!small.code) { // Placeholder small, no need to fetch subs
-                return { mid, small, subs: [] };
-            }
-            const list = await fetchClassificationAllPages(base, key, 'NCS004', { NCS_LCLAS_CD: ncsLclasCd, NCS_MCLAS_CD: mid.code, NCS_SCLAS_CD: small.code });
-            const subs = list
-                .filter((r) => rowVal(r, 'USG_YN', 'usgYn') === 'Y')
-                .map((r) => ({
-                    code: rowVal(r, 'NCS_SUBD_CD', 'ncsSubdCd', 'subdCd'),
-                    name: rowVal(r, 'NCS_SUBD_CDNM', 'ncsSubdCdnm', 'subdCdnm')
-                }))
-                .filter((s) => s.code);
-            return { mid, small, subs };
-        }));
-
-        // 결과 조립
-        for (const { mid, small, subs } of smallToSubs) {
-            if (subs.length === 0) {
                 allItems.push({
                     largeCode: ncsLclasCd, largeName, midCode: mid.code, midName: mid.name,
-                    smallCode: small.code, smallName: small.name, subClassCode: '', subClassName: '',
-                    unitCode: '', unitName: ''
+                    smallCode: '', smallName: '', subClassCode: '', subClassName: '', unitCode: '', unitName: ''
                 });
             } else {
-                for (const sub of subs) {
+                for (const small of smalls) {
                     allItems.push({
                         largeCode: ncsLclasCd, largeName, midCode: mid.code, midName: mid.name,
-                        smallCode: small.code, smallName: small.name, subClassCode: sub.code, subClassName: sub.name,
-                        unitCode: '', unitName: ''
+                        smallCode: small.code, smallName: small.name, subClassCode: '', subClassName: '', unitCode: '', unitName: ''
                     });
                 }
             }
         }
-
         return allItems.length > 0 ? allItems : null;
     } catch (e) {
         console.error('NCS Classification fetch error:', e);
         return null;
     }
 }
+
+/** 소분류(직종) 선택 시 하위 세분류(Job) 목록만 별도로 가져오기 (on-demand) */
+async function fetchNcsJobsBySmall(apiKey: string, l: string, m: string, s: string, baseUrl?: string): Promise<{ code: string; name: string }[]> {
+    const key = decodeServiceKey(apiKey);
+    const base = (baseUrl || NCS_CLASSIFICATION_API_BASE_DEFAULT).replace(/\/$/, '');
+    try {
+        const list = await fetchClassificationAllPages(base, key, 'NCS004', { NCS_LCLAS_CD: l, NCS_MCLAS_CD: m, NCS_SCLAS_CD: s });
+        return list
+            .filter((r) => rowVal(r, 'USG_YN', 'usgYn') === 'Y')
+            .map((r) => ({
+                code: rowVal(r, 'NCS_SUBD_CD', 'ncsSubdCd', 'subdCd'),
+                name: rowVal(r, 'NCS_SUBD_CDNM', 'ncsSubdCdnm', 'subdCdnm')
+            }))
+            .filter((x) => x.code);
+    } catch (e) {
+        console.error('fetchNcsJobsBySmall error:', e);
+        return [];
+    }
+}
+
 
 async function fetchNcsTrainingPage(apiKey: string, ncsLclasCd: string, pageNo: number): Promise<{ items: TrainingItem[]; totalPage: number }> {
     const key = decodeServiceKey(apiKey);
@@ -578,6 +568,23 @@ app.get('/approved/classification-debug', async (c) => {
     } catch (e) {
         console.error('NCS classification-debug error:', e);
         return c.json({ success: false, error: String(e instanceof Error ? e.message : e) }, 500);
+    }
+});
+
+// 세분류(Job) 목록만 별도 조회
+app.get('/approved/jobs', async (c) => {
+    try {
+        const l = c.req.query('l');
+        const m = c.req.query('m');
+        const s = c.req.query('s');
+        const rawKey = c.env.NCS_API_KEY?.trim();
+        if (!l || !m || !s || !rawKey) return c.json({ success: false, error: '잘못된 요청' }, 400);
+        const classificationBase = (c.env as { NCS_CLASSIFICATION_API_BASE?: string }).NCS_CLASSIFICATION_API_BASE?.trim();
+        const jobs = await fetchNcsJobsBySmall(rawKey, l, m, s, classificationBase);
+        return c.json({ success: true, data: jobs });
+    } catch (e) {
+        console.error('NCS approved/jobs error:', e);
+        return c.json({ success: false, error: '직종 조회 실패' }, 500);
     }
 });
 
