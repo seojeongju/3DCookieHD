@@ -73,20 +73,21 @@ async function fetchNcsPublicApi(apiKey: string, keyword: string, ncsLclasCd = '
 }
 
 /** 대분류 기준 훈련과정 목록 (중·소·세분류 포함) — 승인받은 NCS 등록용 */
-type TrainingItem = {
-    largeCode: string;
-    largeName: string;
-    midCode: string;
-    midName: string;
-    smallCode: string;
-    smallName: string;
-    subClassCode: string;
-    subClassName: string;
-    unitCode: string;
-    unitName: string;
+interface TrainingItem {
+    largeCode: string; // NCS_LCLAS_CD
+    largeName: string; // NCS_LCLAS_CDNM
+    midCode: string;   // NCS_MCLAS_CD
+    midName: string;   // NCS_MCLAS_CDNM
+    smallCode: string; // NCS_SCLAS_CD
+    smallName: string; // NCS_SCLAS_CDNM
+    subClassCode: string; // NCS_SUBD_CD
+    subClassName: string; // NCS_SUBD_CDNM
+    unitCode: string;  // NCS_CL_CD
+    unitName: string;  // COPE_UNIT_NAME
     /** 수준(1~8). 공공 API compeUnitLevel */
-    level?: number;
-};
+    level?: number;    // COMPE_UNIT_LEVEL
+    elements?: { code: string; name: string }[];
+}
 
 /** 공공 API 서비스키: 저장 시 URL 인코딩된 경우 디코딩하여 사용 */
 function decodeServiceKey(raw: string): string {
@@ -861,11 +862,11 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
             });
         }
 
-        const levels: { 6: { name: string; code?: string; jobNames?: string[] }[]; 5: { name: string; code?: string; jobNames?: string[] }[]; 4: { name: string; code?: string; jobNames?: string[] }[]; 3: { name: string; code?: string; jobNames?: string[] }[]; 2: { name: string; code?: string; jobNames?: string[] }[] } = { 6: [], 5: [], 4: [], 3: [], 2: [] };
+        const levels: { 6: { name: string; code?: string; jobNames?: string[]; elements?: { code: string; name: string }[] }[]; 5: { name: string; code?: string; jobNames?: string[]; elements?: { code: string; name: string }[] }[]; 4: { name: string; code?: string; jobNames?: string[]; elements?: { code: string; name: string }[] }[]; 3: { name: string; code?: string; jobNames?: string[]; elements?: { code: string; name: string }[] }[]; 2: { name: string; code?: string; jobNames?: string[]; elements?: { code: string; name: string }[] }[] } = { 6: [], 5: [], 4: [], 3: [], 2: [] };
         // Map code -> item reference to allow updating jobNames
-        const codeMap = new Map<string, { name: string; code?: string; jobNames: string[] }>();
+        const codeMap = new Map<string, { name: string; code?: string; jobNames: string[]; elements?: { code: string; name: string }[] }>();
         let basicAbility: { name: string; code?: string }[] = [];
-        const elementsFlat: { name: string; code?: string }[] = [];
+        const elementsFlat: { name: string; code?: string; jobNames?: string[]; elements?: { code: string; name: string }[] }[] = [];
 
         for (const job of mainJobs) {
             const jobCode = (job.code || '').replace(/\s/g, '');
@@ -874,16 +875,33 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
             let foundAny = false;
 
             // Helper to add/update item
-            const addItem = (name: string, code: string, level: number) => {
+            const addItem = (name: string, code: string, level: number, elements?: { code: string; name: string }[]) => {
                 const band = mapLevelToBand(level);
+
+                // Overlay fallback elements if not provided
+                if ((!elements || elements.length === 0) && code && jobCode8) {
+                    const fallbackList = FALLBACK_NCS_UNITS[jobCode8];
+                    if (fallbackList) {
+                        const fbItem = fallbackList.find(f => f.code === code || f.name === name); // Try code match then name
+                        if (fbItem && fbItem.elements) {
+                            elements = fbItem.elements;
+                        }
+                    }
+                }
+
                 if (code && codeMap.has(code)) {
                     const existing = codeMap.get(code)!;
                     if (!existing.jobNames.includes(jobName)) existing.jobNames.push(jobName);
+                    // Merge elements if existing has none and new has some
+                    if ((!existing.elements || existing.elements.length === 0) && elements && elements.length > 0) {
+                        existing.elements = elements;
+                        // Also update reference in levels/elementsFlat
+                    }
                 } else {
-                    const item = { name, code, jobNames: [jobName] };
+                    const item = { name, code, jobNames: [jobName], elements };
                     if (code) codeMap.set(code, item);
                     levels[band].push(item);
-                    elementsFlat.push({ name, code });
+                    elementsFlat.push({ name, code, elements, jobNames: [jobName] });
                 }
             };
 
@@ -907,34 +925,79 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
                 const largeCode = jobCode8.slice(0, 2);
                 try {
                     const key = decodeServiceKey(apiKey);
-                    const items = await fetchNcsTrainingByLarge(key, largeCode);
+                    let items: TrainingItem[] = [];
+                    let source = '';
+
+                    // 1. Try Classification API (Standard Info) first - usually more complete
+                    const classificationBase = (c.env as { NCS_CLASSIFICATION_API_BASE?: string }).NCS_CLASSIFICATION_API_BASE?.trim();
+                    try {
+                        const fromClass = await fetchNcsClassificationByLarge(apiKey, largeCode, classificationBase);
+                        if (fromClass && fromClass.length > 0) {
+                            items = fromClass;
+                            source = 'classification';
+                        }
+                    } catch (e) { console.error('Classification API check failed', e); }
+
+                    // 2. Fallback to Training API
+                    if (items.length === 0) {
+                        try {
+                            items = await fetchNcsTrainingByLarge(apiKey, largeCode);
+                            source = 'training';
+                        } catch (e) { console.error('Training API check failed', e); }
+                    }
+
                     const prefix = jobCode8;
                     for (const it of items) {
-                        const numPart = (it.unitCode || '').replace(/_.*$/, '').replace(/\D/g, '').slice(0, 8);
-                        // Relaxed matching: check if unitCode contains jobCode8 (some APIs return slightly diff format)
-                        if (!numPart.startsWith(prefix) && !String(it.unitCode).includes(prefix)) continue;
+                        const rawUnitCode = String(it.unitCode || '').trim();
+                        if (!rawUnitCode) continue;
 
-                        const code = (it.unitCode || '').trim();
-                        if (!code) continue;
-                        const name = (it.unitName || '').trim() || code;
-                        const lv = it.level != null ? it.level : 3;
-                        addItem(name, code, lv);
+                        const numPart = rawUnitCode.replace(/_.*$/, '').replace(/\D/g, '').slice(0, 8);
+
+                        // Robust matching:
+                        // 1. Exact prefix match on 8-digit part
+                        // 2. Or unitCode itself contains the prefix (handle 10-digit prefix case if jobCode was 10 digits)
+                        // 3. Or strict match for 3D Printing special cases where prefix might be slightly different in older versions? 
+                        //    (Actually 3D Printing is 19031102 / 19031103 etc. standard codes should work)
+
+                        if (!numPart.startsWith(prefix) && !rawUnitCode.includes(prefix)) continue;
+
+                        const name = (it.unitName || '').trim() || rawUnitCode;
+
+                        let lv = 3;
+                        if (it.level != null) {
+                            lv = typeof it.level === 'number' ? it.level : parseInt(String(it.level), 10);
+                        }
+                        if (isNaN(lv)) lv = 3;
+
+                        // Check if fallback has matching elements for this item
+                        addItem(name, rawUnitCode, lv, it.elements);
+                        foundAny = true;
                     }
-                } catch (_) { /* ignore */ }
+                } catch (e) {
+                    console.error('NCS API fetch error', e);
+                }
+            }
+
+            // 3. Last Resort Fallback (if no API/DB results found) or Supplement from FALLBACK map
+            if (!foundAny && FALLBACK_NCS_UNITS[jobCode8]) {
+                const fbList = FALLBACK_NCS_UNITS[jobCode8];
+                for (const fb of fbList) {
+                    addItem(fb.name, fb.code, fb.level, fb.elements);
+                    foundAny = true;
+                }
             }
 
             if (!foundAny && jobName) {
                 const mock = [
-                    { name: jobName + ' 기획', level: 5 as const },
-                    { name: jobName + ' 평가', level: 5 as const },
-                    { name: jobName + ' 시장조사', level: 4 as const },
-                    { name: jobName + ' 개발요소 선정', level: 4 as const },
-                    { name: jobName + ' 품질 관리', level: 4 as const },
-                    { name: jobName + ' 출력', level: 3 as const },
-                    { name: jobName + ' 안전관리', level: 3 as const }
+                    { name: jobName + ' 기획', level: 5 },
+                    { name: jobName + ' 평가', level: 5 },
+                    { name: jobName + ' 시장조사', level: 4 },
+                    { name: jobName + ' 개발요소 선정', level: 4 },
+                    { name: jobName + ' 품질 관리', level: 4 },
+                    { name: jobName + ' 출력', level: 3 },
+                    { name: jobName + ' 안전관리', level: 3 }
                 ];
                 mock.forEach((m) => {
-                    // For mock items, code is name
                     addItem(m.name, m.name, m.level);
                 });
             }
@@ -1838,29 +1901,110 @@ app.get('/plans/:planId/export-csv', async (c) => {
 
         // CSV 헤더 생성
         let csv = "성명,연락처,능력단위코드,능력단위명,평가방법,평가일자,득점,이수여부\\n";
-
         // 데이터 행 추가
         results.forEach((r: any) => {
             const score = r.score !== null ? r.score : '';
             const isPassed = r.score !== null ? (r.is_passed ? '이수' : '미이수') : '미평가';
             const date = r.planned_date || '';
             const phone = r.phone || '';
-
             csv += `"${r.student_name}","${phone}","${r.unit_code}","${r.unit_name}","${r.method}","${date}","${score}","${isPassed}"\n`;
         });
 
         // 엑셀 인식용 BOM(UTF-8) 추가하여 반환
-        return new Response("\\uFEFF" + csv, {
-            headers: {
-                'Content-Type': 'text/csv; charset=utf-8',
-                'Content-Disposition': `attachment; filename="ncs_results_${planId}.csv"`
-            }
+        const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+        return c.body(new Blob([bom, csv], { type: 'text/csv; charset=utf-8' }), 200, {
+            'Content-Disposition': 'attachment; filename="evaluation_results.csv"'
         });
     } catch (e) {
-        console.error('Failed to export CSV:', e);
-        return c.json({ success: false, error: 'Failed to export CSV' }, 500);
+        console.error('ncs evaluation list download error:', e);
+        return c.text('다운로드 실패', 500);
     }
 });
+
+const FALLBACK_NCS_UNITS: Record<string, { code: string; name: string; level: number; elements?: { code: string; name: string }[] }[]> = {
+    // 19031102: 3D프린터용 제품제작 (3D프린터운용기능사 관련)
+    '19031102': [
+        {
+            code: '1903110201_19v3', name: '3D프린터 제품제작 안전관리', level: 2,
+            elements: [
+                { code: '1903110201_19v3_01', name: '3D프린터 제품제작 안전수칙 준수하기' },
+                { code: '1903110201_19v3_02', name: '3D프린터 제품제작 안전사고 예방하기' },
+                { code: '1903110201_19v3_03', name: '3D프린터 제품제작 안전장비 착용하기' }
+            ]
+        },
+        {
+            code: '1903110202_19v3', name: '3D프린터 제품 스캐닝', level: 3,
+            elements: [
+                { code: '1903110202_19v3_01', name: '스캔 대상물 준비하기' },
+                { code: '1903110202_19v3_02', name: '스캐너 설정하기' },
+                { code: '1903110202_19v3_03', name: '3D 데이터 스캐닝하기' },
+                { code: '1903110202_19v3_04', name: '스캔 데이터 보정하기' }
+            ]
+        },
+        {
+            code: '1903110203_19v3', name: '3D프린터 SW 설정', level: 3,
+            elements: [
+                { code: '1903110203_19v3_01', name: '출력 보조형상설정하기' },
+                { code: '1903110203_19v3_02', name: '슬라이싱하기' },
+                { code: '1903110203_19v3_03', name: 'G코드 생성하기' }
+            ]
+        },
+        {
+            code: '1903110204_19v3', name: '3D프린터 HW 설정', level: 3,
+            elements: [
+                { code: '1903110204_19v3_01', name: '소재준비하기' },
+                { code: '1903110204_19v3_02', name: '데이터준비하기' },
+                { code: '1903110204_19v3_03', name: '장비출력설정하기' }
+            ]
+        },
+        {
+            code: '1903110205_19v3', name: '3D프린터 제품 출력', level: 3,
+            elements: [
+                { code: '1903110205_19v3_01', name: '출력과정 모니터링하기' },
+                { code: '1903110205_19v3_02', name: '출력오류 대처하기' },
+                { code: '1903110205_19v3_03', name: '출력물 회수하기' }
+            ]
+        },
+        {
+            code: '1903110206_19v3', name: '3D프린터 제품 후가공', level: 2,
+            elements: [
+                { code: '1903110206_19v3_01', name: '지지대 제거하기' },
+                { code: '1903110206_19v3_02', name: '표면가공하기' },
+                { code: '1903110206_19v3_03', name: '도색하기' }
+            ]
+        }
+    ],
+    // 15010201: 기계요소설계 (전산응용기계제도기능사 관련) - 예비용
+    '15010201': [
+        { code: '1501020101_19v3', name: '기계요소설계 기획', level: 5 },
+        { code: '1501020102_19v3', name: '기계요소설계 자료수집', level: 4 },
+        { code: '1501020111_19v3', name: '체결요소설계', level: 3 },
+        { code: '1501020112_19v3', name: '동력전달요소설계', level: 3 },
+        { code: '1501020113_19v3', name: '치공구요소설계', level: 3 },
+        { code: '1501020114_19v3', name: '유압요소설계', level: 4 },
+        { code: '1501020115_19v3', name: '공압요소설계', level: 4 },
+        { code: '1501020121_19v3', name: '도면분석', level: 3 },
+        { code: '1501020122_19v3', name: '도면검토', level: 4 },
+        { code: '1501020123_19v3', name: '2D도면작업', level: 2 },
+        { code: '1501020124_19v3', name: '2D도면관리', level: 2 },
+        {
+            code: '1501020125_19v3', name: '3D형상모델링작업', level: 2,
+            elements: [
+                { code: '1501020125_19v3_01', name: '3D형상모델링작업 준비하기' },
+                { code: '1501020125_19v3_02', name: '3D형상모델링작업하기' },
+                { code: '1501020125_19v3_03', name: '3D형상정보 확인하기' }
+            ]
+        },
+        {
+            code: '1501020126_19v3', name: '3D형상모델링검토', level: 3,
+            elements: [
+                { code: '1501020126_19v3_01', name: '3D형상모델링 검토하기' },
+                { code: '1501020126_19v3_02', name: '3D형상모델링 수정하기' }
+            ]
+        },
+        { code: '1501020127_19v3', name: '요소부품재질선정', level: 4 }
+    ]
+};
 
 app.get('/approved/render-step', async (c) => {
     try {

@@ -9,10 +9,11 @@ const STEP_MENU = [
   { step: 6, label: '시설·장비', icon: 'fa-building', status: 'pending' },
 ];
 
-function stepNavHtml(currentStep: number): string {
+function stepNavHtml(currentStep: number, editId?: string): string {
+  const query = editId ? `?id=${editId}` : '';
   return STEP_MENU.map(
     (s) => `
-    <a href="/admin/ncs/approved/${s.step}" class="flex items-center px-4 py-3 rounded-xl transition-all ${currentStep === s.step ? 'bg-blue-600/20 text-white border-l-4 border-blue-500' : 'hover:bg-slate-800/50 text-slate-400 hover:text-white'}">
+    <a href="/admin/ncs/approved/${s.step}${query}" class="flex items-center px-4 py-3 rounded-xl transition-all ${currentStep === s.step ? 'bg-blue-600/20 text-white border-l-4 border-blue-500' : 'hover:bg-slate-800/50 text-slate-400 hover:text-white'}">
       <i class="fas ${s.icon} w-6 text-lg mr-3"></i>
       <span class="font-medium text-sm">${s.step}. ${s.label}</span>
     </a>`
@@ -233,9 +234,10 @@ export function stepContentHtml(step: number, editId?: string, isEmbedded: boole
       <!-- 액션 버튼 영역 -->
       <div class="pt-10 flex items-center justify-between border-t border-slate-200">
         <div class="flex gap-3">
-          <a href="/admin/ncs/approved/list" class="h-12 px-6 flex items-center gap-2 border border-slate-200 rounded-2xl bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all">
-            <i class="fas fa-arrow-left text-xs"></i> 목록으로
-          </a>
+          ${isEmbedded
+        ? `<a href="/admin/courses/approved" class="h-12 px-6 flex items-center gap-2 border border-slate-200 rounded-2xl bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all"><i class="fas fa-arrow-left text-xs"></i> 과정 목록</a>`
+        : `<a href="/admin/ncs/approved/list" class="h-12 px-6 flex items-center gap-2 border border-slate-200 rounded-2xl bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all"><i class="fas fa-arrow-left text-xs"></i> 목록으로</a>`
+      }
         </div>
         <div class="flex gap-3">
           ${isEdit ? `
@@ -249,11 +251,9 @@ export function stepContentHtml(step: number, editId?: string, isEmbedded: boole
           <button type="button" id="ncsApprovedBtnSave" class="h-12 px-8 bg-blue-600 text-white rounded-2xl font-bold text-sm hover:bg-blue-700 shadow-lg shadow-blue-500/20 transition-all flex items-center gap-2">
             <i class="fas fa-save"></i> ${isEdit ? '수정 내용 저장' : '기본 정보 저장'}
           </button>
-          ${!isEdit ? `
           <button type="button" id="ncsApprovedBtnNext" class="h-12 px-8 bg-slate-800 text-white rounded-2xl font-bold text-sm hover:bg-black transition-all flex items-center gap-2">
             저장 후 다음 단계 <i class="fas fa-arrow-right text-xs"></i>
           </button>
-          ` : ''}
         </div>
       </div>
     </div>
@@ -336,12 +336,16 @@ export function stepContentHtml(step: number, editId?: string, isEmbedded: boole
 
       <div class="pt-8 flex items-center justify-between border-t border-slate-200">
         <div class="flex gap-3">
-          <a href="/admin/ncs/approved/list" class="h-12 px-6 flex items-center gap-2 border border-slate-200 rounded-2xl bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all">목록</a>
+          ${isEmbedded
+        ? `<a href="/admin/courses/approved" class="h-12 px-6 flex items-center gap-2 border border-slate-200 rounded-2xl bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all">목록</a>`
+        : `<a href="/admin/ncs/approved/list" class="h-12 px-6 flex items-center gap-2 border border-slate-200 rounded-2xl bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all">목록</a>`
+      }
         </div>
         <div class="flex gap-3">
-          <a href="/admin/ncs/approved/1${regId ? '?id=' + regId : ''}" class="h-12 px-6 flex items-center gap-2 border border-slate-200 rounded-2xl bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all">
-            <i class="fas fa-chevron-left text-xs"></i> 1단계 (개요)
-          </a>
+          ${isEmbedded
+        ? `<button type="button" onclick="loadNcsStep(1)" class="h-12 px-6 flex items-center gap-2 border border-slate-200 rounded-2xl bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all"><i class="fas fa-chevron-left text-xs"></i> 1단계 (개요)</button>`
+        : `<a href="/admin/ncs/approved/1${regId ? '?id=' + regId : ''}" class="h-12 px-6 flex items-center gap-2 border border-slate-200 rounded-2xl bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all"><i class="fas fa-chevron-left text-xs"></i> 1단계 (개요)</a>`
+      }
           <button type="button" id="ncsStep2BtnSave" class="h-12 px-6 bg-white border border-blue-200 text-blue-600 rounded-2xl font-bold text-sm hover:bg-blue-50 transition-all flex items-center gap-2">
             <i class="fas fa-save"></i> 임시저장
           </button>
@@ -386,9 +390,10 @@ export function stepContentHtml(step: number, editId?: string, isEmbedded: boole
         </div>
         <h3 class="text-lg font-bold text-amber-900">과정개요가 등록되지 않았습니다</h3>
         <p class="text-amber-700 text-sm mt-2 mb-6">1단계에서 과정개요를 먼저 저장한 뒤 진행해주세요.</p>
-        <a href="/admin/ncs/approved/1${regId ? '?id=' + regId : ''}" class="inline-flex items-center gap-2 px-6 py-2.5 bg-amber-600 text-white rounded-xl font-bold text-sm hover:bg-amber-700 transition-all">
-          1단계로 이동 <i class="fas fa-arrow-right"></i>
-        </a>
+        ${isEmbedded
+        ? `<button type="button" onclick="loadNcsStep(1)" class="inline-flex items-center gap-2 px-6 py-2.5 bg-amber-600 text-white rounded-xl font-bold text-sm hover:bg-amber-700 transition-all">1단계로 이동 <i class="fas fa-arrow-right"></i></button>`
+        : `<a href="/admin/ncs/approved/1${regId ? '?id=' + regId : ''}" class="inline-flex items-center gap-2 px-6 py-2.5 bg-amber-600 text-white rounded-xl font-bold text-sm hover:bg-amber-700 transition-all">1단계로 이동 <i class="fas fa-arrow-right"></i></a>`
+      }
       </div>
 
       <div id="ncsStep3Form" class="space-y-8">
@@ -502,12 +507,16 @@ export function stepContentHtml(step: number, editId?: string, isEmbedded: boole
 
       <div class="pt-8 flex items-center justify-between border-t border-slate-200">
         <div class="flex gap-3">
-          <a href="/admin/ncs/approved/list" class="h-12 px-6 flex items-center gap-2 border border-slate-200 rounded-2xl bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all">목록</a>
+          ${isEmbedded
+        ? `<a href="/admin/courses/approved" class="h-12 px-6 flex items-center gap-2 border border-slate-200 rounded-2xl bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all">목록</a>`
+        : `<a href="/admin/ncs/approved/list" class="h-12 px-6 flex items-center gap-2 border border-slate-200 rounded-2xl bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all">목록</a>`
+      }
         </div>
         <div class="flex gap-3">
-          <a href="/admin/ncs/approved/2${regId ? '?id=' + regId : ''}" class="h-12 px-6 flex items-center gap-2 border border-slate-200 rounded-2xl bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all">
-            <i class="fas fa-chevron-left text-xs"></i> 2단계 (체계도)
-          </a>
+          ${isEmbedded
+        ? `<button type="button" onclick="loadNcsStep(2)" class="h-12 px-6 flex items-center gap-2 border border-slate-200 rounded-2xl bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all"><i class="fas fa-chevron-left text-xs"></i> 2단계 (체계도)</button>`
+        : `<a href="/admin/ncs/approved/2${regId ? '?id=' + regId : ''}" class="h-12 px-6 flex items-center gap-2 border border-slate-200 rounded-2xl bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all"><i class="fas fa-chevron-left text-xs"></i> 2단계 (체계도)</a>`
+      }
           <button type="button" id="ncsStep3BtnSave" class="h-12 px-6 bg-white border border-blue-200 text-blue-600 rounded-2xl font-bold text-sm hover:bg-blue-50 transition-all flex items-center gap-2">
             <i class="fas fa-save"></i> 편성 저장
           </button>
@@ -552,9 +561,10 @@ export function stepContentHtml(step: number, editId?: string, isEmbedded: boole
         </div>
         <h3 class="text-lg font-bold text-amber-900">과정개요가 등록되지 않았습니다</h3>
         <p class="text-amber-700 text-sm mt-2 mb-6">1단계에서 과정개요를 먼저 저장한 뒤 진행해주세요.</p>
-        <a href="/admin/ncs/approved/1${regId ? '?id=' + regId : ''}" class="inline-flex items-center gap-2 px-6 py-2.5 bg-amber-600 text-white rounded-xl font-bold text-sm hover:bg-amber-700 transition-all">
-          1단계로 이동 <i class="fas fa-arrow-right"></i>
-        </a>
+        ${isEmbedded
+        ? `<button type="button" onclick="loadNcsStep(1)" class="inline-flex items-center gap-2 px-6 py-2.5 bg-amber-600 text-white rounded-xl font-bold text-sm hover:bg-amber-700 transition-all">1단계로 이동 <i class="fas fa-arrow-right"></i></button>`
+        : `<a href="/admin/ncs/approved/1${regId ? '?id=' + regId : ''}" class="inline-flex items-center gap-2 px-6 py-2.5 bg-amber-600 text-white rounded-xl font-bold text-sm hover:bg-amber-700 transition-all">1단계로 이동 <i class="fas fa-arrow-right"></i></a>`
+      }
       </div>
 
       <div id="ncsStep4Form" class="space-y-8">
@@ -690,12 +700,16 @@ export function stepContentHtml(step: number, editId?: string, isEmbedded: boole
 
       <div class="pt-8 flex items-center justify-between border-t border-slate-200">
         <div class="flex gap-3">
-          <a href="/admin/ncs/approved/list" class="h-12 px-6 flex items-center gap-2 border border-slate-200 rounded-2xl bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all">목록</a>
+          ${isEmbedded
+        ? `<a href="/admin/courses/approved" class="h-12 px-6 flex items-center gap-2 border border-slate-200 rounded-2xl bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all">목록</a>`
+        : `<a href="/admin/ncs/approved/list" class="h-12 px-6 flex items-center gap-2 border border-slate-200 rounded-2xl bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all">목록</a>`
+      }
         </div>
         <div class="flex gap-3">
-          <a href="/admin/ncs/approved/3${regId ? '?id=' + regId : ''}" class="h-12 px-6 flex items-center gap-2 border border-slate-200 rounded-2xl bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all">
-            <i class="fas fa-chevron-left text-xs"></i> 3단계 (편성)
-          </a>
+          ${isEmbedded
+        ? `<button type="button" onclick="loadNcsStep(3)" class="h-12 px-6 flex items-center gap-2 border border-slate-200 rounded-2xl bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all"><i class="fas fa-chevron-left text-xs"></i> 3단계 (편성)</button>`
+        : `<a href="/admin/ncs/approved/3${regId ? '?id=' + regId : ''}" class="h-12 px-6 flex items-center gap-2 border border-slate-200 rounded-2xl bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all"><i class="fas fa-chevron-left text-xs"></i> 3단계 (편성)</a>`
+      }
           <button type="button" id="ncsStep4BtnSave" class="h-12 px-6 bg-white border border-blue-200 text-blue-600 rounded-2xl font-bold text-sm hover:bg-blue-50 transition-all flex items-center gap-2">
             <i class="fas fa-save"></i> 설정 저장
           </button>
@@ -740,9 +754,10 @@ export function stepContentHtml(step: number, editId?: string, isEmbedded: boole
         </div>
         <h3 class="text-lg font-bold text-amber-900">과정개요가 등록되지 않았습니다</h3>
         <p class="text-amber-700 text-sm mt-2 mb-6">1단계에서 과정개요를 먼저 저장한 뒤 진행해주세요.</p>
-        <a href="/admin/ncs/approved/1${regId ? '?id=' + regId : ''}" class="inline-flex items-center gap-2 px-6 py-2.5 bg-amber-600 text-white rounded-xl font-bold text-sm hover:bg-amber-700 transition-all">
-          1단계로 이동 <i class="fas fa-arrow-right"></i>
-        </a>
+        ${isEmbedded
+        ? `<button type="button" onclick="loadNcsStep(1)" class="inline-flex items-center gap-2 px-6 py-2.5 bg-amber-600 text-white rounded-xl font-bold text-sm hover:bg-amber-700 transition-all">1단계로 이동 <i class="fas fa-arrow-right"></i></button>`
+        : `<a href="/admin/ncs/approved/1${regId ? '?id=' + regId : ''}" class="inline-flex items-center gap-2 px-6 py-2.5 bg-amber-600 text-white rounded-xl font-bold text-sm hover:bg-amber-700 transition-all">1단계로 이동 <i class="fas fa-arrow-right"></i></a>`
+      }
       </div>
 
       <div id="ncsStep5Form" class="space-y-8">
@@ -801,12 +816,16 @@ export function stepContentHtml(step: number, editId?: string, isEmbedded: boole
 
       <div class="pt-8 flex items-center justify-between border-t border-slate-200">
         <div class="flex gap-3">
-          <a href="/admin/ncs/approved/list" class="h-12 px-6 flex items-center gap-2 border border-slate-200 rounded-2xl bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all">목록</a>
+          ${isEmbedded
+        ? `<a href="/admin/courses/approved" class="h-12 px-6 flex items-center gap-2 border border-slate-200 rounded-2xl bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all">목록</a>`
+        : `<a href="/admin/ncs/approved/list" class="h-12 px-6 flex items-center gap-2 border border-slate-200 rounded-2xl bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all">목록</a>`
+      }
         </div>
         <div class="flex gap-3">
-          <a href="/admin/ncs/approved/4${regId ? '?id=' + regId : ''}" class="h-12 px-6 flex items-center gap-2 border border-slate-200 rounded-2xl bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all">
-            <i class="fas fa-chevron-left text-xs"></i> 4단계 (시간)
-          </a>
+          ${isEmbedded
+        ? `<button type="button" onclick="loadNcsStep(4)" class="h-12 px-6 flex items-center gap-2 border border-slate-200 rounded-2xl bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all"><i class="fas fa-chevron-left text-xs"></i> 4단계 (시간)</button>`
+        : `<a href="/admin/ncs/approved/4${regId ? '?id=' + regId : ''}" class="h-12 px-6 flex items-center gap-2 border border-slate-200 rounded-2xl bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all"><i class="fas fa-chevron-left text-xs"></i> 4단계 (시간)</a>`
+      }
           <button type="button" id="ncsStep5BtnSave" class="h-12 px-6 bg-white border border-blue-200 text-blue-600 rounded-2xl font-bold text-sm hover:bg-blue-50 transition-all flex items-center gap-2">
             <i class="fas fa-save"></i> 설정 저장
           </button>
@@ -878,12 +897,16 @@ export function stepContentHtml(step: number, editId?: string, isEmbedded: boole
 
       <div class="pt-8 flex items-center justify-between border-t border-slate-200">
         <div class="flex gap-3">
-          <a href="/admin/ncs/approved/list" class="h-12 px-6 flex items-center gap-2 border border-slate-200 rounded-2xl bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all">목록</a>
+          ${isEmbedded
+        ? `<a href="/admin/courses/approved" class="h-12 px-6 flex items-center gap-2 border border-slate-200 rounded-2xl bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all">목록</a>`
+        : `<a href="/admin/ncs/approved/list" class="h-12 px-6 flex items-center gap-2 border border-slate-200 rounded-2xl bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all">목록</a>`
+      }
         </div>
         <div class="flex gap-3">
-          <a href="/admin/ncs/approved/5${regId ? '?id=' + regId : ''}" class="h-12 px-6 flex items-center gap-2 border border-slate-200 rounded-2xl bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all">
-            <i class="fas fa-chevron-left text-xs"></i> 5단계 (평가)
-          </a>
+          ${isEmbedded
+        ? `<button type="button" onclick="loadNcsStep(5)" class="h-12 px-6 flex items-center gap-2 border border-slate-200 rounded-2xl bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all"><i class="fas fa-chevron-left text-xs"></i> 5단계 (평가)</button>`
+        : `<a href="/admin/ncs/approved/5${regId ? '?id=' + regId : ''}" class="h-12 px-6 flex items-center gap-2 border border-slate-200 rounded-2xl bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all"><i class="fas fa-chevron-left text-xs"></i> 5단계 (평가)</a>`
+      }
           <button type="button" id="ncsStep6BtnSave" class="h-12 px-6 bg-white border border-blue-200 text-blue-600 rounded-2xl font-bold text-sm hover:bg-blue-50 transition-all flex items-center gap-2">
             <i class="fas fa-save"></i> 설정 저장
           </button>
@@ -961,7 +984,7 @@ const NCS_COMMON_STYLES = `
 
 export function adminNcsApprovedHtml(stepParam?: string, editId?: string): string {
   const step = Math.min(6, Math.max(1, parseInt(stepParam || '1', 10) || 1));
-  const stepNav = stepNavHtml(step);
+  const stepNav = stepNavHtml(step, editId);
   const content = stepContentHtml(step, editId);
   return `
 <!DOCTYPE html>
@@ -1029,14 +1052,15 @@ export function adminNcsApprovedHtml(stepParam?: string, editId?: string): strin
  * 과정 등록 페이지 내에 임베딩하기 위한 HTML 생성 함수
  * @param courseId 승인받은 과정 ID (1단계 기본정보 저장 후 생성된 ID)
  */
-export function adminNcsEmbedHtml(courseId: string): string {
+// Update signature and implementation
+export function adminNcsEmbedHtml(courseId: string, initialStep: number = 1): string {
   // 1단계(과정개요)부터 시작. 
   // 실제로는 JS에서 탭 전환 시 동적으로 콘텐츠를 로드하거나, 
   // 혹은 여기서 전체 구조를 잡아주고 JS가 보여주는 방식을 쓸 수 있음.
   // 여기서는 기본 구조(사이드바 + 콘텐츠 영역)를 렌더링함.
 
-  // 임베디드 모드에서는 step 1 콘텐츠를 바로 로드
-  const step = 1;
+  // 임베디드 모드에서는 step 1 콘텐츠를 바로 로드 (or initialStep)
+  const step = initialStep;
   const stepNav = STEP_MENU.map(
     (s) => `
         <button type="button" onclick="loadNcsStep(${s.step})" id="ncsStepLink_${s.step}" class="w-full flex items-center px-4 py-3 rounded-xl transition-all mb-1 ${step === s.step ? 'bg-blue-600/10 text-blue-700 font-bold' : 'hover:bg-slate-50 text-slate-500 hover:text-slate-700'}">
@@ -1045,7 +1069,7 @@ export function adminNcsEmbedHtml(courseId: string): string {
         </button>`
   ).join('');
 
-  // 초기 로딩 시 Step 1 콘텐츠 렌더링 (isEmbedded = true, courseId 전달)
+  // 초기 로딩 시 Step 콘텐츠 렌더링 (isEmbedded = true, courseId 전달)
   // editId는 NCS 등록 정보의 ID인데, 초기에는 없을 수 있음. 
   // 하지만 stepContentHtml은 UI 구조를 그리는 것이므로 일단 빈 문자열로 넘기고, JS에서 로드 시 채워넣도록 함.
   const content = stepContentHtml(step, '', true, courseId);
@@ -1082,7 +1106,7 @@ export function adminNcsEmbedHtml(courseId: string): string {
     <script>
         // 전역 변수로 현재 과정 ID, Step 설정
         window.NCS_EMBED_COURSE_ID = "${courseId}";
-        window.NCS_CURRENT_STEP = 1;
+        window.NCS_CURRENT_STEP = ${step};
     </script>
     `;
 }

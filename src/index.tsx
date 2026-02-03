@@ -286,9 +286,15 @@ app.get('/admin/training-logs', (c) => c.html(adminHrdTrainingLogsHtml()));
 app.get('/admin/assignments', (c) => c.html(adminHrdAssignmentsHtml()));
 app.get('/admin/counseling', (c) => c.html(adminHrdCounselingHtml));
 app.get('/admin/ncs', (c) => c.html(adminNcsHtml));
-app.get('/admin/ncs/approved', (c) => c.redirect('/admin/ncs/approved/1'));
-app.get('/admin/ncs/approved/list', (c) => c.html(adminNcsApprovedListHtml()));
-app.get('/admin/ncs/approved/:step', (c) => c.html(adminNcsApprovedHtml(c.req.param('step'), c.req.query('id'))));
+app.get('/admin/ncs/approved', (c) => c.redirect('/admin/courses/approved'));
+app.get('/admin/ncs/approved/list', (c) => c.redirect('/admin/courses/approved'));
+app.get('/admin/ncs/approved/:step', (c) => {
+    const id = c.req.query('id');
+    if (id) {
+        return c.redirect(`/admin/courses/approved/register?id=${id}&tab=ncs`);
+    }
+    return c.redirect('/admin/courses/approved');
+});
 app.get('/admin/exams', (c) => c.html(adminHrdExamsHtml()));
 app.get('/admin/exams/:id/results', (c) => c.html(adminExamResultsHtml()));
 app.get('/admin/grades', (c) => c.html(adminHrdGradesHtml()));

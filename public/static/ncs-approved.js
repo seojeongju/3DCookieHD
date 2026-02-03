@@ -371,46 +371,84 @@
             return payload;
         }
 
+
         function doSave(redirectToStep2) {
-            var payload = buildPayload();
-            var url = editId ? '/api/ncs/approved/registrations/' + editId : '/api/ncs/approved/registrations';
-            var method = editId ? 'PUT' : 'POST';
-            var token = localStorage.getItem('token');
-            var btn = document.getElementById('ncsApprovedBtnSave');
-            if (btn) btn.disabled = true;
-            fetch(url, {
-                method: method,
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (token || '') },
-                body: JSON.stringify(payload)
-            })
-                .then(function (r) { return r.json(); })
-                .then(function (json) {
-                    if (btn) btn.disabled = false;
-                    if (json.success) {
-                        if (redirectToStep2) {
-                            var id = editId || (json.data && json.data.id);
-                            if (isEmbedded) {
-                                if (window.loadNcsStep) window.loadNcsStep(2);
-                            } else {
-                                window.location.href = id ? '/admin/ncs/approved/2?id=' + id : '/admin/ncs/approved/list';
-                            }
-                        } else {
-                            if (isEmbedded) {
-                                alert('저장되었습니다.');
-                                // Reload current step to refresh data? or just stay
-                                if (window.loadNcsStep) window.loadNcsStep(step);
-                            } else {
-                                window.location.href = '/admin/ncs/approved/list';
-                            }
-                        }
-                        return;
-                    }
-                    alert(json.error || '저장 실패');
+            // Force strict check for embedded mode
+            // Allow embedded mode if we are in Key Admin Pages (like course register) even if they start with /admin/
+            var isRealEmbedded = isEmbedded && (!window.location.pathname.startsWith('/admin/') || window.location.pathname.indexOf('/courses/approved/register') !== -1);
+            console.log('doSave executing. Redirect:', redirectToStep2, 'isEmbedded(global):', isEmbedded, 'isRealEmbedded:', isRealEmbedded);
+
+            var btnSave = document.getElementById('ncsApprovedBtnSave');
+            var btnNext = document.getElementById('ncsApprovedBtnNext');
+
+            try {
+                var payload = buildPayload();
+                console.log('Payload built:', payload);
+
+                var url = editId ? '/api/ncs/approved/registrations/' + editId : '/api/ncs/approved/registrations';
+                var method = editId ? 'PUT' : 'POST';
+                var token = localStorage.getItem('token');
+
+                if (btnSave) btnSave.disabled = true;
+                if (btnNext) btnNext.disabled = true;
+
+                fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (token || '') },
+                    body: JSON.stringify(payload)
                 })
-                .catch(function () {
-                    if (btn) btn.disabled = false;
-                    alert('저장 중 오류가 발생했습니다.');
-                });
+                    .then(function (r) { return r.json(); })
+                    .then(function (json) {
+                        console.log('Save response received:', json);
+                        if (btnSave) btnSave.disabled = false;
+                        if (btnNext) btnNext.disabled = false;
+
+                        if (json.success) {
+                            var responseId = json.data && json.data.id;
+                            var idToUse = editId || responseId;
+
+                            console.log('ID Resolution - editId:', editId, 'responseId:', responseId, 'idToUse:', idToUse);
+
+                            if (redirectToStep2) {
+                                if (isRealEmbedded) {
+                                    if (window.loadNcsStep) window.loadNcsStep(2);
+                                } else {
+                                    var targetUrl = idToUse ? '/admin/ncs/approved/2?id=' + idToUse : '/admin/ncs/approved/list';
+                                    console.log('Attempting navigation to Step 2:', targetUrl);
+                                    window.location.href = targetUrl;
+                                }
+                            } else {
+                                if (isRealEmbedded) {
+                                    alert('저장되었습니다.');
+                                    if (window.loadNcsStep) window.loadNcsStep(1);
+                                } else {
+                                    if (responseId && !editId) {
+                                        // New registration, reload to apply context
+                                        var targetUrl = '/admin/ncs/approved/1?id=' + responseId;
+                                        console.log('New registration created. Reloading Step 1 context:', targetUrl);
+                                        window.location.href = targetUrl;
+                                        return;
+                                    }
+                                    alert('저장되었습니다.');
+                                }
+                            }
+                            return;
+                        }
+                        console.error('Save reported failure:', json.error);
+                        alert(json.error || '저장 실패');
+                    })
+                    .catch(function (e) {
+                        console.error('Save fetch exception:', e);
+                        if (btnSave) btnSave.disabled = false;
+                        if (btnNext) btnNext.disabled = false;
+                        alert('저장 중 오류가 발생했습니다: ' + e);
+                    });
+            } catch (e) {
+                console.error('doSave setup exception:', e);
+                if (btnSave) btnSave.disabled = false;
+                if (btnNext) btnNext.disabled = false;
+                alert('처리 중 오류가 발생했습니다: ' + e.message);
+            }
         }
 
         function doDelete() {
@@ -443,11 +481,19 @@
         }
 
         var saveBtn = document.getElementById('ncsApprovedBtnSave');
-        if (saveBtn) saveBtn.addEventListener('click', function () { doSave(false); });
+        if (saveBtn) {
+            // Remove old potential listeners by cloning or just reassigning onclick
+            // Re-querying ensures we have the element, setting onclick overrides previous
+            saveBtn.onclick = function () { doSave(false); };
+        }
+
         var nextBtn = document.getElementById('ncsApprovedBtnNext');
-        if (nextBtn) nextBtn.addEventListener('click', function () { doSave(true); });
+        if (nextBtn) {
+            nextBtn.onclick = function () { doSave(true); };
+        }
+
         var delBtn = document.getElementById('ncsApprovedBtnDelete');
-        if (delBtn) delBtn.addEventListener('click', doDelete);
+        if (delBtn) delBtn.onclick = doDelete;
 
         function setRegDate(val) {
             var el = document.getElementById('ncsRegDate');
@@ -852,11 +898,10 @@
         var regId = (regInput && regInput.value) ? regInput.value.trim() : '';
         var noReg = document.getElementById('ncsStep3NoReg');
         var form = document.getElementById('ncsStep3Form');
-        var jobLabel = document.getElementById('ncsCurriculumJobLabel');
-        var ncsRows = document.getElementById('ncsCurriculumRows');
+        var ncsRowsCallback = document.getElementById('ncsCurriculumRows'); // Container
         var nonNcsRows = document.getElementById('nonNcsCurriculumRows');
 
-        if (!form || !ncsRows || !nonNcsRows) return;
+        if (!form || !ncsRowsCallback || !nonNcsRows) return;
 
         if (!regId) {
             if (noReg) noReg.classList.remove('hidden');
@@ -866,135 +911,262 @@
         if (noReg) noReg.classList.add('hidden');
         form.classList.remove('hidden');
 
-        var unitList = [];
-        var elementList = [];
+        var trainingData = null;
+        var availableUnitsMap = {}; // code -> unit object with elements
+        var elementCountMap = {};
 
+        // Helper: escape html
         function esc(s) {
             if (s == null) return '';
             var el = document.createElement('span');
             el.textContent = s;
             return el.innerHTML;
         }
-        function fillUnitChecks(container) {
-            if (!container) return;
-            container.innerHTML = '';
-            unitList.forEach(function (u) {
-                var label = document.createElement('label');
-                label.className = 'flex items-center gap-2 text-sm text-slate-700';
-                var cb = document.createElement('input');
-                cb.type = 'checkbox';
-                cb.className = 'ncs-unit-cb rounded text-blue-600';
-                cb.value = u.name;
-                cb.dataset.name = u.name;
-                label.appendChild(cb);
-                label.appendChild(document.createTextNode(u.name));
-                container.appendChild(label);
+        function attrEsc(s) {
+            return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        function createJobSection(jobName) {
+            var sect = document.createElement('div');
+            sect.className = 'bg-white rounded-[1.5rem] border border-slate-200 shadow-sm p-6 mb-8 job-section';
+            sect.dataset.jobName = jobName || 'unknown';
+            sect.innerHTML =
+                '<div class="flex items-center gap-3 mb-6">' +
+                '<i class="fas fa-book-open text-blue-600 text-xl"></i>' +
+                '<h3 class="text-lg font-black text-slate-800">' + esc(jobName || '직종 미분류') + '</h3>' +
+                '<span class="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded">NCS 능력단위 기반 교과목 편성</span>' +
+                '</div>' +
+                '<div class="space-y-4 job-subjects-container"></div>' +
+                '<div class="mt-6 pt-4 border-t border-slate-100 flex justify-end">' +
+                '<button type="button" class="btn-add-subject px-4 py-2.5 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 font-bold text-sm transition flex items-center gap-2">' +
+                '<i class="fas fa-plus"></i> 교과목 추가' +
+                '</button></div>';
+
+            sect.querySelector('.btn-add-subject').addEventListener('click', function () {
+                addSubjectRow(sect.querySelector('.job-subjects-container'), jobName);
             });
+            return sect;
         }
-        function fillElementChecks(container) {
-            if (!container) return;
-            container.innerHTML = '';
-            if (!elementList.length) {
-                container.innerHTML = '<span class="text-slate-500 text-sm">등록된 능력단위요소가 없습니다. NCS 능력단위에 해당 직종의 요소가 등록되어 있으면 여기에 표시됩니다.</span>';
-                return;
-            }
-            elementList.forEach(function (e) {
-                var name = (e && e.name) ? e.name : String(e);
-                if (!name) return;
-                var label = document.createElement('label');
-                label.className = 'flex items-center gap-2 text-sm text-slate-700';
-                var cb = document.createElement('input');
-                cb.type = 'checkbox';
-                cb.className = 'ncs-element-cb rounded text-blue-600';
-                cb.value = name;
-                cb.dataset.name = name;
-                label.appendChild(cb);
-                label.appendChild(document.createTextNode(name));
-                container.appendChild(label);
+
+        function addSubjectRow(container, jobName, data) {
+            data = data || {};
+            var row = document.createElement('div');
+            row.className = 'ncs-curriculum-row bg-slate-50 rounded-2xl p-5 border border-slate-200 relative group transition-all hover:border-blue-200 hover:shadow-md';
+
+            var unitsHtml = '';
+            var jobUnits = [];
+            // Filter available units for this job
+            Object.values(availableUnitsMap).forEach(function (u) {
+                var uJobNames = u.jobNames || [];
+                // Check if this unit belongs to the job. Strict match if jobName provided.
+                if (!jobName || uJobNames.includes(jobName) || uJobNames.length === 0) {
+                    jobUnits.push(u);
+                }
             });
-        }
-        function updateSelected(row) {
-            var sel = row && row.querySelector('.ncs-curriculum-selected');
-            if (!sel) return;
-            var checked = row.querySelectorAll('.ncs-unit-cb:checked');
-            var names = Array.prototype.map.call(checked, function (c) { return c.value || c.dataset.name; }).filter(Boolean);
-            sel.textContent = names.length ? names.join(', ') : '';
-        }
-        function toggleElementsSection(row, forceOpen) {
-            var body = row && row.querySelector('.ncs-curriculum-elements-body');
-            var btn = row && row.querySelector('.ncs-elements-toggle');
-            var chevron = row && row.querySelector('.ncs-elements-chevron');
-            if (!body || !btn) return;
-            var open = forceOpen === undefined ? body.classList.contains('hidden') : !!forceOpen;
-            if (open) {
-                body.classList.remove('hidden');
-                btn.setAttribute('aria-expanded', 'true');
-                if (chevron) chevron.style.transform = 'rotate(180deg)';
-            } else {
-                body.classList.add('hidden');
-                btn.setAttribute('aria-expanded', 'false');
-                if (chevron) chevron.style.transform = '';
-            }
-        }
-        function updateElementsSectionVisibility(row) {
-            var checked = row && row.querySelectorAll('.ncs-unit-cb:checked');
-            var hasChecked = checked && checked.length > 0;
-            toggleElementsSection(row, hasChecked);
-        }
-        function wireUnitChecks(row) {
-            var container = row.querySelector('.ncs-curriculum-unit-checks');
-            if (!container) return;
-            container.addEventListener('change', function () {
-                updateSelected(row);
-                updateElementsSectionVisibility(row);
+            // If jobUnits empty (e.g. data issue), fallback to all? No, stick to strict.
+
+            row.innerHTML =
+                '<div class="flex flex-wrap items-start gap-4">' +
+                '<div class="w-full md:w-48 pt-1">' +
+                '<label class="block text-xs font-bold text-slate-500 uppercase mb-1">교과목명</label>' +
+                '<input type="text" class="ncs-curriculum-name w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 placeholder-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition" placeholder="교과목명 입력" value="' + attrEsc(data.name) + '">' +
+                '</div>' +
+                '<div class="flex-1 min-w-[300px]">' +
+                '<label class="block text-xs font-bold text-slate-500 uppercase mb-1">능력단위 선택</label>' +
+                '<div class="flex flex-wrap gap-2 ncs-unit-chips">' +
+                // Render Unit Checkboxes (Chips)
+                jobUnits.map(function (u) {
+                    var isChecked = false;
+                    if (data.ability_units) {
+                        // Check if unit code is in ability_units list (handling objects or strings)
+                        // data.ability_units might be [{code: ...}, {code: ...}] or ['code', ...]
+                        isChecked = data.ability_units.some(function (sel) {
+                            return (typeof sel === 'string' ? sel : sel.code) === u.code;
+                        });
+                    }
+                    var activeClass = isChecked ? 'bg-white border-blue-500 text-blue-700 ring-2 ring-blue-100 font-bold' : 'bg-white border-slate-200 text-slate-600 hover:border-blue-300';
+                    return '<label class="cursor-pointer px-3 py-2 rounded-lg border text-sm transition select-none flex items-center gap-2 ' + activeClass + '">' +
+                        '<input type="checkbox" class="ncs-unit-input hidden" value="' + attrEsc(u.code) + '" ' + (isChecked ? 'checked' : '') + '>' +
+                        '<span>' + esc(u.name) + '</span>' +
+                        '<i class="fas fa-check text-xs ' + (isChecked ? '' : 'hidden') + '"></i>' +
+                        '</label>';
+                }).join('') +
+                '</div>' +
+                // Container for Elements (Dynamic)
+                '<div class="mt-4 space-y-3 ncs-elements-container"></div>' +
+                '</div>' +
+                '<button type="button" class="btn-del-subject w-8 h-8 flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition" title="삭제"><i class="fas fa-times"></i></button>' +
+                '</div>';
+
+            container.appendChild(row);
+
+            // Event Listeners
+            var chips = row.querySelectorAll('.ncs-unit-input');
+            var elContainer = row.querySelector('.ncs-elements-container');
+            var btnDel = row.querySelector('.btn-del-subject');
+
+            btnDel.addEventListener('click', function () {
+                if (confirm('이 교과목을 삭제하시겠습니까?')) row.remove();
             });
-            var toggleBtn = row.querySelector('.ncs-elements-toggle');
-            if (toggleBtn) {
-                toggleBtn.addEventListener('click', function () {
-                    toggleElementsSection(row);
+
+            function renderElements() {
+                elContainer.innerHTML = '';
+                var checkedUnits = Array.from(row.querySelectorAll('.ncs-unit-input:checked')).map(function (cb) { return cb.value; });
+
+                checkedUnits.forEach(function (uCode) {
+                    var unit = availableUnitsMap[uCode];
+                    if (!unit) return;
+                    var elements = unit.elements || [];
+
+                    var savedUnit = (data.ability_units || []).find(function (s) { return (typeof s === 'string' ? s : s.code) === uCode; });
+                    // If savedUnit is object, use its elements. If string (legacy), select all by default?
+                    var savedElements = (savedUnit && typeof savedUnit === 'object' && savedUnit.elements) ? savedUnit.elements : null;
+
+                    var elHtml = '<div class="bg-slate-50/50 border border-slate-200 rounded-xl p-3">' +
+                        '<div class="flex items-center gap-2 mb-2">' +
+                        '<span class="text-xs font-bold text-slate-800 bg-white border border-slate-200 px-2 py-0.5 rounded">' + esc(unit.name) + '</span>' +
+                        '<span class="text-[10px] text-slate-400">능력단위요소 선택</span>' +
+                        '</div>' +
+                        '<div class="grid grid-cols-1 sm:grid-cols-2 gap-y-1 gap-x-4 pl-1">';
+
+                    if (elements.length > 0) {
+                        elHtml += elements.map(function (el) {
+                            // Determine checked state
+                            var isElChecked = true; // default true
+                            if (savedElements) {
+                                isElChecked = savedElements.some(function (selEl) { return selEl.code === el.code; });
+                            }
+                            return '<label class="flex items-start gap-2 text-xs text-slate-600 mb-1 cursor-pointer hover:text-blue-600">' +
+                                '<input type="checkbox" class="mt-0.5 ncs-element-input text-blue-600 rounded" value="' + attrEsc(el.code) + '" data-unit-code="' + attrEsc(uCode) + '" ' + (isElChecked ? 'checked' : '') + '>' +
+                                '<span class="leading-snug">' + esc(el.name) + '</span>' +
+                                '</label>';
+                        }).join('');
+                    } else {
+                        elHtml += '<span class="text-xs text-slate-400 italic col-span-2">등록된 하위 요소가 없습니다.</span>';
+                    }
+                    elHtml += '</div></div>';
+                    elContainer.insertAdjacentHTML('beforeend', elHtml);
                 });
             }
+
+            // Initial render of elements
+            renderElements();
+
+            // When unit selection changes
+            chips.forEach(function (cb) {
+                cb.addEventListener('change', function () {
+                    // Update chip style
+                    var label = cb.parentElement;
+                    var icon = label.querySelector('.fa-check');
+                    if (cb.checked) {
+                        label.className = 'cursor-pointer px-3 py-2 rounded-lg border text-sm transition select-none flex items-center gap-2 bg-white border-blue-500 text-blue-700 ring-2 ring-blue-100 font-bold';
+                        icon.classList.remove('hidden');
+                    } else {
+                        label.className = 'cursor-pointer px-3 py-2 rounded-lg border text-sm transition select-none flex items-center gap-2 bg-white border-slate-200 text-slate-600 hover:border-blue-300';
+                        icon.classList.add('hidden');
+                    }
+                    renderElements();
+                });
+            });
         }
-        function addNcsRow() {
-            var first = ncsRows.querySelector('.ncs-curriculum-row');
-            if (!first) return;
-            var clone = first.cloneNode(true);
-            clone.querySelectorAll('input').forEach(function (i) { i.value = ''; });
-            var checks = clone.querySelector('.ncs-curriculum-unit-checks');
-            if (checks) checks.innerHTML = '';
-            var elChecks = clone.querySelector('.ncs-curriculum-element-checks');
-            if (elChecks) elChecks.innerHTML = '';
-            ncsRows.appendChild(clone);
-            fillUnitChecks(clone.querySelector('.ncs-curriculum-unit-checks'));
-            fillElementChecks(clone.querySelector('.ncs-curriculum-element-checks'));
-            wireUnitChecks(clone);
-            toggleElementsSection(clone, false);
+
+        // Logic to build payload (save logic)
+        function buildCurriculumPayload() {
+            var items = [];
+
+            // Iterate Job Sections (NCS Items)
+            document.querySelectorAll('.job-section').forEach(function (sect) {
+                var jobName = sect.dataset.jobName;
+                sect.querySelectorAll('.ncs-curriculum-row').forEach(function (row) {
+                    var nameEl = row.querySelector('.ncs-curriculum-name');
+                    var name = nameEl ? nameEl.value.trim() : '';
+                    if (!name) return; // Skip empty names?
+
+                    var ability_units = [];
+
+                    // Iterate over checked units
+                    row.querySelectorAll('.ncs-unit-input:checked').forEach(function (unitCb) {
+                        var uCode = unitCb.value;
+                        var uInfo = availableUnitsMap[uCode];
+                        if (!uInfo) return;
+
+                        // Find checked elements for this unit
+                        var selectedElements = [];
+                        row.querySelectorAll('.ncs-element-input[data-unit-code="' + uCode + '"]:checked').forEach(function (elCb) {
+                            var eCode = elCb.value;
+                            // Find element info in uInfo.elements
+                            var eInfo = (uInfo.elements || []).find(function (e) { return e.code === eCode });
+                            if (eInfo) {
+                                selectedElements.push({ code: eInfo.code, name: eInfo.name });
+                            }
+                        });
+
+                        ability_units.push({
+                            code: uInfo.code,
+                            name: uInfo.name,
+                            elements: selectedElements
+                        });
+                    });
+
+                    items.push({
+                        type: 'ncs',
+                        name: name,
+                        job_name: jobName,
+                        ability_units: ability_units
+                    });
+                });
+            });
+
+            // Iterate Non-NCS Items
+            if (nonNcsRows) {
+                nonNcsRows.querySelectorAll('.nonncs-curriculum-row').forEach(function (row) {
+                    var classEl = row.querySelector('.nonncs-curriculum-class');
+                    var nameEl = row.querySelector('.nonncs-curriculum-name');
+                    var classification = classEl ? classEl.value.trim() : '';
+                    var name = nameEl ? nameEl.value.trim() : '';
+
+                    if (!name && !classification) return; // Skip empty
+
+                    var units = [];
+                    row.querySelectorAll('.nonncs-unit-item').forEach(function (inp) {
+                        if (inp.value.trim()) units.push(inp.value.trim());
+                    });
+
+                    var objectives = [];
+                    row.querySelectorAll('.nonncs-obj-item').forEach(function (inp) {
+                        if (inp.value.trim()) objectives.push(inp.value.trim());
+                    });
+
+                    items.push({
+                        type: 'non_ncs',
+                        name: name,
+                        classification: classification,
+                        units: units,
+                        objectives: objectives
+                    });
+                });
+            }
+
+            return { items: items };
         }
-        function delNcsRow() {
-            var rows = ncsRows.querySelectorAll('.ncs-curriculum-row');
-            if (rows.length <= 1) return;
-            rows[rows.length - 1].remove();
-        }
+
+        // Add NON-NCS Helpers
         function addNonNcsRow() {
+            // Reuse existing logic or simple re-implement
             var first = nonNcsRows.querySelector('.nonncs-curriculum-row');
-            if (!first) return;
+            if (!first) return; // Expecting template row
             var clone = first.cloneNode(true);
             clone.querySelectorAll('input, select').forEach(function (i) { i.value = ''; });
             var u = clone.querySelector('.nonncs-units');
-            if (u) {
-                u.innerHTML = '<div class="flex gap-2"><input type="text" class="nonncs-unit-item flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm" placeholder="단원명 입력"><button type="button" class="nonncs-unit-plus w-10 h-10 flex items-center justify-center text-blue-600 bg-blue-50 rounded-xl hover:bg-blue-100 transition">+</button></div>';
-            }
+            if (u) { u.innerHTML = '<div class="flex gap-2"><input type="text" class="nonncs-unit-item flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm" placeholder="단원명 입력"><button type="button" class="nonncs-unit-plus w-10 h-10 flex items-center justify-center text-blue-600 bg-blue-50 rounded-xl hover:bg-blue-100 transition">+</button></div>'; }
             var o = clone.querySelector('.nonncs-objectives');
-            if (o) {
-                o.innerHTML = '<div class="flex gap-2"><input type="text" class="nonncs-obj-item flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm" placeholder="수행기준 입력"><button type="button" class="nonncs-obj-plus w-10 h-10 flex items-center justify-center text-blue-600 bg-blue-50 rounded-xl hover:bg-blue-100 transition">+</button></div>';
-            }
+            if (o) { o.innerHTML = '<div class="flex gap-2"><input type="text" class="nonncs-obj-item flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm" placeholder="수행기준 입력"><button type="button" class="nonncs-obj-plus w-10 h-10 flex items-center justify-center text-blue-600 bg-blue-50 rounded-xl hover:bg-blue-100 transition">+</button></div>'; }
             nonNcsRows.appendChild(clone);
             wireNonNcsRow(clone);
         }
         function delNonNcsRow() {
             var rows = nonNcsRows.querySelectorAll('.nonncs-curriculum-row');
-            if (rows.length <= 1) return;
-            rows[rows.length - 1].remove();
+            if (rows.length > 1) rows[rows.length - 1].remove();
         }
         function wireNonNcsRow(row) {
             var units = row.querySelector('.nonncs-units');
@@ -1008,20 +1180,14 @@
             }
             function delUnit() {
                 var items = units.querySelectorAll('.flex');
-                if (items.length <= 1) return;
-                items[items.length - 1].remove();
+                if (items.length > 1) items[items.length - 1].remove();
             }
-            function addObj() {
-                var t = objs.querySelector('.flex');
-                if (!t) return;
-                var div = t.cloneNode(true);
-                div.querySelector('input').value = '';
-                objs.appendChild(div);
+            function addObj() { //... same
+                var t = objs.querySelector('.flex'); if (!t) return;
+                var div = t.cloneNode(true); div.querySelector('input').value = ''; objs.appendChild(div);
             }
-            function delObj() {
-                var items = objs.querySelectorAll('.flex');
-                if (items.length <= 1) return;
-                items[items.length - 1].remove();
+            function delObj() { //... same
+                var items = objs.querySelectorAll('.flex'); if (items.length > 1) items[items.length - 1].remove();
             }
             if (units) {
                 units.addEventListener('click', function (e) {
@@ -1037,37 +1203,12 @@
             }
         }
 
-        function buildCurriculumPayload() {
-            var items = [];
-            ncsRows.querySelectorAll('.ncs-curriculum-row').forEach(function (row) {
-                var nameEl = row.querySelector('.ncs-curriculum-name');
-                var name = (nameEl && nameEl.value) ? nameEl.value.trim() : '';
-                var ability_units = [];
-                row.querySelectorAll('.ncs-unit-cb:checked').forEach(function (cb) {
-                    var v = (cb.value || cb.dataset.name || '').trim();
-                    if (v) ability_units.push(v);
-                });
-                items.push({ type: 'ncs', name: name, ability_units: ability_units });
-            });
-            nonNcsRows.querySelectorAll('.nonncs-curriculum-row').forEach(function (row) {
-                var nameEl = row.querySelector('.nonncs-curriculum-name');
-                var classEl = row.querySelector('.nonncs-curriculum-class');
-                var name = (nameEl && nameEl.value) ? nameEl.value.trim() : '';
-                var classification = (classEl && classEl.value) ? classEl.value.trim() : '';
-                var units = [];
-                row.querySelectorAll('.nonncs-unit-item').forEach(function (i) {
-                    var v = (i.value || '').trim();
-                    if (v) units.push(v);
-                });
-                var objectives = [];
-                row.querySelectorAll('.nonncs-obj-item').forEach(function (i) {
-                    var v = (i.value || '').trim();
-                    if (v) objectives.push(v);
-                });
-                items.push({ type: 'non_ncs', name: name, classification: classification, units: units, objectives: objectives });
-            });
-            return { items: items };
-        }
+        // Attach buttons
+        var addNon = document.getElementById('nonNcsCurriculumBtnAdd');
+        var delNon = document.getElementById('nonNcsCurriculumBtnDel');
+        if (addNon) { addNon.removeEventListener('click', addNonNcsRow); addNon.addEventListener('click', addNonNcsRow); }
+        if (delNon) { delNon.removeEventListener('click', delNonNcsRow); delNon.addEventListener('click', delNonNcsRow); }
+        // Note: NCS add/del buttons are now handled per-job section
 
         function saveCurriculum(redirectToNext) {
             var payload = buildCurriculumPayload();
@@ -1087,11 +1228,8 @@
                     if (btnNext) btnNext.disabled = false;
                     if (json.success) {
                         if (redirectToNext) {
-                            if (isEmbedded) {
-                                if (window.loadNcsStep) window.loadNcsStep(4);
-                            } else {
-                                window.location.href = '/admin/ncs/approved/4?id=' + regId;
-                            }
+                            if (isEmbedded) { if (window.loadNcsStep) window.loadNcsStep(4); }
+                            else { window.location.href = '/admin/ncs/approved/4?id=' + regId; }
                             return;
                         }
                         alert('저장되었습니다.');
@@ -1106,136 +1244,127 @@
                 });
         }
 
-        function loadCurriculum() {
-            var t = localStorage.getItem('token');
-            fetch('/api/ncs/approved/registrations/' + regId + '/curriculum', { headers: t ? { 'Authorization': 'Bearer ' + t } : {} })
-                .then(function (r) { return r.json(); })
-                .then(function (json) {
-                    if (!json.success || !Array.isArray(json.data)) return;
-                    var items = json.data;
-                    var ncsItems = items.filter(function (i) { return (i.type || '') === 'ncs'; });
-                    var nonItems = items.filter(function (i) { return (i.type || '') === 'non_ncs'; });
+        var btnSave = document.getElementById('ncsStep3BtnSave');
+        var btnNext = document.getElementById('ncsStep3BtnNext');
+        // Clear old listeners by clone or just standard (re-assigning onclick might be cleaner if we want to remove old ones)
+        if (btnSave) { var n = btnSave.cloneNode(true); btnSave.parentNode.replaceChild(n, btnSave); btnSave = n; btnSave.addEventListener('click', function () { saveCurriculum(false); }); }
+        if (btnNext) { var n = btnNext.cloneNode(true); btnNext.parentNode.replaceChild(n, btnNext); btnNext = n; btnNext.addEventListener('click', function () { saveCurriculum(true); }); }
 
-                    function ensureNcsRows(n) {
-                        var rows = ncsRows.querySelectorAll('.ncs-curriculum-row');
-                        while (rows.length < n) { addNcsRow(); rows = ncsRows.querySelectorAll('.ncs-curriculum-row'); }
-                        while (rows.length > n && rows.length > 1) { delNcsRow(); rows = ncsRows.querySelectorAll('.ncs-curriculum-row'); }
-                    }
-                    function ensureNonRows(n) {
-                        var rows = nonNcsRows.querySelectorAll('.nonncs-curriculum-row');
-                        while (rows.length < n) { addNonNcsRow(); rows = nonNcsRows.querySelectorAll('.nonncs-curriculum-row'); }
-                        while (rows.length > n && rows.length > 1) { delNonNcsRow(); rows = nonNcsRows.querySelectorAll('.nonncs-curriculum-row'); }
-                    }
-                    ensureNcsRows(Math.max(1, ncsItems.length));
-                    ensureNonRows(Math.max(1, nonItems.length));
 
-                    var ncsR = ncsRows.querySelectorAll('.ncs-curriculum-row');
-                    ncsItems.forEach(function (it, i) {
-                        var row = ncsR[i];
-                        if (!row) return;
-                        var ne = row.querySelector('.ncs-curriculum-name');
-                        if (ne) ne.value = it.name || '';
-                        var ab = [];
-                        try { ab = it.ability_units_json ? JSON.parse(it.ability_units_json) : []; } catch (_) { }
-                        row.querySelectorAll('.ncs-unit-cb').forEach(function (cb) {
-                            cb.checked = ab.indexOf(cb.value || cb.dataset.name || '') !== -1;
-                        });
-                        updateSelected(row);
-                        updateElementsSectionVisibility(row);
-                    });
-                    var nonR = nonNcsRows.querySelectorAll('.nonncs-curriculum-row');
-                    nonItems.forEach(function (it, i) {
-                        var row = nonR[i];
-                        if (!row) return;
-                        var ce = row.querySelector('.nonncs-curriculum-class');
-                        if (ce) ce.value = it.classification || '';
-                        var ne = row.querySelector('.nonncs-curriculum-name');
-                        if (ne) ne.value = it.name || '';
-                        var uu = row.querySelector('.nonncs-units');
-                        var oo = row.querySelector('.nonncs-objectives');
-                        var units = [];
-                        try { units = it.units_json ? JSON.parse(it.units_json) : []; } catch (_) { }
-                        var objs = [];
-                        try { objs = it.objectives_json ? JSON.parse(it.objectives_json) : []; } catch (_) { }
-                        var flexTpl = '<div class="flex gap-2"><input type="text" class="nonncs-unit-item flex-1 px-4 py-2 border border-slate-200 rounded-lg text-sm" placeholder="단원명 입력"><button type="button" class="nonncs-unit-plus px-3 py-2 text-emerald-600 border border-emerald-200 rounded-lg hover:bg-emerald-50 text-sm">+</button><button type="button" class="nonncs-unit-minus px-3 py-2 text-red-600 border border-red-200 rounded-lg hover:bg-red-50 text-sm">−</button></div>';
-                        var objTpl = '<div class="flex gap-2"><input type="text" class="nonncs-obj-item flex-1 px-4 py-2 border border-slate-200 rounded-lg text-sm" placeholder="학습목표(수행준거) 입력"><button type="button" class="nonncs-obj-plus px-3 py-2 text-emerald-600 border border-emerald-200 rounded-lg hover:bg-emerald-50 text-sm">+</button><button type="button" class="nonncs-obj-minus px-3 py-2 text-red-600 border border-red-200 rounded-lg hover:bg-red-50 text-sm">−</button></div>';
-                        function attrEsc(s) {
-                            return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                        }
-                        if (uu) {
-                            uu.innerHTML = units.length ? units.map(function (u) {
-                                return '<div class="flex gap-2"><input type="text" class="nonncs-unit-item flex-1 px-4 py-2 border border-slate-200 rounded-lg text-sm" placeholder="단원명 입력" value="' + attrEsc(u) + '"><button type="button" class="nonncs-unit-plus px-3 py-2 text-emerald-600 border border-emerald-200 rounded-lg hover:bg-emerald-50 text-sm">+</button><button type="button" class="nonncs-unit-minus px-3 py-2 text-red-600 border border-red-200 rounded-lg hover:bg-red-50 text-sm">−</button></div>';
-                            }).join('') : flexTpl;
-                        }
-                        if (oo) {
-                            oo.innerHTML = objs.length ? objs.map(function (o) {
-                                return '<div class="flex gap-2"><input type="text" class="nonncs-obj-item flex-1 px-4 py-2 border border-slate-200 rounded-lg text-sm" placeholder="학습목표(수행준거) 입력" value="' + attrEsc(o) + '"><button type="button" class="nonncs-obj-plus px-3 py-2 text-emerald-600 border border-emerald-200 rounded-lg hover:bg-emerald-50 text-sm">+</button><button type="button" class="nonncs-obj-minus px-3 py-2 text-red-600 border border-red-200 rounded-lg hover:bg-red-50 text-sm">−</button></div>';
-                            }).join('') : objTpl;
-                        }
-                    });
-                })
-                .catch(function () { });
-        }
-
+        // Init Load
         var token = localStorage.getItem('token');
         fetch('/api/ncs/approved/registrations/' + regId + '/training-system', { headers: token ? { 'Authorization': 'Bearer ' + token } : {} })
             .then(function (r) { return r.json(); })
             .then(function (json) {
                 if (!json.success || !json.data) {
-                    if (jobLabel) jobLabel.textContent = 'NCS 기반 교과';
-                    unitList = [];
-                } else {
-                    var d = json.data;
-                    var levels = d.levels || { 6: [], 5: [], 4: [], 3: [], 2: [] };
-                    var mainJobs = Array.isArray(d.mainJobs) && d.mainJobs.length ? d.mainJobs : (d.mainJob ? [d.mainJob] : []);
-                    var firstMain = mainJobs[0] || { name: null };
-                    if (jobLabel) jobLabel.textContent = firstMain.name ? firstMain.name : 'NCS 기반 교과';
-                    if (d.selected && Array.isArray(d.selected) && d.selected.length) {
-                        unitList = d.selected.map(function (n) { return { name: n }; });
-                    } else {
-                        unitList = (levels[6] || []).concat(levels[5] || []).concat(levels[4] || []).concat(levels[3] || []).concat(levels[2] || []);
-                    }
-                    elementList = (d.elements && Array.isArray(d.elements)) ? d.elements : [];
+                    console.error('Failed to load training system');
+                    return;
                 }
-                var rows = ncsRows.querySelectorAll('.ncs-curriculum-row');
-                rows.forEach(function (r) {
-                    fillUnitChecks(r.querySelector('.ncs-curriculum-unit-checks'));
-                    fillElementChecks(r.querySelector('.ncs-curriculum-element-checks'));
-                    wireUnitChecks(r);
-                    toggleElementsSection(r, false);
-                });
-                var nonNcsR = nonNcsRows.querySelectorAll('.nonncs-curriculum-row');
-                nonNcsR.forEach(function (r) { wireNonNcsRow(r); });
-                loadCurriculum();
-            })
-            .catch(function () {
-                if (jobLabel) jobLabel.textContent = 'NCS 기반 교과';
-                unitList = [];
-                elementList = [];
-                var rows = ncsRows.querySelectorAll('.ncs-curriculum-row');
-                rows.forEach(function (r) {
-                    fillUnitChecks(r.querySelector('.ncs-curriculum-unit-checks'));
-                    fillElementChecks(r.querySelector('.ncs-curriculum-element-checks'));
-                    wireUnitChecks(r);
-                    toggleElementsSection(r, false);
-                });
-                var nonNcsR = nonNcsRows.querySelectorAll('.nonncs-curriculum-row');
-                nonNcsR.forEach(function (r) { wireNonNcsRow(r); });
-                loadCurriculum();
-            });
+                var d = json.data;
+                var mainJobs = Array.isArray(d.mainJobs) && d.mainJobs.length ? d.mainJobs : (d.mainJob ? [d.mainJob] : []);
+                var selected = d.selected || []; // Array of codes
+                var elementsData = d.elements || []; // Array of {code, name, jobNames, elements: []}
 
-        var addNcs = document.getElementById('ncsCurriculumBtnAdd');
-        var delNcs = document.getElementById('ncsCurriculumBtnDel');
-        if (addNcs) addNcs.addEventListener('click', addNcsRow);
-        if (delNcs) delNcs.addEventListener('click', delNcsRow);
-        var addNon = document.getElementById('nonNcsCurriculumBtnAdd');
-        var delNon = document.getElementById('nonNcsCurriculumBtnDel');
-        if (addNon) addNon.addEventListener('click', addNonNcsRow);
-        if (delNon) delNon.addEventListener('click', delNonNcsRow);
-        var btnSave = document.getElementById('ncsStep3BtnSave');
-        var btnNext = document.getElementById('ncsStep3BtnNext');
-        if (btnSave) btnSave.addEventListener('click', function () { saveCurriculum(false); });
-        if (btnNext) btnNext.addEventListener('click', function () { saveCurriculum(true); });
+                // Build availableUnitsMap
+                elementsData.forEach(function (el) {
+                    if (selected.includes(el.code)) {
+                        availableUnitsMap[el.code] = el;
+                    }
+                });
+
+                // Clear Container
+                ncsRowsCallback.innerHTML = '';
+
+                // Fetch saved curriculum to populate
+                fetch('/api/ncs/approved/registrations/' + regId + '/curriculum', { headers: token ? { 'Authorization': 'Bearer ' + token } : {} })
+                    .then(function (r) { return r.json(); })
+                    .then(function (cJson) {
+                        var existingItems = (cJson.success && cJson.data) ? cJson.data : [];
+                        var ncsItems = existingItems.filter(function (i) { return i.type === 'ncs'; });
+
+                        // Parse ability_units_json for existing items
+                        ncsItems.forEach(function (it) {
+                            try {
+                                it.ability_units = it.ability_units_json ? JSON.parse(it.ability_units_json) : [];
+                            } catch (e) { it.ability_units = []; }
+                        });
+
+                        // Render Job Sections
+                        mainJobs.forEach(function (job) {
+                            var jobName = job.name;
+                            var sect = createJobSection(jobName);
+                            var subContainer = sect.querySelector('.job-subjects-container');
+
+                            // Find existing subjects for this job
+                            // Note: Previous DB schema didn't have 'job_name'. We might need to guess or show all in first section if fallback.
+                            // Better logic: If item.job_name matches. Or if items have units belonging to this job.
+
+                            var jobItems = ncsItems.filter(function (it) {
+                                if (it.job_name === jobName) return true;
+                                if (!it.job_name) {
+                                    // Try to infer from units
+                                    if (it.ability_units.length > 0) {
+                                        var firstUCode = typeof it.ability_units[0] === 'string' ? it.ability_units[0] : it.ability_units[0].code;
+                                        var uInfo = availableUnitsMap[firstUCode];
+                                        if (uInfo && (uInfo.jobNames || []).includes(jobName)) return true;
+                                    } else {
+                                        // Empty subject without job_name - maybe default to first job?
+                                        if (mainJobs.indexOf(job) === 0) return true;
+                                    }
+                                }
+                                return false;
+                            });
+
+                            jobItems.forEach(function (it) {
+                                addSubjectRow(subContainer, jobName, it);
+                            });
+
+                            // If no items for this job, maybe add one empty row by default? 
+                            if (jobItems.length === 0) {
+                                // addSubjectRow(subContainer, jobName); // Optional
+                            }
+
+                            ncsRowsCallback.appendChild(sect);
+                        });
+
+                        // Ensure Non-NCS Rows populated
+                        var nonItems = existingItems.filter(function (i) { return i.type === 'non_ncs'; });
+                        var nonNcsR = nonNcsRows.querySelectorAll('.nonncs-curriculum-row');
+                        // Clear default template if we have data
+                        if (nonItems.length > 0) {
+                            // If template row exists, use it for first, clone for others
+                            // Easier: clear and rebuild using generic templating
+                            // But I reused existing html logic above. It expects rows exist.
+                            // Let's use ensureNonRows logic
+                            function ensureNonRows(n) {
+                                var rows = nonNcsRows.querySelectorAll('.nonncs-curriculum-row');
+                                while (rows.length < n) { addNonNcsRow(); rows = nonNcsRows.querySelectorAll('.nonncs-curriculum-row'); }
+                            }
+                            ensureNonRows(Math.max(1, nonItems.length));
+
+                            var rows = nonNcsRows.querySelectorAll('.nonncs-curriculum-row');
+                            nonItems.forEach(function (it, i) {
+                                var r = rows[i];
+                                r.querySelector('.nonncs-curriculum-class').value = it.classification || '';
+                                r.querySelector('.nonncs-curriculum-name').value = it.name || '';
+                                var uCont = r.querySelector('.nonncs-units');
+                                var oCont = r.querySelector('.nonncs-objectives');
+
+                                var units = []; try { units = it.units_json ? JSON.parse(it.units_json) : []; } catch (e) { }
+                                var objs = []; try { objs = it.objectives_json ? JSON.parse(it.objectives_json) : []; } catch (e) { }
+
+                                function flexIn(val, ph) { return '<div class="flex gap-2"><input type="text" class="nonncs-unit-item flex-1 px-4 py-2 border border-slate-200 rounded-lg text-sm" placeholder="' + ph + '" value="' + attrEsc(val) + '"><button type="button" class="nonncs-unit-plus px-3 py-2 text-emerald-600 border border-emerald-200 rounded-lg hover:bg-emerald-50 text-sm">+</button><button type="button" class="nonncs-unit-minus px-3 py-2 text-red-600 border border-red-200 rounded-lg hover:bg-red-50 text-sm">−</button></div>'; }
+
+                                if (units.length) uCont.innerHTML = units.map(function (u) { return flexIn(u, '단원명 입력'); }).join('');
+                                if (objs.length) oCont.innerHTML = objs.map(function (o) { return flexIn(o, '학습목표 입력').replace('nonncs-unit', 'nonncs-obj'); }).join('');
+                            });
+                        } else {
+                            // wire default row
+                            var first = nonNcsRows.querySelector('.nonncs-curriculum-row');
+                            if (first) wireNonNcsRow(first);
+                        }
+                    });
+            });
     }
 
     function initStep4() {
