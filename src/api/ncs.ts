@@ -295,6 +295,7 @@ async function fetchNcsUnitElements(
         params.append('page', '1');
         params.append('perPage', '100');
         params.append('serviceKey', key);
+        params.append('returnType', 'JSON');
         // NCS_CL_CD 컬럼으로 필터링 (표준 필드명 사용)
         params.append('cond[NCS_CL_CD::EQ]', codeToUse);
 
