@@ -284,18 +284,30 @@ async function fetchNcsUnitElements(
     const key = decodeServiceKey(apiKey);
     const base = (baseUrl || NCS_CLASSIFICATION_API_BASE_DEFAULT).replace(/\/$/, '');
     try {
+        console.log(`[NCS006] Fetching elements for unit: ${ncsClCd}`);
         const list = await fetchClassificationAllPages(base, key, 'NCS006', {
             NCS_CL_CD: ncsClCd
         });
-        return list
+
+        console.log(`[NCS006] Raw response count: ${list.length}`);
+        if (list.length > 0) {
+            console.log(`[NCS006] Sample item keys:`, Object.keys(list[0]));
+        }
+
+        const results = list
             .filter((r) => rowVal(r, 'USG_YN', 'usgYn') === 'Y')
-            .map((r) => ({
-                code: rowVal(r, 'COMPE_UNIT_ELEM_CD', 'compeUnitElemCd', 'elemCd'),
-                name: rowVal(r, 'COMPE_UNIT_ELEM_NAME', 'compeUnitElemName', 'elemName')
-            }))
+            .map((r) => {
+                // Try multiple field name variations
+                const code = rowVal(r, 'COMPE_UNIT_ELEM_CD', 'compeUnitElemCd', 'elemCd', 'NCS_CL_ELEM_CD', 'ncsClElemCd');
+                const name = rowVal(r, 'COMPE_UNIT_ELEM_NAME', 'compeUnitElemName', 'elemName', 'NCS_CL_ELEM_CDNM', 'ncsClElemCdnm');
+                return { code, name };
+            })
             .filter((x) => x.code && x.name);
+
+        console.log(`[NCS006] Filtered elements count: ${results.length}`);
+        return results;
     } catch (e) {
-        console.error('fetchNcsUnitElements error:', e);
+        console.error(`[NCS006] fetchNcsUnitElements error for ${ncsClCd}:`, e);
         return [];
     }
 }
