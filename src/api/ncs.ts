@@ -144,11 +144,18 @@ async function fetchClassificationAllPages(
     for (; ;) {
         const q = new URLSearchParams({ serviceKey: key, type: 'json', pageNo: String(pageNo), numOfRows: String(perPage), ...params });
         const url = `${base}/${path}?${q.toString()}`;
+        console.log(`[NCS_API_REQ] ${url}`);
         const res = await fetch(url);
-        if (!res.ok) break;
+        if (!res.ok) {
+            console.error(`[NCS_API_ERR] HTTP ${res.status} for ${url}`);
+            break;
+        }
         const json = await res.json().catch(() => null);
         let list = parseClassificationItems(json?.response ?? json?.body ?? json?.data ?? json);
         if (list.length === 0) list = parseClassificationItems(json);
+
+        console.log(`[NCS_API_RES] ${path} - Count: ${list.length}, First:`, list[0] || 'NONE');
+
         if (list.length === 0) break;
         out.push(...list);
         if (list.length < perPage) break;
