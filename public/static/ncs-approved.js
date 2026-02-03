@@ -89,6 +89,8 @@
         if (!window.ncsStep1Jobs) window.ncsStep1Jobs = [];
         if (window.ncsPrimaryJobCode === undefined) window.ncsPrimaryJobCode = null;
 
+        var jobRadioRequestCounter = 0;
+
         var largeClassesFallback = [
             { code: '01', name: '사업관리' }, { code: '02', name: '경영·회계·사무' }, { code: '03', name: '금융·보험' },
             { code: '04', name: '교육' }, { code: '05', name: '법무·보안' }, { code: '06', name: '보건·의료' },
@@ -132,12 +134,13 @@
         }
         function loadJobRadios() {
             if (!jobRadioGroup || !jobRadioPlaceholder) return;
+            var requestId = ++jobRadioRequestCounter;
             var large = largeClass ? largeClass.value : '';
             var mid = midClass ? midClass.value : '';
             var small = smallClass ? smallClass.value : '';
 
-            var wrap = jobRadioGroup.querySelector('.ncs-job-radio-wrap');
-            if (wrap) wrap.remove();
+            var wraps = jobRadioGroup.querySelectorAll('.ncs-job-radio-wrap');
+            wraps.forEach(function (w) { w.remove(); });
 
             if (!large || !mid || !small) {
                 jobRadioPlaceholder.style.display = '';
@@ -156,6 +159,7 @@
             fetch(url, { headers: token ? { 'Authorization': 'Bearer ' + token } : {} })
                 .then(function (r) { return r.json(); })
                 .then(function (json) {
+                    if (requestId !== jobRadioRequestCounter) return;
                     if (!json.success || !Array.isArray(json.data) || json.data.length === 0) {
                         jobRadioPlaceholder.textContent = '해당 분류에 등록된 세분류(직종) 정보가 없거나 불러오지 못했습니다.';
                         return;
