@@ -1371,15 +1371,27 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
                             for (const u of unitsFromNCS005) {
                                 if (!u.code || !u.name) continue;
 
-                                // Fetch elements for this unit
+                                // Fetch elements for this unit from DATABASE instead of API
                                 let elements: { code: string; name: string }[] | undefined;
                                 try {
-                                    const elementsFromNCS006 = await fetchNcsUnitElements(apiKey, u.code, classificationBase);
-                                    if (elementsFromNCS006 && elementsFromNCS006.length > 0) {
-                                        elements = elementsFromNCS006;
+                                    // First try DB
+                                    const { results: dbElements } = await c.env.DB.prepare(
+                                        'SELECT code, name FROM ncs_elements WHERE unit_code = ? ORDER BY code ASC'
+                                    ).bind(u.code).all() as { results: { code: string; name: string }[] };
+
+                                    if (dbElements && dbElements.length > 0) {
+                                        elements = dbElements;
+                                        console.log(`[DB] Found ${dbElements.length} elements for ${u.code}`);
+                                    } else {
+                                        // Fallback to NCS006 API if DB is empty
+                                        const elementsFromNCS006 = await fetchNcsUnitElements(apiKey, u.code, classificationBase);
+                                        if (elementsFromNCS006 && elementsFromNCS006.length > 0) {
+                                            elements = elementsFromNCS006;
+                                            console.log(`[NCS006] Found ${elementsFromNCS006.length} elements for ${u.code}`);
+                                        }
                                     }
                                 } catch (e) {
-                                    console.error(`NCS006 call failed for unit ${u.code}`, e);
+                                    console.error(`Element fetch failed for unit ${u.code}`, e);
                                 }
 
                                 addItem(u.name, u.code, u.level || 3, elements);
