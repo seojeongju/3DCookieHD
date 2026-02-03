@@ -87,6 +87,7 @@
 
         // 글로벌 상태를 사용하여 분류 이동 시에도 데이터 손실 방지
         if (!window.ncsStep1Jobs) window.ncsStep1Jobs = [];
+        if (window.ncsPrimaryJobCode === undefined) window.ncsPrimaryJobCode = null;
 
         var largeClassesFallback = [
             { code: '01', name: '사업관리' }, { code: '02', name: '경영·회계·사무' }, { code: '03', name: '금융·보험' },
@@ -193,9 +194,14 @@
                             if (cb.checked) {
                                 if (!window.ncsStep1Jobs.some(function (x) { return (x.code || '') === fullCode; })) {
                                     window.ncsStep1Jobs.push({ code: fullCode, name: name });
+                                    // 첫 직종이면 자동으로 주직무로 설정
+                                    if (window.ncsStep1Jobs.length === 1) window.ncsPrimaryJobCode = fullCode;
                                 }
                             } else {
                                 window.ncsStep1Jobs = window.ncsStep1Jobs.filter(function (x) { return (x.code || '') !== fullCode; });
+                                if (window.ncsPrimaryJobCode === fullCode) {
+                                    window.ncsPrimaryJobCode = window.ncsStep1Jobs.length > 0 ? window.ncsStep1Jobs[0].code : null;
+                                }
                             }
                             updateSelectedJobsResult();
                         });
@@ -218,16 +224,36 @@
             var listEl = document.createElement('div');
             listEl.className = 'ncs-selected-jobs-list space-y-2';
             window.ncsStep1Jobs.forEach(function (it) {
+                var isPrimary = window.ncsPrimaryJobCode === it.code;
                 var line = document.createElement('div');
-                line.className = 'flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-xl text-slate-800 group transition-all animate-in fade-in slide-in-from-left-2 duration-300';
+                line.className = 'flex items-center gap-2 px-3 py-2 border rounded-xl transition-all animate-in fade-in slide-in-from-left-2 duration-300 ' +
+                    (isPrimary ? 'bg-amber-50 border-amber-300 ring-2 ring-amber-200' : 'bg-blue-50 border-blue-200');
+
+                var primaryBtn = document.createElement('button');
+                primaryBtn.type = 'button';
+                primaryBtn.className = 'shrink-0 w-8 h-8 flex items-center justify-center rounded-full transition-all ' +
+                    (isPrimary ? 'text-amber-500 bg-white shadow-sm' : 'text-slate-300 hover:text-amber-400');
+                primaryBtn.innerHTML = '<i class="fas fa-star ' + (isPrimary ? '' : 'text-xs') + '"></i>';
+                primaryBtn.setAttribute('title', isPrimary ? '주직종 (선택됨)' : '주직종으로 설정');
+                primaryBtn.onclick = function () {
+                    window.ncsPrimaryJobCode = it.code;
+                    updateSelectedJobsResult();
+                };
 
                 var codeBadge = document.createElement('span');
-                codeBadge.className = 'px-2 py-0.5 bg-blue-600 text-white text-[10px] font-black rounded-md shrink-0 shadow-sm';
+                codeBadge.className = 'px-2 py-0.5 text-white text-[10px] font-black rounded-md shrink-0 shadow-sm ' +
+                    (isPrimary ? 'bg-amber-600' : 'bg-blue-600');
                 codeBadge.textContent = it.code || '';
 
                 var span = document.createElement('span');
-                span.className = 'flex-1 min-w-0 text-sm font-bold text-blue-900 truncate';
+                span.className = 'flex-1 min-w-0 text-sm font-bold truncate ' + (isPrimary ? 'text-amber-900' : 'text-blue-900');
                 span.textContent = it.name || '';
+                if (isPrimary) {
+                    var mainTag = document.createElement('span');
+                    mainTag.className = 'ml-1 px-1.5 py-0.5 bg-amber-200 text-amber-800 text-[9px] font-bold rounded uppercase';
+                    mainTag.textContent = 'MAIN';
+                    span.appendChild(mainTag);
+                }
 
                 var btn = document.createElement('button');
                 btn.type = 'button';
@@ -238,6 +264,7 @@
                 btnIcon.className = 'fas fa-times text-xs';
                 btn.appendChild(btnIcon);
 
+                line.appendChild(primaryBtn);
                 line.appendChild(codeBadge);
                 line.appendChild(span);
                 line.appendChild(btn);
@@ -248,6 +275,9 @@
                 btn.addEventListener('click', function () {
                     var code = (btn.getAttribute('data-code') || '').trim();
                     window.ncsStep1Jobs = window.ncsStep1Jobs.filter(function (x) { return (x.code || '') !== code; });
+                    if (window.ncsPrimaryJobCode === code) {
+                        window.ncsPrimaryJobCode = window.ncsStep1Jobs.length > 0 ? window.ncsStep1Jobs[0].code : null;
+                    }
                     var cbs = jobRadioGroup ? jobRadioGroup.querySelectorAll('.ncs-job-check') : [];
                     for (var i = 0; i < cbs.length; i++) { if (cbs[i].value === code) { cbs[i].checked = false; break; } }
                     updateSelectedJobsResult();
@@ -375,10 +405,19 @@
             var approvedCourseIdEl = document.getElementById('ncsApprovedCourseId');
             var approvedCourseId = approvedCourseIdEl ? approvedCourseIdEl.value : null;
 
+            var mainJob = null;
+            if (window.ncsPrimaryJobCode && window.ncsStep1Jobs) {
+                mainJob = window.ncsStep1Jobs.find(function (j) { return j.code === window.ncsPrimaryJobCode; });
+            }
+            // fallback if primary is missing but list exists
+            if (!mainJob && mainJobs.length) mainJob = mainJobs[0];
+
             var payload = {
                 approved_course_id: approvedCourseId,
                 ncs_tab: ncsTab,
                 course_type: courseType || null,
+                main_job_code: mainJob ? mainJob.code : null,
+                main_job_name: mainJob ? mainJob.name : null,
                 main_jobs: mainJobs.length ? mainJobs : undefined,
                 overview_content: (document.getElementById('ncsOverviewContent') && document.getElementById('ncsOverviewContent').value) ? document.getElementById('ncsOverviewContent').value.trim() : null,
                 dev_category: (document.getElementById('ncsDevCategory') && document.getElementById('ncsDevCategory').value) ? document.getElementById('ncsDevCategory').value.trim() : null,
@@ -644,6 +683,7 @@
                         loadSmallByMid();
                         smallClass.value = d.small_code || '';
                         window.ncsStep1Jobs.length = 0;
+                        window.ncsPrimaryJobCode = d.main_job_code || null;
                         try {
                             var raw = d.main_jobs_json;
                             if (raw && typeof raw === 'string') {
@@ -651,7 +691,12 @@
                                 if (Array.isArray(arr)) arr.forEach(function (j) { if (j && (j.code || j.name)) window.ncsStep1Jobs.push({ code: (j.code || '').toString().trim(), name: (j.name || '').toString().trim() }); });
                             }
                         } catch (e) { }
-                        if (window.ncsStep1Jobs.length === 0 && (d.main_job_code || d.unit_code)) window.ncsStep1Jobs.push({ code: (d.unit_code || d.main_job_code || '').trim(), name: (d.main_job_name || d.unit_name || '').trim() });
+                        if (window.ncsStep1Jobs.length === 0 && (d.main_job_code || d.unit_code)) {
+                            var code = (d.unit_code || d.main_job_code || '').trim();
+                            var name = (d.main_job_name || d.unit_name || '').trim();
+                            window.ncsStep1Jobs.push({ code: code, name: name });
+                            if (!window.ncsPrimaryJobCode) window.ncsPrimaryJobCode = code;
+                        }
                         loadJobRadios();
                         updateSelectedJobsResult();
                     });
@@ -746,14 +791,23 @@
                 var hasJobs = mainJobs && mainJobs.length > 0;
 
                 // Build Table Header
-                var theadHtml = '<tr><th class="px-6 py-3 w-28 font-bold text-center border-r border-emerald-400">수준</th>';
+                var currentMainCode = d.mainJobCode || '';
+                var theadHtml = '<tr><th class="px-6 py-4 w-28 font-bold text-center border-r border-slate-200 bg-slate-100 text-slate-700">수준</th>';
                 if (hasJobs) {
                     mainJobs.forEach(function (j) {
+                        var isPrimary = (j.code && j.code === currentMainCode);
                         var jName = (j.name || '').trim() || (j.code || '직종');
-                        theadHtml += '<th class="px-6 py-3 font-bold text-center border-r border-emerald-400 last:border-0">' + esc(jName) + '</th>';
+                        var thClass = isPrimary
+                            ? 'px-6 py-4 font-black text-center border-r border-slate-200 last:border-0 bg-blue-600 text-white min-w-[200px]'
+                            : 'px-6 py-4 font-bold text-center border-r border-slate-200 last:border-0 bg-slate-100 text-slate-600 min-w-[200px]';
+
+                        theadHtml += '<th class="' + thClass + '">' +
+                            (isPrimary ? '<span class="block text-[10px] mb-1 opacity-80">주직종 (Primary)</span>' : '') +
+                            esc(jName) +
+                            '</th>';
                     });
                 } else {
-                    theadHtml += '<th class="px-6 py-3 font-bold text-center">능력단위</th>';
+                    theadHtml += '<th class="px-6 py-4 font-bold text-center bg-slate-100 text-slate-700">능력단위</th>';
                 }
                 theadHtml += '</tr>';
                 var thead = document.querySelector('#ncsApprovedStep2Container thead');
@@ -954,15 +1008,19 @@
             return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         }
 
-        function createJobSection(jobName) {
+        function createJobSection(jobName, isPrimary) {
             var sect = document.createElement('div');
-            sect.className = 'bg-white rounded-[1.5rem] border border-slate-200 shadow-sm p-6 mb-8 job-section';
+            sect.className = 'bg-white rounded-[1.5rem] border shadow-sm p-6 mb-8 job-section transition-all ' +
+                (isPrimary ? 'border-blue-500 ring-2 ring-blue-50' : 'border-slate-200');
             sect.dataset.jobName = jobName || 'unknown';
             sect.innerHTML =
                 '<div class="flex items-center gap-3 mb-6">' +
-                '<i class="fas fa-book-open text-blue-600 text-xl"></i>' +
+                '<i class="fas fa-book-open ' + (isPrimary ? 'text-blue-600' : 'text-slate-400') + ' text-xl"></i>' +
+                '<div>' +
+                (isPrimary ? '<span class="text-[9px] font-black text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded uppercase mb-1 block w-fit">Primary Job</span>' : '') +
                 '<h3 class="text-lg font-black text-slate-800">' + esc(jobName || '직종 미분류') + '</h3>' +
-                '<span class="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded">NCS 능력단위 기반 교과목 편성</span>' +
+                '</div>' +
+                '<span class="text-xs font-medium text-slate-500 bg-slate-50 border border-slate-100 px-2 py-1 rounded ml-auto">NCS 능력단위 기반 교과목 편성</span>' +
                 '</div>' +
                 '<div class="space-y-4 job-subjects-container"></div>' +
                 '<div class="mt-6 pt-4 border-t border-slate-100 flex justify-end">' +
@@ -1318,9 +1376,11 @@
                         });
 
                         // Render Job Sections
+                        var currentMainCode = d.mainJobCode || '';
                         mainJobs.forEach(function (job) {
                             var jobName = job.name;
-                            var sect = createJobSection(jobName);
+                            var isPrimary = (job.code && job.code === currentMainCode);
+                            var sect = createJobSection(jobName, isPrimary);
                             var subContainer = sect.querySelector('.job-subjects-container');
 
                             // Find existing subjects for this job

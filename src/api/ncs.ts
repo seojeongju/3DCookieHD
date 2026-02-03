@@ -677,24 +677,36 @@ app.get('/approved/registrations/:id', authMiddleware, requireAdmin, async (c) =
 
 function parseMainJobs(body: { main_jobs?: { code?: string; name?: string }[]; main_job_code?: string; main_job_name?: string }): { mainJobsJson: string | null; mainJobCode: string | null; mainJobName: string | null } {
     const raw = body.main_jobs;
+    let arr: { code: string; name: string }[] = [];
     if (Array.isArray(raw) && raw.length > 0) {
-        const arr = raw
+        arr = raw
             .filter((j): j is { code?: string; name?: string } => j != null && typeof j === 'object')
             .map((j) => ({ code: (j.code ?? '').toString().trim(), name: (j.name ?? '').toString().trim() }))
             .filter((j) => j.code || j.name);
-        if (arr.length > 0) {
-            const first = arr[0];
-            return {
-                mainJobsJson: JSON.stringify(arr),
-                mainJobCode: first.code || null,
-                mainJobName: first.name || null,
-            };
-        }
     }
-    const code = (body.main_job_code || '').toString().trim() || null;
-    const name = (body.main_job_name || '').toString().trim() || null;
-    const mainJobsJson = code || name ? JSON.stringify([{ code: code ?? '', name: name ?? '' }]) : null;
-    return { mainJobsJson, mainJobCode: code, mainJobName: name };
+
+    // Explicitly provided main job from body
+    const reqCode = (body.main_job_code || '').toString().trim() || null;
+    const reqName = (body.main_job_name || '').toString().trim() || null;
+
+    if (arr.length > 0) {
+        // If we have an array and a requested code, find it in the array
+        let main = arr[0];
+        if (reqCode) {
+            const found = arr.find(j => j.code === reqCode);
+            if (found) main = found;
+        }
+
+        return {
+            mainJobsJson: JSON.stringify(arr),
+            mainJobCode: main.code || null,
+            mainJobName: main.name || null,
+        };
+    }
+
+    // Fallback to single fields if array is empty
+    const mainJobsJson = reqCode || reqName ? JSON.stringify([{ code: reqCode ?? '', name: reqName ?? '' }]) : null;
+    return { mainJobsJson, mainJobCode: reqCode, mainJobName: reqName };
 }
 
 app.post('/approved/registrations', authMiddleware, requireAdmin, async (c) => {
@@ -1054,7 +1066,15 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
 
         return c.json({
             success: true,
-            data: { mainJobs, levels, basicAbility, selected, elements: elementsFlat }
+            data: {
+                mainJobs,
+                mainJobCode: (reg as any).main_job_code || null,
+                mainJobName: (reg as any).main_job_name || null,
+                levels,
+                basicAbility,
+                selected,
+                elements: elementsFlat
+            }
         });
     } catch (e) {
         console.error('ncs approved training-system:', e);
