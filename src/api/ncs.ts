@@ -2695,4 +2695,34 @@ app.get('/approved/render-step', async (c) => {
     }
 });
 
+// Bulk import NCS elements (Admin only)
+app.post('/admin/import-ncs-elements', authMiddleware, requireAdmin, async (c) => {
+    try {
+        const body = await c.req.json();
+        const { elements } = body as { elements: { unit_code: string; code: string; name: string }[] };
+
+        if (!elements || !Array.isArray(elements)) {
+            return c.json({ success: false, error: 'Invalid elements array' }, 400);
+        }
+
+        let imported = 0;
+        for (const elem of elements) {
+            try {
+                await c.env.DB.prepare(`
+                    INSERT INTO ncs_elements (unit_code, code, name)
+                    VALUES (?, ?, ?)
+                `).bind(elem.unit_code, elem.code, elem.name).run();
+                imported++;
+            } catch (e) {
+                console.error(`Failed to insert element ${elem.code}:`, e);
+            }
+        }
+
+        return c.json({ success: true, imported, total: elements.length });
+    } catch (e) {
+        console.error('Bulk import failed:', e);
+        return c.json({ success: false, error: 'Bulk import failed' }, 500);
+    }
+});
+
 export default app;
