@@ -264,7 +264,8 @@ app.get('/admin/jobseekers', (c) => c.html(adminJobseekersListHtml));
 app.get('/admin/courses', (c) => c.html(adminCoursesListHtml()));
 app.get('/admin/courses/categories', (c) => c.html(adminCoursesCategoriesHtml()));
 app.get('/admin/courses/approved', (c) => c.html(adminCoursesApprovedHtml()));
-app.get('/admin/courses/approved/register', (c) => c.html(adminCoursesApprovedRegisterHtml()));
+app.get('/admin/courses/approved/register', (c) => c.html(adminCoursesApprovedRegisterHtml(c.req.query('id'))));
+
 app.get('/admin/courses/approved/register/:id', (c) => c.html(adminCoursesApprovedRegisterHtml(c.req.param('id'))));
 app.get('/admin/courses/sessions', (c) => c.html(adminCoursesSessionsHtml()));
 app.get('/admin/courses/sessions/register', (c) => c.html(adminCoursesSessionsRegisterHtml()));
@@ -3115,9 +3116,9 @@ app.get('/university-education', (c) => {
 // ============================================
 app.notFound((c) => {
     return c.json({
-                                                                                                                                                                            success: false,
-                                                                                                                                                                        error: 'Not Found',
-                                                                                                                                                                        message: '요청하신 리소스를 찾을 수 없습니다'
+        success: false,
+        error: 'Not Found',
+        message: '요청하신 리소스를 찾을 수 없습니다'
     }, 404);
 });
 
@@ -3125,13 +3126,13 @@ app.notFound((c) => {
 // 에러 핸들러
 // ============================================
 app.onError((err, c) => {
-                                                                                                                                                                            console.error('Server error:', err);
-                                                                                                                                                                        return c.json({
-                                                                                                                                                                            success: false,
-                                                                                                                                                                        error: 'Internal Server Error',
-                                                                                                                                                                        message: '서버 오류가 발생했습니다'
+    console.error('Server error:', err);
+    return c.json({
+        success: false,
+        error: 'Internal Server Error',
+        message: '서버 오류가 발생했습니다'
     }, 500);
 });
 
-                                                                                                                                                                        export default app;
+export default app;
 
