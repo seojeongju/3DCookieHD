@@ -100,8 +100,7 @@ function decodeServiceKey(raw: string): string {
 const NCS_TRAINING_API_BASE = 'https://apis.data.go.kr/B490007/ncsTrainingCource/openapi18';
 
 /** NCS 기준정보조회 API (15128213) — 전체 분류체계. env NCS_CLASSIFICATION_API_BASE 로 덮을 수 있음. */
-/** NCS 기준정보조회 API (15128213) — 전체 분류체계. env NCS_CLASSIFICATION_API_BASE 로 덮을 수 있음. */
-const NCS_CLASSIFICATION_API_BASE_DEFAULT = 'http://apis.data.go.kr/B490007/ncsClassification';
+const NCS_CLASSIFICATION_API_BASE_DEFAULT = 'http://apis.data.go.kr/B490007/hrdkapi';
 
 function parseClassificationItems(raw: unknown): Record<string, unknown>[] {
     if (Array.isArray(raw)) return raw.filter((r) => r && typeof r === 'object') as Record<string, unknown>[];
@@ -132,42 +131,16 @@ function rowVal(row: Record<string, unknown>, ...keys: string[]): string {
 
 const CLASSIFICATION_PAGE_SIZE = 100;
 
-const FALLBACK_BASES = [
-    'http://apis.data.go.kr/B490007/ncsInformation',
-    'http://apis.data.go.kr/15128213/NcsClassificationService',
-    'http://apis.data.go.kr/B490007/hrdkapi'
-];
-
 /** 기준정보 API 한 오퍼레이션을 페이지네이션으로 전부 조회 (공공 API가 100건 제한인 경우 대비) */
 async function fetchClassificationAllPages(
-    initialBase: string,
+    base: string,
     key: string,
     path: string,
     params: Record<string, string>
 ): Promise<Record<string, unknown>[]> {
-    let base = initialBase;
-    let usedFallback = false;
-
-    // 1. Determine working base URL by probing first page
-    for (const candidate of [initialBase, ...FALLBACK_BASES]) {
-        if (!candidate) continue;
-        const q = new URLSearchParams({ serviceKey: key, type: 'json', pageNo: '1', numOfRows: '1', ...params });
-        const url = `${candidate}/${path}?${q.toString()}`;
-        try {
-            const res = await fetch(url);
-            if (res.ok) {
-                base = candidate;
-                usedFallback = true;
-                break;
-            }
-        } catch (e) { /* ignore network error, try next */ }
-    }
-
     const out: Record<string, unknown>[] = [];
     let pageNo = 1;
     const perPage = CLASSIFICATION_PAGE_SIZE;
-
-    // 2. Fetch all pages using the determined base
     for (; ;) {
         const q = new URLSearchParams({ serviceKey: key, type: 'json', pageNo: String(pageNo), numOfRows: String(perPage), ...params });
         const url = `${base}/${path}?${q.toString()}`;
@@ -193,24 +166,25 @@ async function fetchNcsClassificationByLarge(apiKey: string, ncsLclasCd: string,
     const largeName = NCS_LARGE_CLASSES.find((c) => c.code === ncsLclasCd)?.name ?? '';
 
     try {
-        // 1) 중분류 — 전체 페이지 수집
-        const midList = await fetchClassificationAllPages(base, key, 'getNcsMidClassList', { ncsLclasCd });
+        // 1) 중분류 — 전체 페이지 수집 (NCS002)
+        const midList = await fetchClassificationAllPages(base, key, 'NCS002', { ncsLclasCd });
         if (midList.length === 0) return null;
         const mids = midList.map((r) => ({ code: rowVal(r, 'ncsMclasCd', 'NcsMclasCd', 'mclasCd', 'midCd'), name: rowVal(r, 'ncsMclasCdnm', 'NcsMclasCdnm', 'mclasCdnm', 'midNm') })).filter((m) => m.code);
 
         for (const mid of mids) {
-            // 2) 소분류 — 전체 페이지 수집
-            const smallList = await fetchClassificationAllPages(base, key, 'getNcsSmallClassList', { ncsLclasCd, ncsMclasCd: mid.code });
+            // 2) 소분류 — 전체 페이지 수집 (NCS003)
+            const smallList = await fetchClassificationAllPages(base, key, 'NCS003', { ncsLclasCd, ncsMclasCd: mid.code });
             const smalls = smallList.map((r) => ({ code: rowVal(r, 'ncsSclasCd', 'sclasCd', 'smallCd'), name: rowVal(r, 'ncsSclasCdnm', 'NcsSclasCdnm', 'sclasCdnm', 'smallNm') })).filter((s) => s.code);
 
             for (const small of smalls) {
-                // 3) 세분류 — 전체 페이지 수집
-                const subList = await fetchClassificationAllPages(base, key, 'getNcsSubdClassList', { ncsLclasCd, ncsMclasCd: mid.code, ncsSclasCd: small.code });
+                // 3) 세분류 — 전체 페이지 수집 (NCS004)
+                const subList = await fetchClassificationAllPages(base, key, 'NCS004', { ncsLclasCd, ncsMclasCd: mid.code, ncsSclasCd: small.code });
                 const subs = subList.map((r) => ({ code: rowVal(r, 'ncsSubdCd', 'ncsDclasCd', 'subdCd', 'subCd'), name: rowVal(r, 'ncsSubdCdnm', 'ncsDclasCdnm', 'subdCdnm', 'subNm') })).filter((s) => s.code);
 
                 for (const sub of subs) {
                     const dutyCd = `${ncsLclasCd}${mid.code}${small.code}${sub.code}`;
-                    const unitList = await fetchClassificationAllPages(base, key, 'getNcsAbtyUnitCdList', { dutyCd });
+                    // 훈련능력단위 (NCS005)
+                    const unitList = await fetchClassificationAllPages(base, key, 'NCS005', { dutyCd });
                     if (unitList.length === 0) {
                         all.push({ largeCode: ncsLclasCd, largeName, midCode: mid.code, midName: mid.name, smallCode: small.code, smallName: small.name, subClassCode: sub.code, subClassName: sub.name, unitCode: '', unitName: '' });
                         continue;
