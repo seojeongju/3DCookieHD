@@ -172,9 +172,12 @@
                         var id = 'ncsJob_' + code.replace(/\s/g, '_');
                         var isInStore = selectedJobsStore.some(function (x) { return (x.code || '') === code; });
 
-                        w.innerHTML += '<label class="flex items-center gap-2 cursor-pointer py-1.5 hover:bg-slate-50 px-2 rounded-lg transition-colors">' +
-                            '<input type="checkbox" name="ncsJobCheck" class="ncs-job-check rounded text-blue-600 focus:ring-blue-500" value="' + esc(code) + '" data-name="' + esc(name) + '" id="' + id + '"' + (isInStore ? ' checked' : '') + '> ' +
-                            '<span class="text-sm text-slate-700">[' + esc(code) + '] ' + esc(name) + '</span>' +
+                        w.innerHTML += '<label class="flex items-center gap-3 cursor-pointer py-2 hover:bg-blue-50 px-2 rounded-xl transition-all group">' +
+                            '<input type="checkbox" name="ncsJobCheck" class="ncs-job-check w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 transition-all" value="' + esc(code) + '" data-name="' + esc(name) + '" id="' + id + '"' + (isInStore ? ' checked' : '') + '> ' +
+                            '<div class="flex flex-col min-w-0">' +
+                            '<span class="text-[10px] text-blue-500 font-black uppercase tracking-wider leading-none mb-1">' + esc(code) + '</span>' +
+                            '<span class="text-sm font-semibold text-slate-700 group-hover:text-blue-900 leading-tight truncate">' + esc(name) + '</span>' +
+                            '</div>' +
                             '</label>';
                     });
 
@@ -209,24 +212,29 @@
             selectedJobsPlaceholder.textContent = '왼쪽에서 직종을 선택하세요';
             if (selectedJobsStore.length === 0) return;
             var listEl = document.createElement('div');
-            listEl.className = 'ncs-selected-jobs-list space-y-1';
+            listEl.className = 'ncs-selected-jobs-list space-y-2';
             selectedJobsStore.forEach(function (it) {
                 var line = document.createElement('div');
-                line.className = 'flex items-center gap-2 text-slate-800 group';
-                var icon = document.createElement('i');
-                icon.className = 'fas fa-check text-blue-600 text-xs w-4 shrink-0';
+                line.className = 'flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-xl text-slate-800 group transition-all animate-in fade-in slide-in-from-left-2 duration-300';
+
+                var codeBadge = document.createElement('span');
+                codeBadge.className = 'px-2 py-0.5 bg-blue-600 text-white text-[10px] font-black rounded-md shrink-0 shadow-sm';
+                codeBadge.textContent = it.code || '';
+
                 var span = document.createElement('span');
-                span.className = 'flex-1 min-w-0';
-                span.textContent = '주직종 ' + (it.code || '') + (it.name ? '. ' + it.name : '');
+                span.className = 'flex-1 min-w-0 text-sm font-bold text-blue-900 truncate';
+                span.textContent = it.name || '';
+
                 var btn = document.createElement('button');
                 btn.type = 'button';
-                btn.className = 'ncs-selected-job-remove shrink-0 p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 focus:outline-none focus:ring-1 focus:ring-red-300';
+                btn.className = 'ncs-selected-job-remove shrink-0 w-6 h-6 flex items-center justify-center rounded-full text-slate-400 hover:text-red-600 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-200 transition-colors';
                 btn.setAttribute('title', '선택 해제');
                 btn.setAttribute('data-code', it.code || '');
                 var btnIcon = document.createElement('i');
                 btnIcon.className = 'fas fa-times text-xs';
                 btn.appendChild(btnIcon);
-                line.appendChild(icon);
+
+                line.appendChild(codeBadge);
                 line.appendChild(span);
                 line.appendChild(btn);
                 listEl.appendChild(line);
