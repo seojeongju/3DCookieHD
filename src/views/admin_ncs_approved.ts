@@ -1095,7 +1095,7 @@ export function adminNcsEmbedHtml(courseId: string, initialStep: number = 1): st
                         <p class="text-slate-500 text-sm font-bold">데이터 로딩 중...</p>
                      </div>
                 </div>
-                <div id="ncsEmbeddedContent">
+                <div id="ncsApprovedStepContent">
                     ${content}
                 </div>
             </div>
