@@ -429,7 +429,8 @@
                 .then(function (r) { return r.json(); })
                 .then(function (json) {
                     if (!json.success || !Array.isArray(json.data)) {
-                        container.innerHTML = '<div class="py-4 text-center text-slate-500 text-sm">승인받은 과정 목록을 불러올 수 없습니다.</div>';
+                        var msg = json.error || '목록 로드 실패';
+                        container.innerHTML = '<div class="py-4 text-center text-red-500 text-sm">승인받은 과정 목록을 불러올 수 없습니다: ' + msg + '</div>';
                         return;
                     }
                     var list = json.data;
@@ -463,8 +464,9 @@
                         });
                     });
                 })
-                .catch(function () {
-                    container.innerHTML = '<div class="py-4 text-center text-slate-500 text-sm">목록을 불러오는 중 오류가 발생했습니다.</div>';
+                .catch(function (e) {
+                    console.error(e);
+                    container.innerHTML = '<div class="py-4 text-center text-red-500 text-sm">목록을 불러오는 중 오류가 발생했습니다. (' + String(e) + ')</div>';
                 });
         }
 
