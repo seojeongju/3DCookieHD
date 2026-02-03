@@ -827,7 +827,6 @@
                     if (hasJobs) {
                         mainJobs.forEach(function (job) {
                             var jobName = (job.name || '').trim();
-                            // If jobName is empty, it might be tricky. Assume valid jobs.
                             var jobItems = (allItems || []).filter(function (it) {
                                 if (it.jobNames && Array.isArray(it.jobNames)) {
                                     return it.jobNames.includes(jobName);
@@ -839,7 +838,7 @@
                             if (!jobItems.length) {
                                 contentHtml = '<span class="text-slate-300 text-xs">해당 없음</span>';
                             } else {
-                                contentHtml = '<div class="flex flex-col gap-2">';
+                                contentHtml = '<div class="flex flex-col gap-3">';
                                 jobItems.sort(function (a, b) { return (a.name || '').localeCompare(b.name || ''); });
                                 jobItems.forEach(function (x) {
                                     var name = (x && x.name) ? x.name : String(x);
@@ -852,17 +851,36 @@
                                         ? 'cursor-pointer px-3 py-2.5 rounded-lg border-2 border-blue-500 bg-blue-50 text-blue-900 font-bold shadow-sm transition flex items-center justify-between group'
                                         : 'cursor-pointer px-3 py-2.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition flex items-center justify-between group';
 
-                                    contentHtml += '<label class="' + className + '" data-unit-value="' + attrEsc(value) + '">' +
-                                        '<span class="flex-1 text-sm">' + esc(name) + '</span>' +
+                                    var elementsHtml = '';
+                                    if (x.elements && Array.isArray(x.elements) && x.elements.length > 0) {
+                                        elementsHtml = '<div class="mt-2 pl-3 border-l-2 border-slate-100 space-y-1">';
+                                        x.elements.forEach(function (el) {
+                                            elementsHtml += '<div class="text-[10px] text-slate-400 flex items-start gap-1.5">' +
+                                                '<i class="fas fa-dot-circle text-[6px] mt-1.5 opacity-30"></i>' +
+                                                '<span class="leading-tight">' + esc(el.name) + '</span>' +
+                                                '</div>';
+                                        });
+                                        elementsHtml += '</div>';
+                                    }
+
+                                    contentHtml += '<div class="flex flex-col">' +
+                                        '<label class="' + className + '" data-unit-value="' + attrEsc(value) + '">' +
+                                        '<div class="flex flex-col min-w-0 flex-1">' +
+                                        (code ? '<span class="text-[9px] text-blue-500 font-black uppercase tracking-wider mb-0.5">' + esc(code) + '</span>' : '') +
+                                        '<span class="text-xs leading-tight">' + esc(name) + '</span>' +
+                                        '</div>' +
                                         '<input type="checkbox" class="ncs-step2-cb hidden" value="' + attrEsc(value) + '"' + (isChecked ? ' checked' : '') + ' onchange="updateUnitSelection(this)">' +
                                         '<i class="fas fa-check ' + (isChecked ? 'text-blue-600' : 'text-transparent group-hover:text-slate-300') + ' transition"></i>' +
-                                        '</label>';
+                                        '</label>' +
+                                        elementsHtml +
+                                        '</div>';
                                 });
                                 contentHtml += '</div>';
                             }
-                            rowHtml += '<td class="px-3 py-4 bg-slate-50/30 border-r border-slate-100 last:border-0 align-top min-w-[200px]">' + contentHtml + '</td>';
+                            rowHtml += '<td class="px-3 py-4 bg-slate-50/10 border-r border-slate-100 last:border-0 align-top min-w-[200px]">' + contentHtml + '</td>';
                         });
                     } else {
+                        // ... simplified for non-job mode
                         var contentHtml = '<div class="flex flex-col gap-2">';
                         (allItems || []).forEach(function (x) {
                             var name = (x && x.name) ? x.name : String(x);
@@ -872,7 +890,7 @@
                             contentHtml += '<label class="' + className + '"><span class="flex-1 text-sm">' + esc(name) + '</span><input type="checkbox" class="ncs-step2-cb hidden" value="' + attrEsc(value) + '"' + (isChecked ? ' checked' : '') + ' onchange="updateUnitSelection(this)"><i class="fas fa-check ' + (isChecked ? 'text-blue-600' : 'text-transparent group-hover:text-slate-300') + ' transition"></i></label>';
                         });
                         contentHtml += '</div>';
-                        rowHtml += '<td class="px-6 py-4 bg-slate-50/30">' + contentHtml + '</td>';
+                        rowHtml += '<td class="px-6 py-4 bg-slate-50/10">' + contentHtml + '</td>';
                     }
                     rowHtml += '</tr>';
                     rows.push(rowHtml);

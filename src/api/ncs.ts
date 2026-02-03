@@ -588,6 +588,92 @@ app.get('/approved/jobs', async (c) => {
     }
 });
 
+// 특정 직종(Job)의 능력단위 목록 조회 (분류 뷰어용)
+app.get('/approved/units-by-job', async (c) => {
+    try {
+        const jobCode = c.req.query('jobCode');
+        if (!jobCode) return c.json({ success: false, error: 'jobCode가 필요합니다.' }, 400);
+
+        const apiKey = (c.env.NCS_API_KEY || '').trim();
+        const classificationBase = (c.env as { NCS_CLASSIFICATION_API_BASE?: string }).NCS_CLASSIFICATION_API_BASE?.trim();
+
+        // 1. DB 조회
+        const { results: dbUnits } = await c.env.DB.prepare(
+            'SELECT code, name, level FROM ncs_units WHERE code LIKE ? ORDER BY level DESC, code ASC'
+        ).bind(jobCode + '%').all() as { results: { code?: string; name?: string; level?: number }[] };
+
+        const unitsMap = new Map<string, any>();
+        dbUnits.forEach(u => {
+            const code = (u.code || '').trim();
+            if (code) unitsMap.set(code, { code, name: u.name, level: u.level, source: 'db' });
+        });
+
+        // 2. API 조회 (있는 경우)
+        if (apiKey && jobCode.length >= 8) {
+            const largeCode = jobCode.slice(0, 2);
+            let apiItems: TrainingItem[] = [];
+            try {
+                const fromClass = await fetchNcsClassificationByLarge(apiKey, largeCode, classificationBase);
+                if (fromClass && fromClass.length > 0) {
+                    apiItems = fromClass;
+                } else {
+                    apiItems = await fetchNcsTrainingByLarge(apiKey, largeCode);
+                }
+            } catch (e) {
+                console.error('API fetch failed during units-by-job', e);
+            }
+
+            const prefix = jobCode.slice(0, 8);
+            for (const it of apiItems) {
+                const unitCode = String(it.unitCode || '').trim();
+                if (!unitCode) continue;
+                const numPart = unitCode.replace(/_.*$/, '').replace(/\D/g, '').slice(0, 8);
+                if (numPart === prefix || unitCode.includes(prefix)) {
+                    const existing = unitsMap.get(unitCode);
+                    if (existing) {
+                        if (it.elements && it.elements.length > 0) {
+                            existing.elements = it.elements;
+                        }
+                        if (it.level != null) existing.level = it.level;
+                        existing.source = (existing.source || 'db') + '+api';
+                    } else {
+                        unitsMap.set(unitCode, {
+                            code: unitCode,
+                            name: it.unitName,
+                            level: it.level,
+                            elements: it.elements,
+                            source: 'api'
+                        });
+                    }
+                }
+            }
+        }
+
+        // 3. Fallback
+        const fallback = FALLBACK_NCS_UNITS[jobCode] || [];
+        for (const fb of fallback) {
+            const existing = unitsMap.get(fb.code);
+            if (!existing) {
+                unitsMap.set(fb.code, { ...fb, source: 'fallback' });
+            } else if ((!existing.elements || existing.elements.length === 0) && fb.elements) {
+                existing.elements = fb.elements;
+            }
+        }
+
+        const data = Array.from(unitsMap.values()).sort((a, b) => {
+            const lvA = typeof a.level === 'number' ? a.level : parseInt(String(a.level || '0'), 10);
+            const lvB = typeof b.level === 'number' ? b.level : parseInt(String(b.level || '0'), 10);
+            if (lvB !== lvA) return lvB - lvA;
+            return (a.code || '').localeCompare(b.code || '');
+        });
+
+        return c.json({ success: true, data });
+    } catch (e) {
+        console.error('units-by-job error:', e);
+        return c.json({ success: false, error: '능력단위 조회 실패' }, 500);
+    }
+});
+
 app.get('/approved/training', async (c) => {
     try {
         const ncsLclasCd = c.req.query('ncsLclasCd') || '01';
@@ -1033,28 +1119,31 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
             }
 
             // 3. Last Resort Fallback - Only if API didn't found anything for this job
-            if (!foundFromApi && FALLBACK_NCS_UNITS[jobCode8]) {
-                const fbList = FALLBACK_NCS_UNITS[jobCode8];
+            let targetCode = jobCode8;
+
+            // If code is missing but name matches known jobs, map it to the code
+            if (!targetCode && jobName) {
+                const nameToCode: Record<string, string> = {
+                    '3D프린터용 제품제작': '19031102',
+                    '3D프린터용제품제작': '19031102',
+                    '기계요소설계': '15010201',
+                    '기계요소 설계': '15010201',
+                    '3D프린터개발': '19031101',
+                    '3D프린터 개발': '19031101'
+                };
+                targetCode = nameToCode[jobName.trim()] || '';
+            }
+
+            if (!foundFromApi && targetCode && FALLBACK_NCS_UNITS[targetCode]) {
+                const fbList = FALLBACK_NCS_UNITS[targetCode];
                 for (const fb of fbList) {
                     addItem(fb.name, fb.code, fb.level, fb.elements);
                     foundAny = true;
                 }
             }
 
-            if (!foundAny && jobName) {
-                const mock = [
-                    { name: jobName + ' 기획', level: 5 },
-                    { name: jobName + ' 평가', level: 5 },
-                    { name: jobName + ' 시장조사', level: 4 },
-                    { name: jobName + ' 개발요소 선정', level: 4 },
-                    { name: jobName + ' 품질 관리', level: 4 },
-                    { name: jobName + ' 출력', level: 3 },
-                    { name: jobName + ' 안전관리', level: 3 }
-                ];
-                mock.forEach((m) => {
-                    addItem(m.name, m.name, m.level);
-                });
-            }
+            // No more random mock generation here. 
+            // If no data is found, foundAny remains false and the UI will handle it.
         }
 
         return c.json({
@@ -2044,47 +2133,135 @@ const FALLBACK_NCS_UNITS: Record<string, { code: string; name: string; level: nu
     ],
     // 19031101: 3D프린터개발
     '19031101': [
-        { code: '1903110101_15v1', name: '시장분석', level: 5 },
-        { code: '1903110102_15v1', name: '개발계획수립', level: 5 },
-        { code: '1903110103_18v2', name: '소재관리', level: 3 },
-        { code: '1903110104_21v2', name: '회로 설계', level: 5 },
-        { code: '1903110105_15v1', name: '기구개발', level: 4 },
-        { code: '1903110106_15v1', name: '구동장치개발', level: 4 },
-        { code: '1903110107_21v2', name: '빌드장치 설계', level: 4 },
-        { code: '1903110108_21v2', name: '제어프로그램 설계', level: 4 },
-        { code: '1903110109_21v3', name: '응용소프트웨어활용', level: 3 },
-        { code: '1903110110_15v1', name: '품질보증', level: 5 },
-        { code: '1903110111_21v2', name: '기계기구 설계', level: 4 }
+        {
+            code: '1903110101_15v1', name: '시장분석', level: 5,
+            elements: [
+                { code: '1903110101_15v1_01', name: '시장 트렌드 분석하기' },
+                { code: '1903110101_15v1_02', name: '소비자 니즈 파악하기' }
+            ]
+        },
+        {
+            code: '1903110102_15v1', name: '개발계획수립', level: 5,
+            elements: [
+                { code: '1903110102_15v1_01', name: '제품 개발 로드맵 수립하기' },
+                { code: '1903110102_15v1_02', name: '자원 및 예산 확보하기' }
+            ]
+        },
+        {
+            code: '1903110104_21v2', name: '회로 설계', level: 5,
+            elements: [
+                { code: '1903110104_21v2_01', name: '회로도 작성하기' },
+                { code: '1903110104_21v2_02', name: 'PCB 레이아웃 설계하기' }
+            ]
+        },
+        {
+            code: '1903110105_15v1', name: '기구개발', level: 4,
+            elements: [
+                { code: '1903110105_15v1_01', name: '기구 구조 설계하기' },
+                { code: '1903110105_15v1_02', name: '부품 상세 설계하기' }
+            ]
+        }
     ],
-    // 15010201: 기계요소설계 (전산응용기계제도기능사 관련) - 예비용
+    // 15010201: 기계요소설계
     '15010201': [
-        { code: '1501020101_19v3', name: '기계요소설계 기획', level: 5 },
-        { code: '1501020102_19v3', name: '기계요소설계 자료수집', level: 4 },
-        { code: '1501020111_19v3', name: '체결요소설계', level: 3 },
-        { code: '1501020112_19v3', name: '동력전달요소설계', level: 3 },
-        { code: '1501020113_19v3', name: '치공구요소설계', level: 3 },
-        { code: '1501020114_19v3', name: '유압요소설계', level: 4 },
-        { code: '1501020115_19v3', name: '공압요소설계', level: 4 },
-        { code: '1501020121_19v3', name: '도면분석', level: 3 },
-        { code: '1501020122_19v3', name: '도면검토', level: 4 },
-        { code: '1501020123_19v3', name: '2D도면작업', level: 2 },
-        { code: '1501020124_19v3', name: '2D도면관리', level: 2 },
+        {
+            code: '1501020101_19v3', name: '기계요소설계 기획', level: 5,
+            elements: [
+                { code: '1501020101_19v3_01', name: '기계제품 개발 요구사항 분석하기' },
+                { code: '1501020101_19v3_02', name: '기계제품 개발 계획서 작성하기' }
+            ]
+        },
+        {
+            code: '1501020102_19v3', name: '기계요소설계 자료수집', level: 4,
+            elements: [
+                { code: '1501020102_19v3_01', name: '설계 관련 표준 및 규격 수집하기' },
+                { code: '1501020102_19v3_02', name: '수집 자료의 기술적 검토하기' }
+            ]
+        },
+        {
+            code: '1501020111_19v3', name: '체결요소설계', level: 3,
+            elements: [
+                { code: '1501020111_19v3_01', name: '체결 목적에 따른 요소 선정하기' },
+                { code: '1501020111_19v3_02', name: '체결부의 강도 및 구조 설계하기' }
+            ]
+        },
+        {
+            code: '1501020112_19v3', name: '동력전달요소설계', level: 3,
+            elements: [
+                { code: '1501020112_19v3_01', name: '동력 전달 방식 결정하기' },
+                { code: '1501020112_19v3_02', name: '축, 베어링, 기어 부품 설계하기' }
+            ]
+        },
+        {
+            code: '1501020113_19v3', name: '치공구요소설계', level: 3,
+            elements: [
+                { code: '1501020113_19v3_01', name: '가공 형태에 따른 치공구 구상하기' },
+                { code: '1501020113_19v3_02', name: '위치결정 및 클램핑 요소 설계하기' }
+            ]
+        },
+        {
+            code: '1501020114_19v3', name: '유압요소설계', level: 4,
+            elements: [
+                { code: '1501020114_19v3_01', name: '유압 회로도 구성하기' },
+                { code: '1501020114_19v3_02', name: '유압 기기 및 관로 선정하기' }
+            ]
+        },
+        {
+            code: '1501020115_19v3', name: '공압요소설계', level: 4,
+            elements: [
+                { code: '1501020115_19v3_01', name: '공압 회로도 구성하기' },
+                { code: '1501020115_19v3_02', name: '공압 제어 밸브 및 실린더 선정하기' }
+            ]
+        },
+        {
+            code: '1501020121_19v3', name: '도면분석', level: 3,
+            elements: [
+                { code: '1501020121_19v3_01', name: '투상도 및 단면도 분석하기' },
+                { code: '1501020121_19v3_02', name: '치수 및 기하공차 파악하기' }
+            ]
+        },
+        {
+            code: '1501020122_19v3', name: '도면검토', level: 4,
+            elements: [
+                { code: '1501020122_19v3_01', name: '작성 도면의 규격 준수 여부 확인하기' },
+                { code: '1501020122_19v3_02', name: '제작 및 조립 가능성 검토하기' }
+            ]
+        },
+        {
+            code: '1501020123_19v3', name: '2D도면작업', level: 2,
+            elements: [
+                { code: '1501020123_19v3_01', name: '2D CAD를 이용한 도면 작성하기' },
+                { code: '1501020123_19v3_02', name: '치수, 기호 및 부품란 기입하기' }
+            ]
+        },
+        {
+            code: '1501020124_19v3', name: '2D도면관리', level: 2,
+            elements: [
+                { code: '1501020124_19v3_01', name: '도면 데이터 백업 및 보관하기' },
+                { code: '1501020124_19v3_02', name: '도면 출도 및 변경 이력 관리하기' }
+            ]
+        },
         {
             code: '1501020125_19v3', name: '3D형상모델링작업', level: 2,
             elements: [
-                { code: '1501020125_19v3_01', name: '3D형상모델링작업 준비하기' },
-                { code: '1501020125_19v3_02', name: '3D형상모델링작업하기' },
-                { code: '1501020125_19v3_03', name: '3D형상정보 확인하기' }
+                { code: '1501020125_19v3_01', name: '3D 형상 모델링 준비 및 부품 모델링하기' },
+                { code: '1501020125_19v3_02', name: '조립도 작성 및 형상 정보 확인하기' }
             ]
         },
         {
             code: '1501020126_19v3', name: '3D형상모델링검토', level: 3,
             elements: [
-                { code: '1501020126_19v3_01', name: '3D형상모델링 검토하기' },
-                { code: '1501020126_19v3_02', name: '3D형상모델링 수정하기' }
+                { code: '1501020126_19v3_01', name: '모델링 데이터의 오류 및 간섭 검토하기' },
+                { code: '1501020126_19v3_02', name: '검토 결과에 따른 모델링 데이터 수정하기' }
             ]
         },
-        { code: '1501020127_19v3', name: '요소부품재질선정', level: 4 }
+        {
+            code: '1501020127_19v3', name: '요소부품재질선정', level: 4,
+            elements: [
+                { code: '1501020127_19v3_01', name: '부품별 요구 특성에 따른 재질 파악하기' },
+                { code: '1501020127_19v3_02', name: '경제성 및 가공성을 고려한 재질 확정하기' }
+            ]
+        }
     ]
 };
 
