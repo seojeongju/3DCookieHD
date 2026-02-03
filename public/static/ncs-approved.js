@@ -113,9 +113,12 @@
         }
 
         function loadLargeClasses() {
+            var year = (devCategory && devCategory.value) ? devCategory.value.trim() : '';
             largeClass.innerHTML = '<option value="">로딩 중...</option>';
             var token = localStorage.getItem('token');
-            return fetch('/api/ncs/approved/large-classes', { headers: token ? { 'Authorization': 'Bearer ' + token } : {} })
+            var url = '/api/ncs/approved/large-classes' + (year ? '?devCategory=' + encodeURIComponent(year) : '');
+
+            return fetch(url, { headers: token ? { 'Authorization': 'Bearer ' + token } : {} })
                 .then(function (r) { return r.json(); })
                 .then(function (json) {
                     if (json.success && Array.isArray(json.data) && json.data.length) fillLargeClass(json.data);
@@ -383,6 +386,15 @@
             loadJobRadios();
         }
 
+        if (devCategory) {
+            devCategory.addEventListener('change', function () {
+                clearSelect(largeClass);
+                clearSelect(midClass);
+                clearSelect(smallClass);
+                loadJobRadios();
+                loadLargeClasses();
+            });
+        }
         largeClass.addEventListener('change', loadTrainingByLarge);
         midClass.addEventListener('change', loadSmallByMid);
         smallClass.addEventListener('change', loadJobRadios);

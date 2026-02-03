@@ -240,6 +240,26 @@ async function fetchNcsJobsBySmall(apiKey: string, l: string, m: string, s: stri
 }
 
 
+/** 기준정보 API로 대분류 목록 조회 (NCS001) */
+async function fetchNcsLargeClasses(apiKey: string, baseUrl?: string): Promise<{ code: string; name: string }[]> {
+    const key = decodeServiceKey(apiKey);
+    const base = (baseUrl || NCS_CLASSIFICATION_API_BASE_DEFAULT).replace(/\/$/, '');
+    try {
+        const list = await fetchClassificationAllPages(base, key, 'NCS001', {});
+        return list
+            .filter((r) => rowVal(r, 'USG_YN', 'usgYn') === 'Y')
+            .map((r) => ({
+                code: rowVal(r, 'NCS_LCLAS_CD', 'ncsLclasCd', 'lclasCd'),
+                name: rowVal(r, 'NCS_LCLAS_CDNM', 'ncsLclasCdnm', 'lclasCdnm')
+            }))
+            .filter((x) => x.code && x.name);
+    } catch (e) {
+        console.error('fetchNcsLargeClasses error:', e);
+        return [];
+    }
+}
+
+
 async function fetchNcsTrainingPage(apiKey: string, ncsLclasCd: string, pageNo: number): Promise<{ items: TrainingItem[]; totalPage: number }> {
     const key = decodeServiceKey(apiKey);
     const params = new URLSearchParams({
@@ -495,7 +515,24 @@ app.get('/approved/check', async (c) => {
 });
 
 app.get('/approved/large-classes', async (c) => {
-    return c.json({ success: true, data: NCS_LARGE_CLASSES });
+    try {
+        const devCategory = c.req.query('devCategory'); // e.g., '24', '23'
+        const rawKey = c.env.NCS_API_KEY?.trim();
+
+        if (rawKey) {
+            const classificationBase = (c.env as { NCS_CLASSIFICATION_API_BASE?: string }).NCS_CLASSIFICATION_API_BASE?.trim();
+            const data = await fetchNcsLargeClasses(rawKey, classificationBase);
+            if (data && data.length > 0) {
+                return c.json({ success: true, data });
+            }
+        }
+
+        // Fallback or No API Key
+        return c.json({ success: true, data: NCS_LARGE_CLASSES });
+    } catch (e) {
+        console.error('NCS approved/large-classes error:', e);
+        return c.json({ success: true, data: NCS_LARGE_CLASSES });
+    }
 });
 
 /** 기준정보 API 1차 요청(중분류) 진단 — 실패 원인 확인용. */
