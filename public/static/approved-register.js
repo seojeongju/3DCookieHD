@@ -372,6 +372,43 @@
             wireDualList('approvedFacility', facilityAll, facilitySelected, updateFacilityCounts);
             if (editId) loadCourse(editId);
 
+            // Auto Calculation Logic
+            (function () {
+                var elRate = document.getElementById('approvedFormHourlyRate');
+                var elDays = document.getElementById('approvedFormTotalDays');
+                var elTotalCost = document.getElementById('approvedFormTotalCost');
+                var elTotalHours = document.getElementById('approvedFormTotalHours');
+                var elDailyHours = document.getElementById('approvedFormDailyHours');
+                var elSubsidy = document.getElementById('approvedFormGovSubsidy');
+
+                function calc() {
+                    var days = parseInt(elDays.value || '0', 10);
+                    var daily = parseFloat(elDailyHours.value || '0');
+                    var rate = parseInt(elRate.value || '0', 10);
+
+                    // Calc Total Hours
+                    var totalH = days * daily;
+                    // Only update if it makes sense (not overwriting user specific override if we consider it authoritative? 
+                    // Usually auto-calc is better for data consistency)
+                    if (elTotalHours) elTotalHours.value = totalH;
+
+                    // Calc Total Cost
+                    var totalC = totalH * rate;
+                    if (elTotalCost) elTotalCost.value = totalC;
+
+                    // Calc Subsidy (Default to Equal to Cost if empty or we want to sync)
+                    // Let's just update it if it's likely they are same for full funding
+                    if (elSubsidy) elSubsidy.value = totalC;
+                }
+
+                var inputs = [elRate, elDays, elDailyHours];
+                inputs.forEach(function (el) {
+                    if (el) el.addEventListener('input', calc);
+                });
+                // Also trigger once on load if values exist? No, might overwrite DB data with calculated data which might be slightly different due to manual edits.
+                // Best to only trigger on User Input.
+            })();
+
             // Auto-switch tab if param exists
             var params = new URLSearchParams(window.location.search);
             var tab = params.get('tab');

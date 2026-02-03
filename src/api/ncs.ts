@@ -780,6 +780,20 @@ app.delete('/approved/registrations/:id', authMiddleware, requireAdmin, async (c
     }
 });
 
+/** 등록 ID 찾기 (과정 ID로) — 임베디드 모드 초기화용 */
+app.get('/approved/registrations/find-by-course/:courseId', authMiddleware, requireAdmin, async (c) => {
+    try {
+        const courseId = c.req.param('courseId');
+        const row = await c.env.DB.prepare('SELECT id FROM ncs_approved_registrations WHERE approved_course_id = ?').bind(courseId).first<{ id: number }>();
+        if (!row) return c.json({ success: true, data: null });
+        return c.json({ success: true, data: { id: row.id } });
+    } catch (e) {
+        console.error('ncs find registration by course:', e);
+        return c.json({ success: false, error: '조회 실패' }, 500);
+    }
+});
+
+
 /** 수준(1~8)을 훈련이수체계도 구간(2~6)으로 매핑 */
 function mapLevelToBand(level: number): 2 | 3 | 4 | 5 | 6 {
     if (level >= 6) return 6;

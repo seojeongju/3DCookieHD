@@ -8,6 +8,35 @@
 
     var trainingCache = [];
 
+    // 임베디드 모드에서 등록 ID를 찾아서 주입하는 함수
+    function ensureRegistrationId() {
+        if (!isEmbedded || !window.NCS_EMBED_COURSE_ID) return Promise.resolve();
+        // 이미 ID가 있는 경우 (HTML에 박혀있는 경우) 건너뜀
+        var editInput = document.getElementById('ncsApprovedEditId') ||
+            document.getElementById('ncsApprovedRegId') ||
+            document.getElementById('ncsApprovedRegIdStep3') ||
+            document.getElementById('ncsApprovedRegIdStep4') ||
+            document.getElementById('ncsApprovedRegIdStep5') ||
+            document.getElementById('ncsApprovedRegIdStep6');
+        if (editInput && editInput.value) return Promise.resolve();
+
+        var token = localStorage.getItem('token');
+        return fetch('/api/ncs/approved/registrations/find-by-course/' + window.NCS_EMBED_COURSE_ID, {
+            headers: token ? { 'Authorization': 'Bearer ' + token } : {}
+        })
+            .then(function (r) { return r.json(); })
+            .then(function (json) {
+                if (json.success && json.data && json.data.id) {
+                    var newId = json.data.id;
+                    ['ncsApprovedEditId', 'ncsApprovedRegId', 'ncsApprovedRegIdStep3', 'ncsApprovedRegIdStep4', 'ncsApprovedRegIdStep5', 'ncsApprovedRegIdStep6'].forEach(function (id) {
+                        var el = document.getElementById(id);
+                        if (el) el.value = newId;
+                    });
+                }
+            })
+            .catch(function (e) { console.error('ensureRegistrationId failed', e); });
+    }
+
     function initStep1() {
         var tabNcsOnly = document.getElementById('tabNcsOnly');
         var tabNonNcs = document.getElementById('tabNonNcs');
@@ -2103,10 +2132,13 @@
         else if (s === 6) initStep6();
     };
 
-    if (step === 1) initStep1();
-    else if (step === 2) initStep2();
-    else if (step === 3) initStep3();
-    else if (step === 4) initStep4();
-    else if (step === 5) initStep5();
-    else if (step === 6) initStep6();
+    ensureRegistrationId().then(function () {
+        if (step === 1) initStep1();
+        else if (step === 2) initStep2();
+        else if (step === 3) initStep3();
+        else if (step === 4) initStep4();
+        else if (step === 5) initStep5();
+        else if (step === 6) initStep6();
+    });
 })();
+
