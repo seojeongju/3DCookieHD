@@ -994,9 +994,13 @@ app.get('/approved/test-odcloud/:unitCode', async (c) => {
         // ODCloud는 'cond[컬럼명::EQ]=값' 형식을 사용함 (URL 인코딩 필요)
         const params = new URLSearchParams();
         params.append('page', '1');
-        params.append('perPage', '20');
+        params.append('perPage', '100');
         params.append('serviceKey', key);
-        // params.append('cond[NCS_CL_CD::EQ]', unitCode); // 컬럼명을 모름, 일단 전체 조회해서 필드 확인
+        params.append('returnType', 'json');
+
+        // 8자리 세분류로 필터링하여 실제 데이터 구조 확인
+        const subClassCd = unitCode.replace(/[^0-9]/g, '').substring(0, 8);
+        params.append('cond[NCS_CL_CD::EQ]', subClassCd);
 
         const url = `https://api.odcloud.kr/api/15083321/v1/uddi:${uddi}?${params.toString()}`;
 
@@ -1627,6 +1631,16 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
                                         if (elementsFromNCS006 && elementsFromNCS006.length > 0) {
                                             elements = elementsFromNCS006;
                                             console.log(`[NCS006] Found ${elementsFromNCS006.length} elements for ${u.code}`);
+
+                                            // Cache to DB for future speed
+                                            try {
+                                                const stmt = c.env.DB.prepare('INSERT OR IGNORE INTO ncs_elements (unit_code, code, name) VALUES (?, ?, ?)');
+                                                const batch = elements.map(e => stmt.bind(u.code, e.code, e.name));
+                                                await c.env.DB.batch(batch);
+                                                console.log(`[DB] Cached ${elements.length} elements for ${u.code}`);
+                                            } catch (cacheErr) {
+                                                console.error(`[DB] Cache failed for ${u.code}`, cacheErr);
+                                            }
                                         } else if (FALLBACK_ELEMENTS[u.code]) {
                                             // Final fallback: hardcoded data
                                             elements = FALLBACK_ELEMENTS[u.code];
