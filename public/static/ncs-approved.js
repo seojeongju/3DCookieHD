@@ -2115,7 +2115,15 @@
 
                     // Initialize scripts
                     if (window.initNcsStepScripts) window.initNcsStepScripts(stepNum);
+
+                    // Prevent Enter key from submitting form within steps
+                    container.addEventListener('keydown', function (e) {
+                        if (e.key === 'Enter' && e.target.tagName === 'INPUT') {
+                            e.preventDefault();
+                        }
+                    });
                 }
+
             })
             .catch(function (e) {
                 alert('단계 로딩 실패');
@@ -2140,5 +2148,16 @@
         else if (step === 5) initStep5();
         else if (step === 6) initStep6();
     });
+
+    // Global prevention for Enter key submission in NCS containers
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && e.target.tagName === 'INPUT') {
+            var container = e.target.closest('#ncsApprovedStepContent, #approvedRegisterForm');
+            if (container) {
+                e.preventDefault();
+            }
+        }
+    });
+
 })();
 

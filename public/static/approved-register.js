@@ -396,7 +396,14 @@
     }
 
 
+    form.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && e.target.tagName === 'INPUT') {
+            e.preventDefault();
+        }
+    });
+
     form.addEventListener('submit', submitForm);
+
     loadCategories().then(function () {
         loadPersonnel();
         Promise.all([
