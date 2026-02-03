@@ -132,16 +132,42 @@ function rowVal(row: Record<string, unknown>, ...keys: string[]): string {
 
 const CLASSIFICATION_PAGE_SIZE = 100;
 
+const FALLBACK_BASES = [
+    'http://apis.data.go.kr/B490007/ncsInformation',
+    'http://apis.data.go.kr/15128213/NcsClassificationService',
+    'http://apis.data.go.kr/B490007/hrdkapi'
+];
+
 /** 기준정보 API 한 오퍼레이션을 페이지네이션으로 전부 조회 (공공 API가 100건 제한인 경우 대비) */
 async function fetchClassificationAllPages(
-    base: string,
+    initialBase: string,
     key: string,
     path: string,
     params: Record<string, string>
 ): Promise<Record<string, unknown>[]> {
+    let base = initialBase;
+    let usedFallback = false;
+
+    // 1. Determine working base URL by probing first page
+    for (const candidate of [initialBase, ...FALLBACK_BASES]) {
+        if (!candidate) continue;
+        const q = new URLSearchParams({ serviceKey: key, type: 'json', pageNo: '1', numOfRows: '1', ...params });
+        const url = `${candidate}/${path}?${q.toString()}`;
+        try {
+            const res = await fetch(url);
+            if (res.ok) {
+                base = candidate;
+                usedFallback = true;
+                break;
+            }
+        } catch (e) { /* ignore network error, try next */ }
+    }
+
     const out: Record<string, unknown>[] = [];
     let pageNo = 1;
     const perPage = CLASSIFICATION_PAGE_SIZE;
+
+    // 2. Fetch all pages using the determined base
     for (; ;) {
         const q = new URLSearchParams({ serviceKey: key, type: 'json', pageNo: String(pageNo), numOfRows: String(perPage), ...params });
         const url = `${base}/${path}?${q.toString()}`;
