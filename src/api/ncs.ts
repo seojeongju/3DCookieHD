@@ -168,23 +168,23 @@ async function fetchNcsClassificationByLarge(apiKey: string, ncsLclasCd: string,
 
     try {
         // 1) 중분류 — 전체 페이지 수집
-        const midList = await fetchClassificationAllPages(base, key, 'getNcsMidClass', { ncsLclasCd });
+        const midList = await fetchClassificationAllPages(base, key, 'NcsMidClassList', { ncsLclasCd });
         if (midList.length === 0) return null;
         const mids = midList.map((r) => ({ code: rowVal(r, 'ncsMclasCd', 'NcsMclasCd', 'mclasCd', 'midCd'), name: rowVal(r, 'ncsMclasCdnm', 'NcsMclasCdnm', 'mclasCdnm', 'midNm') })).filter((m) => m.code);
 
         for (const mid of mids) {
             // 2) 소분류 — 전체 페이지 수집
-            const smallList = await fetchClassificationAllPages(base, key, 'getNcsSmallClass', { ncsLclasCd, ncsMclasCd: mid.code });
+            const smallList = await fetchClassificationAllPages(base, key, 'NcsSmallClassList', { ncsLclasCd, ncsMclasCd: mid.code });
             const smalls = smallList.map((r) => ({ code: rowVal(r, 'ncsSclasCd', 'sclasCd', 'smallCd'), name: rowVal(r, 'ncsSclasCdnm', 'NcsSclasCdnm', 'sclasCdnm', 'smallNm') })).filter((s) => s.code);
 
             for (const small of smalls) {
                 // 3) 세분류 — 전체 페이지 수집
-                const subList = await fetchClassificationAllPages(base, key, 'getNcsSubClass', { ncsLclasCd, ncsMclasCd: mid.code, ncsSclasCd: small.code });
+                const subList = await fetchClassificationAllPages(base, key, 'NcsSubdClassList', { ncsLclasCd, ncsMclasCd: mid.code, ncsSclasCd: small.code });
                 const subs = subList.map((r) => ({ code: rowVal(r, 'ncsSubdCd', 'ncsDclasCd', 'subdCd', 'subCd'), name: rowVal(r, 'ncsSubdCdnm', 'ncsDclasCdnm', 'subdCdnm', 'subNm') })).filter((s) => s.code);
 
                 for (const sub of subs) {
                     const dutyCd = `${ncsLclasCd}${mid.code}${small.code}${sub.code}`;
-                    const unitList = await fetchClassificationAllPages(base, key, 'getNcsAbilityUnit', { dutyCd });
+                    const unitList = await fetchClassificationAllPages(base, key, 'NcsAbtyUnitCdList', { dutyCd });
                     if (unitList.length === 0) {
                         all.push({ largeCode: ncsLclasCd, largeName, midCode: mid.code, midName: mid.name, smallCode: small.code, smallName: small.name, subClassCode: sub.code, subClassName: sub.name, unitCode: '', unitName: '' });
                         continue;
