@@ -458,6 +458,10 @@ export const adminCoursesApprovedRegisterHtml = (editId?: string) => {
                                 <input type="text" id="approvedFormApprovalOrg" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500" placeholder="승인기관">
                             </div>
                             <div>
+                                <label class="block text-sm font-bold text-slate-700 mb-1">교·강사명</label>
+                                <input type="text" id="approvedFormInstructor" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500" placeholder="교·강사명">
+                            </div>
+                            <div>
                                 <label class="block text-sm font-bold text-slate-700 mb-1">상태</label>
                                 <select id="approvedFormStatus" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500">
                                     <option value="active">활성</option>
@@ -511,6 +515,14 @@ export const adminCoursesApprovedRegisterHtml = (editId?: string) => {
                                 <label class="block text-sm font-bold text-slate-700 mb-1">NCS교과 URL</label>
                                 <input type="url" id="approvedFormUrlNcs" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm bg-slate-50" placeholder="https://">
                             </div>
+                            <div>
+                                <label class="block text-sm font-bold text-slate-700 mb-1">교수계획서 URL</label>
+                                <input type="url" id="approvedFormUrlPlan" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm bg-slate-50" placeholder="https://">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-slate-700 mb-1">세부교수계획서 URL</label>
+                                <input type="url" id="approvedFormUrlDetailPlan" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm bg-slate-50" placeholder="https://">
+                            </div>
                         </div>
                     </section>
 
@@ -562,6 +574,12 @@ export const adminCoursesApprovedRegisterHtml = (editId?: string) => {
             document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
             document.getElementById('content-' + tabName).classList.remove('hidden');
         };
+        
+        // Auto-switch tab from URL param
+        const urlParams = new URLSearchParams(window.location.search);
+        if(urlParams.get('tab') === 'ncs') {
+             setTimeout(() => window.switchTab('ncs'), 100);
+        }
     </script>
     <script src="/static/approved-register.js"></script>
     ${isEdit ? '<script src="/static/ncs-approved.js"></script>' : ''}
