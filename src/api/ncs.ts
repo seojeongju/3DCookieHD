@@ -288,19 +288,23 @@ async function fetchNcsUnitElements(
     // 버전 접미사 처리
     const codeToUse = ncsClCd;
 
+    // 8자리 세분류 코드 (NCS_CL_CD) 추출 - ODCloud 쿼리용
+    const subClassCd = codeToUse.replace(/[^0-9]/g, '').substring(0, 8);
+
     // 1. Try ODCloud API (The "Proper" Way - 한국산업인력공단_국가직무능력표준 정보_20241204)
     const ODCLOUD_UDDI = 'd8120558-7644-44ee-aa67-8fa879a80247';
     try {
         const params = new URLSearchParams();
         params.append('page', '1');
-        params.append('perPage', '100');
+        params.append('perPage', '200'); // 세분류 전체를 가져올 수 있으므로 넉넉하게
         params.append('serviceKey', key);
-        params.append('returnType', 'JSON');
-        // NCS_CL_CD 컬럼으로 필터링 (표준 필드명 사용)
-        params.append('cond[NCS_CL_CD::EQ]', codeToUse);
+        params.append('returnType', 'json'); // 소문자 권장
+        // 중요: NCS_CL_CD는 보통 8자리 세분류 코드를 의미함.
+        // 따라서 8자리로 필터링 후, 결과에서 우리 UnitCode에 맞는 요소를 찾아야 함.
+        params.append('cond[NCS_CL_CD::EQ]', subClassCd);
 
         const odUrl = `https://api.odcloud.kr/api/15083321/v1/uddi:${ODCLOUD_UDDI}?${params.toString()}`;
-        console.log(`[ODCloud] Fetching elements for ${codeToUse}: ${odUrl}`);
+        console.log(`[ODCloud] Fetching elements for SubClass ${subClassCd}: ${odUrl}`);
 
         const res = await fetch(odUrl);
         if (res.ok) {
@@ -308,6 +312,15 @@ async function fetchNcsUnitElements(
             // 데이터가 있고 배열인 경우 처리
             if (json.data && Array.isArray(json.data) && json.data.length > 0) {
                 const results = json.data.map((item: any) => {
+                    // 유닛 코드 일치 여부 확인 (8자리 코드로 전체 조회했으므로 필터링 필수)
+                    const itemUnitCode = item['능력단위코드'] || item['COMPE_UNIT_CD'] || item['NCS_UNIT_CD'] || item['ncsUnitCd'];
+                    if (itemUnitCode) {
+                        // 버전 접미사(_19v2 등) 제외하고 비교
+                        const c1 = String(itemUnitCode).replace(/_.*$/, '');
+                        const c2 = codeToUse.replace(/_.*$/, '');
+                        if (c1 !== c2) return null;
+                    }
+
                     // 다양한 필드명 케이스 대응 (한글/영문)
                     const name = item['능력단위요소명'] || item['COMPE_UNIT_FACTR_NAME'] || item['COMPE_UNIT_FACTR_NM'];
                     const no = item['능력단위요소번호'] || item['COMPE_UNIT_FACTR_NO'];
@@ -339,8 +352,8 @@ async function fetchNcsUnitElements(
     const MAX_PROBE = 12;
     const promises = [];
 
-    // 8자리 세분류 코드 추출 (예: 1903110202_23v3 -> 19031102)
-    const subClassCd = codeToUse.replace(/[^0-9]/g, '').substring(0, 8);
+    // 8자리 세분류 코드 추출 (이미 상단에서 선언됨)
+    // const subClassCd = codeToUse.replace(/[^0-9]/g, '').substring(0, 8);
     const unitCd = codeToUse;
 
     console.log(`[NCS006] Fallback Probing for Unit=${unitCd}, SubClass=${subClassCd}`);
