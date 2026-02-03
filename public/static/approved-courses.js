@@ -24,13 +24,22 @@
             }).catch(function (e) { console.error(e); });
     }
     function buildQuery() {
-        var categoryId = document.getElementById('approvedFilterCategory').value;
-        var name = (document.getElementById('approvedFilterName').value || '').trim();
-        var instructor = (document.getElementById('approvedFilterInstructor').value || '').trim();
-        var from = document.getElementById('approvedFilterFrom').value;
-        var to = document.getElementById('approvedFilterTo').value;
-        var allPeriod = document.getElementById('approvedFilterAllPeriod').checked;
-        var limit = parseInt(document.getElementById('approvedPageSize').value, 10) || 15;
+        var elCat = document.getElementById('approvedFilterCategory');
+        var elName = document.getElementById('approvedFilterName');
+        var elInst = document.getElementById('approvedFilterInstructor');
+        var elFrom = document.getElementById('approvedFilterFrom');
+        var elTo = document.getElementById('approvedFilterTo');
+        var elAll = document.getElementById('approvedFilterAllPeriod');
+        var elSize = document.getElementById('approvedPageSize');
+
+        var categoryId = elCat ? elCat.value : '';
+        var name = (elName ? elName.value : '').trim();
+        var instructor = (elInst ? elInst.value : '').trim();
+        var from = elFrom ? elFrom.value : '';
+        var to = elTo ? elTo.value : '';
+        var allPeriod = elAll ? elAll.checked : true;
+        var limit = (elSize && parseInt(elSize.value, 10)) || 15;
+
         var params = new URLSearchParams();
         if (categoryId) params.set('category_id', categoryId);
         if (name) params.set('name', name);
