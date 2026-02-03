@@ -8,7 +8,7 @@ const app = new Hono<{ Bindings: Bindings, Variables: Variables }>();
 
 function isD1SchemaError(e: unknown): boolean {
     const s = String((e as Error)?.message ?? e);
-    return /no such column|no such table|syntax error/i.test(s);
+    return /no such column|no such table|syntax error|undefined/i.test(s);
 }
 
 // NCS 능력단위 목록 조회
@@ -694,10 +694,11 @@ app.post('/approved/registrations', authMiddleware, requireAdmin, async (c) => {
         return c.json({ success: true, data: row }, 201);
     } catch (e) {
         console.error('ncs approved registration create:', e);
-        const msg = isD1SchemaError(e)
+        const errorMsg = String((e as Error)?.message ?? e);
+        const userMsg = isD1SchemaError(e)
             ? 'DB 스키마가 최신이 아닙니다. npm run db:migrate:prod 실행 후 다시 시도해 주세요.'
-            : '등록 실패';
-        return c.json({ success: false, error: msg }, 500);
+            : '등록 실패: ' + errorMsg;
+        return c.json({ success: false, error: userMsg, debug: errorMsg }, 500);
     }
 });
 
@@ -759,10 +760,11 @@ app.put('/approved/registrations/:id', authMiddleware, requireAdmin, async (c) =
         return c.json({ success: true, data: row });
     } catch (e) {
         console.error('ncs approved registration update:', e);
-        const msg = isD1SchemaError(e)
+        const errorMsg = String((e as Error)?.message ?? e);
+        const userMsg = isD1SchemaError(e)
             ? 'DB 스키마가 최신이 아닙니다. npm run db:migrate:prod 실행 후 다시 시도해 주세요.'
-            : '수정 실패';
-        return c.json({ success: false, error: msg }, 500);
+            : '수정 실패: ' + errorMsg;
+        return c.json({ success: false, error: userMsg, debug: errorMsg }, 500);
     }
 });
 
@@ -789,7 +791,11 @@ app.get('/approved/registrations/find-by-course/:courseId', authMiddleware, requ
         return c.json({ success: true, data: { id: row.id } });
     } catch (e) {
         console.error('ncs find registration by course:', e);
-        return c.json({ success: false, error: '조회 실패' }, 500);
+        const errorMsg = String((e as Error)?.message ?? e);
+        const userMsg = isD1SchemaError(e)
+            ? 'DB 스키마가 최신이 아닙니다. npm run db:migrate:prod 등을 검토해 주세요.'
+            : '조회 실패: ' + errorMsg;
+        return c.json({ success: false, error: userMsg, debug: errorMsg }, 500);
     }
 });
 
