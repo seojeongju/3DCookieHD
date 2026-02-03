@@ -275,6 +275,32 @@ async function fetchNcsUnitsByJob(
 }
 
 
+/** NCS006: 능력단위요소 조회 - 특정 능력단위의 모든 요소(Elements) 가져오기 */
+async function fetchNcsUnitElements(
+    apiKey: string,
+    ncsClCd: string,
+    baseUrl?: string
+): Promise<{ code: string; name: string }[]> {
+    const key = decodeServiceKey(apiKey);
+    const base = (baseUrl || NCS_CLASSIFICATION_API_BASE_DEFAULT).replace(/\/$/, '');
+    try {
+        const list = await fetchClassificationAllPages(base, key, 'NCS006', {
+            NCS_CL_CD: ncsClCd
+        });
+        return list
+            .filter((r) => rowVal(r, 'USG_YN', 'usgYn') === 'Y')
+            .map((r) => ({
+                code: rowVal(r, 'COMPE_UNIT_ELEM_CD', 'compeUnitElemCd', 'elemCd'),
+                name: rowVal(r, 'COMPE_UNIT_ELEM_NAME', 'compeUnitElemName', 'elemName')
+            }))
+            .filter((x) => x.code && x.name);
+    } catch (e) {
+        console.error('fetchNcsUnitElements error:', e);
+        return [];
+    }
+}
+
+
 /** 기준정보 API로 대분류 목록 조회 (NCS001) */
 async function fetchNcsLargeClasses(apiKey: string, baseUrl?: string): Promise<{ code: string; name: string }[]> {
     const key = decodeServiceKey(apiKey);
@@ -1174,9 +1200,22 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
 
                         const unitsFromNCS005 = await fetchNcsUnitsByJob(apiKey, l, m, s, subd, classificationBase);
                         if (unitsFromNCS005 && unitsFromNCS005.length > 0) {
+                            // For each unit, also fetch its elements (NCS006)
                             for (const u of unitsFromNCS005) {
                                 if (!u.code || !u.name) continue;
-                                addItem(u.name, u.code, u.level || 3);
+
+                                // Fetch elements for this unit
+                                let elements: { code: string; name: string }[] | undefined;
+                                try {
+                                    const elementsFromNCS006 = await fetchNcsUnitElements(apiKey, u.code, classificationBase);
+                                    if (elementsFromNCS006 && elementsFromNCS006.length > 0) {
+                                        elements = elementsFromNCS006;
+                                    }
+                                } catch (e) {
+                                    console.error(`NCS006 call failed for unit ${u.code}`, e);
+                                }
+
+                                addItem(u.name, u.code, u.level || 3, elements);
                                 foundAny = true;
                                 foundFromApi = true;
                             }
