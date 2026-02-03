@@ -301,6 +301,87 @@ async function fetchNcsUnitElements(
 }
 
 
+/** NCS007: 능력단위취지도 검색 - 키워드로 능력단위 검색 */
+async function fetchNcsUnitsByKeyword(
+    apiKey: string,
+    keyword: string,
+    level?: string,
+    startNum?: number,
+    endNum?: number,
+    pageNo?: number,
+    numOfRows?: number,
+    baseUrl?: string
+): Promise<{ code: string; name: string; level?: number; description?: string }[]> {
+    const key = decodeServiceKey(apiKey);
+    const base = (baseUrl || NCS_CLASSIFICATION_API_BASE_DEFAULT).replace(/\/$/, '');
+
+    const params: Record<string, string> = {
+        serviceKey: key,
+        pageNo: String(pageNo || 1),
+        numOfRows: String(numOfRows || 100),
+        LVL: level || '',
+        SWRD: keyword,
+        SNUM: String(startNum || 1),
+        ENUM: String(endNum || 100)
+    };
+
+    try {
+        const url = `${base}/NCS007?${new URLSearchParams(params).toString()}`;
+        const res = await fetch(url);
+
+        if (!res.ok) {
+            console.warn('NCS007 HTTP error:', res.status);
+            return [];
+        }
+
+        const json = await res.json() as Record<string, unknown>;
+        const resp = json?.response as Record<string, unknown> | undefined;
+        const header = (resp?.header ?? json?.header) as Record<string, unknown> | undefined;
+        const resultCode = header ? String(header.resultCode ?? header.RESULT_CODE ?? '').trim() : '';
+
+        if (resultCode && resultCode !== '00' && resultCode.toLowerCase() !== 'ok') {
+            console.warn('NCS007 result error:', resultCode);
+            return [];
+        }
+
+        const body = (resp?.body ?? json?.body ?? json?.data) as Record<string, unknown> | unknown[] | undefined;
+        let items: unknown[] = [];
+
+        if (Array.isArray(body)) {
+            items = body;
+        } else if (body && typeof body === 'object') {
+            const itemsNode = (body as Record<string, unknown>).items;
+            if (Array.isArray(itemsNode)) {
+                items = itemsNode;
+            } else if (itemsNode && typeof itemsNode === 'object' && 'item' in itemsNode) {
+                const item = (itemsNode as { item: unknown }).item;
+                items = Array.isArray(item) ? item : (item ? [item] : []);
+            }
+        }
+
+        return items
+            .filter((r): r is Record<string, unknown> => r != null && typeof r === 'object')
+            .map((r) => {
+                const code = rowVal(r, 'NCS_CL_CD', 'ncsClCd', 'clCd');
+                const name = rowVal(r, 'COMPE_UNIT_NAME', 'compeUnitName', 'unitName');
+                const levelStr = rowVal(r, 'COMPE_UNIT_LEVEL', 'compeUnitLevel', 'level');
+                const description = rowVal(r, 'COMPE_UNIT_PURPOSE', 'compeUnitPurpose', 'purpose');
+                const lv = levelStr ? parseInt(levelStr, 10) : undefined;
+                return {
+                    code,
+                    name,
+                    level: isNaN(lv!) ? undefined : lv,
+                    description: description || undefined
+                };
+            })
+            .filter((x) => x.code && x.name);
+    } catch (e) {
+        console.error('fetchNcsUnitsByKeyword error:', e);
+        return [];
+    }
+}
+
+
 /** 기준정보 API로 대분류 목록 조회 (NCS001) */
 async function fetchNcsLargeClasses(apiKey: string, baseUrl?: string): Promise<{ code: string; name: string }[]> {
     const key = decodeServiceKey(apiKey);
@@ -683,6 +764,35 @@ app.get('/approved/jobs', async (c) => {
     } catch (e) {
         console.error('NCS approved/jobs error:', e);
         return c.json({ success: false, error: '직종 조회 실패' }, 500);
+    }
+});
+
+// NCS007: 능력단위 키워드 검색
+app.get('/approved/search-units', async (c) => {
+    try {
+        const keyword = c.req.query('keyword') || '';
+        const level = c.req.query('level');
+        const rawKey = c.env.NCS_API_KEY?.trim();
+
+        if (!keyword) {
+            return c.json({ success: false, error: '검색 키워드가 필요합니다.' }, 400);
+        }
+
+        if (!rawKey) {
+            return c.json({ success: false, error: 'NCS_API_KEY가 설정되지 않았습니다.' }, 400);
+        }
+
+        const classificationBase = (c.env as { NCS_CLASSIFICATION_API_BASE?: string }).NCS_CLASSIFICATION_API_BASE?.trim();
+        const results = await fetchNcsUnitsByKeyword(rawKey, keyword, level, undefined, undefined, undefined, undefined, classificationBase);
+
+        return c.json({
+            success: true,
+            data: results,
+            _meta: { keyword, level, count: results.length }
+        });
+    } catch (e) {
+        console.error('NCS search-units error:', e);
+        return c.json({ success: false, error: '능력단위 검색 실패' }, 500);
     }
 });
 
