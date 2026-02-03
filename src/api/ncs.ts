@@ -165,20 +165,18 @@ async function fetchClassificationAllPages(
     return out;
 }
 
-/** 기준정보 API로 대분류 기준 전체 트리 조회 (중·소·세·능력단위). 페이지네이션으로 전부 수집. */
+/** 기준정보 API로 대분류 기준 전체 트리 조회 (중·소·세). Promise.all 병렬 호출로 속도 대폭 개선. */
 async function fetchNcsClassificationByLarge(apiKey: string, ncsLclasCd: string, baseUrl?: string): Promise<TrainingItem[] | null> {
     const key = decodeServiceKey(apiKey);
     const base = (baseUrl || NCS_CLASSIFICATION_API_BASE_DEFAULT).replace(/\/$/, '');
-    const all: TrainingItem[] = [];
     const largeName = NCS_LARGE_CLASSES.find((c) => c.code === ncsLclasCd)?.name ?? '';
 
     try {
-        // 1) 중분류 — 전체 페이지 수집 (NCS002) - 파라미터 대문자 필수
-        const midList = await fetchClassificationAllPages(base, key, 'NCS002', { NCS_LCLAS_CD: ncsLclasCd });
-        if (midList.length === 0) return null;
+        // 1) 중분류 목록 수집
+        const midListRaw = await fetchClassificationAllPages(base, key, 'NCS002', { NCS_LCLAS_CD: ncsLclasCd });
+        if (!midListRaw || midListRaw.length === 0) return null;
 
-        // USG_YN === 'Y' 인 최신 차수만 필터링
-        const mids = midList
+        const mids = midListRaw
             .filter((r) => rowVal(r, 'USG_YN', 'usgYn') === 'Y')
             .map((r) => ({
                 code: rowVal(r, 'NCS_MCLAS_CD', 'ncsMclasCd', 'mclasCd'),
@@ -186,46 +184,66 @@ async function fetchNcsClassificationByLarge(apiKey: string, ncsLclasCd: string,
             }))
             .filter((m) => m.code);
 
-        for (const mid of mids) {
-            // 2) 소분류 — 전체 페이지 수집 (NCS003)
-            const smallList = await fetchClassificationAllPages(base, key, 'NCS003', { NCS_LCLAS_CD: ncsLclasCd, NCS_MCLAS_CD: mid.code });
-            const smalls = smallList
+        // 2) 중분류별 소분류 병렬 수집
+        const midToSmalls = await Promise.all(mids.map(async (mid) => {
+            const list = await fetchClassificationAllPages(base, key, 'NCS003', { NCS_LCLAS_CD: ncsLclasCd, NCS_MCLAS_CD: mid.code });
+            const smalls = list
                 .filter((r) => rowVal(r, 'USG_YN', 'usgYn') === 'Y')
                 .map((r) => ({
                     code: rowVal(r, 'NCS_SCLAS_CD', 'ncsSclasCd', 'sclasCd'),
                     name: rowVal(r, 'NCS_SCLAS_CDNM', 'ncsSclasCdnm', 'sclasCdnm')
                 }))
                 .filter((s) => s.code);
+            return { mid, smalls };
+        }));
 
-            for (const small of smalls) {
-                // 3) 세분류 — 전체 페이지 수집 (NCS004)
-                const subList = await fetchClassificationAllPages(base, key, 'NCS004', { NCS_LCLAS_CD: ncsLclasCd, NCS_MCLAS_CD: mid.code, NCS_SCLAS_CD: small.code });
-                const subs = subList
-                    .filter((r) => rowVal(r, 'USG_YN', 'usgYn') === 'Y')
-                    .map((r) => ({
-                        code: rowVal(r, 'NCS_SUBD_CD', 'ncsSubdCd', 'subdCd'),
-                        name: rowVal(r, 'NCS_SUBD_CDNM', 'ncsSubdCdnm', 'subdCdnm')
-                    }))
-                    .filter((s) => s.code);
+        // 3) 소분류별 세분류 병렬 수집 (주의: Cloudflare Worker는 동시 요청 제한이 있을 수 있으나 소분류는 보통 수십개 내외)
+        const allItems: TrainingItem[] = [];
 
+        // 소분류 전체 리스트를 펼쳐서 병렬 처리
+        const smallTasks = midToSmalls.flatMap(({ mid, smalls }) => {
+            if (smalls.length === 0) {
+                // If no smalls for a mid, add a placeholder for mid
+                return [{ mid, small: { code: '', name: '' } }];
+            }
+            return smalls.map(small => ({ mid, small }));
+        });
+
+        const smallToSubs = await Promise.all(smallTasks.map(async ({ mid, small }) => {
+            if (!small.code) { // Placeholder small, no need to fetch subs
+                return { mid, small, subs: [] };
+            }
+            const list = await fetchClassificationAllPages(base, key, 'NCS004', { NCS_LCLAS_CD: ncsLclasCd, NCS_MCLAS_CD: mid.code, NCS_SCLAS_CD: small.code });
+            const subs = list
+                .filter((r) => rowVal(r, 'USG_YN', 'usgYn') === 'Y')
+                .map((r) => ({
+                    code: rowVal(r, 'NCS_SUBD_CD', 'ncsSubdCd', 'subdCd'),
+                    name: rowVal(r, 'NCS_SUBD_CDNM', 'ncsSubdCdnm', 'subdCdnm')
+                }))
+                .filter((s) => s.code);
+            return { mid, small, subs };
+        }));
+
+        // 결과 조립
+        for (const { mid, small, subs } of smallToSubs) {
+            if (subs.length === 0) {
+                allItems.push({
+                    largeCode: ncsLclasCd, largeName, midCode: mid.code, midName: mid.name,
+                    smallCode: small.code, smallName: small.name, subClassCode: '', subClassName: '',
+                    unitCode: '', unitName: ''
+                });
+            } else {
                 for (const sub of subs) {
-                    all.push({
-                        largeCode: ncsLclasCd, largeName,
-                        midCode: mid.code, midName: mid.name,
-                        smallCode: small.code, smallName: small.name,
-                        subClassCode: sub.code, subClassName: sub.name,
+                    allItems.push({
+                        largeCode: ncsLclasCd, largeName, midCode: mid.code, midName: mid.name,
+                        smallCode: small.code, smallName: small.name, subClassCode: sub.code, subClassName: sub.name,
                         unitCode: '', unitName: ''
                     });
                 }
-                if (subs.length === 0) {
-                    all.push({ largeCode: ncsLclasCd, largeName, midCode: mid.code, midName: mid.name, smallCode: small.code, smallName: small.name, subClassCode: '', subClassName: '', unitCode: '', unitName: '' });
-                }
-            }
-            if (smalls.length === 0) {
-                all.push({ largeCode: ncsLclasCd, largeName, midCode: mid.code, midName: mid.name, smallCode: '', smallName: '', subClassCode: '', subClassName: '', unitCode: '', unitName: '' });
             }
         }
-        return all.length > 0 ? all : null;
+
+        return allItems.length > 0 ? allItems : null;
     } catch (e) {
         console.error('NCS Classification fetch error:', e);
         return null;
