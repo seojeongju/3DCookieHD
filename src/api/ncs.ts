@@ -275,8 +275,104 @@ async function fetchNcsUnitsByJob(
 }
 
 
-/** NCS006: 능력단위요소 조회 - 특정 능력단위의 모든 요소(Elements) 가져오기 */
+
+/** NCS006: 능력단위요소 조회 - 순차적/병렬 호출로 모든 요소 탐색 (New Implementation) */
 async function fetchNcsUnitElements(
+    apiKey: string,
+    ncsClCd: string,
+    baseUrl?: string
+): Promise<{ code: string; name: string }[]> {
+    const key = decodeServiceKey(apiKey);
+    const base = (baseUrl || NCS_CLASSIFICATION_API_BASE_DEFAULT).replace(/\/$/, '');
+
+    // 버전 접미사 처리
+    const codeToUse = ncsClCd;
+
+    // 능력단위요소는 보통 10개 미만이므로 01~12번을 병렬로 조회하여 존재하는 것만 추려냄
+    const MAX_PROBE = 12;
+    const promises = [];
+
+    // URL 생성 헬퍼
+    const createUrl = (factorNo: string) => {
+        const params = new URLSearchParams({
+            serviceKey: key,
+            NCS_CL_CD: codeToUse,
+            COMPE_UNIT_FACTR_NO: factorNo, // 필수 파라미터!
+            returnType: 'json'
+        });
+        return `${base}/NCS006?${params.toString()}`;
+    };
+
+    console.log(`[NCS006] Probing elements for ${codeToUse} (01~${MAX_PROBE})`);
+
+    for (let i = 1; i <= MAX_PROBE; i++) {
+        const factorNo = String(i).padStart(2, '0');
+        const url = createUrl(factorNo);
+
+        promises.push(
+            fetch(url)
+                .then(async (res) => {
+                    if (!res.ok) return null;
+                    const text = await res.text();
+                    try {
+                        let json;
+                        try {
+                            json = JSON.parse(text);
+                        } catch (e) {
+                            return null;
+                        }
+
+                        // 공공데이터포털 응답 구조 파싱
+                        const body = json?.response?.body || json?.data;
+                        if (!body) return null;
+
+                        const items = body.items?.item || body.items;
+                        if (!items) return null;
+
+                        const item = Array.isArray(items) ? items[0] : items;
+                        if (!item) return null;
+
+                        // 실제 데이터 매핑 - 다양한 필드명 대응
+                        const elemName = rowVal(item, 'COMPE_UNIT_FACTR_NAME', 'compeUnitFactrName');
+                        const elemNo = rowVal(item, 'COMPE_UNIT_FACTR_NO', 'compeUnitFactrNo');
+
+                        if (elemName && elemNo) {
+                            // 요소코드 생성 (응답에 코드가 없으면 조합)
+                            const elemCode = rowVal(item, 'COMPE_UNIT_FACTR_NO_CD', 'compeUnitFactrNoCd')
+                                || `${ncsClCd}_${elemNo}`;
+                            return { code: elemCode, name: elemName, no: elemNo };
+                        }
+                        return null;
+                    } catch (e) {
+                        return null;
+                    }
+                })
+                .catch(() => null)
+        );
+    }
+
+    try {
+        const results = await Promise.all(promises);
+        // 유효한 결과만 필터링하고 번호순 정렬
+        const validElements = results
+            .filter((r): r is { code: string; name: string; no: string } => r !== null)
+            .sort((a, b) => a.no.localeCompare(b.no));
+
+        if (validElements.length > 0) {
+            console.log(`[NCS006] Found ${validElements.length} elements for ${ncsClCd}`);
+            return validElements.map(({ code, name }) => ({ code, name }));
+        }
+    } catch (e) {
+        console.error(`[NCS006] Probing failed for ${ncsClCd}`, e);
+    }
+
+    console.warn(`[NCS006] No elements found for ${ncsClCd} after probing, trying fallback...`);
+    // DB 확인이나 하드코딩된 fallback 사용 로직은 호출부에서 처리됨
+    return [];
+}
+
+/** NCS006: 능력단위요소 조회 - 특정 능력단위의 모든 요소(Elements) 가져오기 */
+async function fetchNcsUnitElementsOld(
     apiKey: string,
     ncsClCd: string,
     baseUrl?: string
