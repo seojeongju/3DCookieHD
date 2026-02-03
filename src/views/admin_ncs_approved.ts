@@ -202,6 +202,7 @@ function stepContentHtml(step: number, editId?: string): string {
       <div class="flex flex-wrap gap-3 pt-6 border-t border-slate-200/60 justify-center">
         <a href="/admin/ncs/approved/list" class="px-6 py-2.5 text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 font-bold text-sm transition inline-flex items-center gap-2">목록</a>
         <a href="/admin/ncs/approved/1${regId ? '?id=' + regId : ''}" class="px-6 py-2.5 text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 font-bold text-sm transition inline-flex items-center gap-2">이전</a>
+        <button type="button" id="ncsStep2BtnSave" class="px-6 py-2.5 text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 font-bold text-sm transition inline-flex items-center gap-2"><i class="fas fa-save"></i> 저장</button>
         <button type="button" id="ncsStep2BtnNext" class="px-8 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-bold text-sm shadow-lg shadow-emerald-500/20 transition inline-flex items-center gap-2">저장 후 다음 <i class="fas fa-chevron-right text-xs"></i></button>
       </div>
     </div>`;

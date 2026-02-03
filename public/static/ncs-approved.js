@@ -706,35 +706,47 @@
 
                 tbody.innerHTML = rows.join('');
 
+                var btnSave = document.getElementById('ncsStep2BtnSave');
                 var btnNext = document.getElementById('ncsStep2BtnNext');
-                if (btnNext) {
-                    btnNext.addEventListener('click', function () {
-                        var selected = [];
-                        tbody.querySelectorAll('.ncs-step2-cb:checked').forEach(function (cb) {
-                            var v = (cb.value || '').trim();
-                            if (v) selected.push(v);
-                        });
-                        btnNext.disabled = true;
-                        fetch('/api/ncs/approved/registrations/' + regId + '/training-system-selection', {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (token || '') },
-                            body: JSON.stringify({ selected: selected })
-                        })
-                            .then(function (r) { return r.json(); })
-                            .then(function (res) {
-                                btnNext.disabled = false;
-                                if (res.success) {
+
+                function saveStep2(redirectToNext) {
+                    var selected = [];
+                    tbody.querySelectorAll('.ncs-step2-cb:checked').forEach(function (cb) {
+                        var v = (cb.value || '').trim();
+                        if (v) selected.push(v);
+                    });
+
+                    if (btnSave) btnSave.disabled = true;
+                    if (btnNext) btnNext.disabled = true;
+
+                    fetch('/api/ncs/approved/registrations/' + regId + '/training-system-selection', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (token || '') },
+                        body: JSON.stringify({ selected: selected })
+                    })
+                        .then(function (r) { return r.json(); })
+                        .then(function (res) {
+                            if (btnSave) btnSave.disabled = false;
+                            if (btnNext) btnNext.disabled = false;
+                            if (res.success) {
+                                if (redirectToNext) {
                                     window.location.href = '/admin/ncs/approved/3?id=' + regId;
                                 } else {
-                                    alert(res.error || '선택 저장 실패');
+                                    alert('저장되었습니다.');
                                 }
-                            })
-                            .catch(function () {
-                                btnNext.disabled = false;
-                                alert('선택 저장 중 오류가 발생했습니다.');
-                            });
-                    });
+                            } else {
+                                alert(res.error || '선택 저장 실패');
+                            }
+                        })
+                        .catch(function () {
+                            if (btnSave) btnSave.disabled = false;
+                            if (btnNext) btnNext.disabled = false;
+                            alert('선택 저장 중 오류가 발생했습니다.');
+                        });
                 }
+
+                if (btnSave) btnSave.addEventListener('click', function () { saveStep2(false); });
+                if (btnNext) btnNext.addEventListener('click', function () { saveStep2(true); });
             })
             .catch(function () {
                 tbody.innerHTML = '<tr><td colspan="3" class="px-4 py-8 text-center text-red-500">훈련이수체계도를 불러오는데 실패했습니다.</td></tr>';
