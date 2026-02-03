@@ -100,7 +100,8 @@ function decodeServiceKey(raw: string): string {
 const NCS_TRAINING_API_BASE = 'https://apis.data.go.kr/B490007/ncsTrainingCource/openapi18';
 
 /** NCS 기준정보조회 API (15128213) — 전체 분류체계. env NCS_CLASSIFICATION_API_BASE 로 덮을 수 있음. */
-const NCS_CLASSIFICATION_API_BASE_DEFAULT = 'https://api.data.go.kr/openapi/15128213/v1';
+/** NCS 기준정보조회 API (15128213) — 전체 분류체계. env NCS_CLASSIFICATION_API_BASE 로 덮을 수 있음. */
+const NCS_CLASSIFICATION_API_BASE_DEFAULT = 'http://apis.data.go.kr/B490007/hrdkapi';
 
 function parseClassificationItems(raw: unknown): Record<string, unknown>[] {
     if (Array.isArray(raw)) return raw.filter((r) => r && typeof r === 'object') as Record<string, unknown>[];

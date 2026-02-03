@@ -638,7 +638,10 @@
             // 임베디드 모드: 특정 과정 ID로 데이터를 로드하여 폼 채우기
             var token = localStorage.getItem('token');
             fetch('/api/approved-courses/' + window.NCS_EMBED_COURSE_ID, { headers: token ? { 'Authorization': 'Bearer ' + token } : {} })
-                .then(function (r) { return r.json(); })
+                .then(function (r) {
+                    if (!r.ok) throw new Error('Course not found');
+                    return r.json();
+                })
                 .then(function (res) {
                     if (res.success && res.data) {
                         fillFormFromApprovedCourse(res.data);
