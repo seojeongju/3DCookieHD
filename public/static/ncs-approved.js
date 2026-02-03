@@ -85,7 +85,8 @@
 
         if (!largeClass) return;
 
-        var selectedJobsStore = [];
+        // 글로벌 상태를 사용하여 분류 이동 시에도 데이터 손실 방지
+        if (!window.ncsStep1Jobs) window.ncsStep1Jobs = [];
 
         var largeClassesFallback = [
             { code: '01', name: '사업관리' }, { code: '02', name: '경영·회계·사무' }, { code: '03', name: '금융·보험' },
@@ -130,7 +131,6 @@
         }
         function loadJobRadios() {
             if (!jobRadioGroup || !jobRadioPlaceholder) return;
-            // clearUnitHidden();
             var large = largeClass ? largeClass.value : '';
             var mid = midClass ? midClass.value : '';
             var small = smallClass ? smallClass.value : '';
@@ -141,6 +141,8 @@
             if (!large || !mid || !small) {
                 jobRadioPlaceholder.style.display = '';
                 jobRadioPlaceholder.textContent = '소분류 선택 후 직종을 선택하세요. (기존 선택 항목은 유지됩니다)';
+                // 분류가 덜 선택되었어도 우측 리스트는 현재 상태 그대로 보여줘야 함
+                updateSelectedJobsResult();
                 return;
             }
 
@@ -172,7 +174,7 @@
                         // 전체 직종코드 생성 (대+중+소+세)
                         var fullCode = large + mid + small + subCode;
                         var id = 'ncsJob_' + fullCode.replace(/\s/g, '_');
-                        var isInStore = selectedJobsStore.some(function (x) { return (x.code || '') === fullCode; });
+                        var isInStore = window.ncsStep1Jobs.some(function (x) { return (x.code || '') === fullCode; });
 
                         w.innerHTML += '<label class="flex items-center gap-3 cursor-pointer py-2 hover:bg-blue-50 px-2 rounded-xl transition-all group">' +
                             '<input type="checkbox" name="ncsJobCheck" class="ncs-job-check w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 transition-all" value="' + esc(fullCode) + '" data-name="' + esc(name) + '" id="' + id + '"' + (isInStore ? ' checked' : '') + '> ' +
@@ -189,11 +191,11 @@
                             var fullCode = (cb.value || '').trim();
                             var name = (cb.getAttribute('data-name') || '').trim();
                             if (cb.checked) {
-                                if (!selectedJobsStore.some(function (x) { return (x.code || '') === fullCode; })) {
-                                    selectedJobsStore.push({ code: fullCode, name: name });
+                                if (!window.ncsStep1Jobs.some(function (x) { return (x.code || '') === fullCode; })) {
+                                    window.ncsStep1Jobs.push({ code: fullCode, name: name });
                                 }
                             } else {
-                                selectedJobsStore = selectedJobsStore.filter(function (x) { return (x.code || '') !== fullCode; });
+                                window.ncsStep1Jobs = window.ncsStep1Jobs.filter(function (x) { return (x.code || '') !== fullCode; });
                             }
                             updateSelectedJobsResult();
                         });
@@ -210,12 +212,12 @@
             if (!selectedJobsResult || !selectedJobsPlaceholder) return;
             var wrap = selectedJobsResult.querySelector('.ncs-selected-jobs-list');
             if (wrap) wrap.remove();
-            selectedJobsPlaceholder.style.display = selectedJobsStore.length ? 'none' : '';
+            selectedJobsPlaceholder.style.display = window.ncsStep1Jobs.length ? 'none' : '';
             selectedJobsPlaceholder.textContent = '왼쪽에서 직종을 선택하세요';
-            if (selectedJobsStore.length === 0) return;
+            if (window.ncsStep1Jobs.length === 0) return;
             var listEl = document.createElement('div');
             listEl.className = 'ncs-selected-jobs-list space-y-2';
-            selectedJobsStore.forEach(function (it) {
+            window.ncsStep1Jobs.forEach(function (it) {
                 var line = document.createElement('div');
                 line.className = 'flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-xl text-slate-800 group transition-all animate-in fade-in slide-in-from-left-2 duration-300';
 
@@ -245,7 +247,7 @@
             listEl.querySelectorAll('.ncs-selected-job-remove').forEach(function (btn) {
                 btn.addEventListener('click', function () {
                     var code = (btn.getAttribute('data-code') || '').trim();
-                    selectedJobsStore = selectedJobsStore.filter(function (x) { return (x.code || '') !== code; });
+                    window.ncsStep1Jobs = window.ncsStep1Jobs.filter(function (x) { return (x.code || '') !== code; });
                     var cbs = jobRadioGroup ? jobRadioGroup.querySelectorAll('.ncs-job-check') : [];
                     for (var i = 0; i < cbs.length; i++) { if (cbs[i].value === code) { cbs[i].checked = false; break; } }
                     updateSelectedJobsResult();
@@ -262,7 +264,7 @@
         }
         function loadTrainingByLarge() {
             var code = largeClass.value;
-            clearUnitHidden();
+            // clearUnitHidden();
             showTrainingApiMessage('');
             if (!code) {
                 trainingCache = [];
@@ -320,7 +322,7 @@
 
         function loadSmallByMid() {
             var mid = midClass.value;
-            clearUnitHidden();
+            // clearUnitHidden();
             if (!mid) {
                 clearSelect(smallClass);
                 loadJobRadios();
@@ -361,8 +363,8 @@
             var mid = midClass ? midClass.value : '';
             var small = smallClass ? smallClass.value : '';
             var mainJobs = [];
-            if (selectedJobsStore && selectedJobsStore.length) {
-                mainJobs = selectedJobsStore.map(function (j) { return { code: j.code || '', name: j.name || '' }; });
+            if (window.ncsStep1Jobs && window.ncsStep1Jobs.length) {
+                mainJobs = window.ncsStep1Jobs.map(function (j) { return { code: j.code || '', name: j.name || '' }; });
             } else if (jobRadioGroup) {
                 jobRadioGroup.querySelectorAll('.ncs-job-check:checked').forEach(function (cb) {
                     var code = (cb.value || '').trim();
@@ -641,15 +643,15 @@
                         midClass.value = d.mid_code || '';
                         loadSmallByMid();
                         smallClass.value = d.small_code || '';
-                        selectedJobsStore.length = 0;
+                        window.ncsStep1Jobs.length = 0;
                         try {
                             var raw = d.main_jobs_json;
                             if (raw && typeof raw === 'string') {
                                 var arr = JSON.parse(raw);
-                                if (Array.isArray(arr)) arr.forEach(function (j) { if (j && (j.code || j.name)) selectedJobsStore.push({ code: (j.code || '').toString().trim(), name: (j.name || '').toString().trim() }); });
+                                if (Array.isArray(arr)) arr.forEach(function (j) { if (j && (j.code || j.name)) window.ncsStep1Jobs.push({ code: (j.code || '').toString().trim(), name: (j.name || '').toString().trim() }); });
                             }
                         } catch (e) { }
-                        if (selectedJobsStore.length === 0 && (d.main_job_code || d.unit_code)) selectedJobsStore.push({ code: (d.unit_code || d.main_job_code || '').trim(), name: (d.main_job_name || d.unit_name || '').trim() });
+                        if (window.ncsStep1Jobs.length === 0 && (d.main_job_code || d.unit_code)) window.ncsStep1Jobs.push({ code: (d.unit_code || d.main_job_code || '').trim(), name: (d.main_job_name || d.unit_name || '').trim() });
                         loadJobRadios();
                         updateSelectedJobsResult();
                     });
