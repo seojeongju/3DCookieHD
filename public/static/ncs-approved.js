@@ -50,18 +50,18 @@
         var editId = (editInput && editInput.value) ? editInput.value.trim() : '';
 
         function showNcs() {
-            tabNcsOnly.classList.add('bg-emerald-600', 'text-white');
-            tabNcsOnly.classList.remove('bg-slate-100', 'text-slate-600');
-            tabNonNcs.classList.remove('bg-emerald-600', 'text-white');
-            tabNonNcs.classList.add('bg-slate-100', 'text-slate-600');
+            tabNcsOnly.classList.add('bg-white', 'text-blue-600', 'shadow-sm');
+            tabNcsOnly.classList.remove('text-slate-500');
+            tabNonNcs.classList.remove('bg-white', 'text-blue-600', 'shadow-sm');
+            tabNonNcs.classList.add('text-slate-500');
             panelNcsOnly.classList.remove('hidden');
             if (panelNonNcs) panelNonNcs.classList.add('hidden');
         }
         function showNonNcs() {
-            tabNonNcs.classList.add('bg-emerald-600', 'text-white');
-            tabNonNcs.classList.remove('bg-slate-100', 'text-slate-600');
-            tabNcsOnly.classList.remove('bg-emerald-600', 'text-white');
-            tabNcsOnly.classList.add('bg-slate-100', 'text-slate-600');
+            tabNonNcs.classList.add('bg-white', 'text-blue-600', 'shadow-sm');
+            tabNonNcs.classList.remove('text-slate-500');
+            tabNcsOnly.classList.remove('bg-white', 'text-blue-600', 'shadow-sm');
+            tabNcsOnly.classList.add('text-slate-500');
             if (panelNonNcs) panelNonNcs.classList.remove('hidden');
             panelNcsOnly.classList.add('hidden');
         }
@@ -467,9 +467,9 @@
             var container = document.getElementById('ncsApprovedCourseListContainer');
             if (container) {
                 var items = container.querySelectorAll('.ncs-approved-course-item');
-                items.forEach(function (el) { el.classList.remove('ring-2', 'ring-emerald-500', 'bg-emerald-50'); });
+                items.forEach(function (el) { el.classList.remove('ring-2', 'ring-blue-500', 'bg-blue-50'); });
                 var selected = container.querySelector('[data-approved-id="' + (data.id || '') + '"]');
-                if (selected) selected.classList.add('ring-2', 'ring-emerald-500', 'bg-emerald-50');
+                if (selected) selected.classList.add('ring-2', 'ring-blue-500', 'bg-blue-50');
             }
             var firstForm = document.getElementById('ncsDevCategory') || document.getElementById('ncsCourseName');
             if (firstForm) firstForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -489,7 +489,7 @@
                     }
                     var list = json.data;
                     if (list.length === 0) {
-                        container.innerHTML = '<div class="py-4 text-center text-slate-500 text-sm">등록된 승인받은 과정이 없습니다. <a href="/admin/courses/approved/register" class="text-emerald-600 hover:underline">교육과정 기초데이터에서 등록</a> 후 이용하세요.</div>';
+                        container.innerHTML = '<div class="py-4 text-center text-slate-500 text-sm">등록된 승인받은 과정이 없습니다. <a href="/admin/courses/approved/register" class="text-blue-600 hover:underline">교육과정 기초데이터에서 등록</a> 후 이용하세요.</div>';
                         return;
                     }
                     function esc(s) { var t = document.createElement('span'); t.textContent = s == null ? '' : s; return t.innerHTML; }
@@ -498,7 +498,7 @@
                         var name = esc(row.name || '-');
                         var cat = esc(row.category_name || '');
                         var reg = (row.registered_at || row.created_at || '').toString().slice(0, 10);
-                        return '<button type="button" class="ncs-approved-course-item w-full text-left px-4 py-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 hover:border-emerald-300 transition flex flex-wrap items-center gap-2" data-approved-id="' + (id || '') + '">' +
+                        return '<button type="button" class="ncs-approved-course-item w-full text-left px-4 py-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 hover:border-blue-300 transition flex flex-wrap items-center gap-2" data-approved-id="' + (id || '') + '">' +
                             '<span class="font-medium text-slate-800">' + name + '</span>' +
                             (cat ? '<span class="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-600">' + cat + '</span>' : '') +
                             (reg ? '<span class="text-xs text-slate-400">' + reg + '</span>' : '') +
@@ -715,13 +715,13 @@
                                     var isChecked = selectedSet[value] || selectedSet[name];
 
                                     var className = isChecked
-                                        ? 'cursor-pointer px-3 py-2.5 rounded-lg border-2 border-emerald-500 bg-emerald-50 text-emerald-900 font-bold shadow-md transition flex items-center justify-between group'
+                                        ? 'cursor-pointer px-3 py-2.5 rounded-lg border-2 border-blue-500 bg-blue-50 text-blue-900 font-bold shadow-sm transition flex items-center justify-between group'
                                         : 'cursor-pointer px-3 py-2.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition flex items-center justify-between group';
 
                                     contentHtml += '<label class="' + className + '" data-unit-value="' + attrEsc(value) + '">' +
                                         '<span class="flex-1 text-sm">' + esc(name) + '</span>' +
                                         '<input type="checkbox" class="ncs-step2-cb hidden" value="' + attrEsc(value) + '"' + (isChecked ? ' checked' : '') + ' onchange="updateUnitSelection(this)">' +
-                                        '<i class="fas fa-check ' + (isChecked ? 'text-emerald-600' : 'text-transparent group-hover:text-slate-300') + ' transition"></i>' +
+                                        '<i class="fas fa-check ' + (isChecked ? 'text-blue-600' : 'text-transparent group-hover:text-slate-300') + ' transition"></i>' +
                                         '</label>';
                                 });
                                 contentHtml += '</div>';
@@ -734,8 +734,8 @@
                             var name = (x && x.name) ? x.name : String(x);
                             var value = x.code || name;
                             var isChecked = selectedSet[value] || selectedSet[name];
-                            var className = isChecked ? 'cursor-pointer px-3 py-2.5 rounded-lg border-2 border-emerald-500 bg-emerald-50 text-emerald-900 font-bold shadow-md transition flex items-center justify-between group' : 'cursor-pointer px-3 py-2.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition flex items-center justify-between group';
-                            contentHtml += '<label class="' + className + '"><span class="flex-1 text-sm">' + esc(name) + '</span><input type="checkbox" class="ncs-step2-cb hidden" value="' + attrEsc(value) + '"' + (isChecked ? ' checked' : '') + ' onchange="updateUnitSelection(this)"><i class="fas fa-check ' + (isChecked ? 'text-emerald-600' : 'text-transparent group-hover:text-slate-300') + ' transition"></i></label>';
+                            var className = isChecked ? 'cursor-pointer px-3 py-2.5 rounded-lg border-2 border-blue-500 bg-blue-50 text-blue-900 font-bold shadow-sm transition flex items-center justify-between group' : 'cursor-pointer px-3 py-2.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition flex items-center justify-between group';
+                            contentHtml += '<label class="' + className + '"><span class="flex-1 text-sm">' + esc(name) + '</span><input type="checkbox" class="ncs-step2-cb hidden" value="' + attrEsc(value) + '"' + (isChecked ? ' checked' : '') + ' onchange="updateUnitSelection(this)"><i class="fas fa-check ' + (isChecked ? 'text-blue-600' : 'text-transparent group-hover:text-slate-300') + ' transition"></i></label>';
                         });
                         contentHtml += '</div>';
                         rowHtml += '<td class="px-6 py-4 bg-slate-50/30">' + contentHtml + '</td>';
@@ -753,8 +753,8 @@
                         var p = cb.parentElement;
                         var i = p.querySelector('i');
                         if (checked) {
-                            p.className = 'cursor-pointer px-3 py-2.5 rounded-lg border-2 border-emerald-500 bg-emerald-50 text-emerald-900 font-bold shadow-md transition flex items-center justify-between group';
-                            if (i) i.className = 'fas fa-check text-emerald-600 transition';
+                            p.className = 'cursor-pointer px-3 py-2.5 rounded-lg border-2 border-blue-500 bg-blue-50 text-blue-900 font-bold shadow-sm transition flex items-center justify-between group';
+                            if (i) i.className = 'fas fa-check text-blue-600 transition';
                         } else {
                             p.className = 'cursor-pointer px-3 py-2.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition flex items-center justify-between group';
                             if (i) i.className = 'fas fa-check text-transparent group-hover:text-slate-300 transition';
@@ -781,12 +781,12 @@
                         var value = x.code || name;
                         var isChecked = selectedSet[value] || selectedSet[name];
                         var className = isChecked
-                            ? 'cursor-pointer px-3 py-2.5 rounded-lg border-2 border-emerald-500 bg-emerald-50 text-emerald-900 font-bold shadow-md transition flex items-center justify-between group'
+                            ? 'cursor-pointer px-3 py-2.5 rounded-lg border-2 border-blue-500 bg-blue-50 text-blue-900 font-bold shadow-sm transition flex items-center justify-between group'
                             : 'cursor-pointer px-3 py-2.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition flex items-center justify-between group';
                         basicRowHtml += '<label class="' + className + '">' +
                             '<span class="flex-1 text-sm">' + esc(name) + '</span>' +
                             '<input type="checkbox" class="ncs-step2-cb hidden" value="' + attrEsc(value) + '"' + (isChecked ? ' checked' : '') + ' onchange="updateUnitSelection(this)">' +
-                            '<i class="fas fa-check ' + (isChecked ? 'text-emerald-600' : 'text-transparent group-hover:text-slate-300') + ' transition"></i>' +
+                            '<i class="fas fa-check ' + (isChecked ? 'text-blue-600' : 'text-transparent group-hover:text-slate-300') + ' transition"></i>' +
                             '</label>';
                     });
                     basicRowHtml += '</div>';
@@ -982,11 +982,11 @@
             clone.querySelectorAll('input, select').forEach(function (i) { i.value = ''; });
             var u = clone.querySelector('.nonncs-units');
             if (u) {
-                u.innerHTML = '<div class="flex gap-2"><input type="text" class="nonncs-unit-item flex-1 px-4 py-2 border border-slate-200 rounded-lg text-sm" placeholder="단원명 입력"><button type="button" class="nonncs-unit-plus px-3 py-2 text-emerald-600 border border-emerald-200 rounded-lg hover:bg-emerald-50 text-sm">+</button><button type="button" class="nonncs-unit-minus px-3 py-2 text-red-600 border border-red-200 rounded-lg hover:bg-red-50 text-sm">−</button></div>';
+                u.innerHTML = '<div class="flex gap-2"><input type="text" class="nonncs-unit-item flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm" placeholder="단원명 입력"><button type="button" class="nonncs-unit-plus w-10 h-10 flex items-center justify-center text-blue-600 bg-blue-50 rounded-xl hover:bg-blue-100 transition">+</button></div>';
             }
             var o = clone.querySelector('.nonncs-objectives');
             if (o) {
-                o.innerHTML = '<div class="flex gap-2"><input type="text" class="nonncs-obj-item flex-1 px-4 py-2 border border-slate-200 rounded-lg text-sm" placeholder="학습목표(수행준거) 입력"><button type="button" class="nonncs-obj-plus px-3 py-2 text-emerald-600 border border-emerald-200 rounded-lg hover:bg-emerald-50 text-sm">+</button><button type="button" class="nonncs-obj-minus px-3 py-2 text-red-600 border border-red-200 rounded-lg hover:bg-red-50 text-sm">−</button></div>';
+                o.innerHTML = '<div class="flex gap-2"><input type="text" class="nonncs-obj-item flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm" placeholder="수행기준 입력"><button type="button" class="nonncs-obj-plus w-10 h-10 flex items-center justify-center text-blue-600 bg-blue-50 rounded-xl hover:bg-blue-100 transition">+</button></div>';
             }
             nonNcsRows.appendChild(clone);
             wireNonNcsRow(clone);
@@ -1515,13 +1515,16 @@
 
         function switchTab(tabName) {
             document.querySelectorAll('.ncs-step4-tab').forEach(function (btn) {
-                btn.classList.remove('bg-emerald-600', 'text-white');
-                btn.classList.add('bg-slate-100', 'text-slate-600');
+                btn.classList.remove('bg-white', 'text-blue-600', 'shadow-sm');
+                btn.classList.add('text-slate-500', 'hover:text-slate-700');
             });
             document.querySelectorAll('.ncs-step4-tab-content').forEach(function (div) { div.classList.add('hidden'); });
             var activeBtn = document.querySelector('.ncs-step4-tab[data-tab="' + tabName + '"]');
             var activeContent = document.getElementById('ncsStep4TabContent' + (tabName === 'basic' ? 'Basic' : tabName === 'ncs' ? 'Ncs' : 'Nonncs'));
-            if (activeBtn) { activeBtn.classList.remove('bg-slate-100', 'text-slate-600'); activeBtn.classList.add('bg-emerald-600', 'text-white'); }
+            if (activeBtn) {
+                activeBtn.classList.remove('text-slate-500', 'hover:text-slate-700');
+                activeBtn.classList.add('bg-white', 'text-blue-600', 'shadow-sm');
+            }
             if (activeContent) activeContent.classList.remove('hidden');
         }
 
@@ -1654,7 +1657,7 @@
 
             var instructorChecks = instructors.map(function (ins) {
                 var checked = mainInstructorIds.indexOf(ins.id) !== -1 ? 'checked' : '';
-                return '<label class="flex items-center gap-2 text-sm"><input type="checkbox" class="ins-cb rounded text-blue-600" value="' + ins.id + '" ' + checked + '> ' + esc(ins.name) + '</label>';
+                return '<label class="flex items-center gap-2 text-sm cursor-pointer group"><input type="checkbox" class="ins-cb w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" value="' + ins.id + '" ' + checked + '> <span class="text-slate-600 group-hover:text-slate-900 transition-colors">' + esc(ins.name) + '</span></label>';
             }).join('');
 
             var evaluatorOpts = instructors.map(function (ins) {
@@ -1664,95 +1667,94 @@
 
             var textbookChecks = textbooks.map(function (tx) {
                 var checked = textbookIds.indexOf(tx.id) !== -1 ? 'checked' : '';
-                return '<label class="flex items-center gap-2 text-sm"><input type="checkbox" class="tx-cb rounded text-blue-600" value="' + tx.id + '" ' + checked + '> ' + esc(tx.name) + '</label>';
+                return '<label class="flex items-center gap-2 text-sm cursor-pointer group"><input type="checkbox" class="tx-cb w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" value="' + tx.id + '" ' + checked + '> <span class="text-slate-600 group-hover:text-slate-900 transition-colors">' + esc(tx.name) + '</span></label>';
             }).join('');
 
             var materialChecks = materials.map(function (mt) {
                 var checked = materialIds.indexOf(mt.id) !== -1 ? 'checked' : '';
-                return '<label class="flex items-center gap-2 text-sm"><input type="checkbox" class="mt-cb rounded text-blue-600" value="' + mt.id + '" ' + checked + '> ' + esc(mt.name) + '</label>';
+                return '<label class="flex items-center gap-2 text-sm cursor-pointer group"><input type="checkbox" class="mt-cb w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" value="' + mt.id + '" ' + checked + '> <span class="text-slate-600 group-hover:text-slate-900 transition-colors">' + esc(mt.name) + '</span></label>';
             }).join('');
 
-            return '<div class="curriculum-card space-y-4" data-id="' + item.id + '">' +
-                '<div class="border-b border-slate-200 pb-4 mb-4">' +
-                '<div class="flex justify-between items-start">' +
+            return '<div class="curriculum-card bg-white border border-slate-200 rounded-[2rem] p-8 shadow-sm hover:shadow-md transition-all mb-8" data-id="' + item.id + '">' +
+                '<div class="flex flex-wrap justify-between items-start gap-4 mb-8">' +
                 '<div>' +
-                '<h5 class="font-bold text-slate-800 text-lg">교과목 : ' + esc(item.name) + '</h5>' +
-                '<p class="text-sm text-slate-500 mt-1">능력단위(단원)명 : ' + esc(unitLabel) + '</p>' +
-                '</div>' +
-                '<button type="button" class="text-xs font-bold text-blue-600 border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-50">교과목 편성내용</button>' +
+                '<h5 class="text-xl font-black text-slate-800 tracking-tight flex items-center gap-3"><i class="fas fa-book-open text-blue-600"></i> ' + esc(item.name) + '</h5>' +
+                '<p class="text-xs font-bold text-slate-400 mt-2 uppercase tracking-widest pl-8">능력단위(단원)명 : ' + esc(unitLabel) + '</p>' +
                 '</div>' +
                 '</div>' +
 
+                '<!-- Content Grid -->' +
+                '<div class="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-10">' +
+
                 '<!-- 주강사 -->' +
-                '<div class="field-row">' +
-                '<div class="field-label">주강사</div>' +
-                '<div class="field-content flex-row flex-wrap gap-x-6">' +
-                (instructorChecks || '<span class="text-slate-400 text-xs text-center w-full">등록된 강사가 없습니다.</span>') +
+                '<div class="space-y-4">' +
+                '<label class="block text-[11px] font-black text-slate-400 uppercase tracking-widest border-l-4 border-blue-500 pl-3">주강사 설정</label>' +
+                '<div class="flex flex-wrap gap-4 p-4 bg-slate-50/50 rounded-2xl border border-slate-100">' +
+                (instructorChecks || '<span class="text-slate-400 text-xs italic">등록된 강사가 없습니다.</span>') +
                 '</div>' +
                 '</div>' +
 
                 '<!-- 평가자 -->' +
-                '<div class="field-row">' +
-                '<div class="field-label">평가자</div>' +
-                '<div class="field-content">' +
-                '<select class="evaluator-sel w-full max-w-xs px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white">' +
+                '<div class="space-y-4">' +
+                '<label class="block text-[11px] font-black text-slate-400 uppercase tracking-widest border-l-4 border-blue-500 pl-3">평가 책임자</label>' +
+                '<select class="evaluator-sel w-full px-5 py-3.5 border border-slate-200 rounded-2xl text-sm bg-white font-bold text-slate-700 shadow-sm focus:border-blue-500 focus:ring-0 transition-all">' +
                 '<option value="">:: 평가자 선택 ::</option>' +
                 evaluatorOpts +
                 '</select>' +
                 '</div>' +
-                '</div>' +
 
                 '<!-- 교수학습방법 -->' +
-                '<div class="field-row">' +
-                '<div class="field-label">교수학습방법</div>' +
-                '<div class="field-content t-methods-container">' +
+                '<div class="space-y-4">' +
+                '<label class="block text-[11px] font-black text-slate-400 uppercase tracking-widest border-l-4 border-blue-500 pl-3">교수학습방법</label>' +
+                '<div class="t-methods-container space-y-2">' +
                 teachingMethods.map(function (m) {
-                    return '<div class="method-item">' +
-                        '<select class="t-method-sel flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white">' +
+                    return '<div class="method-item flex gap-2">' +
+                        '<select class="t-method-sel flex-1 px-5 py-3 border border-slate-200 rounded-2xl text-sm bg-white font-bold text-slate-700 shadow-sm">' +
                         '<option value="">:: 교수학습방법 선택 ::</option>' +
                         ['강의', '토의·토론', '실습', '실기', '과제박람회', '현장견학', '프로젝트'].map(function (opt) {
                             return '<option value="' + opt + '" ' + (opt === m ? 'selected' : '') + '>' + opt + '</option>';
                         }).join('') +
                         '</select>' +
-                        '<button type="button" class="btn-plus t-method-plus"><i class="fas fa-plus"></i></button>' +
-                        '<button type="button" class="btn-minus t-method-minus"><i class="fas fa-minus"></i></button>' +
+                        '<button type="button" class="t-method-plus w-11 h-11 flex items-center justify-center bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-100 transition-all"><i class="fas fa-plus"></i></button>' +
+                        '<button type="button" class="t-method-minus w-11 h-11 flex items-center justify-center bg-red-50 text-red-600 rounded-2xl hover:bg-red-100 transition-all"><i class="fas fa-minus"></i></button>' +
                         '</div>';
                 }).join('') +
                 '</div>' +
                 '</div>' +
 
                 '<!-- 평가방법 -->' +
-                '<div class="field-row">' +
-                '<div class="field-label">평가방법</div>' +
-                '<div class="field-content e-methods-container">' +
+                '<div class="space-y-4">' +
+                '<label class="block text-[11px] font-black text-slate-400 uppercase tracking-widest border-l-4 border-blue-500 pl-3">수행능력 평가방법</label>' +
+                '<div class="e-methods-container space-y-2">' +
                 evaluationMethods.map(function (m) {
-                    return '<div class="method-item">' +
-                        '<select class="e-method-sel flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white">' +
+                    return '<div class="method-item flex gap-2">' +
+                        '<select class="e-method-sel flex-1 px-5 py-3 border border-slate-200 rounded-2xl text-sm bg-white font-bold text-slate-700 shadow-sm">' +
                         '<option value="">:: 평가방법 선택 ::</option>' +
                         ['서술형시험', '논술형시험', '사례연구', '발표', '포트폴리오', '수행평가', '작업장평가'].map(function (opt) {
                             return '<option value="' + opt + '" ' + (opt === m ? 'selected' : '') + '>' + opt + '</option>';
                         }).join('') +
                         '</select>' +
-                        '<button type="button" class="btn-plus e-method-plus"><i class="fas fa-plus"></i></button>' +
-                        '<button type="button" class="btn-minus e-method-minus"><i class="fas fa-minus"></i></button>' +
+                        '<button type="button" class="e-method-plus w-11 h-11 flex items-center justify-center bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-100 transition-all"><i class="fas fa-plus"></i></button>' +
+                        '<button type="button" class="e-method-minus w-11 h-11 flex items-center justify-center bg-red-50 text-red-600 rounded-2xl hover:bg-red-100 transition-all"><i class="fas fa-minus"></i></button>' +
                         '</div>';
                 }).join('') +
                 '</div>' +
                 '</div>' +
 
                 '<!-- 교재 선택 -->' +
-                '<div class="field-row">' +
-                '<div class="field-label">교재 선택</div>' +
-                '<div class="field-content flex-row flex-wrap gap-x-6">' +
-                (textbookChecks || '<span class="text-slate-400 text-xs text-center w-full">등록된 교재가 없습니다.</span>') +
+                '<div class="space-y-4">' +
+                '<label class="block text-[11px] font-black text-slate-400 uppercase tracking-widest border-l-4 border-blue-500 pl-3">교재 선택</label>' +
+                '<div class="flex flex-wrap gap-4 p-4 bg-slate-50/50 rounded-2xl border border-slate-100">' +
+                (textbookChecks || '<span class="text-slate-400 text-xs italic">등록된 교재가 없습니다.</span>') +
                 '</div>' +
                 '</div>' +
 
                 '<!-- 재료 선택 -->' +
-                '<div class="field-row">' +
-                '<div class="field-label">재료 선택</div>' +
-                '<div class="field-content flex-row flex-wrap gap-x-6">' +
-                (materialChecks || '<span class="text-slate-400 text-xs text-center w-full">승인받은 과정 재료 미등록</span>') +
+                '<div class="space-y-4">' +
+                '<label class="block text-[11px] font-black text-slate-400 uppercase tracking-widest border-l-4 border-blue-500 pl-3">훈련 재료 / 소모품</label>' +
+                '<div class="flex flex-wrap gap-4 p-4 bg-slate-50/50 rounded-2xl border border-slate-100">' +
+                (materialChecks || '<span class="text-slate-400 text-xs italic">등록된 재료가 없습니다.</span>') +
+                '</div>' +
                 '</div>' +
                 '</div>' +
                 '</div>';
@@ -1917,28 +1919,32 @@
                 return '<div class="list-item" data-id="' + it.id + '">' + (it.name || '') + (it.room_number ? ' (' + it.room_number + ')' : '') + '</div>';
             };
 
-            return '<div class="flex-1">' +
-                '<h5 class="text-sm font-bold text-slate-700 mb-2">' + title + '</h5>' +
+            return '<div class="flex-1 space-y-3">' +
+                '<div class="flex items-center gap-2 mb-3">' +
+                '<span class="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>' +
+                '<h5 class="text-xs font-black text-slate-500 uppercase tracking-widest">' + title + '</h5>' +
+                '</div>' +
                 '<div class="dual-list-container" data-type="' + type + '">' +
-                '<!-- 전체 목록 -->' +
-                '<div class="list-box-wrapper left-box">' +
+                '<!-- Available List -->' +
+                '<div class="list-box-wrapper">' +
                 '<div class="list-box-header">전체 목록</div>' +
-                '<div class="list-box-toolbar"><input type="text" class="list-box-filter" placeholder="Filter"></div>' +
-                '<div class="list-box-actions">' +
-                '<button type="button" class="list-btn btn-move-all-right"><i class="fas fa-angle-double-right"></i></button>' +
-                '<button type="button" class="list-btn btn-move-right"><i class="fas fa-angle-right"></i></button>' +
+                '<div class="px-3 py-2 border-b border-slate-100 bg-slate-50/30">' +
+                '<input type="text" class="list-box-filter w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs" placeholder="필터링..."></div>' +
+                '<div class="list-content available-list flex-1">' + availableItems.map(itemHtml).join('') + '</div>' +
                 '</div>' +
-                '<div class="list-content available-list">' + availableItems.map(itemHtml).join('') + '</div>' +
+                '<!-- Transfer Buttons -->' +
+                '<div class="flex flex-row lg:flex-col justify-center items-center gap-1.5 px-1">' +
+                '<button type="button" class="list-btn btn-move-right w-10 h-10 flex items-center justify-center bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all shadow-sm"><i class="fas fa-angle-right lg:rotate-0 rotate-90"></i></button>' +
+                '<button type="button" class="list-btn btn-move-all-right w-10 h-10 flex items-center justify-center bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all shadow-sm"><i class="fas fa-angle-double-right lg:rotate-0 rotate-90"></i></button>' +
+                '<button type="button" class="list-btn btn-move-left w-10 h-10 flex items-center justify-center bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all shadow-sm"><i class="fas fa-angle-left lg:rotate-0 rotate-90"></i></button>' +
+                '<button type="button" class="list-btn btn-move-all-left w-10 h-10 flex items-center justify-center bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all shadow-sm"><i class="fas fa-angle-double-left lg:rotate-0 rotate-90"></i></button>' +
                 '</div>' +
-                '<!-- 선택된 목록 -->' +
-                '<div class="list-box-wrapper right-box">' +
+                '<!-- Selected List -->' +
+                '<div class="list-box-wrapper">' +
                 '<div class="list-box-header">선택된 목록</div>' +
-                '<div class="list-box-toolbar"><input type="text" class="list-box-filter" placeholder="Filter"></div>' +
-                '<div class="list-box-actions">' +
-                '<button type="button" class="list-btn btn-move-left"><i class="fas fa-angle-left"></i></button>' +
-                '<button type="button" class="list-btn btn-move-all-left"><i class="fas fa-angle-double-left"></i></button>' +
-                '</div>' +
-                '<div class="list-content selected-list">' + selectedItems.map(itemHtml).join('') + '</div>' +
+                '<div class="px-3 py-2 border-b border-slate-100 bg-slate-50/30">' +
+                '<input type="text" class="list-box-filter w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs" placeholder="필터링..."></div>' +
+                '<div class="list-content selected-list flex-1">' + selectedItems.map(itemHtml).join('') + '</div>' +
                 '</div>' +
                 '</div>' +
                 '</div>';
@@ -1951,17 +1957,22 @@
             var selectedEquipment = [];
             try { selectedEquipment = item.equipment_ids_json ? JSON.parse(item.equipment_ids_json) : []; } catch (e) { }
 
-            var typeLabel = item.type === 'ncs' ? 'NCS 전공교과' : (item.type === 'basic' ? 'NCS 소양교교' : '비 NCS 교과');
+            var typeLabel = item.type === 'ncs' ? 'NCS 전공교과' : (item.type === 'basic' ? 'NCS 소양교과' : '비 NCS 교과');
             var hours = (Number(item.theory_hours) || 0) + (Number(item.practice_hours) || 0);
 
-            return '<div class="step6-subject-card" data-id="' + item.id + '">' +
-                '<div class="mb-6">' +
-                '<h4 class="text-lg font-bold text-slate-800">' + esc(item.name) + '</h4>' +
-                '<p class="text-xs text-slate-500 mt-1">교과목 분류 : ' + typeLabel + ' / 총 훈련시간 : ' + hours + ' 시간</p>' +
+            return '<div class="step6-subject-card bg-white border border-slate-200 rounded-[2.5rem] p-10 shadow-sm hover:shadow-md transition-all mb-12" data-id="' + item.id + '">' +
+                '<div class="flex items-center gap-4 mb-10">' +
+                '<div class="w-14 h-14 bg-blue-600 text-white rounded-2xl flex items-center justify-center text-xl shadow-lg shadow-blue-500/20">' +
+                '<i class="fas fa-graduation-cap"></i>' +
                 '</div>' +
-                '<div class="flex flex-col lg:flex-row gap-8">' +
-                createDualList('해당 교과목 훈련 장소 등록', 'facilities', allFacilities, selectedFacilities) +
-                createDualList('해당 교과목 사용 장비 등록', 'equipment', allEquipment, selectedEquipment) +
+                '<div>' +
+                '<h4 class="text-2xl font-black text-slate-800 tracking-tight">' + esc(item.name) + '</h4>' +
+                '<p class="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">' + typeLabel + ' <span class="mx-2 opacity-50">|</span> ' + hours + ' 훈련시간</p>' +
+                '</div>' +
+                '</div>' +
+                '<div class="flex flex-col xl:flex-row gap-12">' +
+                createDualList('시설(강의실/실습실) 매칭', 'facilities', allFacilities, selectedFacilities) +
+                createDualList('장비 및 기자재 매칭', 'equipment', allEquipment, selectedEquipment) +
                 '</div>' +
                 '</div>';
         }
