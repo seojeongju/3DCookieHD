@@ -209,20 +209,13 @@ async function fetchNcsClassificationByLarge(apiKey: string, ncsLclasCd: string,
                     .filter((s) => s.code);
 
                 for (const sub of subs) {
-                    const dutyCd = `${ncsLclasCd}${mid.code}${small.code}${sub.code}`;
-                    // 훈련능력단위 (NCS005) - 파라미터 DUTY_CD 대문자 시도
-                    const unitList = await fetchClassificationAllPages(base, key, 'NCS005', { DUTY_CD: dutyCd });
-                    const validUnits = unitList.filter((r) => rowVal(r, 'USG_YN', 'usgYn') === 'Y');
-
-                    if (validUnits.length === 0) {
-                        all.push({ largeCode: ncsLclasCd, largeName, midCode: mid.code, midName: mid.name, smallCode: small.code, smallName: small.name, subClassCode: sub.code, subClassName: sub.name, unitCode: '', unitName: '' });
-                        continue;
-                    }
-                    for (const u of validUnits) {
-                        const unitCode = rowVal(u, 'NCS_CL_CD', 'ncsClCd', 'compUnitCd');
-                        const unitName = rowVal(u, 'NCS_CL_CDNM', 'compeUnitName', 'compUnitName');
-                        all.push({ largeCode: ncsLclasCd, largeName, midCode: mid.code, midName: mid.name, smallCode: small.code, smallName: small.name, subClassCode: sub.code, subClassName: sub.name, unitCode, unitName });
-                    }
+                    all.push({
+                        largeCode: ncsLclasCd, largeName,
+                        midCode: mid.code, midName: mid.name,
+                        smallCode: small.code, smallName: small.name,
+                        subClassCode: sub.code, subClassName: sub.name,
+                        unitCode: '', unitName: ''
+                    });
                 }
                 if (subs.length === 0) {
                     all.push({ largeCode: ncsLclasCd, largeName, midCode: mid.code, midName: mid.name, smallCode: small.code, smallName: small.name, subClassCode: '', subClassName: '', unitCode: '', unitName: '' });
