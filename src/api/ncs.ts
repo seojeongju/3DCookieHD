@@ -283,33 +283,49 @@ async function fetchNcsUnitElements(
 ): Promise<{ code: string; name: string }[]> {
     const key = decodeServiceKey(apiKey);
     const base = (baseUrl || NCS_CLASSIFICATION_API_BASE_DEFAULT).replace(/\/$/, '');
-    try {
-        console.log(`[NCS006] Fetching elements for unit: ${ncsClCd}`);
-        const list = await fetchClassificationAllPages(base, key, 'NCS006', {
-            NCS_CL_CD: ncsClCd
-        });
+    // Try both with and without version suffix
+    const cleanCode = ncsClCd.replace(/_.*$/, ''); // Remove _23v3 etc
+    const codesToTry = [ncsClCd, cleanCode];
 
-        console.log(`[NCS006] Raw response count: ${list.length}`);
-        if (list.length > 0) {
-            console.log(`[NCS006] Sample item keys:`, Object.keys(list[0]));
+    console.log(`[NCS006] Attempting codes:`, codesToTry);
+
+    for (const code of codesToTry) {
+        try {
+            console.log(`[NCS006] Trying NCS_CL_CD=${code}`);
+            const list = await fetchClassificationAllPages(base, key, 'NCS006', {
+                NCS_CL_CD: code
+            });
+
+            console.log(`[NCS006] Response for ${code}: ${list.length} items`);
+            if (list.length > 0) {
+                console.log(`[NCS006] First item keys:`, Object.keys(list[0]));
+                console.log(`[NCS006] First item sample:`, JSON.stringify(list[0]).substring(0, 300));
+            }
+
+            const results = list
+                .filter((r) => {
+                    const usg = rowVal(r, 'USG_YN', 'usgYn');
+                    return usg === 'Y' || usg === '1' || !usg;
+                })
+                .map((r) => {
+                    const elemCode = rowVal(r, 'COMPE_UNIT_ELEM_CD', 'compeUnitElemCd', 'elemCd', 'NCS_CL_ELEM_CD', 'ncsClElemCd');
+                    const elemName = rowVal(r, 'COMPE_UNIT_ELEM_NAME', 'compeUnitElemName', 'elemName', 'NCS_CL_ELEM_CDNM', 'ncsClElemCdnm', 'COMPE_UNIT_ELEM_CDNM');
+                    return { code: elemCode, name: elemName };
+                })
+                .filter((x) => x.code && x.name);
+
+            console.log(`[NCS006] Filtered: ${results.length} elements`);
+
+            if (results.length > 0) {
+                return results;
+            }
+        } catch (e) {
+            console.error(`[NCS006] Error for ${code}:`, e);
         }
-
-        const results = list
-            .filter((r) => rowVal(r, 'USG_YN', 'usgYn') === 'Y')
-            .map((r) => {
-                // Try multiple field name variations
-                const code = rowVal(r, 'COMPE_UNIT_ELEM_CD', 'compeUnitElemCd', 'elemCd', 'NCS_CL_ELEM_CD', 'ncsClElemCd');
-                const name = rowVal(r, 'COMPE_UNIT_ELEM_NAME', 'compeUnitElemName', 'elemName', 'NCS_CL_ELEM_CDNM', 'ncsClElemCdnm');
-                return { code, name };
-            })
-            .filter((x) => x.code && x.name);
-
-        console.log(`[NCS006] Filtered elements count: ${results.length}`);
-        return results;
-    } catch (e) {
-        console.error(`[NCS006] fetchNcsUnitElements error for ${ncsClCd}:`, e);
-        return [];
     }
+
+    console.warn(`[NCS006] No elements found for ${ncsClCd}`);
+    return [];
 }
 
 
@@ -891,6 +907,35 @@ app.get('/approved/units-by-job', async (c) => {
     } catch (e) {
         console.error('units-by-job error:', e);
         return c.json({ success: false, error: '능력단위 조회 실패' }, 500);
+    }
+});
+
+// DEBUG: NCS006 테스트 엔드포인트
+app.get('/approved/test-elements/:unitCode', async (c) => {
+    try {
+        const unitCode = c.req.param('unitCode');
+        const rawKey = c.env.NCS_API_KEY?.trim();
+
+        if (!rawKey) {
+            return c.json({ success: false, error: 'NCS_API_KEY not configured' }, 400);
+        }
+
+        const classificationBase = (c.env as { NCS_CLASSIFICATION_API_BASE?: string }).NCS_CLASSIFICATION_API_BASE?.trim();
+        const elements = await fetchNcsUnitElements(rawKey, unitCode, classificationBase);
+
+        return c.json({
+            success: true,
+            unitCode,
+            elements,
+            count: elements.length,
+            _debug: {
+                apiKey: rawKey ? '***configured***' : 'missing',
+                baseUrl: classificationBase || 'default'
+            }
+        });
+    } catch (e) {
+        console.error('test-elements error:', e);
+        return c.json({ success: false, error: String(e) }, 500);
     }
 });
 
