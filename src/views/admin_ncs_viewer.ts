@@ -22,7 +22,7 @@ export function adminNcsViewerHtml(): string {
 </head>
 <body class="bg-slate-50 text-slate-900 antialiased overflow-hidden">
     <div class="flex h-screen overflow-hidden">
-        ${hrdSidebar('ncs-viewer')}
+        \${hrdSidebar('ncs-viewer')}
 
         <main class="flex-1 flex flex-col overflow-hidden relative">
             <div class="absolute inset-0 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:32px_32px] opacity-40 pointer-events-none"></div>
@@ -124,10 +124,10 @@ export function adminNcsViewerHtml(): string {
     <script>
         (function() {
             let state = {
-                large: null,
-                mid: null,
-                small: null,
-                job: null
+                large: null, largeName: '',
+                mid: null, midName: '',
+                small: null, smallName: '',
+                job: null, jobName: ''
             };
 
             const listLarge = document.getElementById('listLarge');
@@ -136,11 +136,18 @@ export function adminNcsViewerHtml(): string {
             const listJob = document.getElementById('listJob');
             const unitTableBody = document.getElementById('unitTableBody');
 
-            async function api(path) {
+            async function api(path, method = 'GET', body = null) {
                 const token = localStorage.getItem('token');
-                const res = await fetch('/api/ncs/approved' + path, {
-                    headers: token ? { 'Authorization': 'Bearer ' + token } : {}
-                });
+                const options = {
+                    method,
+                    headers: {
+                        ...(token ? { 'Authorization': 'Bearer ' + token } : {}),
+                        ...(body ? { 'Content-Type': 'application/json' } : {})
+                    }
+                };
+                if (body) options.body = JSON.stringify(body);
+                
+                const res = await fetch('/api/ncs' + path, { ...options });
                 return await res.json();
             }
 
@@ -150,29 +157,78 @@ export function adminNcsViewerHtml(): string {
                     return;
                 }
                 document.getElementById('cnt' + el.id.replace('list', '')).textContent = items.length;
-                el.innerHTML = items.map(it => \`
+                
+                const isJob = el.id === 'listJob';
+
+                el.innerHTML = items.map(it => {
+                    const isActive = it[idKey] === currentId;
+                    const synced = it.isSynced;
+                    
+                    return \`
                     <div onclick="window._ncsClick('\${el.id}', '\${it[idKey]}', '\${it[nameKey].replace(/'/g, "\\\\'")}')" 
-                         class="select-item px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 cursor-pointer rounded-lg transition-all flex justify-between items-center group \${it[idKey] === currentId ? 'active' : ''}">
-                        <div class="flex flex-col min-w-0">
-                            <span class="text-[9px] font-black text-slate-400 group-hover:text-blue-400 leading-none mb-1">\${it[idKey]}</span>
+                         class="select-item px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 cursor-pointer rounded-lg transition-all flex justify-between items-center group \${isActive ? 'active' : ''}">
+                        <div class="flex flex-col min-w-0 flex-1">
+                            <div class="flex items-center gap-1.5 mb-1">
+                                <span class="text-[9px] font-black text-slate-400 group-hover:text-blue-400 leading-none">\${it[idKey]}</span>
+                                \${isJob && synced ? '<span class="px-1 py-0.5 bg-green-100 text-green-600 text-[8px] font-black rounded uppercase">SYNCED</span>' : ''}
+                            </div>
                             <span class="truncate font-medium">\${it[nameKey]}</span>
                         </div>
-                        <i class="fas fa-chevron-right text-[10px] text-slate-300 group-hover:text-blue-400"></i>
+                        <div class="flex items-center gap-2">
+                             \${isJob ? \`<button onclick="event.stopPropagation(); window._syncJob('\${it[idKey]}', '\${it[nameKey].replace(/'/g, "\\\\'")}')" class="opacity-0 group-hover:opacity-100 p-1.5 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-600 hover:text-white transition-all text-[10px]" title="동기화"><i class="fas fa-sync-alt"></i></button>\` : ''}
+                             <i class="fas fa-chevron-right text-[10px] text-slate-300 group-hover:text-blue-400"></i>
+                        </div>
                     </div>
-                \`).join('');
+                \`;}).join('');
             }
+
+            window._syncJob = async function(jobId, jobName) {
+                const fullCode = state.large + state.mid + state.small + jobId;
+                if(!confirm(\`[\${jobName}] 직종의 모든 NCS 데이터(NCS001~NCS006)를 DB로 동기화하시겠습니까?\`)) return;
+
+                const btn = event.currentTarget;
+                const originalHtml = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+                try {
+                    const res = await api('/approved/sync', 'POST', {
+                        subClassCode: fullCode,
+                        subClassName: jobName,
+                        largeName: state.largeName,
+                        midName: state.midName,
+                        smallName: state.smallName
+                    });
+
+                    if (res.success) {
+                        alert(\`동기화 완료!\\n\${res.message}\`);
+                        // 리스트 새로고침 (상태 반영)
+                        _ncsClick('listSmall', state.small, state.smallName);
+                        // 현재 선택된 직종이면 능력단위도 새로고침
+                        if (state.job === jobId) loadUnits(fullCode, jobName);
+                    } else {
+                        alert(\`실패: \${res.error}\`);
+                    }
+                } catch (e) {
+                    alert(\`오류: \${e}\`);
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
+                }
+            };
 
             window._ncsClick = async function(listId, id, name) {
                 if (listId === 'listLarge') {
-                    state.large = id;
-                    state.mid = null; state.small = null; state.job = null;
+                    state.large = id; state.largeName = name;
+                    state.mid = null; state.midName = '';
+                    state.small = null; state.smallName = '';
+                    state.job = null; state.jobName = '';
                     listMid.innerHTML = '<div class="p-8 text-center text-slate-300"><i class="fas fa-spinner fa-spin"></i></div>';
                     listSmall.innerHTML = '<div class="p-10 text-center text-slate-300 text-xs">중분류를 선택하세요</div>';
-                    listJob.innerHTML = '<div class="p-10 text-center text-slate-300 text-xs">소분류를 선택하세요</div>';
+                    listJob.innerHTML = '<div class="p-10 text-center text-slate-300 text-xs text-center">소분류를 선택하세요</div>';
                     
-                    const res = await api('/classification?ncsLclasCd=' + id);
+                    const res = await api('/approved/classification?ncsLclasCd=' + id);
                     if (res.success) {
-                        // 중분류 추출
                         const mids = [];
                         const seen = new Set();
                         res.data.forEach(d => {
@@ -185,12 +241,13 @@ export function adminNcsViewerHtml(): string {
                         renderList(listLarge, window._largeCache, 'code', 'name', null, state.large);
                     }
                 } else if (listId === 'listMid') {
-                    state.mid = id;
-                    state.small = null; state.job = null;
+                    state.mid = id; state.midName = name;
+                    state.small = null; state.smallName = '';
+                    state.job = null; state.jobName = '';
                     listSmall.innerHTML = '<div class="p-8 text-center text-slate-300"><i class="fas fa-spinner fa-spin"></i></div>';
                     listJob.innerHTML = '<div class="p-10 text-center text-slate-300 text-xs">소분류를 선택하세요</div>';
 
-                    const res = await api('/classification?ncsLclasCd=' + state.large);
+                    const res = await api('/approved/classification?ncsLclasCd=' + state.large);
                     if (res.success) {
                         const smalls = [];
                         const seen = new Set();
@@ -201,7 +258,6 @@ export function adminNcsViewerHtml(): string {
                             }
                         });
                         renderList(listSmall, smalls, 'code', 'name', null, state.small);
-                        // Refresh Mid List for active state
                         const mids = [];
                         const seen2 = new Set();
                         res.data.forEach(d => {
@@ -213,15 +269,14 @@ export function adminNcsViewerHtml(): string {
                         renderList(listMid, mids, 'code', 'name', null, state.mid);
                     }
                 } else if (listId === 'listSmall') {
-                    state.small = id;
-                    state.job = null;
+                    state.small = id; state.smallName = name;
+                    state.job = null; state.jobName = '';
                     listJob.innerHTML = '<div class="p-8 text-center text-slate-300"><i class="fas fa-spinner fa-spin"></i></div>';
 
-                    const res = await api('/jobs?l=' + state.large + '&m=' + state.mid + '&s=' + id);
+                    const res = await api('/approved/jobs?l=' + state.large + '&m=' + state.mid + '&s=' + id);
                     if (res.success) {
                         renderList(listJob, res.data, 'code', 'name', null, state.job);
-                        // Refresh Small list active state
-                        const resC = await api('/classification?ncsLclasCd=' + state.large);
+                        const resC = await api('/approved/classification?ncsLclasCd=' + state.large);
                         const smalls = [];
                         const seen = new Set();
                         resC.data.filter(d => d.midCode === state.mid).forEach(d => {
@@ -233,11 +288,10 @@ export function adminNcsViewerHtml(): string {
                         renderList(listSmall, smalls, 'code', 'name', null, state.small);
                     }
                 } else if (listId === 'listJob') {
-                    state.job = id;
+                    state.job = id; state.jobName = name;
                     const fullJobCode = state.large + state.mid + state.small + id;
                     loadUnits(fullJobCode, name);
-                    // Refresh Job list for active state
-                    const resJ = await api('/jobs?l=' + state.large + '&m=' + state.mid + '&s=' + state.small);
+                    const resJ = await api('/approved/jobs?l=' + state.large + '&m=' + state.mid + '&s=' + state.small);
                     renderList(listJob, resJ.data, 'code', 'name', null, state.job);
                 }
             };
@@ -246,12 +300,12 @@ export function adminNcsViewerHtml(): string {
                 document.getElementById('selectedJobName').textContent = ' > ' + jobName;
                 unitTableBody.innerHTML = '<tr><td colspan="5" class="px-6 py-20 text-center"><i class="fas fa-spinner fa-spin text-2xl text-blue-600 mb-2"></i><br><span class="text-slate-400">능력단위를 불러오는 중...</span></td></tr>';
                 
-                const res = await api('/units-by-job?jobCode=' + jobCode);
+                const res = await api('/approved/units-by-job?jobCode=' + jobCode);
                 if (res.success) {
                     const units = res.data;
                     document.getElementById('unitTotalCount').textContent = '총 ' + units.length + '개';
                     if (units.length === 0) {
-                        unitTableBody.innerHTML = '<tr><td colspan="5" class="px-6 py-20 text-center text-slate-400 italic">조회된 능력단위가 없습니다. API 또는 DB를 확인하세요.</td></tr>';
+                        unitTableBody.innerHTML = '<tr><td colspan="5" class="px-6 py-20 text-center text-slate-400 italic">조회된 능력단위가 없습니다. [동기화] 버튼을 눌러 데이터를 가져오세요.</td></tr>';
                         return;
                     }
                     unitTableBody.innerHTML = units.map((u, idx) => \`
@@ -276,7 +330,7 @@ export function adminNcsViewerHtml(): string {
             }
 
             async function init() {
-                const res = await api('/large-classes');
+                const res = await api('/approved/large-classes');
                 if (res.success) {
                     window._largeCache = res.data;
                     renderList(listLarge, res.data, 'code', 'name', null);
@@ -288,5 +342,5 @@ export function adminNcsViewerHtml(): string {
     </script>
 </body>
 </html>
-`;
+    `;
 }

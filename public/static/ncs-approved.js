@@ -1044,19 +1044,33 @@
             return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         }
 
-        function createJobSection(jobName, isPrimary) {
+        function createJobSection(jobData, isPrimary) {
+            var jobName = jobData.name;
+            var jobCode = jobData.code;
+            var isSynced = jobData.isSynced;
             var sect = document.createElement('div');
             sect.className = 'bg-white rounded-[1.5rem] border shadow-sm p-6 mb-8 job-section transition-all ' +
                 (isPrimary ? 'border-blue-500 ring-2 ring-blue-50' : 'border-slate-200');
             sect.dataset.jobName = jobName || 'unknown';
+
+            var syncBadge = isSynced
+                ? '<span class="px-1.5 py-0.5 bg-green-100 text-green-600 text-[9px] font-black rounded uppercase ml-2">SYNCED</span>'
+                : '<span class="px-1.5 py-0.5 bg-amber-100 text-amber-600 text-[9px] font-black rounded uppercase ml-2">NOT SYNCED</span>';
+
             sect.innerHTML =
                 '<div class="flex items-center gap-3 mb-6">' +
                 '<i class="fas fa-book-open ' + (isPrimary ? 'text-blue-600' : 'text-slate-400') + ' text-xl"></i>' +
                 '<div>' +
                 (isPrimary ? '<span class="text-[9px] font-black text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded uppercase mb-1 block w-fit">Primary Job</span>' : '') +
-                '<h3 class="text-lg font-black text-slate-800">' + esc(jobName || '직종 미분류') + '</h3>' +
+                '<div class="flex items-center"><h3 class="text-lg font-black text-slate-800">' + esc(jobName || '직종 미분류') + '</h3>' + syncBadge + '</div>' +
+                (jobCode ? '<div class="text-[10px] text-slate-400 font-mono mt-0.5">' + esc(jobCode) + '</div>' : '') +
                 '</div>' +
-                '<span class="text-xs font-medium text-slate-500 bg-slate-50 border border-slate-100 px-2 py-1 rounded ml-auto">NCS 능력단위 기반 교과목 편성</span>' +
+                '<div class="flex items-center gap-2 ml-auto">' +
+                '<button type="button" class="btn-sync-job px-3 py-1.5 border border-slate-200 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-50 transition flex items-center gap-1.5" title="능력단위/요소 동기화">' +
+                '<i class="fas fa-sync-alt"></i> DB 동기화' +
+                '</button>' +
+                '<span class="text-xs font-medium text-slate-500 bg-slate-50 border border-slate-100 px-2 py-1 rounded">NCS 능력단위 기반 교과목 편성</span>' +
+                '</div>' +
                 '</div>' +
                 '<div class="space-y-4 job-subjects-container"></div>' +
                 '<div class="mt-6 pt-4 border-t border-slate-100 flex justify-end">' +
@@ -1067,6 +1081,47 @@
             sect.querySelector('.btn-add-subject').addEventListener('click', function () {
                 addSubjectRow(sect.querySelector('.job-subjects-container'), jobName);
             });
+
+            sect.querySelector('.btn-sync-job').addEventListener('click', function () {
+                var jobCodeClean = (jobCode || '').replace(/[^0-9]/g, '').slice(0, 8);
+                if (jobCodeClean.length !== 8) {
+                    alert('8자리 세분류 코드가 필요합니다. (현재: ' + jobCode + ')');
+                    return;
+                }
+
+                if (!confirm('[' + jobName + '] 직종의 NCS 데이터를 DB로 동기화하시겠습니까?')) return;
+
+                var btn = this;
+                var originalHtml = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+                var t = localStorage.getItem('token');
+                fetch('/api/ncs/approved/sync', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (t || '') },
+                    body: JSON.stringify({
+                        subClassCode: jobCodeClean,
+                        subClassName: jobName
+                    })
+                })
+                    .then(function (r) { return r.json(); })
+                    .then(function (res) {
+                        if (res.success) {
+                            alert('동기화 완료!\n' + res.message);
+                            if (window.loadNcsStep) window.loadNcsStep(3);
+                            else window.location.reload();
+                        } else {
+                            alert('실패: ' + res.error);
+                        }
+                    })
+                    .catch(function (err) { alert('오류: ' + err); })
+                    .finally(function () {
+                        btn.disabled = false;
+                        btn.innerHTML = originalHtml;
+                    });
+            });
+
             return sect;
         }
 
@@ -1420,7 +1475,7 @@
                         mainJobs.forEach(function (job) {
                             var jobName = job.name;
                             var isPrimary = (job.code && job.code === currentMainCode);
-                            var sect = createJobSection(jobName, isPrimary);
+                            var sect = createJobSection(job, isPrimary);
                             var subContainer = sect.querySelector('.job-subjects-container');
 
                             // Find existing subjects for this job

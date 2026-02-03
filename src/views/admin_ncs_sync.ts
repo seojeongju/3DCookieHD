@@ -15,7 +15,7 @@ export function adminNcsSyncHtml(): string {
 </head>
 <body class="bg-slate-50">
     <div class="flex min-h-screen">
-        ${hrdSidebar('ncs-sync')}
+        \${hrdSidebar('ncs-sync')}
         <main class="flex-1 overflow-x-hidden overflow-y-auto">
             <header class="bg-white shadow-sm sticky top-0 z-10 border-b border-slate-200">
                 <div class="px-8 py-4">
@@ -28,16 +28,41 @@ export function adminNcsSyncHtml(): string {
                 <div class="bg-white rounded-[2rem] shadow-sm border border-slate-200/60 p-6">
                     <div class="mb-6 flex justify-between items-center">
                         <div>
-                            <h2 class="text-lg font-bold text-slate-800 mb-2">프리셋 직종 동기화</h2>
-                            <p class="text-sm text-slate-600">주요 직종의 NCS 데이터를 최신 상태로 동기화합니다.</p>
+                            <h2 class="text-lg font-bold text-slate-800 mb-2">NCS 동기화 현황 요약</h2>
+                            <p class="text-sm text-slate-600">DB에 저장된 NCS 분류별 동기화 상태를 확인합니다.</p>
                         </div>
                         <button id="btnSyncAll" class="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 shadow-lg shadow-blue-500/20 transition flex items-center gap-2">
-                             <i class="fas fa-layer-group"></i> 전체 순차 동기화
+                             <i class="fas fa-layer-group"></i> 프리셋 순차 동기화
                         </button>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="presetContainer">
                         <!-- Items injected by JS -->
+                    </div>
+
+                    <div class="mt-12">
+                        <h2 class="text-lg font-bold text-slate-800 mb-4">전체 동기화 목록</h2>
+                        <div class="overflow-x-auto rounded-2xl border border-slate-100">
+                            <table class="w-full text-sm text-left border-collapse">
+                                <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-[10px] tracking-wider">
+                                    <tr>
+                                        <th class="px-6 py-4">분류코드</th>
+                                        <th class="px-6 py-4">직종명</th>
+                                        <th class="px-6 py-4 text-center">능력단위</th>
+                                        <th class="px-6 py-4 text-center">요소</th>
+                                        <th class="px-6 py-4">마지막 동기화</th>
+                                        <th class="px-6 py-4 text-right">관리</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="summaryTableBody" class="divide-y divide-slate-50 bg-white">
+                                    <tr>
+                                        <td colspan="6" class="px-6 py-12 text-center text-slate-400">
+                                            <i class="fas fa-spinner fa-spin mr-2"></i> 데이터를 불러오고 있습니다...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
 
                     <div class="mt-8 pt-8 border-t border-slate-100">
@@ -63,6 +88,7 @@ export function adminNcsSyncHtml(): string {
         ];
 
         const presetContainer = document.getElementById('presetContainer');
+        const summaryTableBody = document.getElementById('summaryTableBody');
 
         function renderPresets() {
             presetContainer.innerHTML = PRESETS.map(p => \`
@@ -84,11 +110,11 @@ export function adminNcsSyncHtml(): string {
                     </button>
                 </div>
             \`).join('');
-
-            updateAllStatuses();
+            
+            loadSummary();
         }
 
-        async function updateAllStatuses() {
+        async function loadSummary() {
             try {
                 const token = localStorage.getItem('token');
                 const res = await fetch('/api/ncs/approved/sync/summary', {
@@ -96,24 +122,45 @@ export function adminNcsSyncHtml(): string {
                 });
                 const json = await res.json();
                 if (json.success && Array.isArray(json.data)) {
-                    json.data.forEach(item => {
+                    const data = json.data;
+                    
+                    // Update presets cards
+                    data.forEach(item => {
                         updateCardUI(item.code, item.unitCount, item.elementCount);
                     });
-                }
-            } catch(e) { console.error('Status summary failed', e); }
-        }
 
-        async function checkStatus(code) {
-            try {
-                const token = localStorage.getItem('token');
-                const res = await fetch('/api/ncs/approved/sync/status/' + code, {
-                     headers: { 'Authorization': 'Bearer ' + token }
-                });
-                const json = await res.json();
-                if (json.success) {
-                    updateCardUI(code, json.data.unitCount, json.data.elementCount);
+                    // Update summary table
+                    if (data.length === 0) {
+                        summaryTableBody.innerHTML = '<tr><td colspan="6" class="px-6 py-12 text-center text-slate-400 italic">동기화된 데이터가 없습니다.</td></tr>';
+                    } else {
+                        summaryTableBody.innerHTML = data.map(item => \`
+                            <tr class="hover:bg-slate-50">
+                                <td class="px-6 py-4 font-mono text-xs text-slate-400">\${item.code}</td>
+                                <td class="px-6 py-4 font-bold text-slate-700">
+                                    \${item.name || '알 수 없음'}
+                                </td>
+                                <td class="px-6 py-4 text-center">
+                                    <span class="px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full font-bold text-[10px]">\${item.unitCount}</span>
+                                </td>
+                                <td class="px-6 py-4 text-center">
+                                    <span class="px-2 py-0.5 bg-slate-50 text-slate-600 rounded-full font-bold text-[10px]">\${item.elementCount}</span>
+                                </td>
+                                <td class="px-6 py-4 text-xs text-slate-500">
+                                    \${item.synced_at ? new Date(item.synced_at).toLocaleString() : '-'}
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    <button onclick="sync('\${item.code}')" class="text-blue-500 hover:text-blue-700 font-bold text-xs">
+                                        <i class="fas fa-sync-alt"></i> 재동기화
+                                    </button>
+                                </td>
+                            </tr>
+                        \`).join('');
+                    }
                 }
-            } catch(e) { console.error(e); }
+            } catch(e) { 
+                console.error('Status summary failed', e);
+                summaryTableBody.innerHTML = '<tr><td colspan="6" class="px-6 py-12 text-center text-red-400">데이터를 불러오지 못했습니다.</td></tr>';
+            }
         }
 
         function updateCardUI(code, unitCount, elementCount) {
@@ -148,7 +195,7 @@ export function adminNcsSyncHtml(): string {
             if(btn) {
                 originalContent = btn.innerHTML;
                 btn.disabled = true;
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 동기화 중...';
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
             }
 
             try {
@@ -164,7 +211,7 @@ export function adminNcsSyncHtml(): string {
                 const json = await res.json();
                 if (json.success) {
                     if (!silent) alert('동기화 완료!\\n' + json.message);
-                    checkStatus(code);
+                    loadSummary();
                 } else {
                     if (!silent) alert('실패: ' + json.error);
                 }
@@ -181,17 +228,17 @@ export function adminNcsSyncHtml(): string {
         window.sync = sync;
 
         document.getElementById('btnSyncAll').addEventListener('click', async function() {
-            if (!confirm('설정된 모든 프리셋 직종의 데이터를 동기화하시겠습니까?\\n순차적으로 진행되므로 시간이 다소 소요됩니다.')) return;
+            if (!confirm('프리셋 직종의 데이터를 순차적으로 동기화하시겠습니까?')) return;
             
             this.disabled = true;
             const original = this.innerHTML;
-            this.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> 전체 진행 중...';
+            this.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> 진행 중...';
             
             for (const p of PRESETS) {
                 await sync(p.code, true);
             }
             
-            alert('전체 프리셋 동기화가 완료되었습니다.');
+            alert('프리셋 동기화가 완료되었습니다.');
             this.disabled = false;
             this.innerHTML = original;
         });

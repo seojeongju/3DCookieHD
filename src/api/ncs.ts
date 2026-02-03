@@ -1031,9 +1031,29 @@ app.get('/approved/jobs', async (c) => {
         const s = c.req.query('s');
         const rawKey = c.env.NCS_API_KEY?.trim();
         if (!l || !m || !s || !rawKey) return c.json({ success: false, error: '잘못된 요청' }, 400);
+
         const classificationBase = (c.env as { NCS_CLASSIFICATION_API_BASE?: string }).NCS_CLASSIFICATION_API_BASE?.trim();
         const jobs = await fetchNcsJobsBySmall(rawKey, l, m, s, classificationBase);
-        return c.json({ success: true, data: jobs });
+
+        // DB에서 동기화 상태 조회
+        const { results: syncedJobs } = await c.env.DB.prepare(
+            'SELECT job_code, unit_count, element_count, synced_at FROM ncs_job_hierarchy WHERE job_code LIKE ?'
+        ).bind(l + m + s + '%').all();
+
+        const syncedMap = new Map();
+        (syncedJobs || []).forEach((sj: any) => syncedMap.set(sj.job_code, sj));
+
+        const data = jobs.map(j => {
+            const fullCode = l + m + s + j.code;
+            const syncInfo = syncedMap.get(fullCode);
+            return {
+                ...j,
+                isSynced: !!syncInfo,
+                syncStats: syncInfo || null
+            };
+        });
+
+        return c.json({ success: true, data });
     } catch (e) {
         console.error('NCS approved/jobs error:', e);
         return c.json({ success: false, error: '직종 조회 실패' }, 500);
@@ -1486,7 +1506,7 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
             }
         } catch (_) { /* ignore */ }
 
-        const mainJobs: { code: string | null; name: string | null }[] = [];
+        const mainJobs: { code: string | null; name: string | null; isSynced?: boolean }[] = [];
         const mainJobsRaw = (reg as { main_jobs_json?: string | null }).main_jobs_json;
         if (mainJobsRaw && typeof mainJobsRaw === 'string') {
             try {
@@ -1504,6 +1524,18 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
             const code = (reg.unit_code || reg.main_job_code || '').trim() || null;
             const name = (reg.unit_name || reg.main_job_name || '').trim() || null;
             if (code || name) mainJobs.push({ code, name });
+        }
+
+        // Check sync status for each job
+        for (let i = 0; i < mainJobs.length; i++) {
+            const j = mainJobs[i];
+            if (j.code) {
+                const sub8 = j.code.replace(/[^0-9]/g, '').slice(0, 8);
+                if (sub8.length === 8) {
+                    const h = await c.env.DB.prepare('SELECT status FROM ncs_job_hierarchy WHERE code = ?').bind(sub8).first<{ status: string }>();
+                    mainJobs[i].isSynced = h?.status === 'READY';
+                }
+            }
         }
 
         if (reg.ncs_tab === 'non_ncs') {
@@ -1755,7 +1787,14 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
  */
 app.post('/approved/sync', authMiddleware, requireAdmin, async (c) => {
     try {
-        const body = await c.req.json() as { subClassCode: string; description?: string };
+        const body = await c.req.json() as {
+            subClassCode: string;
+            subClassName?: string;
+            largeName?: string;
+            midName?: string;
+            smallName?: string;
+            description?: string
+        };
         const subClassCode = (body.subClassCode || '').replace(/[^0-9]/g, '');
 
         if (subClassCode.length !== 8) {
@@ -1765,11 +1804,11 @@ app.post('/approved/sync', authMiddleware, requireAdmin, async (c) => {
         const apiKey = (c.env.NCS_API_KEY || '').trim();
         const base = (c.env as { NCS_CLASSIFICATION_API_BASE?: string }).NCS_CLASSIFICATION_API_BASE;
 
-        // 1. Fetch Units (NCS005 equivalent logic)
+        // 1. Fetch Units
         const l = subClassCode.slice(0, 2);
         const m = subClassCode.slice(2, 4);
         const s = subClassCode.slice(4, 6);
-        const subd = subClassCode.slice(6, 8); // 세분류
+        const subd = subClassCode.slice(6, 8);
 
         console.log(`[Sync] Fetching units for SubClass: ${subClassCode}`);
         const units = await fetchNcsUnitsByJob(apiKey, l, m, s, subd, base);
@@ -1778,12 +1817,11 @@ app.post('/approved/sync', authMiddleware, requireAdmin, async (c) => {
             return c.json({ success: false, message: '해당 분류의 능력단위를 찾지 못했습니다.' });
         }
 
-        // 2. Save Units & Fetch Elements
+        // 2. Save Units
         let unitCount = 0;
         let elementCount = 0;
         const errors: string[] = [];
 
-        // DB Batch Preparation for Units
         const unitStmt = c.env.DB.prepare(
             'INSERT OR REPLACE INTO ncs_units (code, name, level) VALUES (?, ?, ?)'
         );
@@ -1799,7 +1837,6 @@ app.post('/approved/sync', authMiddleware, requireAdmin, async (c) => {
             'INSERT OR REPLACE INTO ncs_elements (ncs_unit_id, code, name) VALUES (?, ?, ?)'
         );
 
-        // 능력단위들의 ID를 매핑하기 위해 다시 조회 (D1은 INSERT 후 반환값이 제한적일 수 있음)
         const { results: savedUnits } = await c.env.DB.prepare(
             'SELECT id, code FROM ncs_units WHERE code LIKE ?'
         ).bind(subClassCode + '%').all();
@@ -1807,7 +1844,6 @@ app.post('/approved/sync', authMiddleware, requireAdmin, async (c) => {
         const unitIdMap = new Map<string, number>();
         (savedUnits || []).forEach((u: any) => unitIdMap.set(u.code, u.id));
 
-        // 순차 처리 (안정성 우선)
         for (const u of units) {
             const unitId = unitIdMap.get(u.code);
             if (!unitId) continue;
@@ -1818,13 +1854,27 @@ app.post('/approved/sync', authMiddleware, requireAdmin, async (c) => {
                     const batch = elements.map(e => elemStmt.bind(unitId, e.code, e.name));
                     await c.env.DB.batch(batch);
                     elementCount += elements.length;
-                    console.log(`[Sync] Saved ${elements.length} elements for ${u.code} (ID: ${unitId})`);
                 }
             } catch (err) {
                 console.error(`[Sync] Failed elements for ${u.code}`, err);
                 errors.push(`${u.name} (${u.code}): 요소 조회 실패`);
             }
         }
+
+        // 4. Update Hierarchy Meta (Sync Status Tracker)
+        await c.env.DB.prepare(`
+            INSERT OR REPLACE INTO ncs_job_hierarchy 
+            (job_code, job_name, large_name, mid_name, small_name, unit_count, element_count, synced_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+        `).bind(
+            subClassCode,
+            body.subClassName || '',
+            body.largeName || '',
+            body.midName || '',
+            body.smallName || '',
+            unitCount,
+            elementCount
+        ).run();
 
         return c.json({
             success: true,
@@ -1864,29 +1914,23 @@ app.get('/approved/sync/status/:subClassCode', authMiddleware, requireAdmin, asy
  */
 app.get('/approved/sync/summary', authMiddleware, requireAdmin, async (c) => {
     try {
-        // 주요 직종들의 통계 정보를 한꺼번에 가져옵니다.
-        const targets = [
-            { code: '19031101', name: '3D프린터개발' },
-            { code: '19031102', name: '3D프린터운용' },
-            { code: '15010201', name: '기계요소설계' },
-            { code: '20010202', name: '응용SW엔지니어링' }
-        ];
+        const { results } = await c.env.DB.prepare(`
+            SELECT 
+                job_code as code, 
+                job_name as name, 
+                unit_count as unitCount, 
+                element_count as elementCount,
+                synced_at
+            FROM ncs_job_hierarchy
+            ORDER BY synced_at DESC
+        `).all();
 
-        const summary = [];
-        for (const target of targets) {
-            const units = await c.env.DB.prepare('SELECT count(*) as count FROM ncs_units WHERE code LIKE ?').bind(target.code + '%').first<{ count: number }>();
-            const elements = await c.env.DB.prepare('SELECT count(*) as count FROM ncs_elements e JOIN ncs_units u ON e.ncs_unit_id = u.id WHERE u.code LIKE ?').bind(target.code + '%').first<{ count: number }>();
+        const data = (results || []).map((r: any) => ({
+            ...r,
+            status: r.unitCount > 0 ? 'READY' : 'EMPTY'
+        }));
 
-            summary.push({
-                code: target.code,
-                name: target.name,
-                unitCount: units?.count || 0,
-                elementCount: elements?.count || 0,
-                status: (units?.count || 0) > 0 ? 'READY' : 'EMPTY'
-            });
-        }
-
-        return c.json({ success: true, data: summary });
+        return c.json({ success: true, data });
     } catch (e) {
         console.error('NCS Summary failed:', e);
         return c.json({ success: false, error: String(e) }, 500);
