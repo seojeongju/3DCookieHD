@@ -173,32 +173,54 @@ async function fetchNcsClassificationByLarge(apiKey: string, ncsLclasCd: string,
     const largeName = NCS_LARGE_CLASSES.find((c) => c.code === ncsLclasCd)?.name ?? '';
 
     try {
-        // 1) 중분류 — 전체 페이지 수집 (NCS002)
-        const midList = await fetchClassificationAllPages(base, key, 'NCS002', { ncsLclasCd });
+        // 1) 중분류 — 전체 페이지 수집 (NCS002) - 파라미터 대문자 필수
+        const midList = await fetchClassificationAllPages(base, key, 'NCS002', { NCS_LCLAS_CD: ncsLclasCd });
         if (midList.length === 0) return null;
-        const mids = midList.map((r) => ({ code: rowVal(r, 'ncsMclasCd', 'NcsMclasCd', 'mclasCd', 'midCd'), name: rowVal(r, 'ncsMclasCdnm', 'NcsMclasCdnm', 'mclasCdnm', 'midNm') })).filter((m) => m.code);
+
+        // USG_YN === 'Y' 인 최신 차수만 필터링
+        const mids = midList
+            .filter((r) => rowVal(r, 'USG_YN', 'usgYn') === 'Y')
+            .map((r) => ({
+                code: rowVal(r, 'NCS_MCLAS_CD', 'ncsMclasCd', 'mclasCd'),
+                name: rowVal(r, 'NCS_MCLAS_CDNM', 'ncsMclasCdnm', 'mclasCdnm')
+            }))
+            .filter((m) => m.code);
 
         for (const mid of mids) {
             // 2) 소분류 — 전체 페이지 수집 (NCS003)
-            const smallList = await fetchClassificationAllPages(base, key, 'NCS003', { ncsLclasCd, ncsMclasCd: mid.code });
-            const smalls = smallList.map((r) => ({ code: rowVal(r, 'ncsSclasCd', 'sclasCd', 'smallCd'), name: rowVal(r, 'ncsSclasCdnm', 'NcsSclasCdnm', 'sclasCdnm', 'smallNm') })).filter((s) => s.code);
+            const smallList = await fetchClassificationAllPages(base, key, 'NCS003', { NCS_LCLAS_CD: ncsLclasCd, NCS_MCLAS_CD: mid.code });
+            const smalls = smallList
+                .filter((r) => rowVal(r, 'USG_YN', 'usgYn') === 'Y')
+                .map((r) => ({
+                    code: rowVal(r, 'NCS_SCLAS_CD', 'ncsSclasCd', 'sclasCd'),
+                    name: rowVal(r, 'NCS_SCLAS_CDNM', 'ncsSclasCdnm', 'sclasCdnm')
+                }))
+                .filter((s) => s.code);
 
             for (const small of smalls) {
                 // 3) 세분류 — 전체 페이지 수집 (NCS004)
-                const subList = await fetchClassificationAllPages(base, key, 'NCS004', { ncsLclasCd, ncsMclasCd: mid.code, ncsSclasCd: small.code });
-                const subs = subList.map((r) => ({ code: rowVal(r, 'ncsSubdCd', 'ncsDclasCd', 'subdCd', 'subCd'), name: rowVal(r, 'ncsSubdCdnm', 'ncsDclasCdnm', 'subdCdnm', 'subNm') })).filter((s) => s.code);
+                const subList = await fetchClassificationAllPages(base, key, 'NCS004', { NCS_LCLAS_CD: ncsLclasCd, NCS_MCLAS_CD: mid.code, NCS_SCLAS_CD: small.code });
+                const subs = subList
+                    .filter((r) => rowVal(r, 'USG_YN', 'usgYn') === 'Y')
+                    .map((r) => ({
+                        code: rowVal(r, 'NCS_SUBD_CD', 'ncsSubdCd', 'subdCd'),
+                        name: rowVal(r, 'NCS_SUBD_CDNM', 'ncsSubdCdnm', 'subdCdnm')
+                    }))
+                    .filter((s) => s.code);
 
                 for (const sub of subs) {
                     const dutyCd = `${ncsLclasCd}${mid.code}${small.code}${sub.code}`;
-                    // 훈련능력단위 (NCS005)
-                    const unitList = await fetchClassificationAllPages(base, key, 'NCS005', { dutyCd });
-                    if (unitList.length === 0) {
+                    // 훈련능력단위 (NCS005) - 파라미터 DUTY_CD 대문자 시도
+                    const unitList = await fetchClassificationAllPages(base, key, 'NCS005', { DUTY_CD: dutyCd });
+                    const validUnits = unitList.filter((r) => rowVal(r, 'USG_YN', 'usgYn') === 'Y');
+
+                    if (validUnits.length === 0) {
                         all.push({ largeCode: ncsLclasCd, largeName, midCode: mid.code, midName: mid.name, smallCode: small.code, smallName: small.name, subClassCode: sub.code, subClassName: sub.name, unitCode: '', unitName: '' });
                         continue;
                     }
-                    for (const u of unitList) {
-                        const unitCode = rowVal(u, 'ncsClCd', 'ncsClcd', 'compUnitCd', 'abilityUnitCd');
-                        const unitName = rowVal(u, 'compeUnitName', 'compUnitName', 'abilityUnitNm');
+                    for (const u of validUnits) {
+                        const unitCode = rowVal(u, 'NCS_CL_CD', 'ncsClCd', 'compUnitCd');
+                        const unitName = rowVal(u, 'NCS_CL_CDNM', 'compeUnitName', 'compUnitName');
                         all.push({ largeCode: ncsLclasCd, largeName, midCode: mid.code, midName: mid.name, smallCode: small.code, smallName: small.name, subClassCode: sub.code, subClassName: sub.name, unitCode, unitName });
                     }
                 }
@@ -211,7 +233,8 @@ async function fetchNcsClassificationByLarge(apiKey: string, ncsLclasCd: string,
             }
         }
         return all.length > 0 ? all : null;
-    } catch {
+    } catch (e) {
+        console.error('NCS Classification fetch error:', e);
         return null;
     }
 }
