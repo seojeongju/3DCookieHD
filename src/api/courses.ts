@@ -92,6 +92,13 @@ courses.get('/', async (c) => {
       params.push(searchTerm, searchTerm);
     }
 
+    // Year Filter
+    const year = query.year;
+    if (year) {
+      conditions.push('c.start_date LIKE ?');
+      params.push(`${year}-%`);
+    }
+
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     // 정렬 조건
@@ -459,7 +466,7 @@ courses.get('/:id/grades', async (c) => {
       let examCount = 0;
 
       exams.forEach((exam: any) => {
-        const sub = submissions.find((s: any) => s.exam_id === exam.id && s.student_id === std.id);
+        const sub = submissions.find((s: any) => s.exam_id === exam.id && s.student_id === std.id) as any;
         if (sub) {
           scores[exam.id] = sub.total_score;
           totalScore += sub.total_score;

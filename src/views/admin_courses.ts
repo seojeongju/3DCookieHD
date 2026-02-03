@@ -250,6 +250,7 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
             if(category) params.append('category', category);
             if(status) params.append('status', status);
             if(search) params.append('search', search);
+            if(year) params.append('year', year);
 
             try {
                 const res = await fetch(\`\${API_BASE}?\${params.toString()}\`, {
