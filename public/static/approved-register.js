@@ -301,7 +301,7 @@
         e.preventDefault();
         var id = (formIdEl && formIdEl.value) ? formIdEl.value.trim() : '';
         var name = (document.getElementById('approvedFormName').value || '').trim();
-        if (!name) { alert('과정명을 입력하세요.'); return; }
+
         var categoryId = document.getElementById('approvedFormCategory').value;
         var capacity = document.getElementById('approvedFormCapacity').value;
 

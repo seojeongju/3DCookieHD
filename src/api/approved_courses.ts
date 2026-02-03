@@ -124,8 +124,13 @@ app.post('/', authMiddleware, requireAdmin, async (c) => {
       daily_hours?: number | null;
       gov_subsidy?: number | null;
     }>();
-    const name = (body.name || '').trim();
-    if (!name) return c.json({ success: false, error: '과정명을 입력하세요' }, 400);
+    let name = (body.name || '').trim();
+    if (!name) {
+      const now = new Date();
+      const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      name = `[임시] ${dateStr} 등록 과정`;
+    }
+
 
     const categoryId = body.category_id != null ? body.category_id : null;
     const trainingTimeStart = (body.training_time_start || '').trim() || null;
@@ -273,8 +278,13 @@ app.put('/:id', authMiddleware, requireAdmin, async (c) => {
       .first();
     if (!existing) return c.json({ success: false, error: '과정을 찾을 수 없습니다' }, 404);
 
-    const name = (body.name || '').trim();
-    if (!name) return c.json({ success: false, error: '과정명을 입력하세요' }, 400);
+    let name = (body.name || '').trim();
+    if (!name) {
+      const now = new Date();
+      const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      name = `[임시] ${dateStr} 수정 과정`;
+    }
+
 
     const categoryId = body.category_id != null ? body.category_id : null;
     const trainingTimeStart = (body.training_time_start || '').trim() || null;
