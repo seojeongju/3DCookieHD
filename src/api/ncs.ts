@@ -240,6 +240,41 @@ async function fetchNcsJobsBySmall(apiKey: string, l: string, m: string, s: stri
 }
 
 
+/** NCS005: 능력단위분류코드 조회 - 특정 직종(세분류)의 모든 능력단위 가져오기 */
+async function fetchNcsUnitsByJob(
+    apiKey: string,
+    ncsLclasCd: string,
+    ncsMclasCd: string,
+    ncsSclasCd: string,
+    ncsSubdCd: string,
+    baseUrl?: string
+): Promise<{ code: string; name: string; level?: number }[]> {
+    const key = decodeServiceKey(apiKey);
+    const base = (baseUrl || NCS_CLASSIFICATION_API_BASE_DEFAULT).replace(/\/$/, '');
+    try {
+        const list = await fetchClassificationAllPages(base, key, 'NCS005', {
+            NCS_LCLAS_CD: ncsLclasCd,
+            NCS_MCLAS_CD: ncsMclasCd,
+            NCS_SCLAS_CD: ncsSclasCd,
+            NCS_SUBD_CD: ncsSubdCd
+        });
+        return list
+            .filter((r) => rowVal(r, 'USG_YN', 'usgYn') === 'Y')
+            .map((r) => {
+                const code = rowVal(r, 'NCS_CL_CD', 'ncsClCd', 'clCd');
+                const name = rowVal(r, 'COMPE_UNIT_NAME', 'compeUnitName', 'unitName');
+                const levelStr = rowVal(r, 'COMPE_UNIT_LEVEL', 'compeUnitLevel', 'level');
+                const level = levelStr ? parseInt(levelStr, 10) : undefined;
+                return { code, name, level: isNaN(level!) ? undefined : level };
+            })
+            .filter((x) => x.code && x.name);
+    } catch (e) {
+        console.error('fetchNcsUnitsByJob error:', e);
+        return [];
+    }
+}
+
+
 /** 기준정보 API로 대분류 목록 조회 (NCS001) */
 async function fetchNcsLargeClasses(apiKey: string, baseUrl?: string): Promise<{ code: string; name: string }[]> {
     const key = decodeServiceKey(apiKey);
@@ -1127,50 +1162,76 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
             const apiKey = (c.env.NCS_API_KEY || '').trim();
             if (apiKey && jobCode8.length >= 2) {
                 const largeCode = jobCode8.slice(0, 2);
-                try {
-                    const key = decodeServiceKey(apiKey);
-                    let items: TrainingItem[] = [];
-                    let source = '';
+                const classificationBase = (c.env as { NCS_CLASSIFICATION_API_BASE?: string }).NCS_CLASSIFICATION_API_BASE?.trim();
 
-                    // 1. Try Classification API (Standard Info) first - usually more complete
-                    const classificationBase = (c.env as { NCS_CLASSIFICATION_API_BASE?: string }).NCS_CLASSIFICATION_API_BASE?.trim();
+                // If we have a full 10-digit job code, try NCS005 (Competency Unit List) first
+                if (job.code && job.code.length >= 10) {
                     try {
-                        const fromClass = await fetchNcsClassificationByLarge(apiKey, largeCode, classificationBase);
-                        if (fromClass && fromClass.length > 0) {
-                            items = fromClass;
-                            source = 'classification';
-                        }
-                    } catch (e) { console.error('Classification API check failed', e); }
+                        const l = job.code.slice(0, 2);
+                        const m = job.code.slice(2, 4);
+                        const s = job.code.slice(4, 6);
+                        const subd = job.code.slice(6, 8);
 
-                    // 2. Fallback to Training API
-                    if (items.length === 0) {
+                        const unitsFromNCS005 = await fetchNcsUnitsByJob(apiKey, l, m, s, subd, classificationBase);
+                        if (unitsFromNCS005 && unitsFromNCS005.length > 0) {
+                            for (const u of unitsFromNCS005) {
+                                if (!u.code || !u.name) continue;
+                                addItem(u.name, u.code, u.level || 3);
+                                foundAny = true;
+                                foundFromApi = true;
+                            }
+                        }
+                    } catch (e) {
+                        console.error('NCS005 API call failed', e);
+                    }
+                }
+
+                // If NCS005 didn't return anything, try fallback methods
+                if (!foundFromApi) {
+                    try {
+                        const key = decodeServiceKey(apiKey);
+                        let items: TrainingItem[] = [];
+                        let source = '';
+
+                        // 1. Try Classification API (Standard Info) first - usually more complete
                         try {
-                            items = await fetchNcsTrainingByLarge(apiKey, largeCode);
-                            source = 'training';
-                        } catch (e) { console.error('Training API check failed', e); }
-                    }
+                            const fromClass = await fetchNcsClassificationByLarge(apiKey, largeCode, classificationBase);
+                            if (fromClass && fromClass.length > 0) {
+                                items = fromClass;
+                                source = 'classification';
+                            }
+                        } catch (e) { console.error('Classification API check failed', e); }
 
-                    const prefix = jobCode8;
-                    for (const it of items) {
-                        const rawUnitCode = String(it.unitCode || '').trim();
-                        if (!rawUnitCode) continue;
-
-                        const numPart = rawUnitCode.replace(/_.*$/, '').replace(/\D/g, '').slice(0, 8);
-                        if (!numPart.startsWith(prefix) && !rawUnitCode.includes(prefix)) continue;
-
-                        const name = (it.unitName || '').trim() || rawUnitCode;
-                        let lv = 3;
-                        if (it.level != null) {
-                            lv = typeof it.level === 'number' ? it.level : parseInt(String(it.level), 10);
+                        // 2. Fallback to Training API
+                        if (items.length === 0) {
+                            try {
+                                items = await fetchNcsTrainingByLarge(apiKey, largeCode);
+                                source = 'training';
+                            } catch (e) { console.error('Training API check failed', e); }
                         }
-                        if (isNaN(lv)) lv = 3;
 
-                        addItem(name, rawUnitCode, lv, it.elements);
-                        foundAny = true;
-                        foundFromApi = true;
+                        const prefix = jobCode8;
+                        for (const it of items) {
+                            const rawUnitCode = String(it.unitCode || '').trim();
+                            if (!rawUnitCode) continue;
+
+                            const numPart = rawUnitCode.replace(/_.*$/, '').replace(/\\D/g, '').slice(0, 8);
+                            if (!numPart.startsWith(prefix) && !rawUnitCode.includes(prefix)) continue;
+
+                            const name = (it.unitName || '').trim() || rawUnitCode;
+                            let lv = 3;
+                            if (it.level != null) {
+                                lv = typeof it.level === 'number' ? it.level : parseInt(String(it.level), 10);
+                            }
+                            if (isNaN(lv)) lv = 3;
+
+                            addItem(name, rawUnitCode, lv, it.elements);
+                            foundAny = true;
+                            foundFromApi = true;
+                        }
+                    } catch (e) {
+                        console.error('NCS API fetch error', e);
                     }
-                } catch (e) {
-                    console.error('NCS API fetch error', e);
                 }
             }
 
@@ -2122,55 +2183,23 @@ app.get('/plans/:planId/export-csv', async (c) => {
 const FALLBACK_NCS_UNITS: Record<string, { code: string; name: string; level: number; elements?: { code: string; name: string }[] }[]> = {
     // 19031102: 3D프린터용 제품제작 (3D프린터운용기능사 관련)
     '19031102': [
-        {
-            code: '1903110201_19v3', name: '3D프린터 제품제작 안전관리', level: 2,
-            elements: [
-                { code: '1903110201_19v3_01', name: '3D프린터 제품제작 안전수칙 준수하기' },
-                { code: '1903110201_19v3_02', name: '3D프린터 제품제작 안전사고 예방하기' },
-                { code: '1903110201_19v3_03', name: '3D프린터 제품제작 안전장비 착용하기' }
-            ]
-        },
-        {
-            code: '1903110202_19v3', name: '3D프린터 제품 스캐닝', level: 3,
-            elements: [
-                { code: '1903110202_19v3_01', name: '스캔 대상물 준비하기' },
-                { code: '1903110202_19v3_02', name: '스캐너 설정하기' },
-                { code: '1903110202_19v3_03', name: '3D 데이터 스캐닝하기' },
-                { code: '1903110202_19v3_04', name: '스캔 데이터 보정하기' }
-            ]
-        },
-        {
-            code: '1903110203_19v3', name: '3D프린터 SW 설정', level: 3,
-            elements: [
-                { code: '1903110203_19v3_01', name: '출력 보조형상설정하기' },
-                { code: '1903110203_19v3_02', name: '슬라이싱하기' },
-                { code: '1903110203_19v3_03', name: 'G코드 생성하기' }
-            ]
-        },
-        {
-            code: '1903110204_19v3', name: '3D프린터 HW 설정', level: 3,
-            elements: [
-                { code: '1903110204_19v3_01', name: '소재준비하기' },
-                { code: '1903110204_19v3_02', name: '데이터준비하기' },
-                { code: '1903110204_19v3_03', name: '장비출력설정하기' }
-            ]
-        },
-        {
-            code: '1903110205_19v3', name: '3D프린터 제품 출력', level: 3,
-            elements: [
-                { code: '1903110205_19v3_01', name: '출력과정 모니터링하기' },
-                { code: '1903110205_19v3_02', name: '출력오류 대처하기' },
-                { code: '1903110205_19v3_03', name: '출력물 회수하기' }
-            ]
-        },
-        {
-            code: '1903110206_19v3', name: '3D프린터 제품 후가공', level: 2,
-            elements: [
-                { code: '1903110206_19v3_01', name: '지지대 제거하기' },
-                { code: '1903110206_19v3_02', name: '표면가공하기' },
-                { code: '1903110206_19v3_03', name: '도색하기' }
-            ]
-        }
+        { code: '1903110201_15v1', name: '시장조사', level: 3 },
+        { code: '1903110202_23v3', name: '제품기획', level: 3 },
+        { code: '1903110203_17v2', name: '제품스캐닝', level: 3 },
+        { code: '1903110205_23v3', name: '엔지니어링모델링', level: 4 },
+        { code: '1903110206_17v2', name: '출력용데이터확정', level: 3 },
+        { code: '1903110207_23v3', name: '3D프린터 SW 설정', level: 3 },
+        { code: '1903110208_23v3', name: '3D프린터 HW 설정', level: 3 },
+        { code: '1903110209_23v3', name: '제품출력', level: 3 },
+        { code: '1903110210_23v4', name: '후가공', level: 2 },
+        { code: '1903110211_23v2', name: '역설계', level: 4 },
+        { code: '1903110212_20v3', name: '넙스 모델링', level: 3 },
+        { code: '1903110213_17v2', name: '폴리곤 모델링', level: 3 },
+        { code: '1903110214_23v3', name: '3D프린팅 안전관리', level: 2 },
+        { code: '1903110215_24v1', name: '3D프린팅 특화설계', level: 5 },
+        { code: '1903110216_24v1', name: '데이터 전처리', level: 4 },
+        { code: '1903110217_24v1', name: 'L-PBF 금속3D프린팅운용', level: 4 },
+        { code: '1903110218_24v1', name: '의료3D프린팅운용', level: 4 }
     ],
     // 19031101: 3D프린터개발
     '19031101': [
