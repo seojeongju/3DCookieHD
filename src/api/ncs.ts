@@ -1539,7 +1539,8 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
                     '3D프린터운용기능사': '19031102',
                     '기계요소설계': '15010201',
                     '기계요소': '15010201',
-                    '3D프린터개발': '19031101'
+                    '3D프린터개발': '19031101',
+                    '3D프린팅소재개발': '19031101'
                 };
                 targetCode = nameToCode[normalized] || '';
             }
