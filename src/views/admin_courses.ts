@@ -9,848 +9,402 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
     <title>교육과정 관리 - 통합 교육행정 시스템</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
-    <script src="https://cdn.tiny.cloud/1/mvw2dv577uz6ru7oboooo1vpsgfgtj25kfa5sci9bblekdy3/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
     <script>
       tailwind.config = {
         theme: {
           extend: {
             colors: {
-              primary: {
-                50: '#f0f7ff', 100: '#e0effe', 200: '#baddfd', 300: '#7dbcfb', 400: '#3a9bf7',
-                500: '#5b9bd5', 600: '#4a90e2', 700: '#2d5fa3', 800: '#1e4278', 900: '#132d54'
-              }
+              primary: { 50: '#f0f9ff', 100: '#e0f2fe', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1' }
             }
           }
         }
       }
     </script>
     <style>
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; }
     </style>
 </head>
-<body class="bg-gray-50 font-sans text-gray-900">
+<body class="bg-slate-50 text-slate-900 text-sm">
     <div class="flex h-screen overflow-hidden">
         ${sidebar}
-        <div class="flex-1 flex flex-col overflow-hidden bg-gray-50">
-            <div class="bg-white border-b border-gray-200 flex-shrink-0">
-                <div class="px-8 py-6">
-                    <div class="flex justify-between items-center">
-                        <div>
-                            <h1 class="text-2xl font-bold text-gray-800">교육과정 관리</h1>
-                            <p class="text-gray-600 mt-1">교육 과정을 개설하고 관리합니다.</p>
-                        </div>
-                        <button id="btnCreateCourse" onclick="openModal('createCourseModal')" class="px-5 py-2.5 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition flex items-center shadow-lg shadow-purple-100 font-bold">
-                            <i class="fas fa-plus mr-2"></i> 과정 개설
-                        </button>
+        <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+            <!-- Header -->
+            <header class="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-6 shrink-0 z-10">
+                <div class="flex items-center gap-4">
+                    <h1 class="text-lg font-bold text-slate-800">교육과정 관리</h1>
+                    <nav class="hidden sm:flex items-center text-xs text-slate-500 gap-2">
+                        <span>홈</span>
+                        <i class="fas fa-chevron-right text-[10px]"></i>
+                        <span>과정관리</span>
+                        <i class="fas fa-chevron-right text-[10px]"></i>
+                        <span class="font-bold text-slate-700">교육과정 관리</span>
+                    </nav>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="text-right hidden md:block">
+                        <p class="text-xs font-bold text-slate-700" id="loginUserName">관리자</p>
+                        <p class="text-[10px] text-slate-400">최종접속: <span id="lastLoginTime">-</span></p>
                     </div>
                 </div>
-            </div>
-            <main class="flex-1 overflow-y-auto p-8 custom-scrollbar">
-                <div class="bg-white rounded-2xl shadow-sm p-5 mb-8 flex flex-wrap gap-4 items-center justify-between border border-gray-100">
-                    <div class="flex gap-4 items-center flex-1">
-                        <select id="categoryFilter" onchange="loadCourses(1)" class="px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-100 focus:border-purple-600 outline-none transition-all text-sm font-medium">
-                            <option value="">전체 카테고리</option>
-                            <option value="국비지원">국비지원</option>
-                            <option value="일반과정">일반과정</option>
-                            <option value="특강">특강</option>
-                        </select>
-                        <div class="relative max-w-md w-full">
-                            <input type="text" id="searchInput" placeholder="과정명 또는 키워드 검색" onkeyup="if(event.key === 'Enter') loadCourses(1)" class="w-full pl-11 pr-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-100 focus:border-purple-600 outline-none transition-all text-sm">
-                            <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+            </header>
+
+            <!-- Main Content -->
+            <main class="flex-1 overflow-auto p-6 custom-scrollbar bg-slate-50">
+                <!-- 1. Search Filter Panel -->
+                <div class="bg-white border border-slate-200 rounded-lg p-5 mb-6 shadow-sm">
+                    <div class="flex items-center gap-2 mb-4 border-b border-slate-100 pb-3">
+                        <i class="fas fa-search text-slate-400"></i>
+                        <h2 class="font-bold text-slate-700">통합 과정 검색</h2>
+                    </div>
+                    
+                    <form id="searchForm" onsubmit="event.preventDefault(); loadCourses(1);" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <!-- Row 1 -->
+                        <div class="space-y-1">
+                            <label class="block text-xs font-bold text-slate-500">훈련년도/회차</label>
+                            <div class="flex gap-1">
+                                <select id="yearFilter" class="flex-1 py-1.5 px-3 border border-slate-200 rounded text-sm focus:ring-1 focus:ring-primary-500 focus:border-primary-500">
+                                    <option value="">전체 년도</option>
+                                    <option value="2026" selected>2026년</option>
+                                    <option value="2025">2025년</option>
+                                    <option value="2024">2024년</option>
+                                </select>
+                                <select id="sessionFilter" class="w-20 py-1.5 px-3 border border-slate-200 rounded text-sm focus:ring-1 focus:ring-primary-500 focus:border-primary-500">
+                                    <option value="">전체</option>
+                                    <option value="1">1회차</option>
+                                    <option value="2">2회차</option>
+                                    <option value="3">3회차</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="space-y-1">
+                            <label class="block text-xs font-bold text-slate-500">과정 구분</label>
+                            <select id="categoryFilter" class="w-full py-1.5 px-3 border border-slate-200 rounded text-sm focus:ring-1 focus:ring-primary-500 focus:border-primary-500">
+                                <option value="">전체 과정</option>
+                                <option value="국비지원">국가기간 전략산업</option>
+                                <option value="국민내일배움">국민내일배움카드</option>
+                                <option value="일반과정">일반직무 (재직자)</option>
+                                <option value="특강">단기 특강</option>
+                            </select>
+                        </div>
+
+                        <div class="space-y-1">
+                            <label class="block text-xs font-bold text-slate-500">운영 상태</label>
+                            <select id="statusFilter" class="w-full py-1.5 px-3 border border-slate-200 rounded text-sm focus:ring-1 focus:ring-primary-500 focus:border-primary-500">
+                                <option value="">전체 상태</option>
+                                <option value="preparing">개강예정 (모집전)</option>
+                                <option value="recruiting">훈련생 모집중</option>
+                                <option value="in_progress">훈련 진행중</option>
+                                <option value="completed">훈련 종료</option>
+                                <option value="cancelled">폐강</option>
+                            </select>
+                        </div>
+
+                        <div class="space-y-1">
+                            <label class="block text-xs font-bold text-slate-500">검색어</label>
+                            <div class="flex gap-1">
+                                <input type="text" id="searchInput" placeholder="과정명, 코드 입력" class="flex-1 py-1.5 px-3 border border-slate-200 rounded text-sm focus:ring-1 focus:ring-primary-500 focus:border-primary-500">
+                                <button type="submit" class="bg-slate-800 text-white px-4 rounded text-xs font-bold hover:bg-slate-700 transition">검색</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- 2. Data Grid -->
+                <div class="bg-white border border-slate-200 rounded-lg shadow-sm flex flex-col h-[calc(100vh-340px)] min-h-[500px]">
+                    <!-- Grid Toolbar -->
+                    <div class="p-4 border-b border-slate-100 flex items-center justify-between shrink-0">
+                        <div class="flex items-center gap-3">
+                            <span class="text-sm font-bold text-slate-700">검색결과 <span id="totalCount" class="text-primary-600">0</span>건</span>
+                            <div class="h-4 w-px bg-slate-300"></div>
+                            <button type="button" class="text-xs text-slate-500 hover:text-red-600 transition flex items-center gap-1" onclick="deleteSelected()">
+                                <i class="far fa-trash-alt"></i> 선택 삭제
+                            </button>
+                        </div>
+                        <div class="flex items-center gap-2">
+                             <a href="/admin/courses/sessions" class="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 border border-slate-300 rounded text-xs font-bold text-slate-600 hover:bg-slate-50 transition">
+                                <i class="fas fa-list-ul"></i> 회차별 관리
+                            </a>
+                            <button type="button" class="inline-flex items-center gap-2 px-3 py-1.5 border border-green-600 text-green-700 bg-green-50 rounded text-xs font-bold hover:bg-green-100 transition">
+                                <i class="far fa-file-excel"></i> 엑셀 저장
+                            </button>
+                            <button onclick="openCreateModal()" class="inline-flex items-center gap-2 px-4 py-1.5 bg-primary-600 text-white rounded text-xs font-bold hover:bg-primary-700 transition shadow-sm">
+                                <i class="fas fa-plus"></i> 과정 신규 등록
+                            </button>
                         </div>
                     </div>
-                    <div class="flex items-center gap-2">
-                         <button onclick="loadCourses(1)" class="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-purple-600 transition-all">
-                            <i class="fas fa-sync-alt"></i>
-                         </button>
-                    </div>
-                </div>
-                
-                <div class="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100 mb-6">
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-100">
-                            <thead>
-                                <tr class="bg-gray-50/50">
-                                    <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase tracking-wider">상태</th>
-                                    <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase tracking-wider">과정 정보</th>
-                                    <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase tracking-wider">교육 기간</th>
-                                    <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase tracking-wider">담당 강사</th>
-                                    <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase tracking-wider">수강료</th>
-                                    <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase tracking-wider">정원/신청</th>
-                                    <th class="px-6 py-4 text-right text-[11px] font-bold text-gray-400 uppercase tracking-wider">관리</th>
+
+                    <!-- Table -->
+                    <div class="flex-1 overflow-auto custom-scrollbar relative">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-slate-100 text-slate-500 text-xs font-bold uppercase sticky top-0 z-10 shadow-sm">
+                                <tr>
+                                    <th class="p-3 w-10 text-center border-b border-slate-200"><input type="checkbox" id="checkAll" class="rounded border-slate-300"></th>
+                                    <th class="p-3 w-16 text-center border-b border-slate-200">No.</th>
+                                    <th class="p-3 w-28 text-center border-b border-slate-200">구분/회차</th>
+                                    <th class="p-3 border-b border-slate-200">과정명 (NCS 직종)</th>
+                                    <th class="p-3 w-40 text-center border-b border-slate-200">훈련 기간/시간</th>
+                                    <th class="p-3 w-28 text-center border-b border-slate-200">정원/현원</th>
+                                    <th class="p-3 w-24 text-center border-b border-slate-200">담당교사</th>
+                                    <th class="p-3 w-28 text-right border-b border-slate-200">수강료</th>
+                                    <th class="p-3 w-24 text-center border-b border-slate-200">상태</th>
+                                    <th class="p-3 w-20 text-center border-b border-slate-200 border-l border-dashed border-slate-300">관리</th>
                                 </tr>
                             </thead>
-                            <tbody id="coursesTableBody" class="divide-y divide-gray-100">
-                                <tr><td colspan="7" class="px-6 py-16 text-center text-gray-400 font-medium"><i class="fas fa-spinner fa-spin mr-3 text-purple-600"></i> 데이터를 불러오는 중입니다...</td></tr>
+                            <tbody id="courseTableBody" class="text-sm divide-y divide-slate-100">
+                                <tr>
+                                    <td colspan="10" class="p-12 text-center text-slate-400">
+                                        <i class="fas fa-spinner fa-spin text-2xl mb-3 text-slate-300"></i>
+                                        <p>데이터를 불러오는 중입니다...</p>
+                                    </td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
-                </div>
 
-                <!-- 페이지네이션 -->
-                <div id="paginationContainer" class="flex items-center justify-between bg-white px-6 py-4 rounded-2xl border border-gray-100 shadow-sm">
-                    <div class="text-sm text-gray-500 font-medium">
-                        총 <span id="totalCount" class="text-purple-600 font-bold">0</span>개의 과정
-                    </div>
-                    <div class="flex items-center gap-2" id="paginationButtons">
-                        <!-- 페이지 버튼 동적 생성 -->
+                    <!-- Pagination -->
+                    <div class="p-3 border-t border-slate-200 flex items-center justify-center gap-2 shrink-0 bg-slate-50" id="pagination">
+                        <!-- Filled by JS -->
                     </div>
                 </div>
             </main>
         </div>
     </div>
 
-    <!-- 과정 개설/수정 모달: In-box Bento Grid 에디션 -->
-    <div id="createCourseModal" class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
-        <div class="relative bg-[#f8f9fa] border border-gray-200 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.2)] rounded-[2.5rem] w-full max-w-5xl max-h-[96vh] flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-700">
-            <!-- Modal Header -->
-            <div class="px-10 py-6 flex justify-between items-center bg-white border-b border-gray-100 sticky top-0 z-30">
-                <div class="flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-2xl bg-gray-900 flex items-center justify-center text-white shadow-xl shadow-gray-200">
-                        <i class="fas fa-cube text-xl"></i>
+    <!-- Create Mode Select Modal -->
+    <div id="createModeModal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-lg overflow-hidden animate-[fadeIn_0.2s_ease-out]">
+            <div class="bg-slate-800 text-white p-4 flex justify-between items-center">
+                <h3 class="font-bold">신규 과정 등록 방식 선택</h3>
+                <button onclick="closeCreateModal()" class="text-slate-400 hover:text-white"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="p-6 grid grid-cols-2 gap-4">
+                <a href="/admin/courses/approved" class="block p-6 border-2 border-slate-200 rounded-xl hover:border-primary-500 hover:bg-primary-50 transition group text-center">
+                    <div class="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-500 group-hover:bg-primary-100 group-hover:text-primary-600 transition">
+                        <i class="fas fa-file-import text-xl"></i>
                     </div>
-                    <div>
-                        <h3 class="text-xl font-black text-gray-900 tracking-tight" id="modalTitle">교육과정 설계 (Course Architect)</h3>
-                        <p class="text-[11px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Bento Intelligence System v2.0</p>
+                    <h4 class="font-bold text-slate-800 mb-1">승인 과정 불러오기</h4>
+                    <p class="text-xs text-slate-500">HRD-Net 승인 정보를 기반으로<br>빠르게 개설합니다.</p>
+                </a>
+                <button onclick="alert('준비중입니다. 승인 과정 불러오기를 이용해주세요.'); closeCreateModal();" class="block p-6 border-2 border-slate-200 rounded-xl hover:border-slate-300 hover:bg-slate-50 transition group text-center disabled:opacity-50">
+                    <div class="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-500">
+                        <i class="fas fa-pen text-xl"></i>
                     </div>
-                </div>
-                <button onclick="closeModal('createCourseModal')" class="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-50 hover:bg-red-50 text-gray-400 hover:text-red-500 transition-all border border-gray-100">
-                    <i class="fas fa-times"></i>
+                    <h4 class="font-bold text-slate-800 mb-1">직접 입력 등록</h4>
+                    <p class="text-xs text-slate-500">기초 데이터 없이<br>모든 정보를 직접 입력합니다.</p>
                 </button>
             </div>
-            
-            <div class="p-8 overflow-y-auto flex-1 custom-scrollbar bg-[#f1f3f5]">
-                <form id="createCourseForm" onsubmit="handleSaveCourse(event)" class="grid grid-cols-12 gap-4">
-                    <input type="hidden" name="id" id="courseId">
-                    
-                    <!-- Bento Box 1: 메인 정보 (Span 8) -->
-                    <div class="col-span-12 lg:col-span-8 bg-white border border-gray-200 rounded-[2rem] p-8 shadow-sm hover:shadow-md transition-all duration-500 flex flex-col justify-between">
-                         <div class="space-y-6">
-                            <div class="flex items-center gap-2">
-                                <span class="w-2 h-2 rounded-full bg-blue-500"></span>
-                                <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">기본 식별 정보 (Primary Identity)</span>
-                            </div>
-                            <div class="space-y-4">
-                                <label class="block text-xs font-black text-gray-400 uppercase tracking-widest ml-1">과정 공식 명칭 (Course Official Title)</label>
-                                <input type="text" name="title" id="courseTitle" required placeholder="과정명을 입력하세요 (Enter course name)" 
-                                    class="w-full px-6 py-4 bg-gray-50 border border-transparent rounded-[1.25rem] focus:bg-white focus:border-blue-500/20 focus:ring-4 focus:ring-blue-500/5 outline-none transition-all text-gray-900 font-bold text-xl">
-                                
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div class="space-y-2">
-                                        <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">카테고리 (Category)</label>
-                                        <select name="category" id="courseCategory" class="w-full px-5 py-3.5 bg-gray-50 border-transparent rounded-2xl focus:bg-white focus:border-blue-500/20 outline-none transition-all font-bold text-gray-700 text-sm appearance-none cursor-pointer">
-                                            <option value="국비지원">국비지원 (HRD Plan)</option>
-                                            <option value="일반과정">일반 과정 (General)</option>
-                                            <option value="특강">단기 특강 (Workshop)</option>
-                                        </select>
-                                    </div>
-                                    <div class="space-y-2">
-                                        <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">캠퍼스 위치 (Campus Location)</label>
-                                        <select name="campus_id" id="courseCampus" class="w-full px-5 py-3.5 bg-gray-50 border-transparent rounded-2xl focus:bg-white focus:border-blue-500/20 outline-none transition-all font-bold text-gray-700 text-sm appearance-none cursor-pointer">
-                                            <option value="1">서울 본교 (Seoul Main)</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-                         </div>
-                    </div>
-
-                    <!-- Bento Box 2: 상태 모니터 (Span 4) -->
-                    <div class="col-span-12 lg:col-span-4 bg-gray-900 border border-gray-800 rounded-[2rem] p-8 shadow-xl flex flex-col justify-between overflow-hidden relative">
-                        <div class="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 blur-[60px] rounded-full"></div>
-                        <div class="space-y-6 relative z-10">
-                            <div class="flex items-center gap-2">
-                                <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                                <span class="text-[10px] font-black text-gray-600 uppercase tracking-widest">운영 모니터 (Status Monitor)</span>
-                            </div>
-                            <div class="space-y-5">
-                                <div class="space-y-2">
-                                    <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">모집 상태 설정 (Operational Status)</label>
-                                    <select name="status" id="courseStatus" class="w-full px-5 py-3.5 bg-white/5 border border-white/10 rounded-2xl focus:bg-white/10 focus:border-green-500/30 outline-none transition-all font-black text-green-400 text-sm appearance-none cursor-pointer">
-                                        <option value="open">현재 모집중 (Active)</option>
-                                        <option value="closed">모집 종료 (Closed)</option>
-                                        <option value="preparing">개설 준비중 (Draft)</option>
-                                    </select>
-                                </div>
-                                <div class="space-y-2">
-                                    <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">메인 책임 교수 (Lead Instructor)</label>
-                                    <div class="flex gap-2 items-center">
-                                        <select name="teacher_id" id="courseInstructor" class="flex-1 px-5 py-3.5 bg-white/5 border border-white/10 rounded-2xl focus:bg-white/10 focus:border-blue-500/30 outline-none transition-all font-bold text-gray-300 text-sm appearance-none cursor-pointer">
-                                            <option value="">데이터 로딩중 (Loading...)</option>
-                                        </select>
-                                        <button type="button" onclick="clearCourseInstructor()" class="px-4 py-3.5 rounded-2xl border border-white/20 text-xs font-bold text-amber-300 hover:bg-amber-500/20 hover:border-amber-400/30 transition-all whitespace-nowrap" title="강사 배정 삭제">배정 해제</button>
-                                        <button type="button" onclick="saveCourseInstructorOnly()" class="px-4 py-3.5 rounded-2xl bg-blue-500/30 border border-blue-400/30 text-xs font-bold text-blue-200 hover:bg-blue-500/50 transition-all whitespace-nowrap" title="강사 배정만 저장">강사 저장</button>
-                                    </div>
-                                    <p class="text-[9px] text-gray-500 mt-1">수정: 강사 선택 후 [강사 저장] 클릭. 삭제: [배정 해제] 후 [강사 저장] 클릭.</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Bento Box 3: 쿼터 및 비용 (Span 4) -->
-                    <div class="col-span-12 lg:col-span-4 bg-[#e9ecef] border border-gray-200 rounded-[2rem] p-8 flex flex-col gap-6 shadow-inner">
-                        <div class="flex items-center gap-2">
-                            <i class="fas fa-chart-pie text-gray-400 text-xs"></i>
-                            <span class="text-[10px] font-black text-gray-500 uppercase tracking-widest">정원 및 수강료 (Financial & Quota)</span>
-                        </div>
-                        <div class="grid grid-cols-1 gap-4">
-                            <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-                                <label class="block text-[9px] font-black text-gray-400 uppercase tracking-tighter mb-1">모집 정원 (Admission Quota)</label>
-                                <div class="flex items-center gap-3">
-                                    <input type="number" name="max_students" id="courseMaxStudents" placeholder="20" class="w-full text-2xl font-black text-gray-900 bg-transparent border-none outline-none focus:ring-0 p-0">
-                                    <span class="text-sm font-black text-gray-300">명 (Max)</span>
-                                </div>
-                            </div>
-                            <div class="bg-gray-900 rounded-2xl p-5 border border-gray-800 shadow-lg">
-                                <label class="block text-[9px] font-black text-gray-500 uppercase tracking-tighter mb-1">교육 수강료 (Course Tuition Fee)</label>
-                                <div class="flex items-center gap-2">
-                                    <span class="text-xl font-black text-gray-500">₩</span>
-                                    <input type="number" name="price" id="coursePrice" placeholder="0" class="w-full text-2xl font-black text-white bg-transparent border-none outline-none focus:ring-0 p-0">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Bento Box 4: 타임라인 (Span 8) -->
-                    <div class="col-span-12 lg:col-span-8 bg-white border border-gray-200 rounded-[2rem] p-8 space-y-6">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-2">
-                                <i class="far fa-clock text-blue-500 text-xs"></i>
-                                <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">시간 관리 로직 (Temporal Logic)</span>
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-2 gap-8">
-                            <div class="space-y-4">
-                                <label class="block text-xs font-black text-gray-400 uppercase tracking-widest ml-1">교육 기간 설정 (Date Range)</label>
-                                <div class="flex items-center gap-2 bg-gray-50 p-2 rounded-2xl border border-gray-100">
-                                    <input type="date" name="start_date" id="courseStartDate" onchange="renderCalendar()" class="flex-1 px-4 py-2 bg-white border-none rounded-xl text-sm font-bold shadow-sm outline-none">
-                                    <span class="text-gray-300"><i class="fas fa-arrow-right"></i></span>
-                                    <input type="date" name="end_date" id="courseEndDate" onchange="renderCalendar()" class="flex-1 px-4 py-2 bg-white border-none rounded-xl text-sm font-bold shadow-sm outline-none">
-                                </div>
-                            </div>
-                            <div class="space-y-4">
-                                <label class="block text-xs font-black text-gray-400 uppercase tracking-widest ml-1">일일 교육 시간 (Shift Time)</label>
-                                <div class="flex items-center gap-2 bg-gray-50 p-2 rounded-2xl border border-gray-100">
-                                    <input type="time" id="courseStartTime" class="flex-1 px-4 py-2 bg-white border-none rounded-xl text-sm font-bold shadow-sm outline-none">
-                                    <span class="text-gray-300"><i class="fas fa-minus"></i></span>
-                                    <input type="time" id="courseEndTime" class="flex-1 px-4 py-2 bg-white border-none rounded-xl text-sm font-bold shadow-sm outline-none">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Bento Box 5: 교과목 구성 (Full) -->
-                    <div class="col-span-12 bg-white border border-gray-200 rounded-[2.5rem] p-10 space-y-8">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-3">
-                                <div class="w-8 h-8 rounded-xl bg-orange-100 flex items-center justify-center text-orange-500">
-                                    <i class="fas fa-layer-group text-sm"></i>
-                                </div>
-                                <h4 class="font-black text-lg text-gray-900 tracking-tight">세부 교과목 구성 (Curriculum Modules)</h4>
-                            </div>
-                            <button type="button" onclick="addSubjectRow()" class="px-6 py-2.5 bg-gray-900 text-white rounded-2xl text-xs font-black shadow-lg hover:bg-black transition-all flex items-center gap-2">
-                                <i class="fas fa-plus"></i> 과목 추가 (Add Module)
-                            </button>
-                        </div>
-                        <div id="subjectListContainer" class="space-y-4 max-h-[400px] overflow-y-auto px-1 custom-scrollbar">
-                            <!-- Rows go here -->
-                        </div>
-                    </div>
-
-                    <!-- 수강생 관리 (과정 수정 시에만 표시, 수강 취소 후 과정 삭제 가능) -->
-                    <div id="courseEnrollmentSection" class="col-span-12 bg-amber-50/80 border border-amber-200 rounded-[2.5rem] p-8 space-y-4 hidden">
-                        <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600">
-                                <i class="fas fa-user-graduate text-sm"></i>
-                            </div>
-                            <div>
-                                <h4 class="font-black text-gray-900 tracking-tight">수강생 관리 (Enrolled Students)</h4>
-                                <p class="text-xs text-amber-800 mt-0.5">수강생이 있으면 과정 삭제가 불가합니다. 수강 취소 후 삭제할 수 있습니다.</p>
-                            </div>
-                        </div>
-                        <div id="courseEnrollmentList" class="bg-white rounded-2xl border border-amber-200/60 p-4 max-h-[280px] overflow-y-auto custom-scrollbar space-y-2">
-                            <!-- 동적 로딩 -->
-                        </div>
-                    </div>
-
-                    <!-- Bento Box 6: 세부 달력 (Span 7) -->
-                    <div class="col-span-12 lg:col-span-7 bg-white border border-gray-200 rounded-[2.5rem] p-10 space-y-6">
-                        <div class="flex items-center justify-between">
-                             <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">일정 정밀 선택 (Calendar Precision)</span>
-                             <button type="button" onclick="clearCalendarSelection()" class="text-[10px] font-black text-red-400 hover:text-red-500 uppercase tracking-widest transition-colors">전체 해제 (Clear All)</button>
-                        </div>
-                        <div id="calendarContainer" class="min-h-[450px] select-none">
-                             <!-- Calendar Grid -->
-                        </div>
-                    </div>
-
-                    <!-- Bento Box 7: 일정 프리셋 & 요약 (Span 5) -->
-                    <div class="col-span-12 lg:col-span-5 flex flex-col gap-4">
-                        <div class="bg-blue-600 border border-blue-500 rounded-[2rem] p-8 text-white space-y-6 shadow-xl shadow-blue-200">
-                             <div class="flex items-center gap-2">
-                                 <i class="fas fa-magic text-blue-200 text-xs"></i>
-                                 <span class="text-[10px] font-black text-blue-100 uppercase tracking-widest">스마트 프리셋 (Smart Presets)</span>
-                             </div>
-                             <div class="flex flex-col gap-3">
-                                <button type="button" onclick="presetDays([1,2,3,4,5])" class="w-full px-5 py-4 bg-white/10 hover:bg-white/20 border border-white/20 rounded-2xl text-sm font-black text-left transition-all">전국 평일 집중반 (Mon-Fri)</button>
-                                <button type="button" onclick="presetDays([1,3,5])" class="w-full px-5 py-4 bg-white/10 hover:bg-white/20 border border-white/20 rounded-2xl text-sm font-black text-left transition-all">월수금 심화 트랙 (M-W-F)</button>
-                                <button type="button" onclick="presetDays([0,6])" class="w-full px-5 py-4 bg-white/10 hover:bg-white/20 border border-white/20 rounded-2xl text-sm font-black text-left transition-all">주말 마스터 코스 (Sat-Sun)</button>
-                             </div>
-                        </div>
-
-                        <div class="flex-1 bg-white border border-gray-200 rounded-[2rem] p-8 flex flex-col justify-between">
-                             <div class="space-y-4">
-                                <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">교육 일정 요약 (Summary)</span>
-                                <div class="bg-gray-50 rounded-2xl p-6 border border-gray-100">
-                                     <input type="text" id="courseDays" value="총 0일 선택됨" class="bg-transparent font-black text-3xl text-gray-900 w-full outline-none border-none cursor-default" readonly>
-                                     <p class="text-[11px] font-bold text-blue-500 mt-2 uppercase">운영 예정 일수 (Scheduled Days)</p>
-                                </div>
-                             </div>
-                             <div class="mt-6 flex items-start gap-4 p-4 bg-yellow-50 rounded-2xl border border-yellow-100">
-                                 <i class="fas fa-exclamation-triangle text-yellow-500 mt-1"></i>
-                                 <p class="text-[11px] text-yellow-800 font-medium leading-relaxed">데이터 무결성을 위해 시작/종료일 변경 시 달력이 초기화됩니다. (Calendar resets on date change)</p>
-                             </div>
-                        </div>
-                    </div>
-
-                    <!-- Bento Box 8: 설명 및 커리큘럼 (Full) -->
-                    <div class="col-span-12 bg-white border border-gray-200 rounded-[2.5rem] p-10 space-y-6">
-                        <div class="flex items-center gap-2">
-                             <i class="fas fa-align-left text-gray-400 text-xs"></i>
-                             <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">상세 소개 (Detailed Narrative)</span>
-                        </div>
-                        <div class="space-y-4">
-                            <label class="block text-xs font-black text-gray-900 ml-1">커리큘럼 및 과정 소개 (Description & Syllabus)</label>
-                            <div class="rounded-3xl overflow-hidden border border-gray-100 bg-gray-50/30 p-1">
-                                <textarea id="courseDescription" rows="12" class="w-full px-5 py-4 outline-none placeholder:text-gray-300" placeholder="학생들에게 보여질 상세한 교육 내용을 입력하세요. (Enter course description for students)"></textarea>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Bento Box 9: 비주얼 에셋 (Full) -->
-                    <div class="col-span-12 bg-white border border-gray-200 rounded-[2.5rem] p-10 space-y-8">
-                        <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-xl bg-purple-100 flex items-center justify-center text-purple-600">
-                                <i class="fas fa-image text-sm"></i>
-                            </div>
-                            <h4 class="font-black text-lg text-gray-900 tracking-tight">비주얼 디자인 및 에셋 (Visual Assets)</h4>
-                        </div>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
-                            <div class="space-y-6">
-                                <div class="space-y-4">
-                                    <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">대표 커버 이미지 (Course Thumbnail)</label>
-                                    <div class="flex gap-2 bg-gray-50 p-2 rounded-2xl border border-gray-100">
-                                        <input type="text" name="thumbnail_url" id="courseThumbnail" placeholder="https:// (Image URL)" class="flex-1 px-4 py-2 bg-white border-none rounded-xl text-sm font-medium shadow-sm outline-none">
-                                        <input type="file" id="thumbnailFile" accept="image/*" class="hidden" onchange="handleThumbnailFile(this)">
-                                        <button type="button" onclick="document.getElementById('thumbnailFile').click()" class="px-6 py-2 bg-gray-900 text-white rounded-xl text-[10px] font-black uppercase tracking-tighter hover:bg-black transition-all">업로드 (Upload)</button>
-                                    </div>
-                                </div>
-                                <div id="thumbnailPreview" class="hidden relative aspect-video rounded-[2rem] overflow-hidden border border-gray-100 shadow-xl group bg-gray-50">
-                                    <img src="" class="w-full h-full object-cover">
-                                    <div class="absolute inset-0 bg-gray-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
-                                        <button type="button" onclick="clearThumbnail()" class="w-12 h-12 rounded-full bg-white text-red-500 flex items-center justify-center shadow-2xl hover:scale-110 transition-transform">
-                                            <i class="fas fa-trash-alt text-xl"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="bg-gray-50/80 p-8 rounded-[2rem] border border-gray-100 self-start flex flex-col gap-5 shadow-inner">
-                                <h5 class="text-xs font-black text-gray-900 uppercase tracking-widest flex items-center gap-2">
-                                    <i class="fas fa-info-circle text-blue-500"></i> 배포 가이드라인 (Deployment Guide)
-                                </h5>
-                                <ul class="text-[11px] text-gray-500 space-y-3 leading-relaxed font-bold">
-                                    <li class="flex items-start gap-2"><span class="w-1 h-1 rounded-full bg-blue-500 mt-1.5 shrink-0"></span> 공식 명칭은 홈페이지 전면에 굵게 노출되므로 정확성을 요합니다.</li>
-                                    <li class="flex items-start gap-2"><span class="w-1 h-1 rounded-full bg-blue-500 mt-1.5 shrink-0"></span> 과목별 강사 지정 시 LMS 진도 관리 권한이 자동 동기화됩니다.</li>
-                                    <li class="flex items-start gap-2"><span class="w-1 h-1 rounded-full bg-blue-500 mt-1.5 shrink-0"></span> 권장 이미지 규격은 16:9 비율 (1280x720px) 입니다.</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Actions -->
-                    <div class="col-span-12 py-10 flex justify-end items-center gap-4">
-                        <button type="button" onclick="closeModal('createCourseModal')" class="px-8 py-3 text-[10px] font-black text-gray-400 hover:text-gray-900 uppercase tracking-widest transition-all">변경사항 폐기 (Discard)</button>
-                        <button type="submit" class="px-12 py-4 bg-gray-900 text-white rounded-[1.25rem] font-black text-lg shadow-[0_20px_40px_-10px_rgba(0,0,0,0.3)] hover:shadow-[0_25px_50px_-12px_rgba(0,0,0,0.4)] hover:-translate-y-1 active:translate-y-0 transition-all duration-300">
-                             최종 배포 실행 (Finalize & Deploy)
-                        </button>
-                    </div>
-                </form>
+            <div class="p-4 bg-slate-50 text-xs text-slate-500 text-center border-t border-slate-100">
+                * NCS 국기/계좌제 과정은 반드시 '승인 과정 불러오기'를 권장합니다.
             </div>
         </div>
     </div>
 
     <script>
-        let instructorsData = [];
-        let selectedDates = new Set();
+        const API_BASE = '/api/courses';
         let currentPage = 1;
-        const itemsPerPage = 10;
+        const ITEMS_PER_PAGE = 20;
 
-        window.onload = () => {
-             loadCourses(1);
-             loadInstructors();
-             const user = JSON.parse(localStorage.getItem('user') || '{}');
-             if (user.role === 'teacher') {
-                 const btn = document.getElementById('btnCreateCourse');
-                 if (btn) btn.style.display = 'none';
-             }
+        window.onload = function() {
+            // Check auth (Simple check)
+            const token = localStorage.getItem('token');
+            if(!token) window.location.href = '/login';
+            
+            // Initial Load
+            loadCourses(1);
+
+            // Bind Events
+            document.getElementById('checkAll').addEventListener('change', function(e) {
+                const checkboxes = document.querySelectorAll('.row-checkbox');
+                checkboxes.forEach(cb => cb.checked = e.target.checked);
+            });
+            
+            // Set User Info
+            try {
+                const user = JSON.parse(localStorage.getItem('user'));
+                if(user) document.getElementById('loginUserName').textContent = user.name + ' 님';
+            } catch(e){}
+            document.getElementById('lastLoginTime').textContent = new Date().toLocaleTimeString();
         };
 
-        async function loadInstructors() {
-            try {
-                const res = await fetch('/api/hrd/personnel');
-                const result = await res.json();
-                if (result.success) {
-                    instructorsData = result.data;
-                    const mainSelect = document.getElementById('courseInstructor');
-                    mainSelect.innerHTML = '<option value="">메인 담당 강사 선택</option>';
-                    instructorsData.forEach(p => {
-                        const opt = document.createElement('option');
-                        opt.value = p.id;
-                        opt.textContent = p.name + ' (' + p.position + ')';
-                        mainSelect.appendChild(opt);
-                    });
-                }
-            } catch (e) { console.error('Load instructors error:', e); }
-        }
-
-        function addSubjectRow(name = '', instructorId = '') {
-            const container = document.getElementById('subjectListContainer');
-            const rowCount = container.children.length;
-            const row = document.createElement('div');
-            row.className = 'grid grid-cols-12 gap-5 items-center bg-gray-50 p-4 rounded-2xl border border-gray-100 shadow-sm hover:ring-2 hover:ring-gray-200 transition-all animate-in slide-in-from-bottom-2 duration-500';
-            
-            const instructorOptions = instructorsData.map(p => 
-                \`<option value="\${p.id}" \${p.id == instructorId ? 'selected' : ''}>\${p.name} (\${p.position})</option>\`
-            ).join('');
-
-            row.innerHTML = \`
-                <div class="col-span-1 flex items-center justify-center">
-                    <div class="w-8 h-8 rounded-xl bg-gray-900 flex items-center justify-center text-[10px] font-black text-white shadow-lg">\${rowCount + 1}</div>
-                </div>
-                <div class="col-span-10">
-                    <div class="grid grid-cols-2 gap-4">
-                        <input type="text" class="subject-name w-full px-5 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 outline-none transition-all placeholder:text-gray-300 font-bold text-gray-700" placeholder="교과목 명칭 (Module Name)" value="\${name}">
-                        <select class="subject-instructor w-full px-5 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 outline-none transition-all font-bold text-gray-700 appearance-none cursor-pointer">
-                            <option value="">강사 배정 (Assign Instructor)</option>
-                            \${instructorOptions}
-                        </select>
-                    </div>
-                </div>
-                <div class="col-span-1 flex justify-center">
-                    <button type="button" onclick="this.closest('.grid').remove(); updateSubjectIndices();" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white text-gray-400 hover:text-red-500 hover:shadow-md transition-all border border-gray-100">
-                        <i class="fas fa-trash-alt text-sm"></i>
-                    </button>
-                </div>
-            \`;
-            container.appendChild(row);
-        }
-
-        function updateSubjectIndices() {
-            document.querySelectorAll('#subjectListContainer > div').forEach((row, idx) => {
-                const badge = row.querySelector('.col-span-1 div');
-                if (badge) badge.textContent = idx + 1;
-            });
-        }
-
-        async function loadCourses(page = 1) {
+        async function loadCourses(page) {
             currentPage = page;
-            const cat = document.getElementById('categoryFilter').value;
-            const s = document.getElementById('searchInput').value;
-            let url = \`/api/courses?sort=latest&page=\${page}&limit=\${itemsPerPage}&\`;
-            if (cat) url += 'category=' + encodeURIComponent(cat) + '&';
-            if (s) url += 'search=' + encodeURIComponent(s);
+            const tbody = document.getElementById('courseTableBody');
             
-            try {
-                const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
-                const r = await res.json();
-                const tbody = document.getElementById('coursesTableBody');
-                
-                if (!r.success || !r.data || r.data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-20 text-center text-gray-400 font-medium">과정 데이터가 없거나 조건에 맞는 결과가 없습니다.</td></tr>';
-                    renderPagination(0);
-                    document.getElementById('totalCount').textContent = '0';
-                    return;
-                }
-                
-                document.getElementById('totalCount').textContent = r.pagination?.total || r.data.length;
+            // Filters
+            const year = document.getElementById('yearFilter').value;
+            const category = document.getElementById('categoryFilter').value;
+            const status = document.getElementById('statusFilter').value;
+            const search = document.getElementById('searchInput').value;
+            
+            // Build URL
+            const params = new URLSearchParams({
+                page: page,
+                limit: ITEMS_PER_PAGE,
+                sort: 'latest'
+            });
+            if(category) params.append('category', category);
+            if(status) params.append('status', status);
+            if(search) params.append('search', search);
 
-                tbody.innerHTML = r.data.map(c => {
-                    let subjectMap = c.subject || '-';
-                    if (subjectMap.startsWith('[')) {
-                        try {
-                            const subjects = JSON.parse(subjectMap);
-                            subjectMap = subjects.map(it => it.name).join(', ');
-                        } catch(e) {}
-                    }
-                    
-                    const statusColors = {
-                        active: 'bg-green-100 text-green-700',
-                        open: 'bg-green-100 text-green-700',
-                        closed: 'bg-red-100 text-red-700',
-                        full: 'bg-orange-100 text-orange-700',
-                        preparing: 'bg-gray-100 text-gray-600'
-                    };
-                    const statusText = { active: '진행중', open: '모집중', closed: '마감', full: '정원초과', preparing: '준비중' };
-                    
-                    return \`
-                        <tr class="hover:bg-gray-50/80 transition-all border-b border-gray-50 group">
-                            <td class="px-6 py-5 whitespace-nowrap">
-                                <span class="px-3 py-1 rounded-full text-[10px] font-bold \${statusColors[c.status] || 'bg-gray-100 text-gray-600'} uppercase tracking-wider">\${statusText[c.status] || '알수없음'}</span>
-                            </td>
-                            <td class="px-6 py-5">
-                                <div class="font-bold text-gray-900 group-hover:text-purple-700 transition-colors">\${c.title}</div>
-                                <div class="text-[11px] text-gray-400 mt-1 line-clamp-1">\${subjectMap}</div>
-                            </td>
-                            <td class="px-6 py-5 whitespace-nowrap text-sm text-gray-600 font-medium">
-                                \${c.start_date?.split('T')[0] || '-'} <span class="text-gray-300 mx-1">~</span> \${c.end_date?.split('T')[0] || '-'}
-                            </td>
-                            <td class="px-6 py-5 whitespace-nowrap">
-                                <div class="flex items-center gap-2">
-                                    <div class="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center text-[10px] font-bold text-gray-500">\${(c.teacher_name || '?')[0]}</div>
-                                    <span class="text-sm text-gray-700 font-bold">\${c.teacher_name || '-'}</span>
-                                </div>
-                            </td>
-                            <td class="px-6 py-5 whitespace-nowrap font-bold text-gray-900">\${Number(c.price || 0).toLocaleString()}원</td>
-                            <td class="px-6 py-5 whitespace-nowrap">
-                                <div class="text-sm font-bold text-gray-600">\${c.max_students || 0}명</div>
-                                <div class="w-16 h-1 bg-gray-100 rounded-full mt-2 overflow-hidden"><div class="h-full bg-purple-500" style="width: 30%"></div></div>
-                            </td>
-                            <td class="px-6 py-5 text-right whitespace-nowrap space-x-1">
-                                <a href="/admin/courses/\${c.id}/lms" class="px-3 py-1.5 rounded-lg text-[11px] font-black uppercase text-purple-600 bg-purple-50 hover:bg-purple-600 hover:text-white transition-all shadow-sm">Manage</a>
-                                <button onclick='editCourse(\${JSON.stringify(c).replace(/'/g, "&#39;")})' class="w-8 h-8 rounded-lg text-blue-500 hover:bg-blue-50 transition-all"><i class="fas fa-edit"></i></button>
-                                \${JSON.parse(localStorage.getItem('user') || '{}').role === 'admin' ? \`<button onclick="deleteCourse(\${c.id})" class="w-8 h-8 rounded-lg text-red-400 hover:bg-red-50 transition-all"><i class="fas fa-trash-alt"></i></button>\` : ''}
+            try {
+                const res = await fetch(\`\${API_BASE}?\${params.toString()}\`, {
+                    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+                });
+                const json = await res.json();
+                
+                if(!json.success) {
+                    throw new Error(json.message || '로드 실패');
+                }
+
+                const list = json.data || [];
+                document.getElementById('totalCount').textContent = (json.pagination?.total || list.length).toLocaleString();
+
+                if(list.length === 0) {
+                    tbody.innerHTML = \`
+                        <tr>
+                            <td colspan="10" class="p-16 text-center flex flex-col items-center justify-center text-slate-400">
+                                <i class="far fa-folder-open text-3xl mb-3 opacity-30"></i>
+                                <span class="text-sm">조회된 과정 데이터가 없습니다.</span>
+                                \${search ? '<span class="text-xs mt-1">검색조건을 변경해보세요.</span>' : '<button onclick="openCreateModal()" class="mt-4 px-4 py-2 bg-primary-50 text-primary-600 rounded text-xs font-bold hover:bg-primary-100">신규 과정 등록하기</button>'}
                             </td>
                         </tr>
                     \`;
+                    renderPagination(0);
+                    return;
+                }
+
+                // Render Rows
+                tbody.innerHTML = list.map((item, index) => {
+                   const rowNum = (json.pagination?.total || 0) - ((page-1)*ITEMS_PER_PAGE) - index;
+                   const statusInfo = getStatusBadge(item.status);
+                   const days = item.class_days ? JSON.parse(item.class_days).length : 0;
+                   const hours = item.duration_hours || '-';
+                   
+                   return \`
+                        <tr class="hover:bg-slate-50 border-b border-slate-100 transition group">
+                            <td class="p-3 text-center"><input type="checkbox" class="row-checkbox rounded border-slate-300" value="\${item.id}"></td>
+                            <td class="p-3 text-center text-xs text-slate-500">\${rowNum}</td>
+                            <td class="p-3 text-center">
+                                <span class="inline-block px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[11px] font-bold">\${item.category || '기타'}</span>
+                                \${item.session_format ? '<div class="text-[10px] text-slate-400 mt-1">' + item.session_format + '</div>' : ''}
+                            </td>
+                            <td class="p-3">
+                                <a href="/admin/courses/\${item.id}/lms" class="font-bold text-slate-700 hover:text-primary-600 hover:underline transition block mb-0.5">
+                                    \${item.title}
+                                </a>
+                                <div class="text-[11px] text-slate-400">
+                                    <i class="far fa-id-card mr-1"></i> 과목코드: \${item.code || '-'} 
+                                    <span class="mx-1">|</span> NCS: \${item.ncs_name || '미지정'}
+                                </div>
+                            </td>
+                            <td class="p-3 text-center text-xs text-slate-600">
+                                <div class="font-bold">\${(item.start_date||'').substring(0,10)} ~ \${(item.end_date||'').substring(0,10)}</div>
+                                <div class="text-slate-400 text-[10px] mt-0.5">\${days}일 / \${hours}시간</div>
+                            </td>
+                            <td class="p-3 text-center">
+                                <div class="flex flex-col items-center">
+                                    <span class="text-xs font-bold text-slate-700">\${item.current_students || 0} / \${item.max_students || '-'}</span>
+                                    <div class="w-12 h-1 bg-slate-200 rounded-full mt-1 overflow-hidden">
+                                        <div class="h-full bg-primary-500" style="width: \${Math.min(100, ((item.current_students||0)/(item.max_students||1))*100)}%"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="p-3 text-center text-xs text-slate-600">
+                                \${item.teacher_name || '<span class="text-slate-300">미배정</span>'}
+                            </td>
+                            <td class="p-3 text-right text-xs font-bold text-slate-700">
+                                \${item.price ? Number(item.price).toLocaleString() + '원' : '<span class="text-slate-300">무료</span>'}
+                            </td>
+                            <td class="p-3 text-center">
+                                <span class="inline-flex px-2 py-1 rounded-full text-[10px] font-bold border \${statusInfo.cls}">
+                                    \${statusInfo.label}
+                                </span>
+                            </td>
+                            <td class="p-3 text-center border-l border-dashed border-slate-200">
+                                <button onclick="window.location.href='/admin/courses/\${item.id}/lms'" class="text-slate-500 hover:text-primary-600 transition p-1.5" title="LMS 관리"><i class="fas fa-cog"></i></button>
+                                <button onclick="deleteCourse(\${item.id})" class="text-slate-500 hover:text-red-500 transition p-1.5" title="삭제"><i class="far fa-trash-alt"></i></button>
+                            </td>
+                        </tr>
+                   \`; 
                 }).join('');
 
-                if (r.pagination) {
-                    renderPagination(r.pagination.totalPages);
-                } else {
-                    renderPagination(1);
-                }
-            } catch(e) { console.error('Load courses error:', e); }
+                renderPagination(json.pagination?.totalPages || 1);
+
+            } catch(e) {
+                console.error(e);
+                tbody.innerHTML = '<tr><td colspan="10" class="p-8 text-center text-red-500 text-sm">목록 로드 중 오류 발생: ' + e.message + '</td></tr>';
+            }
+        }
+
+        function getStatusBadge(status) {
+            switch(status) {
+                case 'recruiting': return { label: '모집중', cls: 'bg-blue-50 text-blue-600 border-blue-100' };
+                case 'in_progress': return { label: '훈련중', cls: 'bg-green-50 text-green-600 border-green-100' };
+                case 'completed': return { label: '종료', cls: 'bg-slate-100 text-slate-500 border-slate-200' };
+                case 'cancelled': return { label: '폐강', cls: 'bg-red-50 text-red-600 border-red-100' };
+                case 'preparing': 
+                default:
+                    return { label: '준비중', cls: 'bg-orange-50 text-orange-600 border-orange-100' };
+            }
         }
 
         function renderPagination(totalPages) {
-            const container = document.getElementById('paginationButtons');
-            if (totalPages <= 1) {
-                container.innerHTML = '';
-                return;
-            }
-
+            const container = document.getElementById('pagination');
             let html = '';
-            // 이전 버튼
-            html += \`<button onclick="loadCourses(\${currentPage - 1})" \${currentPage === 1 ? 'disabled' : ''} class="w-10 h-10 flex items-center justify-center rounded-xl border border-gray-100 text-gray-400 hover:bg-gray-50 disabled:opacity-30 disabled:hover:bg-transparent transition-all"><i class="fas fa-chevron-left text-xs"></i></button>\`;
-
-            // 페이지 번호
-            for (let i = 1; i <= totalPages; i++) {
-                const isActive = i === currentPage;
-                html += \`<button onclick="loadCourses(\${i})" class="w-10 h-10 flex items-center justify-center rounded-xl font-bold text-sm transition-all \${isActive ? 'bg-purple-600 text-white shadow-lg shadow-purple-200' : 'text-gray-500 hover:bg-gray-50 border border-transparent'}">\${i}</button>\`;
+            
+            // Prev
+            html += \`<button onclick="loadCourses(\${Math.max(1, currentPage-1)})" class="w-8 h-8 flex items-center justify-center rounded border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 \${currentPage===1?'opacity-50 cursor-not-allowed':''}"><i class="fas fa-chevron-left text-xs"></i></button>\`;
+            
+            // Pages (Simple range for now)
+            for(let i=1; i<=totalPages; i++) {
+                if(i === currentPage) {
+                    html += \`<button onclick="loadCourses(\${i})" class="w-8 h-8 flex items-center justify-center rounded border border-primary-600 bg-primary-600 text-white font-bold text-xs shadow-sm">\${i}</button>\`;
+                } else {
+                    html += \`<button onclick="loadCourses(\${i})" class="w-8 h-8 flex items-center justify-center rounded border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 text-xs">\${i}</button>\`;
+                }
             }
 
-            // 다음 버튼
-            html += \`<button onclick="loadCourses(\${currentPage + 1})" \${currentPage === totalPages ? 'disabled' : ''} class="w-10 h-10 flex items-center justify-center rounded-xl border border-gray-100 text-gray-400 hover:bg-gray-50 disabled:opacity-30 disabled:hover:bg-transparent transition-all"><i class="fas fa-chevron-right text-xs"></i></button>\`;
-
+            // Next
+            html += \`<button onclick="loadCourses(\${Math.min(totalPages, currentPage+1)})" class="w-8 h-8 flex items-center justify-center rounded border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 \${currentPage===totalPages?'opacity-50 cursor-not-allowed':''}"><i class="fas fa-chevron-right text-xs"></i></button>\`;
+            
             container.innerHTML = html;
         }
 
-        function openModal(modalId, course = null) {
-            const f = document.getElementById('createCourseForm');
-            const subContainer = document.getElementById('subjectListContainer');
-            subContainer.innerHTML = '';
-            selectedDates.clear();
-            
-            if (course) {
-                document.getElementById('modalTitle').textContent = '교육과정 수정';
-                document.getElementById('courseId').value = course.id;
-                document.getElementById('courseTitle').value = course.title;
-                document.getElementById('courseCategory').value = course.category || '국비지원';
-                document.getElementById('courseStatus').value = course.status || 'open';
-                document.getElementById('courseInstructor').value = course.teacher_id || '';
-                document.getElementById('courseCampus').value = course.campus_id || '1';
-                document.getElementById('coursePrice').value = course.price || '';
-                document.getElementById('courseMaxStudents').value = course.max_students || '';
-                document.getElementById('courseStartDate').value = course.start_date ? course.start_date.split('T')[0] : '';
-                document.getElementById('courseEndDate').value = course.end_date ? course.end_date.split('T')[0] : '';
-                document.getElementById('courseThumbnail').value = course.thumbnail_url || '';
-                updateThumbnailPreview(course.thumbnail_url || '');
-
-                if (course.subject) {
-                    try {
-                        if (course.subject.startsWith('[')) {
-                            JSON.parse(course.subject).forEach(s => addSubjectRow(s.name, s.instructorId));
-                        } else {
-                            addSubjectRow(course.subject, course.teacher_id);
-                        }
-                    } catch(e) { addSubjectRow(course.subject); }
-                } else { addSubjectRow(); }
-
-                if (course.schedule && course.schedule.startsWith('{')) {
-                    const sch = JSON.parse(course.schedule);
-                    document.getElementById('courseStartTime').value = sch.startTime || '';
-                    document.getElementById('courseEndTime').value = sch.endTime || '';
-                }
-                if (course.class_days) {
-                    try {
-                        const days = typeof course.class_days === 'string' ? JSON.parse(course.class_days) : course.class_days;
-                        if(Array.isArray(days)) days.forEach(d => selectedDates.add(d));
-                    } catch(e) {}
-                }
-                initTinyMCE(course.description || '');
-                const enrollSection = document.getElementById('courseEnrollmentSection');
-                if (enrollSection) { enrollSection.classList.remove('hidden'); loadCourseEnrollments(course.id); }
-            } else {
-                document.getElementById('modalTitle').textContent = '신규 과정 개설';
-                const enrollSection = document.getElementById('courseEnrollmentSection');
-                if (enrollSection) enrollSection.classList.add('hidden');
-                f.reset();
-                document.getElementById('courseId').value = '';
-                document.getElementById('courseStatus').value = 'preparing';
-                addSubjectRow();
-                initTinyMCE('');
-                updateThumbnailPreview('');
-            }
-            document.getElementById(modalId).classList.remove('hidden');
-            setTimeout(renderCalendar, 150);
+        function openCreateModal() {
+            document.getElementById('createModeModal').classList.remove('hidden');
         }
-
-        function closeModal(id) { 
-            document.getElementById(id).classList.add('hidden');
-            if (tinymce.get('courseDescription')) tinymce.get('courseDescription').remove();
-        }
-
-        function initTinyMCE(content) {
-            if (tinymce.get('courseDescription')) tinymce.get('courseDescription').remove();
-            tinymce.init({
-                selector: '#courseDescription', height: 450, menubar: false,
-                plugins: ['advlist', 'autolink', 'lists', 'link', 'image', 'code', 'help', 'wordcount'],
-                toolbar: 'undo redo | blocks | bold italic forecolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | code help',
-                content_style: 'body { font-family:Inter,Helvetica,Arial,sans-serif; font-size:14px; color: #374151; }',
-                setup: function (ed) { ed.on('init', function () { ed.setContent(content); }); }
-            });
-        }
-
-        function toggleDate(dateStr) {
-            if (selectedDates.has(dateStr)) selectedDates.delete(dateStr);
-            else selectedDates.add(dateStr);
-            renderCalendar();
-        }
-
-        function renderCalendar() {
-            const startStr = document.getElementById('courseStartDate').value;
-            const endStr = document.getElementById('courseEndDate').value;
-            const container = document.getElementById('calendarContainer');
-            if (!startStr || !endStr) {
-                container.innerHTML = '<div class="text-center text-gray-300 py-12 flex flex-col items-center"><i class="fas fa-info-circle mb-3"></i> 기간을 설정해 주세요.</div>';
-                return;
-            }
-
-            const start = new Date(startStr);
-            const end = new Date(endStr);
-            let html = '<div class="space-y-12">';
-            let curr = new Date(startStr);
-            curr.setDate(1);
-
-            while (curr <= end) {
-                const year = curr.getFullYear();
-                const month = curr.getMonth();
-                html += \`<div class="course-month px-2">
-                    <div class="flex items-baseline justify-center gap-2 mb-4">
-                        <span class="text-2xl font-black text-gray-900">\${month+1}</span>
-                        <span class="text-xs font-bold text-gray-400 uppercase tracking-tighter">\${year} / MONTH</span>
-                    </div>
-                    <div class="grid grid-cols-7 text-center text-[10px] font-bold text-gray-300 mb-2 uppercase tracking-widest">
-                        <div class="text-red-300">SUN</div><div>MON</div><div>TUE</div><div>WED</div><div>THU</div><div>FRI</div><div class="text-blue-300">SAT</div>
-                    </div>
-                    <div class="grid grid-cols-7 gap-1">\`;
-                
-                const firstDay = new Date(year, month, 1).getDay();
-                for (let i = 0; i < firstDay; i++) html += '<div class="aspect-square bg-gray-50/30 rounded-lg"></div>';
-                
-                const lastDate = new Date(year, month + 1, 0).getDate();
-                for (let d = 1; d <= lastDate; d++) {
-                    const dateObj = new Date(year, month, d);
-                    const y = dateObj.getFullYear();
-                    const m_str = String(dateObj.getMonth()+1).padStart(2,'0');
-                    const d_str = String(dateObj.getDate()).padStart(2,'0');
-                    const dFull = \`\${y}-\${m_str}-\${d_str}\`;
-                    
-                    const isInRange = dFull >= startStr && dFull <= endStr;
-                    const isSelected = selectedDates.has(dFull);
-                    const isToday = dFull === new Date().toISOString().split('T')[0];
-                    
-                    let cls = "aspect-square rounded-xl flex flex-col items-center justify-center transition-all relative text-sm ";
-                    if (!isInRange) cls += "text-gray-200 cursor-not-allowed";
-                    else if (isSelected) cls += "bg-purple-600 text-white font-bold shadow-lg shadow-purple-100 cursor-pointer scale-105 z-10";
-                    else cls += "bg-white text-gray-600 hover:bg-gray-100 cursor-pointer border border-gray-100";
-                    
-                    if (isInRange && isToday && !isSelected) cls += " border-purple-300 text-purple-600 ring-2 ring-purple-50";
-
-                    html += \`<div class="\${cls}" \${isInRange ? \`onclick="toggleDate('\${dFull}')"\` : ''}>
-                        \${d}
-                        \${isSelected ? '<div class="absolute bottom-1.5 w-1 h-1 bg-white/50 rounded-full"></div>' : ''}
-                    </div>\`;
-                }
-                html += '</div></div>';
-                curr.setMonth(month + 1);
-            }
-            container.innerHTML = html;
-            document.getElementById('courseDays').value = \`총 \${selectedDates.size}일 선택됨\`;
-        }
-
-        async function handleSaveCourse(e) {
-            e.preventDefault();
-            if (tinymce.get('courseDescription')) tinymce.triggerSave();
-            const f = e.target;
-            const fd = new FormData(f);
-            const data = Object.fromEntries(fd.entries());
-            
-            data.description = document.getElementById('courseDescription').value;
-            data.class_days = Array.from(selectedDates).sort();
-            data.schedule = JSON.stringify({
-                startTime: document.getElementById('courseStartTime').value,
-                endTime: document.getElementById('courseEndTime').value,
-                days: document.getElementById('courseDays').value
-            });
-
-            const rows = document.querySelectorAll('#subjectListContainer > div');
-            data.subject = JSON.stringify(Array.from(rows).map(row => ({
-                name: row.querySelector('.subject-name').value,
-                instructorId: row.querySelector('.subject-instructor').value
-            })).filter(s => s.name));
-
-            const id = data.id;
-            try {
-                const res = await fetch(id ? '/api/courses/'+id : '/api/courses', {
-                    method: id ? 'PUT' : 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
-                    body: JSON.stringify(data)
-                });
-                const r = await res.json();
-                if (r.success) { 
-                    alert('성공적으로 저장되었습니다.'); 
-                    closeModal('createCourseModal'); 
-                    loadCourses(currentPage); 
-                } else alert(r.error || '저장 중 오류가 발생했습니다.');
-            } catch(err) { console.error('Save error:', err); alert('서버와의 통신에 실패했습니다.'); }
+        function closeCreateModal() {
+            document.getElementById('createModeModal').classList.add('hidden');
         }
 
         async function deleteCourse(id) {
-            if(!confirm('해당 과정을 정말 삭제하시겠습니까? 관련 데이터가 모두 삭제됩니다.')) return;
+            if(!confirm('정말 삭제하시겠습니까? \\n(수강생이 있는 과정은 삭제할 수 없습니다)')) return;
             try {
-                const res = await fetch('/api/courses/'+id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
-                let r;
-                try { r = await res.json(); } catch (_) { r = {}; }
-                if (r.success) { loadCourses(currentPage); return; }
-                alert(r.error || (res.status ? '삭제 실패 (' + res.status + ')' : '삭제 실패'));
-            } catch(e) { console.error('Delete error:', e); alert('삭제 중 오류가 발생했습니다. 네트워크를 확인해 주세요.'); }
-        }
-
-        function editCourse(c) { openModal('createCourseModal', c); }
-
-        async function loadCourseEnrollments(courseId) {
-            const container = document.getElementById('courseEnrollmentList');
-            if (!container) return;
-            container.innerHTML = '<p class="text-gray-400 text-sm py-4 text-center"><i class="fas fa-spinner fa-spin mr-2"></i> 로딩 중...</p>';
-            try {
-                const token = localStorage.getItem('token');
-                const res = await fetch('/api/enrollments?course_id=' + courseId + '&limit=500', { headers: { 'Authorization': 'Bearer ' + token } });
-                const json = await res.json();
-                if (!json.success || !Array.isArray(json.data)) {
-                    container.innerHTML = '<p class="text-gray-500 text-sm py-4 text-center">수강생 목록을 불러올 수 없습니다.</p>';
-                    return;
-                }
-                const list = json.data.filter(function(e) { return e.status === 'approved' || e.status === 'pending'; });
-                if (list.length === 0) {
-                    container.innerHTML = '<p class="text-gray-500 text-sm py-4 text-center">수강 중인 학생이 없습니다. 과정 삭제가 가능합니다.</p>';
-                    return;
-                }
-                container.innerHTML = list.map(function(e) {
-                    var name = (e.user_name || e.name || '').trim() || '(이름 없음)';
-                    var statusText = e.status === 'approved' ? '수강중' : e.status === 'pending' ? '대기' : e.status || '';
-                    return '<div class="flex items-center justify-between py-2 px-3 rounded-xl bg-gray-50 border border-gray-100">' +
-                        '<span class="text-sm font-bold text-gray-800">' + (name.replace(/</g, '&lt;')) + '</span>' +
-                        '<span class="text-xs text-gray-500 mr-2">' + statusText + '</span>' +
-                        '<button type="button" onclick="cancelEnrollment(' + e.id + ',' + courseId + ')" class="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-bold hover:bg-red-100 transition">수강 취소</button>' +
-                        '</div>';
-                }).join('');
-            } catch (e) {
-                console.error('loadCourseEnrollments', e);
-                container.innerHTML = '<p class="text-red-500 text-sm py-4 text-center">목록 로드 실패</p>';
-            }
-        }
-
-        async function cancelEnrollment(enrollmentId, courseId) {
-            if (!confirm('이 수강생의 수강을 취소하시겠습니까?')) return;
-            try {
-                const token = localStorage.getItem('token');
-                const res = await fetch('/api/enrollments/' + enrollmentId + '/status', {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-                    body: JSON.stringify({ status: 'cancelled' })
+                const res = await fetch(\`\${API_BASE}/\${id}\`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
                 });
                 const json = await res.json();
-                if (json.success) {
-                    alert('수강이 취소되었습니다.');
-                    loadCourseEnrollments(courseId);
-                } else alert(json.error || '취소 실패');
-            } catch (e) {
-                console.error('cancelEnrollment', e);
-                alert('수강 취소 중 오류가 발생했습니다.');
-            }
-        }
-        
-        function presetDays(days) {
-            const startStr = document.getElementById('courseStartDate').value;
-            const endStr = document.getElementById('courseEndDate').value;
-            if(!startStr || !endStr) { alert('교육 기간(시작/종료일)을 먼저 설정해 주세요.'); return; }
-            
-            const start = new Date(startStr);
-            const end = new Date(endStr);
-            const daySet = new Set(days);
-            
-            let curr = new Date(startStr);
-            while (curr <= end) {
-                if (daySet.has(curr.getDay())) {
-                    const y = curr.getFullYear();
-                    const m = String(curr.getMonth() + 1).padStart(2, '0');
-                    const d = String(curr.getDate()).padStart(2, '0');
-                    selectedDates.add(\`\${y}-\${m}-\${d}\`);
+                if(json.success) {
+                    alert('삭제되었습니다.');
+                    loadCourses(currentPage);
+                } else {
+                    alert(json.message || '삭제 실패');
                 }
-                curr.setDate(curr.getDate() + 1);
+            } catch(e) {
+                alert('오류 발생: ' + e.message);
             }
-            renderCalendar();
         }
 
-        function clearCalendarSelection() { selectedDates.clear(); renderCalendar(); }
-        
-        async function handleThumbnailFile(input) {
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function (e) { 
-                    document.getElementById('courseThumbnail').value = e.target.result; 
-                    updateThumbnailPreview(e.target.result); 
-                };
-                reader.readAsDataURL(input.files[0]);
-            }
-        }
-        
-        function updateThumbnailPreview(src) {
-            const p = document.getElementById('thumbnailPreview'), img = p.querySelector('img');
-            if (src) { img.src = src; p.classList.remove('hidden'); } 
-            else p.classList.add('hidden');
-        }
-        
-        function clearThumbnail() { 
-            document.getElementById('courseThumbnail').value = ''; 
-            updateThumbnailPreview(''); 
-            document.getElementById('thumbnailFile').value = '';
+        function deleteSelected() {
+            const checked = document.querySelectorAll('.row-checkbox:checked');
+            if(checked.length === 0) return alert('선택된 항목이 없습니다.');
+            alert('일괄 삭제 기능은 안전을 위해 아직 활성화되지 않았습니다.\\n개별 삭제를 이용해주세요.');
         }
     </script>
 </body>
