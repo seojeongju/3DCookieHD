@@ -335,18 +335,34 @@ async function fetchNcsUnitElements(
 
     // 2. Fallback to Probing Method (NCS006 API)
 
-    // 능력단위요소는 보통 10개 미만이므로 01~12번을 병렬로 조회하여 존재하는 것만 추려냄
+    // 사용자 팁 반영: NCS006은 세분류(8자리)와 능력단위(10자리+버전)가 모두 필요할 수 있음
     const MAX_PROBE = 12;
     const promises = [];
 
+    // 8자리 세분류 코드 추출 (예: 1903110202_23v3 -> 19031102)
+    const subClassCd = codeToUse.replace(/[^0-9]/g, '').substring(0, 8);
+    const unitCd = codeToUse;
+
+    console.log(`[NCS006] Fallback Probing for Unit=${unitCd}, SubClass=${subClassCd}`);
+
     // URL 생성 헬퍼
     const createUrl = (factorNo: string) => {
-        const params = new URLSearchParams({
-            serviceKey: key,
-            NCS_CL_CD: codeToUse,
-            COMPE_UNIT_FACTR_NO: factorNo, // 필수 파라미터!
-            returnType: 'json'
-        });
+        const params = new URLSearchParams();
+        params.append('serviceKey', key);
+        params.append('returnType', 'json');
+
+        // --- 중요: 사용자 팁 반영 파라미터 ---
+        // 1. 세분류 코드 (8자리) -> ncsClCd
+        params.append('ncsClCd', subClassCd);
+        params.append('NCS_CL_CD', subClassCd); // 대문자 대비
+
+        // 2. 능력단위 코드 (전체 버전 포함) -> ncsAbtyUnitCd
+        params.append('ncsAbtyUnitCd', unitCd);
+        params.append('NCS_UNIT_CD', unitCd); // 혹시 몰라 추가
+
+        // 3. 요소 번호
+        params.append('COMPE_UNIT_FACTR_NO', factorNo);
+
         return `${base}/NCS006?${params.toString()}`;
     };
 
