@@ -1663,7 +1663,7 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
                             }
                         }
                     } catch (e) {
-                        console.error('NCS005 API call failed', e);
+                        // ignore api errors
                     }
                 }
 
@@ -1744,6 +1744,140 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
     } catch (e) {
         console.error('ncs approved training-system:', e);
         return c.json({ success: false, error: '훈련이수체계도 조회 실패' }, 500);
+    }
+});
+
+/**
+ * NCS 데이터 동기화 API (관리자용)
+ * 특정 세분류(8자리)의 모든 능력단위와 요소를 가져와 DB에 저장합니다.
+ */
+app.post('/approved/sync', authMiddleware, requireAdmin, async (c) => {
+    try {
+        const body = await c.req.json() as { subClassCode: string; description?: string };
+        const subClassCode = (body.subClassCode || '').replace(/[^0-9]/g, '');
+
+        if (subClassCode.length !== 8) {
+            return c.json({ success: false, error: '8자리 세분류 코드가 필요합니다. (예: 19031102)' }, 400);
+        }
+
+        const apiKey = (c.env.NCS_API_KEY || '').trim();
+        const base = (c.env as { NCS_CLASSIFICATION_API_BASE?: string }).NCS_CLASSIFICATION_API_BASE;
+
+        // 1. Fetch Units (NCS005 equivalent logic)
+        const l = subClassCode.slice(0, 2);
+        const m = subClassCode.slice(2, 4);
+        const s = subClassCode.slice(4, 6);
+        const subd = subClassCode.slice(6, 8); // 세분류
+
+        console.log(`[Sync] Fetching units for SubClass: ${subClassCode}`);
+        const units = await fetchNcsUnitsByJob(apiKey, l, m, s, subd, base);
+
+        if (!units || units.length === 0) {
+            return c.json({ success: false, message: '해당 분류의 능력단위를 찾지 못했습니다.' });
+        }
+
+        // 2. Save Units & Fetch Elements
+        let unitCount = 0;
+        let elementCount = 0;
+        const errors: string[] = [];
+
+        // DB Batch Preparation for Units
+        const unitStmt = c.env.DB.prepare(
+            'INSERT OR REPLACE INTO ncs_units (code, name, level) VALUES (?, ?, ?)'
+        );
+        const unitBatch = units.map(u => {
+            const lv = typeof u.level === 'number' ? u.level : parseInt(String(u.level || '3'), 10) || 3;
+            return unitStmt.bind(u.code, u.name, lv);
+        });
+        await c.env.DB.batch(unitBatch);
+        unitCount = units.length;
+
+        // 3. Process Elements
+        const elemStmt = c.env.DB.prepare(
+            'INSERT OR REPLACE INTO ncs_elements (unit_code, code, name) VALUES (?, ?, ?)'
+        );
+
+        // 순차 처리 (안정성 우선)
+        for (const u of units) {
+            try {
+                // 이미 구현된 robust한 함수 재사용
+                const elements = await fetchNcsUnitElements(apiKey, u.code, base);
+                if (elements && elements.length > 0) {
+                    const batch = elements.map(e => elemStmt.bind(u.code, e.code, e.name));
+                    await c.env.DB.batch(batch);
+                    elementCount += elements.length;
+                    console.log(`[Sync] Saved ${elements.length} elements for ${u.code}`);
+                }
+            } catch (err) {
+                console.error(`[Sync] Failed elements for ${u.code}`, err);
+                errors.push(`${u.name} (${u.code}): 요소 조회 실패`);
+            }
+        }
+
+        return c.json({
+            success: true,
+            message: `동기화 완료: 능력단위 ${unitCount}개, 요소 ${elementCount}개 저장됨`,
+            stats: { unitCount, elementCount, errors }
+        });
+
+    } catch (e) {
+        console.error('NCS Sync failed:', e);
+        return c.json({ success: false, error: '동기화 중 오류 발생: ' + String(e) }, 500);
+    }
+});
+
+app.get('/approved/sync/status/:subClassCode', authMiddleware, requireAdmin, async (c) => {
+    try {
+        const subClassCode = c.req.param('subClassCode');
+        const unitPrefix = subClassCode.replace(/[^0-9]/g, '').substring(0, 8);
+
+        const units = await c.env.DB.prepare('SELECT count(*) as count FROM ncs_units WHERE code LIKE ?').bind(unitPrefix + '%').first<{ count: number }>();
+        const elements = await c.env.DB.prepare('SELECT count(*) as count FROM ncs_elements WHERE unit_code LIKE ?').bind(unitPrefix + '%').first<{ count: number }>();
+
+        return c.json({
+            success: true,
+            data: {
+                subClassCode,
+                unitCount: units?.count || 0,
+                elementCount: elements?.count || 0
+            }
+        });
+    } catch (e) {
+        return c.json({ success: false, error: String(e) }, 500);
+    }
+});
+
+/**
+ * NCS 전체 동기화 현황 요약 API
+ */
+app.get('/approved/sync/summary', authMiddleware, requireAdmin, async (c) => {
+    try {
+        // 주요 직종들의 통계 정보를 한꺼번에 가져옵니다.
+        const targets = [
+            { code: '19031101', name: '3D프린터개발' },
+            { code: '19031102', name: '3D프린터운용' },
+            { code: '15010201', name: '기계요소설계' },
+            { code: '20010202', name: '응용SW엔지니어링' }
+        ];
+
+        const summary = [];
+        for (const target of targets) {
+            const units = await c.env.DB.prepare('SELECT count(*) as count FROM ncs_units WHERE code LIKE ?').bind(target.code + '%').first<{ count: number }>();
+            const elements = await c.env.DB.prepare('SELECT count(*) as count FROM ncs_elements WHERE unit_code LIKE ?').bind(target.code + '%').first<{ count: number }>();
+
+            summary.push({
+                code: target.code,
+                name: target.name,
+                unitCount: units?.count || 0,
+                elementCount: elements?.count || 0,
+                status: (units?.count || 0) > 0 ? 'READY' : 'EMPTY'
+            });
+        }
+
+        return c.json({ success: true, data: summary });
+    } catch (e) {
+        console.error('NCS Summary failed:', e);
+        return c.json({ success: false, error: String(e) }, 500);
     }
 });
 

@@ -1164,7 +1164,11 @@
                                 '</label>';
                         }).join('');
                     } else {
-                        elHtml += '<span class="text-xs text-slate-400 italic col-span-2">등록된 하위 요소가 없습니다.</span>';
+                        elHtml += '<div class="col-span-2 flex flex-col items-center py-4 bg-slate-100/50 rounded-lg border border-dashed border-slate-200">' +
+                            '<span class="text-xs text-slate-400 italic mb-2">등록된 하위 요소가 없습니다.</span>' +
+                            '<button type="button" onclick="syncUnitElements(this, \'' + attrEsc(uCode) + '\')" class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-[11px] font-bold hover:bg-blue-700 transition flex items-center gap-1.5">' +
+                            '<i class="fas fa-sync-alt"></i> 공공 API 동기화' +
+                            '</button></div>';
                     }
                     elHtml += '</div></div>';
                     elContainer.insertAdjacentHTML('beforeend', elHtml);
@@ -2434,6 +2438,43 @@
             }
         }
     });
+
+    window.syncUnitElements = function (btn, unitCode) {
+        if (!confirm('이 능력단위가 속한 직종의 NCS 데이터를 동기화하시겠습니까?\n(공공 API 호출로 인해 약 10~30초가 소요됩니다)')) return;
+        var token = localStorage.getItem('token');
+        var original = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 동기화 중...';
+
+        // 8자리 세분류 코드 추출 (능력단위 코드의 앞 8자리)
+        var subClass = (unitCode || '').replace(/[^0-9]/g, '').substring(0, 8);
+
+        fetch('/api/ncs/approved/sync', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + (token || '')
+            },
+            body: JSON.stringify({ subClassCode: subClass })
+        })
+            .then(function (r) { return r.json(); })
+            .then(function (json) {
+                if (json.success) {
+                    alert('동기화 성공! 화면을 다시 로드하여 데이터를 반영합니다.');
+                    if (window.loadNcsStep) window.loadNcsStep(3); // Re-load current step
+                    else location.reload();
+                } else {
+                    alert('동기화 실패: ' + json.error);
+                    btn.disabled = false;
+                    btn.innerHTML = original;
+                }
+            })
+            .catch(function (e) {
+                alert('오류 발생: ' + e);
+                btn.disabled = false;
+                btn.innerHTML = original;
+            });
+    };
 
 })();
 
