@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { Bindings, JWTPayload, Variables } from '../types';
 import { authMiddleware, requireAdmin } from '../middleware/auth';
 import { forbiddenResponse } from '../utils/response';
+import { stepContentHtml } from '../views/admin_ncs_approved';
 
 const app = new Hono<{ Bindings: Bindings, Variables: Variables }>();
 
@@ -592,9 +593,16 @@ app.get('/approved/training', async (c) => {
 // 승인받은 NCS 등록(과정개요) CRUD — 저장/수정/삭제
 app.get('/approved/registrations', authMiddleware, requireAdmin, async (c) => {
     try {
-        const { results } = await c.env.DB.prepare(
-            'SELECT * FROM ncs_approved_registrations ORDER BY updated_at DESC'
-        ).all();
+        const courseId = c.req.query('course_id');
+        let query = 'SELECT * FROM ncs_approved_registrations';
+        const params: any[] = [];
+        if (courseId) {
+            query += ' WHERE approved_course_id = ?';
+            params.push(parseInt(courseId, 10));
+        }
+        query += ' ORDER BY updated_at DESC';
+
+        const { results } = await c.env.DB.prepare(query).bind(...params).all();
         return c.json({ success: true, data: results || [] });
     } catch (e) {
         console.error('ncs approved registrations list:', e);
@@ -642,6 +650,7 @@ function parseMainJobs(body: { main_jobs?: { code?: string; name?: string }[]; m
 app.post('/approved/registrations', authMiddleware, requireAdmin, async (c) => {
     try {
         const body = await c.req.json<{
+            approved_course_id?: number;
             ncs_tab?: string; course_type?: string; main_job_code?: string; main_job_name?: string;
             main_jobs?: { code?: string; name?: string }[];
             overview_content?: string; dev_category?: string; large_code?: string; mid_code?: string;
@@ -649,6 +658,7 @@ app.post('/approved/registrations', authMiddleware, requireAdmin, async (c) => {
             non_ncs_course_name?: string; non_ncs_overview?: string;
             course_name?: string; training_level?: string; prereq_skill?: string;
         }>();
+        const approvedCourseId = body.approved_course_id ? Number(body.approved_course_id) : null;
         const ncsTab = (body.ncs_tab || 'ncs').trim();
         const courseType = (body.course_type || '').trim() || null;
         const { mainJobsJson, mainJobCode, mainJobName } = parseMainJobs(body);
@@ -668,11 +678,13 @@ app.post('/approved/registrations', authMiddleware, requireAdmin, async (c) => {
 
         const r = await c.env.DB.prepare(
             `INSERT INTO ncs_approved_registrations (
+                approved_course_id,
                 ncs_tab, course_type, main_job_code, main_job_name, main_jobs_json, overview_content,
                 dev_category, large_code, mid_code, small_code, sub_code, unit_code, unit_name,
                 non_ncs_course_name, non_ncs_overview, course_name, training_level, prereq_skill
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
         ).bind(
+            approvedCourseId,
             ncsTab, courseType, mainJobCode, mainJobName, mainJobsJson, overviewContent,
             devCategory, largeCode, midCode, smallCode, subCode, unitCode, unitName,
             nonNcsCourseName, nonNcsOverview, courseName, trainingLevel, prereqSkill
@@ -694,6 +706,7 @@ app.put('/approved/registrations/:id', authMiddleware, requireAdmin, async (c) =
         const id = parseInt(c.req.param('id'), 10);
         if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
         const body = await c.req.json<{
+            approved_course_id?: number;
             ncs_tab?: string; course_type?: string; main_job_code?: string; main_job_name?: string;
             main_jobs?: { code?: string; name?: string }[];
             overview_content?: string; dev_category?: string; large_code?: string; mid_code?: string;
@@ -704,6 +717,7 @@ app.put('/approved/registrations/:id', authMiddleware, requireAdmin, async (c) =
         const existing = await c.env.DB.prepare('SELECT id FROM ncs_approved_registrations WHERE id = ?').bind(id).first();
         if (!existing) return c.json({ success: false, error: '수정할 수 없습니다' }, 404);
 
+        const approvedCourseId = body.approved_course_id ? Number(body.approved_course_id) : undefined;
         const ncsTab = (body.ncs_tab ?? '').toString().trim() || 'ncs';
         const courseType = (body.course_type || '').trim() || null;
         const { mainJobsJson, mainJobCode, mainJobName } = parseMainJobs(body);
@@ -721,18 +735,26 @@ app.put('/approved/registrations/:id', authMiddleware, requireAdmin, async (c) =
         const trainingLevel = (body.training_level || '').trim() || null;
         const prereqSkill = (body.prereq_skill || '').trim() || null;
 
-        await c.env.DB.prepare(
-            `UPDATE ncs_approved_registrations SET
+        let updateSql = `UPDATE ncs_approved_registrations SET
                 ncs_tab = ?, course_type = ?, main_job_code = ?, main_job_name = ?, main_jobs_json = ?, overview_content = ?,
                 dev_category = ?, large_code = ?, mid_code = ?, small_code = ?, sub_code = ?, unit_code = ?, unit_name = ?,
                 non_ncs_course_name = ?, non_ncs_overview = ?, course_name = ?, training_level = ?, prereq_skill = ?,
-                updated_at = datetime('now')
-            WHERE id = ?`
-        ).bind(
+                updated_at = datetime('now')`;
+
+        const params: any[] = [
             ncsTab, courseType, mainJobCode, mainJobName, mainJobsJson, overviewContent,
             devCategory, largeCode, midCode, smallCode, subCode, unitCode, unitName,
-            nonNcsCourseName, nonNcsOverview, courseName, trainingLevel, prereqSkill, id
-        ).run();
+            nonNcsCourseName, nonNcsOverview, courseName, trainingLevel, prereqSkill
+        ];
+
+        if (approvedCourseId !== undefined) {
+            updateSql += ', approved_course_id = ?';
+            params.push(approvedCourseId);
+        }
+        updateSql += ' WHERE id = ?';
+        params.push(id);
+
+        await c.env.DB.prepare(updateSql).bind(...params).run();
         const row = await c.env.DB.prepare('SELECT * FROM ncs_approved_registrations WHERE id = ?').bind(id).first();
         return c.json({ success: true, data: row });
     } catch (e) {
@@ -1811,6 +1833,28 @@ app.get('/plans/:planId/export-csv', async (c) => {
     } catch (e) {
         console.error('Failed to export CSV:', e);
         return c.json({ success: false, error: 'Failed to export CSV' }, 500);
+    }
+});
+
+app.get('/approved/render-step', async (c) => {
+    try {
+        const step = parseInt(c.req.query('step') || '1', 10);
+        const courseId = c.req.query('courseId') || '';
+
+        // Find ncs registration id by courseId if courseId is available
+        let editId = '';
+        if (courseId) {
+            const row = await c.env.DB.prepare('SELECT id FROM ncs_approved_registrations WHERE approved_course_id = ?').bind(courseId).first();
+            if (row) {
+                editId = String(row.id);
+            }
+        }
+
+        const html = stepContentHtml(step, editId, true, courseId);
+        return c.html(html);
+    } catch (e) {
+        console.error('ncs render step error:', e);
+        return c.html('<p class="text-red-500">오류가 발생했습니다.</p>');
     }
 });
 

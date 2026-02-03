@@ -1,5 +1,11 @@
 (function () {
     var step = window.NCS_APPROVED_STEP || 1;
+    // 임베디드 모드 체크
+    var isEmbedded = !!window.NCS_EMBED_COURSE_ID;
+    if (isEmbedded) {
+        step = window.NCS_CURRENT_STEP || 1;
+    }
+
     var trainingCache = [];
 
     function initStep1() {
@@ -312,7 +318,11 @@
                     if (code || name) mainJobs.push({ code: code, name: name });
                 });
             }
+            var approvedCourseIdEl = document.getElementById('ncsApprovedCourseId');
+            var approvedCourseId = approvedCourseIdEl ? approvedCourseIdEl.value : null;
+
             var payload = {
+                approved_course_id: approvedCourseId,
                 ncs_tab: ncsTab,
                 course_type: courseType || null,
                 main_jobs: mainJobs.length ? mainJobs : undefined,
@@ -350,9 +360,19 @@
                     if (json.success) {
                         if (redirectToStep2) {
                             var id = editId || (json.data && json.data.id);
-                            window.location.href = id ? '/admin/ncs/approved/2?id=' + id : '/admin/ncs/approved/list';
+                            if (isEmbedded) {
+                                if (window.loadNcsStep) window.loadNcsStep(2);
+                            } else {
+                                window.location.href = id ? '/admin/ncs/approved/2?id=' + id : '/admin/ncs/approved/list';
+                            }
                         } else {
-                            window.location.href = '/admin/ncs/approved/list';
+                            if (isEmbedded) {
+                                alert('저장되었습니다.');
+                                // Reload current step to refresh data? or just stay
+                                if (window.loadNcsStep) window.loadNcsStep(step);
+                            } else {
+                                window.location.href = '/admin/ncs/approved/list';
+                            }
                         }
                         return;
                     }
@@ -377,7 +397,12 @@
                 .then(function (json) {
                     if (btn) btn.disabled = false;
                     if (json.success) {
-                        window.location.href = '/admin/ncs/approved/list';
+                        if (isEmbedded) {
+                            alert('삭제되었습니다.');
+                            if (window.loadNcsStep) window.loadNcsStep(1);
+                        } else {
+                            window.location.href = '/admin/ncs/approved/list';
+                        }
                         return;
                     }
                     alert(json.error || '삭제 실패');
@@ -502,6 +527,8 @@
                     var ps = document.getElementById('ncsPrereqSkill');
                     if (ps) ps.value = d.prereq_skill || '';
                     if (trainingLevelEl) trainingLevelEl.value = d.training_level || '';
+                    var acid = document.getElementById('ncsApprovedCourseId');
+                    if (acid) acid.value = d.approved_course_id || '';
                     setRegDate((d.created_at || '').slice(0, 10));
                     var hasTrainingSystem = !!(d.selected_training_elements_json && String(d.selected_training_elements_json).trim() && String(d.selected_training_elements_json).trim() !== '[]');
                     if (bannerJobSearchLocked) bannerJobSearchLocked.classList.toggle('hidden', !hasTrainingSystem);
@@ -532,7 +559,39 @@
                 .catch(function () { alert('조회 실패'); });
         }
 
-        loadApprovedCoursesList();
+        if (isEmbedded && window.NCS_EMBED_COURSE_ID) {
+            // 임베디드 모드: 특정 과정 ID로 데이터를 로드하여 폼 채우기
+            var token = localStorage.getItem('token');
+            fetch('/api/approved-courses/' + window.NCS_EMBED_COURSE_ID, { headers: token ? { 'Authorization': 'Bearer ' + token } : {} })
+                .then(function (r) { return r.json(); })
+                .then(function (res) {
+                    if (res.success && res.data) {
+                        fillFormFromApprovedCourse(res.data);
+                        // 수정 모드인 경우 (이미 NCS 등록 정보가 있는 경우) loadForEdit 호출
+                        // 여기서 NCS 등록 정보가 있는지 어떻게 아나? -> API가 알려주면 좋겠지만, 
+                        // 현재 구조에서는 NCS 등록 정보 ID를 모르므로, 
+                        // /api/ncs/approved/registrations?course_id=... 같은 검색 API가 필요하거나
+                        // ApprovedCourse 데이터 안에 ncs_reg_id가 있으면 좋음.
+
+                        // 임시: 과정 ID로 등록 정보 조회 시도 (필요시 API 추가)
+                        // 또는 사용자가 '등록' 버튼을 누르면 내부적으로 Check
+
+                        // EditId가 있으면 loadForEdit 호출
+                        // 부모 페이지에서 editId를 넘겨줬다면 HTML hidden input에 있을 것임.
+                        var hiddenEditId = document.getElementById('ncsApprovedEditId');
+                        if (hiddenEditId && hiddenEditId.value) {
+                            editId = hiddenEditId.value;
+                            loadForEdit();
+                        }
+                    } else {
+                        // alert(res.error || '과정 정보를 불러올 수 없습니다.');
+                    }
+                })
+                .catch(function () { console.error('Embedded course load failed'); });
+        } else {
+            loadApprovedCoursesList();
+        }
+
         loadLargeClasses().then(function () {
             if (!editId) {
                 var today = new Date();
@@ -732,7 +791,11 @@
                             if (btnNext) btnNext.disabled = false;
                             if (res.success) {
                                 if (redirectToNext) {
-                                    window.location.href = '/admin/ncs/approved/3?id=' + regId;
+                                    if (isEmbedded) {
+                                        if (window.loadNcsStep) window.loadNcsStep(3);
+                                    } else {
+                                        window.location.href = '/admin/ncs/approved/3?id=' + regId;
+                                    }
                                 } else {
                                     alert('저장되었습니다.');
                                 }
@@ -995,12 +1058,17 @@
                     if (btnNext) btnNext.disabled = false;
                     if (json.success) {
                         if (redirectToNext) {
-                            window.location.href = '/admin/ncs/approved/4?id=' + regId;
+                            if (isEmbedded) {
+                                if (window.loadNcsStep) window.loadNcsStep(4);
+                            } else {
+                                window.location.href = '/admin/ncs/approved/4?id=' + regId;
+                            }
                             return;
                         }
-                        return;
+                        alert('저장되었습니다.');
+                    } else {
+                        alert(json.error || '저장 실패');
                     }
-                    alert(json.error || '저장 실패');
                 })
                 .catch(function () {
                     if (btnSave) btnSave.disabled = false;
@@ -1397,12 +1465,17 @@
                     if (btnNext) btnNext.disabled = false;
                     if (json.success) {
                         if (redirectToNext) {
-                            window.location.href = '/admin/ncs/approved/5?id=' + regId;
+                            if (isEmbedded) {
+                                if (window.loadNcsStep) window.loadNcsStep(5);
+                            } else {
+                                window.location.href = '/admin/ncs/approved/5?id=' + regId;
+                            }
                             return;
                         }
-                        return;
+                        alert('저장되었습니다.');
+                    } else {
+                        alert(json.error || '저장 실패');
                     }
-                    alert(json.error || '저장 실패');
                 })
                 .catch(function () {
                     if (btnSave) btnSave.disabled = false;
@@ -1757,7 +1830,11 @@
                 if (btnNext) btnNext.disabled = false;
                 if (json.success) {
                     if (redirectToNext) {
-                        window.location.href = '/admin/ncs/approved/6?id=' + regId;
+                        if (isEmbedded) {
+                            if (window.loadNcsStep) window.loadNcsStep(6);
+                        } else {
+                            window.location.href = '/admin/ncs/approved/6?id=' + regId;
+                        }
                         return;
                     }
                     alert('저장되었습니다.');
@@ -1960,7 +2037,12 @@
                 if (btnNext) btnNext.disabled = false;
                 if (json.success) {
                     if (redirectToNext) {
-                        window.location.href = '/admin/ncs/approved/list';
+                        if (isEmbedded) {
+                            alert('모든 설정이 완료되었습니다.');
+                            if (window.loadNcsStep) window.loadNcsStep(1);
+                        } else {
+                            window.location.href = '/admin/ncs/approved/list';
+                        }
                         return;
                     }
                     alert('저장되었습니다.');
@@ -1979,6 +2061,47 @@
         if (btnSave6) btnSave6.addEventListener('click', function () { saveFacilities(false); });
         if (btnNext6) btnNext6.addEventListener('click', function () { saveFacilities(true); });
     }
+
+    window.loadNcsStep = function (stepNum) {
+        if (!window.NCS_EMBED_COURSE_ID) return;
+        var url = '/api/ncs/approved/render-step?step=' + stepNum + '&courseId=' + window.NCS_EMBED_COURSE_ID;
+        var token = localStorage.getItem('token');
+        fetch(url, { headers: token ? { 'Authorization': 'Bearer ' + token } : {} })
+            .then(function (r) { return r.text(); })
+            .then(function (html) {
+                var container = document.getElementById('ncsApprovedStepContent');
+                if (container) {
+                    container.innerHTML = html;
+                    window.NCS_CURRENT_STEP = stepNum;
+
+                    // Update Sidebar Active State
+                    document.querySelectorAll('[id^="ncsStepLink_"]').forEach(function (btn) {
+                        var s = parseInt(btn.id.split('_')[1], 10);
+                        if (s === stepNum) {
+                            btn.className = 'w-full flex items-center px-4 py-3 rounded-xl transition-all mb-1 bg-blue-600/10 text-blue-700 font-bold';
+                        } else {
+                            btn.className = 'w-full flex items-center px-4 py-3 rounded-xl transition-all mb-1 hover:bg-slate-50 text-slate-500 hover:text-slate-700';
+                        }
+                    });
+
+                    // Initialize scripts
+                    if (window.initNcsStepScripts) window.initNcsStepScripts(stepNum);
+                }
+            })
+            .catch(function (e) {
+                alert('단계 로딩 실패');
+                console.error(e);
+            });
+    };
+
+    window.initNcsStepScripts = function (s) {
+        if (s === 1) initStep1();
+        else if (s === 2) initStep2();
+        else if (s === 3) initStep3();
+        else if (s === 4) initStep4();
+        else if (s === 5) initStep5();
+        else if (s === 6) initStep6();
+    };
 
     if (step === 1) initStep1();
     else if (step === 2) initStep2();

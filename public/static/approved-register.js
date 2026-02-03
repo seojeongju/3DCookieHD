@@ -318,7 +318,16 @@
             .then(function (r) { return r.json(); })
             .then(function (json) {
                 if (btn) btn.disabled = false;
-                if (json.success) { window.location.href = '/admin/courses/approved'; return; }
+                if (json.success) {
+                    if (id) {
+                        alert('저장되었습니다.');
+                        window.location.reload();
+                    } else {
+                        alert('기본정보가 등록되었습니다.\n자동으로 NCS 설계 탭으로 이동합니다.');
+                        window.location.href = '/admin/courses/approved/register?id=' + json.data.id + '&tab=ncs';
+                    }
+                    return;
+                }
                 alert(json.error || '저장 실패');
             })
             .catch(function () {
@@ -362,6 +371,15 @@
             wireDualList('approvedEquipment', equipmentAll, equipmentSelected, updateEquipmentCounts);
             wireDualList('approvedFacility', facilityAll, facilitySelected, updateFacilityCounts);
             if (editId) loadCourse(editId);
+
+            // Auto-switch tab if param exists
+            var params = new URLSearchParams(window.location.search);
+            var tab = params.get('tab');
+            if (tab && window.switchTab) {
+                // Ensure DOM is ready? We are already running.
+                // Small delay to ensure animations/transitions work or just call it.
+                setTimeout(function () { window.switchTab(tab); }, 100);
+            }
         });
     });
 })();

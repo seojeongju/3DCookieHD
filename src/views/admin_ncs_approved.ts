@@ -19,22 +19,29 @@ function stepNavHtml(currentStep: number): string {
   ).join('');
 }
 
-function stepContentHtml(step: number, editId?: string): string {
+
+export function stepContentHtml(step: number, editId?: string, isEmbedded: boolean = false, courseId?: string): string {
   if (step === 1) {
     const isEdit = !!editId;
+    // 임베디드 모드일 때 과정 선택 리스트 숨김 처리 및 스타일 조정
+    const selectionDisplay = isEmbedded ? 'hidden' : '';
+    const containerClass = isEmbedded ? '' : 'rounded-xl border border-slate-200 bg-slate-50/80 p-5';
+
     return `
     <div class="space-y-6" id="ncsApprovedFormContainer">
       <input type="hidden" id="ncsApprovedEditId" value="${editId || ''}">
-      <input type="hidden" id="ncsApprovedCourseId" value="">
+      <input type="hidden" id="ncsApprovedCourseId" value="${courseId || ''}">
       <input type="hidden" id="ncsUnitCode" value="">
       <input type="hidden" id="ncsUnitName" value="">
-      <div class="rounded-xl border border-slate-200 bg-slate-50/80 p-5">
+      
+      <div class="${containerClass} ${selectionDisplay}">
         <h3 class="text-sm font-bold text-slate-700 mb-2">승인받은 과정 (교육과정 기초데이터)</h3>
         <p class="text-xs text-slate-500 mb-3">목록에서 과정을 클릭하면 과정개요 정보가 자동으로 채워집니다. 이후 아래에서 상세를 입력한 뒤 저장·다음 단계로 진행하세요.</p>
         <div id="ncsApprovedCourseListContainer" class="max-h-48 overflow-y-auto rounded-lg border border-slate-200 bg-white p-2 space-y-1">
           <div class="py-6 text-center text-slate-400 text-sm"><i class="fas fa-spinner fa-spin mr-2"></i> 목록 로딩 중...</div>
         </div>
       </div>
+
       <p class="text-xs text-slate-500">등록되는 직종 및 주직종으로 이후에 등록되는 내용에 활용됩니다.</p>
       <!-- 탭: NCS 훈련과정 전용 / 비NCS 훈련과정 전용 -->
       <div class="flex gap-2 border-b border-slate-200 pb-2">
@@ -756,6 +763,68 @@ export function adminNcsApprovedHtml(stepParam?: string, editId?: string): strin
     <script src="/static/ncs-approved.js"></script>
 </body>
 </html>`;
+}
+
+/**
+ * 과정 등록 페이지 내에 임베딩하기 위한 HTML 생성 함수
+ * @param courseId 승인받은 과정 ID (1단계 기본정보 저장 후 생성된 ID)
+ */
+export function adminNcsEmbedHtml(courseId: string): string {
+  // 1단계(과정개요)부터 시작. 
+  // 실제로는 JS에서 탭 전환 시 동적으로 콘텐츠를 로드하거나, 
+  // 혹은 여기서 전체 구조를 잡아주고 JS가 보여주는 방식을 쓸 수 있음.
+  // 여기서는 기본 구조(사이드바 + 콘텐츠 영역)를 렌더링함.
+
+  // 임베디드 모드에서는 step 1 콘텐츠를 바로 로드
+  const step = 1;
+  const stepNav = STEP_MENU.map(
+    (s) => `
+        <button type="button" onclick="loadNcsStep(${s.step})" id="ncsStepLink_${s.step}" class="w-full flex items-center px-4 py-3 rounded-xl transition-all mb-1 ${step === s.step ? 'bg-blue-600/10 text-blue-700 font-bold' : 'hover:bg-slate-50 text-slate-500 hover:text-slate-700'}">
+          <i class="fas ${s.icon} w-6 text-lg mr-2 opacity-80"></i>
+          <span class="text-sm">${s.step}. ${s.label}</span>
+        </button>`
+  ).join('');
+
+  // 초기 로딩 시 Step 1 콘텐츠 렌더링 (isEmbedded = true, courseId 전달)
+  // editId는 NCS 등록 정보의 ID인데, 초기에는 없을 수 있음. 
+  // 하지만 stepContentHtml은 UI 구조를 그리는 것이므로 일단 빈 문자열로 넘기고, JS에서 로드 시 채워넣도록 함.
+  const content = stepContentHtml(step, '', true, courseId);
+
+  return `
+    <div class="flex flex-col lg:flex-row gap-6 h-full min-h-[600px]">
+        <!-- NCS Steps Sidebar -->
+        <nav class="w-full lg:w-56 flex-shrink-0">
+            <div class="bg-white rounded-2xl border border-slate-200 p-3 sticky top-4">
+                <div class="px-2 py-2 mb-2 border-b border-slate-100">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">NCS 설계 단계</span>
+                </div>
+                ${stepNav}
+            </div>
+        </nav>
+
+        <!-- NCS Content Area -->
+        <div class="flex-1 min-w-0">
+             <div class="bg-white rounded-2xl border border-slate-200 p-6 relative">
+                <div id="ncsContentLoader" class="absolute inset-0 bg-white/80 z-20 flex items-center justify-center hidden">
+                     <div class="text-center">
+                        <i class="fas fa-spinner fa-spin text-3xl text-emerald-500 mb-2"></i>
+                        <p class="text-slate-500 text-sm font-bold">데이터 로딩 중...</p>
+                     </div>
+                </div>
+                <div id="ncsEmbeddedContent">
+                    ${content}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- NCS 관련 JS 로직 (임베디드용) -->
+    <script>
+        // 전역 변수로 현재 과정 ID, Step 설정
+        window.NCS_EMBED_COURSE_ID = "${courseId}";
+        window.NCS_CURRENT_STEP = 1;
+    </script>
+    `;
 }
 
 export function adminNcsApprovedListHtml(): string {
