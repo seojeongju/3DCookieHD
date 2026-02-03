@@ -130,7 +130,7 @@
         }
         function loadJobRadios() {
             if (!jobRadioGroup || !jobRadioPlaceholder) return;
-            clearUnitHidden();
+            // clearUnitHidden();
             var large = largeClass ? largeClass.value : '';
             var mid = midClass ? midClass.value : '';
             var small = smallClass ? smallClass.value : '';
@@ -140,8 +140,7 @@
 
             if (!large || !mid || !small) {
                 jobRadioPlaceholder.style.display = '';
-                jobRadioPlaceholder.textContent = '소분류 선택 후 직종을 선택하세요. 여러 직종을 선택할 수 있습니다.';
-                updateSelectedJobsResult();
+                jobRadioPlaceholder.textContent = '소분류 선택 후 직종을 선택하세요. (기존 선택 항목은 유지됩니다)';
                 return;
             }
 
