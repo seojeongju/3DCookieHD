@@ -365,13 +365,14 @@ async function fetchNcsUnitElements(
         params.append('returnType', 'json');
 
         // --- 중요: 사용자 팁 반영 파라미터 ---
-        // 1. 세분류 코드 (8자리) -> ncsClCd
+        // 1. 세분류 코드 (8자리)
         params.append('ncsClCd', subClassCd);
-        params.append('NCS_CL_CD', subClassCd); // 대문자 대비
+        params.append('NCS_CL_CD', subClassCd);
 
-        // 2. 능력단위 코드 (전체 버전 포함) -> ncsAbtyUnitCd
+        // 2. 능력단위 코드 (전체 버전 포함)
         params.append('ncsAbtyUnitCd', unitCd);
-        params.append('NCS_UNIT_CD', unitCd); // 혹시 몰라 추가
+        params.append('NCS_UNIT_CD', unitCd);
+        params.append('COMPE_UNIT_CD', unitCd); // 가장 표준적인 파라미터 명칭 추가
 
         // 3. 요소 번호
         params.append('COMPE_UNIT_FACTR_NO', factorNo);
@@ -399,7 +400,7 @@ async function fetchNcsUnitElements(
                         }
 
                         // 공공데이터포털 응답 구조 파싱
-                        const body = json?.response?.body || json?.data;
+                        const body = json?.response?.body || json?.data || json?.body;
                         if (!body) return null;
 
                         const items = body.items?.item || body.items;
@@ -409,14 +410,15 @@ async function fetchNcsUnitElements(
                         if (!item) return null;
 
                         // 실제 데이터 매핑 - 다양한 필드명 대응
-                        const elemName = rowVal(item, 'COMPE_UNIT_FACTR_NAME', 'compeUnitFactrName');
+                        const elemName = rowVal(item, 'COMPE_UNIT_FACTR_NAME', 'compeUnitFactrName', 'compeUnitFactrNm', 'COMPE_UNIT_FACTR_NM');
                         const elemNo = rowVal(item, 'COMPE_UNIT_FACTR_NO', 'compeUnitFactrNo');
 
-                        if (elemName && elemNo) {
+                        if (elemName) {
+                            const finalNo = elemNo || factorNo;
                             // 요소코드 생성 (응답에 코드가 없으면 조합)
                             const elemCode = rowVal(item, 'COMPE_UNIT_FACTR_NO_CD', 'compeUnitFactrNoCd')
-                                || `${ncsClCd}_${elemNo}`;
-                            return { code: elemCode, name: elemName, no: elemNo };
+                                || `${unitCd}_${finalNo}`;
+                            return { code: elemCode, name: elemName, no: finalNo };
                         }
                         return null;
                     } catch (e) {
@@ -1794,19 +1796,29 @@ app.post('/approved/sync', authMiddleware, requireAdmin, async (c) => {
 
         // 3. Process Elements
         const elemStmt = c.env.DB.prepare(
-            'INSERT OR REPLACE INTO ncs_elements (unit_code, code, name) VALUES (?, ?, ?)'
+            'INSERT OR REPLACE INTO ncs_elements (ncs_unit_id, code, name) VALUES (?, ?, ?)'
         );
+
+        // 능력단위들의 ID를 매핑하기 위해 다시 조회 (D1은 INSERT 후 반환값이 제한적일 수 있음)
+        const { results: savedUnits } = await c.env.DB.prepare(
+            'SELECT id, code FROM ncs_units WHERE code LIKE ?'
+        ).bind(subClassCode + '%').all();
+
+        const unitIdMap = new Map<string, number>();
+        (savedUnits || []).forEach((u: any) => unitIdMap.set(u.code, u.id));
 
         // 순차 처리 (안정성 우선)
         for (const u of units) {
+            const unitId = unitIdMap.get(u.code);
+            if (!unitId) continue;
+
             try {
-                // 이미 구현된 robust한 함수 재사용
                 const elements = await fetchNcsUnitElements(apiKey, u.code, base);
                 if (elements && elements.length > 0) {
-                    const batch = elements.map(e => elemStmt.bind(u.code, e.code, e.name));
+                    const batch = elements.map(e => elemStmt.bind(unitId, e.code, e.name));
                     await c.env.DB.batch(batch);
                     elementCount += elements.length;
-                    console.log(`[Sync] Saved ${elements.length} elements for ${u.code}`);
+                    console.log(`[Sync] Saved ${elements.length} elements for ${u.code} (ID: ${unitId})`);
                 }
             } catch (err) {
                 console.error(`[Sync] Failed elements for ${u.code}`, err);
@@ -1832,7 +1844,7 @@ app.get('/approved/sync/status/:subClassCode', authMiddleware, requireAdmin, asy
         const unitPrefix = subClassCode.replace(/[^0-9]/g, '').substring(0, 8);
 
         const units = await c.env.DB.prepare('SELECT count(*) as count FROM ncs_units WHERE code LIKE ?').bind(unitPrefix + '%').first<{ count: number }>();
-        const elements = await c.env.DB.prepare('SELECT count(*) as count FROM ncs_elements WHERE unit_code LIKE ?').bind(unitPrefix + '%').first<{ count: number }>();
+        const elements = await c.env.DB.prepare('SELECT count(*) as count FROM ncs_elements e JOIN ncs_units u ON e.ncs_unit_id = u.id WHERE u.code LIKE ?').bind(unitPrefix + '%').first<{ count: number }>();
 
         return c.json({
             success: true,
@@ -1863,7 +1875,7 @@ app.get('/approved/sync/summary', authMiddleware, requireAdmin, async (c) => {
         const summary = [];
         for (const target of targets) {
             const units = await c.env.DB.prepare('SELECT count(*) as count FROM ncs_units WHERE code LIKE ?').bind(target.code + '%').first<{ count: number }>();
-            const elements = await c.env.DB.prepare('SELECT count(*) as count FROM ncs_elements WHERE unit_code LIKE ?').bind(target.code + '%').first<{ count: number }>();
+            const elements = await c.env.DB.prepare('SELECT count(*) as count FROM ncs_elements e JOIN ncs_units u ON e.ncs_unit_id = u.id WHERE u.code LIKE ?').bind(target.code + '%').first<{ count: number }>();
 
             summary.push({
                 code: target.code,
