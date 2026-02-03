@@ -1237,8 +1237,14 @@ app.put('/approved/registrations/:id/evaluation-teaching', authMiddleware, requi
 app.get('/approved/instructors', authMiddleware, requireAdmin, async (c) => {
     try {
         const { results } = await c.env.DB.prepare(
-            'SELECT u.id, u.name FROM users u JOIN hrd_instructors i ON u.id = i.user_id WHERE i.status = "active" ORDER BY u.name ASC'
+            `SELECT u.id, u.name 
+             FROM users u 
+             LEFT JOIN hrd_instructors i ON u.id = i.user_id 
+             WHERE u.role = 'teacher' OR i.user_id IS NOT NULL
+             GROUP BY u.id
+             ORDER BY u.name ASC`
         ).all();
+
         return c.json({ success: true, data: results || [] });
     } catch (e) {
         console.error('ncs approved instructors get:', e);
