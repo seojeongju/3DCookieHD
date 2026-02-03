@@ -77,6 +77,24 @@
                     var id = p.id != null ? p.id : '';
                     return '<label class="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 cursor-pointer shrink-0"><input type="checkbox" class="approved-instructor-cb rounded text-emerald-600" value="' + id + '" data-name="' + name.replace(/"/g, '&quot;') + '"> <span class="text-sm text-slate-800">' + name.replace(/</g, '&lt;') + '</span></label>';
                 }).join('');
+
+                // Add event listener for sync
+                container.addEventListener('change', function (e) {
+                    if (e.target.classList.contains('approved-instructor-cb')) {
+                        var checkedNames = [];
+                        container.querySelectorAll('.approved-instructor-cb:checked').forEach(function (cb) {
+                            checkedNames.push(cb.getAttribute('data-name'));
+                        });
+                        var currentManual = document.getElementById('approvedFormInstructor').value || '';
+                        // Keep manual entries that are not in the list if they are unique
+                        var manualNames = currentManual.split(',').map(function (s) { return s.trim(); }).filter(function (s) { return s; });
+                        var allListNames = list.map(function (p) { return (p.name || '').trim(); });
+
+                        var updatedManual = manualNames.filter(function (m) { return allListNames.indexOf(m) === -1; });
+                        var finalNames = updatedManual.concat(checkedNames);
+                        document.getElementById('approvedFormInstructor').value = finalNames.join(', ');
+                    }
+                });
             })
             .catch(function () {
                 container.innerHTML = '<span class="text-slate-500 text-sm">교직원 목록을 불러올 수 없습니다.</span>';
@@ -262,6 +280,19 @@
                 initConsumableDualList();
                 initEquipmentDualList();
                 initFacilityDualList();
+
+                // Sync instructor checkboxes
+                var instructorStr = d.instructor_name || '';
+                var instructorNames = instructorStr.split(',').map(function (s) { return s.trim(); }).filter(function (s) { return s; });
+                var container = document.getElementById('approvedFormInstructorList');
+                if (container) {
+                    container.querySelectorAll('.approved-instructor-cb').forEach(function (cb) {
+                        var name = cb.getAttribute('data-name');
+                        if (instructorNames.indexOf(name) !== -1) {
+                            cb.checked = true;
+                        }
+                    });
+                }
             })
             .catch(function () { alert('조회 실패'); });
     }
@@ -349,9 +380,21 @@
             var nameInput = document.getElementById('approvedFormInstructorNameQuick');
             var name = (nameInput && nameInput.value) ? nameInput.value.trim() : '';
             if (!name) { alert('강사명을 입력하세요.'); return; }
-            alert('간편등록된 강사는 인사 > 교직원관리에서 등록 후 여기 목록에 반영됩니다.');
+
+            var instructorInput = document.getElementById('approvedFormInstructor');
+            var current = (instructorInput.value || '').trim();
+            if (current) {
+                var names = current.split(',').map(function (s) { return s.trim(); });
+                if (names.indexOf(name) === -1) {
+                    instructorInput.value = current + ', ' + name;
+                }
+            } else {
+                instructorInput.value = name;
+            }
+            nameInput.value = '';
         });
     }
+
 
     form.addEventListener('submit', submitForm);
     loadCategories().then(function () {

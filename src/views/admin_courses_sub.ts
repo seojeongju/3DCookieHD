@@ -457,10 +457,28 @@ export const adminCoursesApprovedRegisterHtml = (editId?: string) => {
                                 <label class="block text-sm font-bold text-slate-700 mb-1">승인기관</label>
                                 <input type="text" id="approvedFormApprovalOrg" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500" placeholder="승인기관">
                             </div>
-                            <div>
-                                <label class="block text-sm font-bold text-slate-700 mb-1">교·강사명</label>
-                                <input type="text" id="approvedFormInstructor" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500" placeholder="교·강사명">
+                            <div class="sm:col-span-2">
+                                <label class="block text-sm font-bold text-slate-700 mb-2">교·강사 선택</label>
+                                <div id="approvedFormInstructorList" class="flex flex-wrap gap-2 p-4 border border-slate-200 rounded-xl bg-slate-50/50 min-h-[60px] max-h-48 overflow-y-auto">
+                                    <span class="text-slate-400 text-sm">교직원 정보를 불러오는 중...</span>
+                                </div>
+                                <div class="mt-3 flex flex-wrap items-center gap-3">
+                                    <div class="flex-1 min-w-[200px]">
+                                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">배정된 교·강사명 (쉼표로 구분)</label>
+                                        <input type="text" id="approvedFormInstructor" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" placeholder="선택 시 자동 입력되거나 직접 입력">
+                                    </div>
+                                    <div class="flex items-end gap-2 px-4 py-2.5 border border-slate-100 bg-slate-50/50 rounded-xl">
+                                        <div>
+                                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">목록에 없는 강사 추가</label>
+                                            <input type="text" id="approvedFormInstructorNameQuick" class="w-32 px-3 py-1.5 border border-slate-200 rounded-lg text-sm" placeholder="이름 입력">
+                                        </div>
+                                        <button type="button" id="approvedFormInstructorAdd" class="h-9 px-3 bg-slate-700 text-white rounded-lg text-xs font-bold hover:bg-slate-800 transition flex items-center gap-1">
+                                            <i class="fas fa-plus"></i> 추가
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
+
                             <div>
                                 <label class="block text-sm font-bold text-slate-700 mb-1">상태</label>
                                 <select id="approvedFormStatus" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500">
