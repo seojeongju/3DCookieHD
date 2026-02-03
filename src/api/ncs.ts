@@ -2043,6 +2043,20 @@ const FALLBACK_NCS_UNITS: Record<string, { code: string; name: string; level: nu
             ]
         }
     ],
+    // 19031101: 3D프린터개발
+    '19031101': [
+        { code: '1903110101_15v1', name: '시장분석', level: 5 },
+        { code: '1903110102_15v1', name: '개발계획수립', level: 5 },
+        { code: '1903110103_18v2', name: '소재관리', level: 3 },
+        { code: '1903110104_21v2', name: '회로 설계', level: 5 },
+        { code: '1903110105_15v1', name: '기구개발', level: 4 },
+        { code: '1903110106_15v1', name: '구동장치개발', level: 4 },
+        { code: '1903110107_21v2', name: '빌드장치 설계', level: 4 },
+        { code: '1903110108_21v2', name: '제어프로그램 설계', level: 4 },
+        { code: '1903110109_21v3', name: '응용소프트웨어활용', level: 3 },
+        { code: '1903110110_15v1', name: '품질보증', level: 5 },
+        { code: '1903110111_21v2', name: '기계기구 설계', level: 4 }
+    ],
     // 15010201: 기계요소설계 (전산응용기계제도기능사 관련) - 예비용
     '15010201': [
         { code: '1501020101_19v3', name: '기계요소설계 기획', level: 5 },
