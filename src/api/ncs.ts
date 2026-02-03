@@ -151,7 +151,7 @@ async function fetchClassificationAllPages(
             break;
         }
         const json = await res.json().catch(() => null);
-        let list = parseClassificationItems(json?.response ?? json?.body ?? json?.data ?? json);
+        let list = parseClassificationItems((json as any)?.response ?? (json as any)?.body ?? (json as any)?.data ?? json);
         if (list.length === 0) list = parseClassificationItems(json);
 
         console.log(`[NCS_API_RES] ${path} - Count: ${list.length}, First:`, list[0] || 'NONE');
@@ -981,6 +981,7 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
                 }
             }
 
+            let foundFromApi = false;
             const apiKey = (c.env.NCS_API_KEY || '').trim();
             if (apiKey && jobCode8.length >= 2) {
                 const largeCode = jobCode8.slice(0, 2);
@@ -1013,34 +1014,26 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
                         if (!rawUnitCode) continue;
 
                         const numPart = rawUnitCode.replace(/_.*$/, '').replace(/\D/g, '').slice(0, 8);
-
-                        // Robust matching:
-                        // 1. Exact prefix match on 8-digit part
-                        // 2. Or unitCode itself contains the prefix (handle 10-digit prefix case if jobCode was 10 digits)
-                        // 3. Or strict match for 3D Printing special cases where prefix might be slightly different in older versions? 
-                        //    (Actually 3D Printing is 19031102 / 19031103 etc. standard codes should work)
-
                         if (!numPart.startsWith(prefix) && !rawUnitCode.includes(prefix)) continue;
 
                         const name = (it.unitName || '').trim() || rawUnitCode;
-
                         let lv = 3;
                         if (it.level != null) {
                             lv = typeof it.level === 'number' ? it.level : parseInt(String(it.level), 10);
                         }
                         if (isNaN(lv)) lv = 3;
 
-                        // Check if fallback has matching elements for this item
                         addItem(name, rawUnitCode, lv, it.elements);
                         foundAny = true;
+                        foundFromApi = true;
                     }
                 } catch (e) {
                     console.error('NCS API fetch error', e);
                 }
             }
 
-            // 3. Last Resort Fallback (if no API/DB results found) or Supplement from FALLBACK map
-            if (!foundAny && FALLBACK_NCS_UNITS[jobCode8]) {
+            // 3. Last Resort Fallback - Only if API didn't found anything for this job
+            if (!foundFromApi && FALLBACK_NCS_UNITS[jobCode8]) {
                 const fbList = FALLBACK_NCS_UNITS[jobCode8];
                 for (const fb of fbList) {
                     addItem(fb.name, fb.code, fb.level, fb.elements);
@@ -1981,7 +1974,13 @@ app.get('/plans/:planId/export-csv', async (c) => {
 
         // 엑셀 인식용 BOM(UTF-8) 추가하여 반환
         const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
-        return c.body(new Blob([bom, csv], { type: 'text/csv; charset=utf-8' }), 200, {
+        const csvContent = new TextEncoder().encode(csv);
+        const combined = new Uint8Array(bom.length + csvContent.length);
+        combined.set(bom);
+        combined.set(csvContent, bom.length);
+
+        return c.body(combined.buffer, 200, {
+            'Content-Type': 'text/csv; charset=utf-8',
             'Content-Disposition': 'attachment; filename="evaluation_results.csv"'
         });
     } catch (e) {
