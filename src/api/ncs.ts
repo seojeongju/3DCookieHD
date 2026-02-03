@@ -288,6 +288,52 @@ async function fetchNcsUnitElements(
     // 버전 접미사 처리
     const codeToUse = ncsClCd;
 
+    // 1. Try ODCloud API (The "Proper" Way - 한국산업인력공단_국가직무능력표준 정보_20241204)
+    const ODCLOUD_UDDI = 'd8120558-7644-44ee-aa67-8fa879a80247';
+    try {
+        const params = new URLSearchParams();
+        params.append('page', '1');
+        params.append('perPage', '100');
+        params.append('serviceKey', key);
+        // NCS_CL_CD 컬럼으로 필터링 (표준 필드명 사용)
+        params.append('cond[NCS_CL_CD::EQ]', codeToUse);
+
+        const odUrl = `https://api.odcloud.kr/api/15083321/v1/uddi:${ODCLOUD_UDDI}?${params.toString()}`;
+        console.log(`[ODCloud] Fetching elements for ${codeToUse}: ${odUrl}`);
+
+        const res = await fetch(odUrl);
+        if (res.ok) {
+            const json = await res.json() as { data: any[] };
+            // 데이터가 있고 배열인 경우 처리
+            if (json.data && Array.isArray(json.data) && json.data.length > 0) {
+                const results = json.data.map((item: any) => {
+                    // 다양한 필드명 케이스 대응 (한글/영문)
+                    const name = item['능력단위요소명'] || item['COMPE_UNIT_FACTR_NAME'] || item['COMPE_UNIT_FACTR_NM'];
+                    const no = item['능력단위요소번호'] || item['COMPE_UNIT_FACTR_NO'];
+
+                    if (name && no) {
+                        const code = item['능력단위요소코드'] ||
+                            item['COMPE_UNIT_FACTR_NO_CD'] ||
+                            `${codeToUse}_${no}`;
+                        return { code, name, no };
+                    }
+                    return null;
+                })
+                    .filter((x): x is { code: string; name: string, no: string } => x !== null)
+                    .sort((a, b) => a.no.localeCompare(b.no));
+
+                if (results.length > 0) {
+                    console.log(`[ODCloud] Found ${results.length} elements for ${codeToUse}`);
+                    return results.map(({ code, name }) => ({ code, name }));
+                }
+            }
+        }
+    } catch (e) {
+        console.warn(`[ODCloud] Fetch failed for ${codeToUse}, falling back to probing`, e);
+    }
+
+    // 2. Fallback to Probing Method (NCS006 API)
+
     // 능력단위요소는 보통 10개 미만이므로 01~12번을 병렬로 조회하여 존재하는 것만 추려냄
     const MAX_PROBE = 12;
     const promises = [];
@@ -901,6 +947,43 @@ app.get('/approved/classification-debug', async (c) => {
     } catch (e) {
         console.error('NCS classification-debug error:', e);
         return c.json({ success: false, error: String(e instanceof Error ? e.message : e) }, 500);
+    }
+});
+
+// Debug endpoint for ODCloud API (New)
+app.get('/approved/test-odcloud/:unitCode', async (c) => {
+    try {
+        const unitCode = c.req.param('unitCode');
+        const rawKey = c.env.NCS_API_KEY?.trim();
+        const key = decodeServiceKey(rawKey || '');
+
+        // 2024년 버전 UDDI ID (이미지 참조)
+        const uddi = 'd8120558-7644-44ee-aa67-8fa879a80247';
+
+        // 필터링 적용 (조건: NCS_CL_CD 컬럼이 unitCode와 일치)
+        // ODCloud는 'cond[컬럼명::EQ]=값' 형식을 사용함 (URL 인코딩 필요)
+        const params = new URLSearchParams();
+        params.append('page', '1');
+        params.append('perPage', '20');
+        params.append('serviceKey', key);
+        // params.append('cond[NCS_CL_CD::EQ]', unitCode); // 컬럼명을 모름, 일단 전체 조회해서 필드 확인
+
+        const url = `https://api.odcloud.kr/api/15083321/v1/uddi:${uddi}?${params.toString()}`;
+
+        console.log(`[ODCloud] Testing URL: ${url}`);
+
+        const res = await fetch(url);
+        const json = await res.json();
+
+        return c.json({
+            success: true,
+            url,
+            data: json,
+            // 필드명 확인을 위해 첫 번째 데이터의 키 목록 반환
+            keys: (json as any).data && (json as any).data.length > 0 ? Object.keys((json as any).data[0]) : []
+        });
+    } catch (e) {
+        return c.json({ success: false, error: String(e) }, 500);
     }
 });
 
