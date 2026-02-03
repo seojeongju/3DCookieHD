@@ -410,6 +410,36 @@ async function fetchNcsUnitsByKeyword(
 }
 
 
+/** Fallback 능력단위요소 데이터 - DB/API 실패 시 사용 */
+const FALLBACK_ELEMENTS: Record<string, { code: string; name: string }[]> = {
+    '1903110202_23v3': [ // 제품기획
+        { code: '1903110202_23v3_01', name: '시장조사하기' },
+        { code: '1903110202_23v3_02', name: '제품컨셉수립하기' },
+        { code: '1903110202_23v3_03', name: '제품사양결정하기' }
+    ],
+    '1903110210_24v1': [ // 3D프린터 SW 설정
+        { code: '1903110210_24v1_01', name: '3D모델링 SW 기능 파악하기' },
+        { code: '1903110210_24v1_02', name: '3D모델링 SW 설정하기' },
+        { code: '1903110210_24v1_03', name: '3D모델링 SW 점검하기' }
+    ],
+    '1903110211_24v1': [ // 3D프린터 HW 설정
+        { code: '1903110211_24v1_01', name: '3D프린터 구조 파악하기' },
+        { code: '1903110211_24v1_02', name: '3D프린터 제어시스템 설정하기' },
+        { code: '1903110211_24v1_03', name: '3D프린터 작동 점검하기' }
+    ],
+    '1903110215_24v1': [ // 3D프린팅 특화설계
+        { code: '1903110215_24v1_01', name: '3D프린팅 설계요소 파악하기' },
+        { code: '1903110215_24v1_02', name: '3D프린팅 특화 모델링하기' },
+        { code: '1903110215_24v1_03', name: '3D프린팅 적합성 검증하기' }
+    ],
+    '1903110216_24v1': [ // 3D프린팅 재료 시험
+        { code: '1903110216_24v1_01', name: '재료 물성 파악하기' },
+        { code: '1903110216_24v1_02', name: '재료 시험 수행하기' },
+        { code: '1903110216_24v1_03', name: '재료 시험 결과 분석하기' }
+    ]
+};
+
+
 /** 기준정보 API로 대분류 목록 조회 (NCS001) */
 async function fetchNcsLargeClasses(apiKey: string, baseUrl?: string): Promise<{ code: string; name: string }[]> {
     const key = decodeServiceKey(apiKey);
@@ -1383,15 +1413,24 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
                                         elements = dbElements;
                                         console.log(`[DB] Found ${dbElements.length} elements for ${u.code}`);
                                     } else {
-                                        // Fallback to NCS006 API if DB is empty
+                                        // Try NCS006 API
                                         const elementsFromNCS006 = await fetchNcsUnitElements(apiKey, u.code, classificationBase);
                                         if (elementsFromNCS006 && elementsFromNCS006.length > 0) {
                                             elements = elementsFromNCS006;
                                             console.log(`[NCS006] Found ${elementsFromNCS006.length} elements for ${u.code}`);
+                                        } else if (FALLBACK_ELEMENTS[u.code]) {
+                                            // Final fallback: hardcoded data
+                                            elements = FALLBACK_ELEMENTS[u.code];
+                                            console.log(`[FALLBACK] Using ${elements.length} hardcoded elements for ${u.code}`);
                                         }
                                     }
                                 } catch (e) {
                                     console.error(`Element fetch failed for unit ${u.code}`, e);
+                                    // Try fallback even on error
+                                    if (!elements && FALLBACK_ELEMENTS[u.code]) {
+                                        elements = FALLBACK_ELEMENTS[u.code];
+                                        console.log(`[FALLBACK-ERROR] Using ${elements.length} hardcoded elements`);
+                                    }
                                 }
 
                                 addItem(u.name, u.code, u.level || 3, elements);
