@@ -101,7 +101,7 @@ const NCS_TRAINING_API_BASE = 'https://apis.data.go.kr/B490007/ncsTrainingCource
 
 /** NCS 기준정보조회 API (15128213) — 전체 분류체계. env NCS_CLASSIFICATION_API_BASE 로 덮을 수 있음. */
 /** NCS 기준정보조회 API (15128213) — 전체 분류체계. env NCS_CLASSIFICATION_API_BASE 로 덮을 수 있음. */
-const NCS_CLASSIFICATION_API_BASE_DEFAULT = 'http://apis.data.go.kr/B490007/hrdkapi';
+const NCS_CLASSIFICATION_API_BASE_DEFAULT = 'http://apis.data.go.kr/B490007/ncsClassification';
 
 function parseClassificationItems(raw: unknown): Record<string, unknown>[] {
     if (Array.isArray(raw)) return raw.filter((r) => r && typeof r === 'object') as Record<string, unknown>[];
@@ -168,23 +168,23 @@ async function fetchNcsClassificationByLarge(apiKey: string, ncsLclasCd: string,
 
     try {
         // 1) 중분류 — 전체 페이지 수집
-        const midList = await fetchClassificationAllPages(base, key, 'NcsMidClassList', { ncsLclasCd });
+        const midList = await fetchClassificationAllPages(base, key, 'getNcsMidClassList', { ncsLclasCd });
         if (midList.length === 0) return null;
         const mids = midList.map((r) => ({ code: rowVal(r, 'ncsMclasCd', 'NcsMclasCd', 'mclasCd', 'midCd'), name: rowVal(r, 'ncsMclasCdnm', 'NcsMclasCdnm', 'mclasCdnm', 'midNm') })).filter((m) => m.code);
 
         for (const mid of mids) {
             // 2) 소분류 — 전체 페이지 수집
-            const smallList = await fetchClassificationAllPages(base, key, 'NcsSmallClassList', { ncsLclasCd, ncsMclasCd: mid.code });
+            const smallList = await fetchClassificationAllPages(base, key, 'getNcsSmallClassList', { ncsLclasCd, ncsMclasCd: mid.code });
             const smalls = smallList.map((r) => ({ code: rowVal(r, 'ncsSclasCd', 'sclasCd', 'smallCd'), name: rowVal(r, 'ncsSclasCdnm', 'NcsSclasCdnm', 'sclasCdnm', 'smallNm') })).filter((s) => s.code);
 
             for (const small of smalls) {
                 // 3) 세분류 — 전체 페이지 수집
-                const subList = await fetchClassificationAllPages(base, key, 'NcsSubdClassList', { ncsLclasCd, ncsMclasCd: mid.code, ncsSclasCd: small.code });
+                const subList = await fetchClassificationAllPages(base, key, 'getNcsSubdClassList', { ncsLclasCd, ncsMclasCd: mid.code, ncsSclasCd: small.code });
                 const subs = subList.map((r) => ({ code: rowVal(r, 'ncsSubdCd', 'ncsDclasCd', 'subdCd', 'subCd'), name: rowVal(r, 'ncsSubdCdnm', 'ncsDclasCdnm', 'subdCdnm', 'subNm') })).filter((s) => s.code);
 
                 for (const sub of subs) {
                     const dutyCd = `${ncsLclasCd}${mid.code}${small.code}${sub.code}`;
-                    const unitList = await fetchClassificationAllPages(base, key, 'NcsAbtyUnitCdList', { dutyCd });
+                    const unitList = await fetchClassificationAllPages(base, key, 'getNcsAbtyUnitCdList', { dutyCd });
                     if (unitList.length === 0) {
                         all.push({ largeCode: ncsLclasCd, largeName, midCode: mid.code, midName: mid.name, smallCode: small.code, smallName: small.name, subClassCode: sub.code, subClassName: sub.name, unitCode: '', unitName: '' });
                         continue;
