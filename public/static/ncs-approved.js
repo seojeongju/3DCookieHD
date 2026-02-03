@@ -165,17 +165,19 @@
 
                     jobs.forEach(function (j) {
                         var esc = function (s) { var t = document.createElement('span'); t.textContent = s == null ? '' : s; return t.innerHTML; };
-                        var code = (j.code || '').trim();
+                        var subCode = (j.code || '').trim();
                         var name = (j.name || '').trim();
-                        if (!code) return;
+                        if (!subCode) return;
 
-                        var id = 'ncsJob_' + code.replace(/\s/g, '_');
-                        var isInStore = selectedJobsStore.some(function (x) { return (x.code || '') === code; });
+                        // 전체 직종코드 생성 (대+중+소+세)
+                        var fullCode = large + mid + small + subCode;
+                        var id = 'ncsJob_' + fullCode.replace(/\s/g, '_');
+                        var isInStore = selectedJobsStore.some(function (x) { return (x.code || '') === fullCode; });
 
                         w.innerHTML += '<label class="flex items-center gap-3 cursor-pointer py-2 hover:bg-blue-50 px-2 rounded-xl transition-all group">' +
-                            '<input type="checkbox" name="ncsJobCheck" class="ncs-job-check w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 transition-all" value="' + esc(code) + '" data-name="' + esc(name) + '" id="' + id + '"' + (isInStore ? ' checked' : '') + '> ' +
+                            '<input type="checkbox" name="ncsJobCheck" class="ncs-job-check w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 transition-all" value="' + esc(fullCode) + '" data-name="' + esc(name) + '" id="' + id + '"' + (isInStore ? ' checked' : '') + '> ' +
                             '<div class="flex flex-col min-w-0">' +
-                            '<span class="text-[10px] text-blue-500 font-black uppercase tracking-wider leading-none mb-1">' + esc(code) + '</span>' +
+                            '<span class="text-[10px] text-blue-500 font-black uppercase tracking-wider leading-none mb-1">' + esc(fullCode) + '</span>' +
                             '<span class="text-sm font-semibold text-slate-700 group-hover:text-blue-900 leading-tight truncate">' + esc(name) + '</span>' +
                             '</div>' +
                             '</label>';
@@ -184,14 +186,14 @@
                     jobRadioGroup.appendChild(w);
                     w.querySelectorAll('.ncs-job-check').forEach(function (cb) {
                         cb.addEventListener('change', function () {
-                            var code = (cb.value || '').trim();
+                            var fullCode = (cb.value || '').trim();
                             var name = (cb.getAttribute('data-name') || '').trim();
                             if (cb.checked) {
-                                if (!selectedJobsStore.some(function (x) { return (x.code || '') === code; })) {
-                                    selectedJobsStore.push({ code: code, name: name });
+                                if (!selectedJobsStore.some(function (x) { return (x.code || '') === fullCode; })) {
+                                    selectedJobsStore.push({ code: fullCode, name: name });
                                 }
                             } else {
-                                selectedJobsStore = selectedJobsStore.filter(function (x) { return (x.code || '') !== code; });
+                                selectedJobsStore = selectedJobsStore.filter(function (x) { return (x.code || '') !== fullCode; });
                             }
                             updateSelectedJobsResult();
                         });
