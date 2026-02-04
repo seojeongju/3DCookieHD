@@ -270,7 +270,7 @@ export function adminNcsUploadHtml(): string {
                              if (colMap.unitName === -1) {
                                  for (let j = 0; j < row.length; j++) {
                                      if (j === colMap.unitCode || j === colMap.level) continue;
-                                     if (row[j] && /[가-힣]/.test(row[j])) { colMap.unitName = j; break; }
+                                     if (row[j] && /[\uAC00-\uD7A3]/.test(row[j])) { colMap.unitName = j; break; }
                                  }
                              }
                          }
@@ -280,7 +280,16 @@ export function adminNcsUploadHtml(): string {
 
                     const clean = function(s) { 
                         if (!s) return '';
-                        return String(s).replace(/[\x00-\x1F\x7F-\x9F\uFFFD\uFEFF]/g, '').trim(); 
+                        var str = String(s);
+                        var out = '';
+                        for (var i = 0; i < str.length; i++) {
+                            var ch = str.charCodeAt(i);
+                            // Filter control chars, BOM, and replacement char
+                            if (ch > 31 && ch !== 127 && ch !== 0xFFFD && ch !== 0xFEFF) {
+                                out += str[i];
+                            }
+                        }
+                        return out.trim(); 
                     };
 
                     parsedData = results.data.map(function(row) {
