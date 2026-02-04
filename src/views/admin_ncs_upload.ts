@@ -233,20 +233,23 @@ export function adminNcsUploadHtml(): string {
                          
                          const sampleRow = results.data[0]; // Check first row
                          
-                         // Detect Unit Code (Pattern: 10 digits _ 2 digits v version OR just 10 digits)
-                         // Relaxed Regex: Look for digit-heavy string with underscores or length ~10-15
+                         // Detect Unit Code: Broadened to any numeric-heavy string of 6+ chars or standard NCS pattern
                          colMap.unitCode = sampleRow.findIndex(function(c) { 
-                             return typeof c === 'string' && (/^\d{10,}/.test(c.trim()) || /^\d{2,}[_]\d+/.test(c.trim()));
+                             if (typeof c !== 'string') return false;
+                             const trimmed = c.trim();
+                             // Pattern: 12345678 or 1234567890_12v1 or 2404040208_19v2
+                             return /^\d{6,}/.test(trimmed) || /^\d{2,}[_]\d+/.test(trimmed);
                          });
 
                          // Detect Level (Single digit 1-8)
                          colMap.level = sampleRow.findIndex(function(c) {
-                             return typeof c === 'string' && /^[1-8]$/.test(c.trim());
+                             if (typeof c !== 'string') return false;
+                             return /^[1-8]$/.test(c.trim());
                          });
                          
                          // Detect Korean Names
                          const koreanCols = sampleRow.map(function(c, i) {
-                             return { index: i, val: c, length: (c && /[가-힣]/.test(c)) ? c.length : 0 };
+                             return { index: i, val: c, length: (c && typeof c === 'string' && /[가-힣]/.test(c)) ? c.length : 0 };
                          }).filter(function(x) { return x.length > 0; }).sort(function(a, b) { return b.length - a.length; });
 
                          if (koreanCols.length > 0) {
@@ -265,8 +268,6 @@ export function adminNcsUploadHtml(): string {
                          // If we identify a Unit Code, we assume successful detection
                          if (colMap.unitCode !== -1) {
                              console.log('Content-Based Detection Successful. UnitCode Index:', colMap.unitCode);
-                             // Fill gaps using relative positions if possible, or leave as -1
-                             // If UnitCode is found, treat this row as Data (headerRowIndex remains -1, so slice(0) covers it)
                          }
                     }
 
@@ -302,14 +303,19 @@ export function adminNcsUploadHtml(): string {
                     const validCount = parsedData.filter(function(r){ return r.valid; }).length;
                     console.log('Parsed Valid Data count (' + encoding + '): ' + validCount);
                     
-                    if (validCount === 0 && parsedData.length === 0) {
-                         alert('유효한 데이터가 없습니다 (' + encoding + ').');
-                    } else if (validCount === 0) {
+                    if (validCount === 0) {
                         let firstRowDump = '';
-                        if (parsedData.length > 0) {
-                             firstRowDump = '\\n첫 행 데이터: ' + JSON.stringify(parsedData[0].raw).substring(0, 100) + '...';
+                        if (results.data.length > 0) {
+                             firstRowDump = '\n\n파일의 첫 줄 내용:\n' + JSON.stringify(results.data[0]);
                         }
-                        if (isRetry) alert('데이터 형식을 인식할 수 없습니다. (헤더 없음, 코드 패턴 불일치)' + firstRowDump);
+                        
+                        if (isRetry) {
+                            alert('데이터 형식을 인식할 수 없거나 유효한 능력단위코드가 없습니다.\n' + 
+                                  '수동 선택 옵션이 없으므로 파일 형식을 확인해주세요.' + firstRowDump);
+                        } else if (!(encoding === 'CP949' || encoding === 'EUC-KR')) {
+                             // If not retry and not CP949 (meaning it was UTF-8 from start), show alert
+                             alert('유효한 데이터가 없습니다.' + firstRowDump);
+                        }
                     }
 
                     showPreview();
@@ -324,7 +330,7 @@ export function adminNcsUploadHtml(): string {
             previewArea.classList.remove('hidden');
             document.getElementById('recordCount').textContent = '총 ' + parsedData.length + '건';
             
-            previewBody.innerHTML = parsedData.slice(0, 5).map(function(r) {
+            previewBody.innerHTML = parsedData.slice(0, 10).map(function(r) {
                 const trClass = r.valid ? '' : 'bg-red-50 text-red-600';
                 return '<tr class="' + trClass + '">' +
                     '<td class="px-4 py-2">' + (r.jobName || '-') + '</td>' +
@@ -333,7 +339,7 @@ export function adminNcsUploadHtml(): string {
                     '<td class="px-4 py-2 font-mono text-slate-500">' + (r.unitCode || '-') + '</td>' +
                     '<td class="px-4 py-2 text-center">' + (r.level || '-') + '</td>' +
                 '</tr>';
-            }).join('') + (parsedData.length > 5 ? '<tr><td colspan="5" class="px-4 py-2 text-center text-slate-400">...외 ' + (parsedData.length - 5) + '건</td></tr>' : '');
+            }).join('') + (parsedData.length > 10 ? '<tr><td colspan="5" class="px-4 py-2 text-center text-slate-400 font-italic">...외 ' + (parsedData.length - 10) + '건 (' + parsedData.filter(function(x){return !x.valid}).length + '건 무효)</td></tr>' : '');
         }
 
         function log(msg) {
@@ -344,27 +350,39 @@ export function adminNcsUploadHtml(): string {
         }
 
         btnUpload.addEventListener('click', async () => {
-            if (parsedData.length === 0) return;
+            const validData = parsedData.filter(function(r) { return r.valid; });
+            if (validData.length === 0) {
+                alert('업로드할 유효한 데이터가 없습니다.');
+                return;
+            }
             
-            if (!confirm('총 ' + parsedData.length + '건의 데이터를 업로드하시겠습니까?\\n기존 데이터는 업데이트됩니다.')) return;
+            if (!confirm('총 ' + validData.length + '건 (무효 ' + (parsedData.length - validData.length) + '건 제외)의 데이터를 업로드하시겠습니까?\n기존 데이터는 업데이트됩니다.')) return;
 
             btnUpload.disabled = true;
             progressArea.classList.remove('hidden');
             previewArea.classList.add('opacity-50');
             
             const BATCH_SIZE = 50;
-            const totalBatches = Math.ceil(parsedData.length / BATCH_SIZE);
+            const totalBatches = Math.ceil(validData.length / BATCH_SIZE);
+            const token = localStorage.getItem('token');
             
             log('업로드를 시작합니다...');
 
             for (let i = 0; i < totalBatches; i++) {
-                const batch = parsedData.slice(i * BATCH_SIZE, (i + 1) * BATCH_SIZE);
+                const batch = validData.slice(i * BATCH_SIZE, (i + 1) * BATCH_SIZE);
                 try {
+                    const headers = { 'Content-Type': 'application/json' };
+                    if (token) headers['Authorization'] = 'Bearer ' + token;
+                    
                     const res = await fetch('/api/ncs/upload', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: headers,
                         body: JSON.stringify({ items: batch })
                     });
+                    
+                    if (res.status === 401) {
+                        throw new Error('인증 세션이 만료되었습니다. 다시 로그인해주세요.');
+                    }
                     
                     if (!res.ok) throw new Error('HTTP ' + res.status);
                     
@@ -379,7 +397,7 @@ export function adminNcsUploadHtml(): string {
                 } catch (e) {
                     log('[오류] 배치 ' + (i + 1) + ' 실패: ' + e.message);
                     console.error(e);
-                    alert('업로드 중 오류가 발생했습니다. 로그를 확인해주세요.');
+                    alert('업로드 중 오류가 발생했습니다: ' + e.message);
                     btnUpload.disabled = false;
                     previewArea.classList.remove('opacity-50');
                     return;
