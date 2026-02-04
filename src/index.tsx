@@ -62,6 +62,7 @@ import { adminHrdAttendancePrintHtml } from './views/admin_hrd_attendance_print'
 import { adminHrdCounselingHtml } from './views/admin_hrd_counseling';
 import { adminNcsHtml } from './views/admin_ncs';
 import { adminNcsViewerHtml } from './views/admin_ncs_viewer';
+import { adminNcsUploadHtml } from './views/admin_ncs_upload';
 
 import { adminNcsApprovedHtml, adminNcsApprovedListHtml } from './views/admin_ncs_approved';
 import { adminLmsDashboardHtml } from './views/admin_lms_dashboard';
@@ -289,6 +290,7 @@ app.get('/admin/assignments', (c) => c.html(adminHrdAssignmentsHtml()));
 app.get('/admin/counseling', (c) => c.html(adminHrdCounselingHtml));
 app.get('/admin/ncs', (c) => c.html(adminNcsHtml));
 app.get('/admin/ncs/viewer', (c) => c.html(adminNcsViewerHtml()));
+app.get('/admin/ncs/upload', (c) => c.html(adminNcsUploadHtml()));
 
 app.get('/admin/ncs/approved', (c) => c.redirect('/admin/courses/approved'));
 app.get('/admin/ncs/approved/list', (c) => c.redirect('/admin/courses/approved'));

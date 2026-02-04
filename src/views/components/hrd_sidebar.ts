@@ -128,6 +128,12 @@ export const hrdSidebar = (activeMenu: string) => `
             <i class="fas fa-sitemap w-6 text-lg ${activeMenu === 'ncs-viewer' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
             <span class="font-medium text-[14px]">NCS 분류보기</span>
         </a>
+        
+        <a href="/admin/ncs/upload" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'ncs-upload' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
+             ${activeMenu === 'ncs-upload' ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
+            <i class="fas fa-file-upload w-6 text-lg ${activeMenu === 'ncs-upload' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
+            <span class="font-medium text-[14px]">NCS 데이터 업로드</span>
+        </a>
 
 
 
