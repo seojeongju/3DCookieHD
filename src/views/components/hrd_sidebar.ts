@@ -129,11 +129,7 @@ export const hrdSidebar = (activeMenu: string) => `
             <span class="font-medium text-[14px]">NCS 분류보기</span>
         </a>
 
-        <a href="/admin/ncs/sync" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'ncs-sync' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
-             ${activeMenu === 'ncs-sync' ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
-            <i class="fas fa-sync w-6 text-lg ${activeMenu === 'ncs-sync' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
-            <span class="font-medium text-[14px]">NCS 데이터 동기화</span>
-        </a>
+
 
         <a href="/admin/surveys" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'surveys' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
              ${activeMenu === 'surveys' ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}

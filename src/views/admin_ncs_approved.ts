@@ -55,17 +55,7 @@ export function stepContentHtml(step: number, editId?: string, isEmbedded: boole
       <input type="hidden" id="ncsUnitCode" value="">
       <input type="hidden" id="ncsUnitName" value="">
       
-      <div class="${selectionDisplay} card p-6 bg-slate-50 border border-slate-200">
-        <h3 class="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
-          <i class="fas fa-database text-blue-500"></i> 승인받은 과정 기초 데이터 선택
-        </h3>
-        <p class="text-xs text-slate-500 mb-4">기존에 등록된 승인 과정 목록입니다. 과정을 선택하시면 하단 양식에 자동으로 정보가 입력됩니다.</p>
-        <div id="ncsApprovedCourseListContainer" class="max-h-48 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2 space-y-1">
-          <div class="py-8 text-center text-slate-400 text-sm">
-            <i class="fas fa-spinner fa-spin mr-2"></i> 데이터를 불러오고 있습니다...
-          </div>
-        </div>
-      </div>
+<!-- 승인받은 과정 선택 섹션 제거 (직접 입력으로 변경) -->
 
       <!-- 상단 탭 (NCS / 비NCS) -->
       <div class="flex p-1 bg-slate-100 rounded-2xl w-fit">
@@ -82,7 +72,7 @@ export function stepContentHtml(step: number, editId?: string, isEmbedded: boole
         <section>
           <div class="flex items-center gap-2 mb-4">
             <h2 class="text-lg font-black text-slate-800 tracking-tight">01. 훈련직종 검색</h2>
-            <span class="px-2 py-0.5 rounded bg-blue-100 text-blue-600 text-[10px] font-bold">NCS API 연동</span>
+
           </div>
           
           <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">

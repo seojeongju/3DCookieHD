@@ -603,54 +603,7 @@
             if (firstForm) firstForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
 
-        function loadApprovedCoursesList() {
-            var container = document.getElementById('ncsApprovedCourseListContainer');
-            if (!container) return;
-            var token = localStorage.getItem('token');
-            fetch('/api/approved-courses?limit=50', { headers: token ? { 'Authorization': 'Bearer ' + token } : {} })
-                .then(function (r) { return r.json(); })
-                .then(function (json) {
-                    if (!json.success || !Array.isArray(json.data)) {
-                        var msg = json.error || '목록 로드 실패';
-                        container.innerHTML = '<div class="py-4 text-center text-red-500 text-sm">승인받은 과정 목록을 불러올 수 없습니다: ' + msg + '</div>';
-                        return;
-                    }
-                    var list = json.data;
-                    if (list.length === 0) {
-                        container.innerHTML = '<div class="py-4 text-center text-slate-500 text-sm">등록된 승인받은 과정이 없습니다. <a href="/admin/courses/approved/register" class="text-blue-600 hover:underline">교육과정 기초데이터에서 등록</a> 후 이용하세요.</div>';
-                        return;
-                    }
-                    function esc(s) { var t = document.createElement('span'); t.textContent = s == null ? '' : s; return t.innerHTML; }
-                    container.innerHTML = list.map(function (row) {
-                        var id = row.id;
-                        var name = esc(row.name || '-');
-                        var cat = esc(row.category_name || '');
-                        var reg = (row.registered_at || row.created_at || '').toString().slice(0, 10);
-                        return '<button type="button" class="ncs-approved-course-item w-full text-left px-4 py-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 hover:border-blue-300 transition flex flex-wrap items-center gap-2" data-approved-id="' + (id || '') + '">' +
-                            '<span class="font-medium text-slate-800">' + name + '</span>' +
-                            (cat ? '<span class="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-600">' + cat + '</span>' : '') +
-                            (reg ? '<span class="text-xs text-slate-400">' + reg + '</span>' : '') +
-                            '</button>';
-                    }).join('');
-                    container.querySelectorAll('.ncs-approved-course-item').forEach(function (btn) {
-                        btn.addEventListener('click', function () {
-                            var id = btn.getAttribute('data-approved-id');
-                            if (!id) return;
-                            fetch('/api/approved-courses/' + id, { headers: token ? { 'Authorization': 'Bearer ' + token } : {} })
-                                .then(function (r) { return r.json(); })
-                                .then(function (res) {
-                                    if (res.success && res.data) fillFormFromApprovedCourse(res.data);
-                                    else alert(res.error || '과정 정보를 불러올 수 없습니다.');
-                                })
-                                .catch(function () { alert('과정 정보를 불러오는 중 오류가 발생했습니다.'); });
-                        });
-                    });
-                })
-                .catch(function (e) {
-                    console.error(e);
-                    container.innerHTML = '<div class="py-4 text-center text-red-500 text-sm">목록을 불러오는 중 오류가 발생했습니다. (' + String(e) + ')</div>';
-                });
-        }
+
 
         function loadForEdit() {
             if (!editId) return;
@@ -755,7 +708,7 @@
                 })
                 .catch(function () { console.error('Embedded course load failed'); });
         } else {
-            loadApprovedCoursesList();
+            // loadApprovedCoursesList removed
         }
 
         loadLargeClasses().then(function () {

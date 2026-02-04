@@ -175,47 +175,13 @@ export function adminNcsViewerHtml(): string {
                             <span class="truncate font-medium">\${it[nameKey]}</span>
                         </div>
                         <div class="flex items-center gap-2">
-                             \${isJob ? \`<button onclick="event.stopPropagation(); window._syncJob('\${it[idKey]}', '\${it[nameKey].replace(/'/g, "\\\\'")}')" class="opacity-0 group-hover:opacity-100 p-1.5 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-600 hover:text-white transition-all text-[10px]" title="동기화"><i class="fas fa-sync-alt"></i></button>\` : ''}
                              <i class="fas fa-chevron-right text-[10px] text-slate-300 group-hover:text-blue-400"></i>
                         </div>
                     </div>
                 \`;}).join('');
             }
 
-            window._syncJob = async function(jobId, jobName) {
-                const fullCode = state.large + state.mid + state.small + jobId;
-                if(!confirm(\`[\${jobName}] 직종의 모든 NCS 데이터(NCS001~NCS006)를 DB로 동기화하시겠습니까?\`)) return;
 
-                const btn = event.currentTarget;
-                const originalHtml = btn.innerHTML;
-                btn.disabled = true;
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-
-                try {
-                    const res = await api('/approved/sync', 'POST', {
-                        subClassCode: fullCode,
-                        subClassName: jobName,
-                        largeName: state.largeName,
-                        midName: state.midName,
-                        smallName: state.smallName
-                    });
-
-                    if (res.success) {
-                        alert(\`동기화 완료!\\n\${res.message}\`);
-                        // 리스트 새로고침 (상태 반영)
-                        _ncsClick('listSmall', state.small, state.smallName);
-                        // 현재 선택된 직종이면 능력단위도 새로고침
-                        if (state.job === jobId) loadUnits(fullCode, jobName);
-                    } else {
-                        alert(\`실패: \${res.error}\`);
-                    }
-                } catch (e) {
-                    alert(\`오류: \${e}\`);
-                } finally {
-                    btn.disabled = false;
-                    btn.innerHTML = originalHtml;
-                }
-            };
 
             window._ncsClick = async function(listId, id, name) {
                 if (listId === 'listLarge') {
@@ -305,7 +271,7 @@ export function adminNcsViewerHtml(): string {
                     const units = res.data;
                     document.getElementById('unitTotalCount').textContent = '총 ' + units.length + '개';
                     if (units.length === 0) {
-                        unitTableBody.innerHTML = '<tr><td colspan="5" class="px-6 py-20 text-center text-slate-400 italic">조회된 능력단위가 없습니다. [동기화] 버튼을 눌러 데이터를 가져오세요.</td></tr>';
+                        unitTableBody.innerHTML = '<tr><td colspan="5" class="px-6 py-20 text-center text-slate-400 italic">조회된 능력단위가 없습니다. 직접 등록이 필요할 수 있습니다.</td></tr>';
                         return;
                     }
                     unitTableBody.innerHTML = units.map((u, idx) => \`
