@@ -279,12 +279,13 @@ export function adminNcsUploadHtml(): string {
                               }
 
                               // Find Names (Korean characters)
-                              if (colMap.unitName === -1 && colMap.unitCode !== -1) {
-                                  const ucIdx = colMap.unitCode;
-                                  const left = row[ucIdx - 1];
-                                  const right = row[ucIdx + 1];
-                                  if (left && typeof left === 'string' && /[가-힣]/.test(left)) colMap.unitName = ucIdx - 1;
-                                  else if (right && typeof right === 'string' && /[가-힣]/.test(right)) colMap.unitName = ucIdx + 1;
+                              // If neighbor check is insufficient, look for any column with Korean text
+                              if (colMap.unitName === -1) {
+                                  const kIdx = row.findIndex(function(c, idx) {
+                                      if (idx === colMap.unitCode || idx === colMap.level) return false;
+                                      return typeof c === 'string' && /[가-힣]/.test(c);
+                                  });
+                                  if (kIdx !== -1) colMap.unitName = kIdx;
                               }
                           }
                      }
@@ -293,8 +294,14 @@ export function adminNcsUploadHtml(): string {
 
                     // Extract Data
                     parsedData = results.data.slice(headerRowIndex + 1).map(function(row) {
-                         let uCode = (colMap.unitCode > -1 ? row[colMap.unitCode] : '') || '';
-                         let jCode = (colMap.jobCode > -1 ? row[colMap.jobCode] : '') || '';
+                         const clean = function(s) { 
+                             if (!s || typeof s !== 'string') return '';
+                             return s.replace(/[\uFFFD\uFEFF]/g, '').trim(); 
+                         };
+
+                         let uCode = clean(colMap.unitCode > -1 ? row[colMap.unitCode] : '');
+                         let jCode = clean(colMap.jobCode > -1 ? row[colMap.jobCode] : '');
+                         let uName = clean(colMap.unitName > -1 ? row[colMap.unitName] : '');
                          
                          // If occupation code is missing, derive from first 8 digits of unit code
                          if (!jCode && uCode) {
@@ -303,14 +310,14 @@ export function adminNcsUploadHtml(): string {
                          }
 
                          const item = {
-                            large: colMap.large > -1 ? row[colMap.large] : '',
-                            mid: colMap.mid > -1 ? row[colMap.mid] : '',
-                            small: colMap.small > -1 ? row[colMap.small] : '',
-                            jobName: colMap.jobName > -1 ? row[colMap.jobName] : '',
+                            large: colMap.large > -1 ? clean(row[colMap.large]) : '',
+                            mid: colMap.mid > -1 ? clean(row[colMap.mid]) : '',
+                            small: colMap.small > -1 ? clean(row[colMap.small]) : '',
+                            jobName: colMap.jobName > -1 ? clean(row[colMap.jobName]) : uName, // Fallback to unit name
                             jobCode: jCode,
-                            unitName: colMap.unitName > -1 ? row[colMap.unitName] : '',
+                            unitName: uName,
                             unitCode: uCode,
-                            level: colMap.level > -1 ? row[colMap.level] : '',
+                            level: colMap.level > -1 ? clean(row[colMap.level]) : '',
                             valid: true,
                             raw: row
                          };
