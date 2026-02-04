@@ -68,12 +68,140 @@ export function adminNcsUploadHtml(): string {
                         <div id="dropZone" class="border-2 border-dashed border-slate-200 rounded-xl p-10 text-center hover:bg-slate-50 hover:border-blue-300 transition-all cursor-pointer group relative">
                             <input type="file" id="csvFile" accept=".csv" class="hidden">
                              <!-- Encoding Selector -->
-                             <div class="absolute top-4 right-4 z-10" onclick="event.stopPropagation()">
+                            <div class="absolute top-4 right-4 z-10" onclick="event.stopPropagation()">
                                 <select id="encodingSelect" class="text-xs border-slate-200 rounded-lg text-slate-500 bg-white shadow-sm focus:ring-blue-500 focus:border-blue-500 p-1">
-                                    <option value="CP949">EUC-KR (Default)</option>
+                                    <option value="CP949">EUC-KR (CP949)</option>
+                                    <option value="EUC-KR">EUC-KR (Standard)</option>
                                     <option value="UTF-8">UTF-8</option>
                                 </select>
                             </div>
+                            <!-- ... -->
+
+        // ...
+
+        function parseFile(file, encoding, isRetry) {
+            if (isRetry === undefined) isRetry = false;
+            console.log('Parsing attempt with ' + encoding + '...');
+            
+            Papa.parse(file, {
+                header: false,
+                encoding: encoding, 
+                skipEmptyLines: true,
+                complete: function(results) {
+                    console.log('Parsed Raw (' + encoding + '):', results);
+                    
+                    if (results.data.length < 2) {
+                        if (!isRetry && (encoding === 'CP949' || encoding === 'EUC-KR')) {
+                            console.log('Zero records with EUC-KR, retrying UTF-8...');
+                            encodingSelect.value = 'UTF-8';
+                            parseFile(file, 'UTF-8', true);
+                            return;
+                        }
+                        alert('데이터가 없는 파일입니다.');
+                        return;
+                    }
+
+                    // Smart Header Detection
+                    let headerRowIndex = -1;
+                    let colMap = {
+                        large: -1, mid: -1, small: -1, 
+                        jobName: -1, jobCode: -1, 
+                        unitName: -1, unitCode: -1, level: -1
+                    };
+
+                    for (let i = 0; i < Math.min(results.data.length, 10); i++) {
+                        const row = results.data[i];
+                        if (row.some(function(cell) { return typeof cell === 'string' && (cell.includes('능력단위명') || cell.includes('직종명') || cell.includes('직종코드')); })) {
+                            headerRowIndex = i;
+                            colMap.large = row.findIndex(function(c) { return c.includes('대분류'); });
+                            colMap.mid = row.findIndex(function(c) { return c.includes('중분류'); });
+                            colMap.small = row.findIndex(function(c) { return c.includes('소분류'); });
+                            colMap.jobName = row.findIndex(function(c) { return c.includes('세분류') || c.includes('직종명'); });
+                            colMap.jobCode = row.findIndex(function(c) { return c.includes('세분류코드') || c.includes('직종코드'); });
+                            if (colMap.jobCode === -1) colMap.jobCode = colMap.jobName + 1; 
+
+                            colMap.unitName = row.findIndex(function(c) { return c.includes('능력단위명'); });
+                            colMap.unitCode = row.findIndex(function(c) { return c.includes('능력단위코드'); });
+                            colMap.level = row.findIndex(function(c) { return c.includes('수준'); });
+                            break;
+                        }
+                    }
+
+                    // AUTO-RETRY
+                    if (headerRowIndex === -1 && (encoding === 'CP949' || encoding === 'EUC-KR') && !isRetry) {
+                         console.warn('Header not found. Retrying with UTF-8...');
+                         encodingSelect.value = 'UTF-8'; 
+                         parseFile(file, 'UTF-8', true);
+                         return;
+                    }
+
+                    if (headerRowIndex === -1) {
+                        try {
+                           // If first cell looks like unit code, shift mapping
+                           if (/^\d{10}_\d{2}v\d$/.test(results.data[0][0])) {
+                               console.warn('Detected Unit Code at index 0. Adjusting default map.');
+                               // Guess: UnitCode, UnitName, Level, ???
+                               colMap = { large: -1, mid: -1, small: -1, jobName: -1, jobCode: -1, unitCode: 0, unitName: 1, level: 2 }; 
+                           } else {
+                               headerRowIndex = 0;
+                               colMap = { large: 0, mid: 1, small: 2, jobName: 3, jobCode: 4, unitName: 5, unitCode: 6, level: 7 };
+                           }
+                        } catch(e) { 
+                           headerRowIndex = 0;
+                           colMap = { large: 0, mid: 1, small: 2, jobName: 3, jobCode: 4, unitName: 5, unitCode: 6, level: 7 };
+                        }
+                    }
+
+                    // Extract Data (include invalid)
+                    parsedData = results.data.slice(headerRowIndex + 1).map(function(row) {
+                         const item = {
+                            large: row[colMap.large],
+                            mid: row[colMap.mid],
+                            small: row[colMap.small],
+                            jobName: row[colMap.jobName],
+                            jobCode: row[colMap.jobCode],
+                            unitName: row[colMap.unitName],
+                            unitCode: row[colMap.unitCode],
+                            level: row[colMap.level],
+                            valid: true
+                         };
+                         if (!item.unitCode) item.valid = false;
+                         return item;
+                    });
+                    
+                    const validCount = parsedData.filter(function(r){ return r.valid; }).length;
+                    console.log('Parsed Valid Data count (' + encoding + '): ' + validCount);
+                    
+                    if (validCount === 0 && parsedData.length === 0) {
+                        alert('유효한 데이터가 없습니다 (' + encoding + ').');
+                    } else if (validCount === 0) {
+                        // All invalid
+                        if (isRetry) alert('데이터 형식이 맞지 않습니다. 미리보기를 확인해주세요.');
+                    }
+
+                    showPreview();
+                },
+                error: function(err) {
+                    alert('CSV 파싱 오류: ' + err.message);
+                }
+            });
+        }
+        
+        function showPreview() {
+            previewArea.classList.remove('hidden');
+            document.getElementById('recordCount').textContent = '총 ' + parsedData.length + '건';
+            
+            previewBody.innerHTML = parsedData.slice(0, 5).map(function(r) {
+                const trClass = r.valid ? '' : 'bg-red-50 text-red-600';
+                return '<tr class="' + trClass + '">' +
+                    '<td class="px-4 py-2">' + (r.jobName || '-') + '</td>' +
+                    '<td class="px-4 py-2 font-mono text-slate-500">' + (r.jobCode || '-') + '</td>' +
+                    '<td class="px-4 py-2">' + (r.unitName || '-') + '</td>' +
+                    '<td class="px-4 py-2 font-mono text-slate-500">' + (r.unitCode || '-') + '</td>' +
+                    '<td class="px-4 py-2 text-center">' + (r.level || '-') + '</td>' +
+                '</tr>';
+            }).join('') + (parsedData.length > 5 ? '<tr><td colspan="5" class="px-4 py-2 text-center text-slate-400">...외 ' + (parsedData.length - 5) + '건</td></tr>' : '');
+        }
                             
                             <div class="text-slate-300 group-hover:text-blue-500 transition-colors mb-4">
                                 <i class="fas fa-cloud-upload-alt text-4xl"></i>
