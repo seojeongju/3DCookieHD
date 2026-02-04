@@ -159,16 +159,30 @@ export function adminNcsUploadHtml(): string {
         function handleFile(file) {
             currentFile = file;
             fileNameDisplay.textContent = file.name;
-            const encoding = encodingSelect.value;
-            console.log('Parsing with encoding:', encoding);
+            // Use selected value, or default to CP949 if clean start
+            const selectedEncoding = encodingSelect.value;
+            parseFile(file, selectedEncoding);
+        }
+
+        function parseFile(file, encoding, isRetry) {
+            if (isRetry === undefined) isRetry = false;
+            console.log('Parsing attempt with ' + encoding + '...');
             
             Papa.parse(file, {
                 header: false,
                 encoding: encoding, 
                 skipEmptyLines: true,
                 complete: function(results) {
-                    console.log('CSV Parsed Raw:', results);
+                    console.log('Parsed Raw (' + encoding + '): ', results);
+                    
                     if (results.data.length < 2) {
+                        if (!isRetry && encoding === 'CP949') {
+                            // Try UTF-8 if CP949 failed completely 
+                            console.log('Zero records with CP949, retrying UTF-8...');
+                            encodingSelect.value = 'UTF-8';
+                            parseFile(file, 'UTF-8', true);
+                            return;
+                        }
                         alert('데이터가 없는 파일입니다.');
                         return;
                     }
@@ -184,24 +198,32 @@ export function adminNcsUploadHtml(): string {
                     // Try to find header row containing specific keywords
                     for (let i = 0; i < Math.min(results.data.length, 10); i++) {
                         const row = results.data[i];
-                        if (row.some(cell => typeof cell === 'string' && cell.includes('능력단위명'))) {
+                        if (row.some(function(cell) { return typeof cell === 'string' && (cell.includes('능력단위명') || cell.includes('직종명') || cell.includes('직종코드')); })) {
                             headerRowIndex = i;
                             // Map columns dynamically
-                            colMap.large = row.findIndex(c => c.includes('대분류'));
-                            colMap.mid = row.findIndex(c => c.includes('중분류'));
-                            colMap.small = row.findIndex(c => c.includes('소분류'));
+                            colMap.large = row.findIndex(function(c) { return c.includes('대분류'); });
+                            colMap.mid = row.findIndex(function(c) { return c.includes('중분류'); });
+                            colMap.small = row.findIndex(function(c) { return c.includes('소분류'); });
                             // 세분류 or 직종명
-                            colMap.jobName = row.findIndex(c => c.includes('세분류') || c.includes('직종명'));
-                            colMap.jobCode = row.findIndex(c => c.includes('세분류코드') || c.includes('직종코드')); // Sometimes next to name
-                            if (colMap.jobCode === -1) colMap.jobCode = colMap.jobName + 1; // Fallback assumption
+                            colMap.jobName = row.findIndex(function(c) { return c.includes('세분류') || c.includes('직종명'); });
+                            colMap.jobCode = row.findIndex(function(c) { return c.includes('세분류코드') || c.includes('직종코드'); });
+                            if (colMap.jobCode === -1) colMap.jobCode = colMap.jobName + 1; 
 
-                            colMap.unitName = row.findIndex(c => c.includes('능력단위명'));
-                            colMap.unitCode = row.findIndex(c => c.includes('능력단위코드'));
-                            colMap.level = row.findIndex(c => c.includes('수준'));
+                            colMap.unitName = row.findIndex(function(c) { return c.includes('능력단위명'); });
+                            colMap.unitCode = row.findIndex(function(c) { return c.includes('능력단위코드'); });
+                            colMap.level = row.findIndex(function(c) { return c.includes('수준'); });
                             
                             console.log('Header Found at index:', i, 'Map:', colMap);
                             break;
                         }
+                    }
+
+                    // AUTO-RETRY LOGIC: If header not found and current is CP949, try UTF-8
+                    if (headerRowIndex === -1 && encoding === 'CP949' && !isRetry) {
+                        console.warn('Header not found with CP949. Retrying with UTF-8...');
+                        encodingSelect.value = 'UTF-8'; // Update UI
+                        parseFile(file, 'UTF-8', true);
+                        return;
                     }
 
                     // Fallback to default indices if header detection fails
@@ -212,10 +234,8 @@ export function adminNcsUploadHtml(): string {
                     }
 
                     // Extract Data
-                    parsedData = results.data.slice(headerRowIndex + 1).map((row, idx) => {
-                         // Debug first row mapping
+                    parsedData = results.data.slice(headerRowIndex + 1).map(function(row, idx) {
                          if (idx === 0) console.log('First Data Row:', row);
-                         
                          return {
                             large: row[colMap.large],
                             mid: row[colMap.mid],
@@ -226,16 +246,21 @@ export function adminNcsUploadHtml(): string {
                             unitCode: row[colMap.unitCode],
                             level: row[colMap.level]
                          };
-                    }).filter(r => {
+                    }).filter(function(r) {
                         const isValid = r.unitCode && r.jobCode;
                         if (!isValid && parsedData.length < 5) console.warn('Invalid Row:', r);
                         return isValid;
                     });
                     
-                    console.log('Parsed Valid Data count:', parsedData.length);
+                    console.log('Parsed Valid Data count (' + encoding + '): ', parsedData.length);
                     
                     if (parsedData.length === 0) {
-                        alert('유효한 데이터가 없습니다. (CSV 헤더나 인코딩을 확인해주세요. F12 개발자 도구 콘솔 참고)');
+                        if (isRetry) {
+                            alert('데이터를 읽을 수 없습니다. (헤더 감지 실패). 파일 인코딩(UTF-8/EUC-KR)을 확인해주세요.');
+                        } else {
+                            // If first try failed (e.g. UTF-8 manual selection), show alert
+                            alert('유효한 데이터가 없습니다 (' + encoding + '). 다른 인코딩을 선택해보세요.');
+                        }
                     }
 
                     showPreview();
