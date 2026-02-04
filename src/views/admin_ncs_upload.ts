@@ -31,7 +31,7 @@ export function adminNcsUploadHtml(): string {
             
             <header class="bg-white/80 backdrop-blur-md border-b border-slate-200/60 sticky top-0 z-20 px-8 py-5 flex justify-between items-center">
                 <div class="flex items-center gap-4">
-                    <h1 class="text-2xl font-black text-slate-900 tracking-tight">NCS 데이터 업로드</h1>
+                    <h1 class="text-2xl font-black text-slate-900 tracking-tight">NCS 데이터 업로드 (v2)</h1>
                     <span class="px-2.5 py-0.5 bg-indigo-500 text-white text-[10px] font-black rounded-lg uppercase tracking-widest">OFFLINE DATA</span>
                 </div>
             </header>
@@ -125,6 +125,7 @@ export function adminNcsUploadHtml(): string {
     </div>
 
     <script>
+        console.log('NCS Upload Script Initializing...');
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('csvFile');
         const fileNameDisplay = document.getElementById('fileName');
@@ -139,8 +140,13 @@ export function adminNcsUploadHtml(): string {
         let parsedData = [];
         let currentFile = null;
 
+        if (!dropZone || !fileInput) {
+            console.error('Essential DOM elements missing!');
+        }
+
         // Drag & Drop
         dropZone.addEventListener('click', function() { 
+            console.log('DropZone clicked');
             if(fileInput) fileInput.click(); 
         });
         
@@ -171,6 +177,7 @@ export function adminNcsUploadHtml(): string {
         }
 
         function handleFile(file) {
+            console.log('Handling file:', file.name);
             currentFile = file;
             fileNameDisplay.textContent = file.name;
             const selectedEncoding = encodingSelect ? encodingSelect.value : 'CP949';
@@ -190,7 +197,7 @@ export function adminNcsUploadHtml(): string {
                     
                     if (results.data.length < 2) {
                         if (!isRetry && (encoding === 'CP949' || encoding === 'EUC-KR')) {
-                            console.log('Zero records with EUC-KR, retrying UTF-8...');
+                            console.log('Zero records, retrying UTF-8...');
                             if (encodingSelect) encodingSelect.value = 'UTF-8';
                             parseFile(file, 'UTF-8', true);
                             return;
@@ -199,7 +206,6 @@ export function adminNcsUploadHtml(): string {
                         return;
                     }
 
-                    // --- Smart Column Detection (Content-Based) ---
                     let headerRowIndex = -1;
                     let colMap = {
                         large: -1, mid: -1, small: -1, 
@@ -207,100 +213,74 @@ export function adminNcsUploadHtml(): string {
                         unitName: -1, unitCode: -1, level: -1
                     };
                     
-                     // 1. Try Header Keywords first
-                     const keywords = {
-                         large: ['대분류'],
-                         mid: ['중분류'],
-                         small: ['소분류'],
-                         jobName: ['세분류명', '직종명', '세분류'],
-                         jobCode: ['세분류코드', '직종코드'],
-                         unitName: ['명칭', '능력단위명', '능력단위'],
-                         unitCode: ['분류번호', '능력단위코드', '단위코드', '능력단위_코드', '코드'],
-                         level: ['수준', '레벨', 'level']
-                     };
+                    const keywords = {
+                        large: ['대분류'], mid: ['중분류'], small: ['소분류'],
+                        jobName: ['세분류명', '직종명', '세분류'],
+                        jobCode: ['세분류코드', '직종코드'],
+                        unitName: ['명칭', '능력단위명', '능력단위'],
+                        unitCode: ['분류번호', '능력단위코드', '단위코드', '코드'],
+                        level: ['수준', '레벨', 'level']
+                    };
 
-                     for (let i = 0; i < Math.min(results.data.length, 20); i++) {
-                         const row = results.data[i];
-                         const hasKeys = row.some(function(cell) { 
-                             if (typeof cell !== 'string') return false;
-                             const c = cell.trim();
-                             return c.includes('코드') || c.includes('분류') || c.includes('단위') || c.includes('수준');
-                         });
-                         
-                         if (hasKeys) {
-                             headerRowIndex = i;
-                             const findIndex = function(keys) {
-                                 return row.findIndex(function(c) {
-                                     if (typeof c !== 'string') return false;
-                                     const trimmed = c.trim();
-                                     return keys.some(function(k) { return trimmed.includes(k); });
+                    for (let i = 0; i < Math.min(results.data.length, 20); i++) {
+                        const row = results.data[i];
+                        const hasKeys = row.some(function(cell) { 
+                            if (typeof cell !== 'string') return false;
+                            const c = cell.trim();
+                            return c.includes('코드') || c.includes('분류') || c.includes('단위') || c.includes('수준');
+                        });
+                        
+                        if (hasKeys) {
+                            headerRowIndex = i;
+                            const findIndex = function(keys) {
+                                return row.findIndex(function(c) {
+                                    if (typeof c !== 'string') return false;
+                                    const trimmed = c.trim();
+                                    return keys.some(function(k) { return trimmed.includes(k); });
+                                });
+                            };
+                            colMap.large = findIndex(keywords.large);
+                            colMap.mid = findIndex(keywords.mid);
+                            colMap.small = findIndex(keywords.small);
+                            colMap.jobName = findIndex(keywords.jobName);
+                            colMap.jobCode = findIndex(keywords.jobCode);
+                            colMap.unitName = findIndex(keywords.unitName);
+                            colMap.unitCode = findIndex(keywords.unitCode);
+                            colMap.level = findIndex(keywords.level);
+                            break;
+                        }
+                    }
+
+                    if (colMap.unitCode === -1 && results.data.length > 0) {
+                         for (let i = 0; i < Math.min(results.data.length, 10); i++) {
+                             const row = results.data[i];
+                             if (colMap.unitCode === -1) {
+                                 const uIdx = row.findIndex(function(c) {
+                                     if (typeof c !== 'string' || !c) return false;
+                                     return /^[a-zA-Z0-9_]{6,25}$/.test(c.trim()) && /[0-9]/.test(c.trim());
                                  });
-                             };
-                             
-                             colMap.large = findIndex(keywords.large);
-                             colMap.mid = findIndex(keywords.mid);
-                             colMap.small = findIndex(keywords.small);
-                             colMap.jobName = findIndex(keywords.jobName);
-                             colMap.jobCode = findIndex(keywords.jobCode);
-                             colMap.unitName = findIndex(keywords.unitName);
-                             colMap.unitCode = findIndex(keywords.unitCode);
-                             colMap.level = findIndex(keywords.level);
-                             
-                             console.log('Header Found at index:', i, 'Map:', colMap);
-                             break;
+                                 if (uIdx !== -1) colMap.unitCode = uIdx;
+                             }
+                             if (colMap.level === -1) {
+                                 const lIdx = row.findIndex(function(c) {
+                                     return c && /^[1-8]$/.test(String(c).trim());
+                                 });
+                                 if (lIdx !== -1) colMap.level = lIdx;
+                             }
+                             if (colMap.unitName === -1) {
+                                 for (let j = 0; j < row.length; j++) {
+                                     if (j === colMap.unitCode || j === colMap.level) continue;
+                                     if (row[j] && /[가-힣]/.test(row[j])) { colMap.unitName = j; break; }
+                                 }
+                             }
                          }
-                     }
+                    }
+                    
+                    log('분석 구조: 코드=' + (colMap.unitCode + 1) + ', 명칭=' + (colMap.unitName + 1) + ', 수준=' + (colMap.level + 1));
 
-                     // 2. Content-Based Detection (Attempt this if Header fails or is incomplete)
-                     if (colMap.unitCode === -1 && results.data.length > 0) {
-                          console.log('Header detection incomplete. Attempting content-based detection...');
-                          
-                          // Check first 10 rows to find a pattern
-                          for (let i = 0; i < Math.min(results.data.length, 10); i++) {
-                              const row = results.data[i];
-                              
-                              // Find Unit Code (Alphanumeric 6-25 chars)
-                              if (colMap.unitCode === -1) {
-                                  const uIdx = row.findIndex(function(c) {
-                                      if (typeof c !== 'string' || !c) return false;
-                                      const trimmed = c.trim();
-                                      return /^[a-zA-Z0-9_]{6,25}$/.test(trimmed) && /[0-9]/.test(trimmed);
-                                  });
-                                  if (uIdx !== -1) colMap.unitCode = uIdx;
-                              }
-
-                              // Find Level (Single digit 1-8)
-                              if (colMap.level === -1) {
-                                  const lIdx = row.findIndex(function(c) {
-                                      if (typeof c !== 'string' || !c) return false;
-                                      return /^[1-8]$/.test(c.trim());
-                                  });
-                                  if (lIdx !== -1) colMap.level = lIdx;
-                              }
-
-                              // Find Names (Korean characters)
-                              if (colMap.unitName === -1) {
-                                  for (let j = 0; j < row.length; j++) {
-                                      if (j === colMap.unitCode || j === colMap.level) continue;
-                                      const cell = row[j];
-                                      if (cell && typeof cell === 'string' && /[가-힣]/.test(cell)) {
-                                          colMap.unitName = j;
-                                          console.log('Detected unitName column at index', j, 'from content:', cell);
-                                          break;
-                                      }
-                                  }
-                              }
-                          }
-                     }
-                     
-                     log('분석된 컬럼 구조: 코드=' + (colMap.unitCode + 1) + ', 명칭=' + (colMap.unitName + 1) + ', 수준=' + (colMap.level + 1));
-
-                    // Extract Data
                     const clean = function(s) { 
                         if (!s) return '';
-                        if (typeof s !== 'string') s = String(s);
-                        // Remove BOM, Replacement characters, and other control chars
-                        return s.replace(/[\uFFFD\uFEFF\u0000-\u001F\u007F-\u009F]/g, '').trim(); 
+                        return String(s).replace(/[\uFFFD\uFEFF\u0000-\u001F\u007F-\u009F]/g, '').trim(); 
                     };
 
                     parsedData = results.data.map(function(row) {
@@ -308,48 +288,24 @@ export function adminNcsUploadHtml(): string {
                          let uName = clean(colMap.unitName > -1 ? row[colMap.unitName] : '');
                          let levelVal = clean(colMap.level > -1 ? row[colMap.level] : '');
                          let jCode = clean(colMap.jobCode > -1 ? row[colMap.jobCode] : '');
-                         
-                         // Skip rows that look like headers or are too short to be real data
                          if (uCode.includes('번호') || uCode.includes('코드') || uCode.length < 3) return null;
-
-                         // Derive occupation code from unit code (first 8 digits)
                          if (!jCode && uCode) {
                              const digits = uCode.replace(/[^0-9]/g, '');
                              if (digits.length >= 8) jCode = digits.substring(0, 8);
                          }
-
                          return {
                             large: colMap.large > -1 ? clean(row[colMap.large]) : '',
                             mid: colMap.mid > -1 ? clean(row[colMap.mid]) : '',
                             small: colMap.small > -1 ? clean(row[colMap.small]) : '',
                             jobName: colMap.jobName > -1 ? clean(row[colMap.jobName]) : uName,
-                            jobCode: jCode,
-                            unitName: uName,
-                            unitCode: uCode,
-                            level: levelVal,
-                            valid: (!!uCode && !!uName),
-                            raw: row
+                            jobCode: jCode, unitName: uName, unitCode: uCode, level: levelVal,
+                            valid: (!!uCode && !!uName), raw: row
                          };
                     }).filter(function(x) { return x !== null; });
                     
-                    const validCount = parsedData.filter(function(r){ return r.valid; }).length;
-                    console.log('Parsed Valid Data count (' + encoding + '): ' + validCount);
-                    
-                    if (validCount === 0) {
-                        let firstRowDump = '';
-                        if (results.data.length > 0) {
-                             firstRowDump = '\\n\\n파일의 첫 줄 내용:\\n' + JSON.stringify(results.data[0]);
-                        }
-                        
-                        if (isRetry) {
-                            alert('데이터 형식을 인식할 수 없거나 유효한 능력단위코드가 없습니다.\\n' + 
-                                  '수동 선택 옵션이 없으므로 파일 형식을 확인해주세요.' + firstRowDump);
-                        } else if (!(encoding === 'CP949' || encoding === 'EUC-KR')) {
-                             // If not retry and not CP949 (meaning it was UTF-8 from start), show alert
-                             alert('유효한 데이터가 없습니다.' + firstRowDump);
-                        }
+                    if (parsedData.length === 0) {
+                        alert('유효한 데이터가 없습니다. 파일 형식을 확인해주세요.');
                     }
-
                     showPreview();
                 },
                 error: function(err) {
@@ -361,7 +317,6 @@ export function adminNcsUploadHtml(): string {
         function showPreview() {
             previewArea.classList.remove('hidden');
             document.getElementById('recordCount').textContent = '총 ' + parsedData.length + '건';
-            
             previewBody.innerHTML = parsedData.slice(0, 10).map(function(r) {
                 const trClass = r.valid ? '' : 'bg-red-50 text-red-600';
                 return '<tr class="' + trClass + '">' +
@@ -371,7 +326,7 @@ export function adminNcsUploadHtml(): string {
                     '<td class="px-4 py-2 font-mono text-slate-500">' + (r.unitCode || '-') + '</td>' +
                     '<td class="px-4 py-2 text-center">' + (r.level || '-') + '</td>' +
                 '</tr>';
-            }).join('') + (parsedData.length > 10 ? '<tr><td colspan="5" class="px-4 py-2 text-center text-slate-400 font-italic">...외 ' + (parsedData.length - 10) + '건 (' + parsedData.filter(function(x){return !x.valid}).length + '건 무효)</td></tr>' : '');
+            }).join('') + (parsedData.length > 10 ? '<tr><td colspan="5" class="px-4 py-2 text-center text-slate-400">...외 ' + (parsedData.length - 10) + '건</td></tr>' : '');
         }
 
         function log(msg) {
@@ -383,12 +338,8 @@ export function adminNcsUploadHtml(): string {
 
         btnUpload.addEventListener('click', async () => {
             const validData = parsedData.filter(function(r) { return r.valid; });
-            if (validData.length === 0) {
-                alert('업로드할 유효한 데이터가 없습니다.');
-                return;
-            }
-            
-            if (!confirm('총 ' + validData.length + '건 (무효 ' + (parsedData.length - validData.length) + '건 제외)의 데이터를 업로드하시겠습니까?\\n기존 데이터는 업데이트됩니다.')) return;
+            if (validData.length === 0) { alert('업로드할 데이터가 없습니다.'); return; }
+            if (!confirm(validData.length + '건의 데이터를 업로드하시겠습니까?')) return;
 
             btnUpload.disabled = true;
             progressArea.classList.remove('hidden');
@@ -405,45 +356,29 @@ export function adminNcsUploadHtml(): string {
                 try {
                     const headers = { 'Content-Type': 'application/json' };
                     if (token) headers['Authorization'] = 'Bearer ' + token;
-                    
                     const res = await fetch('/api/ncs/upload', {
                         method: 'POST',
                         headers: headers,
                         body: JSON.stringify({ items: batch })
                     });
-                    
-                    if (res.status === 401) {
-                        throw new Error('인증 세션이 만료되었습니다. 다시 로그인해주세요.');
-                    }
-                    
+                    if (res.status === 401) throw new Error('세션 만료. 다시 로그인해주세요.');
                     if (!res.ok) throw new Error('HTTP ' + res.status);
                     
-                    const result = await res.json();
-                    if (!result.success) throw new Error(result.error);
-
                     const progress = Math.round(((i + 1) / totalBatches) * 100);
                     progressBar.style.width = progress + '%';
                     document.getElementById('progressPercent').textContent = progress + '%';
-                    log('배치 ' + (i + 1) + '/' + totalBatches + ' 완료 (' + batch.length + '건)');
-
+                    log('배치 ' + (i + 1) + '/' + totalBatches + ' 완료');
                 } catch (e) {
-                    log('[오류] 배치 ' + (i + 1) + ' 실패: ' + e.message);
-                    console.error(e);
-                    alert('업로드 중 오류가 발생했습니다: ' + e.message);
+                    log('[오류] ' + e.message);
+                    alert('오류 발생: ' + e.message);
                     btnUpload.disabled = false;
-                    previewArea.classList.remove('opacity-50');
                     return;
                 }
             }
-
-            log('모든 데이터 업로드 완료!');
+            log('완료!');
             progressBar.classList.add('bg-green-500');
-            document.getElementById('progressStatus').textContent = '완료됨';
-            document.getElementById('progressPercent').className = 'text-green-600';
-            
             alert('성공적으로 업로드되었습니다.');
             btnUpload.disabled = false;
-            previewArea.classList.remove('opacity-50');
         });
     </script>
 </body>
