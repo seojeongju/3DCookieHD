@@ -146,7 +146,8 @@ export function adminNcsUploadHtml(): string {
             fileNameDisplay.textContent = file.name;
             
             Papa.parse(file, {
-                header: false, // 배열로 받아서 인덱스로 처리 (헤더가 한글일수도 영어일수도 있으므로)
+                header: false,
+                encoding: 'CP949', // Support Korean text (EUC-KR/CP949)
                 skipEmptyLines: true,
                 complete: function(results) {
                     if (results.data.length < 2) {

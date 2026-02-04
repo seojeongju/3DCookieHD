@@ -99,16 +99,35 @@ class NcsScraper:
             resp.raise_for_status()
             
             # The API returns JSON string, often messy.
-            data = resp.json()
-            # NCS API often wraps in "body" -> "items".
-            # Or "data".
-            # Let's inspect generic structure or return raw list.
-            if "body" in data:
-                return data["body"].get("items", [])
-            elif "response" in data:
-                 return data["response"].get("body", {}).get("items", [])
+            try:
+                data = resp.json()
+            except json.JSONDecodeError:
+                print(f"    !! JSON Decode Error for {operation}. Body sample: {resp.text[:100]}")
+                return []
+            
+            # Debug: Print keys if uncertain
+            # print(f"DEBUG: {operation} keys: {data.keys()}")
+
+            items = []
+            if "data" in data and isinstance(data["data"], list):
+                items = data["data"]
+            elif "body" in data and "items" in data["body"]:
+                items = data["body"]["items"]
+            elif "response" in data and "body" in data["response"] and "items" in data["response"]["body"]:
+                items = data["response"]["body"]["items"]
+            elif "result" in data and isinstance(data["result"], list): # Some APIs
+                items = data["result"]
             else:
-                 return data # Fallback
+                # Some APIs return { "item": [...] } structure
+                pass
+
+            # Normalize: If items is dict (single item), wrap in list
+            if isinstance(items, dict):
+                items = [items]
+            elif not isinstance(items, list):
+                items = [] # Fallback if items is None or other type
+            
+            return items
                  
         except Exception as e:
             print(f"Error fetching {operation} with {params}: {e}")
