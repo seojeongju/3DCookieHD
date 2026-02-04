@@ -68,15 +68,14 @@ export function adminNcsUploadHtml(): string {
                         <div id="dropZone" class="border-2 border-dashed border-slate-200 rounded-xl p-10 text-center hover:bg-slate-50 hover:border-blue-300 transition-all cursor-pointer group relative">
                             <input type="file" id="csvFile" accept=".csv" class="hidden">
                              <!-- Encoding Selector -->
-                            <div class="absolute top-4 right-4 z-10" onclick="event.stopPropagation()">
+                             <div class="absolute top-4 right-4 z-10" onclick="event.stopPropagation()">
                                 <select id="encodingSelect" class="text-xs border-slate-200 rounded-lg text-slate-500 bg-white shadow-sm focus:ring-blue-500 focus:border-blue-500 p-1">
-                                    <option value="CP949">EUC-KR (CP949)</option>
-                                    <option value="EUC-KR">EUC-KR (Standard)</option>
+                                    <option value="CP949">EUC-KR (Default)</option>
+                                    <option value="EUC-KR">EUC-KR (Alt)</option>
                                     <option value="UTF-8">UTF-8</option>
                                 </select>
                             </div>
-                            <!-- ... -->
-
+                            
                             <div class="text-slate-300 group-hover:text-blue-500 transition-colors mb-4">
                                 <i class="fas fa-cloud-upload-alt text-4xl"></i>
                             </div>
@@ -141,28 +140,40 @@ export function adminNcsUploadHtml(): string {
         let currentFile = null;
 
         // Drag & Drop
-        dropZone.addEventListener('click', () => fileInput.click());
-        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('bg-blue-50', 'border-blue-300'); });
-        dropZone.addEventListener('dragleave', (e) => { e.preventDefault(); dropZone.classList.remove('bg-blue-50', 'border-blue-300'); });
-        dropZone.addEventListener('drop', (e) => {
+        dropZone.addEventListener('click', function() { 
+            if(fileInput) fileInput.click(); 
+        });
+        
+        dropZone.addEventListener('dragover', function(e) { 
+            e.preventDefault(); 
+            dropZone.classList.add('bg-blue-50', 'border-blue-300'); 
+        });
+        
+        dropZone.addEventListener('dragleave', function(e) { 
+            e.preventDefault(); 
+            dropZone.classList.remove('bg-blue-50', 'border-blue-300'); 
+        });
+        
+        dropZone.addEventListener('drop', function(e) {
             e.preventDefault();
             dropZone.classList.remove('bg-blue-50', 'border-blue-300');
             if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
         });
 
-        fileInput.addEventListener('change', (e) => {
+        fileInput.addEventListener('change', function(e) {
             if (e.target.files.length) handleFile(e.target.files[0]);
         });
         
-        encodingSelect.addEventListener('change', () => {
-             if (currentFile) handleFile(currentFile);
-        });
+        if (encodingSelect) {
+            encodingSelect.addEventListener('change', function() {
+                 if (currentFile) handleFile(currentFile);
+            });
+        }
 
         function handleFile(file) {
             currentFile = file;
             fileNameDisplay.textContent = file.name;
-            // Use selected value, or default to CP949 if clean start
-            const selectedEncoding = encodingSelect.value;
+            const selectedEncoding = encodingSelect ? encodingSelect.value : 'CP949';
             parseFile(file, selectedEncoding);
         }
 
@@ -180,7 +191,7 @@ export function adminNcsUploadHtml(): string {
                     if (results.data.length < 2) {
                         if (!isRetry && (encoding === 'CP949' || encoding === 'EUC-KR')) {
                             console.log('Zero records with EUC-KR, retrying UTF-8...');
-                            encodingSelect.value = 'UTF-8';
+                            if (encodingSelect) encodingSelect.value = 'UTF-8';
                             parseFile(file, 'UTF-8', true);
                             return;
                         }
@@ -219,7 +230,7 @@ export function adminNcsUploadHtml(): string {
                     // AUTO-RETRY if Header Failed (and assume it's checking encoding first)
                     if (headerRowIndex === -1 && (encoding === 'CP949' || encoding === 'EUC-KR') && !isRetry) {
                          console.warn('Header not found. Retrying with UTF-8...');
-                         encodingSelect.value = 'UTF-8'; 
+                         if (encodingSelect) encodingSelect.value = 'UTF-8'; 
                          parseFile(file, 'UTF-8', true);
                          return;
                     }
@@ -228,14 +239,11 @@ export function adminNcsUploadHtml(): string {
                     if (headerRowIndex === -1) {
                          console.warn('Header detection failed. Attempting content-based detection...');
                          
-                         // Sample first non-empty row (assume row 0 is data if no header found)
                          const sampleRow = results.data[0];
-                         console.log('Sample Row for detection:', sampleRow);
-
+                         
                          // Detect Unit Code (Pattern: 10 digits _ 2 digits v version)
-                         // e.g. 2404040208_19v2
                          colMap.unitCode = sampleRow.findIndex(function(c) { 
-                             return typeof c === 'string' && /^\d{10}_\d+v\d+/.test(c.trim());
+                             return typeof c === 'string' && /^\\d{10}_\\d+v\\d+/.test(c.trim());
                          });
 
                          // Detect Level (Single digit 1-8)
@@ -243,10 +251,7 @@ export function adminNcsUploadHtml(): string {
                              return typeof c === 'string' && /^[1-8]$/.test(c.trim());
                          });
                          
-                         // Detect Korean Names (Assume Unit Name is the longest Korean string?)
-                         // Simple heuristic: Unit Name usually contains '하기' or is descriptive.
-                         // Job Name is usually shorter.
-                         
+                         // Detect Korean Names
                          const koreanCols = sampleRow.map(function(c, i) {
                              return { index: i, val: c, length: (c && /[가-힣]/.test(c)) ? c.length : 0 };
                          }).filter(function(x) { return x.length > 0; }).sort(function(a, b) { return b.length - a.length; });
@@ -256,10 +261,6 @@ export function adminNcsUploadHtml(): string {
                              colMap.unitName = koreanCols[0].index;
                              
                              if (koreanCols.length > 1) {
-                                 // Second longest might be Job Name or Description
-                                 // Let's assume indices relative to Unit Code if possible?
-                                 // If UnitCode is 0, UnitName is usually 1.
-                                 // If we found UnitCode at 0, and Korean at 1, map it.
                                  if (colMap.unitCode !== -1) {
                                      // Prefer column next to code?
                                      const neighbor = koreanCols.find(function(k) { return Math.abs(k.index - colMap.unitCode) === 1; });
@@ -267,7 +268,6 @@ export function adminNcsUploadHtml(): string {
                                  }
                              }
                          }
-
                          console.log('Content-Based Map:', colMap);
                     }
 
@@ -283,10 +283,9 @@ export function adminNcsUploadHtml(): string {
                             unitCode: colMap.unitCode > -1 ? row[colMap.unitCode] : '',
                             level: colMap.level > -1 ? row[colMap.level] : '',
                             valid: true,
-                            raw: row // Store raw for debug
+                            raw: row
                          };
                          
-                         // Validation: Must have Unit Code
                          if (!item.unitCode) item.valid = false;
                          return item;
                     });
@@ -297,10 +296,9 @@ export function adminNcsUploadHtml(): string {
                     if (validCount === 0 && parsedData.length === 0) {
                          alert('유효한 데이터가 없습니다 (' + encoding + ').');
                     } else if (validCount === 0) {
-                        // All invalid
                         let firstRowDump = '';
                         if (parsedData.length > 0) {
-                             firstRowDump = '\n첫 행 데이터: ' + JSON.stringify(parsedData[0].raw).substring(0, 100) + '...';
+                             firstRowDump = '\\n첫 행 데이터: ' + JSON.stringify(parsedData[0].raw).substring(0, 100) + '...';
                         }
                         if (isRetry) alert('데이터 형식을 인식할 수 없습니다. (헤더 없음, 코드 패턴 불일치)' + firstRowDump);
                     }
@@ -317,7 +315,6 @@ export function adminNcsUploadHtml(): string {
             previewArea.classList.remove('hidden');
             document.getElementById('recordCount').textContent = '총 ' + parsedData.length + '건';
             
-            // 처음 5개만 보여주기
             previewBody.innerHTML = parsedData.slice(0, 5).map(function(r) {
                 const trClass = r.valid ? '' : 'bg-red-50 text-red-600';
                 return '<tr class="' + trClass + '">' +
