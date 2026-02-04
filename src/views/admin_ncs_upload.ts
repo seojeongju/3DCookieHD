@@ -258,56 +258,58 @@ export function adminNcsUploadHtml(): string {
                           // Check first 10 rows to find a pattern
                           for (let i = 0; i < Math.min(results.data.length, 10); i++) {
                               const row = results.data[i];
-                              const foundIdx = row.findIndex(function(c) {
-                                  if (typeof c !== 'string' || !c) return false;
-                                  const trimmed = c.trim();
-                                  // NCS Code Regex: Alphanumeric + underscore, length 6-25
-                                  // Supports: 1401010101_14v3, 0101010101_17v2, etc.
-                                  return /^[a-zA-Z0-9_]{6,25}$/.test(trimmed) && /[0-9]/.test(trimmed);
-                              });
                               
-                              if (foundIdx !== -1) {
-                                  colMap.unitCode = foundIdx;
-                                  // If we found a code, check neighbors for names (Korean characters)
-                                  if (colMap.unitName === -1) {
-                                      const left = row[foundIdx - 1];
-                                      const right = row[foundIdx + 1];
-                                      if (left && typeof left === 'string' && /[가-힣]/.test(left)) colMap.unitName = foundIdx - 1;
-                                      else if (right && typeof right === 'string' && /[가-힣]/.test(right)) colMap.unitName = foundIdx + 1;
-                                  }
-                                  console.log('Content-Based UnitCode match at row', i, 'column', foundIdx);
-                                  break;
+                              // Find Unit Code (Alphanumeric 6-25 chars)
+                              if (colMap.unitCode === -1) {
+                                  const uIdx = row.findIndex(function(c) {
+                                      if (typeof c !== 'string' || !c) return false;
+                                      const trimmed = c.trim();
+                                      return /^[a-zA-Z0-9_]{6,25}$/.test(trimmed) && /[0-9]/.test(trimmed);
+                                  });
+                                  if (uIdx !== -1) colMap.unitCode = uIdx;
+                              }
+
+                              // Find Level (Single digit 1-8)
+                              if (colMap.level === -1) {
+                                  const lIdx = row.findIndex(function(c) {
+                                      if (typeof c !== 'string' || !c) return false;
+                                      return /^[1-8]$/.test(c.trim());
+                                  });
+                                  if (lIdx !== -1) colMap.level = lIdx;
+                              }
+
+                              // Find Names (Korean characters)
+                              if (colMap.unitName === -1 && colMap.unitCode !== -1) {
+                                  const ucIdx = colMap.unitCode;
+                                  const left = row[ucIdx - 1];
+                                  const right = row[ucIdx + 1];
+                                  if (left && typeof left === 'string' && /[가-힣]/.test(left)) colMap.unitName = ucIdx - 1;
+                                  else if (right && typeof right === 'string' && /[가-힣]/.test(right)) colMap.unitName = ucIdx + 1;
                               }
                           }
                      }
                      
-                     // Final check: if we have any column, log it
-                     log('매핑 분석 결과: 코드 컬럼=' + (colMap.unitCode + 1) + ', 명칭 컬럼=' + (colMap.unitName + 1));
-                     if (results.data.length > 0) {
-                         const sample = results.data.slice(0, 3).map(function(r) { return r.join(' | '); }).join('\\n');
-                         log('데이터 샘플 (상위 3줄):\\n' + sample);
-                     }
-
-                    // AUTO-RETRY if Header Failed AND Content Detection Failed
-                    const contentDetectionFailed = (colMap.unitCode === -1);
-                    
-                    if (headerRowIndex === -1 && contentDetectionFailed && (encoding === 'CP949' || encoding === 'EUC-KR') && !isRetry) {
-                         console.warn('Both Header and Content detection failed. Retrying with UTF-8...');
-                         if (encodingSelect) encodingSelect.value = 'UTF-8'; 
-                         parseFile(file, 'UTF-8', true);
-                         return;
-                    }
+                     log('매핑 분석 결과: 코드=' + (colMap.unitCode + 1) + ', 명칭=' + (colMap.unitName + 1) + ', 수준=' + (colMap.level + 1));
 
                     // Extract Data
                     parsedData = results.data.slice(headerRowIndex + 1).map(function(row) {
+                         let uCode = (colMap.unitCode > -1 ? row[colMap.unitCode] : '') || '';
+                         let jCode = (colMap.jobCode > -1 ? row[colMap.jobCode] : '') || '';
+                         
+                         // If occupation code is missing, derive from first 8 digits of unit code
+                         if (!jCode && uCode) {
+                             const digits = uCode.replace(/[^0-9]/g, '');
+                             if (digits.length >= 8) jCode = digits.substring(0, 8);
+                         }
+
                          const item = {
                             large: colMap.large > -1 ? row[colMap.large] : '',
                             mid: colMap.mid > -1 ? row[colMap.mid] : '',
                             small: colMap.small > -1 ? row[colMap.small] : '',
                             jobName: colMap.jobName > -1 ? row[colMap.jobName] : '',
-                            jobCode: colMap.jobCode > -1 ? row[colMap.jobCode] : '',
+                            jobCode: jCode,
                             unitName: colMap.unitName > -1 ? row[colMap.unitName] : '',
-                            unitCode: colMap.unitCode > -1 ? row[colMap.unitCode] : '',
+                            unitCode: uCode,
                             level: colMap.level > -1 ? row[colMap.level] : '',
                             valid: true,
                             raw: row
