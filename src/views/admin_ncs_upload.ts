@@ -228,9 +228,9 @@ export function adminNcsUploadHtml(): string {
                     
                     const keywords = {
                         large: ['대분류'], mid: ['중분류'], small: ['소분류'],
-                        jobName: ['세분류명', '직종명', '세분류'],
+                        jobName: ['세분류명칭', '직종명칭', '세분류명', '직종명'], 
                         jobCode: ['세분류코드', '직종코드'],
-                        unitName: ['명칭', '능력단위명', '능력단위'],
+                        unitName: ['명칭', '능력단위명칭', '능력단위명'], 
                         unitCode: ['분류번호', '능력단위코드', '단위코드', '코드'],
                         level: ['수준', '레벨', 'level']
                     };
@@ -317,7 +317,7 @@ export function adminNcsUploadHtml(): string {
                             large: colMap.large > -1 ? clean(row[colMap.large]) : '',
                             mid: colMap.mid > -1 ? clean(row[colMap.mid]) : '',
                             small: colMap.small > -1 ? clean(row[colMap.small]) : '',
-                            jobName: colMap.jobName > -1 ? clean(row[colMap.jobName]) : uName,
+                            jobName: colMap.jobName > -1 ? clean(row[colMap.jobName]) : '',
                             jobCode: jCode, unitName: uName, unitCode: uCode, level: levelVal,
                             valid: (!!uCode && !!uName), raw: row
                          };
