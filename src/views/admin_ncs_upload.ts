@@ -65,8 +65,16 @@ export function adminNcsUploadHtml(): string {
                     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-8">
                         <h3 class="text-lg font-bold text-slate-800 mb-6">파일 선택</h3>
                         
-                        <div id="dropZone" class="border-2 border-dashed border-slate-200 rounded-xl p-10 text-center hover:bg-slate-50 hover:border-blue-300 transition-all cursor-pointer group">
+                        <div id="dropZone" class="border-2 border-dashed border-slate-200 rounded-xl p-10 text-center hover:bg-slate-50 hover:border-blue-300 transition-all cursor-pointer group relative">
                             <input type="file" id="csvFile" accept=".csv" class="hidden">
+                             <!-- Encoding Selector -->
+                             <div class="absolute top-4 right-4 z-10" onclick="event.stopPropagation()">
+                                <select id="encodingSelect" class="text-xs border-slate-200 rounded-lg text-slate-500 bg-white shadow-sm focus:ring-blue-500 focus:border-blue-500 p-1">
+                                    <option value="CP949">EUC-KR (Default)</option>
+                                    <option value="UTF-8">UTF-8</option>
+                                </select>
+                            </div>
+                            
                             <div class="text-slate-300 group-hover:text-blue-500 transition-colors mb-4">
                                 <i class="fas fa-cloud-upload-alt text-4xl"></i>
                             </div>
@@ -125,8 +133,10 @@ export function adminNcsUploadHtml(): string {
         const progressArea = document.getElementById('progressArea');
         const progressBar = document.getElementById('progressBar');
         const logArea = document.getElementById('logArea');
+        const encodingSelect = document.getElementById('encodingSelect');
         
         let parsedData = [];
+        let currentFile = null;
 
         // Drag & Drop
         dropZone.addEventListener('click', () => fileInput.click());
@@ -141,13 +151,20 @@ export function adminNcsUploadHtml(): string {
         fileInput.addEventListener('change', (e) => {
             if (e.target.files.length) handleFile(e.target.files[0]);
         });
+        
+        encodingSelect.addEventListener('change', () => {
+             if (currentFile) handleFile(currentFile);
+        });
 
         function handleFile(file) {
+            currentFile = file;
             fileNameDisplay.textContent = file.name;
+            const encoding = encodingSelect.value;
+            console.log('Parsing with encoding:', encoding);
             
             Papa.parse(file, {
                 header: false,
-                encoding: 'CP949', // Support Korean text (EUC-KR/CP949)
+                encoding: encoding, 
                 skipEmptyLines: true,
                 complete: function(results) {
                     console.log('CSV Parsed Raw:', results);
