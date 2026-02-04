@@ -188,24 +188,22 @@ export function adminNcsUploadHtml(): string {
                         return;
                     }
 
-                    // Smart Header Detection
+                    // --- Smart Column Detection (Content-Based) ---
                     let headerRowIndex = -1;
                     let colMap = {
                         large: -1, mid: -1, small: -1, 
                         jobName: -1, jobCode: -1, 
                         unitName: -1, unitCode: -1, level: -1
                     };
-
-                    // Try to find header row containing specific keywords
+                    
+                    // 1. Try Header Keywords first
                     for (let i = 0; i < Math.min(results.data.length, 10); i++) {
                         const row = results.data[i];
                         if (row.some(function(cell) { return typeof cell === 'string' && (cell.includes('능력단위명') || cell.includes('직종명') || cell.includes('직종코드')); })) {
                             headerRowIndex = i;
-                            // Map columns dynamically
                             colMap.large = row.findIndex(function(c) { return c.includes('대분류'); });
                             colMap.mid = row.findIndex(function(c) { return c.includes('중분류'); });
                             colMap.small = row.findIndex(function(c) { return c.includes('소분류'); });
-                            // 세분류 or 직종명
                             colMap.jobName = row.findIndex(function(c) { return c.includes('세분류') || c.includes('직종명'); });
                             colMap.jobCode = row.findIndex(function(c) { return c.includes('세분류코드') || c.includes('직종코드'); });
                             if (colMap.jobCode === -1) colMap.jobCode = colMap.jobName + 1; 
@@ -213,13 +211,12 @@ export function adminNcsUploadHtml(): string {
                             colMap.unitName = row.findIndex(function(c) { return c.includes('능력단위명'); });
                             colMap.unitCode = row.findIndex(function(c) { return c.includes('능력단위코드'); });
                             colMap.level = row.findIndex(function(c) { return c.includes('수준'); });
-                            
                             console.log('Header Found at index:', i, 'Map:', colMap);
                             break;
                         }
                     }
 
-                    // AUTO-RETRY
+                    // AUTO-RETRY if Header Failed (and assume it's checking encoding first)
                     if (headerRowIndex === -1 && (encoding === 'CP949' || encoding === 'EUC-KR') && !isRetry) {
                          console.warn('Header not found. Retrying with UTF-8...');
                          encodingSelect.value = 'UTF-8'; 
@@ -227,36 +224,69 @@ export function adminNcsUploadHtml(): string {
                          return;
                     }
 
-                    // Fallback to default indices if header detection fails
+                    // 2. Content-Based Detection (If Header Failed)
                     if (headerRowIndex === -1) {
-                         // Unit code detection logic
-                         try {
-                           if (results.data.length > 0 && /^\d{10}_\d{2}v\d$/.test(results.data[0][0])) {
-                               console.warn('Detected Unit Code at index 0. Adjusting default map.');
-                               colMap = { large: -1, mid: -1, small: -1, jobName: -1, jobCode: -1, unitCode: 0, unitName: 1, level: 2 }; 
-                           } else {
-                               headerRowIndex = 0;
-                               colMap = { large: 0, mid: 1, small: 2, jobName: 3, jobCode: 4, unitName: 5, unitCode: 6, level: 7 };
-                           }
-                        } catch(e) { 
-                           headerRowIndex = 0;
-                           colMap = { large: 0, mid: 1, small: 2, jobName: 3, jobCode: 4, unitName: 5, unitCode: 6, level: 7 };
-                        }
+                         console.warn('Header detection failed. Attempting content-based detection...');
+                         
+                         // Sample first non-empty row (assume row 0 is data if no header found)
+                         const sampleRow = results.data[0];
+                         console.log('Sample Row for detection:', sampleRow);
+
+                         // Detect Unit Code (Pattern: 10 digits _ 2 digits v version)
+                         // e.g. 2404040208_19v2
+                         colMap.unitCode = sampleRow.findIndex(function(c) { 
+                             return typeof c === 'string' && /^\d{10}_\d+v\d+/.test(c.trim());
+                         });
+
+                         // Detect Level (Single digit 1-8)
+                         colMap.level = sampleRow.findIndex(function(c) {
+                             return typeof c === 'string' && /^[1-8]$/.test(c.trim());
+                         });
+                         
+                         // Detect Korean Names (Assume Unit Name is the longest Korean string?)
+                         // Simple heuristic: Unit Name usually contains '하기' or is descriptive.
+                         // Job Name is usually shorter.
+                         
+                         const koreanCols = sampleRow.map(function(c, i) {
+                             return { index: i, val: c, length: (c && /[가-힣]/.test(c)) ? c.length : 0 };
+                         }).filter(function(x) { return x.length > 0; }).sort(function(a, b) { return b.length - a.length; });
+
+                         if (koreanCols.length > 0) {
+                             // Longest is likely Unit Name
+                             colMap.unitName = koreanCols[0].index;
+                             
+                             if (koreanCols.length > 1) {
+                                 // Second longest might be Job Name or Description
+                                 // Let's assume indices relative to Unit Code if possible?
+                                 // If UnitCode is 0, UnitName is usually 1.
+                                 // If we found UnitCode at 0, and Korean at 1, map it.
+                                 if (colMap.unitCode !== -1) {
+                                     // Prefer column next to code?
+                                     const neighbor = koreanCols.find(function(k) { return Math.abs(k.index - colMap.unitCode) === 1; });
+                                     if (neighbor) colMap.unitName = neighbor.index;
+                                 }
+                             }
+                         }
+
+                         console.log('Content-Based Map:', colMap);
                     }
 
                     // Extract Data
                     parsedData = results.data.slice(headerRowIndex + 1).map(function(row) {
                          const item = {
-                            large: row[colMap.large],
-                            mid: row[colMap.mid],
-                            small: row[colMap.small],
-                            jobName: row[colMap.jobName],
-                            jobCode: row[colMap.jobCode],
-                            unitName: row[colMap.unitName],
-                            unitCode: row[colMap.unitCode],
-                            level: row[colMap.level],
-                            valid: true
+                            large: colMap.large > -1 ? row[colMap.large] : '',
+                            mid: colMap.mid > -1 ? row[colMap.mid] : '',
+                            small: colMap.small > -1 ? row[colMap.small] : '',
+                            jobName: colMap.jobName > -1 ? row[colMap.jobName] : '',
+                            jobCode: colMap.jobCode > -1 ? row[colMap.jobCode] : '',
+                            unitName: colMap.unitName > -1 ? row[colMap.unitName] : '',
+                            unitCode: colMap.unitCode > -1 ? row[colMap.unitCode] : '',
+                            level: colMap.level > -1 ? row[colMap.level] : '',
+                            valid: true,
+                            raw: row // Store raw for debug
                          };
+                         
+                         // Validation: Must have Unit Code
                          if (!item.unitCode) item.valid = false;
                          return item;
                     });
@@ -265,9 +295,14 @@ export function adminNcsUploadHtml(): string {
                     console.log('Parsed Valid Data count (' + encoding + '): ' + validCount);
                     
                     if (validCount === 0 && parsedData.length === 0) {
-                        alert('유효한 데이터가 없습니다 (' + encoding + ').');
+                         alert('유효한 데이터가 없습니다 (' + encoding + ').');
                     } else if (validCount === 0) {
-                        if (isRetry) alert('데이터 형식이 맞지 않습니다. 미리보기를 확인해주세요.');
+                        // All invalid
+                        let firstRowDump = '';
+                        if (parsedData.length > 0) {
+                             firstRowDump = '\n첫 행 데이터: ' + JSON.stringify(parsedData[0].raw).substring(0, 100) + '...';
+                        }
+                        if (isRetry) alert('데이터 형식을 인식할 수 없습니다. (헤더 없음, 코드 패턴 불일치)' + firstRowDump);
                     }
 
                     showPreview();
