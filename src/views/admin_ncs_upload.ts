@@ -227,23 +227,16 @@ export function adminNcsUploadHtml(): string {
                         }
                     }
 
-                    // AUTO-RETRY if Header Failed (and assume it's checking encoding first)
-                    if (headerRowIndex === -1 && (encoding === 'CP949' || encoding === 'EUC-KR') && !isRetry) {
-                         console.warn('Header not found. Retrying with UTF-8...');
-                         if (encodingSelect) encodingSelect.value = 'UTF-8'; 
-                         parseFile(file, 'UTF-8', true);
-                         return;
-                    }
-
-                    // 2. Content-Based Detection (If Header Failed)
-                    if (headerRowIndex === -1) {
-                         console.warn('Header detection failed. Attempting content-based detection...');
+                    // 2. Content-Based Detection (Attempt this BEFORE Retry)
+                    if (headerRowIndex === -1 && results.data.length > 0) {
+                         console.log('Header detection failed. Attempting content-based detection...');
                          
-                         const sampleRow = results.data[0];
+                         const sampleRow = results.data[0]; // Check first row
                          
-                         // Detect Unit Code (Pattern: 10 digits _ 2 digits v version)
+                         // Detect Unit Code (Pattern: 10 digits _ 2 digits v version OR just 10 digits)
+                         // Relaxed Regex: Look for digit-heavy string with underscores or length ~10-15
                          colMap.unitCode = sampleRow.findIndex(function(c) { 
-                             return typeof c === 'string' && /^\\d{10}_\\d+v\\d+/.test(c.trim());
+                             return typeof c === 'string' && (/^\d{10,}/.test(c.trim()) || /^\d{2,}[_]\d+/.test(c.trim()));
                          });
 
                          // Detect Level (Single digit 1-8)
@@ -268,7 +261,23 @@ export function adminNcsUploadHtml(): string {
                                  }
                              }
                          }
-                         console.log('Content-Based Map:', colMap);
+                         
+                         // If we identify a Unit Code, we assume successful detection
+                         if (colMap.unitCode !== -1) {
+                             console.log('Content-Based Detection Successful. UnitCode Index:', colMap.unitCode);
+                             // Fill gaps using relative positions if possible, or leave as -1
+                             // If UnitCode is found, treat this row as Data (headerRowIndex remains -1, so slice(0) covers it)
+                         }
+                    }
+
+                    // AUTO-RETRY if Header Failed AND Content Detection Failed
+                    const contentDetectionFailed = (colMap.unitCode === -1);
+                    
+                    if (headerRowIndex === -1 && contentDetectionFailed && (encoding === 'CP949' || encoding === 'EUC-KR') && !isRetry) {
+                         console.warn('Both Header and Content detection failed. Retrying with UTF-8...');
+                         if (encodingSelect) encodingSelect.value = 'UTF-8'; 
+                         parseFile(file, 'UTF-8', true);
+                         return;
                     }
 
                     // Extract Data
