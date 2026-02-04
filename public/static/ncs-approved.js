@@ -73,6 +73,9 @@
         var largeClass = document.getElementById('ncsLargeClass');
         var midClass = document.getElementById('ncsMidClass');
         var smallClass = document.getElementById('ncsSmallClass');
+        var subClassSelect = document.getElementById('ncsSubClass');
+        var unitSelect = document.getElementById('ncsUnit');
+        var elementSelect = document.getElementById('ncsElement');
         var jobRadioGroup = document.getElementById('ncsJobRadioGroup');
         var jobRadioPlaceholder = document.getElementById('ncsJobRadioPlaceholder');
         var selectedJobsResult = document.getElementById('ncsSelectedJobsResult');
@@ -383,7 +386,90 @@
                 opts.push('<option value="' + sc + '" data-name="' + sn.replace(/"/g, '&quot;') + '">' + (s.code ? s.code + '. ' : '') + sn + '</option>');
             });
             smallClass.innerHTML = opts.join('');
-            loadJobRadios();
+            loadSubClassesBySmall();
+        }
+
+        function loadSubClassesBySmall() {
+            var large = largeClass.value;
+            var mid = midClass.value;
+            var small = smallClass.value;
+            clearSelect(subClassSelect);
+            clearSelect(unitSelect);
+            clearSelect(elementSelect);
+            if (!large || !mid || !small) return;
+
+            subClassSelect.innerHTML = '<option value="">로딩 중...</option>';
+            var token = localStorage.getItem('token');
+            var url = '/api/ncs/approved/jobs?l=' + encodeURIComponent(large) + '&m=' + encodeURIComponent(mid) + '&s=' + encodeURIComponent(small);
+
+            fetch(url, { headers: token ? { 'Authorization': 'Bearer ' + token } : {} })
+                .then(function (r) { return r.json(); })
+                .then(function (json) {
+                    if (!json.success || !Array.isArray(json.data)) {
+                        subClassSelect.innerHTML = '<option value="">데이터 없음</option>';
+                        return;
+                    }
+                    var opts = ['<option value="">선택</option>'];
+                    json.data.forEach(function (j) {
+                        var fullCode = large + mid + small + j.code;
+                        opts.push('<option value="' + fullCode + '" data-name="' + (j.name || '').replace(/"/g, '&quot;') + '">' + fullCode + '. ' + (j.name || '') + '</option>');
+                    });
+                    subClassSelect.innerHTML = opts.join('');
+                });
+        }
+
+        function loadUnitsByJob() {
+            var jobCode = subClassSelect.value;
+            clearSelect(unitSelect);
+            clearSelect(elementSelect);
+            if (!jobCode) return;
+
+            unitSelect.innerHTML = '<option value="">로딩 중...</option>';
+            var token = localStorage.getItem('token');
+            var url = '/api/ncs/approved/units-by-job?jobCode=' + encodeURIComponent(jobCode);
+
+            fetch(url, { headers: token ? { 'Authorization': 'Bearer ' + token } : {} })
+                .then(function (r) { return r.json(); })
+                .then(function (json) {
+                    if (!json.success || !Array.isArray(json.data)) {
+                        unitSelect.innerHTML = '<option value="">데이터 없음</option>';
+                        return;
+                    }
+                    window.currentUnitsData = json.data; // Cache for element lookups
+                    var opts = ['<option value="">선택</option>'];
+                    json.data.forEach(function (u) {
+                        opts.push('<option value="' + u.code + '" data-name="' + (u.name || '').replace(/"/g, '&quot;') + '">[Lv.' + u.level + '] ' + u.name + '</option>');
+                    });
+                    unitSelect.innerHTML = opts.join('');
+
+                    // 또한, 세분류 선택 시 "훈련직종" 리스트에 추가할지 물어보거나 자동 추가
+                    var name = subClassSelect.options[subClassSelect.selectedIndex].getAttribute('data-name');
+                    if (!window.ncsStep1Jobs.some(function (x) { return x.code === jobCode; })) {
+                        if (confirm('선택하신 직종 [' + name + ']을(를) 과정 훈련직종으로 추가하시겠습니까?')) {
+                            window.ncsStep1Jobs.push({ code: jobCode, name: name });
+                            if (!window.ncsPrimaryJobCode) window.ncsPrimaryJobCode = jobCode;
+                            updateSelectedJobsResult();
+                        }
+                    }
+                });
+        }
+
+        function loadElementsByUnit() {
+            var unitCode = unitSelect.value;
+            clearSelect(elementSelect);
+            if (!unitCode || !window.currentUnitsData) return;
+
+            var unit = window.currentUnitsData.find(function (u) { return u.code === unitCode; });
+            if (!unit || !unit.elements || !unit.elements.length) {
+                elementSelect.innerHTML = '<option value="">데이터 없음</option>';
+                return;
+            }
+
+            var opts = ['<option value="">선택</option>'];
+            unit.elements.forEach(function (el, idx) {
+                opts.push('<option value="' + idx + '">' + (idx + 1) + '. ' + el.name + '</option>');
+            });
+            elementSelect.innerHTML = opts.join('');
         }
 
         if (devCategory) {
@@ -391,13 +477,24 @@
                 clearSelect(largeClass);
                 clearSelect(midClass);
                 clearSelect(smallClass);
-                loadJobRadios();
+                clearSelect(subClassSelect);
+                clearSelect(unitSelect);
+                clearSelect(elementSelect);
                 loadLargeClasses();
             });
         }
         largeClass.addEventListener('change', loadTrainingByLarge);
         midClass.addEventListener('change', loadSmallByMid);
-        smallClass.addEventListener('change', loadJobRadios);
+        smallClass.addEventListener('change', loadSubClassesBySmall);
+        subClassSelect.addEventListener('change', loadUnitsByJob);
+        unitSelect.addEventListener('change', loadElementsByUnit);
+
+        // Update loadSmallByMid to chain correctly
+        var originalLoadSmallByMid = loadSmallByMid;
+        loadSmallByMid = function () {
+            originalLoadSmallByMid();
+            // loadSubClassesBySmall is already called at the end of original or added via listener
+        };
 
         function buildPayload() {
             var ncsTab = panelNonNcs && panelNonNcs.classList.contains('hidden') ? 'ncs' : 'non_ncs';

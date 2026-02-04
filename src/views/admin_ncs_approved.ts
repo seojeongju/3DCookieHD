@@ -70,34 +70,51 @@ export function stepContentHtml(step: number, editId?: string, isEmbedded: boole
       <div id="panelNcsOnly" class="ncs-approved-panel space-y-8 animate-in fade-in duration-300">
         <!-- 1. 직종 검색 섹션 -->
         <section>
-          <div class="flex items-center gap-2 mb-4">
-            <h2 class="text-lg font-black text-slate-800 tracking-tight">01. 훈련직종 검색</h2>
-
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-black text-slate-800 tracking-tight">01. NCS 분류 체계 및 능력단위 검색 (NCS001~NCS006)</h2>
+            <div class="flex items-center gap-2 bg-slate-100 p-1 rounded-xl">
+              <span class="text-[10px] font-bold text-slate-500 px-2">심사기준</span>
+              <select id="ncsDevCategory" class="text-xs font-bold bg-white border-none rounded-lg focus:ring-0 py-1 transition-all">
+                <option value="24" selected>24년 NCS기반 훈련기준</option>
+                <option value="23">23년 NCS기반 훈련기준</option>
+                <option value="21">21년 NCS기반 훈련기준</option>
+                <option value="20">20년 NCS기반 훈련기준</option>
+                <option value="19">19년 NCS기반 훈련기준</option>
+              </select>
+            </div>
           </div>
           
           <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-            <div class="grid grid-cols-1 md:grid-cols-4 divide-x divide-slate-100">
-              <div class="p-4 bg-slate-50/50">
-                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 ml-1">개발분류</label>
-                <select id="ncsDevCategory" size="8" class="ncs-class-select w-full px-2 py-1 border-none bg-transparent text-sm focus:ring-0 min-h-[180px] custom-scrollbar">
-                  <option value="24" selected>24년 NCS기반 훈련기준</option>
-                  <option value="23">23년 NCS기반 훈련기준</option>
-                  <option value="21">21년 NCS기반 훈련기준</option>
-                  <option value="20">20년 NCS기반 훈련기준</option>
-                  <option value="19">19년 NCS기반 훈련기준</option>
+            <div class="grid grid-cols-1 md:grid-cols-6 divide-x divide-slate-100">
+              <div class="p-3">
+                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 ml-1">대분류 (001)</label>
+                <select id="ncsLargeClass" size="10" class="ncs-class-select w-full px-2 py-1 border-none bg-transparent text-[13px] focus:ring-0 min-h-[220px] custom-scrollbar"></select>
+              </div>
+              <div class="p-3">
+                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 ml-1">중분류 (002)</label>
+                <select id="ncsMidClass" size="10" class="ncs-class-select w-full px-2 py-1 border-none bg-transparent text-[13px] focus:ring-0 min-h-[220px] custom-scrollbar"></select>
+              </div>
+              <div class="p-3">
+                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 ml-1">소분류 (003)</label>
+                <select id="ncsSmallClass" size="10" class="ncs-class-select w-full px-2 py-1 border-none bg-transparent text-[13px] focus:ring-0 min-h-[220px] custom-scrollbar"></select>
+              </div>
+              <div class="p-3">
+                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 ml-1">세분류/직종 (004)</label>
+                <select id="ncsSubClass" size="10" class="ncs-class-select w-full px-2 py-1 border-none bg-transparent text-[13px] focus:ring-0 min-h-[220px] custom-scrollbar">
+                  <option value="">소분류 선택</option>
                 </select>
               </div>
-              <div class="p-4">
-                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 ml-1">대분류</label>
-                <select id="ncsLargeClass" size="8" class="ncs-class-select w-full px-2 py-1 border-none bg-transparent text-sm focus:ring-0 min-h-[180px] custom-scrollbar"></select>
+              <div class="p-3">
+                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 ml-1">능력단위 (005)</label>
+                <select id="ncsUnit" size="10" class="ncs-class-select w-full px-2 py-1 border-none bg-transparent text-[13px] focus:ring-0 min-h-[220px] custom-scrollbar">
+                  <option value="">세분류 선택</option>
+                </select>
               </div>
-              <div class="p-4">
-                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 ml-1">중분류</label>
-                <select id="ncsMidClass" size="8" class="ncs-class-select w-full px-2 py-1 border-none bg-transparent text-sm focus:ring-0 min-h-[180px] custom-scrollbar"></select>
-              </div>
-              <div class="p-4">
-                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 ml-1">소분류</label>
-                <select id="ncsSmallClass" size="8" class="ncs-class-select w-full px-2 py-1 border-none bg-transparent text-sm focus:ring-0 min-h-[180px] custom-scrollbar"></select>
+              <div class="p-3">
+                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 ml-1">단위요소 (006)</label>
+                <select id="ncsElement" size="10" class="ncs-class-select w-full px-2 py-1 border-none bg-transparent text-[13px] focus:ring-0 min-h-[220px] custom-scrollbar">
+                  <option value="">단위 선택</option>
+                </select>
               </div>
             </div>
             <div id="ncsTrainingApiMessage" class="px-6 py-3 border-t border-slate-100 bg-amber-50 text-amber-700 text-xs hidden"></div>
@@ -988,8 +1005,19 @@ export function adminNcsApprovedHtml(stepParam?: string, editId?: string): strin
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Noto Sans KR', sans-serif; }
-        .ncs-class-select { max-height: 280px; overflow-y: auto; }
-        .ncs-class-select::-webkit-scrollbar { width: 6px; }
+        .ncs-class-select { 
+            max-height: 280px; 
+            overflow-y: auto; 
+            font-size: 11px !important; 
+        }
+        .ncs-class-select option { 
+            padding: 6px 8px; 
+            white-space: normal; 
+            word-break: break-all;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .ncs-class-select option:last-child { border-bottom: none; }
+        .ncs-class-select::-webkit-scrollbar { width: 4px; }
         .ncs-class-select::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 3px; }
         .ncs-class-select::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
     </style>
