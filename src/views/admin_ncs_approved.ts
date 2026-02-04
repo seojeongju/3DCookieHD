@@ -87,31 +87,61 @@ export function stepContentHtml(step: number, editId?: string, isEmbedded: boole
           <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
             <div class="grid grid-cols-1 md:grid-cols-6 divide-x divide-slate-100">
               <div class="p-3">
-                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 ml-1">대분류 (001)</label>
+                <div class="flex items-center justify-between mb-2">
+                  <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">대분류 (001)</label>
+                  <button type="button" id="refreshLargeClass" class="ncs-refresh-btn text-slate-400 hover:text-blue-600 hover:bg-blue-50 p-1.5 rounded-lg transition-all" title="최신 데이터 가져오기">
+                    <i class="fas fa-sync-alt text-xs"></i>
+                  </button>
+                </div>
                 <select id="ncsLargeClass" size="10" class="ncs-class-select w-full px-2 py-1 border-none bg-transparent text-[13px] focus:ring-0 min-h-[220px] custom-scrollbar"></select>
               </div>
               <div class="p-3">
-                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 ml-1">중분류 (002)</label>
+                <div class="flex items-center justify-between mb-2">
+                  <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">중분류 (002)</label>
+                  <button type="button" id="refreshMidClass" class="ncs-refresh-btn text-slate-400 hover:text-blue-600 hover:bg-blue-50 p-1.5 rounded-lg transition-all" title="최신 데이터 가져오기">
+                    <i class="fas fa-sync-alt text-xs"></i>
+                  </button>
+                </div>
                 <select id="ncsMidClass" size="10" class="ncs-class-select w-full px-2 py-1 border-none bg-transparent text-[13px] focus:ring-0 min-h-[220px] custom-scrollbar"></select>
               </div>
               <div class="p-3">
-                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 ml-1">소분류 (003)</label>
+                <div class="flex items-center justify-between mb-2">
+                  <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">소분류 (003)</label>
+                  <button type="button" id="refreshSmallClass" class="ncs-refresh-btn text-slate-400 hover:text-blue-600 hover:bg-blue-50 p-1.5 rounded-lg transition-all" title="최신 데이터 가져오기">
+                    <i class="fas fa-sync-alt text-xs"></i>
+                  </button>
+                </div>
                 <select id="ncsSmallClass" size="10" class="ncs-class-select w-full px-2 py-1 border-none bg-transparent text-[13px] focus:ring-0 min-h-[220px] custom-scrollbar"></select>
               </div>
               <div class="p-3">
-                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 ml-1">세분류/직종 (004)</label>
+                <div class="flex items-center justify-between mb-2">
+                  <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">세분류/직종 (004)</label>
+                  <button type="button" id="refreshSubClass" class="ncs-refresh-btn text-slate-400 hover:text-blue-600 hover:bg-blue-50 p-1.5 rounded-lg transition-all" title="최신 데이터 가져오기">
+                    <i class="fas fa-sync-alt text-xs"></i>
+                  </button>
+                </div>
                 <select id="ncsSubClass" size="10" class="ncs-class-select w-full px-2 py-1 border-none bg-transparent text-[13px] focus:ring-0 min-h-[220px] custom-scrollbar">
                   <option value="">소분류 선택</option>
                 </select>
               </div>
               <div class="p-3">
-                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 ml-1">능력단위 (005)</label>
+                <div class="flex items-center justify-between mb-2">
+                  <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">능력단위 (005)</label>
+                  <button type="button" id="refreshUnit" class="ncs-refresh-btn text-slate-400 hover:text-blue-600 hover:bg-blue-50 p-1.5 rounded-lg transition-all" title="최신 데이터 가져오기">
+                    <i class="fas fa-sync-alt text-xs"></i>
+                  </button>
+                </div>
                 <select id="ncsUnit" size="10" class="ncs-class-select w-full px-2 py-1 border-none bg-transparent text-[13px] focus:ring-0 min-h-[220px] custom-scrollbar">
                   <option value="">세분류 선택</option>
                 </select>
               </div>
               <div class="p-3">
-                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 ml-1">단위요소 (006)</label>
+                <div class="flex items-center justify-between mb-2">
+                  <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">단위요소 (006)</label>
+                  <button type="button" id="refreshElement" class="ncs-refresh-btn text-slate-400 hover:text-blue-600 hover:bg-blue-50 p-1.5 rounded-lg transition-all" title="최신 데이터 가져오기">
+                    <i class="fas fa-sync-alt text-xs"></i>
+                  </button>
+                </div>
                 <select id="ncsElement" size="10" class="ncs-class-select w-full px-2 py-1 border-none bg-transparent text-[13px] focus:ring-0 min-h-[220px] custom-scrollbar">
                   <option value="">단위 선택</option>
                 </select>

@@ -302,9 +302,8 @@
             apiMessageEl.className = 'mt-2 text-sm ' + (isError ? 'text-red-600' : 'text-amber-600');
             if (text) apiMessageEl.classList.remove('hidden'); else apiMessageEl.classList.add('hidden');
         }
-        function loadTrainingByLarge() {
+        function loadTrainingByLarge(forceRefresh, onSuccess, onError) {
             var code = largeClass.value;
-            // clearUnitHidden();
             showTrainingApiMessage('');
             if (!code) {
                 trainingCache = [];
@@ -314,6 +313,7 @@
                 return Promise.resolve();
             }
             var url = '/api/ncs/approved/training?ncsLclasCd=' + encodeURIComponent(code);
+            if (forceRefresh) url += '&refresh=true';
             var token = localStorage.getItem('token');
             return fetch(url, { headers: token ? { 'Authorization': 'Bearer ' + token } : {} })
                 .then(function (r) { return r.json().catch(function () { return { success: false, error: '응답 파싱 실패' }; }); })
@@ -324,6 +324,7 @@
                         clearSelect(smallClass);
                         loadJobRadios();
                         showTrainingApiMessage(json.error || '공공 API 조회 실패. 인증키 및 서비스 상태를 확인하세요.', true);
+                        if (onError) onError();
                         return;
                     }
                     var data = json.data || [];
@@ -350,6 +351,7 @@
                     midClass.innerHTML = opts.join('');
                     clearSelect(smallClass);
                     loadJobRadios();
+                    if (onSuccess) onSuccess();
                 })
                 .catch(function () {
                     trainingCache = [];
@@ -360,12 +362,13 @@
                 });
         }
 
-        function loadSmallByMid() {
+        function loadSmallByMid(forceRefresh, onSuccess, onError) {
             var mid = midClass.value;
             // clearUnitHidden();
             if (!mid) {
                 clearSelect(smallClass);
                 loadJobRadios();
+                if (onSuccess) onSuccess();
                 return;
             }
             var list = trainingCache.filter(function (item) { return item.midCode === mid; });
@@ -387,26 +390,32 @@
             });
             smallClass.innerHTML = opts.join('');
             loadSubClassesBySmall();
+            if (onSuccess) onSuccess();
         }
 
-        function loadSubClassesBySmall() {
+        function loadSubClassesBySmall(forceRefresh, onSuccess, onError) {
             var large = largeClass.value;
             var mid = midClass.value;
             var small = smallClass.value;
             clearSelect(subClassSelect);
             clearSelect(unitSelect);
             clearSelect(elementSelect);
-            if (!large || !mid || !small) return;
+            if (!large || !mid || !small) {
+                if (onSuccess) onSuccess();
+                return;
+            }
 
             subClassSelect.innerHTML = '<option value="">로딩 중...</option>';
             var token = localStorage.getItem('token');
             var url = '/api/ncs/approved/jobs?l=' + encodeURIComponent(large) + '&m=' + encodeURIComponent(mid) + '&s=' + encodeURIComponent(small);
+            if (forceRefresh) url += '&refresh=true';
 
             fetch(url, { headers: token ? { 'Authorization': 'Bearer ' + token } : {} })
                 .then(function (r) { return r.json(); })
                 .then(function (json) {
                     if (!json.success || !Array.isArray(json.data)) {
                         subClassSelect.innerHTML = '<option value="">데이터 없음</option>';
+                        if (onError) onError();
                         return;
                     }
                     var opts = ['<option value="">선택</option>'];
@@ -415,24 +424,30 @@
                         opts.push('<option value="' + fullCode + '" data-name="' + (j.name || '').replace(/"/g, '&quot;') + '">' + fullCode + '. ' + (j.name || '') + '</option>');
                     });
                     subClassSelect.innerHTML = opts.join('');
+                    if (onSuccess) onSuccess();
                 });
         }
 
-        function loadUnitsByJob() {
+        function loadUnitsByJob(forceRefresh, onSuccess, onError) {
             var jobCode = subClassSelect.value;
             clearSelect(unitSelect);
             clearSelect(elementSelect);
-            if (!jobCode) return;
+            if (!jobCode) {
+                if (onSuccess) onSuccess();
+                return;
+            }
 
             unitSelect.innerHTML = '<option value="">로딩 중...</option>';
             var token = localStorage.getItem('token');
             var url = '/api/ncs/approved/units-by-job?jobCode=' + encodeURIComponent(jobCode);
+            if (forceRefresh) url += '&refresh=true';
 
             fetch(url, { headers: token ? { 'Authorization': 'Bearer ' + token } : {} })
                 .then(function (r) { return r.json(); })
                 .then(function (json) {
                     if (!json.success || !Array.isArray(json.data)) {
                         unitSelect.innerHTML = '<option value="">데이터 없음</option>';
+                        if (onError) onError();
                         return;
                     }
                     window.currentUnitsData = json.data; // Cache for element lookups
@@ -451,27 +466,37 @@
                             updateSelectedJobsResult();
                         }
                     }
+                    if (onSuccess) onSuccess();
                 });
         }
 
-        function loadElementsByUnit() {
+        function loadElementsByUnit(forceRefresh, onSuccess, onError) {
             var unitCode = unitSelect.value;
             clearSelect(elementSelect);
-            if (!unitCode || !window.currentUnitsData) return;
+            if (!unitCode || !window.currentUnitsData) {
+                if (onSuccess) onSuccess();
+                return;
+            }
 
             var unit = window.currentUnitsData.find(function (u) { return u.code === unitCode; });
-            if (!unit) return;
+            if (!unit) {
+                if (onSuccess) onSuccess();
+                return;
+            }
 
-            // If elements exist, render them
-            if (unit.elements && unit.elements.length > 0) {
+            // If elements exist and not forcing refresh, render them
+            if (!forceRefresh && unit.elements && unit.elements.length > 0) {
                 renderElements(unit.elements);
+                if (onSuccess) onSuccess();
                 return;
             }
 
             // Otherwise, fetch on-demand
             elementSelect.innerHTML = '<option value="">로딩 중...</option>';
             var token = localStorage.getItem('token');
-            fetch('/api/ncs/approved/unit-elements/' + encodeURIComponent(unitCode), {
+            var url = '/api/ncs/approved/unit-elements/' + encodeURIComponent(unitCode);
+            if (forceRefresh) url += '?refresh=true';
+            fetch(url, {
                 headers: token ? { 'Authorization': 'Bearer ' + token } : {}
             })
                 .then(function (r) { return r.json(); })
@@ -479,13 +504,16 @@
                     if (json.success && Array.isArray(json.data) && json.data.length > 0) {
                         unit.elements = json.data; // Cache it
                         renderElements(unit.elements);
+                        if (onSuccess) onSuccess();
                     } else {
                         elementSelect.innerHTML = '<option value="">데이터 없음</option>';
+                        if (onError) onError();
                     }
                 })
                 .catch(function (e) {
                     console.error('Fetch elements failed:', e);
                     elementSelect.innerHTML = '<option value="">조회 실패</option>';
+                    if (onError) onError();
                 });
         }
 
@@ -513,6 +541,169 @@
         smallClass.addEventListener('change', loadSubClassesBySmall);
         subClassSelect.addEventListener('change', loadUnitsByJob);
         unitSelect.addEventListener('change', loadElementsByUnit);
+
+        // ========== Refresh Buttons ==========
+        var refreshLargeBtn = document.getElementById('refreshLargeClass');
+        var refreshMidBtn = document.getElementById('refreshMidClass');
+        var refreshSmallBtn = document.getElementById('refreshSmallClass');
+        var refreshSubBtn = document.getElementById('refreshSubClass');
+        var refreshUnitBtn = document.getElementById('refreshUnit');
+        var refreshElementBtn = document.getElementById('refreshElement');
+
+        function spinIcon(btn, spinning) {
+            var icon = btn ? btn.querySelector('i') : null;
+            if (!icon) return;
+            if (spinning) {
+                icon.classList.add('fa-spin');
+                btn.disabled = true;
+                btn.style.opacity = '0.5';
+            } else {
+                icon.classList.remove('fa-spin');
+                btn.disabled = false;
+                btn.style.opacity = '1';
+            }
+        }
+
+        // 대분류 새로고침
+        if (refreshLargeBtn) {
+            refreshLargeBtn.addEventListener('click', function () {
+                spinIcon(refreshLargeBtn, true);
+                var token = localStorage.getItem('token');
+                fetch('/api/ncs/approved/large-classes?refresh=true', {
+                    headers: token ? { 'Authorization': 'Bearer ' + token } : {}
+                })
+                    .then(function (r) { return r.json(); })
+                    .then(function (json) {
+                        spinIcon(refreshLargeBtn, false);
+                        if (json.success && Array.isArray(json.data)) {
+                            var opts = ['<option value="">선택</option>'];
+                            json.data.forEach(function (c) {
+                                opts.push('<option value="' + c.code + '">' + c.code + '. ' + c.name + '</option>');
+                            });
+                            largeClass.innerHTML = opts.join('');
+                            showToast('대분류 데이터를 새로고침했습니다.', 'success');
+                        } else {
+                            showToast('대분류 새로고침 실패', 'error');
+                        }
+                    })
+                    .catch(function (e) {
+                        spinIcon(refreshLargeBtn, false);
+                        showToast('대분류 새로고침 중 오류 발생', 'error');
+                        console.error(e);
+                    });
+            });
+        }
+
+        // 중분류 새로고침
+        if (refreshMidBtn) {
+            refreshMidBtn.addEventListener('click', function () {
+                var large = largeClass.value;
+                if (!large) {
+                    showToast('먼저 대분류를 선택하세요.', 'warning');
+                    return;
+                }
+                spinIcon(refreshMidBtn, true);
+                loadTrainingByLarge(true, function () {
+                    spinIcon(refreshMidBtn, false);
+                    showToast('중분류 데이터를 새로고침했습니다.', 'success');
+                }, function () {
+                    spinIcon(refreshMidBtn, false);
+                    showToast('중분류 새로고침 실패', 'error');
+                });
+            });
+        }
+
+        // 소분류 새로고침
+        if (refreshSmallBtn) {
+            refreshSmallBtn.addEventListener('click', function () {
+                var mid = midClass.value;
+                if (!mid) {
+                    showToast('먼저 중분류를 선택하세요.', 'warning');
+                    return;
+                }
+                spinIcon(refreshSmallBtn, true);
+                loadSmallByMid(true, function () {
+                    spinIcon(refreshSmallBtn, false);
+                    showToast('소분류 데이터를 새로고침했습니다.', 'success');
+                }, function () {
+                    spinIcon(refreshSmallBtn, false);
+                    showToast('소분류 새로고침 실패', 'error');
+                });
+            });
+        }
+
+        // 세분류/직종 새로고침
+        if (refreshSubBtn) {
+            refreshSubBtn.addEventListener('click', function () {
+                var large = largeClass.value;
+                var mid = midClass.value;
+                var small = smallClass.value;
+                if (!large || !mid || !small) {
+                    showToast('먼저 소분류까지 선택하세요.', 'warning');
+                    return;
+                }
+                spinIcon(refreshSubBtn, true);
+                loadSubClassesBySmall(true, function () {
+                    spinIcon(refreshSubBtn, false);
+                    showToast('세분류/직종 데이터를 새로고침했습니다.', 'success');
+                }, function () {
+                    spinIcon(refreshSubBtn, false);
+                    showToast('세분류/직종 새로고침 실패', 'error');
+                });
+            });
+        }
+
+        // 능력단위 새로고침
+        if (refreshUnitBtn) {
+            refreshUnitBtn.addEventListener('click', function () {
+                var jobCode = subClassSelect.value;
+                if (!jobCode) {
+                    showToast('먼저 세분류/직종을 선택하세요.', 'warning');
+                    return;
+                }
+                spinIcon(refreshUnitBtn, true);
+                loadUnitsByJob(true, function () {
+                    spinIcon(refreshUnitBtn, false);
+                    showToast('능력단위 데이터를 새로고침했습니다.', 'success');
+                }, function () {
+                    spinIcon(refreshUnitBtn, false);
+                    showToast('능력단위 새로고침 실패', 'error');
+                });
+            });
+        }
+
+        // 능력단위요소 새로고침
+        if (refreshElementBtn) {
+            refreshElementBtn.addEventListener('click', function () {
+                var unitCode = unitSelect.value;
+                if (!unitCode || !window.currentUnitsData) {
+                    showToast('먼저 능력단위를 선택하세요.', 'warning');
+                    return;
+                }
+                spinIcon(refreshElementBtn, true);
+                loadElementsByUnit(true, function () {
+                    spinIcon(refreshElementBtn, false);
+                    showToast('능력단위요소 데이터를 새로고침했습니다.', 'success');
+                }, function () {
+                    spinIcon(refreshElementBtn, false);
+                    showToast('능력단위요소 새로고침 실패', 'error');
+                });
+            });
+        }
+
+        // Toast notification helper
+        function showToast(message, type) {
+            var bgColor = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-amber-500';
+            var toast = document.createElement('div');
+            toast.className = 'fixed top-4 right-4 ' + bgColor + ' text-white px-6 py-3 rounded-xl shadow-lg z-50 opacity-0 transition-opacity duration-300';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(function () { toast.style.opacity = '1'; }, 10);
+            setTimeout(function () {
+                toast.style.opacity = '0';
+                setTimeout(function () { document.body.removeChild(toast); }, 300);
+            }, 3000);
+        }
 
         // Update loadSmallByMid to chain correctly
         var originalLoadSmallByMid = loadSmallByMid;
