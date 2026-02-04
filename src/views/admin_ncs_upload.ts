@@ -261,17 +261,19 @@ export function adminNcsUploadHtml(): string {
                               const foundIdx = row.findIndex(function(c) {
                                   if (typeof c !== 'string' || !c) return false;
                                   const trimmed = c.trim();
-                                  // NCS Code Regex: Starts with digit or uppercase letter, length 6-25, NO spaces
-                                  // e.g., 20240101, 1401010101_14v3, 0101010101_17v2
-                                  return /^[A-Z0-9_]{6,25}$/.test(trimmed) && /[0-9]/.test(trimmed);
+                                  // NCS Code Regex: Alphanumeric + underscore, length 6-25
+                                  // Supports: 1401010101_14v3, 0101010101_17v2, etc.
+                                  return /^[a-zA-Z0-9_]{6,25}$/.test(trimmed) && /[0-9]/.test(trimmed);
                               });
                               
                               if (foundIdx !== -1) {
                                   colMap.unitCode = foundIdx;
-                                  // If we found a code, neighbors are likely names
+                                  // If we found a code, check neighbors for names (Korean characters)
                                   if (colMap.unitName === -1) {
-                                      if (row[foundIdx - 1] && row[foundIdx - 1].length > 2) colMap.unitName = foundIdx - 1;
-                                      else if (row[foundIdx + 1] && row[foundIdx + 1].length > 2) colMap.unitName = foundIdx + 1;
+                                      const left = row[foundIdx - 1];
+                                      const right = row[foundIdx + 1];
+                                      if (left && typeof left === 'string' && /[가-힣]/.test(left)) colMap.unitName = foundIdx - 1;
+                                      else if (right && typeof right === 'string' && /[가-힣]/.test(right)) colMap.unitName = foundIdx + 1;
                                   }
                                   console.log('Content-Based UnitCode match at row', i, 'column', foundIdx);
                                   break;
@@ -279,8 +281,8 @@ export function adminNcsUploadHtml(): string {
                           }
                      }
                      
-                     // Debug Log for user to share
-                     log('파일 분석 완료: 총 ' + results.data.length + '행');
+                     // Final check: if we have any column, log it
+                     log('매핑 분석 결과: 코드 컬럼=' + (colMap.unitCode + 1) + ', 명칭 컬럼=' + (colMap.unitName + 1));
                      if (results.data.length > 0) {
                          const sample = results.data.slice(0, 3).map(function(r) { return r.join(' | '); }).join('\\n');
                          log('데이터 샘플 (상위 3줄):\\n' + sample);
