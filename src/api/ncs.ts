@@ -896,10 +896,15 @@ app.get('/approved/large-classes', async (c) => {
         // 1. Local DB Check
         try {
             const { results } = await c.env.DB.prepare(
-                "SELECT DISTINCT substr(job_code, 1, 2) as code, large_name as name FROM ncs_job_hierarchy WHERE large_name IS NOT NULL ORDER BY code"
+                "SELECT DISTINCT substr(job_code, 1, 2) as code, large_name as name FROM ncs_job_hierarchy WHERE large_name IS NOT NULL AND large_name != '' ORDER BY code"
             ).all();
             if (results && results.length > 0) {
-                return c.json({ success: true, data: results });
+                // Fill missing names from standard list
+                const enhanced = results.map((r: any) => {
+                    const found = NCS_LARGE_CLASSES.find(lc => lc.code === r.code);
+                    return { code: r.code, name: r.name || (found ? found.name : r.code) };
+                });
+                return c.json({ success: true, data: enhanced });
             }
         } catch (dbErr) {
             console.warn('Local NCS large-classes fetch failed (table missing?):', dbErr);
@@ -1334,10 +1339,10 @@ app.post('/upload', authMiddleware, requireAdmin, async (c) => {
                 INSERT INTO ncs_job_hierarchy (job_code, job_name, large_name, mid_name, small_name, synced_at, created_at)
                 VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
                 ON CONFLICT(job_code) DO UPDATE SET
-                    job_name = excluded.job_name,
-                    large_name = excluded.large_name,
-                    mid_name = excluded.mid_name,
-                    small_name = excluded.small_name,
+                    job_name = CASE WHEN excluded.job_name != '' THEN excluded.job_name ELSE ncs_job_hierarchy.job_name END,
+                    large_name = CASE WHEN excluded.large_name != '' THEN excluded.large_name ELSE ncs_job_hierarchy.large_name END,
+                    mid_name = CASE WHEN excluded.mid_name != '' THEN excluded.mid_name ELSE ncs_job_hierarchy.mid_name END,
+                    small_name = CASE WHEN excluded.small_name != '' THEN excluded.small_name ELSE ncs_job_hierarchy.small_name END,
                     synced_at = datetime('now')
             `).bind(job.code, job.name, job.large, job.mid, job.small));
             stats.jobs++;
