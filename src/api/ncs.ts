@@ -1404,17 +1404,37 @@ app.get('/approved/training', async (c) => {
 
         // 1. Local DB Check
         try {
+            // Fetch distinct job codes (8 digits: large+mid+small+sub)
             const { results } = await c.env.DB.prepare(
-                "SELECT DISTINCT mid_name, substr(job_code, 3, 2) as mid_code, small_name, substr(job_code, 5, 2) as small_code FROM ncs_job_hierarchy WHERE job_code LIKE ? AND mid_name IS NOT NULL AND mid_name != '' AND small_name IS NOT NULL AND small_name != '' ORDER BY mid_code, small_code"
+                `SELECT DISTINCT 
+                    job_code,
+                    large_name,
+                    mid_name, 
+                    small_name,
+                    job_name,
+                    substr(job_code, 1, 2) as large_code,
+                    substr(job_code, 3, 2) as mid_code,
+                    substr(job_code, 5, 2) as small_code,
+                    substr(job_code, 7, 2) as sub_code
+                FROM ncs_job_hierarchy 
+                WHERE job_code LIKE ? 
+                    AND mid_name IS NOT NULL AND mid_name != '' 
+                    AND small_name IS NOT NULL AND small_name != ''
+                ORDER BY job_code`
             ).bind(ncsLclasCd + '%').all();
 
             if (results && results.length > 0) {
                 const mapped: TrainingItem[] = results.map((r: any) => ({
-                    largeCode: ncsLclasCd,
-                    midCode: r.mid_code,
-                    midName: r.mid_name,
-                    smallCode: r.small_code,
-                    smallName: r.small_name,
+                    largeCode: r.large_code || ncsLclasCd,
+                    largeName: r.large_name || '',
+                    midCode: r.mid_code || '',
+                    midName: r.mid_name || '',
+                    smallCode: r.small_code || '',
+                    smallName: r.small_name || '',
+                    subClassCode: r.sub_code || '',
+                    subClassName: r.job_name || '',
+                    unitCode: '', // Training API doesn't include unit-level data
+                    unitName: '', // Will be populated later if needed
                 }));
                 return c.json({ success: true, data: mapped, _meta: { source: 'local_db', count: mapped.length } });
             }
