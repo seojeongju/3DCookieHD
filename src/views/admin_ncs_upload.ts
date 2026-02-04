@@ -383,16 +383,21 @@ export function adminNcsUploadHtml(): string {
                         body: JSON.stringify({ items: batch })
                     });
                     if (res.status === 401) throw new Error('세션 만료. 다시 로그인해주세요.');
-                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    if (!res.ok) {
+                        const errData = await res.json().catch(() => ({}));
+                        throw new Error(errData.error || 'HTTP ' + res.status);
+                    }
                     
                     const progress = Math.round(((i + 1) / totalBatches) * 100);
                     progressBar.style.width = progress + '%';
                     document.getElementById('progressPercent').textContent = progress + '%';
                     log('배치 ' + (i + 1) + '/' + totalBatches + ' 완료');
                 } catch (e) {
+                    console.error('Upload Error:', e);
                     log('[오류] ' + e.message);
                     alert('오류 발생: ' + e.message);
                     btnUpload.disabled = false;
+                    progressArea.classList.add('hidden');
                     return;
                 }
             }
