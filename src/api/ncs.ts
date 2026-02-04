@@ -1393,18 +1393,16 @@ app.get('/approved/training', async (c) => {
         // 1. Local DB Check
         try {
             const { results } = await c.env.DB.prepare(
-                "SELECT DISTINCT mid_name, substr(job_code, 3, 2) as mid_code, small_name, substr(job_code, 5, 2) as small_code FROM ncs_job_hierarchy WHERE job_code LIKE ? ORDER BY mid_code, small_code"
+                "SELECT DISTINCT mid_name, substr(job_code, 3, 2) as mid_code, small_name, substr(job_code, 5, 2) as small_code FROM ncs_job_hierarchy WHERE job_code LIKE ? AND mid_name IS NOT NULL AND mid_name != '' AND small_name IS NOT NULL AND small_name != '' ORDER BY mid_code, small_code"
             ).bind(ncsLclasCd + '%').all();
 
             if (results && results.length > 0) {
                 const mapped: TrainingItem[] = results.map((r: any) => ({
-                    largeCode: ncsLclasCd, // inferred
+                    largeCode: ncsLclasCd,
                     midCode: r.mid_code,
                     midName: r.mid_name,
                     smallCode: r.small_code,
                     smallName: r.small_name,
-                    // Subclass/Unit not returned in this aggregated view usually, but 'jobs' endpoint handles them.
-                    // ncs-approved.js uses this endpoint to get mid/small lists.
                 }));
                 return c.json({ success: true, data: mapped, _meta: { source: 'local_db', count: mapped.length } });
             }
