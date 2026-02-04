@@ -1111,11 +1111,18 @@ app.get('/approved/jobs', async (c) => {
         } catch (e) { }
 
         const data = jobs.map(j => {
-            const fullCode = l + m + s + j.code;
+            // j.code might be 2 digits (suffix) or 8 digits (full) depending on source.
+            // Ensure fullCode is exactly 8 digits.
+            const rawSub = (j.code || '').toString().trim();
+            const subCode = rawSub.length >= 8 ? rawSub.slice(-2) : rawSub.padStart(2, '0');
+            const fullCode = l + m + s + subCode;
+
             return {
                 ...j,
+                code: subCode, // Always return 2 digit suffix for client consistency
+                fullCode: fullCode,
                 isSynced: syncedMap.has(fullCode),
-                syncStats: null // Simplified
+                syncStats: null
             };
         });
 
@@ -1183,42 +1190,32 @@ app.get('/approved/units-by-job', async (c) => {
 
         // 2. API 조회 (있는 경우)
         if (apiKey && jobCode.length >= 8) {
-            const largeCode = jobCode.slice(0, 2);
-            let apiItems: TrainingItem[] = [];
-            try {
-                const fromClass = await fetchNcsClassificationByLarge(apiKey, largeCode, classificationBase);
-                if (fromClass && fromClass.length > 0) {
-                    apiItems = fromClass;
-                } else {
-                    apiItems = await fetchNcsTrainingByLarge(apiKey, largeCode);
-                }
-            } catch (e) {
-                console.error('API fetch failed during units-by-job', e);
-            }
+            const l = jobCode.slice(0, 2);
+            const m = jobCode.slice(2, 4);
+            const s = jobCode.slice(4, 6);
+            const subd = jobCode.slice(6, 8);
 
-            const prefix = jobCode.slice(0, 8);
-            for (const it of apiItems) {
-                const unitCode = String(it.unitCode || '').trim();
-                if (!unitCode) continue;
-                const numPart = unitCode.replace(/_.*$/, '').replace(/\D/g, '').slice(0, 8);
-                if (numPart === prefix || unitCode.includes(prefix)) {
-                    const existing = unitsMap.get(unitCode);
+            try {
+                // NCS005: 능력단위분류코드 조회 (정확한 매칭)
+                const apiUnits = await fetchNcsUnitsByJob(apiKey, l, m, s, subd, classificationBase);
+
+                for (const u of apiUnits) {
+                    const existing = unitsMap.get(u.code);
                     if (existing) {
-                        if (it.elements && it.elements.length > 0) {
-                            existing.elements = it.elements;
-                        }
-                        if (it.level != null) existing.level = it.level;
+                        if (u.level != null) existing.level = u.level;
                         existing.source = (existing.source || 'db') + '+api';
                     } else {
-                        unitsMap.set(unitCode, {
-                            code: unitCode,
-                            name: it.unitName,
-                            level: it.level,
-                            elements: it.elements,
+                        unitsMap.set(u.code, {
+                            code: u.code,
+                            name: u.name,
+                            level: u.level,
+                            elements: [],
                             source: 'api'
                         });
                     }
                 }
+            } catch (e) {
+                console.error('API fetch failed during units-by-job', e);
             }
         }
 
@@ -1247,31 +1244,46 @@ app.get('/approved/units-by-job', async (c) => {
     }
 });
 
-// DEBUG: NCS006 테스트 엔드포인트
-app.get('/approved/test-elements/:unitCode', async (c) => {
+// NCS006: 능력단위 요소(Elements) 조회 (on-demand)
+app.get('/approved/unit-elements/:unitCode', async (c) => {
     try {
         const unitCode = c.req.param('unitCode');
-        const rawKey = c.env.NCS_API_KEY?.trim();
+        const rawKey = (c.env.NCS_API_KEY || '').trim();
+        const classificationBase = (c.env as { NCS_CLASSIFICATION_API_BASE?: string }).NCS_CLASSIFICATION_API_BASE?.trim();
 
-        if (!rawKey) {
-            return c.json({ success: false, error: 'NCS_API_KEY not configured' }, 400);
+        // 1. DB 먼저 확인 (ncs_units.elements_json 선호)
+        const dbUnit = await c.env.DB.prepare(
+            'SELECT elements_json FROM ncs_units WHERE code = ?'
+        ).bind(unitCode).first() as { elements_json?: string } | null;
+
+        if (dbUnit?.elements_json) {
+            try {
+                const elements = JSON.parse(dbUnit.elements_json);
+                if (Array.isArray(elements) && elements.length > 0) {
+                    return c.json({ success: true, source: 'db', data: elements });
+                }
+            } catch (e) { }
         }
 
-        const classificationBase = (c.env as { NCS_CLASSIFICATION_API_BASE?: string }).NCS_CLASSIFICATION_API_BASE?.trim();
+        // 2. API 호출
+        if (!rawKey) return c.json({ success: false, error: 'API_KEY 미설정 및 DB 데이터 없음' }, 400);
+
         const elements = await fetchNcsUnitElements(rawKey, unitCode, classificationBase);
 
-        return c.json({
-            success: true,
-            unitCode,
-            elements,
-            count: elements.length,
-            _debug: {
-                apiKey: rawKey ? '***configured***' : 'missing',
-                baseUrl: classificationBase || 'default'
+        // 3. (선택적) DB 업데이트 - 효율적 브라우징을 위해 캐시
+        if (elements && elements.length > 0) {
+            try {
+                await c.env.DB.prepare(
+                    'UPDATE ncs_units SET elements_json = ? WHERE code = ?'
+                ).bind(JSON.stringify(elements), unitCode).run();
+            } catch (e) {
+                console.warn('Failed to cache elements in DB:', e);
             }
-        });
+        }
+
+        return c.json({ success: true, source: 'api', data: elements });
     } catch (e) {
-        console.error('test-elements error:', e);
+        console.error('unit-elements error:', e);
         return c.json({ success: false, error: String(e) }, 500);
     }
 });
@@ -1720,8 +1732,8 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
             if (j.code) {
                 const sub8 = j.code.replace(/[^0-9]/g, '').slice(0, 8);
                 if (sub8.length === 8) {
-                    const h = await c.env.DB.prepare('SELECT status FROM ncs_job_hierarchy WHERE code = ?').bind(sub8).first<{ status: string }>();
-                    mainJobs[i].isSynced = h?.status === 'READY';
+                    const h = await c.env.DB.prepare('SELECT * FROM ncs_job_hierarchy WHERE job_code = ?').bind(sub8).first<any>();
+                    mainJobs[i].isSynced = h && (h.status === 'READY' || h.unit_count > 0);
                 }
             }
         }
@@ -2033,12 +2045,17 @@ app.post('/approved/sync', authMiddleware, requireAdmin, async (c) => {
         (savedUnits || []).forEach((u: any) => unitIdMap.set(u.code, u.id));
 
         for (const u of units) {
-            const unitId = unitIdMap.get(u.code);
-            if (!unitId) continue;
-
             try {
                 const elements = await fetchNcsUnitElements(apiKey, u.code, base);
-                if (elements && elements.length > 0) {
+                const elementsJson = (elements && elements.length > 0) ? JSON.stringify(elements) : null;
+
+                // Update ncs_units with elements_json (for faster browsing)
+                await c.env.DB.prepare(
+                    'UPDATE ncs_units SET elements_json = ? WHERE code = ?'
+                ).bind(elementsJson, u.code).run();
+
+                const unitId = unitIdMap.get(u.code);
+                if (unitId && elements && elements.length > 0) {
                     const batch = elements.map(e => elemStmt.bind(unitId, e.code, e.name));
                     await c.env.DB.batch(batch);
                     elementCount += elements.length;

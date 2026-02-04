@@ -460,14 +460,39 @@
             if (!unitCode || !window.currentUnitsData) return;
 
             var unit = window.currentUnitsData.find(function (u) { return u.code === unitCode; });
-            if (!unit || !unit.elements || !unit.elements.length) {
-                elementSelect.innerHTML = '<option value="">데이터 없음</option>';
+            if (!unit) return;
+
+            // If elements exist, render them
+            if (unit.elements && unit.elements.length > 0) {
+                renderElements(unit.elements);
                 return;
             }
 
+            // Otherwise, fetch on-demand
+            elementSelect.innerHTML = '<option value="">로딩 중...</option>';
+            var token = localStorage.getItem('token');
+            fetch('/api/ncs/approved/unit-elements/' + encodeURIComponent(unitCode), {
+                headers: token ? { 'Authorization': 'Bearer ' + token } : {}
+            })
+                .then(function (r) { return r.json(); })
+                .then(function (json) {
+                    if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+                        unit.elements = json.data; // Cache it
+                        renderElements(unit.elements);
+                    } else {
+                        elementSelect.innerHTML = '<option value="">데이터 없음</option>';
+                    }
+                })
+                .catch(function (e) {
+                    console.error('Fetch elements failed:', e);
+                    elementSelect.innerHTML = '<option value="">조회 실패</option>';
+                });
+        }
+
+        function renderElements(elements) {
             var opts = ['<option value="">선택</option>'];
-            unit.elements.forEach(function (el, idx) {
-                opts.push('<option value="' + idx + '">' + (idx + 1) + '. ' + el.name + '</option>');
+            (elements || []).forEach(function (el, idx) {
+                opts.push('<option value="' + idx + '">' + (idx + 1) + '. ' + (el.name || '') + '</option>');
             });
             elementSelect.innerHTML = opts.join('');
         }
