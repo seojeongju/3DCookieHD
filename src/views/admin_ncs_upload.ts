@@ -279,48 +279,58 @@ export function adminNcsUploadHtml(): string {
                               }
 
                               // Find Names (Korean characters)
-                              // If neighbor check is insufficient, look for any column with Korean text
                               if (colMap.unitName === -1) {
-                                  const kIdx = row.findIndex(function(c, idx) {
-                                      if (idx === colMap.unitCode || idx === colMap.level) return false;
-                                      return typeof c === 'string' && /[가-힣]/.test(c);
-                                  });
-                                  if (kIdx !== -1) colMap.unitName = kIdx;
+                                  for (let j = 0; j < row.length; j++) {
+                                      if (j === colMap.unitCode || j === colMap.level) continue;
+                                      const cell = row[j];
+                                      if (cell && typeof cell === 'string' && /[가-힣]/.test(cell)) {
+                                          colMap.unitName = j;
+                                          console.log('Detected unitName column at index', j, 'from content:', cell);
+                                          break;
+                                      }
+                                  }
                               }
                           }
                      }
                      
-                     log('매핑 분석 결과: 코드=' + (colMap.unitCode + 1) + ', 명칭=' + (colMap.unitName + 1) + ', 수준=' + (colMap.level + 1));
+                     log('분석된 컬럼 구조: 코드=' + (colMap.unitCode + 1) + ', 명칭=' + (colMap.unitName + 1) + ', 수준=' + (colMap.level + 1));
 
                     // Extract Data
-                    parsedData = results.data.slice(headerRowIndex + 1).map(function(row) {
-                         const clean = function(s) { 
-                             if (!s || typeof s !== 'string') return '';
-                             return s.replace(/[\uFFFD\uFEFF]/g, '').trim(); 
-                         };
+                    const clean = function(s) { 
+                        if (!s) return '';
+                        if (typeof s !== 'string') s = String(s);
+                        // Remove BOM, Replacement characters, and other control chars
+                        return s.replace(/[\uFFFD\uFEFF\u0000-\u001F\u007F-\u009F]/g, '').trim(); 
+                    };
 
+                    parsedData = results.data.map(function(row) {
                          let uCode = clean(colMap.unitCode > -1 ? row[colMap.unitCode] : '');
-                         let jCode = clean(colMap.jobCode > -1 ? row[colMap.jobCode] : '');
                          let uName = clean(colMap.unitName > -1 ? row[colMap.unitName] : '');
+                         let levelVal = clean(colMap.level > -1 ? row[colMap.level] : '');
+                         let jCode = clean(colMap.jobCode > -1 ? row[colMap.jobCode] : '');
                          
-                         // If occupation code is missing, derive from first 8 digits of unit code
+                         // Skip rows that look like headers or are too short to be real data
+                         if (uCode.includes('번호') || uCode.includes('코드') || uCode.length < 3) return null;
+
+                         // Derive occupation code from unit code (first 8 digits)
                          if (!jCode && uCode) {
                              const digits = uCode.replace(/[^0-9]/g, '');
                              if (digits.length >= 8) jCode = digits.substring(0, 8);
                          }
 
-                         const item = {
+                         return {
                             large: colMap.large > -1 ? clean(row[colMap.large]) : '',
                             mid: colMap.mid > -1 ? clean(row[colMap.mid]) : '',
                             small: colMap.small > -1 ? clean(row[colMap.small]) : '',
-                            jobName: colMap.jobName > -1 ? clean(row[colMap.jobName]) : uName, // Fallback to unit name
+                            jobName: colMap.jobName > -1 ? clean(row[colMap.jobName]) : uName,
                             jobCode: jCode,
                             unitName: uName,
                             unitCode: uCode,
-                            level: colMap.level > -1 ? clean(row[colMap.level]) : '',
-                            valid: true,
+                            level: levelVal,
+                            valid: (!!uCode && !!uName),
                             raw: row
                          };
+                    }).filter(function(x) { return x !== null; });
                          
                          if (!item.unitCode) item.valid = false;
                          return item;
