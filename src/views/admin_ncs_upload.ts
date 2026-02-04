@@ -176,6 +176,19 @@ export function adminNcsUploadHtml(): string {
             });
         }
 
+        const clean = function(s) { 
+            if (!s) return '';
+            var str = String(s);
+            var out = '';
+            for (var i = 0; i < str.length; i++) {
+                var ch = str.charCodeAt(i);
+                if (ch > 31 && ch !== 127 && ch !== 0xFFFD && ch !== 0xFEFF) {
+                    out += str[i];
+                }
+            }
+            return out.trim(); 
+        };
+
         function handleFile(file) {
             console.log('Handling file:', file.name);
             currentFile = file;
@@ -222,21 +235,19 @@ export function adminNcsUploadHtml(): string {
                         level: ['수준', '레벨', 'level']
                     };
 
+                    // Search for Header with Pre-cleaning
                     for (let i = 0; i < Math.min(results.data.length, 20); i++) {
                         const row = results.data[i];
-                        const hasKeys = row.some(function(cell) { 
-                            if (typeof cell !== 'string') return false;
-                            const c = cell.trim();
+                        const cleanedRow = row.map(clean);
+                        const hasKeys = cleanedRow.some(function(c) { 
                             return c.includes('코드') || c.includes('분류') || c.includes('단위') || c.includes('수준');
                         });
                         
                         if (hasKeys) {
                             headerRowIndex = i;
                             const findIndex = function(keys) {
-                                return row.findIndex(function(c) {
-                                    if (typeof c !== 'string') return false;
-                                    const trimmed = c.trim();
-                                    return keys.some(function(k) { return trimmed.includes(k); });
+                                return cleanedRow.findIndex(function(c) {
+                                    return keys.some(function(k) { return c.includes(k); });
                                 });
                             };
                             colMap.large = findIndex(keywords.large);
@@ -247,61 +258,61 @@ export function adminNcsUploadHtml(): string {
                             colMap.unitName = findIndex(keywords.unitName);
                             colMap.unitCode = findIndex(keywords.unitCode);
                             colMap.level = findIndex(keywords.level);
+                            console.log('Header Found at index:', i, colMap);
                             break;
                         }
                     }
 
-                    if (colMap.unitCode === -1 && results.data.length > 0) {
-                         for (let i = 0; i < Math.min(results.data.length, 10); i++) {
-                             const row = results.data[i];
+                    // Content-Based Detection with Pre-cleaning
+                    if (colMap.unitCode === -1 || colMap.unitName === -1) {
+                         for (let i = 0; i < Math.min(results.data.length, 20); i++) {
+                             const row = results.data[i].map(clean);
                              if (colMap.unitCode === -1) {
                                  const uIdx = row.findIndex(function(c) {
-                                     if (typeof c !== 'string' || !c) return false;
-                                     return /^[a-zA-Z0-9_]{6,25}$/.test(c.trim()) && /[0-9]/.test(c.trim());
+                                     return /^[a-zA-Z0-9_]{6,25}$/.test(c) && /[0-9]/.test(c);
                                  });
                                  if (uIdx !== -1) colMap.unitCode = uIdx;
                              }
                              if (colMap.level === -1) {
                                  const lIdx = row.findIndex(function(c) {
-                                     return c && /^[1-8]$/.test(String(c).trim());
+                                     return /^[1-8]$/.test(c);
                                  });
                                  if (lIdx !== -1) colMap.level = lIdx;
                              }
                              if (colMap.unitName === -1) {
                                  for (let j = 0; j < row.length; j++) {
                                      if (j === colMap.unitCode || j === colMap.level) continue;
-                                     if (row[j] && /[\uAC00-\uD7A3]/.test(row[j])) { colMap.unitName = j; break; }
+                                     if (row[j] && /[\u3131-\uD7A3]/.test(row[j])) { 
+                                         colMap.unitName = j; 
+                                         break; 
+                                     }
                                  }
                              }
                          }
                     }
                     
                     log('분석 구조: 코드=' + (colMap.unitCode + 1) + ', 명칭=' + (colMap.unitName + 1) + ', 수준=' + (colMap.level + 1));
+                    if (results.data.length > 0) {
+                        const firstRow = results.data[0].map(clean).join(' | ');
+                        log('첫 줄 분석: ' + firstRow);
+                    }
 
-                    const clean = function(s) { 
-                        if (!s) return '';
-                        var str = String(s);
-                        var out = '';
-                        for (var i = 0; i < str.length; i++) {
-                            var ch = str.charCodeAt(i);
-                            // Filter control chars, BOM, and replacement char
-                            if (ch > 31 && ch !== 127 && ch !== 0xFFFD && ch !== 0xFEFF) {
-                                out += str[i];
-                            }
-                        }
-                        return out.trim(); 
-                    };
+                    // Extract Data (Skip Header Row)
+                    parsedData = results.data.map(function(row, idx) {
+                         if (idx <= headerRowIndex) return null;
 
-                    parsedData = results.data.map(function(row) {
                          let uCode = clean(colMap.unitCode > -1 ? row[colMap.unitCode] : '');
                          let uName = clean(colMap.unitName > -1 ? row[colMap.unitName] : '');
                          let levelVal = clean(colMap.level > -1 ? row[colMap.level] : '');
                          let jCode = clean(colMap.jobCode > -1 ? row[colMap.jobCode] : '');
-                         if (uCode.includes('번호') || uCode.includes('코드') || uCode.length < 3) return null;
+
+                         if (uCode.length < 3) return null;
+
                          if (!jCode && uCode) {
                              const digits = uCode.replace(/[^0-9]/g, '');
                              if (digits.length >= 8) jCode = digits.substring(0, 8);
                          }
+
                          return {
                             large: colMap.large > -1 ? clean(row[colMap.large]) : '',
                             mid: colMap.mid > -1 ? clean(row[colMap.mid]) : '',
@@ -312,7 +323,8 @@ export function adminNcsUploadHtml(): string {
                          };
                     }).filter(function(x) { return x !== null; });
                     
-                    if (parsedData.length === 0) {
+                    const validCount = parsedData.filter(function(r){ return r.valid; }).length;
+                    if (validCount === 0) {
                         alert('유효한 데이터가 없습니다. 파일 형식을 확인해주세요.');
                     }
                     showPreview();
