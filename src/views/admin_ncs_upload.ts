@@ -150,23 +150,76 @@ export function adminNcsUploadHtml(): string {
                 encoding: 'CP949', // Support Korean text (EUC-KR/CP949)
                 skipEmptyLines: true,
                 complete: function(results) {
+                    console.log('CSV Parsed Raw:', results);
                     if (results.data.length < 2) {
                         alert('데이터가 없는 파일입니다.');
                         return;
                     }
+
+                    // Smart Header Detection
+                    let headerRowIndex = -1;
+                    let colMap = {
+                        large: -1, mid: -1, small: -1, 
+                        jobName: -1, jobCode: -1, 
+                        unitName: -1, unitCode: -1, level: -1
+                    };
+
+                    // Try to find header row containing specific keywords
+                    for (let i = 0; i < Math.min(results.data.length, 10); i++) {
+                        const row = results.data[i];
+                        if (row.some(cell => typeof cell === 'string' && cell.includes('능력단위명'))) {
+                            headerRowIndex = i;
+                            // Map columns dynamically
+                            colMap.large = row.findIndex(c => c.includes('대분류'));
+                            colMap.mid = row.findIndex(c => c.includes('중분류'));
+                            colMap.small = row.findIndex(c => c.includes('소분류'));
+                            // 세분류 or 직종명
+                            colMap.jobName = row.findIndex(c => c.includes('세분류') || c.includes('직종명'));
+                            colMap.jobCode = row.findIndex(c => c.includes('세분류코드') || c.includes('직종코드')); // Sometimes next to name
+                            if (colMap.jobCode === -1) colMap.jobCode = colMap.jobName + 1; // Fallback assumption
+
+                            colMap.unitName = row.findIndex(c => c.includes('능력단위명'));
+                            colMap.unitCode = row.findIndex(c => c.includes('능력단위코드'));
+                            colMap.level = row.findIndex(c => c.includes('수준'));
+                            
+                            console.log('Header Found at index:', i, 'Map:', colMap);
+                            break;
+                        }
+                    }
+
+                    // Fallback to default indices if header detection fails
+                    if (headerRowIndex === -1) {
+                        console.warn('Header not found, using default indices');
+                        headerRowIndex = 0;
+                        colMap = { large: 0, mid: 1, small: 2, jobName: 3, jobCode: 4, unitName: 5, unitCode: 6, level: 7 };
+                    }
+
+                    // Extract Data
+                    parsedData = results.data.slice(headerRowIndex + 1).map((row, idx) => {
+                         // Debug first row mapping
+                         if (idx === 0) console.log('First Data Row:', row);
+                         
+                         return {
+                            large: row[colMap.large],
+                            mid: row[colMap.mid],
+                            small: row[colMap.small],
+                            jobName: row[colMap.jobName],
+                            jobCode: row[colMap.jobCode],
+                            unitName: row[colMap.unitName],
+                            unitCode: row[colMap.unitCode],
+                            level: row[colMap.level]
+                         };
+                    }).filter(r => {
+                        const isValid = r.unitCode && r.jobCode;
+                        if (!isValid && parsedData.length < 5) console.warn('Invalid Row:', r);
+                        return isValid;
+                    });
                     
-                    // 첫 줄(헤더) 제거 및 데이터 매핑
-                    // 가정: 대분류(0), 중분류(1), 소분류(2), 직종명(3), 직종코드(4), 능력단위명(5), 능력단위코드(6), 수준(7)
-                    parsedData = results.data.slice(1).map(row => ({
-                        large: row[0],
-                        mid: row[1],
-                        small: row[2],
-                        jobName: row[3],
-                        jobCode: row[4],
-                        unitName: row[5],
-                        unitCode: row[6],
-                        level: row[7]
-                    })).filter(r => r.unitCode && r.jobCode); // 코드가 있는 것만 유효
+                    console.log('Parsed Valid Data count:', parsedData.length);
+                    
+                    if (parsedData.length === 0) {
+                        alert('유효한 데이터가 없습니다. (CSV 헤더나 인코딩을 확인해주세요. F12 개발자 도구 콘솔 참고)');
+                    }
 
                     showPreview();
                 },
