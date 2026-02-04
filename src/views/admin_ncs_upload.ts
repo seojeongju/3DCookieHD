@@ -331,10 +331,6 @@ export function adminNcsUploadHtml(): string {
                             raw: row
                          };
                     }).filter(function(x) { return x !== null; });
-                         
-                         if (!item.unitCode) item.valid = false;
-                         return item;
-                    });
                     
                     const validCount = parsedData.filter(function(r){ return r.valid; }).length;
                     console.log('Parsed Valid Data count (' + encoding + '): ' + validCount);
