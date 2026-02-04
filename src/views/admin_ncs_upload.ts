@@ -207,69 +207,84 @@ export function adminNcsUploadHtml(): string {
                         unitName: -1, unitCode: -1, level: -1
                     };
                     
-                    // 1. Try Header Keywords first
-                    for (let i = 0; i < Math.min(results.data.length, 10); i++) {
-                        const row = results.data[i];
-                        if (row.some(function(cell) { return typeof cell === 'string' && (cell.includes('능력단위명') || cell.includes('직종명') || cell.includes('직종코드')); })) {
-                            headerRowIndex = i;
-                            colMap.large = row.findIndex(function(c) { return c.includes('대분류'); });
-                            colMap.mid = row.findIndex(function(c) { return c.includes('중분류'); });
-                            colMap.small = row.findIndex(function(c) { return c.includes('소분류'); });
-                            colMap.jobName = row.findIndex(function(c) { return c.includes('세분류') || c.includes('직종명'); });
-                            colMap.jobCode = row.findIndex(function(c) { return c.includes('세분류코드') || c.includes('직종코드'); });
-                            if (colMap.jobCode === -1) colMap.jobCode = colMap.jobName + 1; 
+                     // 1. Try Header Keywords first
+                     const keywords = {
+                         large: ['대분류'],
+                         mid: ['중분류'],
+                         small: ['소분류'],
+                         jobName: ['세분류명', '직종명', '세분류'],
+                         jobCode: ['세분류코드', '직종코드'],
+                         unitName: ['능력단위명', '능력단위'],
+                         unitCode: ['능력단위코드', '단위코드', '능력단위_코드', '코드'],
+                         level: ['수준', '레벨', 'level']
+                     };
 
-                            colMap.unitName = row.findIndex(function(c) { return c.includes('능력단위명'); });
-                            colMap.unitCode = row.findIndex(function(c) { return c.includes('능력단위코드'); });
-                            colMap.level = row.findIndex(function(c) { return c.includes('수준'); });
-                            console.log('Header Found at index:', i, 'Map:', colMap);
-                            break;
-                        }
-                    }
-
-                    // 2. Content-Based Detection (Attempt this BEFORE Retry)
-                    if (headerRowIndex === -1 && results.data.length > 0) {
-                         console.log('Header detection failed. Attempting content-based detection...');
-                         
-                         const sampleRow = results.data[0]; // Check first row
-                         
-                         // Detect Unit Code: Broadened to any numeric-heavy string of 6+ chars or standard NCS pattern
-                         colMap.unitCode = sampleRow.findIndex(function(c) { 
-                             if (typeof c !== 'string') return false;
-                             const trimmed = c.trim();
-                             // Pattern: 12345678 or 1234567890_12v1 or 2404040208_19v2
-                             return /^\d{6,}/.test(trimmed) || /^\d{2,}[_]\d+/.test(trimmed);
-                         });
-
-                         // Detect Level (Single digit 1-8)
-                         colMap.level = sampleRow.findIndex(function(c) {
-                             if (typeof c !== 'string') return false;
-                             return /^[1-8]$/.test(c.trim());
+                     for (let i = 0; i < Math.min(results.data.length, 20); i++) {
+                         const row = results.data[i];
+                         const hasKeys = row.some(function(cell) { 
+                             if (typeof cell !== 'string') return false;
+                             const c = cell.trim();
+                             return c.includes('코드') || c.includes('분류') || c.includes('단위') || c.includes('수준');
                          });
                          
-                         // Detect Korean Names
-                         const koreanCols = sampleRow.map(function(c, i) {
-                             return { index: i, val: c, length: (c && typeof c === 'string' && /[가-힣]/.test(c)) ? c.length : 0 };
-                         }).filter(function(x) { return x.length > 0; }).sort(function(a, b) { return b.length - a.length; });
-
-                         if (koreanCols.length > 0) {
-                             // Longest is likely Unit Name
-                             colMap.unitName = koreanCols[0].index;
+                         if (hasKeys) {
+                             headerRowIndex = i;
+                             const findIndex = function(keys) {
+                                 return row.findIndex(function(c) {
+                                     if (typeof c !== 'string') return false;
+                                     const trimmed = c.trim();
+                                     return keys.some(function(k) { return trimmed.includes(k); });
+                                 });
+                             };
                              
-                             if (koreanCols.length > 1) {
-                                 if (colMap.unitCode !== -1) {
-                                     // Prefer column next to code?
-                                     const neighbor = koreanCols.find(function(k) { return Math.abs(k.index - colMap.unitCode) === 1; });
-                                     if (neighbor) colMap.unitName = neighbor.index;
-                                 }
-                             }
+                             colMap.large = findIndex(keywords.large);
+                             colMap.mid = findIndex(keywords.mid);
+                             colMap.small = findIndex(keywords.small);
+                             colMap.jobName = findIndex(keywords.jobName);
+                             colMap.jobCode = findIndex(keywords.jobCode);
+                             colMap.unitName = findIndex(keywords.unitName);
+                             colMap.unitCode = findIndex(keywords.unitCode);
+                             colMap.level = findIndex(keywords.level);
+                             
+                             console.log('Header Found at index:', i, 'Map:', colMap);
+                             break;
                          }
-                         
-                         // If we identify a Unit Code, we assume successful detection
-                         if (colMap.unitCode !== -1) {
-                             console.log('Content-Based Detection Successful. UnitCode Index:', colMap.unitCode);
-                         }
-                    }
+                     }
+
+                     // 2. Content-Based Detection (Attempt this if Header fails or is incomplete)
+                     if (colMap.unitCode === -1 && results.data.length > 0) {
+                          console.log('Header detection incomplete. Attempting content-based detection...');
+                          
+                          // Check first 10 rows to find a pattern
+                          for (let i = 0; i < Math.min(results.data.length, 10); i++) {
+                              const row = results.data[i];
+                              const foundIdx = row.findIndex(function(c) {
+                                  if (typeof c !== 'string' || !c) return false;
+                                  const trimmed = c.trim();
+                                  // NCS Code Regex: Starts with digit or uppercase letter, length 6-25, NO spaces
+                                  // e.g., 20240101, 1401010101_14v3, LM0101010101
+                                  return /^[A-Z0-9_]{6,25}$/.test(trimmed) && /[0-9]/.test(trimmed);
+                              });
+                              
+                              if (foundIdx !== -1) {
+                                  colMap.unitCode = foundIdx;
+                                  // If we found a code, neighbors are likely names
+                                  if (colMap.unitName === -1) {
+                                      if (row[foundIdx - 1] && row[foundIdx - 1].length > 2) colMap.unitName = foundIdx - 1;
+                                      else if (row[foundIdx + 1] && row[foundIdx + 1].length > 2) colMap.unitName = foundIdx + 1;
+                                  }
+                                  console.log('Content-Based UnitCode match at row', i, 'column', foundIdx);
+                                  break;
+                              }
+                          }
+                     }
+                     
+                     // Debug Log for user to share
+                     log('파일 분석 완료: 총 ' + results.data.length + '행');
+                     if (results.data.length > 0) {
+                         const sample = results.data.slice(0, 3).map(function(r) { return r.join(' | '); }).join('\\n');
+                         log('데이터 샘플 (상위 3줄):\\n' + sample);
+                     }
 
                     // AUTO-RETRY if Header Failed AND Content Detection Failed
                     const contentDetectionFailed = (colMap.unitCode === -1);
