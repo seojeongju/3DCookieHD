@@ -85,7 +85,7 @@ export function stepContentHtml(step: number, editId?: string, isEmbedded: boole
           </div>
           
           <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-            <div class="grid grid-cols-1 md:grid-cols-6 divide-x divide-slate-100">
+            <div class="grid grid-cols-1 md:grid-cols-4 divide-x divide-slate-100">
               <div class="p-3">
                 <div class="flex items-center justify-between mb-2">
                   <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">대분류 (001)</label>
@@ -124,28 +124,10 @@ export function stepContentHtml(step: number, editId?: string, isEmbedded: boole
                   <option value="">소분류 선택</option>
                 </select>
               </div>
-              <div class="p-3">
-                <div class="flex items-center justify-between mb-2">
-                  <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">능력단위 (005)</label>
-                  <button type="button" id="refreshUnit" class="ncs-refresh-btn text-slate-400 hover:text-blue-600 hover:bg-blue-50 p-1.5 rounded-lg transition-all" title="최신 데이터 가져오기">
-                    <i class="fas fa-sync-alt text-xs"></i>
-                  </button>
-                </div>
-                <select id="ncsUnit" size="10" class="ncs-class-select w-full px-2 py-1 border-none bg-transparent text-[13px] focus:ring-0 min-h-[220px] custom-scrollbar">
-                  <option value="">세분류 선택</option>
-                </select>
-              </div>
-              <div class="p-3">
-                <div class="flex items-center justify-between mb-2">
-                  <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">단위요소 (006)</label>
-                  <button type="button" id="refreshElement" class="ncs-refresh-btn text-slate-400 hover:text-blue-600 hover:bg-blue-50 p-1.5 rounded-lg transition-all" title="최신 데이터 가져오기">
-                    <i class="fas fa-sync-alt text-xs"></i>
-                  </button>
-                </div>
-                <select id="ncsElement" size="10" class="ncs-class-select w-full px-2 py-1 border-none bg-transparent text-[13px] focus:ring-0 min-h-[220px] custom-scrollbar">
-                  <option value="">단위 선택</option>
-                </select>
-              </div>
+            </div>
+            <div class="px-6 py-3 border-t border-slate-100 bg-blue-50/50 text-blue-700 text-xs flex items-center gap-2">
+              <i class="fas fa-info-circle"></i>
+              능력단위(NCS005)와 단위요소(NCS006)는 <strong>훈련이수체계도</strong>에서 선택합니다.
             </div>
             <div id="ncsTrainingApiMessage" class="px-6 py-3 border-t border-slate-100 bg-amber-50 text-amber-700 text-xs hidden"></div>
             <div id="ncsBannerJobSearchLocked" class="hidden px-6 py-3 bg-red-50 text-red-700 text-xs font-bold border-t border-red-100">

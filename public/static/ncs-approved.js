@@ -74,6 +74,7 @@
         var midClass = document.getElementById('ncsMidClass');
         var smallClass = document.getElementById('ncsSmallClass');
         var subClassSelect = document.getElementById('ncsSubClass');
+        // Unit and Element selectors are only in Step 3 (Training System Diagram), not in Step 1
         var unitSelect = document.getElementById('ncsUnit');
         var elementSelect = document.getElementById('ncsElement');
         var jobRadioGroup = document.getElementById('ncsJobRadioGroup');
@@ -539,8 +540,8 @@
         largeClass.addEventListener('change', loadTrainingByLarge);
         midClass.addEventListener('change', loadSmallByMid);
         smallClass.addEventListener('change', loadSubClassesBySmall);
-        subClassSelect.addEventListener('change', loadUnitsByJob);
-        unitSelect.addEventListener('change', loadElementsByUnit);
+        if (subClassSelect) subClassSelect.addEventListener('change', loadUnitsByJob);
+        if (unitSelect) unitSelect.addEventListener('change', loadElementsByUnit);
 
         // ========== Refresh Buttons ==========
         var refreshLargeBtn = document.getElementById('refreshLargeClass');
