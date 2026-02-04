@@ -1161,13 +1161,19 @@ app.get('/approved/units-by-job', async (c) => {
 
         // 1. DB 조회
         const { results: dbUnits } = await c.env.DB.prepare(
-            'SELECT code, name, level FROM ncs_units WHERE code LIKE ? ORDER BY level DESC, code ASC'
-        ).bind(jobCode + '%').all() as { results: { code?: string; name?: string; level?: number }[] };
+            'SELECT code, name, level, elements_json FROM ncs_units WHERE code LIKE ? ORDER BY level DESC, code ASC'
+        ).bind(jobCode + '%').all() as { results: { code?: string; name?: string; level?: number; elements_json?: string }[] };
 
         const unitsMap = new Map<string, any>();
         dbUnits.forEach(u => {
             const code = (u.code || '').trim();
-            if (code) unitsMap.set(code, { code, name: u.name, level: u.level, source: 'db' });
+            if (code) {
+                let elements = [];
+                try {
+                    if (u.elements_json) elements = JSON.parse(u.elements_json);
+                } catch (e) { }
+                unitsMap.set(code, { code, name: u.name, level: u.level, elements, source: 'db' });
+            }
         });
 
         // 2. API 조회 (있는 경우)
@@ -1274,6 +1280,7 @@ interface NcsUploadItem {
     unitName?: string;
     unitCode?: string;
     level?: string;
+    elements?: any[]; // NCS006 Elements
 }
 
 // NCS Data Batch Upload (CSV)
@@ -1315,7 +1322,8 @@ app.post('/upload', authMiddleware, requireAdmin, async (c) => {
                     name: item.unitName,
                     category: item.jobName,
                     level: parseInt(item.level || '0', 10),
-                    sub_class_code: jobCodeRaw
+                    sub_class_code: jobCodeRaw,
+                    elements_json: Array.isArray(item.elements) ? JSON.stringify(item.elements) : null
                 });
             }
         }
@@ -1336,17 +1344,18 @@ app.post('/upload', authMiddleware, requireAdmin, async (c) => {
         }
 
         // Create Unit Upsert Statements
-        // Note: sub_class_code requires migration 0053
+        // Note: sub_class_code requires migration 0053, elements_json requires 0054
         for (const unit of unitsMap.values()) {
             statements.push(c.env.DB.prepare(`
-                INSERT INTO ncs_units (code, name, category, level, sub_class_code)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO ncs_units (code, name, category, level, sub_class_code, elements_json)
+                VALUES (?, ?, ?, ?, ?, ?)
                 ON CONFLICT(code) DO UPDATE SET
                     name = excluded.name,
                     category = excluded.category,
                     level = excluded.level,
-                    sub_class_code = excluded.sub_class_code
-            `).bind(unit.code, unit.name, unit.category, unit.level, unit.sub_class_code));
+                    sub_class_code = excluded.sub_class_code,
+                    elements_json = excluded.elements_json
+            `).bind(unit.code, unit.name, unit.category, unit.level, unit.sub_class_code, unit.elements_json));
             stats.units++;
         }
 
