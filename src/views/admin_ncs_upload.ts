@@ -214,8 +214,8 @@ export function adminNcsUploadHtml(): string {
                          small: ['소분류'],
                          jobName: ['세분류명', '직종명', '세분류'],
                          jobCode: ['세분류코드', '직종코드'],
-                         unitName: ['능력단위명', '능력단위'],
-                         unitCode: ['능력단위코드', '단위코드', '능력단위_코드', '코드'],
+                         unitName: ['명칭', '능력단위명', '능력단위'],
+                         unitCode: ['분류번호', '능력단위코드', '단위코드', '능력단위_코드', '코드'],
                          level: ['수준', '레벨', 'level']
                      };
 
@@ -262,7 +262,7 @@ export function adminNcsUploadHtml(): string {
                                   if (typeof c !== 'string' || !c) return false;
                                   const trimmed = c.trim();
                                   // NCS Code Regex: Starts with digit or uppercase letter, length 6-25, NO spaces
-                                  // e.g., 20240101, 1401010101_14v3, LM0101010101
+                                  // e.g., 20240101, 1401010101_14v3, 0101010101_17v2
                                   return /^[A-Z0-9_]{6,25}$/.test(trimmed) && /[0-9]/.test(trimmed);
                               });
                               
