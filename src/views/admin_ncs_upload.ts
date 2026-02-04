@@ -280,7 +280,7 @@ export function adminNcsUploadHtml(): string {
 
                     const clean = function(s) { 
                         if (!s) return '';
-                        return String(s).replace(/[\uFFFD\uFEFF\u0000-\u001F\u007F-\u009F]/g, '').trim(); 
+                        return String(s).replace(/[\x00-\x1F\x7F-\x9F\uFFFD\uFEFF]/g, '').trim(); 
                     };
 
                     parsedData = results.data.map(function(row) {
