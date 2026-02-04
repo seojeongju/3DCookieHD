@@ -306,11 +306,11 @@ export function adminNcsUploadHtml(): string {
                     if (validCount === 0) {
                         let firstRowDump = '';
                         if (results.data.length > 0) {
-                             firstRowDump = '\n\n파일의 첫 줄 내용:\n' + JSON.stringify(results.data[0]);
+                             firstRowDump = '\\n\\n파일의 첫 줄 내용:\\n' + JSON.stringify(results.data[0]);
                         }
                         
                         if (isRetry) {
-                            alert('데이터 형식을 인식할 수 없거나 유효한 능력단위코드가 없습니다.\n' + 
+                            alert('데이터 형식을 인식할 수 없거나 유효한 능력단위코드가 없습니다.\\n' + 
                                   '수동 선택 옵션이 없으므로 파일 형식을 확인해주세요.' + firstRowDump);
                         } else if (!(encoding === 'CP949' || encoding === 'EUC-KR')) {
                              // If not retry and not CP949 (meaning it was UTF-8 from start), show alert
@@ -356,7 +356,7 @@ export function adminNcsUploadHtml(): string {
                 return;
             }
             
-            if (!confirm('총 ' + validData.length + '건 (무효 ' + (parsedData.length - validData.length) + '건 제외)의 데이터를 업로드하시겠습니까?\n기존 데이터는 업데이트됩니다.')) return;
+            if (!confirm('총 ' + validData.length + '건 (무효 ' + (parsedData.length - validData.length) + '건 제외)의 데이터를 업로드하시겠습니까?\\n기존 데이터는 업데이트됩니다.')) return;
 
             btnUpload.disabled = true;
             progressArea.classList.remove('hidden');
