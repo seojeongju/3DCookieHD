@@ -360,6 +360,7 @@
                     clearSelect(smallClass);
                     loadJobRadios();
                     showTrainingApiMessage('공공 API 연결 실패. 네트워크 또는 서버 상태를 확인하세요.', true);
+                    if (onError) onError();
                 });
         }
 
@@ -438,7 +439,7 @@
                 return;
             }
 
-            unitSelect.innerHTML = '<option value="">로딩 중...</option>';
+            if (unitSelect) unitSelect.innerHTML = '<option value="">로딩 중...</option>';
             var token = localStorage.getItem('token');
             var url = '/api/ncs/approved/units-by-job?jobCode=' + encodeURIComponent(jobCode);
             if (forceRefresh) url += '&refresh=true';
@@ -447,25 +448,79 @@
                 .then(function (r) { return r.json(); })
                 .then(function (json) {
                     if (!json.success || !Array.isArray(json.data)) {
-                        unitSelect.innerHTML = '<option value="">데이터 없음</option>';
+                        if (unitSelect) unitSelect.innerHTML = '<option value="">데이터 없음</option>';
                         if (onError) onError();
                         return;
                     }
                     window.currentUnitsData = json.data; // Cache for element lookups
-                    var opts = ['<option value="">선택</option>'];
-                    json.data.forEach(function (u) {
-                        opts.push('<option value="' + u.code + '" data-name="' + (u.name || '').replace(/"/g, '&quot;') + '">[Lv.' + u.level + '] ' + u.name + '</option>');
-                    });
-                    unitSelect.innerHTML = opts.join('');
 
+                    if (unitSelect) {
+                        var opts = ['<option value="">선택</option>'];
+                        json.data.forEach(function (u) {
+                            opts.push('<option value="' + u.code + '" data-name="' + (u.name || '').replace(/"/g, '&quot;') + '">[Lv.' + u.level + '] ' + u.name + '</option>');
+                        });
+                        unitSelect.innerHTML = opts.join('');
+                    }
+
+                    // 또한, 세분류 선택 시 "훈련직종" 리스트에 추가할지 물어보거나 자동 추가
                     // 또한, 세분류 선택 시 "훈련직종" 리스트에 추가할지 물어보거나 자동 추가
                     var name = subClassSelect.options[subClassSelect.selectedIndex].getAttribute('data-name');
                     if (!window.ncsStep1Jobs.some(function (x) { return x.code === jobCode; })) {
-                        if (confirm('선택하신 직종 [' + name + ']을(를) 과정 훈련직종으로 추가하시겠습니까?')) {
+                        // Custom Confirm Modal Logic
+                        var modalId = 'ncs-confirm-modal';
+                        var existingModal = document.getElementById(modalId);
+                        if (existingModal) existingModal.remove();
+
+                        var modalHtml =
+                            '<div id="' + modalId + '" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm opacity-0 transition-opacity duration-300">' +
+                            '<div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 transform scale-95 transition-all duration-300 overflow-hidden">' +
+                            '<div class="p-6">' +
+                            '<div class="flex items-start gap-4">' +
+                            '<div class="shrink-0 w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">' +
+                            '<i class="fas fa-plus-circle text-2xl"></i>' +
+                            '</div>' +
+                            '<div class="flex-1">' +
+                            '<h3 class="text-lg font-bold text-slate-800 mb-1">훈련직종 추가</h3>' +
+                            '<p class="text-slate-600 text-sm leading-relaxed">' +
+                            '선택하신 직종 <span class="font-bold text-blue-600">[' + name + ']</span>을(를)<br>과정의 훈련직종으로 추가하시겠습니까?' +
+                            '</p>' +
+                            '</div>' +
+                            '</div>' +
+                            '</div>' +
+                            '<div class="bg-slate-50 px-6 py-4 flex justify-end gap-3 border-t border-slate-100">' +
+                            '<button id="' + modalId + '-cancel" class="px-4 py-2 text-sm font-semibold text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-200">취소</button>' +
+                            '<button id="' + modalId + '-confirm" class="px-4 py-2 text-sm font-bold text-white bg-blue-600 rounded-lg shadow-sm hover:bg-blue-700 hover:shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1">추가하기</button>' +
+                            '</div>' +
+                            '</div>' +
+                            '</div>';
+
+                        document.body.insertAdjacentHTML('beforeend', modalHtml);
+                        var modal = document.getElementById(modalId);
+                        var btnCancel = document.getElementById(modalId + '-cancel');
+                        var btnConfirm = document.getElementById(modalId + '-confirm');
+
+                        // Show animation
+                        requestAnimationFrame(function () {
+                            modal.classList.remove('opacity-0');
+                            modal.querySelector('div').classList.remove('scale-95');
+                            modal.querySelector('div').classList.add('scale-100');
+                        });
+
+                        var close = function () {
+                            modal.classList.add('opacity-0');
+                            modal.querySelector('div').classList.remove('scale-100');
+                            modal.querySelector('div').classList.add('scale-95');
+                            setTimeout(function () { modal.remove(); }, 300);
+                        };
+
+                        btnCancel.onclick = close;
+                        btnConfirm.onclick = function () {
                             window.ncsStep1Jobs.push({ code: jobCode, name: name });
                             if (!window.ncsPrimaryJobCode) window.ncsPrimaryJobCode = jobCode;
                             updateSelectedJobsResult();
-                        }
+                            close();
+                            showToast('훈련직종이 추가되었습니다.', 'success');
+                        };
                     }
                     if (onSuccess) onSuccess();
                 });
@@ -623,12 +678,22 @@
                     return;
                 }
                 spinIcon(refreshSmallBtn, true);
-                loadSmallByMid(true, function () {
-                    spinIcon(refreshSmallBtn, false);
-                    showToast('소분류 데이터를 새로고침했습니다.', 'success');
+                // 소분류는 중분류와 함께 trainingCache에 포함되므로, 대분류 기준으로 전체 새로고침
+                loadTrainingByLarge(true, function () {
+                    // 중분류 선택값 복구
+                    midClass.value = mid;
+                    // 소분류 목록 갱신 (콜백에서 스피너 해제)
+                    loadSmallByMid(false, function () {
+                        spinIcon(refreshSmallBtn, false);
+                        showToast('소분류 데이터를 새로고침했습니다.', 'success');
+                    }, function () {
+                        // 에러 시에도 스피너 해제
+                        spinIcon(refreshSmallBtn, false);
+                        showToast('소분류 데이터 처리 중 오류 발생', 'error');
+                    });
                 }, function () {
                     spinIcon(refreshSmallBtn, false);
-                    showToast('소분류 새로고침 실패', 'error');
+                    showToast('공공 API로부터 최신 데이터를 가져오지 못했습니다.', 'error');
                 });
             });
         }
@@ -708,8 +773,8 @@
 
         // Update loadSmallByMid to chain correctly
         var originalLoadSmallByMid = loadSmallByMid;
-        loadSmallByMid = function () {
-            originalLoadSmallByMid();
+        loadSmallByMid = function (forceRefresh, onSuccess, onError) {
+            originalLoadSmallByMid(forceRefresh, onSuccess, onError);
             // loadSubClassesBySmall is already called at the end of original or added via listener
         };
 
@@ -1283,6 +1348,7 @@
         var regId = (regInput && regInput.value) ? regInput.value.trim() : '';
         var noReg = document.getElementById('ncsStep3NoReg');
         var form = document.getElementById('ncsStep3Form');
+        var loader = document.getElementById('ncsStep3Loading');
         var ncsRowsCallback = document.getElementById('ncsCurriculumRows'); // Container
         var nonNcsRows = document.getElementById('nonNcsCurriculumRows');
 
@@ -1290,11 +1356,13 @@
 
         if (!regId) {
             if (noReg) noReg.classList.remove('hidden');
+            if (loader) loader.classList.add('hidden');
             form.classList.add('hidden');
             return;
         }
         if (noReg) noReg.classList.add('hidden');
-        form.classList.remove('hidden');
+        if (loader) loader.classList.remove('hidden');
+        form.classList.add('hidden');
 
         var trainingData = null;
         var availableUnitsMap = {}; // code -> unit object with elements
@@ -1475,22 +1543,21 @@
 
                     if (elements.length > 0) {
                         elHtml += elements.map(function (el) {
-                            // Determine checked state
-                            var isElChecked = true; // default true
+                            // Determine checked state: default to false for new selections, 
+                            // but keep true for legacy string-based units to avoid resetting them.
+                            var isElChecked = (savedUnit && typeof savedUnit === 'string') ? true : false;
                             if (savedElements) {
                                 isElChecked = savedElements.some(function (selEl) { return selEl.code === el.code; });
                             }
                             return '<label class="flex items-start gap-2 text-xs text-slate-600 mb-1 cursor-pointer hover:text-blue-600">' +
                                 '<input type="checkbox" class="mt-0.5 ncs-element-input text-blue-600 rounded" value="' + attrEsc(el.code) + '" data-unit-code="' + attrEsc(uCode) + '" ' + (isElChecked ? 'checked' : '') + '>' +
-                                '<span class="leading-snug">' + esc(el.name) + '</span>' +
+                                '<span class="leading-snug">[' + esc(el.code) + '] ' + esc(el.name) + '</span>' +
                                 '</label>';
                         }).join('');
                     } else {
                         elHtml += '<div class="col-span-2 flex flex-col items-center py-4 bg-slate-100/50 rounded-lg border border-dashed border-slate-200">' +
-                            '<span class="text-xs text-slate-400 italic mb-2">등록된 하위 요소가 없습니다.</span>' +
-                            '<button type="button" onclick="syncUnitElements(this, \'' + attrEsc(uCode) + '\')" class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-[11px] font-bold hover:bg-blue-700 transition flex items-center gap-1.5">' +
-                            '<i class="fas fa-sync-alt"></i> 공공 API 동기화' +
-                            '</button></div>';
+                            '<span class="text-xs text-slate-400 italic">등록된 하위 요소가 없습니다.</span>' +
+                            '</div>';
                     }
                     elHtml += '</div></div>';
                     elContainer.insertAdjacentHTML('beforeend', elHtml);
@@ -1528,7 +1595,11 @@
                 sect.querySelectorAll('.ncs-curriculum-row').forEach(function (row) {
                     var nameEl = row.querySelector('.ncs-curriculum-name');
                     var name = nameEl ? nameEl.value.trim() : '';
-                    if (!name) return; // Skip empty names?
+                    console.log('[DEBUG] Processing NCS row - name:', name);
+                    if (!name) {
+                        console.warn('[DEBUG] Skipping row with empty name');
+                        return; // Skip empty names
+                    }
 
                     var ability_units = [];
 
@@ -1556,6 +1627,7 @@
                         });
                     });
 
+                    console.log('[DEBUG] Adding NCS item:', { name: name, jobName: jobName, ability_units_count: ability_units.length });
                     items.push({
                         type: 'ncs',
                         name: name,
@@ -1660,6 +1732,7 @@
 
         function saveCurriculum(redirectToNext) {
             var payload = buildCurriculumPayload();
+            console.log('[DEBUG] Curriculum Payload:', payload);
             var btnSave = document.getElementById('ncsStep3BtnSave');
             var btnNext = document.getElementById('ncsStep3BtnNext');
             if (btnSave) btnSave.disabled = true;
@@ -1813,6 +1886,10 @@
                             var first = nonNcsRows.querySelector('.nonncs-curriculum-row');
                             if (first) wireNonNcsRow(first);
                         }
+
+                        // Show Form, Hide Loader
+                        if (loader) loader.classList.add('hidden');
+                        form.classList.remove('hidden');
                     });
             });
     }
@@ -1960,11 +2037,68 @@
         }
 
         function cardHtml(it, th, pr) {
-            return '<div class="rounded-lg border border-slate-200 p-4 bg-white">' +
-                '<div class="flex flex-wrap justify-between items-center gap-2 mb-3">' +
-                '<span class="font-bold text-slate-800">교과목 : ' + attrEsc(it.name || '') + '</span>' +
-                '<div class="flex gap-2"><button type="button" class="px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50">교과목 총 훈련시간</button><button type="button" class="ncs-step4-distribute-btn px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700" data-curriculum-id="' + it.curriculum_id + '">시간분배</button></div></div>' +
-                '<div class="flex items-center gap-4"><span class="text-sm text-slate-600">' + attrEsc(it.name || '') + '</span><input type="number" min="0" class="ncs-step4-theory w-20 px-2 py-1.5 border border-slate-200 rounded-lg text-sm curriculum-hour-input" data-curriculum-id="' + it.curriculum_id + '" data-kind="theory" value="' + th + '"> 이론 <input type="number" min="0" class="ncs-step4-practice w-20 px-2 py-1.5 border border-slate-200 rounded-lg text-sm curriculum-hour-input" data-curriculum-id="' + it.curriculum_id + '" data-kind="practice" value="' + pr + '"> 실습</div></div>';
+            var abilityUnits = [];
+            try { abilityUnits = it.ability_units_json ? JSON.parse(it.ability_units_json) : []; } catch (e) { }
+            var unitLabel = abilityUnits.length ? abilityUnits.map(function (u) {
+                return typeof u === 'string' ? u : u.name || u.code;
+            }).join(', ') : '—';
+
+            return '<div class="rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition-all mb-6" data-curriculum-id="' + it.curriculum_id + '">' +
+                // Header Section
+                '<div class="bg-gradient-to-r from-blue-50 to-slate-50 px-6 py-4 border-b border-slate-100">' +
+                '<div class="flex flex-wrap justify-between items-center gap-3">' +
+                '<div class="flex-1 min-w-0">' +
+                '<h4 class="text-lg font-black text-slate-800 flex items-center gap-2">' +
+                '<i class="fas fa-book-open text-blue-600 text-sm"></i>' +
+                attrEsc(it.name || '') +
+                '</h4>' +
+                '<p class="text-xs text-slate-500 mt-1"><span class="font-bold">능력단위:</span> ' + attrEsc(unitLabel) + '</p>' +
+                '</div>' +
+                '<div class="flex items-center gap-2">' +
+                '<span class="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded-lg">' + (it.type === 'basic' ? '직업기초' : it.type === 'ncs' ? 'NCS' : '비NCS') + '</span>' +
+                '</div>' +
+                '</div>' +
+                '</div>' +
+
+                // Content Section
+                '<div class="p-6">' +
+                // Training Hours Section
+                '<div class="bg-slate-50/50 rounded-xl p-4 border border-slate-100 mb-4">' +
+                '<div class="flex items-center gap-2 mb-3">' +
+                '<i class="fas fa-clock text-emerald-600"></i>' +
+                '<label class="text-sm font-black text-slate-700 uppercase tracking-wider">훈련시간 설정</label>' +
+                '</div>' +
+                '<div class="grid grid-cols-1 md:grid-cols-3 gap-4">' +
+                '<div>' +
+                '<label class="block text-xs font-bold text-slate-500 mb-1.5">이론 시간</label>' +
+                '<div class="flex items-center gap-2">' +
+                '<input type="number" min="0" step="1" class="ncs-step4-theory curriculum-hour-input flex-1 px-4 py-2.5 border border-slate-200 rounded-lg text-sm font-bold focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition" data-curriculum-id="' + it.curriculum_id + '" data-kind="theory" value="' + th + '">' +
+                '<span class="text-xs font-bold text-slate-400">시간</span>' +
+                '</div>' +
+                '</div>' +
+                '<div>' +
+                '<label class="block text-xs font-bold text-slate-500 mb-1.5">실습 시간</label>' +
+                '<div class="flex items-center gap-2">' +
+                '<input type="number" min="0" step="1" class="ncs-step4-practice curriculum-hour-input flex-1 px-4 py-2.5 border border-slate-200 rounded-lg text-sm font-bold focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition" data-curriculum-id="' + it.curriculum_id + '" data-kind="practice" value="' + pr + '">' +
+                '<span class="text-xs font-bold text-slate-400">시간</span>' +
+                '</div>' +
+                '</div>' +
+                '<div>' +
+                '<label class="block text-xs font-bold text-slate-500 mb-1.5">합계</label>' +
+                '<div class="flex items-center gap-2">' +
+                '<input type="text" readonly class="curriculum-hour-total flex-1 px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-lg text-sm font-black text-blue-600" value="' + (th + pr) + '">' +
+                '<span class="text-xs font-bold text-slate-400">시간</span>' +
+                '</div>' +
+                '</div>' +
+                '</div>' +
+                '<div class="mt-3 flex justify-end">' +
+                '<button type="button" class="ncs-step4-distribute-btn px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 transition flex items-center gap-2" data-curriculum-id="' + it.curriculum_id + '">' +
+                '<i class="fas fa-balance-scale"></i> 이론/실습 균등 분배' +
+                '</button>' +
+                '</div>' +
+                '</div>' +
+                '</div>' +
+                '</div>';
         }
 
         function getItemHoursFromTable(curriculumId) {
@@ -2119,6 +2253,19 @@
             if (!row || !kind) return;
             var inp = row.querySelector(kind === 'theory' ? '.ncs-step4-theory' : '.ncs-step4-practice');
             if (inp) { inp.value = e.target.value; updateTotals(); updateCalculatedApplied(); }
+
+            // Update card total field
+            var card = document.querySelector('[data-curriculum-id="' + cid + '"]');
+            if (card) {
+                var theoryInput = card.querySelector('.ncs-step4-theory');
+                var practiceInput = card.querySelector('.ncs-step4-practice');
+                var totalInput = card.querySelector('.curriculum-hour-total');
+                if (theoryInput && practiceInput && totalInput) {
+                    var t = parseInt(theoryInput.value) || 0;
+                    var p = parseInt(practiceInput.value) || 0;
+                    totalInput.value = t + p;
+                }
+            }
         });
         form.addEventListener('change', function (e) {
             if (!e.target || !e.target.matches || !e.target.matches('.curriculum-hour-input')) return;

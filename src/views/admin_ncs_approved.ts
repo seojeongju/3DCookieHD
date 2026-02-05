@@ -415,7 +415,14 @@ export function stepContentHtml(step: number, editId?: string, isEmbedded: boole
       }
       </div>
 
-      <div id="ncsStep3Form" class="space-y-8">
+
+      <div id="ncsStep3Loading" class="p-20 text-center">
+        <div class="inline-block w-12 h-12 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+        <p class="text-slate-500 font-bold text-lg">교과목 데이터를 불러오는 중...</p>
+        <p class="text-slate-400 text-sm mt-1">잠시만 기다려주세요.</p>
+      </div>
+
+      <div id="ncsStep3Form" class="space-y-8 hidden">
         <!-- NCS 교과 섹션 -->
         <section class="card bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
           <div class="px-6 py-5 bg-slate-50 border-b border-slate-200 flex flex-wrap justify-between items-center gap-4">
@@ -434,25 +441,10 @@ export function stepContentHtml(step: number, editId?: string, isEmbedded: boole
           </div>
           
           <div id="ncsCurriculumRows" class="p-6 space-y-6">
-            <!-- Row Template (styled) -->
-            <div class="ncs-curriculum-row rounded-2xl border border-slate-100 p-6 bg-slate-50/30 space-y-6">
-              <div>
-                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 ml-1">교과목명 <span class="text-red-500">*</span></label>
-                <input type="text" class="ncs-curriculum-name w-full max-w-2xl px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500 font-bold" placeholder="예: [NCS] 3D프린터 기구 설계">
-              </div>
-              <div>
-                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 ml-1">매칭 능력단위 선택</label>
-                <div class="ncs-curriculum-unit-checks flex flex-wrap gap-2"></div>
-              </div>
-              <div class="ncs-curriculum-elements-wrap border border-slate-200 rounded-2xl overflow-hidden bg-white">
-                <button type="button" class="ncs-elements-toggle w-full px-5 py-3 text-left text-sm font-bold text-slate-700 hover:bg-slate-50 flex items-center justify-between transition" aria-expanded="false">
-                  <span class="flex items-center gap-2"><i class="fas fa-layer-group text-blue-500"></i> 능력단위요소·수행준거 설정</span>
-                  <i class="fas fa-chevron-down ncs-elements-chevron text-slate-400 transition-transform"></i>
-                </button>
-                <div class="ncs-curriculum-elements-body hidden border-t border-slate-100 p-5">
-                  <div class="ncs-curriculum-element-checks grid grid-cols-1 md:grid-cols-2 gap-3"></div>
-                </div>
-              </div>
+            <!-- Row Template (styled, hidden by default in JS but kept here for structure if needed) -->
+            <div class="ncs-curriculum-row rounded-2xl border border-slate-100 p-6 bg-slate-50/30 space-y-6 text-center py-10">
+               <!-- Placeholder content if JS fails or loading delays -->
+               <span class="text-slate-400 font-medium">데이터 로딩 대기 중...</span>
             </div>
           </div>
         </section>

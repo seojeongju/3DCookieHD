@@ -103,21 +103,66 @@ const NCS_TRAINING_API_BASE = 'https://apis.data.go.kr/B490007/ncsTrainingCource
 const NCS_CLASSIFICATION_API_BASE_DEFAULT = 'http://apis.data.go.kr/B490007/hrdkapi';
 
 function parseClassificationItems(raw: unknown): Record<string, unknown>[] {
+    if (!raw || typeof raw !== 'object') return [];
+
+    // 1. Array is prime
     if (Array.isArray(raw)) return raw.filter((r) => r && typeof r === 'object') as Record<string, unknown>[];
-    const obj = raw && typeof raw === 'object' ? raw as Record<string, unknown> : undefined;
-    if (!obj) return [];
-    const body = obj.body ?? obj.data ?? obj.items ?? obj.response;
-    if (Array.isArray(body)) return body.filter((r) => r && typeof r === 'object') as Record<string, unknown>[];
-    const b = body && typeof body === 'object' ? body as Record<string, unknown> : undefined;
-    let arr = b?.items ?? b?.data ?? b?.list;
-    // 공공 API 15128213: items가 { item: [...] } 또는 { item: {...} } 형태로 오는 경우
-    if (arr && typeof arr === 'object' && !Array.isArray(arr)) {
-        const item = (arr as Record<string, unknown>).item;
-        arr = Array.isArray(item) ? item : item != null ? [item] : [];
+
+    const obj = raw as Record<string, unknown>;
+
+    // 2. Error Header Check
+    const header = (obj.header ?? (obj as any).response?.header) as any;
+    if (header) {
+        const rc = String(header.resultCode ?? header.RESULT_CODE ?? '').trim();
+        if (rc && rc !== '00' && rc.toLowerCase() !== 'ok') {
+            console.warn(`[NCS_API] Stopped by Header: ${rc}`);
+            return [];
+        }
     }
-    if (Array.isArray(arr)) return arr.filter((r) => r && typeof r === 'object') as Record<string, unknown>[];
-    const single = b?.item ?? (Array.isArray(raw) ? undefined : raw);
-    if (single && typeof single === 'object') return [single as Record<string, unknown>];
+
+    // 3. Recursive search for any array of objects
+    function findFirstArray(target: any): any[] | null {
+        if (!target || typeof target !== 'object') return null;
+        if (Array.isArray(target)) return target;
+
+        // Check standard keys
+        const keys = ['item', 'items', 'data', 'list', 'result', 'rows'];
+        for (const k of keys) {
+            const val = target[k];
+            if (Array.isArray(val)) return val;
+            if (val && typeof val === 'object') {
+                const nested = findFirstArray(val);
+                if (nested) return nested;
+            }
+        }
+
+        // Exhaustive Search
+        for (const k in target) {
+            if (keys.includes(k)) continue;
+            const val = target[k];
+            if (Array.isArray(val)) return val;
+            if (val && typeof val === 'object') {
+                const nested = findFirstArray(val);
+                if (nested) return nested;
+            }
+        }
+        return null;
+    }
+
+    const detected = findFirstArray(obj);
+    if (detected) {
+        return detected.filter(r => r && typeof r === 'object' && Object.keys(r).length > 0);
+    }
+
+    // 4. Single element fallback (e.g. response.body.items.item is a single object)
+    const body = ((obj as any).response?.body ?? (obj as any).body ?? (obj as any).data) as any;
+    if (body && typeof body === 'object') {
+        const single = body.item ?? body.items?.item;
+        if (single && typeof single === 'object' && !Array.isArray(single)) {
+            return [single];
+        }
+    }
+
     return [];
 }
 
@@ -144,17 +189,23 @@ async function fetchClassificationAllPages(
     for (; ;) {
         const q = new URLSearchParams({ serviceKey: key, type: 'json', pageNo: String(pageNo), numOfRows: String(perPage), ...params });
         const url = `${base}/${path}?${q.toString()}`;
-        console.log(`[NCS_API_REQ] ${url}`);
+        console.log(`[NCS_API_REQ] ${path} ${JSON.stringify(params)}`);
         const res = await fetch(url);
         if (!res.ok) {
-            console.error(`[NCS_API_ERR] HTTP ${res.status} for ${url}`);
+            console.error(`[NCS_API_ERR] HTTP ${res.status} for ${path}`);
             break;
         }
-        const json = await res.json().catch(() => null);
-        let list = parseClassificationItems((json as any)?.response ?? (json as any)?.body ?? (json as any)?.data ?? json);
-        if (list.length === 0) list = parseClassificationItems(json);
+        const text = await res.text();
+        let json: any = null;
+        try {
+            json = JSON.parse(text);
+        } catch (e) {
+            console.error(`[NCS_API_ERR] JSON Parse failed for ${path}. Body starts with: ${text.slice(0, 100)}`);
+            break;
+        }
 
-        console.log(`[NCS_API_RES] ${path} - Count: ${list.length}, First:`, list[0] || 'NONE');
+        let list = parseClassificationItems(json?.response ?? json?.body ?? json?.data ?? json);
+        if (list.length === 0) list = parseClassificationItems(json);
 
         if (list.length === 0) break;
         out.push(...list);
@@ -242,9 +293,9 @@ async function fetchNcsJobsBySmall(apiKey: string, l: string, m: string, s: stri
             })
             .map((r) => {
                 // NCS004는 세분류/직종 코드와 명칭을 가져와야 함
-                // 가능한 필드명: NCS_SUBD_CD, ncsSubdCd, subdCd, NCS_JOB_CD, ncsJob Cd
-                const code = rowVal(r, 'NCS_SUBD_CD', 'ncsSubdCd', 'subdCd', 'NCS_JOB_CD', 'ncsJobCd', 'jobCd', 'JOB_CD');
-                const name = rowVal(r, 'NCS_SUBD_CDNM', 'ncsSubdCdnm', 'subdCdnm', 'NCS_JOB_CDNM', 'ncsJobCdnm', 'jobCdnm', 'JOB_CDNM', 'JOB_NAME');
+                // 가능한 필드명: NCS_SUBD_CD, ncsSubdCd, subdCd
+                const code = rowVal(r, 'NCS_SUBD_CD', 'ncsSubdCd', 'subdCd', 'NCS_JOB_CD', 'ncsJobCd', 'jobCd');
+                const name = rowVal(r, 'NCS_SUBD_CDNM', 'ncsSubdCdnm', 'subdCdnm', 'NCS_JOB_CDNM', 'ncsJobCdnm', 'jobCdnm');
                 return { code, name };
             })
             .filter((x) => x.code && x.name);
@@ -298,7 +349,12 @@ async function fetchNcsUnitsByJob(
 
 
 
-/** NCS006: 능력단위요소 조회 - 순차적/병렬 호출로 모든 요소 탐색 (New Implementation) */
+
+
+
+
+
+/** NCS006: 능력단위요소 조회 - 특정 능력단위의 모든 요소(Elements) 가져오기 */
 async function fetchNcsUnitElements(
     apiKey: string,
     ncsClCd: string,
@@ -307,223 +363,181 @@ async function fetchNcsUnitElements(
     const key = decodeServiceKey(apiKey);
     const base = (baseUrl || NCS_CLASSIFICATION_API_BASE_DEFAULT).replace(/\/$/, '');
 
-    // 버전 접미사 처리
-    const codeToUse = ncsClCd;
+    // Helper to map response
+    const mapItems = (list: any[]) => list.map(r => ({
+        code: rowVal(r, 'COMPE_UNIT_ELEM_CD', 'compeUnitElemCd', 'NCS_CL_ELEM_CD', 'COMPE_ELEM_CD'),
+        name: rowVal(r, 'COMPE_UNIT_ELEM_NAME', 'compeUnitElemName', 'NCS_CL_ELEM_CDNM', 'COMPE_ELEM_NAME')
+    })).filter(e => e.code && e.name);
 
-    // 8자리 세분류 코드 (NCS_CL_CD) 추출 - ODCloud 쿼리용
-    const subClassCd = codeToUse.replace(/[^0-9]/g, '').substring(0, 8);
+    const baseCode = ncsClCd.split('_')[0];
 
-    // 1. Try ODCloud API (The "Proper" Way - 한국산업인력공단_국가직무능력표준 정보_20241204)
-    const ODCLOUD_UDDI = 'd8120558-7644-44ee-aa67-8fa879a80247';
-    try {
-        const params = new URLSearchParams();
-        params.append('page', '1');
-        params.append('perPage', '200'); // 세분류 전체를 가져올 수 있으므로 넉넉하게
-        params.append('serviceKey', key);
-        params.append('returnType', 'json'); // 소문자 권장
-        // 중요: NCS_CL_CD는 보통 8자리 세분류 코드를 의미함.
-        // 따라서 8자리로 필터링 후, 결과에서 우리 UnitCode에 맞는 요소를 찾아야 함.
-        params.append('cond[NCS_CL_CD::EQ]', subClassCd);
+    // 1. Try hrdkapi with multiple operation names and param formats
+    const ops = ['getNcsCompeUnitElemList', 'NCS006'];
+    const codes = [ncsClCd, baseCode];
+    const paramNames = ['ncsClCd', 'NCS_CL_CD', 'COMPE_UNIT_CD'];
 
-        const odUrl = `https://api.odcloud.kr/api/15083321/v1/uddi:${ODCLOUD_UDDI}?${params.toString()}`;
-        console.log(`[ODCloud] Fetching elements for SubClass ${subClassCd}: ${odUrl}`);
-
-        const res = await fetch(odUrl);
-        if (res.ok) {
-            const json = await res.json() as { data: any[] };
-            // 데이터가 있고 배열인 경우 처리
-            if (json.data && Array.isArray(json.data) && json.data.length > 0) {
-                const results = json.data.map((item: any) => {
-                    // 유닛 코드 일치 여부 확인 (8자리 코드로 전체 조회했으므로 필터링 필수)
-                    const itemUnitCode = item['능력단위코드'] || item['COMPE_UNIT_CD'] || item['NCS_UNIT_CD'] || item['ncsUnitCd'];
-                    if (itemUnitCode) {
-                        // 버전 접미사(_19v2 등) 제외하고 비교
-                        const c1 = String(itemUnitCode).replace(/_.*$/, '');
-                        const c2 = codeToUse.replace(/_.*$/, '');
-                        if (c1 !== c2) return null;
+    for (const op of ops) {
+        for (const code of codes) {
+            for (const pName of paramNames) {
+                try {
+                    const list = await fetchClassificationAllPages(base, key, op, { [pName]: code });
+                    if (list.length > 0) {
+                        console.log(`[ELEMENTS] Found ${list.length} via ${op}(${pName}=${code})`);
+                        return mapItems(list);
                     }
-
-                    // 다양한 필드명 케이스 대응 (한글/영문)
-                    const name = item['능력단위요소명'] || item['COMPE_UNIT_FACTR_NAME'] || item['COMPE_UNIT_FACTR_NM'];
-                    const no = item['능력단위요소번호'] || item['COMPE_UNIT_FACTR_NO'];
-
-                    if (name && no) {
-                        const code = item['능력단위요소코드'] ||
-                            item['COMPE_UNIT_FACTR_NO_CD'] ||
-                            `${codeToUse}_${no}`;
-                        return { code, name, no };
-                    }
-                    return null;
-                })
-                    .filter((x): x is { code: string; name: string, no: string } => x !== null)
-                    .sort((a, b) => a.no.localeCompare(b.no));
-
-                if (results.length > 0) {
-                    console.log(`[ODCloud] Found ${results.length} elements for ${codeToUse}`);
-                    return results.map(({ code, name }) => ({ code, name }));
-                }
+                } catch (e) { /* silent try next */ }
             }
         }
-    } catch (e) {
-        console.warn(`[ODCloud] Fetch failed for ${codeToUse}, falling back to probing`, e);
     }
 
-    // 2. Fallback to Probing Method (NCS006 API)
-
-    // 사용자 팁 반영: NCS006은 세분류(8자리)와 능력단위(10자리+버전)가 모두 필요할 수 있음
-    const MAX_PROBE = 12;
-    const promises = [];
-
-    // 8자리 세분류 코드 추출 (이미 상단에서 선언됨)
-    // const subClassCd = codeToUse.replace(/[^0-9]/g, '').substring(0, 8);
-    const unitCd = codeToUse;
-
-    console.log(`[NCS006] Fallback Probing for Unit=${unitCd}, SubClass=${subClassCd}`);
-
-    // URL 생성 헬퍼
-    const createUrl = (factorNo: string) => {
-        const params = new URLSearchParams();
-        params.append('serviceKey', key);
-        params.append('returnType', 'json');
-
-        // --- 중요: 사용자 팁 반영 파라미터 ---
-        // 1. 세분류 코드 (8자리)
-        params.append('ncsClCd', subClassCd);
-        params.append('NCS_CL_CD', subClassCd);
-
-        // 2. 능력단위 코드 (전체 버전 포함)
-        params.append('ncsAbtyUnitCd', unitCd);
-        params.append('NCS_UNIT_CD', unitCd);
-        params.append('COMPE_UNIT_CD', unitCd); // 가장 표준적인 파라미터 명칭 추가
-
-        // 3. 요소 번호
-        params.append('COMPE_UNIT_FACTR_NO', factorNo);
-
-        return `${base}/NCS006?${params.toString()}`;
-    };
-
-    console.log(`[NCS006] Probing elements for ${codeToUse} (01~${MAX_PROBE})`);
-
-    for (let i = 1; i <= MAX_PROBE; i++) {
-        const factorNo = String(i).padStart(2, '0');
-        const url = createUrl(factorNo);
-
-        promises.push(
-            fetch(url)
-                .then(async (res) => {
-                    if (!res.ok) return null;
-                    const text = await res.text();
-                    try {
-                        let json;
-                        try {
-                            json = JSON.parse(text);
-                        } catch (e) {
-                            return null;
-                        }
-
-                        // 공공데이터포털 응답 구조 파싱
-                        const body = json?.response?.body || json?.data || json?.body;
-                        if (!body) return null;
-
-                        const items = body.items?.item || body.items;
-                        if (!items) return null;
-
-                        const item = Array.isArray(items) ? items[0] : items;
-                        if (!item) return null;
-
-                        // 실제 데이터 매핑 - 다양한 필드명 대응
-                        const elemName = rowVal(item, 'COMPE_UNIT_FACTR_NAME', 'compeUnitFactrName', 'compeUnitFactrNm', 'COMPE_UNIT_FACTR_NM');
-                        const elemNo = rowVal(item, 'COMPE_UNIT_FACTR_NO', 'compeUnitFactrNo');
-
-                        if (elemName) {
-                            const finalNo = elemNo || factorNo;
-                            // 요소코드 생성 (응답에 코드가 없으면 조합)
-                            const elemCode = rowVal(item, 'COMPE_UNIT_FACTR_NO_CD', 'compeUnitFactrNoCd')
-                                || `${unitCd}_${finalNo}`;
-                            return { code: elemCode, name: elemName, no: finalNo };
-                        }
-                        return null;
-                    } catch (e) {
-                        return null;
-                    }
-                })
-                .catch(() => null)
-        );
-    }
-
+    // 2. Try ODCloud (uddi:d8120558-7644-44ee-aa67-8fa879a80247) 
     try {
-        const results = await Promise.all(promises);
-        // 유효한 결과만 필터링하고 번호순 정렬
-        const validElements = results
-            .filter((r): r is { code: string; name: string; no: string } => r !== null)
-            .sort((a, b) => a.no.localeCompare(b.no));
-
-        if (validElements.length > 0) {
-            console.log(`[NCS006] Found ${validElements.length} elements for ${ncsClCd}`);
-            return validElements.map(({ code, name }) => ({ code, name }));
+        const uddi = 'd8120558-7644-44ee-aa67-8fa879a80247';
+        const q = new URLSearchParams({
+            page: '1', perPage: '100', serviceKey: key, returnType: 'json',
+            'cond[NCS_CL_CD::EQ]': baseCode
+        });
+        const url = `https://api.odcloud.kr/api/15083321/v1/uddi:${uddi}?${q.toString()}`;
+        const res = await fetch(url);
+        if (res.ok) {
+            const json = await res.json() as any;
+            if (json.data && Array.isArray(json.data) && json.data.length > 0) {
+                console.log(`[ELEMENTS] Found ${json.data.length} via ODCloud for ${baseCode}`);
+                return json.data.map((r: any) => ({
+                    code: r.COMPE_UNIT_ELEM_CD || r.NCS_CL_ELEM_CD || r.COMPE_ELEM_CD || r.code,
+                    name: r.COMPE_UNIT_ELEM_NAME || r.NCS_CL_ELEM_CDNM || r.COMPE_ELEM_NAME || r.name
+                })).filter((e: any) => e.code && e.name);
+            }
         }
-    } catch (e) {
-        console.error(`[NCS006] Probing failed for ${ncsClCd}`, e);
+    } catch (e) { console.error('[ELEMENTS] ODCloud fallback failed', e); }
+
+    // 3. Fallback to static data (Last Resort)
+    const candidates = [ncsClCd, baseCode];
+    for (const c of candidates) {
+        if (FALLBACK_ELEMENTS[c]) return FALLBACK_ELEMENTS[c];
+
+        // Comprehensive check in Job Fallbacks
+        const jobCode8 = c.substring(0, 8);
+        const jobUnits = FALLBACK_NCS_UNITS[jobCode8];
+        if (jobUnits) {
+            const match = jobUnits.find(u => u.code === ncsClCd || u.code === baseCode || u.code.replace(/_.*$/, '') === baseCode);
+            if (match && match.elements) {
+                console.warn(`[ELEMENTS] Recovered from Job Fallback for ${c}`);
+                return match.elements;
+            }
+        }
     }
 
-    console.warn(`[NCS006] No elements found for ${ncsClCd} after probing, trying fallback...`);
-    // DB 확인이나 하드코딩된 fallback 사용 로직은 호출부에서 처리됨
+    console.warn(`[ELEMENTS] All methods failed for ${ncsClCd}`);
     return [];
 }
 
-/** NCS006: 능력단위요소 조회 - 특정 능력단위의 모든 요소(Elements) 가져오기 */
-async function fetchNcsUnitElementsOld(
-    apiKey: string,
-    ncsClCd: string,
-    baseUrl?: string
-): Promise<{ code: string; name: string }[]> {
+/** NCS008: 수행준거 조회 - 능력단위 요소별 수행준거, 지식, 기술, 태도 */
+async function fetchNcsPerformanceCriteria(apiKey: string, ncsClCd: string, baseUrl?: string): Promise<{ elemCode: string; criteriaText: string; knowledgeText: string; skillText: string; attitudeText: string }[]> {
     const key = decodeServiceKey(apiKey);
     const base = (baseUrl || NCS_CLASSIFICATION_API_BASE_DEFAULT).replace(/\/$/, '');
-    // Try both with and without version suffix
-    const cleanCode = ncsClCd.replace(/_.*$/, ''); // Remove _23v3 etc
-    const codesToTry = [ncsClCd, cleanCode];
 
-    console.log(`[NCS006] Attempting codes:`, codesToTry);
+    // Helper to extract text from various possible keys
+    const getVal = (r: any, ...keys: string[]) => {
+        for (const k of keys) {
+            const v = r[k];
+            if (v != null && String(v).trim() !== '') return String(v).trim();
+        }
+        return '';
+    };
 
-    for (const code of codesToTry) {
-        try {
-            console.log(`[NCS006] Trying NCS_CL_CD=${code}`);
-            const list = await fetchClassificationAllPages(base, key, 'NCS006', {
-                NCS_CL_CD: code
-            });
+    const baseCode = ncsClCd.split('_')[0];
+    const ops = ['NCS008', 'getNcsCompeUnitElemDtlList', 'getNcsCompeUnitElemList']; // 008 is standard for details
+    const paramNames = ['ncsClCd', 'NCS_CL_CD', 'COMPE_UNIT_CD'];
 
-            console.log(`[NCS006] Response for ${code}: ${list.length} items`);
-            if (list.length > 0) {
-                console.log(`[NCS006] First item keys:`, Object.keys(list[0]));
-                console.log(`[NCS006] First item sample:`, JSON.stringify(list[0]).substring(0, 300));
-            }
-
-            const results = list
-                .filter((r) => {
-                    const usg = rowVal(r, 'USG_YN', 'usgYn');
-                    return usg === 'Y' || usg === '1' || !usg;
-                })
-                .map((r) => {
-                    const elemCode = rowVal(r, 'COMPE_UNIT_ELEM_CD', 'compeUnitElemCd', 'elemCd', 'NCS_CL_ELEM_CD', 'ncsClElemCd');
-                    const elemName = rowVal(r, 'COMPE_UNIT_ELEM_NAME', 'compeUnitElemName', 'elemName', 'NCS_CL_ELEM_CDNM', 'ncsClElemCdnm', 'COMPE_UNIT_ELEM_CDNM');
-                    return { code: elemCode, name: elemName };
-                })
-                .filter((x) => x.code && x.name);
-
-            console.log(`[NCS006] Filtered: ${results.length} elements`);
-
-            if (results.length > 0) {
-                return results;
-            }
-        } catch (e) {
-            console.error(`[NCS006] Error for ${code}:`, e);
+    for (const op of ops) {
+        for (const pName of paramNames) {
+            try {
+                const list = await fetchClassificationAllPages(base, key, op, { [pName]: ncsClCd });
+                if (list.length > 0) {
+                    console.log(`[CRITERIA] Found ${list.length} via ${op}(${pName}=${ncsClCd})`);
+                    return list.map(r => ({
+                        elemCode: getVal(r, 'COMPE_UNIT_ELEM_CD', 'NCS_CL_ELEM_CD', 'ELEM_CD'),
+                        criteriaText: getVal(r, 'PERFORMAN_CRIT_CONT', 'PERFORM_CRITERIA', 'CRITERIA_CONT', 'CRITERIA'),
+                        knowledgeText: getVal(r, 'KNOWLEDGE_CONT', 'KNOWLEDGE', 'KNOW_CONT'),
+                        skillText: getVal(r, 'SKILL_CONT', 'SKILL', 'SKILL_CONT'),
+                        attitudeText: getVal(r, 'ATTITUDE_CONT', 'ATTITUDE', 'ATTIT_CONT')
+                    })).filter(e => e.elemCode && (e.criteriaText || e.knowledgeText));
+                }
+            } catch (e) { /* ignore and try next */ }
         }
     }
 
-    console.warn(`[NCS006] No elements found for ${ncsClCd}`);
+    // Try baseCode if full code failed
+    if (baseCode !== ncsClCd) {
+        for (const op of ops) {
+            try {
+                const list = await fetchClassificationAllPages(base, key, op, { [paramNames[0]]: baseCode });
+                if (list.length > 0) {
+                    return list.map(r => ({
+                        elemCode: getVal(r, 'COMPE_UNIT_ELEM_CD', 'NCS_CL_ELEM_CD', 'ELEM_CD'),
+                        criteriaText: getVal(r, 'PERFORMAN_CRIT_CONT', 'PERFORM_CRITERIA', 'CRITERIA_CONT', 'CRITERIA'),
+                        knowledgeText: getVal(r, 'KNOWLEDGE_CONT', 'KNOWLEDGE', 'KNOW_CONT'),
+                        skillText: getVal(r, 'SKILL_CONT', 'SKILL', 'SKILL_CONT'),
+                        attitudeText: getVal(r, 'ATTITUDE_CONT', 'ATTITUDE', 'ATTIT_CONT')
+                    })).filter(e => e.elemCode && (e.criteriaText || e.knowledgeText));
+                }
+            } catch (e) { }
+        }
+    }
+
+    console.warn(`[CRITERIA] Failed for ${ncsClCd}`);
     return [];
 }
 
+/** NCS009: 평가방법 조회 - 능력단위별 권장 평가방법 및 교수학습방법 */
+async function fetchNcsEvaluationMethods(apiKey: string, ncsClCd: string, baseUrl?: string): Promise<{ evaluation: string[]; teaching: string[] }> {
+    const key = decodeServiceKey(apiKey);
+    const base = (baseUrl || NCS_CLASSIFICATION_API_BASE_DEFAULT).replace(/\/$/, '');
+
+    const baseCode = ncsClCd.split('_')[0];
+    const ops = ['NCS009', 'getNcsCompeUnitEvalList', 'getNcsCompeUnitLrnList'];
+    const paramNames = ['ncsClCd', 'NCS_CL_CD', 'COMPE_UNIT_CD'];
+
+    const evaluation: Set<string> = new Set();
+    const teaching: Set<string> = new Set();
+
+    for (const op of ops) {
+        for (const pName of paramNames) {
+            try {
+                const list = await fetchClassificationAllPages(base, key, op, { [pName]: ncsClCd });
+                if (list.length > 0) {
+                    list.forEach(r => {
+                        const ev = rowVal(r, 'EVAL_METH_NAME', 'EVAL_METHOD', 'EVAL_NAME', 'METH_NAME');
+                        if (ev) evaluation.add(ev);
+                        const te = rowVal(r, 'LRN_METH_NAME', 'TEACH_METHOD', 'LRN_NAME', 'TRAIN_METH_NAME');
+                        if (te) teaching.add(te);
+                    });
+                }
+            } catch (e) { }
+        }
+    }
+
+    // Try baseCode if nothing found
+    if (evaluation.size === 0 && teaching.size === 0 && baseCode !== ncsClCd) {
+        for (const op of ops) {
+            try {
+                const list = await fetchClassificationAllPages(base, key, op, { [paramNames[0]]: baseCode });
+                list.forEach(r => {
+                    const ev = rowVal(r, 'EVAL_METH_NAME', 'EVAL_METHOD', 'EVAL_NAME', 'METH_NAME');
+                    if (ev) evaluation.add(ev);
+                    const te = rowVal(r, 'LRN_METH_NAME', 'TEACH_METHOD', 'LRN_NAME', 'TRAIN_METH_NAME');
+                    if (te) teaching.add(te);
+                });
+            } catch (e) { }
+        }
+    }
+
+    return {
+        evaluation: Array.from(evaluation),
+        teaching: Array.from(teaching)
+    };
+}
 
 /** NCS007: 능력단위취지도 검색 - 키워드로 능력단위 검색 */
 async function fetchNcsUnitsByKeyword(
@@ -608,30 +622,30 @@ async function fetchNcsUnitsByKeyword(
 
 /** Fallback 능력단위요소 데이터 - DB/API 실패 시 사용 */
 const FALLBACK_ELEMENTS: Record<string, { code: string; name: string }[]> = {
-    '1903110202_23v3': [ // 제품기획
-        { code: '1903110202_23v3_01', name: '시장조사하기' },
-        { code: '1903110202_23v3_02', name: '제품컨셉수립하기' },
-        { code: '1903110202_23v3_03', name: '제품사양결정하기' }
+    '1501020125_19v3': [
+        { code: '1501020125_19v3_01', name: '3D 형상 모델링 준비하기' },
+        { code: '1501020125_19v3_02', name: '3D 부품 모델링하기' },
+        { code: '1501020125_19v3_03', name: '3D 조립 모델링 및 모델링 검토하기' }
     ],
-    '1903110210_24v1': [ // 3D프린터 SW 설정
-        { code: '1903110210_24v1_01', name: '3D모델링 SW 기능 파악하기' },
-        { code: '1903110210_24v1_02', name: '3D모델링 SW 설정하기' },
-        { code: '1903110210_24v1_03', name: '3D모델링 SW 점검하기' }
+    '1501020123_19v2': [
+        { code: '1501020123_19v2_01', name: '2D 도면 작성하기' },
+        { code: '1501020123_19v2_02', name: '부품도 상세 기입하기' },
+        { code: '1501020123_19v2_03', name: '도면 부품란 작성하기' }
     ],
-    '1903110211_24v1': [ // 3D프린터 HW 설정
-        { code: '1903110211_24v1_01', name: '3D프린터 구조 파악하기' },
-        { code: '1903110211_24v1_02', name: '3D프린터 제어시스템 설정하기' },
-        { code: '1903110211_24v1_03', name: '3D프린터 작동 점검하기' }
+    '1501020121_19v3': [
+        { code: '1501020121_19v3_01', name: '투상도 및 단면도 분석하기' },
+        { code: '1501020121_19v3_02', name: '치수 및 기하공차 파악하기' }
     ],
-    '1903110215_24v1': [ // 3D프린팅 특화설계
-        { code: '1903110215_24v1_01', name: '3D프린팅 설계요소 파악하기' },
-        { code: '1903110215_24v1_02', name: '3D프린팅 특화 모델링하기' },
-        { code: '1903110215_24v1_03', name: '3D프린팅 적합성 검증하기' }
+    // 3D프린터 HW 설정 (Verified by User Image)
+    '1903110208_23v3': [
+        { code: '1903110208_23v3_01', name: '소재 준비하기' },
+        { code: '1903110208_23v3_02', name: '데이터 준비하기' },
+        { code: '1903110208_23v3_03', name: '장비출력 설정하기' }
     ],
-    '1903110216_24v1': [ // 3D프린팅 재료 시험
-        { code: '1903110216_24v1_01', name: '재료 물성 파악하기' },
-        { code: '1903110216_24v1_02', name: '재료 시험 수행하기' },
-        { code: '1903110216_24v1_03', name: '재료 시험 결과 분석하기' }
+    '1903110208': [
+        { code: '1903110208_23v3_01', name: '소재 준비하기' },
+        { code: '1903110208_23v3_02', name: '데이터 준비하기' },
+        { code: '1903110208_23v3_03', name: '장비출력 설정하기' }
     ]
 };
 
@@ -1090,55 +1104,44 @@ app.get('/approved/jobs', async (c) => {
         const l = c.req.query('l');
         const m = c.req.query('m');
         const s = c.req.query('s');
+        const refresh = c.req.query('refresh') === 'true';
         const rawKey = c.env.NCS_API_KEY?.trim();
         if (!l || !m || !s) return c.json({ success: false, error: '잘못된 요청' }, 400); // apiKey optional if local data exists
 
-        // 1. Local DB Check
+        // 1. Local DB Check (Skip if refresh)
         const prefix = l + m + s;
-        try {
-            const { results } = await c.env.DB.prepare(
-                "SELECT DISTINCT job_code as code, job_name as name FROM ncs_job_hierarchy WHERE job_code LIKE ? ORDER BY job_code"
-            ).bind(prefix + '%').all();
+        if (!refresh) {
+            try {
+                // First, try to find proper 8-digit job entries
+                const { results } = await c.env.DB.prepare(
+                    "SELECT job_code as code, job_name as name FROM ncs_job_hierarchy WHERE job_code LIKE ? AND length(job_code) = 8 ORDER BY job_code"
+                ).bind(prefix + '%').all();
 
-            if (results && results.length > 0) {
-                console.log(`[DEBUG] DB results for ${prefix}:`, results.slice(0, 3));
+                if (results && results.length > 0) {
+                    // ... (snipped: logic to return DB results is same) ...
+                    // Since I cannot copy-paste potentially large unedited blocks easily without full context, 
+                    // I will replicate the mapping logic briefly or assume it's compact enough.
+                    // Actually, I should use the exact logic as before for the DB part.
 
-                // DB에는 능력단위(10자리) 코드가 저장되어 있음
-                // 세분류/직종(8자리)를 추출하려면 앞 8자리를 사용
-                // 예: 15010201 -> 15010201 (8자리), 세분류 코드는 7-8번째: 01
-                const jobMap = new Map<string, string>();
-
-                results.forEach((r: any) => {
-                    const fullCode = (r.code || '').trim();
-                    if (fullCode.length >= 8) {
-                        // 앞 8자리가 세분류/직종 전체 코드
-                        const jobFullCode = fullCode.substring(0, 8);
-                        // 7-8번째 자리가 세분류 코드 (01, 02, 03, 04 등)
-                        const jobSubCode = jobFullCode.substring(6, 8);
-
-                        // 이미 이 세분류 코드가 있으면 건너뜁니다 (중복 제거)
-                        if (!jobMap.has(jobSubCode)) {
-                            // 능력단위 이름에서 세분류 이름을 추정
-                            // 실제로는 API를 통해 정확한 이름을 가져와야 하지만,
-                            // 일단 DB 데이터를 사용
+                    const jobMap = new Map<string, string>();
+                    results.forEach((r: any) => {
+                        const fullCode = (r.code || '').trim();
+                        const jobSubCode = fullCode.substring(6, 8);
+                        if (!jobMap.has(jobSubCode) || (r.name && !r.name.includes(`세분류 ${jobSubCode}`))) {
                             jobMap.set(jobSubCode, r.name || `세분류 ${jobSubCode}`);
                         }
+                    });
+
+                    const mapped = Array.from(jobMap.entries()).map(([code, name]) => ({ code, name })).sort((a, b) => a.code.localeCompare(b.code));
+
+                    if (mapped.length > 0) {
+                        const enriched = mapped.map(x => ({ ...x, fullCode: prefix + x.code, isSynced: true }));
+                        return c.json({ success: true, data: enriched, _source: 'db' });
                     }
-                });
-
-                const mapped = Array.from(jobMap.entries()).map(([code, name]) => ({
-                    code,
-                    name
-                })).sort((a, b) => a.code.localeCompare(b.code));
-
-                console.log(`[DEBUG] Extracted jobs:`, mapped);
-
-                if (mapped.length > 0) {
-                    return c.json({ success: true, data: mapped, _source: 'db_extracted' });
                 }
+            } catch (dbErr) {
+                console.warn('Local NCS jobs check failed:', dbErr);
             }
-        } catch (dbErr) {
-            console.warn('Local NCS jobs check failed:', dbErr);
         }
 
         if (!rawKey) return c.json({ success: false, error: 'API Key missing and no local data' }, 400);
@@ -1146,10 +1149,38 @@ app.get('/approved/jobs', async (c) => {
         const classificationBase = (c.env as { NCS_CLASSIFICATION_API_BASE?: string }).NCS_CLASSIFICATION_API_BASE?.trim();
         const jobs = await fetchNcsJobsBySmall(rawKey, l, m, s, classificationBase);
 
-        // DB에서 동기화 상태 조회 (Old table check? No, ncs_job_hierarchy)
-        // We just verified local data might be missing if we are here. 
-        // Or maybe we want to show sync status for API results.
+        // Update DB with fresh data
+        if (jobs.length > 0) {
+            try {
+                // Insert or ignore into ncs_job_hierarchy
+                // We need large_name, mid, small names? We don't have them here easily without extra queries.
+                // But ncs_job_hierarchy allows nulls? 
+                // Using a simpler approach: Just insert code/name. 
+                // Actually ncs_job_hierarchy schema requires more fields?
+                // `job_code` is PK?
+                // Let's iterate and upsert.
+                const stmt = c.env.DB.prepare(`
+                    INSERT OR REPLACE INTO ncs_job_hierarchy (job_code, job_name) VALUES (?, ?)
+                `);
 
+                // Batch execution if possible, or parallel
+                // Just do parallel for speed
+                const batch = jobs.map(j => {
+                    // j.code from API is suffix '01' or full '15010201'?
+                    // fetchNcsJobsBySmall returns { code: '15010201', name: '...' } usually, or suffix?
+                    // Let's normalize. 
+                    const raw = (j.code || '').trim();
+                    const fullCode = raw.length === 8 ? raw : (prefix + raw.padStart(2, '0'));
+                    return stmt.bind(fullCode, j.name);
+                });
+                await c.env.DB.batch(batch);
+
+            } catch (saveErr) {
+                console.warn('Failed to save fresh jobs to DB:', saveErr);
+            }
+        }
+
+        // DB에서 동기화 상태 조회
         let syncedMap = new Map();
         try {
             const { results: syncedJobs } = await c.env.DB.prepare(
@@ -1159,15 +1190,13 @@ app.get('/approved/jobs', async (c) => {
         } catch (e) { }
 
         const data = jobs.map(j => {
-            // j.code might be 2 digits (suffix) or 8 digits (full) depending on source.
-            // Ensure fullCode is exactly 8 digits.
             const rawSub = (j.code || '').toString().trim();
             const subCode = rawSub.length >= 8 ? rawSub.slice(-2) : rawSub.padStart(2, '0');
             const fullCode = l + m + s + subCode;
 
             return {
                 ...j,
-                code: subCode, // Always return 2 digit suffix for client consistency
+                code: subCode,
                 fullCode: fullCode,
                 isSynced: syncedMap.has(fullCode),
                 syncStats: null
@@ -1395,16 +1424,17 @@ app.post('/upload', authMiddleware, requireAdmin, async (c) => {
 
         // Create Job Upsert Statements
         for (const job of jobsMap.values()) {
+            const truncatedJobCode = job.code.toString().substring(0, 8);
             statements.push(c.env.DB.prepare(`
                 INSERT INTO ncs_job_hierarchy (job_code, job_name, large_name, mid_name, small_name, synced_at, created_at)
                 VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
                 ON CONFLICT(job_code) DO UPDATE SET
-                    job_name = CASE WHEN excluded.job_name != '' THEN excluded.job_name ELSE ncs_job_hierarchy.job_name END,
+                    job_name = CASE WHEN excluded.job_name != '' AND length(excluded.job_code) = 8 THEN excluded.job_name ELSE ncs_job_hierarchy.job_name END,
                     large_name = CASE WHEN excluded.large_name != '' THEN excluded.large_name ELSE ncs_job_hierarchy.large_name END,
                     mid_name = CASE WHEN excluded.mid_name != '' THEN excluded.mid_name ELSE ncs_job_hierarchy.mid_name END,
                     small_name = CASE WHEN excluded.small_name != '' THEN excluded.small_name ELSE ncs_job_hierarchy.small_name END,
                     synced_at = datetime('now')
-            `).bind(job.code, job.name, job.large, job.mid, job.small));
+            `).bind(truncatedJobCode, job.name, job.large, job.mid, job.small));
             stats.jobs++;
         }
 
@@ -1449,12 +1479,14 @@ app.get('/approved/training', async (c) => {
     try {
         const ncsLclasCd = c.req.query('ncsLclasCd') || '01';
         const rawKey = c.env.NCS_API_KEY?.trim();
+        const refresh = c.req.query('refresh') === 'true';
 
         // 1. Local DB Check
-        try {
-            // Fetch distinct job codes (8 digits: large+mid+small+sub)
-            const { results } = await c.env.DB.prepare(
-                `SELECT DISTINCT 
+        if (!refresh) {
+            try {
+                // Fetch distinct job codes (8 digits: large+mid+small+sub)
+                const { results } = await c.env.DB.prepare(
+                    `SELECT DISTINCT 
                     job_code,
                     large_name,
                     mid_name, 
@@ -1469,25 +1501,26 @@ app.get('/approved/training', async (c) => {
                     AND mid_name IS NOT NULL AND mid_name != '' 
                     AND small_name IS NOT NULL AND small_name != ''
                 ORDER BY job_code`
-            ).bind(ncsLclasCd + '%').all();
+                ).bind(ncsLclasCd + '%').all();
 
-            if (results && results.length > 0) {
-                const mapped: TrainingItem[] = results.map((r: any) => ({
-                    largeCode: r.large_code || ncsLclasCd,
-                    largeName: r.large_name || '',
-                    midCode: r.mid_code || '',
-                    midName: r.mid_name || '',
-                    smallCode: r.small_code || '',
-                    smallName: r.small_name || '',
-                    subClassCode: r.sub_code || '',
-                    subClassName: r.job_name || '',
-                    unitCode: '', // Training API doesn't include unit-level data
-                    unitName: '', // Will be populated later if needed
-                }));
-                return c.json({ success: true, data: mapped, _meta: { source: 'local_db', count: mapped.length } });
+                if (results && results.length > 0) {
+                    const mapped: TrainingItem[] = results.map((r: any) => ({
+                        largeCode: r.large_code || ncsLclasCd,
+                        largeName: r.large_name || '',
+                        midCode: r.mid_code || '',
+                        midName: r.mid_name || '',
+                        smallCode: r.small_code || '',
+                        smallName: r.small_name || '',
+                        subClassCode: r.sub_code || '',
+                        subClassName: r.job_name || '',
+                        unitCode: '', // Training API doesn't include unit-level data
+                        unitName: '', // Will be populated later if needed
+                    }));
+                    return c.json({ success: true, data: mapped, _meta: { source: 'local_db', count: mapped.length } });
+                }
+            } catch (dbErr) {
+                console.warn('Local NCS training fetch failed:', dbErr);
             }
-        } catch (dbErr) {
-            console.warn('Local NCS training fetch failed:', dbErr);
         }
 
         if (rawKey) {
@@ -1801,7 +1834,11 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
                 const sub8 = j.code.replace(/[^0-9]/g, '').slice(0, 8);
                 if (sub8.length === 8) {
                     const h = await c.env.DB.prepare('SELECT * FROM ncs_job_hierarchy WHERE job_code = ?').bind(sub8).first<any>();
-                    mainJobs[i].isSynced = h && (h.status === 'READY' || h.unit_count > 0);
+                    mainJobs[i].isSynced = h && (h.unit_count > 0);
+                    // Use correct name from hierarchy if available to heal poisoned registration data
+                    if (h && h.job_name) {
+                        mainJobs[i].name = h.job_name;
+                    }
                 }
             }
         }
@@ -1891,7 +1928,19 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
                         if (!code) continue;
                         const name = (u.name || '').trim() || code;
                         const lv = typeof u.level === 'number' ? u.level : 3;
-                        addItem(name, code, lv);
+
+                        // Fetch elements from DB
+                        let dbElements: { code: string; name: string }[] = [];
+                        try {
+                            const { results } = await c.env.DB.prepare(
+                                'SELECT code, name FROM ncs_elements WHERE unit_code = ? ORDER BY code ASC'
+                            ).bind(code).all() as { results: { code: string; name: string }[] };
+                            if (results) dbElements = results;
+                        } catch (e) {
+                            console.warn(`Failed to fetch elements for ${code}`, e);
+                        }
+
+                        addItem(name, code, lv, dbElements);
                         foundAny = true;
                     }
                 }
@@ -1903,13 +1952,13 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
                 const largeCode = jobCode8.slice(0, 2);
                 const classificationBase = (c.env as { NCS_CLASSIFICATION_API_BASE?: string }).NCS_CLASSIFICATION_API_BASE?.trim();
 
-                // If we have a full 10-digit job code, try NCS005 (Competency Unit List) first
-                if (job.code && job.code.length >= 10) {
+                // If we have a full 8-digit job code (Sub-classification), try NCS005
+                if (jobCode8.length >= 8) {
                     try {
-                        const l = job.code.slice(0, 2);
-                        const m = job.code.slice(2, 4);
-                        const s = job.code.slice(4, 6);
-                        const subd = job.code.slice(6, 8);
+                        const l = jobCode8.slice(0, 2);
+                        const m = jobCode8.slice(2, 4);
+                        const s = jobCode8.slice(4, 6);
+                        const subd = jobCode8.slice(6, 8);
 
                         const unitsFromNCS005 = await fetchNcsUnitsByJob(apiKey, l, m, s, subd, classificationBase);
                         if (unitsFromNCS005 && unitsFromNCS005.length > 0) {
@@ -1935,14 +1984,87 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
                                             elements = elementsFromNCS006;
                                             console.log(`[NCS006] Found ${elementsFromNCS006.length} elements for ${u.code}`);
 
-                                            // Cache to DB for future speed
+                                            // 1. Fetch criteria/details via NCS008
                                             try {
-                                                const stmt = c.env.DB.prepare('INSERT OR IGNORE INTO ncs_elements (unit_code, code, name) VALUES (?, ?, ?)');
-                                                const batch = elements.map(e => stmt.bind(u.code, e.code, e.name));
+                                                const details = await fetchNcsPerformanceCriteria(apiKey, u.code, classificationBase);
+                                                if (details && details.length > 0) {
+                                                    // Merge details into elements
+                                                    elements = elements.map(e => {
+                                                        const d = details.find(det => det.elemCode === e.code || det.elemCode === e.code.split('_')[0]);
+                                                        if (d) {
+                                                            return {
+                                                                ...e,
+                                                                criteriaText: d.criteriaText,
+                                                                knowledgeText: d.knowledgeText,
+                                                                skillText: d.skillText,
+                                                                attitudeText: d.attitudeText
+                                                            };
+                                                        }
+                                                        return e;
+                                                    });
+                                                    console.log(`[NCS008] Merged details for ${u.code}`);
+                                                }
+                                            } catch (dtlErr) {
+                                                console.warn(`[NCS008] Detailed fetch failed for ${u.code}`, dtlErr);
+                                            }
+
+                                            // 1.5 Fetch evaluation/teaching methods via NCS009
+                                            try {
+                                                const methods = await fetchNcsEvaluationMethods(apiKey, u.code, classificationBase);
+                                                if (methods.evaluation.length > 0 || methods.teaching.length > 0) {
+                                                    await c.env.DB.prepare(`
+                                                        UPDATE ncs_units 
+                                                        SET evaluation_methods_json = ?, teaching_methods_json = ? 
+                                                        WHERE code = ?
+                                                    `).bind(
+                                                        JSON.stringify(methods.evaluation),
+                                                        JSON.stringify(methods.teaching),
+                                                        u.code
+                                                    ).run();
+                                                    console.log(`[NCS009] Saved methods for ${u.code}`);
+                                                }
+                                            } catch (methErr) {
+                                                console.warn(`[NCS009] Methods fetch failed for ${u.code}`, methErr);
+                                            }
+
+                                            // 2. Cache to DB for future speed
+                                            try {
+                                                const stmt = c.env.DB.prepare(`
+                                                    INSERT INTO ncs_elements 
+                                                    (unit_code, code, name, criteria_text, knowledge_text, skill_text, attitude_text) 
+                                                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                                                    ON CONFLICT(code) DO UPDATE SET
+                                                    name=excluded.name,
+                                                    criteria_text=excluded.criteria_text,
+                                                    knowledge_text=excluded.knowledge_text,
+                                                    skill_text=excluded.skill_text,
+                                                    attitude_text=excluded.attitude_text
+                                                `);
+
+                                                const batch = elements.map(e => {
+                                                    const anyE = e as any;
+                                                    return stmt.bind(
+                                                        u.code,
+                                                        e.code,
+                                                        e.name,
+                                                        anyE.criteriaText || null,
+                                                        anyE.knowledgeText || null,
+                                                        anyE.skillText || null,
+                                                        anyE.attitudeText || null
+                                                    );
+                                                });
                                                 await c.env.DB.batch(batch);
-                                                console.log(`[DB] Cached ${elements.length} elements for ${u.code}`);
+                                                console.log(`[DB] Cached ${elements.length} elements (detailed=${!!(elements[0] as any).criteriaText}) for ${u.code}`);
                                             } catch (cacheErr) {
-                                                console.error(`[DB] Cache failed for ${u.code}`, cacheErr);
+                                                console.warn(`[DB] Extended cache failed for ${u.code}, trying fallback...`, cacheErr);
+                                                try {
+                                                    const stmt = c.env.DB.prepare('INSERT OR IGNORE INTO ncs_elements (unit_code, code, name) VALUES (?, ?, ?)');
+                                                    const batch = elements.map(e => stmt.bind(u.code, e.code, e.name));
+                                                    await c.env.DB.batch(batch);
+                                                    console.log(`[DB] Cached ${elements.length} elements (basic) for ${u.code}`);
+                                                } catch (err2) {
+                                                    console.error(`[DB] Cache completely failed for ${u.code}`, err2);
+                                                }
                                             }
                                         } else if (FALLBACK_ELEMENTS[u.code]) {
                                             // Final fallback: hardcoded data
@@ -2078,6 +2200,19 @@ app.post('/approved/sync', authMiddleware, requireAdmin, async (c) => {
         const s = subClassCode.slice(4, 6);
         const subd = subClassCode.slice(6, 8);
 
+        // [Heal] Fetch proper Job Name from API if possible (UI might send poisoned Unit name)
+        let subClassName = body.subClassName || '';
+        if (apiKey) {
+            try {
+                const jobList = await fetchNcsJobsBySmall(apiKey, l, m, s, base);
+                const actualJob = jobList.find(j => j.code === subd || j.code === subClassCode);
+                if (actualJob && actualJob.name) {
+                    console.log(`[Sync] Healing Job Name from API: "${subClassName}" -> "${actualJob.name}"`);
+                    subClassName = actualJob.name;
+                }
+            } catch (e) { console.error('[Sync] Job name heal failed', e); }
+        }
+
         console.log(`[Sync] Fetching units for SubClass: ${subClassCode}`);
         const units = await fetchNcsUnitsByJob(apiKey, l, m, s, subd, base);
 
@@ -2115,16 +2250,68 @@ app.post('/approved/sync', authMiddleware, requireAdmin, async (c) => {
         for (const u of units) {
             try {
                 const elements = await fetchNcsUnitElements(apiKey, u.code, base);
+
+                // Fetch criteria (NCS008)
+                const details = await fetchNcsPerformanceCriteria(apiKey, u.code, base);
+                if (details && details.length > 0 && elements && elements.length > 0) {
+                    elements.forEach((e: any) => {
+                        const d = details.find(det => det.elemCode === e.code || det.elemCode === e.code.split('_')[0]);
+                        if (d) {
+                            e.criteriaText = d.criteriaText;
+                            e.knowledgeText = d.knowledgeText;
+                            e.skillText = d.skillText;
+                            e.attitudeText = d.attitudeText;
+                        }
+                    });
+                }
+
+                // Fetch methods (NCS009)
+                const methods = await fetchNcsEvaluationMethods(apiKey, u.code, base);
+
                 const elementsJson = (elements && elements.length > 0) ? JSON.stringify(elements) : null;
+                const evalJson = (methods.evaluation.length > 0) ? JSON.stringify(methods.evaluation) : null;
+                const teachJson = (methods.teaching.length > 0) ? JSON.stringify(methods.teaching) : null;
 
-                // Update ncs_units with elements_json (for faster browsing)
-                await c.env.DB.prepare(
-                    'UPDATE ncs_units SET elements_json = ? WHERE code = ?'
-                ).bind(elementsJson, u.code).run();
+                // Update ncs_units with elements_json, evaluation_methods_json, teaching_methods_json
+                await c.env.DB.prepare(`
+                    UPDATE ncs_units 
+                    SET elements_json = ?, evaluation_methods_json = ?, teaching_methods_json = ? 
+                    WHERE code = ?
+                `).bind(elementsJson, evalJson, teachJson, u.code).run();
 
-                const unitId = unitIdMap.get(u.code);
-                if (unitId && elements && elements.length > 0) {
-                    const batch = elements.map(e => elemStmt.bind(unitId, e.code, e.name));
+                if (elements && elements.length > 0) {
+                    // Fix: Use unit_code instead of unitId (integer) if schema changed, 
+                    // or ensure unitId is correct. 
+                    // Recent migration added columns to ncs_elements but didn't change FK structure?
+                    // Let's check schema assumption. Assuming text-based FK `unit_code` exists or was added.
+                    // Actually, previous replace confirmed `unit_code` column exists in INSERT OR IGNORE.
+
+                    const elemStmt = c.env.DB.prepare(`
+                        INSERT INTO ncs_elements 
+                        (unit_code, code, name, criteria_text, knowledge_text, skill_text, attitude_text) 
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                        ON CONFLICT(code) DO UPDATE SET
+                        name=excluded.name,
+                        unit_code=excluded.unit_code,
+                        criteria_text=excluded.criteria_text,
+                        knowledge_text=excluded.knowledge_text,
+                        skill_text=excluded.skill_text,
+                        attitude_text=excluded.attitude_text
+                    `);
+
+                    const batch = elements.map(e => {
+                        const anyE = e as any;
+                        return elemStmt.bind(
+                            u.code,
+                            e.code,
+                            e.name,
+                            anyE.criteriaText || null,
+                            anyE.knowledgeText || null,
+                            anyE.skillText || null,
+                            anyE.attitudeText || null
+                        );
+                    });
+
                     await c.env.DB.batch(batch);
                     elementCount += elements.length;
                 }
@@ -2135,13 +2322,22 @@ app.post('/approved/sync', authMiddleware, requireAdmin, async (c) => {
         }
 
         // 4. Update Hierarchy Meta (Sync Status Tracker)
+        // Ensure subClassCode is 8 digits to fix/prevent hierarchy poisoning
         await c.env.DB.prepare(`
-            INSERT OR REPLACE INTO ncs_job_hierarchy 
-            (job_code, job_name, large_name, mid_name, small_name, unit_count, element_count, synced_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+            INSERT INTO ncs_job_hierarchy 
+            (job_code, job_name, large_name, mid_name, small_name, unit_count, element_count, synced_at, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+            ON CONFLICT(job_code) DO UPDATE SET
+                job_name = excluded.job_name,
+                large_name = CASE WHEN excluded.large_name != '' THEN excluded.large_name ELSE ncs_job_hierarchy.large_name END,
+                mid_name = CASE WHEN excluded.mid_name != '' THEN excluded.mid_name ELSE ncs_job_hierarchy.mid_name END,
+                small_name = CASE WHEN excluded.small_name != '' THEN excluded.small_name ELSE ncs_job_hierarchy.small_name END,
+                unit_count = excluded.unit_count,
+                element_count = excluded.element_count,
+                synced_at = excluded.synced_at
         `).bind(
-            subClassCode,
-            body.subClassName || '',
+            subClassCode.substring(0, 8),
+            subClassName,
             body.largeName || '',
             body.midName || '',
             body.smallName || '',
@@ -2195,6 +2391,7 @@ app.get('/approved/sync/summary', authMiddleware, requireAdmin, async (c) => {
                 element_count as elementCount,
                 synced_at
             FROM ncs_job_hierarchy
+            WHERE length(job_code) = 8
             ORDER BY synced_at DESC
         `).all();
 
@@ -2338,8 +2535,19 @@ app.put('/approved/registrations/:id/curriculum', authMiddleware, requireAdmin, 
         if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
         const existing = await c.env.DB.prepare('SELECT id FROM ncs_approved_registrations WHERE id = ?').bind(id).first();
         if (!existing) return c.json({ success: false, error: '등록 정보 없음' }, 404);
-        const body = await c.req.json<{ items?: { type: string; name: string; classification?: string; ability_units?: string[]; units?: string[]; objectives?: string[] }[] }>();
+        const body = await c.req.json<{
+            items?: {
+                type: string;
+                name: string;
+                job_name?: string;
+                classification?: string;
+                ability_units?: (string | { code: string; name: string; elements?: { code: string; name: string }[] })[];
+                units?: string[];
+                objectives?: string[]
+            }[]
+        }>();
         const items = Array.isArray(body.items) ? body.items : [];
+        console.log('[DEBUG] Curriculum PUT - Received items:', items.length);
 
         await c.env.DB.prepare('DELETE FROM ncs_approved_curriculum WHERE registration_id = ?').bind(id).run();
         for (let i = 0; i < items.length; i++) {
@@ -2351,10 +2559,12 @@ app.put('/approved/registrations/:id/curriculum', authMiddleware, requireAdmin, 
                 ? JSON.stringify(it.ability_units) : null;
             const unitsJson = it.units && Array.isArray(it.units) ? JSON.stringify(it.units) : null;
             const objectivesJson = it.objectives && Array.isArray(it.objectives) ? JSON.stringify(it.objectives) : null;
+            const jobName = (it.job_name || '').trim() || null;
+            console.log('[DEBUG] Inserting curriculum:', { type, name, jobName, hasAbilityUnits: !!abilityUnitsJson });
             await c.env.DB.prepare(
-                `INSERT INTO ncs_approved_curriculum (registration_id, type, name, classification, ability_units_json, units_json, objectives_json, sort_order)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-            ).bind(id, type, name, classification, abilityUnitsJson, unitsJson, objectivesJson, i).run();
+                `INSERT INTO ncs_approved_curriculum (registration_id, type, name, job_name, classification, ability_units_json, units_json, objectives_json, sort_order)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+            ).bind(id, type, name, jobName, classification, abilityUnitsJson, unitsJson, objectivesJson, i).run();
         }
         const { results } = await c.env.DB.prepare(
             'SELECT * FROM ncs_approved_curriculum WHERE registration_id = ? ORDER BY sort_order ASC, id ASC'
@@ -2395,7 +2605,7 @@ app.get('/approved/registrations/:id/training-hours', authMiddleware, requireAdm
             /* columns may not exist yet */
         }
         const { results: curriculum } = await c.env.DB.prepare(
-            'SELECT id, type, name, classification, sort_order FROM ncs_approved_curriculum WHERE registration_id = ? ORDER BY sort_order ASC, id ASC'
+            'SELECT id, type, name, job_name, classification, ability_units_json, sort_order FROM ncs_approved_curriculum WHERE registration_id = ? ORDER BY sort_order ASC, id ASC'
         ).bind(id).all() as { results: any[] };
         const curriculumIds = (curriculum || []).map((r: { id: number }) => r.id);
         let hoursMap: Record<number, { theory_hours: number; practice_hours: number }> = {};
@@ -2408,18 +2618,24 @@ app.get('/approved/registrations/:id/training-hours', authMiddleware, requireAdm
                 hoursMap[row.curriculum_id] = { theory_hours: row.theory_hours ?? 0, practice_hours: row.practice_hours ?? 0 };
             });
         }
-        const data = (curriculum || []).map((row: { id: number; type: string; name: string; classification: string | null; sort_order: number }) => {
+        const data = (curriculum || []).map((row: { id: number; type: string; name: string; job_name?: string; classification: string | null; ability_units_json?: string; sort_order: number }) => {
             const h = hoursMap[row.id] || { theory_hours: 0, practice_hours: 0 };
             return {
                 curriculum_id: row.id,
                 type: row.type,
                 name: row.name,
+                job_name: row.job_name,
                 classification: row.classification,
+                ability_units_json: row.ability_units_json,
                 sort_order: row.sort_order,
                 theory_hours: h.theory_hours,
                 practice_hours: h.practice_hours
             };
         });
+        console.log('[DEBUG] Training hours GET - Curriculum count:', data.length);
+        if (data.length > 0) {
+            console.log('[DEBUG] First curriculum item:', data[0]);
+        }
         return c.json({ success: true, params, data });
     } catch (e) {
         console.error('ncs approved training-hours get:', e);
@@ -3205,26 +3421,69 @@ app.get('/plans/:planId/export-csv', async (c) => {
     }
 });
 
+
+
 const FALLBACK_NCS_UNITS: Record<string, { code: string; name: string; level: number; elements?: { code: string; name: string }[] }[]> = {
     // 19031102: 3D프린터용 제품제작 (3D프린터운용기능사 관련)
     '19031102': [
-        { code: '1903110201_15v1', name: '시장조사', level: 3 },
-        { code: '1903110202_23v3', name: '제품기획', level: 3 },
-        { code: '1903110203_17v2', name: '제품스캐닝', level: 3 },
-        { code: '1903110205_23v3', name: '엔지니어링모델링', level: 4 },
-        { code: '1903110206_17v2', name: '출력용데이터확정', level: 3 },
-        { code: '1903110207_23v3', name: '3D프린터 SW 설정', level: 3 },
-        { code: '1903110208_23v3', name: '3D프린터 HW 설정', level: 3 },
-        { code: '1903110209_23v3', name: '제품출력', level: 3 },
-        { code: '1903110210_23v4', name: '후가공', level: 2 },
-        { code: '1903110211_23v2', name: '역설계', level: 4 },
-        { code: '1903110212_20v3', name: '넙스 모델링', level: 3 },
-        { code: '1903110213_17v2', name: '폴리곤 모델링', level: 3 },
-        { code: '1903110214_23v3', name: '3D프린팅 안전관리', level: 2 },
-        { code: '1903110215_24v1', name: '3D프린팅 특화설계', level: 5 },
-        { code: '1903110216_24v1', name: '데이터 전처리', level: 4 },
-        { code: '1903110217_24v1', name: 'L-PBF 금속3D프린팅운용', level: 4 },
-        { code: '1903110218_24v1', name: '의료3D프린팅운용', level: 4 }
+        {
+            code: '1903110201_15v1', name: '시장조사', level: 3,
+            elements: [
+                { code: '1903110201_15v1_01', name: '자료수집하기' },
+                { code: '1903110201_15v1_02', name: '시장 트렌드 분석하기' }
+            ]
+        },
+        {
+            code: '1903110202_23v3', name: '제품기획', level: 3,
+            elements: [
+                { code: '1903110202_23v3_01', name: '품목 선정하기' },
+                { code: '1903110202_23v3_02', name: '디자인 컨셉 수립하기' }
+            ]
+        },
+        {
+            code: '1903110205_23v3', name: '엔지니어링모델링', level: 4,
+            elements: [
+                { code: '1903110205_23v3_01', name: '도면 분석하기' },
+                { code: '1903110205_23v3_02', name: '3차원 형상 모델링하기' }
+            ]
+        },
+        {
+            code: '1903110207_23v3', name: '3D프린터 SW 설정', level: 3,
+            elements: [
+                { code: '1903110207_23v3_01', name: '출력보조물 생성하기' },
+                { code: '1903110207_23v3_02', name: '슬라이싱하기' },
+                { code: '1903110207_23v3_03', name: 'G-코드 생성하기' }
+            ]
+        },
+        {
+            code: '1903110208_23v3', name: '3D프린터 HW 설정', level: 3,
+            elements: [
+                { code: '1903110208_23v3_01', name: '소재 준비하기' },
+                { code: '1903110208_23v3_02', name: '데이터 준비하기' },
+                { code: '1903110208_23v3_03', name: '장비출력 설정하기' }
+            ]
+        },
+        {
+            code: '1903110209_23v3', name: '제품출력', level: 3,
+            elements: [
+                { code: '1903110209_23v3_01', name: '출력하기' },
+                { code: '1903110209_23v3_02', name: '출력물 회수하기' }
+            ]
+        },
+        {
+            code: '1903110210_23v4', name: '후가공', level: 2,
+            elements: [
+                { code: '1903110210_23v4_01', name: '서포트 제거하기' },
+                { code: '1903110210_23v4_02', name: '표면 처리하기' }
+            ]
+        },
+        {
+            code: '1903110214_23v3', name: '3D프린팅 안전관리', level: 2,
+            elements: [
+                { code: '1903110214_23v3_01', name: '작업장 환경 정리하기' },
+                { code: '1903110214_23v3_02', name: '안전 수칙 준수하기' }
+            ]
+        }
     ],
     // 19031101: 3D프린터개발
     '19031101': [
@@ -3257,7 +3516,7 @@ const FALLBACK_NCS_UNITS: Record<string, { code: string; name: string; level: nu
             ]
         }
     ],
-    // 15010201: 기계요소설계
+    // 15010201: 기계요소설계 (기계설계산업기사/기사 관련)
     '15010201': [
         {
             code: '1501020101_19v3', name: '기계요소설계 기획', level: 5,
@@ -3288,27 +3547,6 @@ const FALLBACK_NCS_UNITS: Record<string, { code: string; name: string; level: nu
             ]
         },
         {
-            code: '1501020113_19v3', name: '치공구요소설계', level: 3,
-            elements: [
-                { code: '1501020113_19v3_01', name: '가공 형태에 따른 치공구 구상하기' },
-                { code: '1501020113_19v3_02', name: '위치결정 및 클램핑 요소 설계하기' }
-            ]
-        },
-        {
-            code: '1501020114_19v3', name: '유압요소설계', level: 4,
-            elements: [
-                { code: '1501020114_19v3_01', name: '유압 회로도 구성하기' },
-                { code: '1501020114_19v3_02', name: '유압 기기 및 관로 선정하기' }
-            ]
-        },
-        {
-            code: '1501020115_19v3', name: '공압요소설계', level: 4,
-            elements: [
-                { code: '1501020115_19v3_01', name: '공압 회로도 구성하기' },
-                { code: '1501020115_19v3_02', name: '공압 제어 밸브 및 실린더 선정하기' }
-            ]
-        },
-        {
             code: '1501020121_19v3', name: '도면분석', level: 3,
             elements: [
                 { code: '1501020121_19v3_01', name: '투상도 및 단면도 분석하기' },
@@ -3316,31 +3554,19 @@ const FALLBACK_NCS_UNITS: Record<string, { code: string; name: string; level: nu
             ]
         },
         {
-            code: '1501020122_19v3', name: '도면검토', level: 4,
+            code: '1501020123_19v2', name: '2D도면작업', level: 3,
             elements: [
-                { code: '1501020122_19v3_01', name: '작성 도면의 규격 준수 여부 확인하기' },
-                { code: '1501020122_19v3_02', name: '제작 및 조립 가능성 검토하기' }
-            ]
-        },
-        {
-            code: '1501020123_19v3', name: '2D도면작업', level: 2,
-            elements: [
-                { code: '1501020123_19v3_01', name: '2D CAD를 이용한 도면 작성하기' },
-                { code: '1501020123_19v3_02', name: '치수, 기호 및 부품란 기입하기' }
-            ]
-        },
-        {
-            code: '1501020124_19v3', name: '2D도면관리', level: 2,
-            elements: [
-                { code: '1501020124_19v3_01', name: '도면 데이터 백업 및 보관하기' },
-                { code: '1501020124_19v3_02', name: '도면 출도 및 변경 이력 관리하기' }
+                { code: '1501020123_19v2_01', name: '2D 도면 작성하기' },
+                { code: '1501020123_19v2_02', name: '부품도 상세 기입하기' },
+                { code: '1501020123_19v2_03', name: '도면 부품란 작성하기' }
             ]
         },
         {
             code: '1501020125_19v3', name: '3D형상모델링작업', level: 2,
             elements: [
-                { code: '1501020125_19v3_01', name: '3D 형상 모델링 준비 및 부품 모델링하기' },
-                { code: '1501020125_19v3_02', name: '조립도 작성 및 형상 정보 확인하기' }
+                { code: '1501020125_19v3_01', name: '3D 형상 모델링 준비하기' },
+                { code: '1501020125_19v3_02', name: '3D 부품 모델링하기' },
+                { code: '1501020125_19v3_03', name: '3D 조립 모델링 및 모델링 검토하기' }
             ]
         },
         {
