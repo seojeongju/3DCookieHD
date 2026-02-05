@@ -1588,32 +1588,37 @@
         // Logic to build payload (save logic)
         function buildCurriculumPayload() {
             var items = [];
+            console.log('[DEBUG] --- buildCurriculumPayload start ---');
 
-            // Iterate Job Sections (NCS Items)
+            // 1. NCS 직종 섹션 수집
             document.querySelectorAll('.job-section').forEach(function (sect) {
                 var jobName = sect.dataset.jobName;
+                console.log('[DEBUG] Checking Job Section:', jobName);
+
                 sect.querySelectorAll('.ncs-curriculum-row').forEach(function (row) {
-                    var nameEl = row.querySelector('.ncs-curriculum-name');
-                    var name = nameEl ? nameEl.value.trim() : '';
-                    console.log('[DEBUG] Processing NCS row - name:', name);
+                    var nameInp = row.querySelector('.ncs-curriculum-name');
+                    var name = nameInp ? nameInp.value.trim() : '';
+
+                    console.log('[DEBUG] NCS Row Check:', {
+                        found: !!nameInp,
+                        val: name,
+                        id: row.id || 'no-id'
+                    });
+
                     if (!name) {
-                        console.warn('[DEBUG] Skipping row with empty name');
-                        return; // Skip empty names
+                        console.warn('[DEBUG] Skipping row due to empty name');
+                        return;
                     }
 
                     var ability_units = [];
-
-                    // Iterate over checked units
                     row.querySelectorAll('.ncs-unit-input:checked').forEach(function (unitCb) {
                         var uCode = unitCb.value;
                         var uInfo = availableUnitsMap[uCode];
                         if (!uInfo) return;
 
-                        // Find checked elements for this unit
                         var selectedElements = [];
                         row.querySelectorAll('.ncs-element-input[data-unit-code="' + uCode + '"]:checked').forEach(function (elCb) {
                             var eCode = elCb.value;
-                            // Find element info in uInfo.elements
                             var eInfo = (uInfo.elements || []).find(function (e) { return e.code === eCode });
                             if (eInfo) {
                                 selectedElements.push({ code: eInfo.code, name: eInfo.name });
@@ -1627,7 +1632,6 @@
                         });
                     });
 
-                    console.log('[DEBUG] Adding NCS item:', { name: name, jobName: jobName, ability_units_count: ability_units.length });
                     items.push({
                         type: 'ncs',
                         name: name,
@@ -1637,7 +1641,26 @@
                 });
             });
 
-            // Iterate Non-NCS Items
+            // 2. 직업기초 섹션 수집 (신규)
+            document.querySelectorAll('.basic-section').forEach(function (sect) {
+                sect.querySelectorAll('.ncs-curriculum-row').forEach(function (row) {
+                    var nameInp = row.querySelector('.ncs-curriculum-name');
+                    var name = nameInp ? nameInp.value.trim() : '';
+                    if (!name) return;
+
+                    var ability_units = [];
+                    row.querySelectorAll('.ncs-unit-input:checked').forEach(function (unitCb) {
+                        var uCode = unitCb.value;
+                        var uInfo = availableUnitsMap[uCode];
+                        if (!uInfo) return;
+                        ability_units.push({ code: uInfo.code, name: uInfo.name, elements: [] });
+                    });
+
+                    items.push({ type: 'basic', name: name, ability_units: ability_units });
+                });
+            });
+
+            // 3. 비NCS 섹션 수집
             if (nonNcsRows) {
                 nonNcsRows.querySelectorAll('.nonncs-curriculum-row').forEach(function (row) {
                     var classEl = row.querySelector('.nonncs-curriculum-class');
@@ -1645,7 +1668,7 @@
                     var classification = classEl ? classEl.value.trim() : '';
                     var name = nameEl ? nameEl.value.trim() : '';
 
-                    if (!name && !classification) return; // Skip empty
+                    if (!name && !classification) return;
 
                     var units = [];
                     row.querySelectorAll('.nonncs-unit-item').forEach(function (inp) {
@@ -1667,6 +1690,7 @@
                 });
             }
 
+            console.log('[DEBUG] Final Payload Items Count:', items.length);
             return { items: items };
         }
 
@@ -1805,12 +1829,10 @@
 
                         // Parse ability_units_json for existing items
                         ncsItems.forEach(function (it) {
-                            try {
-                                it.ability_units = it.ability_units_json ? JSON.parse(it.ability_units_json) : [];
-                            } catch (e) { it.ability_units = []; }
+                            try { it.ability_units = it.ability_units_json ? JSON.parse(it.ability_units_json) : []; } catch (e) { it.ability_units = []; }
                         });
 
-                        // Render Job Sections
+                        // 1. Render Job Sections (NCS)
                         var currentMainCode = d.mainJobCode || '';
                         mainJobs.forEach(function (job) {
                             var jobName = job.name;
@@ -1818,20 +1840,14 @@
                             var sect = createJobSection(job, isPrimary);
                             var subContainer = sect.querySelector('.job-subjects-container');
 
-                            // Find existing subjects for this job
-                            // Note: Previous DB schema didn't have 'job_name'. We might need to guess or show all in first section if fallback.
-                            // Better logic: If item.job_name matches. Or if items have units belonging to this job.
-
                             var jobItems = ncsItems.filter(function (it) {
                                 if (it.job_name === jobName) return true;
                                 if (!it.job_name) {
-                                    // Try to infer from units
                                     if (it.ability_units.length > 0) {
                                         var firstUCode = typeof it.ability_units[0] === 'string' ? it.ability_units[0] : it.ability_units[0].code;
                                         var uInfo = availableUnitsMap[firstUCode];
                                         if (uInfo && (uInfo.jobNames || []).includes(jobName)) return true;
                                     } else {
-                                        // Empty subject without job_name - maybe default to first job?
                                         if (mainJobs.indexOf(job) === 0) return true;
                                     }
                                 }
@@ -1842,23 +1858,51 @@
                                 addSubjectRow(subContainer, jobName, it);
                             });
 
-                            // If no items for this job, maybe add one empty row by default? 
                             if (jobItems.length === 0) {
-                                // addSubjectRow(subContainer, jobName); // Optional
+                                addSubjectRow(subContainer, jobName);
                             }
 
                             ncsRowsCallback.appendChild(sect);
                         });
 
+                        // 2. Render Basic Ability Section
+                        var basicAbilityInfo = d.basicAbility || [];
+                        if (basicAbilityInfo.length > 0) {
+                            var basicSect = document.createElement('div');
+                            basicSect.className = 'bg-white rounded-[1.5rem] border border-emerald-200 shadow-sm p-6 mb-8 basic-section';
+                            basicSect.innerHTML =
+                                '<div class="flex items-center gap-3 mb-6">' +
+                                '<i class="fas fa-graduation-cap text-emerald-600 text-xl"></i>' +
+                                '<h3 class="text-lg font-black text-slate-800">직업기초능력 교과목 편성</h3>' +
+                                '</div>' +
+                                '<div class="space-y-4 basic-subjects-container"></div>' +
+                                '<div class="mt-6 pt-4 border-t border-slate-100 flex justify-end">' +
+                                '<button type="button" class="btn-add-basic px-4 py-2.5 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-100 font-bold text-sm transition flex items-center gap-2">' +
+                                '<i class="fas fa-plus"></i> 교과목 추가' +
+                                '</button></div>';
+
+                            var basicContainer = basicSect.querySelector('.basic-subjects-container');
+                            var basicItems = existingItems.filter(function (i) { return i.type === 'basic'; });
+
+                            basicItems.forEach(function (it) {
+                                try { it.ability_units = it.ability_units_json ? JSON.parse(it.ability_units_json) : []; } catch (e) { }
+                                addSubjectRow(basicContainer, null, it);
+                            });
+
+                            if (basicItems.length === 0) {
+                                addSubjectRow(basicContainer, null);
+                            }
+
+                            basicSect.querySelector('.btn-add-basic').addEventListener('click', function () {
+                                addSubjectRow(basicContainer, null);
+                            });
+
+                            ncsRowsCallback.appendChild(basicSect);
+                        }
+
                         // Ensure Non-NCS Rows populated
                         var nonItems = existingItems.filter(function (i) { return i.type === 'non_ncs'; });
-                        var nonNcsR = nonNcsRows.querySelectorAll('.nonncs-curriculum-row');
-                        // Clear default template if we have data
                         if (nonItems.length > 0) {
-                            // If template row exists, use it for first, clone for others
-                            // Easier: clear and rebuild using generic templating
-                            // But I reused existing html logic above. It expects rows exist.
-                            // Let's use ensureNonRows logic
                             function ensureNonRows(n) {
                                 var rows = nonNcsRows.querySelectorAll('.nonncs-curriculum-row');
                                 while (rows.length < n) { addNonNcsRow(); rows = nonNcsRows.querySelectorAll('.nonncs-curriculum-row'); }
@@ -1882,456 +1926,456 @@
                                 if (objs.length) oCont.innerHTML = objs.map(function (o) { return flexIn(o, '학습목표 입력').replace('nonncs-unit', 'nonncs-obj'); }).join('');
                             });
                         } else {
-                            // wire default row
                             var first = nonNcsRows.querySelector('.nonncs-curriculum-row');
                             if (first) wireNonNcsRow(first);
                         }
 
-                        // Show Form, Hide Loader
                         if (loader) loader.classList.add('hidden');
                         form.classList.remove('hidden');
                     });
             });
-    }
+    });
+}
 
     function initStep4() {
-        var regInput = document.getElementById('ncsApprovedRegIdStep4');
-        var regId = (regInput && regInput.value) ? regInput.value.trim() : '';
-        var noReg = document.getElementById('ncsStep4NoReg');
-        var form = document.getElementById('ncsStep4Form');
-        var tbody = document.getElementById('ncsStep4HoursBody');
-        var foot = document.getElementById('ncsStep4HoursFoot');
-        var totalTheoryEl = document.getElementById('ncsStep4TotalTheory');
-        var totalPracticeEl = document.getElementById('ncsStep4TotalPractice');
-        var totalSumEl = document.getElementById('ncsStep4TotalSum');
-        var step4Items = [];
+    var regInput = document.getElementById('ncsApprovedRegIdStep4');
+    var regId = (regInput && regInput.value) ? regInput.value.trim() : '';
+    var noReg = document.getElementById('ncsStep4NoReg');
+    var form = document.getElementById('ncsStep4Form');
+    var tbody = document.getElementById('ncsStep4HoursBody');
+    var foot = document.getElementById('ncsStep4HoursFoot');
+    var totalTheoryEl = document.getElementById('ncsStep4TotalTheory');
+    var totalPracticeEl = document.getElementById('ncsStep4TotalPractice');
+    var totalSumEl = document.getElementById('ncsStep4TotalSum');
+    var step4Items = [];
 
-        if (!tbody || !form) return;
+    if (!tbody || !form) return;
 
-        if (!regId) {
-            if (noReg) noReg.classList.remove('hidden');
-            form.classList.add('hidden');
-            tbody.innerHTML = '';
-            return;
-        }
-        if (noReg) noReg.classList.add('hidden');
-        form.classList.remove('hidden');
+    if (!regId) {
+        if (noReg) noReg.classList.remove('hidden');
+        form.classList.add('hidden');
+        tbody.innerHTML = '';
+        return;
+    }
+    if (noReg) noReg.classList.add('hidden');
+    form.classList.remove('hidden');
 
-        function attrEsc(s) {
-            return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        }
+    function attrEsc(s) {
+        return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
 
-        function getParamsInputs() {
-            var totalDays = parseInt(document.getElementById('ncsStep4TotalDays') && document.getElementById('ncsStep4TotalDays').value ? document.getElementById('ncsStep4TotalDays').value : 20, 10) || 0;
-            var dailyHours = parseFloat(document.getElementById('ncsStep4DailyHours') && document.getElementById('ncsStep4DailyHours').value ? document.getElementById('ncsStep4DailyHours').value : 5) || 0;
-            var totalHours = parseInt(document.getElementById('ncsStep4TotalHours') && document.getElementById('ncsStep4TotalHours').value ? document.getElementById('ncsStep4TotalHours').value : 100, 10) || 0;
-            var libPct = parseFloat(document.getElementById('ncsStep4LibPct') && document.getElementById('ncsStep4LibPct').value ? document.getElementById('ncsStep4LibPct').value : 0) || 0;
-            var majorPct = parseFloat(document.getElementById('ncsStep4MajorPct') && document.getElementById('ncsStep4MajorPct').value ? document.getElementById('ncsStep4MajorPct').value : 0) || 0;
-            var nonPct = parseFloat(document.getElementById('ncsStep4NonPct') && document.getElementById('ncsStep4NonPct').value ? document.getElementById('ncsStep4NonPct').value : 0) || 0;
-            return { totalDays: totalDays, dailyHours: dailyHours, totalHours: totalHours, libPct: libPct, majorPct: majorPct, nonPct: nonPct };
-        }
+    function getParamsInputs() {
+        var totalDays = parseInt(document.getElementById('ncsStep4TotalDays') && document.getElementById('ncsStep4TotalDays').value ? document.getElementById('ncsStep4TotalDays').value : 20, 10) || 0;
+        var dailyHours = parseFloat(document.getElementById('ncsStep4DailyHours') && document.getElementById('ncsStep4DailyHours').value ? document.getElementById('ncsStep4DailyHours').value : 5) || 0;
+        var totalHours = parseInt(document.getElementById('ncsStep4TotalHours') && document.getElementById('ncsStep4TotalHours').value ? document.getElementById('ncsStep4TotalHours').value : 100, 10) || 0;
+        var libPct = parseFloat(document.getElementById('ncsStep4LibPct') && document.getElementById('ncsStep4LibPct').value ? document.getElementById('ncsStep4LibPct').value : 0) || 0;
+        var majorPct = parseFloat(document.getElementById('ncsStep4MajorPct') && document.getElementById('ncsStep4MajorPct').value ? document.getElementById('ncsStep4MajorPct').value : 0) || 0;
+        var nonPct = parseFloat(document.getElementById('ncsStep4NonPct') && document.getElementById('ncsStep4NonPct').value ? document.getElementById('ncsStep4NonPct').value : 0) || 0;
+        return { totalDays: totalDays, dailyHours: dailyHours, totalHours: totalHours, libPct: libPct, majorPct: majorPct, nonPct: nonPct };
+    }
 
-        function updatePctFromTotal() {
-            var p = getParamsInputs();
-            var total = p.totalHours || 0;
-            var libH = Math.round(total * (p.libPct || 0) / 100);
-            var majorH = Math.round(total * (p.majorPct || 0) / 100);
-            var nonH = Math.round(total * (p.nonPct || 0) / 100);
-            var libEl = document.getElementById('ncsStep4LibHours');
-            var majorEl = document.getElementById('ncsStep4MajorHours');
-            var nonEl = document.getElementById('ncsStep4NonHours');
-            if (libEl) libEl.value = libH;
-            if (majorEl) majorEl.value = majorH;
-            if (nonEl) nonEl.value = nonH;
-        }
+    function updatePctFromTotal() {
+        var p = getParamsInputs();
+        var total = p.totalHours || 0;
+        var libH = Math.round(total * (p.libPct || 0) / 100);
+        var majorH = Math.round(total * (p.majorPct || 0) / 100);
+        var nonH = Math.round(total * (p.nonPct || 0) / 100);
+        var libEl = document.getElementById('ncsStep4LibHours');
+        var majorEl = document.getElementById('ncsStep4MajorHours');
+        var nonEl = document.getElementById('ncsStep4NonHours');
+        if (libEl) libEl.value = libH;
+        if (majorEl) majorEl.value = majorH;
+        if (nonEl) nonEl.value = nonH;
+    }
 
-        function syncTotalHoursFromDays() {
-            var totalDaysEl = document.getElementById('ncsStep4TotalDays');
-            var dailyEl = document.getElementById('ncsStep4DailyHours');
-            var totalEl = document.getElementById('ncsStep4TotalHours');
-            if (!totalEl || !totalDaysEl || !dailyEl) return;
-            var d = parseFloat(totalDaysEl.value) || 0;
-            var h = parseFloat(dailyEl.value) || 0;
-            if (d > 0 && h > 0) {
-                totalEl.value = Math.round(d * h);
-                updatePctFromTotal();
-                updateCalculatedApplied();
-            }
-        }
-
-        function updateCalculatedApplied() {
-            var p = getParamsInputs();
-            var applied = 0;
-            tbody.querySelectorAll('.ncs-step4-row').forEach(function (tr) {
-                var theoryIn = tr.querySelector('.ncs-step4-theory');
-                var practiceIn = tr.querySelector('.ncs-step4-practice');
-                applied += Math.max(0, parseInt(theoryIn && theoryIn.value ? theoryIn.value : 0, 10) || 0) + Math.max(0, parseInt(practiceIn && practiceIn.value ? practiceIn.value : 0, 10) || 0);
-            });
-            var calcEl = document.getElementById('ncsStep4CalculatedApplied');
-            if (calcEl) calcEl.textContent = (p.totalHours || 0) + ' / ' + applied + ' 시간';
-            var basicAssigned = 0, ncsAssigned = 0, nonAssigned = 0;
-            function isBasic(it) {
-                return (it.type || '') === 'basic' || (it.classification && (String(it.classification).indexOf('기초') >= 0 || String(it.classification).indexOf('소양') >= 0));
-            }
-            step4Items.forEach(function (it) {
-                var row = tbody.querySelector('.ncs-step4-row[data-curriculum-id="' + it.curriculum_id + '"]');
-                if (!row) return;
-                var theoryIn = row.querySelector('.ncs-step4-theory');
-                var practiceIn = row.querySelector('.ncs-step4-practice');
-                var sum = Math.max(0, parseInt(theoryIn && theoryIn.value ? theoryIn.value : 0, 10) || 0) + Math.max(0, parseInt(practiceIn && practiceIn.value ? practiceIn.value : 0, 10) || 0);
-                if (isBasic(it)) basicAssigned += sum;
-                else if ((it.type || '') === 'ncs') ncsAssigned += sum;
-                else nonAssigned += sum;
-            });
-            var tabBasic = document.getElementById('ncsStep4TabBasic');
-            var tabNcs = document.getElementById('ncsStep4TabNcs');
-            var tabNonncs = document.getElementById('ncsStep4TabNonncs');
-            var basicAlloc = p.totalHours ? Math.round(p.totalHours * (p.libPct || 0) / 100) : 0;
-            if (tabBasic) tabBasic.textContent = '(' + basicAssigned + '/' + basicAlloc + ')시간';
-            if (tabNcs) tabNcs.textContent = '(' + ncsAssigned + '/' + (p.totalHours ? Math.round(p.totalHours * (p.majorPct + p.libPct) / 100) : 0) + ')시간';
-            if (tabNonncs) tabNonncs.textContent = '(' + nonAssigned + '/' + (p.totalHours ? Math.round(p.totalHours * p.nonPct / 100) : 0) + ')시간';
-        }
-
-        function wireParamsInputs() {
-            var ids = ['ncsStep4TotalDays', 'ncsStep4DailyHours', 'ncsStep4TotalHours', 'ncsStep4LibPct', 'ncsStep4MajorPct', 'ncsStep4NonPct'];
-            ids.forEach(function (id) {
-                var el = document.getElementById(id);
-                if (el) el.addEventListener('input', function () {
-                    if (id === 'ncsStep4TotalDays' || id === 'ncsStep4DailyHours') syncTotalHoursFromDays();
-                    updatePctFromTotal();
-                    updateCalculatedApplied();
-                });
-            });
-        }
-
-        function renderRows(items) {
-            step4Items = items || [];
-            if (!items || !items.length) {
-                tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-slate-500">등록된 교과목이 없습니다. 3. 교과목편성에서 먼저 편성하세요.</td></tr>';
-                if (foot) foot.classList.add('hidden');
-                renderTabContent();
-                return;
-            }
-            tbody.innerHTML = items.map(function (it, i) {
-                var theory = Number(it.theory_hours) || 0;
-                var practice = Number(it.practice_hours) || 0;
-                var sum = theory + practice;
-                return '<tr class="ncs-step4-row" data-curriculum-id="' + attrEsc(String(it.curriculum_id)) + '" data-type="' + attrEsc(it.type || '') + '">' +
-                    '<td class="px-4 py-2 text-slate-600">' + (i + 1) + '</td>' +
-                    '<td class="px-4 py-2 font-medium text-slate-800">' + attrEsc(it.name || '') + '</td>' +
-                    '<td class="px-4 py-2"><input type="number" min="0" step="1" class="ncs-step4-theory w-20 px-2 py-1.5 border border-slate-200 rounded-lg text-sm" value="' + theory + '"></td>' +
-                    '<td class="px-4 py-2"><input type="number" min="0" step="1" class="ncs-step4-practice w-20 px-2 py-1.5 border border-slate-200 rounded-lg text-sm" value="' + practice + '"></td>' +
-                    '<td class="px-4 py-2 ncs-step4-sum text-slate-700 font-medium">' + sum + '</td></tr>';
-            }).join('');
-            if (foot) foot.classList.remove('hidden');
-            updateTotals();
+    function syncTotalHoursFromDays() {
+        var totalDaysEl = document.getElementById('ncsStep4TotalDays');
+        var dailyEl = document.getElementById('ncsStep4DailyHours');
+        var totalEl = document.getElementById('ncsStep4TotalHours');
+        if (!totalEl || !totalDaysEl || !dailyEl) return;
+        var d = parseFloat(totalDaysEl.value) || 0;
+        var h = parseFloat(dailyEl.value) || 0;
+        if (d > 0 && h > 0) {
+            totalEl.value = Math.round(d * h);
             updatePctFromTotal();
             updateCalculatedApplied();
-            tbody.addEventListener('input', function () { updateTotals(); updateCalculatedApplied(); });
-            tbody.addEventListener('change', function () { updateTotals(); updateCalculatedApplied(); });
-            renderTabContent();
         }
+    }
 
-        function isBasicItem(it) {
+    function updateCalculatedApplied() {
+        var p = getParamsInputs();
+        var applied = 0;
+        tbody.querySelectorAll('.ncs-step4-row').forEach(function (tr) {
+            var theoryIn = tr.querySelector('.ncs-step4-theory');
+            var practiceIn = tr.querySelector('.ncs-step4-practice');
+            applied += Math.max(0, parseInt(theoryIn && theoryIn.value ? theoryIn.value : 0, 10) || 0) + Math.max(0, parseInt(practiceIn && practiceIn.value ? practiceIn.value : 0, 10) || 0);
+        });
+        var calcEl = document.getElementById('ncsStep4CalculatedApplied');
+        if (calcEl) calcEl.textContent = (p.totalHours || 0) + ' / ' + applied + ' 시간';
+        var basicAssigned = 0, ncsAssigned = 0, nonAssigned = 0;
+        function isBasic(it) {
             return (it.type || '') === 'basic' || (it.classification && (String(it.classification).indexOf('기초') >= 0 || String(it.classification).indexOf('소양') >= 0));
         }
-
-        function cardHtml(it, th, pr) {
-            var abilityUnits = [];
-            try { abilityUnits = it.ability_units_json ? JSON.parse(it.ability_units_json) : []; } catch (e) { }
-            var unitLabel = abilityUnits.length ? abilityUnits.map(function (u) {
-                return typeof u === 'string' ? u : u.name || u.code;
-            }).join(', ') : '—';
-
-            return '<div class="rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition-all mb-6" data-curriculum-id="' + it.curriculum_id + '">' +
-                // Header Section
-                '<div class="bg-gradient-to-r from-blue-50 to-slate-50 px-6 py-4 border-b border-slate-100">' +
-                '<div class="flex flex-wrap justify-between items-center gap-3">' +
-                '<div class="flex-1 min-w-0">' +
-                '<h4 class="text-lg font-black text-slate-800 flex items-center gap-2">' +
-                '<i class="fas fa-book-open text-blue-600 text-sm"></i>' +
-                attrEsc(it.name || '') +
-                '</h4>' +
-                '<p class="text-xs text-slate-500 mt-1"><span class="font-bold">능력단위:</span> ' + attrEsc(unitLabel) + '</p>' +
-                '</div>' +
-                '<div class="flex items-center gap-2">' +
-                '<span class="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded-lg">' + (it.type === 'basic' ? '직업기초' : it.type === 'ncs' ? 'NCS' : '비NCS') + '</span>' +
-                '</div>' +
-                '</div>' +
-                '</div>' +
-
-                // Content Section
-                '<div class="p-6">' +
-                // Training Hours Section
-                '<div class="bg-slate-50/50 rounded-xl p-4 border border-slate-100 mb-4">' +
-                '<div class="flex items-center gap-2 mb-3">' +
-                '<i class="fas fa-clock text-emerald-600"></i>' +
-                '<label class="text-sm font-black text-slate-700 uppercase tracking-wider">훈련시간 설정</label>' +
-                '</div>' +
-                '<div class="grid grid-cols-1 md:grid-cols-3 gap-4">' +
-                '<div>' +
-                '<label class="block text-xs font-bold text-slate-500 mb-1.5">이론 시간</label>' +
-                '<div class="flex items-center gap-2">' +
-                '<input type="number" min="0" step="1" class="ncs-step4-theory curriculum-hour-input flex-1 px-4 py-2.5 border border-slate-200 rounded-lg text-sm font-bold focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition" data-curriculum-id="' + it.curriculum_id + '" data-kind="theory" value="' + th + '">' +
-                '<span class="text-xs font-bold text-slate-400">시간</span>' +
-                '</div>' +
-                '</div>' +
-                '<div>' +
-                '<label class="block text-xs font-bold text-slate-500 mb-1.5">실습 시간</label>' +
-                '<div class="flex items-center gap-2">' +
-                '<input type="number" min="0" step="1" class="ncs-step4-practice curriculum-hour-input flex-1 px-4 py-2.5 border border-slate-200 rounded-lg text-sm font-bold focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition" data-curriculum-id="' + it.curriculum_id + '" data-kind="practice" value="' + pr + '">' +
-                '<span class="text-xs font-bold text-slate-400">시간</span>' +
-                '</div>' +
-                '</div>' +
-                '<div>' +
-                '<label class="block text-xs font-bold text-slate-500 mb-1.5">합계</label>' +
-                '<div class="flex items-center gap-2">' +
-                '<input type="text" readonly class="curriculum-hour-total flex-1 px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-lg text-sm font-black text-blue-600" value="' + (th + pr) + '">' +
-                '<span class="text-xs font-bold text-slate-400">시간</span>' +
-                '</div>' +
-                '</div>' +
-                '</div>' +
-                '<div class="mt-3 flex justify-end">' +
-                '<button type="button" class="ncs-step4-distribute-btn px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 transition flex items-center gap-2" data-curriculum-id="' + it.curriculum_id + '">' +
-                '<i class="fas fa-balance-scale"></i> 이론/실습 균등 분배' +
-                '</button>' +
-                '</div>' +
-                '</div>' +
-                '</div>' +
-                '</div>';
-        }
-
-        function getItemHoursFromTable(curriculumId) {
-            var row = tbody.querySelector('.ncs-step4-row[data-curriculum-id="' + curriculumId + '"]');
-            if (!row) return { theory: 0, practice: 0 };
-            var theoryIn = row.querySelector('.ncs-step4-theory');
-            var practiceIn = row.querySelector('.ncs-step4-practice');
-            var theory = Math.max(0, parseInt(theoryIn && theoryIn.value ? theoryIn.value : 0, 10) || 0);
-            var practice = Math.max(0, parseInt(practiceIn && practiceIn.value ? practiceIn.value : 0, 10) || 0);
-            return { theory: theory, practice: practice };
-        }
-
-        function renderTabContent() {
-            var basicList = document.getElementById('ncsStep4BasicSubjectList');
-            var ncsList = document.getElementById('ncsStep4NcsSubjectList');
-            var nonList = document.getElementById('ncsStep4NonncsSubjectList');
-            var basicItems = step4Items.filter(isBasicItem);
-            var ncsItems = step4Items.filter(function (it) { return (it.type || '') === 'ncs'; });
-            var nonItems = step4Items.filter(function (it) { return (it.type || '') === 'non_ncs'; });
-            function hoursFor(it) {
-                var fromTable = getItemHoursFromTable(it.curriculum_id);
-                return fromTable.theory !== 0 || fromTable.practice !== 0 ? fromTable : { theory: Number(it.theory_hours) || 0, practice: Number(it.practice_hours) || 0 };
-            }
-            if (basicList) {
-                basicList.innerHTML = basicItems.length ? basicItems.map(function (it) {
-                    var h = hoursFor(it);
-                    return cardHtml(it, h.theory, h.practice);
-                }).join('') : '<p class="text-slate-500 text-sm">직업기초능력 교과목이 없습니다.</p>';
-            }
-            if (ncsList) {
-                ncsList.innerHTML = ncsItems.length ? ncsItems.map(function (it) {
-                    var h = hoursFor(it);
-                    return cardHtml(it, h.theory, h.practice);
-                }).join('') : '<p class="text-slate-500 text-sm">NCS 교과목이 없습니다.</p>';
-            }
-            if (nonList) {
-                nonList.innerHTML = nonItems.length ? nonItems.map(function (it) {
-                    var h = hoursFor(it);
-                    return cardHtml(it, h.theory, h.practice);
-                }).join('') : '<p class="text-slate-500 text-sm">비 NCS 교과목이 없습니다.</p>';
-            }
-        }
-
-        function updateTotals() {
-            var theorySum = 0, practiceSum = 0;
-            tbody.querySelectorAll('.ncs-step4-row').forEach(function (tr) {
-                var theoryIn = tr.querySelector('.ncs-step4-theory');
-                var practiceIn = tr.querySelector('.ncs-step4-practice');
-                var sumEl = tr.querySelector('.ncs-step4-sum');
-                var t = Math.max(0, parseInt(theoryIn && theoryIn.value ? theoryIn.value : 0, 10) || 0);
-                var p = Math.max(0, parseInt(practiceIn && practiceIn.value ? practiceIn.value : 0, 10) || 0);
-                theorySum += t;
-                practiceSum += p;
-                if (sumEl) sumEl.textContent = t + p;
-            });
-            if (totalTheoryEl) totalTheoryEl.textContent = theorySum;
-            if (totalPracticeEl) totalPracticeEl.textContent = practiceSum;
-            if (totalSumEl) totalSumEl.textContent = theorySum + practiceSum;
-        }
-
-        function buildPayload() {
-            var items = [];
-            tbody.querySelectorAll('.ncs-step4-row').forEach(function (tr) {
-                var cid = tr.getAttribute('data-curriculum-id');
-                var theoryIn = tr.querySelector('.ncs-step4-theory');
-                var practiceIn = tr.querySelector('.ncs-step4-practice');
-                var theory = Math.max(0, parseInt(theoryIn && theoryIn.value ? theoryIn.value : 0, 10) || 0);
-                var practice = Math.max(0, parseInt(practiceIn && practiceIn.value ? practiceIn.value : 0, 10) || 0);
-                if (cid) items.push({ curriculum_id: parseInt(cid, 10), theory_hours: theory, practice_hours: practice });
-            });
-            var p = getParamsInputs();
-            var payload = {
-                params: {
-                    total_training_days: p.totalDays,
-                    daily_training_hours: p.dailyHours,
-                    total_training_hours: p.totalHours,
-                    ncs_lib_arts_pct: p.libPct,
-                    ncs_major_pct: p.majorPct,
-                    non_ncs_pct: p.nonPct
-                },
-                items: items
-            };
-            return payload;
-        }
-
-        function saveHours(redirectToNext) {
-            var p = getParamsInputs();
-            var sumPct = (p.libPct || 0) + (p.majorPct || 0) + (p.nonPct || 0);
-            if (Math.abs(sumPct - 100) > 0.01) {
-                alert('훈련시간 비율은 100%로 설정하셔야 합니다. (현재: ' + sumPct.toFixed(1) + '%)');
-                return;
-            }
-            var btnSave = document.getElementById('ncsStep4BtnSave');
-            var btnNext = document.getElementById('ncsStep4BtnNext');
-            if (btnSave) btnSave.disabled = true;
-            if (btnNext) btnNext.disabled = true;
-            var token = localStorage.getItem('token');
-            fetch('/api/ncs/approved/registrations/' + regId + '/training-hours', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (token || '') },
-                body: JSON.stringify(buildPayload())
-            })
-                .then(function (r) { return r.json(); })
-                .then(function (json) {
-                    if (btnSave) btnSave.disabled = false;
-                    if (btnNext) btnNext.disabled = false;
-                    if (json.success) {
-                        if (redirectToNext) {
-                            if (isEmbedded) {
-                                if (window.loadNcsStep) window.loadNcsStep(5);
-                            } else {
-                                window.location.href = '/admin/ncs/approved/5?id=' + regId;
-                            }
-                            return;
-                        }
-                        alert('저장되었습니다.');
-                    } else {
-                        alert(json.error || '저장 실패');
-                    }
-                })
-                .catch(function () {
-                    if (btnSave) btnSave.disabled = false;
-                    if (btnNext) btnNext.disabled = false;
-                    alert('저장 중 오류가 발생했습니다.');
-                });
-        }
-
-        function switchTab(tabName) {
-            document.querySelectorAll('.ncs-step4-tab').forEach(function (btn) {
-                btn.classList.remove('bg-white', 'text-blue-600', 'shadow-sm');
-                btn.classList.add('text-slate-500', 'hover:text-slate-700');
-            });
-            document.querySelectorAll('.ncs-step4-tab-content').forEach(function (div) { div.classList.add('hidden'); });
-            var activeBtn = document.querySelector('.ncs-step4-tab[data-tab="' + tabName + '"]');
-            var activeContent = document.getElementById('ncsStep4TabContent' + (tabName === 'basic' ? 'Basic' : tabName === 'ncs' ? 'Ncs' : 'Nonncs'));
-            if (activeBtn) {
-                activeBtn.classList.remove('text-slate-500', 'hover:text-slate-700');
-                activeBtn.classList.add('bg-white', 'text-blue-600', 'shadow-sm');
-            }
-            if (activeContent) activeContent.classList.remove('hidden');
-        }
-
-        document.querySelectorAll('.ncs-step4-tab').forEach(function (btn) {
-            btn.addEventListener('click', function () { switchTab(btn.getAttribute('data-tab') || 'ncs'); });
-        });
-
-        form.addEventListener('input', function (e) {
-            if (!e.target || !e.target.matches || !e.target.matches('.curriculum-hour-input')) return;
-            var cid = e.target.getAttribute('data-curriculum-id');
-            var kind = e.target.getAttribute('data-kind');
-            var row = tbody.querySelector('.ncs-step4-row[data-curriculum-id="' + cid + '"]');
-            if (!row || !kind) return;
-            var inp = row.querySelector(kind === 'theory' ? '.ncs-step4-theory' : '.ncs-step4-practice');
-            if (inp) { inp.value = e.target.value; updateTotals(); updateCalculatedApplied(); }
-
-            // Update card total field
-            var card = document.querySelector('[data-curriculum-id="' + cid + '"]');
-            if (card) {
-                var theoryInput = card.querySelector('.ncs-step4-theory');
-                var practiceInput = card.querySelector('.ncs-step4-practice');
-                var totalInput = card.querySelector('.curriculum-hour-total');
-                if (theoryInput && practiceInput && totalInput) {
-                    var t = parseInt(theoryInput.value) || 0;
-                    var p = parseInt(practiceInput.value) || 0;
-                    totalInput.value = t + p;
-                }
-            }
-        });
-        form.addEventListener('change', function (e) {
-            if (!e.target || !e.target.matches || !e.target.matches('.curriculum-hour-input')) return;
-            var cid = e.target.getAttribute('data-curriculum-id');
-            var kind = e.target.getAttribute('data-kind');
-            var row = tbody.querySelector('.ncs-step4-row[data-curriculum-id="' + cid + '"]');
-            if (!row || !kind) return;
-            var inp = row.querySelector(kind === 'theory' ? '.ncs-step4-theory' : '.ncs-step4-practice');
-            if (inp) { inp.value = e.target.value; updateTotals(); updateCalculatedApplied(); }
-        });
-        form.addEventListener('click', function (e) {
-            var btn = e.target && e.target.closest && e.target.closest('.ncs-step4-distribute-btn');
-            if (!btn) return;
-            var cid = btn.getAttribute('data-curriculum-id');
-            if (!cid) return;
-            var row = tbody.querySelector('.ncs-step4-row[data-curriculum-id="' + cid + '"]');
+        step4Items.forEach(function (it) {
+            var row = tbody.querySelector('.ncs-step4-row[data-curriculum-id="' + it.curriculum_id + '"]');
             if (!row) return;
             var theoryIn = row.querySelector('.ncs-step4-theory');
             var practiceIn = row.querySelector('.ncs-step4-practice');
-            var t = Math.max(0, parseInt(theoryIn && theoryIn.value ? theoryIn.value : 0, 10) || 0);
-            var p = Math.max(0, parseInt(practiceIn && practiceIn.value ? practiceIn.value : 0, 10) || 0);
-            var half = Math.round((t + p) / 2);
-            if (theoryIn) theoryIn.value = half;
-            if (practiceIn) practiceIn.value = half;
-            updateTotals();
-            updateCalculatedApplied();
-            renderTabContent();
+            var sum = Math.max(0, parseInt(theoryIn && theoryIn.value ? theoryIn.value : 0, 10) || 0) + Math.max(0, parseInt(practiceIn && practiceIn.value ? practiceIn.value : 0, 10) || 0);
+            if (isBasic(it)) basicAssigned += sum;
+            else if ((it.type || '') === 'ncs') ncsAssigned += sum;
+            else nonAssigned += sum;
         });
-
-        wireParamsInputs();
-
-        var token = localStorage.getItem('token');
-        fetch('/api/ncs/approved/registrations/' + regId + '/training-hours', { headers: token ? { 'Authorization': 'Bearer ' + token } : {} })
-            .then(function (r) { return r.json(); })
-            .then(function (json) {
-                if (!json.success) {
-                    renderRows([]);
-                    return;
-                }
-                var data = Array.isArray(json.data) ? json.data : [];
-                var params = json.params || {};
-                var totalDaysEl = document.getElementById('ncsStep4TotalDays');
-                var dailyEl = document.getElementById('ncsStep4DailyHours');
-                var totalEl = document.getElementById('ncsStep4TotalHours');
-                var libPctEl = document.getElementById('ncsStep4LibPct');
-                var majorPctEl = document.getElementById('ncsStep4MajorPct');
-                var nonPctEl = document.getElementById('ncsStep4NonPct');
-                if (totalDaysEl && params.total_training_days != null) totalDaysEl.value = params.total_training_days;
-                if (dailyEl && params.daily_training_hours != null) dailyEl.value = params.daily_training_hours;
-                if (totalEl && params.total_training_hours != null) totalEl.value = params.total_training_hours;
-                if (libPctEl && params.ncs_lib_arts_pct != null) libPctEl.value = params.ncs_lib_arts_pct;
-                if (majorPctEl && params.ncs_major_pct != null) majorPctEl.value = params.ncs_major_pct;
-                if (nonPctEl && params.non_ncs_pct != null) nonPctEl.value = params.non_ncs_pct;
-                renderRows(data);
-            })
-            .catch(function () {
-                tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-red-500">훈련시간 정보를 불러오는데 실패했습니다.</td></tr>';
-                if (foot) foot.classList.add('hidden');
-            });
-
-        var btnSave = document.getElementById('ncsStep4BtnSave');
-        var btnNext = document.getElementById('ncsStep4BtnNext');
-        if (btnSave) btnSave.addEventListener('click', function () { saveHours(false); });
-        if (btnNext) btnNext.addEventListener('click', function () { saveHours(true); });
+        var tabBasic = document.getElementById('ncsStep4TabBasic');
+        var tabNcs = document.getElementById('ncsStep4TabNcs');
+        var tabNonncs = document.getElementById('ncsStep4TabNonncs');
+        var basicAlloc = p.totalHours ? Math.round(p.totalHours * (p.libPct || 0) / 100) : 0;
+        if (tabBasic) tabBasic.textContent = '(' + basicAssigned + '/' + basicAlloc + ')시간';
+        if (tabNcs) tabNcs.textContent = '(' + ncsAssigned + '/' + (p.totalHours ? Math.round(p.totalHours * (p.majorPct + p.libPct) / 100) : 0) + ')시간';
+        if (tabNonncs) tabNonncs.textContent = '(' + nonAssigned + '/' + (p.totalHours ? Math.round(p.totalHours * p.nonPct / 100) : 0) + ')시간';
     }
 
+    function wireParamsInputs() {
+        var ids = ['ncsStep4TotalDays', 'ncsStep4DailyHours', 'ncsStep4TotalHours', 'ncsStep4LibPct', 'ncsStep4MajorPct', 'ncsStep4NonPct'];
+        ids.forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) el.addEventListener('input', function () {
+                if (id === 'ncsStep4TotalDays' || id === 'ncsStep4DailyHours') syncTotalHoursFromDays();
+                updatePctFromTotal();
+                updateCalculatedApplied();
+            });
+        });
+    }
+
+    function renderRows(items) {
+        step4Items = items || [];
+        if (!items || !items.length) {
+            tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-slate-500">등록된 교과목이 없습니다. 3. 교과목편성에서 먼저 편성하세요.</td></tr>';
+            if (foot) foot.classList.add('hidden');
+            renderTabContent();
+            return;
+        }
+        tbody.innerHTML = items.map(function (it, i) {
+            var theory = Number(it.theory_hours) || 0;
+            var practice = Number(it.practice_hours) || 0;
+            var sum = theory + practice;
+            return '<tr class="ncs-step4-row" data-curriculum-id="' + attrEsc(String(it.curriculum_id)) + '" data-type="' + attrEsc(it.type || '') + '">' +
+                '<td class="px-4 py-2 text-slate-600">' + (i + 1) + '</td>' +
+                '<td class="px-4 py-2 font-medium text-slate-800">' + attrEsc(it.name || '') + '</td>' +
+                '<td class="px-4 py-2"><input type="number" min="0" step="1" class="ncs-step4-theory w-20 px-2 py-1.5 border border-slate-200 rounded-lg text-sm" value="' + theory + '"></td>' +
+                '<td class="px-4 py-2"><input type="number" min="0" step="1" class="ncs-step4-practice w-20 px-2 py-1.5 border border-slate-200 rounded-lg text-sm" value="' + practice + '"></td>' +
+                '<td class="px-4 py-2 ncs-step4-sum text-slate-700 font-medium">' + sum + '</td></tr>';
+        }).join('');
+        if (foot) foot.classList.remove('hidden');
+        updateTotals();
+        updatePctFromTotal();
+        updateCalculatedApplied();
+        tbody.addEventListener('input', function () { updateTotals(); updateCalculatedApplied(); });
+        tbody.addEventListener('change', function () { updateTotals(); updateCalculatedApplied(); });
+        renderTabContent();
+    }
+
+    function isBasicItem(it) {
+        return (it.type || '') === 'basic' || (it.classification && (String(it.classification).indexOf('기초') >= 0 || String(it.classification).indexOf('소양') >= 0));
+    }
+
+    function cardHtml(it, th, pr) {
+        var abilityUnits = [];
+        try { abilityUnits = it.ability_units_json ? JSON.parse(it.ability_units_json) : []; } catch (e) { }
+        var unitLabel = abilityUnits.length ? abilityUnits.map(function (u) {
+            return typeof u === 'string' ? u : u.name || u.code;
+        }).join(', ') : '—';
+
+        return '<div class="rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition-all mb-6" data-curriculum-id="' + it.curriculum_id + '">' +
+            // Header Section
+            '<div class="bg-gradient-to-r from-blue-50 to-slate-50 px-6 py-4 border-b border-slate-100">' +
+            '<div class="flex flex-wrap justify-between items-center gap-3">' +
+            '<div class="flex-1 min-w-0">' +
+            '<h4 class="text-lg font-black text-slate-800 flex items-center gap-2">' +
+            '<i class="fas fa-book-open text-blue-600 text-sm"></i>' +
+            attrEsc(it.name || '') +
+            '</h4>' +
+            '<p class="text-xs text-slate-500 mt-1"><span class="font-bold">능력단위:</span> ' + attrEsc(unitLabel) + '</p>' +
+            '</div>' +
+            '<div class="flex items-center gap-2">' +
+            '<span class="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded-lg">' + (it.type === 'basic' ? '직업기초' : it.type === 'ncs' ? 'NCS' : '비NCS') + '</span>' +
+            '</div>' +
+            '</div>' +
+            '</div>' +
+
+            // Content Section
+            '<div class="p-6">' +
+            // Training Hours Section
+            '<div class="bg-slate-50/50 rounded-xl p-4 border border-slate-100 mb-4">' +
+            '<div class="flex items-center gap-2 mb-3">' +
+            '<i class="fas fa-clock text-emerald-600"></i>' +
+            '<label class="text-sm font-black text-slate-700 uppercase tracking-wider">훈련시간 설정</label>' +
+            '</div>' +
+            '<div class="grid grid-cols-1 md:grid-cols-3 gap-4">' +
+            '<div>' +
+            '<label class="block text-xs font-bold text-slate-500 mb-1.5">이론 시간</label>' +
+            '<div class="flex items-center gap-2">' +
+            '<input type="number" min="0" step="1" class="ncs-step4-theory curriculum-hour-input flex-1 px-4 py-2.5 border border-slate-200 rounded-lg text-sm font-bold focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition" data-curriculum-id="' + it.curriculum_id + '" data-kind="theory" value="' + th + '">' +
+            '<span class="text-xs font-bold text-slate-400">시간</span>' +
+            '</div>' +
+            '</div>' +
+            '<div>' +
+            '<label class="block text-xs font-bold text-slate-500 mb-1.5">실습 시간</label>' +
+            '<div class="flex items-center gap-2">' +
+            '<input type="number" min="0" step="1" class="ncs-step4-practice curriculum-hour-input flex-1 px-4 py-2.5 border border-slate-200 rounded-lg text-sm font-bold focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition" data-curriculum-id="' + it.curriculum_id + '" data-kind="practice" value="' + pr + '">' +
+            '<span class="text-xs font-bold text-slate-400">시간</span>' +
+            '</div>' +
+            '</div>' +
+            '<div>' +
+            '<label class="block text-xs font-bold text-slate-500 mb-1.5">합계</label>' +
+            '<div class="flex items-center gap-2">' +
+            '<input type="text" readonly class="curriculum-hour-total flex-1 px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-lg text-sm font-black text-blue-600" value="' + (th + pr) + '">' +
+            '<span class="text-xs font-bold text-slate-400">시간</span>' +
+            '</div>' +
+            '</div>' +
+            '</div>' +
+            '<div class="mt-3 flex justify-end">' +
+            '<button type="button" class="ncs-step4-distribute-btn px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 transition flex items-center gap-2" data-curriculum-id="' + it.curriculum_id + '">' +
+            '<i class="fas fa-balance-scale"></i> 이론/실습 균등 분배' +
+            '</button>' +
+            '</div>' +
+            '</div>' +
+            '</div>' +
+            '</div>';
+    }
+
+    function getItemHoursFromTable(curriculumId) {
+        var row = tbody.querySelector('.ncs-step4-row[data-curriculum-id="' + curriculumId + '"]');
+        if (!row) return { theory: 0, practice: 0 };
+        var theoryIn = row.querySelector('.ncs-step4-theory');
+        var practiceIn = row.querySelector('.ncs-step4-practice');
+        var theory = Math.max(0, parseInt(theoryIn && theoryIn.value ? theoryIn.value : 0, 10) || 0);
+        var practice = Math.max(0, parseInt(practiceIn && practiceIn.value ? practiceIn.value : 0, 10) || 0);
+        return { theory: theory, practice: practice };
+    }
+
+    function renderTabContent() {
+        var basicList = document.getElementById('ncsStep4BasicSubjectList');
+        var ncsList = document.getElementById('ncsStep4NcsSubjectList');
+        var nonList = document.getElementById('ncsStep4NonncsSubjectList');
+        var basicItems = step4Items.filter(isBasicItem);
+        var ncsItems = step4Items.filter(function (it) { return (it.type || '') === 'ncs'; });
+        var nonItems = step4Items.filter(function (it) { return (it.type || '') === 'non_ncs'; });
+        function hoursFor(it) {
+            var fromTable = getItemHoursFromTable(it.curriculum_id);
+            return fromTable.theory !== 0 || fromTable.practice !== 0 ? fromTable : { theory: Number(it.theory_hours) || 0, practice: Number(it.practice_hours) || 0 };
+        }
+        if (basicList) {
+            basicList.innerHTML = basicItems.length ? basicItems.map(function (it) {
+                var h = hoursFor(it);
+                return cardHtml(it, h.theory, h.practice);
+            }).join('') : '<p class="text-slate-500 text-sm">직업기초능력 교과목이 없습니다.</p>';
+        }
+        if (ncsList) {
+            ncsList.innerHTML = ncsItems.length ? ncsItems.map(function (it) {
+                var h = hoursFor(it);
+                return cardHtml(it, h.theory, h.practice);
+            }).join('') : '<p class="text-slate-500 text-sm">NCS 교과목이 없습니다.</p>';
+        }
+        if (nonList) {
+            nonList.innerHTML = nonItems.length ? nonItems.map(function (it) {
+                var h = hoursFor(it);
+                return cardHtml(it, h.theory, h.practice);
+            }).join('') : '<p class="text-slate-500 text-sm">비 NCS 교과목이 없습니다.</p>';
+        }
+    }
+
+    function updateTotals() {
+        var theorySum = 0, practiceSum = 0;
+        tbody.querySelectorAll('.ncs-step4-row').forEach(function (tr) {
+            var theoryIn = tr.querySelector('.ncs-step4-theory');
+            var practiceIn = tr.querySelector('.ncs-step4-practice');
+            var sumEl = tr.querySelector('.ncs-step4-sum');
+            var t = Math.max(0, parseInt(theoryIn && theoryIn.value ? theoryIn.value : 0, 10) || 0);
+            var p = Math.max(0, parseInt(practiceIn && practiceIn.value ? practiceIn.value : 0, 10) || 0);
+            theorySum += t;
+            practiceSum += p;
+            if (sumEl) sumEl.textContent = t + p;
+        });
+        if (totalTheoryEl) totalTheoryEl.textContent = theorySum;
+        if (totalPracticeEl) totalPracticeEl.textContent = practiceSum;
+        if (totalSumEl) totalSumEl.textContent = theorySum + practiceSum;
+    }
+
+    function buildPayload() {
+        var items = [];
+        tbody.querySelectorAll('.ncs-step4-row').forEach(function (tr) {
+            var cid = tr.getAttribute('data-curriculum-id');
+            var theoryIn = tr.querySelector('.ncs-step4-theory');
+            var practiceIn = tr.querySelector('.ncs-step4-practice');
+            var theory = Math.max(0, parseInt(theoryIn && theoryIn.value ? theoryIn.value : 0, 10) || 0);
+            var practice = Math.max(0, parseInt(practiceIn && practiceIn.value ? practiceIn.value : 0, 10) || 0);
+            if (cid) items.push({ curriculum_id: parseInt(cid, 10), theory_hours: theory, practice_hours: practice });
+        });
+        var p = getParamsInputs();
+        var payload = {
+            params: {
+                total_training_days: p.totalDays,
+                daily_training_hours: p.dailyHours,
+                total_training_hours: p.totalHours,
+                ncs_lib_arts_pct: p.libPct,
+                ncs_major_pct: p.majorPct,
+                non_ncs_pct: p.nonPct
+            },
+            items: items
+        };
+        return payload;
+    }
+
+    function saveHours(redirectToNext) {
+        var p = getParamsInputs();
+        var sumPct = (p.libPct || 0) + (p.majorPct || 0) + (p.nonPct || 0);
+        if (Math.abs(sumPct - 100) > 0.01) {
+            alert('훈련시간 비율은 100%로 설정하셔야 합니다. (현재: ' + sumPct.toFixed(1) + '%)');
+            return;
+        }
+        var btnSave = document.getElementById('ncsStep4BtnSave');
+        var btnNext = document.getElementById('ncsStep4BtnNext');
+        if (btnSave) btnSave.disabled = true;
+        if (btnNext) btnNext.disabled = true;
+        var token = localStorage.getItem('token');
+        fetch('/api/ncs/approved/registrations/' + regId + '/training-hours', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (token || '') },
+            body: JSON.stringify(buildPayload())
+        })
+            .then(function (r) { return r.json(); })
+            .then(function (json) {
+                if (btnSave) btnSave.disabled = false;
+                if (btnNext) btnNext.disabled = false;
+                if (json.success) {
+                    if (redirectToNext) {
+                        if (isEmbedded) {
+                            if (window.loadNcsStep) window.loadNcsStep(5);
+                        } else {
+                            window.location.href = '/admin/ncs/approved/5?id=' + regId;
+                        }
+                        return;
+                    }
+                    alert('저장되었습니다.');
+                } else {
+                    alert(json.error || '저장 실패');
+                }
+            })
+            .catch(function () {
+                if (btnSave) btnSave.disabled = false;
+                if (btnNext) btnNext.disabled = false;
+                alert('저장 중 오류가 발생했습니다.');
+            });
+    }
+
+    function switchTab(tabName) {
+        document.querySelectorAll('.ncs-step4-tab').forEach(function (btn) {
+            btn.classList.remove('bg-white', 'text-blue-600', 'shadow-sm');
+            btn.classList.add('text-slate-500', 'hover:text-slate-700');
+        });
+        document.querySelectorAll('.ncs-step4-tab-content').forEach(function (div) { div.classList.add('hidden'); });
+        var activeBtn = document.querySelector('.ncs-step4-tab[data-tab="' + tabName + '"]');
+        var activeContent = document.getElementById('ncsStep4TabContent' + (tabName === 'basic' ? 'Basic' : tabName === 'ncs' ? 'Ncs' : 'Nonncs'));
+        if (activeBtn) {
+            activeBtn.classList.remove('text-slate-500', 'hover:text-slate-700');
+            activeBtn.classList.add('bg-white', 'text-blue-600', 'shadow-sm');
+        }
+        if (activeContent) activeContent.classList.remove('hidden');
+    }
+
+    document.querySelectorAll('.ncs-step4-tab').forEach(function (btn) {
+        btn.addEventListener('click', function () { switchTab(btn.getAttribute('data-tab') || 'ncs'); });
+    });
+
+    form.addEventListener('input', function (e) {
+        if (!e.target || !e.target.matches || !e.target.matches('.curriculum-hour-input')) return;
+        var cid = e.target.getAttribute('data-curriculum-id');
+        var kind = e.target.getAttribute('data-kind');
+        var row = tbody.querySelector('.ncs-step4-row[data-curriculum-id="' + cid + '"]');
+        if (!row || !kind) return;
+        var inp = row.querySelector(kind === 'theory' ? '.ncs-step4-theory' : '.ncs-step4-practice');
+        if (inp) { inp.value = e.target.value; updateTotals(); updateCalculatedApplied(); }
+
+        // Update card total field
+        var card = document.querySelector('[data-curriculum-id="' + cid + '"]');
+        if (card) {
+            var theoryInput = card.querySelector('.ncs-step4-theory');
+            var practiceInput = card.querySelector('.ncs-step4-practice');
+            var totalInput = card.querySelector('.curriculum-hour-total');
+            if (theoryInput && practiceInput && totalInput) {
+                var t = parseInt(theoryInput.value) || 0;
+                var p = parseInt(practiceInput.value) || 0;
+                totalInput.value = t + p;
+            }
+        }
+    });
+    form.addEventListener('change', function (e) {
+        if (!e.target || !e.target.matches || !e.target.matches('.curriculum-hour-input')) return;
+        var cid = e.target.getAttribute('data-curriculum-id');
+        var kind = e.target.getAttribute('data-kind');
+        var row = tbody.querySelector('.ncs-step4-row[data-curriculum-id="' + cid + '"]');
+        if (!row || !kind) return;
+        var inp = row.querySelector(kind === 'theory' ? '.ncs-step4-theory' : '.ncs-step4-practice');
+        if (inp) { inp.value = e.target.value; updateTotals(); updateCalculatedApplied(); }
+    });
+    form.addEventListener('click', function (e) {
+        var btn = e.target && e.target.closest && e.target.closest('.ncs-step4-distribute-btn');
+        if (!btn) return;
+        var cid = btn.getAttribute('data-curriculum-id');
+        if (!cid) return;
+        var row = tbody.querySelector('.ncs-step4-row[data-curriculum-id="' + cid + '"]');
+        if (!row) return;
+        var theoryIn = row.querySelector('.ncs-step4-theory');
+        var practiceIn = row.querySelector('.ncs-step4-practice');
+        var t = Math.max(0, parseInt(theoryIn && theoryIn.value ? theoryIn.value : 0, 10) || 0);
+        var p = Math.max(0, parseInt(practiceIn && practiceIn.value ? practiceIn.value : 0, 10) || 0);
+        var half = Math.round((t + p) / 2);
+        if (theoryIn) theoryIn.value = half;
+        if (practiceIn) practiceIn.value = half;
+        updateTotals();
+        updateCalculatedApplied();
+        renderTabContent();
+    });
+
+    wireParamsInputs();
+
+    var token = localStorage.getItem('token');
+    fetch('/api/ncs/approved/registrations/' + regId + '/training-hours', { headers: token ? { 'Authorization': 'Bearer ' + token } : {} })
+        .then(function (r) { return r.json(); })
+        .then(function (json) {
+            if (!json.success) {
+                renderRows([]);
+                return;
+            }
+            var data = Array.isArray(json.data) ? json.data : [];
+            var params = json.params || {};
+            var totalDaysEl = document.getElementById('ncsStep4TotalDays');
+            var dailyEl = document.getElementById('ncsStep4DailyHours');
+            var totalEl = document.getElementById('ncsStep4TotalHours');
+            var libPctEl = document.getElementById('ncsStep4LibPct');
+            var majorPctEl = document.getElementById('ncsStep4MajorPct');
+            var nonPctEl = document.getElementById('ncsStep4NonPct');
+            if (totalDaysEl && params.total_training_days != null) totalDaysEl.value = params.total_training_days;
+            if (dailyEl && params.daily_training_hours != null) dailyEl.value = params.daily_training_hours;
+            if (totalEl && params.total_training_hours != null) totalEl.value = params.total_training_hours;
+            if (libPctEl && params.ncs_lib_arts_pct != null) libPctEl.value = params.ncs_lib_arts_pct;
+            if (majorPctEl && params.ncs_major_pct != null) majorPctEl.value = params.ncs_major_pct;
+            if (nonPctEl && params.non_ncs_pct != null) nonPctEl.value = params.non_ncs_pct;
+            renderRows(data);
+        })
+        .catch(function () {
+            tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-red-500">훈련시간 정보를 불러오는데 실패했습니다.</td></tr>';
+            if (foot) foot.classList.add('hidden');
+        });
+
+    var btnSave = document.getElementById('ncsStep4BtnSave');
+    var btnNext = document.getElementById('ncsStep4BtnNext');
+    if (btnSave) btnSave.addEventListener('click', function () { saveHours(false); });
+    if (btnNext) btnNext.addEventListener('click', function () { saveHours(true); });
+}
+
+function initStep5() {
     function initStep5() {
         var regInput = document.getElementById('ncsApprovedRegIdStep5');
         var regId = (regInput && regInput.value) ? regInput.value.trim() : '';
@@ -2401,7 +2445,8 @@
                 return '<label class="flex items-center gap-2 text-sm cursor-pointer group"><input type="checkbox" class="mt-cb w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" value="' + mt.id + '" ' + checked + '> <span class="text-slate-600 group-hover:text-slate-900 transition-colors">' + esc(mt.name) + '</span></label>';
             }).join('');
 
-            return '<div class="curriculum-card bg-white border border-slate-200 rounded-[2rem] p-8 shadow-sm hover:shadow-md transition-all mb-8" data-id="' + item.id + '">' +
+            return '<div class="curriculum-card bg-white border border-slate-200 rounded-[2rem] shadow-sm hover:shadow-md transition-all mb-10 overflow-hidden" data-id="' + item.id + '">' +
+                '<div class="bg-gradient-to-r from-blue-50 to-slate-50 px-8 py-6 border-b border-slate-100">' +
                 '<div class="flex flex-wrap justify-between items-start gap-4 mb-8">' +
                 '<div>' +
                 '<h5 class="text-xl font-black text-slate-800 tracking-tight flex items-center gap-3"><i class="fas fa-book-open text-blue-600"></i> ' + esc(item.name) + '</h5>' +
@@ -2945,5 +2990,5 @@
             });
     };
 
-})();
+}) ();
 
