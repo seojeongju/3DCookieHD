@@ -225,14 +225,36 @@ async function fetchNcsJobsBySmall(apiKey: string, l: string, m: string, s: stri
     const key = decodeServiceKey(apiKey);
     const base = (baseUrl || NCS_CLASSIFICATION_API_BASE_DEFAULT).replace(/\/$/, '');
     try {
+        console.log(`[NCS004] Fetching 세분류/직종 for L=${l}, M=${m}, S=${s}`);
         const list = await fetchClassificationAllPages(base, key, 'NCS004', { NCS_LCLAS_CD: l, NCS_MCLAS_CD: m, NCS_SCLAS_CD: s });
-        return list
-            .filter((r) => rowVal(r, 'USG_YN', 'usgYn') === 'Y')
-            .map((r) => ({
-                code: rowVal(r, 'NCS_SUBD_CD', 'ncsSubdCd', 'subdCd'),
-                name: rowVal(r, 'NCS_SUBD_CDNM', 'ncsSubdCdnm', 'subdCdnm')
-            }))
-            .filter((x) => x.code);
+
+        console.log(`[NCS004] Raw response count: ${list.length}`);
+        if (list.length > 0) {
+            console.log(`[NCS004] First item keys:`, Object.keys(list[0]));
+            console.log(`[NCS004] First item sample:`, JSON.stringify(list[0]).substring(0, 200));
+        }
+
+        const results = list
+            .filter((r) => {
+                const usg = rowVal(r, 'USG_YN', 'usgYn', 'USG_YN');
+                // Y, 1 또는 빈 값이면 사용 가능으로 간주
+                return usg === 'Y' || usg === '1' || !usg;
+            })
+            .map((r) => {
+                // NCS004는 세분류/직종 코드와 명칭을 가져와야 함
+                // 가능한 필드명: NCS_SUBD_CD, ncsSubdCd, subdCd, NCS_JOB_CD, ncsJob Cd
+                const code = rowVal(r, 'NCS_SUBD_CD', 'ncsSubdCd', 'subdCd', 'NCS_JOB_CD', 'ncsJobCd', 'jobCd', 'JOB_CD');
+                const name = rowVal(r, 'NCS_SUBD_CDNM', 'ncsSubdCdnm', 'subdCdnm', 'NCS_JOB_CDNM', 'ncsJobCdnm', 'jobCdnm', 'JOB_CDNM', 'JOB_NAME');
+                return { code, name };
+            })
+            .filter((x) => x.code && x.name);
+
+        console.log(`[NCS004] Filtered results count: ${results.length}`);
+        if (results.length > 0) {
+            console.log(`[NCS004] First result:`, results[0]);
+        }
+
+        return results;
     } catch (e) {
         console.error('fetchNcsJobsBySmall error:', e);
         return [];
