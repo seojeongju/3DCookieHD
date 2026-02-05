@@ -1581,6 +1581,15 @@
                         icon.classList.add('hidden');
                     }
                     renderElements();
+
+                    // [추가] 교과목명이 비어있으면 선택한 능력단위명으로 자동 채우기
+                    if (cb.checked) {
+                        var nameInp = row.querySelector('.ncs-curriculum-name');
+                        if (nameInp && !nameInp.value.trim()) {
+                            var uInfo = availableUnitsMap[cb.value];
+                            if (uInfo) nameInp.value = uInfo.name;
+                        }
+                    }
                 });
             });
         }
@@ -1593,22 +1602,10 @@
             // 1. NCS 직종 섹션 수집
             document.querySelectorAll('.job-section').forEach(function (sect) {
                 var jobName = sect.dataset.jobName;
-                console.log('[DEBUG] Checking Job Section:', jobName);
 
                 sect.querySelectorAll('.ncs-curriculum-row').forEach(function (row) {
                     var nameInp = row.querySelector('.ncs-curriculum-name');
-                    var name = nameInp ? nameInp.value.trim() : '';
-
-                    console.log('[DEBUG] NCS Row Check:', {
-                        found: !!nameInp,
-                        val: name,
-                        id: row.id || 'no-id'
-                    });
-
-                    if (!name) {
-                        console.warn('[DEBUG] Skipping row due to empty name');
-                        return;
-                    }
+                    var rawName = nameInp ? nameInp.value.trim() : '';
 
                     var ability_units = [];
                     row.querySelectorAll('.ncs-unit-input:checked').forEach(function (unitCb) {
@@ -1632,9 +1629,21 @@
                         });
                     });
 
+                    // 이름이 비어있고 능력단위가 선택되어 있다면 첫 번째 능력단위명을 이름으로 사용
+                    var finalName = rawName;
+                    if (!finalName && ability_units.length > 0) {
+                        finalName = ability_units[0].name;
+                        if (nameInp) nameInp.value = finalName;
+                    }
+
+                    if (!finalName) {
+                        console.warn('[DEBUG] Skipping row: still no name after fallback');
+                        return;
+                    }
+
                     items.push({
                         type: 'ncs',
-                        name: name,
+                        name: finalName,
                         job_name: jobName,
                         ability_units: ability_units
                     });
@@ -1645,8 +1654,7 @@
             document.querySelectorAll('.basic-section').forEach(function (sect) {
                 sect.querySelectorAll('.ncs-curriculum-row').forEach(function (row) {
                     var nameInp = row.querySelector('.ncs-curriculum-name');
-                    var name = nameInp ? nameInp.value.trim() : '';
-                    if (!name) return;
+                    var rawName = nameInp ? nameInp.value.trim() : '';
 
                     var ability_units = [];
                     row.querySelectorAll('.ncs-unit-input:checked').forEach(function (unitCb) {
@@ -1656,7 +1664,15 @@
                         ability_units.push({ code: uInfo.code, name: uInfo.name, elements: [] });
                     });
 
-                    items.push({ type: 'basic', name: name, ability_units: ability_units });
+                    var finalName = rawName;
+                    if (!finalName && ability_units.length > 0) {
+                        finalName = ability_units[0].name;
+                        if (nameInp) nameInp.value = finalName;
+                    }
+
+                    if (!finalName) return;
+
+                    items.push({ type: 'basic', name: finalName, ability_units: ability_units });
                 });
             });
 
@@ -2375,619 +2391,618 @@
     }
 
     function initStep5() {
-        function initStep5() {
-            var regInput = document.getElementById('ncsApprovedRegIdStep5');
-            var regId = (regInput && regInput.value) ? regInput.value.trim() : '';
-            var noReg = document.getElementById('ncsStep5NoReg');
-            var form = document.getElementById('ncsStep5Form');
+        var regInput = document.getElementById('ncsApprovedRegIdStep5');
+        var regId = (regInput && regInput.value) ? regInput.value.trim() : '';
+        var noReg = document.getElementById('ncsStep5NoReg');
+        var form = document.getElementById('ncsStep5Form');
 
-            if (!form) return;
-            if (!regId) {
-                if (noReg) noReg.classList.remove('hidden');
-                form.classList.add('hidden');
-                return;
-            }
-            if (noReg) noReg.classList.add('hidden');
-            form.classList.remove('hidden');
+        if (!form) return;
+        if (!regId) {
+            if (noReg) noReg.classList.remove('hidden');
+            form.classList.add('hidden');
+            return;
+        }
+        if (noReg) noReg.classList.add('hidden');
+        form.classList.remove('hidden');
 
-            var instructors = [];
-            var textbooks = [];
-            var materials = [];
-            var curriculum = [];
+        var instructors = [];
+        var textbooks = [];
+        var materials = [];
+        var curriculum = [];
 
-            function getToken() { return localStorage.getItem('token'); }
-            function apiFetch(url) {
-                var t = getToken();
-                return fetch(url, { headers: t ? { 'Authorization': 'Bearer ' + t } : {} }).then(function (r) { return r.json(); });
-            }
-
-            function renderSubjectCard(item) {
-                var esc = function (s) { return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
-
-                var abilityUnits = [];
-                try { abilityUnits = item.ability_units_json ? JSON.parse(item.ability_units_json) : []; } catch (e) { }
-                var units = [];
-                try { units = item.units_json ? JSON.parse(item.units_json) : []; } catch (e) { }
-
-                var unitLabel = abilityUnits.length ? abilityUnits.join(', ') : (units.length ? units.join(', ') : '—');
-
-                var mainInstructorIds = [];
-                try { mainInstructorIds = item.main_instructor_ids_json ? JSON.parse(item.main_instructor_ids_json) : []; } catch (e) { }
-                var teachingMethods = [];
-                try { teachingMethods = item.teaching_methods_json ? JSON.parse(item.teaching_methods_json) : ['']; } catch (e) { teachingMethods = ['']; }
-                if (!teachingMethods.length) teachingMethods = [''];
-                var evaluationMethods = [];
-                try { evaluationMethods = item.evaluation_methods_json ? JSON.parse(item.evaluation_methods_json) : ['']; } catch (e) { evaluationMethods = ['']; }
-                if (!evaluationMethods.length) evaluationMethods = [''];
-                var textbookIds = [];
-                try { textbookIds = item.textbook_ids_json ? JSON.parse(item.textbook_ids_json) : []; } catch (e) { }
-                var materialIds = [];
-                try { materialIds = item.material_ids_json ? JSON.parse(item.material_ids_json) : []; } catch (e) { }
-
-                var instructorChecks = instructors.map(function (ins) {
-                    var checked = mainInstructorIds.indexOf(ins.id) !== -1 ? 'checked' : '';
-                    return '<label class="flex items-center gap-2 text-sm cursor-pointer group"><input type="checkbox" class="ins-cb w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" value="' + ins.id + '" ' + checked + '> <span class="text-slate-600 group-hover:text-slate-900 transition-colors">' + esc(ins.name) + '</span></label>';
-                }).join('');
-
-                var evaluatorOpts = instructors.map(function (ins) {
-                    var sel = item.evaluator_id == ins.id ? 'selected' : '';
-                    return '<option value="' + ins.id + '" ' + sel + '>' + esc(ins.name) + '</option>';
-                }).join('');
-
-                var textbookChecks = textbooks.map(function (tx) {
-                    var checked = textbookIds.indexOf(tx.id) !== -1 ? 'checked' : '';
-                    return '<label class="flex items-center gap-2 text-sm cursor-pointer group"><input type="checkbox" class="tx-cb w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" value="' + tx.id + '" ' + checked + '> <span class="text-slate-600 group-hover:text-slate-900 transition-colors">' + esc(tx.name) + '</span></label>';
-                }).join('');
-
-                var materialChecks = materials.map(function (mt) {
-                    var checked = materialIds.indexOf(mt.id) !== -1 ? 'checked' : '';
-                    return '<label class="flex items-center gap-2 text-sm cursor-pointer group"><input type="checkbox" class="mt-cb w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" value="' + mt.id + '" ' + checked + '> <span class="text-slate-600 group-hover:text-slate-900 transition-colors">' + esc(mt.name) + '</span></label>';
-                }).join('');
-
-                return '<div class="curriculum-card bg-white border border-slate-200 rounded-[2rem] shadow-sm hover:shadow-md transition-all mb-10 overflow-hidden" data-id="' + item.id + '">' +
-                    '<div class="bg-gradient-to-r from-blue-50 to-slate-50 px-8 py-6 border-b border-slate-100">' +
-                    '<div class="flex flex-wrap justify-between items-start gap-4 mb-8">' +
-                    '<div>' +
-                    '<h5 class="text-xl font-black text-slate-800 tracking-tight flex items-center gap-3"><i class="fas fa-book-open text-blue-600"></i> ' + esc(item.name) + '</h5>' +
-                    '<p class="text-xs font-bold text-slate-400 mt-2 uppercase tracking-widest pl-8">능력단위(단원)명 : ' + esc(unitLabel) + '</p>' +
-                    '</div>' +
-                    '</div>' +
-
-                    '<!-- Content Grid -->' +
-                    '<div class="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-10">' +
-
-                    '<!-- 주강사 -->' +
-                    '<div class="space-y-4">' +
-                    '<label class="block text-[11px] font-black text-slate-400 uppercase tracking-widest border-l-4 border-blue-500 pl-3">주강사 설정</label>' +
-                    '<div class="flex flex-wrap gap-4 p-4 bg-slate-50/50 rounded-2xl border border-slate-100">' +
-                    (instructorChecks || '<span class="text-slate-400 text-xs italic">등록된 강사가 없습니다.</span>') +
-                    '</div>' +
-                    '</div>' +
-
-                    '<!-- 평가자 -->' +
-                    '<div class="space-y-4">' +
-                    '<label class="block text-[11px] font-black text-slate-400 uppercase tracking-widest border-l-4 border-blue-500 pl-3">평가 책임자</label>' +
-                    '<select class="evaluator-sel w-full px-5 py-3.5 border border-slate-200 rounded-2xl text-sm bg-white font-bold text-slate-700 shadow-sm focus:border-blue-500 focus:ring-0 transition-all">' +
-                    '<option value="">:: 평가자 선택 ::</option>' +
-                    evaluatorOpts +
-                    '</select>' +
-                    '</div>' +
-
-                    '<!-- 교수학습방법 -->' +
-                    '<div class="space-y-4">' +
-                    '<label class="block text-[11px] font-black text-slate-400 uppercase tracking-widest border-l-4 border-blue-500 pl-3">교수학습방법</label>' +
-                    '<div class="t-methods-container space-y-2">' +
-                    teachingMethods.map(function (m) {
-                        return '<div class="method-item flex gap-2">' +
-                            '<select class="t-method-sel flex-1 px-5 py-3 border border-slate-200 rounded-2xl text-sm bg-white font-bold text-slate-700 shadow-sm">' +
-                            '<option value="">:: 교수학습방법 선택 ::</option>' +
-                            ['강의', '토의·토론', '실습', '실기', '과제박람회', '현장견학', '프로젝트'].map(function (opt) {
-                                return '<option value="' + opt + '" ' + (opt === m ? 'selected' : '') + '>' + opt + '</option>';
-                            }).join('') +
-                            '</select>' +
-                            '<button type="button" class="t-method-plus w-11 h-11 flex items-center justify-center bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-100 transition-all"><i class="fas fa-plus"></i></button>' +
-                            '<button type="button" class="t-method-minus w-11 h-11 flex items-center justify-center bg-red-50 text-red-600 rounded-2xl hover:bg-red-100 transition-all"><i class="fas fa-minus"></i></button>' +
-                            '</div>';
-                    }).join('') +
-                    '</div>' +
-                    '</div>' +
-
-                    '<!-- 평가방법 -->' +
-                    '<div class="space-y-4">' +
-                    '<label class="block text-[11px] font-black text-slate-400 uppercase tracking-widest border-l-4 border-blue-500 pl-3">수행능력 평가방법</label>' +
-                    '<div class="e-methods-container space-y-2">' +
-                    evaluationMethods.map(function (m) {
-                        return '<div class="method-item flex gap-2">' +
-                            '<select class="e-method-sel flex-1 px-5 py-3 border border-slate-200 rounded-2xl text-sm bg-white font-bold text-slate-700 shadow-sm">' +
-                            '<option value="">:: 평가방법 선택 ::</option>' +
-                            ['서술형시험', '논술형시험', '사례연구', '발표', '포트폴리오', '수행평가', '작업장평가'].map(function (opt) {
-                                return '<option value="' + opt + '" ' + (opt === m ? 'selected' : '') + '>' + opt + '</option>';
-                            }).join('') +
-                            '</select>' +
-                            '<button type="button" class="e-method-plus w-11 h-11 flex items-center justify-center bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-100 transition-all"><i class="fas fa-plus"></i></button>' +
-                            '<button type="button" class="e-method-minus w-11 h-11 flex items-center justify-center bg-red-50 text-red-600 rounded-2xl hover:bg-red-100 transition-all"><i class="fas fa-minus"></i></button>' +
-                            '</div>';
-                    }).join('') +
-                    '</div>' +
-                    '</div>' +
-
-                    '<!-- 교재 선택 -->' +
-                    '<div class="space-y-4">' +
-                    '<label class="block text-[11px] font-black text-slate-400 uppercase tracking-widest border-l-4 border-blue-500 pl-3">교재 선택</label>' +
-                    '<div class="flex flex-wrap gap-4 p-4 bg-slate-50/50 rounded-2xl border border-slate-100">' +
-                    (textbookChecks || '<span class="text-slate-400 text-xs italic">등록된 교재가 없습니다.</span>') +
-                    '</div>' +
-                    '</div>' +
-
-                    '<!-- 재료 선택 -->' +
-                    '<div class="space-y-4">' +
-                    '<label class="block text-[11px] font-black text-slate-400 uppercase tracking-widest border-l-4 border-blue-500 pl-3">훈련 재료 / 소모품</label>' +
-                    '<div class="flex flex-wrap gap-4 p-4 bg-slate-50/50 rounded-2xl border border-slate-100">' +
-                    (materialChecks || '<span class="text-slate-400 text-xs italic">등록된 재료가 없습니다.</span>') +
-                    '</div>' +
-                    '</div>' +
-                    '</div>' +
-                    '</div>';
-            }
-
-            function wireEvents(container) {
-                container.addEventListener('click', function (e) {
-                    var btnPlus = e.target.closest('.t-method-plus, .e-method-plus');
-                    var btnMinus = e.target.closest('.t-method-minus, .e-method-minus');
-
-                    if (btnPlus) {
-                        var items = btnPlus.closest('.field-content');
-                        var first = items.querySelector('.method-item');
-                        if (first) {
-                            var clone = first.cloneNode(true);
-                            clone.querySelector('select').value = '';
-                            items.appendChild(clone);
-                        }
-                    }
-                    if (btnMinus) {
-                        var items = btnMinus.closest('.field-content');
-                        var rows = items.querySelectorAll('.method-item');
-                        if (rows.length > 1) {
-                            btnMinus.closest('.method-item').remove();
-                        } else {
-                            rows[0].querySelector('select').value = '';
-                        }
-                    }
-                });
-            }
-
-            Promise.all([
-                apiFetch('/api/ncs/approved/instructors'),
-                apiFetch('/api/ncs/approved/hrd-items?category=textbook'),
-                apiFetch('/api/ncs/approved/hrd-items?category=equipment'),
-                apiFetch('/api/ncs/approved/hrd-items?category=consumable'),
-                apiFetch('/api/ncs/approved/registrations/' + regId + '/evaluation-teaching')
-            ]).then(function (results) {
-                instructors = results[0].success ? results[0].data : [];
-                textbooks = results[1].success ? results[1].data : [];
-                materials = (results[2].success ? results[2].data : []).concat(results[3].success ? results[3].data : []);
-                curriculum = results[4].success ? results[4].data : [];
-
-                var secLib = document.getElementById('sectionNcsLib');
-                var secMajor = document.getElementById('sectionNcsMajor');
-                var secNon = document.getElementById('sectionNonNcs');
-
-                var libItems = curriculum.filter(function (it) {
-                    return (it.classification && (it.classification.indexOf('기초') !== -1 || it.classification.indexOf('소양') !== -1)) || it.type === 'basic';
-                });
-                var majorItems = curriculum.filter(function (it) {
-                    return it.type === 'ncs' && !((it.classification && (it.classification.indexOf('기초') !== -1 || it.classification.indexOf('소양') !== -1)) || it.type === 'basic');
-                });
-                var nonItems = curriculum.filter(function (it) { return it.type === 'non_ncs'; });
-
-                if (secLib) secLib.innerHTML = libItems.length ? libItems.map(renderSubjectCard).join('') : '<p class="text-center text-slate-400 py-8 text-sm">등록된 교과목이 없습니다.</p>';
-                if (secMajor) secMajor.innerHTML = majorItems.length ? majorItems.map(renderSubjectCard).join('') : '<p class="text-center text-slate-400 py-8 text-sm">등록된 교과목이 없습니다.</p>';
-                if (secNon) secNon.innerHTML = nonItems.length ? nonItems.map(renderSubjectCard).join('') : '<p class="text-center text-slate-400 py-8 text-sm">등록된 교과목이 없습니다.</p>';
-
-                wireEvents(form);
-            }).catch(function (err) {
-                console.error(err);
-                alert('정보를 불러오는데 실패했습니다.');
-            });
-
-            function saveEvaluation(redirectToNext) {
-                var items = [];
-                document.querySelectorAll('.curriculum-card').forEach(function (card) {
-                    var id = parseInt(card.getAttribute('data-id'), 10);
-                    var instructorsSelected = [];
-                    card.querySelectorAll('.ins-cb:checked').forEach(function (cb) { instructorsSelected.push(parseInt(cb.value, 10)); });
-                    var evaluatorId = parseInt(card.querySelector('.evaluator-sel').value, 10) || null;
-                    var tMethods = [];
-                    card.querySelectorAll('.t-method-sel').forEach(function (s) { if (s.value) tMethods.push(s.value); });
-                    var eMethods = [];
-                    card.querySelectorAll('.e-method-sel').forEach(function (s) { if (s.value) eMethods.push(s.value); });
-                    var textbooksSelected = [];
-                    card.querySelectorAll('.tx-cb:checked').forEach(function (cb) { textbooksSelected.push(parseInt(cb.value, 10)); });
-                    var materialsSelected = [];
-                    card.querySelectorAll('.mt-cb:checked').forEach(function (cb) { materialsSelected.push(parseInt(cb.value, 10)); });
-
-                    items.push({
-                        id: id,
-                        main_instructor_ids: instructorsSelected,
-                        evaluator_id: evaluatorId,
-                        teaching_methods: tMethods,
-                        evaluation_methods: eMethods,
-                        textbook_ids: textbooksSelected,
-                        material_ids: materialsSelected
-                    });
-                });
-
-                var btnSave = document.getElementById('ncsStep5BtnSave');
-                var btnNext = document.getElementById('ncsStep5BtnNext');
-                if (btnSave) btnSave.disabled = true;
-                if (btnNext) btnNext.disabled = true;
-                var t = getToken();
-                fetch('/api/ncs/approved/registrations/' + regId + '/evaluation-teaching', {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (t || '') },
-                    body: JSON.stringify({ items: items })
-                }).then(function (r) { return r.json(); }).then(function (json) {
-                    if (btnSave) btnSave.disabled = false;
-                    if (btnNext) btnNext.disabled = false;
-                    if (json.success) {
-                        if (redirectToNext) {
-                            if (isEmbedded) {
-                                if (window.loadNcsStep) window.loadNcsStep(6);
-                            } else {
-                                window.location.href = '/admin/ncs/approved/6?id=' + regId;
-                            }
-                            return;
-                        }
-                        alert('저장되었습니다.');
-                    } else {
-                        alert(json.error || '저장 실패');
-                    }
-                }).catch(function () {
-                    if (btnSave) btnSave.disabled = false;
-                    if (btnNext) btnNext.disabled = false;
-                    alert('저장 중 오류가 발생했습니다.');
-                });
-            }
-
-            var btnSave5 = document.getElementById('ncsStep5BtnSave');
-            var btnNext5 = document.getElementById('ncsStep5BtnNext');
-            if (btnSave5) btnSave5.addEventListener('click', function () { saveEvaluation(false); });
-            if (btnNext5) btnNext5.addEventListener('click', function () { saveEvaluation(true); });
+        function getToken() { return localStorage.getItem('token'); }
+        function apiFetch(url) {
+            var t = getToken();
+            return fetch(url, { headers: t ? { 'Authorization': 'Bearer ' + t } : {} }).then(function (r) { return r.json(); });
         }
 
-        function initStep6() {
-            var regInput = document.getElementById('ncsApprovedRegIdStep6');
-            var regId = (regInput && regInput.value) ? regInput.value.trim() : '';
-            var noReg = document.getElementById('ncsStep6NoReg');
-            var form = document.getElementById('ncsStep6Form');
+        function renderSubjectCard(item) {
+            var esc = function (s) { return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
 
-            if (!form) return;
-            if (!regId) {
-                if (noReg) noReg.classList.remove('hidden');
-                form.classList.add('hidden');
-                return;
-            }
-            if (noReg) noReg.classList.add('hidden');
-            form.classList.remove('hidden');
+            var abilityUnits = [];
+            try { abilityUnits = item.ability_units_json ? JSON.parse(item.ability_units_json) : []; } catch (e) { }
+            var units = [];
+            try { units = item.units_json ? JSON.parse(item.units_json) : []; } catch (e) { }
 
-            var allFacilities = [];
-            var allEquipment = [];
-            var curriculum = [];
+            var unitLabel = abilityUnits.length ? abilityUnits.join(', ') : (units.length ? units.join(', ') : '—');
 
-            function getToken() { return localStorage.getItem('token'); }
-            function apiFetch(url) {
-                var t = getToken();
-                return fetch(url, { headers: t ? { 'Authorization': 'Bearer ' + t } : {} }).then(function (r) { return r.json(); });
-            }
+            var mainInstructorIds = [];
+            try { mainInstructorIds = item.main_instructor_ids_json ? JSON.parse(item.main_instructor_ids_json) : []; } catch (e) { }
+            var teachingMethods = [];
+            try { teachingMethods = item.teaching_methods_json ? JSON.parse(item.teaching_methods_json) : ['']; } catch (e) { teachingMethods = ['']; }
+            if (!teachingMethods.length) teachingMethods = [''];
+            var evaluationMethods = [];
+            try { evaluationMethods = item.evaluation_methods_json ? JSON.parse(item.evaluation_methods_json) : ['']; } catch (e) { evaluationMethods = ['']; }
+            if (!evaluationMethods.length) evaluationMethods = [''];
+            var textbookIds = [];
+            try { textbookIds = item.textbook_ids_json ? JSON.parse(item.textbook_ids_json) : []; } catch (e) { }
+            var materialIds = [];
+            try { materialIds = item.material_ids_json ? JSON.parse(item.material_ids_json) : []; } catch (e) { }
 
-            function createDualList(title, type, allItems, selectedIds) {
-                var selectedIdsSet = new Set(selectedIds || []);
-                var availableItems = allItems.filter(function (it) { return !selectedIdsSet.has(it.id); });
-                var selectedItems = allItems.filter(function (it) { return selectedIdsSet.has(it.id); });
+            var instructorChecks = instructors.map(function (ins) {
+                var checked = mainInstructorIds.indexOf(ins.id) !== -1 ? 'checked' : '';
+                return '<label class="flex items-center gap-2 text-sm cursor-pointer group"><input type="checkbox" class="ins-cb w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" value="' + ins.id + '" ' + checked + '> <span class="text-slate-600 group-hover:text-slate-900 transition-colors">' + esc(ins.name) + '</span></label>';
+            }).join('');
 
-                var itemHtml = function (it) {
-                    return '<div class="list-item" data-id="' + it.id + '">' + (it.name || '') + (it.room_number ? ' (' + it.room_number + ')' : '') + '</div>';
-                };
+            var evaluatorOpts = instructors.map(function (ins) {
+                var sel = item.evaluator_id == ins.id ? 'selected' : '';
+                return '<option value="' + ins.id + '" ' + sel + '>' + esc(ins.name) + '</option>';
+            }).join('');
 
-                return '<div class="flex-1 space-y-3">' +
-                    '<div class="flex items-center gap-2 mb-3">' +
-                    '<span class="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>' +
-                    '<h5 class="text-xs font-black text-slate-500 uppercase tracking-widest">' + title + '</h5>' +
-                    '</div>' +
-                    '<div class="dual-list-container" data-type="' + type + '">' +
-                    '<!-- Available List -->' +
-                    '<div class="list-box-wrapper">' +
-                    '<div class="list-box-header">전체 목록</div>' +
-                    '<div class="px-3 py-2 border-b border-slate-100 bg-slate-50/30">' +
-                    '<input type="text" class="list-box-filter w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs" placeholder="필터링..."></div>' +
-                    '<div class="list-content available-list flex-1">' + availableItems.map(itemHtml).join('') + '</div>' +
-                    '</div>' +
-                    '<!-- Transfer Buttons -->' +
-                    '<div class="flex flex-row lg:flex-col justify-center items-center gap-1.5 px-1">' +
-                    '<button type="button" class="list-btn btn-move-right w-10 h-10 flex items-center justify-center bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all shadow-sm"><i class="fas fa-angle-right lg:rotate-0 rotate-90"></i></button>' +
-                    '<button type="button" class="list-btn btn-move-all-right w-10 h-10 flex items-center justify-center bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all shadow-sm"><i class="fas fa-angle-double-right lg:rotate-0 rotate-90"></i></button>' +
-                    '<button type="button" class="list-btn btn-move-left w-10 h-10 flex items-center justify-center bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all shadow-sm"><i class="fas fa-angle-left lg:rotate-0 rotate-90"></i></button>' +
-                    '<button type="button" class="list-btn btn-move-all-left w-10 h-10 flex items-center justify-center bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all shadow-sm"><i class="fas fa-angle-double-left lg:rotate-0 rotate-90"></i></button>' +
-                    '</div>' +
-                    '<!-- Selected List -->' +
-                    '<div class="list-box-wrapper">' +
-                    '<div class="list-box-header">선택된 목록</div>' +
-                    '<div class="px-3 py-2 border-b border-slate-100 bg-slate-50/30">' +
-                    '<input type="text" class="list-box-filter w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs" placeholder="필터링..."></div>' +
-                    '<div class="list-content selected-list flex-1">' + selectedItems.map(itemHtml).join('') + '</div>' +
-                    '</div>' +
-                    '</div>' +
-                    '</div>';
-            }
+            var textbookChecks = textbooks.map(function (tx) {
+                var checked = textbookIds.indexOf(tx.id) !== -1 ? 'checked' : '';
+                return '<label class="flex items-center gap-2 text-sm cursor-pointer group"><input type="checkbox" class="tx-cb w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" value="' + tx.id + '" ' + checked + '> <span class="text-slate-600 group-hover:text-slate-900 transition-colors">' + esc(tx.name) + '</span></label>';
+            }).join('');
 
-            function renderSubjectCard(item) {
-                var esc = function (s) { return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
-                var selectedFacilities = [];
-                try { selectedFacilities = item.facility_ids_json ? JSON.parse(item.facility_ids_json) : []; } catch (e) { }
-                var selectedEquipment = [];
-                try { selectedEquipment = item.equipment_ids_json ? JSON.parse(item.equipment_ids_json) : []; } catch (e) { }
+            var materialChecks = materials.map(function (mt) {
+                var checked = materialIds.indexOf(mt.id) !== -1 ? 'checked' : '';
+                return '<label class="flex items-center gap-2 text-sm cursor-pointer group"><input type="checkbox" class="mt-cb w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" value="' + mt.id + '" ' + checked + '> <span class="text-slate-600 group-hover:text-slate-900 transition-colors">' + esc(mt.name) + '</span></label>';
+            }).join('');
 
-                var typeLabel = item.type === 'ncs' ? 'NCS 전공교과' : (item.type === 'basic' ? 'NCS 소양교과' : '비 NCS 교과');
-                var hours = (Number(item.theory_hours) || 0) + (Number(item.practice_hours) || 0);
+            return '<div class="curriculum-card bg-white border border-slate-200 rounded-[2rem] shadow-sm hover:shadow-md transition-all mb-10 overflow-hidden" data-id="' + item.id + '">' +
+                '<div class="bg-gradient-to-r from-blue-50 to-slate-50 px-8 py-6 border-b border-slate-100">' +
+                '<div class="flex flex-wrap justify-between items-start gap-4 mb-8">' +
+                '<div>' +
+                '<h5 class="text-xl font-black text-slate-800 tracking-tight flex items-center gap-3"><i class="fas fa-book-open text-blue-600"></i> ' + esc(item.name) + '</h5>' +
+                '<p class="text-xs font-bold text-slate-400 mt-2 uppercase tracking-widest pl-8">능력단위(단원)명 : ' + esc(unitLabel) + '</p>' +
+                '</div>' +
+                '</div>' +
 
-                return '<div class="step6-subject-card bg-white border border-slate-200 rounded-[2.5rem] p-10 shadow-sm hover:shadow-md transition-all mb-12" data-id="' + item.id + '">' +
-                    '<div class="flex items-center gap-4 mb-10">' +
-                    '<div class="w-14 h-14 bg-blue-600 text-white rounded-2xl flex items-center justify-center text-xl shadow-lg shadow-blue-500/20">' +
-                    '<i class="fas fa-graduation-cap"></i>' +
-                    '</div>' +
-                    '<div>' +
-                    '<h4 class="text-2xl font-black text-slate-800 tracking-tight">' + esc(item.name) + '</h4>' +
-                    '<p class="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">' + typeLabel + ' <span class="mx-2 opacity-50">|</span> ' + hours + ' 훈련시간</p>' +
-                    '</div>' +
-                    '</div>' +
-                    '<div class="flex flex-col xl:flex-row gap-12">' +
-                    createDualList('시설(강의실/실습실) 매칭', 'facilities', allFacilities, selectedFacilities) +
-                    createDualList('장비 및 기자재 매칭', 'equipment', allEquipment, selectedEquipment) +
-                    '</div>' +
-                    '</div>';
-            }
+                '<!-- Content Grid -->' +
+                '<div class="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-10">' +
 
-            function wireEvents() {
-                form.addEventListener('click', function (e) {
-                    var item = e.target.closest('.list-item');
-                    if (item) {
-                        item.classList.toggle('selected');
+                '<!-- 주강사 -->' +
+                '<div class="space-y-4">' +
+                '<label class="block text-[11px] font-black text-slate-400 uppercase tracking-widest border-l-4 border-blue-500 pl-3">주강사 설정</label>' +
+                '<div class="flex flex-wrap gap-4 p-4 bg-slate-50/50 rounded-2xl border border-slate-100">' +
+                (instructorChecks || '<span class="text-slate-400 text-xs italic">등록된 강사가 없습니다.</span>') +
+                '</div>' +
+                '</div>' +
+
+                '<!-- 평가자 -->' +
+                '<div class="space-y-4">' +
+                '<label class="block text-[11px] font-black text-slate-400 uppercase tracking-widest border-l-4 border-blue-500 pl-3">평가 책임자</label>' +
+                '<select class="evaluator-sel w-full px-5 py-3.5 border border-slate-200 rounded-2xl text-sm bg-white font-bold text-slate-700 shadow-sm focus:border-blue-500 focus:ring-0 transition-all">' +
+                '<option value="">:: 평가자 선택 ::</option>' +
+                evaluatorOpts +
+                '</select>' +
+                '</div>' +
+
+                '<!-- 교수학습방법 -->' +
+                '<div class="space-y-4">' +
+                '<label class="block text-[11px] font-black text-slate-400 uppercase tracking-widest border-l-4 border-blue-500 pl-3">교수학습방법</label>' +
+                '<div class="t-methods-container space-y-2">' +
+                teachingMethods.map(function (m) {
+                    return '<div class="method-item flex gap-2">' +
+                        '<select class="t-method-sel flex-1 px-5 py-3 border border-slate-200 rounded-2xl text-sm bg-white font-bold text-slate-700 shadow-sm">' +
+                        '<option value="">:: 교수학습방법 선택 ::</option>' +
+                        ['강의', '토의·토론', '실습', '실기', '과제박람회', '현장견학', '프로젝트'].map(function (opt) {
+                            return '<option value="' + opt + '" ' + (opt === m ? 'selected' : '') + '>' + opt + '</option>';
+                        }).join('') +
+                        '</select>' +
+                        '<button type="button" class="t-method-plus w-11 h-11 flex items-center justify-center bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-100 transition-all"><i class="fas fa-plus"></i></button>' +
+                        '<button type="button" class="t-method-minus w-11 h-11 flex items-center justify-center bg-red-50 text-red-600 rounded-2xl hover:bg-red-100 transition-all"><i class="fas fa-minus"></i></button>' +
+                        '</div>';
+                }).join('') +
+                '</div>' +
+                '</div>' +
+
+                '<!-- 평가방법 -->' +
+                '<div class="space-y-4">' +
+                '<label class="block text-[11px] font-black text-slate-400 uppercase tracking-widest border-l-4 border-blue-500 pl-3">수행능력 평가방법</label>' +
+                '<div class="e-methods-container space-y-2">' +
+                evaluationMethods.map(function (m) {
+                    return '<div class="method-item flex gap-2">' +
+                        '<select class="e-method-sel flex-1 px-5 py-3 border border-slate-200 rounded-2xl text-sm bg-white font-bold text-slate-700 shadow-sm">' +
+                        '<option value="">:: 평가방법 선택 ::</option>' +
+                        ['서술형시험', '논술형시험', '사례연구', '발표', '포트폴리오', '수행평가', '작업장평가'].map(function (opt) {
+                            return '<option value="' + opt + '" ' + (opt === m ? 'selected' : '') + '>' + opt + '</option>';
+                        }).join('') +
+                        '</select>' +
+                        '<button type="button" class="e-method-plus w-11 h-11 flex items-center justify-center bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-100 transition-all"><i class="fas fa-plus"></i></button>' +
+                        '<button type="button" class="e-method-minus w-11 h-11 flex items-center justify-center bg-red-50 text-red-600 rounded-2xl hover:bg-red-100 transition-all"><i class="fas fa-minus"></i></button>' +
+                        '</div>';
+                }).join('') +
+                '</div>' +
+                '</div>' +
+
+                '<!-- 교재 선택 -->' +
+                '<div class="space-y-4">' +
+                '<label class="block text-[11px] font-black text-slate-400 uppercase tracking-widest border-l-4 border-blue-500 pl-3">교재 선택</label>' +
+                '<div class="flex flex-wrap gap-4 p-4 bg-slate-50/50 rounded-2xl border border-slate-100">' +
+                (textbookChecks || '<span class="text-slate-400 text-xs italic">등록된 교재가 없습니다.</span>') +
+                '</div>' +
+                '</div>' +
+
+                '<!-- 재료 선택 -->' +
+                '<div class="space-y-4">' +
+                '<label class="block text-[11px] font-black text-slate-400 uppercase tracking-widest border-l-4 border-blue-500 pl-3">훈련 재료 / 소모품</label>' +
+                '<div class="flex flex-wrap gap-4 p-4 bg-slate-50/50 rounded-2xl border border-slate-100">' +
+                (materialChecks || '<span class="text-slate-400 text-xs italic">등록된 재료가 없습니다.</span>') +
+                '</div>' +
+                '</div>' +
+                '</div>' +
+                '</div>';
+        }
+
+        function wireEvents(container) {
+            container.addEventListener('click', function (e) {
+                var btnPlus = e.target.closest('.t-method-plus, .e-method-plus');
+                var btnMinus = e.target.closest('.t-method-minus, .e-method-minus');
+
+                if (btnPlus) {
+                    var items = btnPlus.closest('.field-content');
+                    var first = items.querySelector('.method-item');
+                    if (first) {
+                        var clone = first.cloneNode(true);
+                        clone.querySelector('select').value = '';
+                        items.appendChild(clone);
+                    }
+                }
+                if (btnMinus) {
+                    var items = btnMinus.closest('.field-content');
+                    var rows = items.querySelectorAll('.method-item');
+                    if (rows.length > 1) {
+                        btnMinus.closest('.method-item').remove();
+                    } else {
+                        rows[0].querySelector('select').value = '';
+                    }
+                }
+            });
+        }
+
+        Promise.all([
+            apiFetch('/api/ncs/approved/instructors'),
+            apiFetch('/api/ncs/approved/hrd-items?category=textbook'),
+            apiFetch('/api/ncs/approved/hrd-items?category=equipment'),
+            apiFetch('/api/ncs/approved/hrd-items?category=consumable'),
+            apiFetch('/api/ncs/approved/registrations/' + regId + '/evaluation-teaching')
+        ]).then(function (results) {
+            instructors = results[0].success ? results[0].data : [];
+            textbooks = results[1].success ? results[1].data : [];
+            materials = (results[2].success ? results[2].data : []).concat(results[3].success ? results[3].data : []);
+            curriculum = results[4].success ? results[4].data : [];
+
+            var secLib = document.getElementById('sectionNcsLib');
+            var secMajor = document.getElementById('sectionNcsMajor');
+            var secNon = document.getElementById('sectionNonNcs');
+
+            var libItems = curriculum.filter(function (it) {
+                return (it.classification && (it.classification.indexOf('기초') !== -1 || it.classification.indexOf('소양') !== -1)) || it.type === 'basic';
+            });
+            var majorItems = curriculum.filter(function (it) {
+                return it.type === 'ncs' && !((it.classification && (it.classification.indexOf('기초') !== -1 || it.classification.indexOf('소양') !== -1)) || it.type === 'basic');
+            });
+            var nonItems = curriculum.filter(function (it) { return it.type === 'non_ncs'; });
+
+            if (secLib) secLib.innerHTML = libItems.length ? libItems.map(renderSubjectCard).join('') : '<p class="text-center text-slate-400 py-8 text-sm">등록된 교과목이 없습니다.</p>';
+            if (secMajor) secMajor.innerHTML = majorItems.length ? majorItems.map(renderSubjectCard).join('') : '<p class="text-center text-slate-400 py-8 text-sm">등록된 교과목이 없습니다.</p>';
+            if (secNon) secNon.innerHTML = nonItems.length ? nonItems.map(renderSubjectCard).join('') : '<p class="text-center text-slate-400 py-8 text-sm">등록된 교과목이 없습니다.</p>';
+
+            wireEvents(form);
+        }).catch(function (err) {
+            console.error(err);
+            alert('정보를 불러오는데 실패했습니다.');
+        });
+
+        function saveEvaluation(redirectToNext) {
+            var items = [];
+            document.querySelectorAll('.curriculum-card').forEach(function (card) {
+                var id = parseInt(card.getAttribute('data-id'), 10);
+                var instructorsSelected = [];
+                card.querySelectorAll('.ins-cb:checked').forEach(function (cb) { instructorsSelected.push(parseInt(cb.value, 10)); });
+                var evaluatorId = parseInt(card.querySelector('.evaluator-sel').value, 10) || null;
+                var tMethods = [];
+                card.querySelectorAll('.t-method-sel').forEach(function (s) { if (s.value) tMethods.push(s.value); });
+                var eMethods = [];
+                card.querySelectorAll('.e-method-sel').forEach(function (s) { if (s.value) eMethods.push(s.value); });
+                var textbooksSelected = [];
+                card.querySelectorAll('.tx-cb:checked').forEach(function (cb) { textbooksSelected.push(parseInt(cb.value, 10)); });
+                var materialsSelected = [];
+                card.querySelectorAll('.mt-cb:checked').forEach(function (cb) { materialsSelected.push(parseInt(cb.value, 10)); });
+
+                items.push({
+                    id: id,
+                    main_instructor_ids: instructorsSelected,
+                    evaluator_id: evaluatorId,
+                    teaching_methods: tMethods,
+                    evaluation_methods: eMethods,
+                    textbook_ids: textbooksSelected,
+                    material_ids: materialsSelected
+                });
+            });
+
+            var btnSave = document.getElementById('ncsStep5BtnSave');
+            var btnNext = document.getElementById('ncsStep5BtnNext');
+            if (btnSave) btnSave.disabled = true;
+            if (btnNext) btnNext.disabled = true;
+            var t = getToken();
+            fetch('/api/ncs/approved/registrations/' + regId + '/evaluation-teaching', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (t || '') },
+                body: JSON.stringify({ items: items })
+            }).then(function (r) { return r.json(); }).then(function (json) {
+                if (btnSave) btnSave.disabled = false;
+                if (btnNext) btnNext.disabled = false;
+                if (json.success) {
+                    if (redirectToNext) {
+                        if (isEmbedded) {
+                            if (window.loadNcsStep) window.loadNcsStep(6);
+                        } else {
+                            window.location.href = '/admin/ncs/approved/6?id=' + regId;
+                        }
                         return;
                     }
-
-                    var btn = e.target.closest('.list-btn');
-                    if (!btn) return;
-
-                    var container = btn.closest('.dual-list-container');
-                    var leftList = container.querySelector('.available-list');
-                    var rightList = container.querySelector('.selected-list');
-
-                    if (btn.classList.contains('btn-move-right')) {
-                        leftList.querySelectorAll('.list-item.selected').forEach(function (el) {
-                            el.classList.remove('selected');
-                            rightList.appendChild(el);
-                        });
-                    } else if (btn.classList.contains('btn-move-all-right')) {
-                        leftList.querySelectorAll('.list-item').forEach(function (el) {
-                            el.classList.remove('selected');
-                            rightList.appendChild(el);
-                        });
-                    } else if (btn.classList.contains('btn-move-left')) {
-                        rightList.querySelectorAll('.list-item.selected').forEach(function (el) {
-                            el.classList.remove('selected');
-                            leftList.appendChild(el);
-                        });
-                    } else if (btn.classList.contains('btn-move-all-left')) {
-                        rightList.querySelectorAll('.list-item').forEach(function (el) {
-                            el.classList.remove('selected');
-                            leftList.appendChild(el);
-                        });
-                    }
-                });
-
-                form.addEventListener('input', function (e) {
-                    if (e.target.classList.contains('list-box-filter')) {
-                        var val = e.target.value.toLowerCase();
-                        var list = e.target.closest('.list-box-wrapper').querySelector('.list-content');
-                        list.querySelectorAll('.list-item').forEach(function (item) {
-                            var text = item.textContent.toLowerCase();
-                            item.style.display = text.indexOf(val) !== -1 ? '' : 'none';
-                        });
-                    }
-                });
-            }
-
-            Promise.all([
-                apiFetch('/api/ncs/approved/facilities'),
-                apiFetch('/api/ncs/approved/hrd-items?category=equipment'),
-                apiFetch('/api/ncs/approved/registrations/' + regId + '/facilities-equipment')
-            ]).then(function (results) {
-                allFacilities = results[0].success ? results[0].data : [];
-                allEquipment = results[1].success ? results[1].data : [];
-                curriculum = results[2].success ? results[2].data : [];
-
-                form.innerHTML = curriculum.length ? curriculum.map(renderSubjectCard).join('') : '<p class="text-center text-slate-400 py-12">등록된 교과목이 없습니다.</p>';
-                wireEvents();
-            }).catch(function (err) {
-                console.error(err);
-                alert('정보를 불러오는데 실패했습니다.');
+                    alert('저장되었습니다.');
+                } else {
+                    alert(json.error || '저장 실패');
+                }
+            }).catch(function () {
+                if (btnSave) btnSave.disabled = false;
+                if (btnNext) btnNext.disabled = false;
+                alert('저장 중 오류가 발생했습니다.');
             });
-
-            function saveFacilities(redirectToNext) {
-                var items = [];
-                document.querySelectorAll('.step6-subject-card').forEach(function (card) {
-                    var id = parseInt(card.getAttribute('data-id'), 10);
-                    var facilityIds = [];
-                    card.querySelectorAll('.dual-list-container[data-type="facilities"] .selected-list .list-item').forEach(function (el) {
-                        facilityIds.push(parseInt(el.getAttribute('data-id'), 10));
-                    });
-                    var equipmentIds = [];
-                    card.querySelectorAll('.dual-list-container[data-type="equipment"] .selected-list .list-item').forEach(function (el) {
-                        equipmentIds.push(parseInt(el.getAttribute('data-id'), 10));
-                    });
-
-                    items.push({
-                        id: id,
-                        facility_ids: facilityIds,
-                        equipment_ids: equipmentIds
-                    });
-                });
-
-                var btnSave = document.getElementById('ncsStep6BtnSave');
-                var btnNext = document.getElementById('ncsStep6BtnNext');
-                if (btnSave) btnSave.disabled = true;
-                if (btnNext) btnNext.disabled = true;
-                var t = getToken();
-                fetch('/api/ncs/approved/registrations/' + regId + '/facilities-equipment', {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (t || '') },
-                    body: JSON.stringify({ items: items })
-                }).then(function (r) { return r.json(); }).then(function (json) {
-                    if (btnSave) btnSave.disabled = false;
-                    if (btnNext) btnNext.disabled = false;
-                    if (json.success) {
-                        if (redirectToNext) {
-                            if (isEmbedded) {
-                                alert('모든 설정이 완료되었습니다.');
-                                if (window.loadNcsStep) window.loadNcsStep(1);
-                            } else {
-                                window.location.href = '/admin/ncs/approved/list';
-                            }
-                            return;
-                        }
-                        alert('저장되었습니다.');
-                    } else {
-                        alert(json.error || '저장 실패');
-                    }
-                }).catch(function () {
-                    if (btnSave) btnSave.disabled = false;
-                    if (btnNext) btnNext.disabled = false;
-                    alert('저장 중 오류가 발생했습니다.');
-                });
-            }
-
-            var btnSave6 = document.getElementById('ncsStep6BtnSave');
-            var btnNext6 = document.getElementById('ncsStep6BtnNext');
-            if (btnSave6) btnSave6.addEventListener('click', function () { saveFacilities(false); });
-            if (btnNext6) btnNext6.addEventListener('click', function () { saveFacilities(true); });
         }
 
-        window.loadNcsStep = function (stepNum) {
-            if (!window.NCS_EMBED_COURSE_ID) {
-                console.error('loadNcsStep failed: window.NCS_EMBED_COURSE_ID is missing');
-                return;
-            }
-            console.log('loadNcsStep executing for step:', stepNum, 'courseId:', window.NCS_EMBED_COURSE_ID);
-            var loader = document.getElementById('ncsContentLoader');
-            if (loader) loader.classList.remove('hidden');
+        var btnSave5 = document.getElementById('ncsStep5BtnSave');
+        var btnNext5 = document.getElementById('ncsStep5BtnNext');
+        if (btnSave5) btnSave5.addEventListener('click', function () { saveEvaluation(false); });
+        if (btnNext5) btnNext5.addEventListener('click', function () { saveEvaluation(true); });
+    }
 
-            var url = '/api/ncs/approved/render-step?step=' + stepNum + '&courseId=' + window.NCS_EMBED_COURSE_ID;
-            var token = localStorage.getItem('token');
-            fetch(url, { headers: token ? { 'Authorization': 'Bearer ' + token } : {} })
-                .then(function (r) {
-                    if (!r.ok) throw new Error('HTTP Error: ' + r.status);
-                    return r.text();
-                })
-                .then(function (html) {
-                    console.log('Step content fetched successfully for step:', stepNum);
-                    if (loader) loader.classList.add('hidden');
-                    var container = document.getElementById('ncsApprovedStepContent');
-                    if (container) {
-                        container.innerHTML = html;
-                        window.NCS_CURRENT_STEP = stepNum;
+    function initStep6() {
+        var regInput = document.getElementById('ncsApprovedRegIdStep6');
+        var regId = (regInput && regInput.value) ? regInput.value.trim() : '';
+        var noReg = document.getElementById('ncsStep6NoReg');
+        var form = document.getElementById('ncsStep6Form');
 
-                        // Update Sidebar Active State
-                        document.querySelectorAll('[id^="ncsStepLink_"]').forEach(function (btn) {
-                            var s = parseInt(btn.id.split('_')[1], 10);
-                            if (s === stepNum) {
-                                btn.className = 'w-full flex items-center px-4 py-3 rounded-xl transition-all mb-1 bg-blue-600/10 text-blue-700 font-bold';
-                            } else {
-                                btn.className = 'w-full flex items-center px-4 py-3 rounded-xl transition-all mb-1 hover:bg-slate-50 text-slate-500 hover:text-slate-700';
-                            }
-                        });
+        if (!form) return;
+        if (!regId) {
+            if (noReg) noReg.classList.remove('hidden');
+            form.classList.add('hidden');
+            return;
+        }
+        if (noReg) noReg.classList.add('hidden');
+        form.classList.remove('hidden');
 
-                        // Initialize scripts
-                        if (window.initNcsStepScripts) window.initNcsStepScripts(stepNum);
+        var allFacilities = [];
+        var allEquipment = [];
+        var curriculum = [];
 
-                        // Prevent Enter key from submitting form within steps
-                        container.addEventListener('keydown', function (e) {
-                            if (e.key === 'Enter' && e.target.tagName === 'INPUT') {
-                                e.preventDefault();
-                            }
-                        });
-                    }
+        function getToken() { return localStorage.getItem('token'); }
+        function apiFetch(url) {
+            var t = getToken();
+            return fetch(url, { headers: t ? { 'Authorization': 'Bearer ' + t } : {} }).then(function (r) { return r.json(); });
+        }
 
-                })
-                .catch(function (e) {
-                    alert('단계 로딩 실패');
-                    console.error(e);
-                });
-        };
+        function createDualList(title, type, allItems, selectedIds) {
+            var selectedIdsSet = new Set(selectedIds || []);
+            var availableItems = allItems.filter(function (it) { return !selectedIdsSet.has(it.id); });
+            var selectedItems = allItems.filter(function (it) { return selectedIdsSet.has(it.id); });
 
-        window.initNcsStepScripts = function (s) {
-            if (s === 1) initStep1();
-            else if (s === 2) initStep2();
-            else if (s === 3) initStep3();
-            else if (s === 4) initStep4();
-            else if (s === 5) initStep5();
-            else if (s === 6) initStep6();
-        };
+            var itemHtml = function (it) {
+                return '<div class="list-item" data-id="' + it.id + '">' + (it.name || '') + (it.room_number ? ' (' + it.room_number + ')' : '') + '</div>';
+            };
 
-        ensureRegistrationId().then(function () {
-            if (step === 1) initStep1();
-            else if (step === 2) initStep2();
-            else if (step === 3) initStep3();
-            else if (step === 4) initStep4();
-            else if (step === 5) initStep5();
-            else if (step === 6) initStep6();
-        });
+            return '<div class="flex-1 space-y-3">' +
+                '<div class="flex items-center gap-2 mb-3">' +
+                '<span class="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>' +
+                '<h5 class="text-xs font-black text-slate-500 uppercase tracking-widest">' + title + '</h5>' +
+                '</div>' +
+                '<div class="dual-list-container" data-type="' + type + '">' +
+                '<!-- Available List -->' +
+                '<div class="list-box-wrapper">' +
+                '<div class="list-box-header">전체 목록</div>' +
+                '<div class="px-3 py-2 border-b border-slate-100 bg-slate-50/30">' +
+                '<input type="text" class="list-box-filter w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs" placeholder="필터링..."></div>' +
+                '<div class="list-content available-list flex-1">' + availableItems.map(itemHtml).join('') + '</div>' +
+                '</div>' +
+                '<!-- Transfer Buttons -->' +
+                '<div class="flex flex-row lg:flex-col justify-center items-center gap-1.5 px-1">' +
+                '<button type="button" class="list-btn btn-move-right w-10 h-10 flex items-center justify-center bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all shadow-sm"><i class="fas fa-angle-right lg:rotate-0 rotate-90"></i></button>' +
+                '<button type="button" class="list-btn btn-move-all-right w-10 h-10 flex items-center justify-center bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all shadow-sm"><i class="fas fa-angle-double-right lg:rotate-0 rotate-90"></i></button>' +
+                '<button type="button" class="list-btn btn-move-left w-10 h-10 flex items-center justify-center bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all shadow-sm"><i class="fas fa-angle-left lg:rotate-0 rotate-90"></i></button>' +
+                '<button type="button" class="list-btn btn-move-all-left w-10 h-10 flex items-center justify-center bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all shadow-sm"><i class="fas fa-angle-double-left lg:rotate-0 rotate-90"></i></button>' +
+                '</div>' +
+                '<!-- Selected List -->' +
+                '<div class="list-box-wrapper">' +
+                '<div class="list-box-header">선택된 목록</div>' +
+                '<div class="px-3 py-2 border-b border-slate-100 bg-slate-50/30">' +
+                '<input type="text" class="list-box-filter w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs" placeholder="필터링..."></div>' +
+                '<div class="list-content selected-list flex-1">' + selectedItems.map(itemHtml).join('') + '</div>' +
+                '</div>' +
+                '</div>' +
+                '</div>';
+        }
 
-        // Global prevention for Enter key submission in NCS containers
-        document.addEventListener('keydown', function (e) {
-            if (e.key === 'Enter' && e.target.tagName === 'INPUT') {
-                var container = e.target.closest('#ncsApprovedStepContent, #approvedRegisterForm');
-                if (container) {
-                    e.preventDefault();
+        function renderSubjectCard(item) {
+            var esc = function (s) { return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
+            var selectedFacilities = [];
+            try { selectedFacilities = item.facility_ids_json ? JSON.parse(item.facility_ids_json) : []; } catch (e) { }
+            var selectedEquipment = [];
+            try { selectedEquipment = item.equipment_ids_json ? JSON.parse(item.equipment_ids_json) : []; } catch (e) { }
+
+            var typeLabel = item.type === 'ncs' ? 'NCS 전공교과' : (item.type === 'basic' ? 'NCS 소양교과' : '비 NCS 교과');
+            var hours = (Number(item.theory_hours) || 0) + (Number(item.practice_hours) || 0);
+
+            return '<div class="step6-subject-card bg-white border border-slate-200 rounded-[2.5rem] p-10 shadow-sm hover:shadow-md transition-all mb-12" data-id="' + item.id + '">' +
+                '<div class="flex items-center gap-4 mb-10">' +
+                '<div class="w-14 h-14 bg-blue-600 text-white rounded-2xl flex items-center justify-center text-xl shadow-lg shadow-blue-500/20">' +
+                '<i class="fas fa-graduation-cap"></i>' +
+                '</div>' +
+                '<div>' +
+                '<h4 class="text-2xl font-black text-slate-800 tracking-tight">' + esc(item.name) + '</h4>' +
+                '<p class="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">' + typeLabel + ' <span class="mx-2 opacity-50">|</span> ' + hours + ' 훈련시간</p>' +
+                '</div>' +
+                '</div>' +
+                '<div class="flex flex-col xl:flex-row gap-12">' +
+                createDualList('시설(강의실/실습실) 매칭', 'facilities', allFacilities, selectedFacilities) +
+                createDualList('장비 및 기자재 매칭', 'equipment', allEquipment, selectedEquipment) +
+                '</div>' +
+                '</div>';
+        }
+
+        function wireEvents() {
+            form.addEventListener('click', function (e) {
+                var item = e.target.closest('.list-item');
+                if (item) {
+                    item.classList.toggle('selected');
+                    return;
                 }
-            }
+
+                var btn = e.target.closest('.list-btn');
+                if (!btn) return;
+
+                var container = btn.closest('.dual-list-container');
+                var leftList = container.querySelector('.available-list');
+                var rightList = container.querySelector('.selected-list');
+
+                if (btn.classList.contains('btn-move-right')) {
+                    leftList.querySelectorAll('.list-item.selected').forEach(function (el) {
+                        el.classList.remove('selected');
+                        rightList.appendChild(el);
+                    });
+                } else if (btn.classList.contains('btn-move-all-right')) {
+                    leftList.querySelectorAll('.list-item').forEach(function (el) {
+                        el.classList.remove('selected');
+                        rightList.appendChild(el);
+                    });
+                } else if (btn.classList.contains('btn-move-left')) {
+                    rightList.querySelectorAll('.list-item.selected').forEach(function (el) {
+                        el.classList.remove('selected');
+                        leftList.appendChild(el);
+                    });
+                } else if (btn.classList.contains('btn-move-all-left')) {
+                    rightList.querySelectorAll('.list-item').forEach(function (el) {
+                        el.classList.remove('selected');
+                        leftList.appendChild(el);
+                    });
+                }
+            });
+
+            form.addEventListener('input', function (e) {
+                if (e.target.classList.contains('list-box-filter')) {
+                    var val = e.target.value.toLowerCase();
+                    var list = e.target.closest('.list-box-wrapper').querySelector('.list-content');
+                    list.querySelectorAll('.list-item').forEach(function (item) {
+                        var text = item.textContent.toLowerCase();
+                        item.style.display = text.indexOf(val) !== -1 ? '' : 'none';
+                    });
+                }
+            });
+        }
+
+        Promise.all([
+            apiFetch('/api/ncs/approved/facilities'),
+            apiFetch('/api/ncs/approved/hrd-items?category=equipment'),
+            apiFetch('/api/ncs/approved/registrations/' + regId + '/facilities-equipment')
+        ]).then(function (results) {
+            allFacilities = results[0].success ? results[0].data : [];
+            allEquipment = results[1].success ? results[1].data : [];
+            curriculum = results[2].success ? results[2].data : [];
+
+            form.innerHTML = curriculum.length ? curriculum.map(renderSubjectCard).join('') : '<p class="text-center text-slate-400 py-12">등록된 교과목이 없습니다.</p>';
+            wireEvents();
+        }).catch(function (err) {
+            console.error(err);
+            alert('정보를 불러오는데 실패했습니다.');
         });
 
-        window.syncUnitElements = function (btn, unitCode) {
-            if (!confirm('이 능력단위가 속한 직종의 NCS 데이터를 동기화하시겠습니까?\n(공공 API 호출로 인해 약 10~30초가 소요됩니다)')) return;
-            var token = localStorage.getItem('token');
-            var original = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 동기화 중...';
+        function saveFacilities(redirectToNext) {
+            var items = [];
+            document.querySelectorAll('.step6-subject-card').forEach(function (card) {
+                var id = parseInt(card.getAttribute('data-id'), 10);
+                var facilityIds = [];
+                card.querySelectorAll('.dual-list-container[data-type="facilities"] .selected-list .list-item').forEach(function (el) {
+                    facilityIds.push(parseInt(el.getAttribute('data-id'), 10));
+                });
+                var equipmentIds = [];
+                card.querySelectorAll('.dual-list-container[data-type="equipment"] .selected-list .list-item').forEach(function (el) {
+                    equipmentIds.push(parseInt(el.getAttribute('data-id'), 10));
+                });
 
-            // 8자리 세분류 코드 추출 (능력단위 코드의 앞 8자리)
-            var subClass = (unitCode || '').replace(/[^0-9]/g, '').substring(0, 8);
+                items.push({
+                    id: id,
+                    facility_ids: facilityIds,
+                    equipment_ids: equipmentIds
+                });
+            });
 
-            fetch('/api/ncs/approved/sync', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + (token || '')
-                },
-                body: JSON.stringify({ subClassCode: subClass })
-            })
-                .then(function (r) { return r.json(); })
-                .then(function (json) {
-                    if (json.success) {
-                        alert('동기화 성공! 화면을 다시 로드하여 데이터를 반영합니다.');
-                        if (window.loadNcsStep) window.loadNcsStep(3); // Re-load current step
-                        else location.reload();
-                    } else {
-                        alert('동기화 실패: ' + json.error);
-                        btn.disabled = false;
-                        btn.innerHTML = original;
+            var btnSave = document.getElementById('ncsStep6BtnSave');
+            var btnNext = document.getElementById('ncsStep6BtnNext');
+            if (btnSave) btnSave.disabled = true;
+            if (btnNext) btnNext.disabled = true;
+            var t = getToken();
+            fetch('/api/ncs/approved/registrations/' + regId + '/facilities-equipment', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (t || '') },
+                body: JSON.stringify({ items: items })
+            }).then(function (r) { return r.json(); }).then(function (json) {
+                if (btnSave) btnSave.disabled = false;
+                if (btnNext) btnNext.disabled = false;
+                if (json.success) {
+                    if (redirectToNext) {
+                        if (isEmbedded) {
+                            alert('모든 설정이 완료되었습니다.');
+                            if (window.loadNcsStep) window.loadNcsStep(1);
+                        } else {
+                            window.location.href = '/admin/ncs/approved/list';
+                        }
+                        return;
                     }
-                })
-                .catch(function (e) {
-                    alert('오류 발생: ' + e);
+                    alert('저장되었습니다.');
+                } else {
+                    alert(json.error || '저장 실패');
+                }
+            }).catch(function () {
+                if (btnSave) btnSave.disabled = false;
+                if (btnNext) btnNext.disabled = false;
+                alert('저장 중 오류가 발생했습니다.');
+            });
+        }
+
+        var btnSave6 = document.getElementById('ncsStep6BtnSave');
+        var btnNext6 = document.getElementById('ncsStep6BtnNext');
+        if (btnSave6) btnSave6.addEventListener('click', function () { saveFacilities(false); });
+        if (btnNext6) btnNext6.addEventListener('click', function () { saveFacilities(true); });
+    }
+
+    window.loadNcsStep = function (stepNum) {
+        if (!window.NCS_EMBED_COURSE_ID) {
+            console.error('loadNcsStep failed: window.NCS_EMBED_COURSE_ID is missing');
+            return;
+        }
+        console.log('loadNcsStep executing for step:', stepNum, 'courseId:', window.NCS_EMBED_COURSE_ID);
+        var loader = document.getElementById('ncsContentLoader');
+        if (loader) loader.classList.remove('hidden');
+
+        var url = '/api/ncs/approved/render-step?step=' + stepNum + '&courseId=' + window.NCS_EMBED_COURSE_ID;
+        var token = localStorage.getItem('token');
+        fetch(url, { headers: token ? { 'Authorization': 'Bearer ' + token } : {} })
+            .then(function (r) {
+                if (!r.ok) throw new Error('HTTP Error: ' + r.status);
+                return r.text();
+            })
+            .then(function (html) {
+                console.log('Step content fetched successfully for step:', stepNum);
+                if (loader) loader.classList.add('hidden');
+                var container = document.getElementById('ncsApprovedStepContent');
+                if (container) {
+                    container.innerHTML = html;
+                    window.NCS_CURRENT_STEP = stepNum;
+
+                    // Update Sidebar Active State
+                    document.querySelectorAll('[id^="ncsStepLink_"]').forEach(function (btn) {
+                        var s = parseInt(btn.id.split('_')[1], 10);
+                        if (s === stepNum) {
+                            btn.className = 'w-full flex items-center px-4 py-3 rounded-xl transition-all mb-1 bg-blue-600/10 text-blue-700 font-bold';
+                        } else {
+                            btn.className = 'w-full flex items-center px-4 py-3 rounded-xl transition-all mb-1 hover:bg-slate-50 text-slate-500 hover:text-slate-700';
+                        }
+                    });
+
+                    // Initialize scripts
+                    if (window.initNcsStepScripts) window.initNcsStepScripts(stepNum);
+
+                    // Prevent Enter key from submitting form within steps
+                    container.addEventListener('keydown', function (e) {
+                        if (e.key === 'Enter' && e.target.tagName === 'INPUT') {
+                            e.preventDefault();
+                        }
+                    });
+                }
+
+            })
+            .catch(function (e) {
+                alert('단계 로딩 실패');
+                console.error(e);
+            });
+    };
+
+    window.initNcsStepScripts = function (s) {
+        if (s === 1) initStep1();
+        else if (s === 2) initStep2();
+        else if (s === 3) initStep3();
+        else if (s === 4) initStep4();
+        else if (s === 5) initStep5();
+        else if (s === 6) initStep6();
+    };
+
+    ensureRegistrationId().then(function () {
+        if (step === 1) initStep1();
+        else if (step === 2) initStep2();
+        else if (step === 3) initStep3();
+        else if (step === 4) initStep4();
+        else if (step === 5) initStep5();
+        else if (step === 6) initStep6();
+    });
+
+    // Global prevention for Enter key submission in NCS containers
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && e.target.tagName === 'INPUT') {
+            var container = e.target.closest('#ncsApprovedStepContent, #approvedRegisterForm');
+            if (container) {
+                e.preventDefault();
+            }
+        }
+    });
+
+    window.syncUnitElements = function (btn, unitCode) {
+        if (!confirm('이 능력단위가 속한 직종의 NCS 데이터를 동기화하시겠습니까?\n(공공 API 호출로 인해 약 10~30초가 소요됩니다)')) return;
+        var token = localStorage.getItem('token');
+        var original = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 동기화 중...';
+
+        // 8자리 세분류 코드 추출 (능력단위 코드의 앞 8자리)
+        var subClass = (unitCode || '').replace(/[^0-9]/g, '').substring(0, 8);
+
+        fetch('/api/ncs/approved/sync', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + (token || '')
+            },
+            body: JSON.stringify({ subClassCode: subClass })
+        })
+            .then(function (r) { return r.json(); })
+            .then(function (json) {
+                if (json.success) {
+                    alert('동기화 성공! 화면을 다시 로드하여 데이터를 반영합니다.');
+                    if (window.loadNcsStep) window.loadNcsStep(3); // Re-load current step
+                    else location.reload();
+                } else {
+                    alert('동기화 실패: ' + json.error);
                     btn.disabled = false;
                     btn.innerHTML = original;
-                });
-        };
+                }
+            })
+            .catch(function (e) {
+                alert('오류 발생: ' + e);
+                btn.disabled = false;
+                btn.innerHTML = original;
+            });
+    };
 
-    }) ();
+})();
 
