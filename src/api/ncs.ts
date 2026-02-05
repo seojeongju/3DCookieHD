@@ -1097,19 +1097,45 @@ app.get('/approved/jobs', async (c) => {
         const prefix = l + m + s;
         try {
             const { results } = await c.env.DB.prepare(
-                "SELECT job_code as code, job_name as name FROM ncs_job_hierarchy WHERE job_code LIKE ? ORDER BY job_code"
+                "SELECT DISTINCT job_code as code, job_name as name FROM ncs_job_hierarchy WHERE job_code LIKE ? ORDER BY job_code"
             ).bind(prefix + '%').all();
 
             if (results && results.length > 0) {
-                // Map to API format (code should be suffix 2 digits usually, or allow client to handle full code)
-                // Existing client logic: var fullCode = large + mid + small + subCode;
-                // If we return full 8 digit code as 'code', client will append it -> 10 chars -> FAIL.
-                // So we must return only the last 2 digits.
-                const mapped = results.map((r: any) => ({
-                    code: (r.code || '').slice(-2),
-                    name: r.name
-                }));
-                return c.json({ success: true, data: mapped });
+                console.log(`[DEBUG] DB results for ${prefix}:`, results.slice(0, 3));
+
+                // DB에는 능력단위(10자리) 코드가 저장되어 있음
+                // 세분류/직종(8자리)를 추출하려면 앞 8자리를 사용
+                // 예: 15010201 -> 15010201 (8자리), 세분류 코드는 7-8번째: 01
+                const jobMap = new Map<string, string>();
+
+                results.forEach((r: any) => {
+                    const fullCode = (r.code || '').trim();
+                    if (fullCode.length >= 8) {
+                        // 앞 8자리가 세분류/직종 전체 코드
+                        const jobFullCode = fullCode.substring(0, 8);
+                        // 7-8번째 자리가 세분류 코드 (01, 02, 03, 04 등)
+                        const jobSubCode = jobFullCode.substring(6, 8);
+
+                        // 이미 이 세분류 코드가 있으면 건너뜁니다 (중복 제거)
+                        if (!jobMap.has(jobSubCode)) {
+                            // 능력단위 이름에서 세분류 이름을 추정
+                            // 실제로는 API를 통해 정확한 이름을 가져와야 하지만,
+                            // 일단 DB 데이터를 사용
+                            jobMap.set(jobSubCode, r.name || `세분류 ${jobSubCode}`);
+                        }
+                    }
+                });
+
+                const mapped = Array.from(jobMap.entries()).map(([code, name]) => ({
+                    code,
+                    name
+                })).sort((a, b) => a.code.localeCompare(b.code));
+
+                console.log(`[DEBUG] Extracted jobs:`, mapped);
+
+                if (mapped.length > 0) {
+                    return c.json({ success: true, data: mapped, _source: 'db_extracted' });
+                }
             }
         } catch (dbErr) {
             console.warn('Local NCS jobs check failed:', dbErr);
