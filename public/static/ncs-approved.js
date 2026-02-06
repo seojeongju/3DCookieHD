@@ -2127,12 +2127,12 @@
             if (libEl) libEl.textContent = libH + ' 시간';
             if (majorEl) majorEl.textContent = majorH + ' 시간';
             if (nonEl) nonEl.textContent = nonH + ' 시간';
+            var ratioHoursDisplays = document.querySelectorAll('.ncs-step4-ratio-hours-display');
             if (p.manualLib) {
-                if (libInputWrap) libInputWrap.classList.remove('hidden');
-                if (libEl) libEl.classList.add('hidden');
-                if (libInputEl) { libInputEl.value = libH; libInputEl.max = total; }
-                if (libPctInput) { libPctInput.disabled = true; }
+                ratioHoursDisplays.forEach(function (el) { el.classList.add('hidden'); });
+                if (libPctInput) libPctInput.disabled = true;
             } else {
+                ratioHoursDisplays.forEach(function (el) { el.classList.remove('hidden'); });
                 if (libInputWrap) libInputWrap.classList.add('hidden');
                 if (libEl) libEl.classList.remove('hidden');
                 if (libPctInput) libPctInput.disabled = false;

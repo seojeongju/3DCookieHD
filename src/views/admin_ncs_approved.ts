@@ -626,10 +626,12 @@ export function stepContentHtml(step: number, editId?: string, isEmbedded: boole
                   <label class="flex items-center gap-2 text-[11px] font-bold text-slate-500 cursor-pointer">
                     <input type="checkbox" id="ncsStep4LibForce" class="rounded text-blue-600"> 시간입력
                   </label>
-                  <span id="ncsStep4LibHours" class="text-[11px] font-black text-blue-600">0 시간</span>
-                  <div id="ncsStep4LibHoursInputWrap" class="hidden flex items-center gap-1.5">
-                    <input type="number" id="ncsStep4LibHoursInput" min="0" step="1" class="w-20 px-2 py-1.5 border border-slate-200 rounded-lg text-sm font-bold text-blue-600" value="0" placeholder="시간">
-                    <span class="text-[11px] font-bold text-slate-500">시간</span>
+                  <div id="ncsStep4RatioHoursLib" class="ncs-step4-ratio-hours-display flex items-center gap-2">
+                    <span id="ncsStep4LibHours" class="text-[11px] font-black text-blue-600">0 시간</span>
+                    <div id="ncsStep4LibHoursInputWrap" class="hidden flex items-center gap-1.5">
+                      <input type="number" id="ncsStep4LibHoursInput" min="0" step="1" class="w-20 px-2 py-1.5 border border-slate-200 rounded-lg text-sm font-bold text-blue-600" value="0" placeholder="시간">
+                      <span class="text-[11px] font-bold text-slate-500">시간</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -639,7 +641,7 @@ export function stepContentHtml(step: number, editId?: string, isEmbedded: boole
                   <input type="number" id="ncsStep4MajorPct" min="0" max="100" step="0.01" class="flex-1 px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold" value="0">
                   <span class="text-slate-400 font-bold text-sm">%</span>
                 </div>
-                <div class="text-right">
+                <div id="ncsStep4RatioHoursMajor" class="ncs-step4-ratio-hours-display text-right">
                   <span id="ncsStep4MajorHours" class="text-[11px] font-black text-blue-600">0 시간</span>
                 </div>
               </div>
@@ -649,7 +651,7 @@ export function stepContentHtml(step: number, editId?: string, isEmbedded: boole
                   <input type="number" id="ncsStep4NonPct" min="0" max="100" step="0.01" class="flex-1 px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold" value="0">
                   <span class="text-slate-400 font-bold text-sm">%</span>
                 </div>
-                <div class="text-right">
+                <div id="ncsStep4RatioHoursNon" class="ncs-step4-ratio-hours-display text-right">
                   <span id="ncsStep4NonHours" class="text-[11px] font-black text-blue-600">0 시간</span>
                 </div>
               </div>
