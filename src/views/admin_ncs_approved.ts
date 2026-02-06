@@ -465,15 +465,20 @@ export function stepContentHtml(step: number, editId?: string, isEmbedded: boole
           </div>
           
           <div id="nonNcsCurriculumRows" class="p-6 space-y-6">
-            <div class="nonncs-curriculum-row rounded-2xl border border-slate-100 p-6 bg-slate-50/30 space-y-6">
+            <div class="nonncs-curriculum-row rounded-2xl border border-slate-100 p-6 bg-slate-50/30 space-y-6 relative">
+              <div class="flex justify-end absolute top-4 right-4">
+                <button type="button" class="nonncs-row-delete h-9 px-3 border border-red-200 text-red-600 rounded-lg text-sm font-bold hover:bg-red-50 transition flex items-center gap-1.5" title="이 교과목 삭제">
+                  <i class="fas fa-trash-alt text-xs"></i> 삭제
+                </button>
+              </div>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 ml-1">교과분류</label>
-                  <select class="nonncs-curriculum-class w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-blue-500/5 font-bold">
+                  <select class="nonncs-curriculum-class w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-blue-500/5 font-bold bg-white">
                     <option value="">분류 선택</option>
                     <option value="공통">공통교과</option>
                     <option value="기초">기초직무</option>
-                    <option value="전문" selected>전문실무</option>
+                    <option value="전문">전문실무</option>
                     <option value="실무">현장실습</option>
                   </select>
                 </div>
