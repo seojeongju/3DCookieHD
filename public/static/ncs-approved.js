@@ -2017,14 +2017,14 @@
         function getParamsInputs() {
             var totalDays = parseInt(document.getElementById('ncsStep4TotalDays') && document.getElementById('ncsStep4TotalDays').value ? document.getElementById('ncsStep4TotalDays').value : 20, 10) || 0;
             var dailyHours = parseFloat(document.getElementById('ncsStep4DailyHours') && document.getElementById('ncsStep4DailyHours').value ? document.getElementById('ncsStep4DailyHours').value : 5) || 0;
-            var totalHours = parseInt(document.getElementById('ncsStep4TotalHours') && document.getElementById('ncsStep4TotalHours').value ? document.getElementById('ncsStep4TotalHours').value : 100, 10) || 0;
+            var totalHours = parseFloat(document.getElementById('ncsStep4TotalHours') && document.getElementById('ncsStep4TotalHours').value ? document.getElementById('ncsStep4TotalHours').value : 100) || 0;
+            totalHours = Math.max(0, totalHours);
             var libPct = parseFloat(document.getElementById('ncsStep4LibPct') && document.getElementById('ncsStep4LibPct').value ? document.getElementById('ncsStep4LibPct').value : 0) || 0;
             var majorPct = parseFloat(document.getElementById('ncsStep4MajorPct') && document.getElementById('ncsStep4MajorPct').value ? document.getElementById('ncsStep4MajorPct').value : 0) || 0;
             var nonPct = parseFloat(document.getElementById('ncsStep4NonPct') && document.getElementById('ncsStep4NonPct').value ? document.getElementById('ncsStep4NonPct').value : 0) || 0;
             var libForceEl = document.getElementById('ncsStep4LibForce');
             var manualLib = !!(libForceEl && libForceEl.checked);
-            var libHoursInputEl = document.getElementById('ncsStep4LibHoursInput');
-            var manualLibHours = (manualLib && libHoursInputEl && libHoursInputEl.value !== '') ? Math.max(0, parseInt(libHoursInputEl.value, 10) || 0) : 0;
+            var manualLibHours = 0;
             if (manualLib && totalHours > 0) {
                 var libDirectEl = document.getElementById('ncsStep4LibHoursDirect');
                 var majorDirectEl = document.getElementById('ncsStep4MajorHoursDirect');
@@ -2038,13 +2038,9 @@
                     majorH = Math.round((majorH / sum) * totalHours);
                     nonH = totalHours - libH - majorH;
                 }
-                libH = Math.min(libH, totalHours);
-                majorH = Math.min(majorH, totalHours);
-                nonH = Math.min(nonH, totalHours);
-                if (libH + majorH + nonH > totalHours) {
-                    majorH = Math.min(majorH, totalHours - libH);
-                    nonH = totalHours - libH - majorH;
-                }
+                libH = Math.min(totalHours, Math.max(0, libH));
+                majorH = Math.min(Math.max(0, totalHours - libH), Math.max(0, majorH));
+                nonH = Math.max(0, totalHours - libH - majorH);
                 manualLibHours = libH;
                 libPct = totalHours ? Math.round((libH / totalHours) * 10000) / 100 : 0;
                 majorPct = totalHours ? Math.round((majorH / totalHours) * 10000) / 100 : 0;
@@ -2083,12 +2079,9 @@
                         nonH = total - libH - majorH;
                     }
                 }
-                libH = Math.min(libH, total);
-                majorH = Math.min(majorH, total);
-                nonH = Math.min(nonH, total);
-                if (libH + majorH + nonH > total) {
-                    nonH = total - libH - majorH;
-                }
+                libH = Math.min(total, Math.max(0, libH));
+                majorH = Math.min(Math.max(0, total - libH), Math.max(0, majorH));
+                nonH = Math.max(0, total - libH - majorH);
                 if (libDirectEl) libDirectEl.value = libH;
                 if (majorDirectEl) majorDirectEl.value = majorH;
                 if (nonDirectEl) nonDirectEl.value = nonH;
@@ -2105,12 +2098,9 @@
                     timeInputsRow.querySelectorAll('input').forEach(function (inp) { inp.readOnly = false; });
                 }
             } else {
-                libH = Math.round(total * (p.libPct || 0) / 100);
-                majorH = Math.round(total * (p.majorPct || 0) / 100);
-                nonH = Math.round(total * (p.nonPct || 0) / 100);
-                if (libH + majorH + nonH > total) {
-                    nonH = total - libH - majorH;
-                }
+                libH = Math.min(total, Math.max(0, Math.round(total * (p.libPct || 0) / 100)));
+                majorH = Math.min(Math.max(0, total - libH), Math.max(0, Math.round(total * (p.majorPct || 0) / 100)));
+                nonH = Math.max(0, total - libH - majorH);
                 if (libDirectEl) { libDirectEl.value = libH; libDirectEl.readOnly = true; }
                 if (majorDirectEl) { majorDirectEl.value = majorH; majorDirectEl.readOnly = true; }
                 if (nonDirectEl) { nonDirectEl.value = nonH; nonDirectEl.readOnly = true; }
@@ -2140,7 +2130,8 @@
         }
 
         function syncTimeInputsFromOne(changedField) {
-            var total = parseInt(document.getElementById('ncsStep4TotalHours') && document.getElementById('ncsStep4TotalHours').value ? document.getElementById('ncsStep4TotalHours').value : 0, 10) || 0;
+            var total = parseFloat(document.getElementById('ncsStep4TotalHours') && document.getElementById('ncsStep4TotalHours').value ? document.getElementById('ncsStep4TotalHours').value : 0) || 0;
+            total = Math.max(0, total);
             if (total <= 0) return;
             var libDirectEl = document.getElementById('ncsStep4LibHoursDirect');
             var majorDirectEl = document.getElementById('ncsStep4MajorHoursDirect');
@@ -2156,23 +2147,23 @@
             var nonPct = parseFloat(nonPctInput && nonPctInput.value ? nonPctInput.value : 0) || 0;
             var remaining, ratioSum;
             if (changedField === 'lib') {
-                libH = Math.min(libH, total);
-                remaining = Math.max(0, total - libH);
+                libH = Math.min(total, Math.max(0, libH));
+                remaining = total - libH;
                 ratioSum = majorPct + nonPct || 1;
                 majorH = ratioSum > 0 ? Math.round(remaining * majorPct / ratioSum) : 0;
-                nonH = remaining - majorH;
+                nonH = Math.max(0, remaining - majorH);
             } else if (changedField === 'major') {
-                majorH = Math.min(majorH, total);
-                remaining = Math.max(0, total - majorH);
+                majorH = Math.min(total, Math.max(0, majorH));
+                remaining = total - majorH;
                 ratioSum = libPct + nonPct || 1;
                 libH = ratioSum > 0 ? Math.round(remaining * libPct / ratioSum) : 0;
-                nonH = remaining - libH;
+                nonH = Math.max(0, remaining - libH);
             } else {
-                nonH = Math.min(nonH, total);
-                remaining = Math.max(0, total - nonH);
+                nonH = Math.min(total, Math.max(0, nonH));
+                remaining = total - nonH;
                 ratioSum = libPct + majorPct || 1;
                 libH = ratioSum > 0 ? Math.round(remaining * libPct / ratioSum) : 0;
-                majorH = remaining - libH;
+                majorH = Math.max(0, remaining - libH);
             }
             if (libDirectEl) libDirectEl.value = libH;
             if (majorDirectEl) majorDirectEl.value = majorH;
