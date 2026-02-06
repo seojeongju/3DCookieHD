@@ -1032,6 +1032,12 @@
                         midClass.value = d.mid_code || '';
                         loadSmallByMid();
                         smallClass.value = d.small_code || '';
+                        var subCodeToSet = (d.main_job_code || d.sub_code || d.unit_code || '').toString().trim();
+                        if (subCodeToSet.length > 8) subCodeToSet = subCodeToSet.slice(0, 8);
+                        if (subCodeToSet.length === 2 && d.large_code && d.mid_code && d.small_code) subCodeToSet = (d.large_code + d.mid_code + d.small_code + subCodeToSet).slice(0, 8);
+                        loadSubClassesBySmall(false, function () {
+                            if (subClassSelect && subCodeToSet) subClassSelect.value = subCodeToSet;
+                        });
                         window.ncsStep1Jobs.length = 0;
                         window.ncsPrimaryJobCode = d.main_job_code || null;
                         try {
@@ -1065,19 +1071,21 @@
                 .then(function (res) {
                     if (res.success && res.data) {
                         fillFormFromApprovedCourse(res.data);
-                        // 수정 모드인 경우 (이미 NCS 등록 정보가 있는 경우) loadForEdit 호출
-                        // 여기서 NCS 등록 정보가 있는지 어떻게 아나? -> API가 알려주면 좋겠지만, 
-                        // 현재 구조에서는 NCS 등록 정보 ID를 모르므로, 
-                        // /api/ncs/approved/registrations?course_id=... 같은 검색 API가 필요하거나
-                        // ApprovedCourse 데이터 안에 ncs_reg_id가 있으면 좋음.
-
-                        // 임시: 과정 ID로 등록 정보 조회 시도 (필요시 API 추가)
-                        // 또는 사용자가 '등록' 버튼을 누르면 내부적으로 Check
-
-                        // EditId가 있으면 loadForEdit 호출
-                        // 부모 페이지에서 editId를 넘겨줬다면 HTML hidden input에 있을 것임.
                         var hiddenEditId = document.getElementById('ncsApprovedEditId');
-                        if (hiddenEditId && hiddenEditId.value) {
+                        var courseId = window.NCS_EMBED_COURSE_ID;
+                        if (courseId && (!hiddenEditId || !hiddenEditId.value)) {
+                            var token = localStorage.getItem('token');
+                            fetch('/api/ncs/approved/registrations/find-by-course/' + courseId, { headers: token ? { 'Authorization': 'Bearer ' + token } : {} })
+                                .then(function (r) { return r.json(); })
+                                .then(function (findRes) {
+                                    if (findRes.success && findRes.data && findRes.data.id) {
+                                        if (hiddenEditId) hiddenEditId.value = String(findRes.data.id);
+                                        editId = String(findRes.data.id);
+                                        loadForEdit();
+                                    }
+                                })
+                                .catch(function () { });
+                        } else if (hiddenEditId && hiddenEditId.value) {
                             editId = hiddenEditId.value;
                             loadForEdit();
                         }
