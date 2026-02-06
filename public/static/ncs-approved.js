@@ -2109,9 +2109,14 @@
                 var theory = Number(it.theory_hours) || 0;
                 var practice = Number(it.practice_hours) || 0;
                 var sum = theory + practice;
+                var nameCell = attrEsc(it.name || '');
+                var abilityUnits = [];
+                try { abilityUnits = it.ability_units_json ? JSON.parse(it.ability_units_json) : []; } catch (e) { }
+                var codes = abilityUnits.map(function (u) { return typeof u === 'string' ? u : (u.code || u.name || ''); }).filter(Boolean);
+                if (codes.length) nameCell += ' <span class="text-slate-500 font-mono text-xs">(' + codes.map(attrEsc).join(', ') + ')</span>';
                 return '<tr class="ncs-step4-row" data-curriculum-id="' + attrEsc(String(it.curriculum_id)) + '" data-type="' + attrEsc(it.type || '') + '">' +
                     '<td class="px-4 py-2 text-slate-600">' + (i + 1) + '</td>' +
-                    '<td class="px-4 py-2 font-medium text-slate-800">' + attrEsc(it.name || '') + '</td>' +
+                    '<td class="px-4 py-2 font-medium text-slate-800">' + nameCell + '</td>' +
                     '<td class="px-4 py-2"><input type="number" min="0" step="1" class="ncs-step4-theory w-20 px-2 py-1.5 border border-slate-200 rounded-lg text-sm" value="' + theory + '"></td>' +
                     '<td class="px-4 py-2"><input type="number" min="0" step="1" class="ncs-step4-practice w-20 px-2 py-1.5 border border-slate-200 rounded-lg text-sm" value="' + practice + '"></td>' +
                     '<td class="px-4 py-2 ncs-step4-sum text-slate-700 font-medium">' + sum + '</td></tr>';
@@ -2133,7 +2138,9 @@
             var abilityUnits = [];
             try { abilityUnits = it.ability_units_json ? JSON.parse(it.ability_units_json) : []; } catch (e) { }
             var unitLabel = abilityUnits.length ? abilityUnits.map(function (u) {
-                return typeof u === 'string' ? u : u.name || u.code;
+                var name = typeof u === 'string' ? u : (u.name || u.code);
+                var code = typeof u === 'string' ? u : (u.code || '');
+                return code ? (attrEsc(name) + ' <span class="text-slate-500 font-mono">(' + attrEsc(code) + ')</span>') : attrEsc(name);
             }).join(', ') : '—';
 
             return '<div class="rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition-all mb-6" data-curriculum-id="' + it.curriculum_id + '">' +
@@ -2144,8 +2151,9 @@
                 '<h4 class="text-lg font-black text-slate-800 flex items-center gap-2">' +
                 '<i class="fas fa-book-open text-blue-600 text-sm"></i>' +
                 attrEsc(it.name || '') +
+                (abilityUnits.length ? ' <span class="text-slate-500 font-mono text-sm font-normal">(' + abilityUnits.map(function (u) { var c = typeof u === 'string' ? u : (u.code || ''); return attrEsc(c); }).filter(Boolean).join(', ') + ')</span>' : '') +
                 '</h4>' +
-                '<p class="text-xs text-slate-500 mt-1"><span class="font-bold">능력단위:</span> ' + attrEsc(unitLabel) + '</p>' +
+                '<p class="text-xs text-slate-500 mt-1"><span class="font-bold">능력단위:</span> ' + unitLabel + '</p>' +
                 '</div>' +
                 '<div class="flex items-center gap-2">' +
                 '<span class="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded-lg">' + (it.type === 'basic' ? '직업기초' : it.type === 'ncs' ? 'NCS' : '비NCS') + '</span>' +
