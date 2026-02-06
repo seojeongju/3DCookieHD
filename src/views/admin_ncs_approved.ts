@@ -624,7 +624,7 @@ export function stepContentHtml(step: number, editId?: string, isEmbedded: boole
                 </div>
                 <div class="flex flex-wrap items-center justify-between gap-2">
                   <label class="flex items-center gap-2 text-[11px] font-bold text-slate-500 cursor-pointer">
-                    <input type="checkbox" id="ncsStep4LibForce" class="rounded text-blue-600"> 수동 입력
+                    <input type="checkbox" id="ncsStep4LibForce" class="rounded text-blue-600"> 시간입력
                   </label>
                   <span id="ncsStep4LibHours" class="text-[11px] font-black text-blue-600">0 시간</span>
                   <div id="ncsStep4LibHoursInputWrap" class="hidden flex items-center gap-1.5">
@@ -651,6 +651,30 @@ export function stepContentHtml(step: number, editId?: string, isEmbedded: boole
                 </div>
                 <div class="text-right">
                   <span id="ncsStep4NonHours" class="text-[11px] font-black text-blue-600">0 시간</span>
+                </div>
+              </div>
+            </div>
+
+            <div id="ncsStep4TimeInputsRow" class="grid grid-cols-1 md:grid-cols-3 gap-8 border-t border-slate-100 pt-8">
+              <div class="space-y-2">
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">NCS 소양시간</label>
+                <div class="relative">
+                  <input type="number" id="ncsStep4LibHoursDirect" min="0" step="1" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500" value="0" placeholder="0">
+                  <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">시간</span>
+                </div>
+              </div>
+              <div class="space-y-2">
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">NCS 전공시간</label>
+                <div class="relative">
+                  <input type="number" id="ncsStep4MajorHoursDirect" min="0" step="1" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500" value="0" placeholder="0">
+                  <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">시간</span>
+                </div>
+              </div>
+              <div class="space-y-2">
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">비NCS시간</label>
+                <div class="relative">
+                  <input type="number" id="ncsStep4NonHoursDirect" min="0" step="1" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500" value="0" placeholder="0">
+                  <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">시간</span>
                 </div>
               </div>
             </div>

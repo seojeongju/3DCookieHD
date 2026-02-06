@@ -2026,8 +2026,29 @@
             var libHoursInputEl = document.getElementById('ncsStep4LibHoursInput');
             var manualLibHours = (manualLib && libHoursInputEl && libHoursInputEl.value !== '') ? Math.max(0, parseInt(libHoursInputEl.value, 10) || 0) : 0;
             if (manualLib && totalHours > 0) {
-                manualLibHours = Math.min(manualLibHours, totalHours);
-                libPct = Math.round((manualLibHours / totalHours) * 10000) / 100;
+                var libDirectEl = document.getElementById('ncsStep4LibHoursDirect');
+                var majorDirectEl = document.getElementById('ncsStep4MajorHoursDirect');
+                var nonDirectEl = document.getElementById('ncsStep4NonHoursDirect');
+                var libH = Math.max(0, parseInt(libDirectEl && libDirectEl.value ? libDirectEl.value : 0, 10) || 0);
+                var majorH = Math.max(0, parseInt(majorDirectEl && majorDirectEl.value ? majorDirectEl.value : 0, 10) || 0);
+                var nonH = Math.max(0, parseInt(nonDirectEl && nonDirectEl.value ? nonDirectEl.value : 0, 10) || 0);
+                var sum = libH + majorH + nonH;
+                if (sum > 0 && sum !== totalHours) {
+                    libH = Math.round((libH / sum) * totalHours);
+                    majorH = Math.round((majorH / sum) * totalHours);
+                    nonH = totalHours - libH - majorH;
+                }
+                libH = Math.min(libH, totalHours);
+                majorH = Math.min(majorH, totalHours);
+                nonH = Math.min(nonH, totalHours);
+                if (libH + majorH + nonH > totalHours) {
+                    majorH = Math.min(majorH, totalHours - libH);
+                    nonH = totalHours - libH - majorH;
+                }
+                manualLibHours = libH;
+                libPct = totalHours ? Math.round((libH / totalHours) * 10000) / 100 : 0;
+                majorPct = totalHours ? Math.round((majorH / totalHours) * 10000) / 100 : 0;
+                nonPct = totalHours ? Math.round((nonH / totalHours) * 10000) / 100 : 0;
             }
             return { totalDays: totalDays, dailyHours: dailyHours, totalHours: totalHours, libPct: libPct, majorPct: majorPct, nonPct: nonPct, manualLib: manualLib, manualLibHours: manualLibHours };
         }
@@ -2042,15 +2063,60 @@
             var p = getParamsInputs();
             var total = p.totalHours || 0;
             var libH, majorH, nonH;
+            var libDirectEl = document.getElementById('ncsStep4LibHoursDirect');
+            var majorDirectEl = document.getElementById('ncsStep4MajorHoursDirect');
+            var nonDirectEl = document.getElementById('ncsStep4NonHoursDirect');
+            var timeInputsRow = document.getElementById('ncsStep4TimeInputsRow');
             if (p.manualLib) {
-                libH = Math.min(p.manualLibHours || 0, total);
-                var remaining = Math.max(0, total - libH);
-                majorH = Math.round(remaining * (p.majorPct || 0) / 100);
-                nonH = Math.round(remaining * (p.nonPct || 0) / 100);
+                libH = Math.max(0, parseInt(libDirectEl && libDirectEl.value ? libDirectEl.value : 0, 10) || 0);
+                majorH = Math.max(0, parseInt(majorDirectEl && majorDirectEl.value ? majorDirectEl.value : 0, 10) || 0);
+                nonH = Math.max(0, parseInt(nonDirectEl && nonDirectEl.value ? nonDirectEl.value : 0, 10) || 0);
+                var sum = libH + majorH + nonH;
+                if (total > 0 && sum !== total) {
+                    if (sum > 0) {
+                        libH = Math.round((libH / sum) * total);
+                        majorH = Math.round((majorH / sum) * total);
+                        nonH = total - libH - majorH;
+                    } else {
+                        libH = Math.round(total * (p.libPct || 0) / 100);
+                        majorH = Math.round(total * (p.majorPct || 0) / 100);
+                        nonH = total - libH - majorH;
+                    }
+                }
+                libH = Math.min(libH, total);
+                majorH = Math.min(majorH, total);
+                nonH = Math.min(nonH, total);
+                if (libH + majorH + nonH > total) {
+                    nonH = total - libH - majorH;
+                }
+                if (libDirectEl) libDirectEl.value = libH;
+                if (majorDirectEl) majorDirectEl.value = majorH;
+                if (nonDirectEl) nonDirectEl.value = nonH;
+                var libPctVal = total ? Math.round((libH / total) * 10000) / 100 : 0;
+                var majorPctVal = total ? Math.round((majorH / total) * 10000) / 100 : 0;
+                var nonPctVal = total ? Math.round((nonH / total) * 10000) / 100 : 0;
+                var libPctInput = document.getElementById('ncsStep4LibPct');
+                var majorPctInput = document.getElementById('ncsStep4MajorPct');
+                var nonPctInput = document.getElementById('ncsStep4NonPct');
+                if (libPctInput) libPctInput.value = libPctVal;
+                if (majorPctInput) majorPctInput.value = majorPctVal;
+                if (nonPctInput) nonPctInput.value = nonPctVal;
+                if (timeInputsRow) {
+                    timeInputsRow.querySelectorAll('input').forEach(function (inp) { inp.readOnly = false; });
+                }
             } else {
                 libH = Math.round(total * (p.libPct || 0) / 100);
                 majorH = Math.round(total * (p.majorPct || 0) / 100);
                 nonH = Math.round(total * (p.nonPct || 0) / 100);
+                if (libH + majorH + nonH > total) {
+                    nonH = total - libH - majorH;
+                }
+                if (libDirectEl) { libDirectEl.value = libH; libDirectEl.readOnly = true; }
+                if (majorDirectEl) { majorDirectEl.value = majorH; majorDirectEl.readOnly = true; }
+                if (nonDirectEl) { nonDirectEl.value = nonH; nonDirectEl.readOnly = true; }
+                if (timeInputsRow) {
+                    timeInputsRow.querySelectorAll('input').forEach(function (inp) { inp.readOnly = true; });
+                }
             }
             var libEl = document.getElementById('ncsStep4LibHours');
             var majorEl = document.getElementById('ncsStep4MajorHours');
@@ -2065,12 +2131,64 @@
                 if (libInputWrap) libInputWrap.classList.remove('hidden');
                 if (libEl) libEl.classList.add('hidden');
                 if (libInputEl) { libInputEl.value = libH; libInputEl.max = total; }
-                if (libPctInput) { libPctInput.value = total ? (Math.round((libH / total) * 10000) / 100) : 0; libPctInput.disabled = true; }
+                if (libPctInput) { libPctInput.disabled = true; }
             } else {
                 if (libInputWrap) libInputWrap.classList.add('hidden');
                 if (libEl) libEl.classList.remove('hidden');
                 if (libPctInput) libPctInput.disabled = false;
             }
+        }
+
+        function syncTimeInputsFromOne(changedField) {
+            var total = parseInt(document.getElementById('ncsStep4TotalHours') && document.getElementById('ncsStep4TotalHours').value ? document.getElementById('ncsStep4TotalHours').value : 0, 10) || 0;
+            if (total <= 0) return;
+            var libDirectEl = document.getElementById('ncsStep4LibHoursDirect');
+            var majorDirectEl = document.getElementById('ncsStep4MajorHoursDirect');
+            var nonDirectEl = document.getElementById('ncsStep4NonHoursDirect');
+            var libPctInput = document.getElementById('ncsStep4LibPct');
+            var majorPctInput = document.getElementById('ncsStep4MajorPct');
+            var nonPctInput = document.getElementById('ncsStep4NonPct');
+            var libH = Math.max(0, parseInt(libDirectEl && libDirectEl.value ? libDirectEl.value : 0, 10) || 0);
+            var majorH = Math.max(0, parseInt(majorDirectEl && majorDirectEl.value ? majorDirectEl.value : 0, 10) || 0);
+            var nonH = Math.max(0, parseInt(nonDirectEl && nonDirectEl.value ? nonDirectEl.value : 0, 10) || 0);
+            var libPct = parseFloat(libPctInput && libPctInput.value ? libPctInput.value : 0) || 0;
+            var majorPct = parseFloat(majorPctInput && majorPctInput.value ? majorPctInput.value : 0) || 0;
+            var nonPct = parseFloat(nonPctInput && nonPctInput.value ? nonPctInput.value : 0) || 0;
+            var remaining, ratioSum;
+            if (changedField === 'lib') {
+                libH = Math.min(libH, total);
+                remaining = Math.max(0, total - libH);
+                ratioSum = majorPct + nonPct || 1;
+                majorH = ratioSum > 0 ? Math.round(remaining * majorPct / ratioSum) : 0;
+                nonH = remaining - majorH;
+            } else if (changedField === 'major') {
+                majorH = Math.min(majorH, total);
+                remaining = Math.max(0, total - majorH);
+                ratioSum = libPct + nonPct || 1;
+                libH = ratioSum > 0 ? Math.round(remaining * libPct / ratioSum) : 0;
+                nonH = remaining - libH;
+            } else {
+                nonH = Math.min(nonH, total);
+                remaining = Math.max(0, total - nonH);
+                ratioSum = libPct + majorPct || 1;
+                libH = ratioSum > 0 ? Math.round(remaining * libPct / ratioSum) : 0;
+                majorH = remaining - libH;
+            }
+            if (libDirectEl) libDirectEl.value = libH;
+            if (majorDirectEl) majorDirectEl.value = majorH;
+            if (nonDirectEl) nonDirectEl.value = nonH;
+            var libPctVal = total ? Math.round((libH / total) * 10000) / 100 : 0;
+            var majorPctVal = total ? Math.round((majorH / total) * 10000) / 100 : 0;
+            var nonPctVal = total ? Math.round((nonH / total) * 10000) / 100 : 0;
+            if (libPctInput) libPctInput.value = libPctVal;
+            if (majorPctInput) majorPctInput.value = majorPctVal;
+            if (nonPctInput) nonPctInput.value = nonPctVal;
+            var libEl = document.getElementById('ncsStep4LibHours');
+            var majorEl = document.getElementById('ncsStep4MajorHours');
+            var nonEl = document.getElementById('ncsStep4NonHours');
+            if (libEl) libEl.textContent = libH + ' 시간';
+            if (majorEl) majorEl.textContent = majorH + ' 시간';
+            if (nonEl) nonEl.textContent = nonH + ' 시간';
         }
 
         function syncTotalHoursFromDays() {
@@ -2138,10 +2256,20 @@
                 if (libForceEl.checked) {
                     var totalEl = document.getElementById('ncsStep4TotalHours');
                     var libPctEl = document.getElementById('ncsStep4LibPct');
+                    var majorPctEl = document.getElementById('ncsStep4MajorPct');
+                    var nonPctEl = document.getElementById('ncsStep4NonPct');
                     var total = parseInt(totalEl && totalEl.value ? totalEl.value : 0, 10) || 0;
                     var libPctVal = parseFloat(libPctEl && libPctEl.value ? libPctEl.value : 0) || 0;
+                    var majorPctVal = parseFloat(majorPctEl && majorPctEl.value ? majorPctEl.value : 0) || 0;
+                    var nonPctVal = parseFloat(nonPctEl && nonPctEl.value ? nonPctEl.value : 0) || 0;
                     var libInputEl = document.getElementById('ncsStep4LibHoursInput');
+                    var libDirectEl = document.getElementById('ncsStep4LibHoursDirect');
+                    var majorDirectEl = document.getElementById('ncsStep4MajorHoursDirect');
+                    var nonDirectEl = document.getElementById('ncsStep4NonHoursDirect');
                     if (libInputEl) libInputEl.value = Math.min(Math.round(total * libPctVal / 100), total);
+                    if (libDirectEl) libDirectEl.value = Math.min(Math.round(total * libPctVal / 100), total);
+                    if (majorDirectEl) majorDirectEl.value = Math.min(Math.round(total * majorPctVal / 100), total);
+                    if (nonDirectEl) nonDirectEl.value = Math.min(Math.round(total * nonPctVal / 100), total);
                 }
                 updatePctFromTotal();
                 updateCalculatedApplied();
@@ -2150,6 +2278,28 @@
             if (libHoursInputEl) {
                 libHoursInputEl.addEventListener('input', function () { updatePctFromTotal(); updateCalculatedApplied(); });
                 libHoursInputEl.addEventListener('change', function () { updatePctFromTotal(); updateCalculatedApplied(); });
+            }
+            var libDirectEl = document.getElementById('ncsStep4LibHoursDirect');
+            var majorDirectEl = document.getElementById('ncsStep4MajorHoursDirect');
+            var nonDirectEl = document.getElementById('ncsStep4NonHoursDirect');
+            function onTimeDirectInput(field) {
+                return function () {
+                    var libForceEl = document.getElementById('ncsStep4LibForce');
+                    if (libForceEl && libForceEl.checked) syncTimeInputsFromOne(field);
+                    updateCalculatedApplied();
+                };
+            }
+            if (libDirectEl) {
+                libDirectEl.addEventListener('input', onTimeDirectInput('lib'));
+                libDirectEl.addEventListener('change', onTimeDirectInput('lib'));
+            }
+            if (majorDirectEl) {
+                majorDirectEl.addEventListener('input', onTimeDirectInput('major'));
+                majorDirectEl.addEventListener('change', onTimeDirectInput('major'));
+            }
+            if (nonDirectEl) {
+                nonDirectEl.addEventListener('input', onTimeDirectInput('non'));
+                nonDirectEl.addEventListener('change', onTimeDirectInput('non'));
             }
         }
 
@@ -2173,7 +2323,10 @@
                 var cp = it.classification_path;
                 if (cp) {
                     var ncsLarge = (function (c) { var n = parseInt(c, 10); return isNaN(n) ? 'NCS' + c : 'NCS' + (n < 10 ? '00' : n < 100 ? '0' : '') + n; })(cp.largeCode);
-                    nameCell += '<br><span class="text-slate-400 font-mono text-xs">' + attrEsc(ncsLarge + (cp.largeName ? ' ' + cp.largeName : '') + ' > ' + (cp.midCode || '') + ' > ' + (cp.smallCode || '') + ' > ' + (cp.subCode || '')) + '</span>';
+                    var midPart = (cp.midCode || '') + (cp.midName ? ' ' + cp.midName : '');
+                    var smallPart = (cp.smallCode || '') + (cp.smallName ? ' ' + cp.smallName : '');
+                    var subPart = (cp.subCode || '') + (cp.subName ? ' ' + cp.subName : '');
+                    nameCell += '<br><span class="text-slate-400 font-mono text-xs">' + attrEsc(ncsLarge + (cp.largeName ? ' ' + cp.largeName : '') + ' > ' + midPart + ' > ' + smallPart + ' > ' + subPart) + '</span>';
                 }
                 return '<tr class="ncs-step4-row" data-curriculum-id="' + attrEsc(String(it.curriculum_id)) + '" data-type="' + attrEsc(it.type || '') + '">' +
                     '<td class="px-4 py-2 text-slate-600">' + (i + 1) + '</td>' +
@@ -2210,7 +2363,10 @@
                 return code ? (attrEsc(name) + ' <span class="text-slate-500 font-mono">(' + attrEsc(code) + ')</span>') : attrEsc(name);
             }).join(', ') : '—';
             var cp = it.classification_path;
-            var fullClassLine = cp ? (formatNcsLargeCode(cp.largeCode) + (cp.largeName ? ' (' + attrEsc(cp.largeName) + ')' : '') + ' &gt; ' + attrEsc(cp.midCode || '') + ' &gt; ' + attrEsc(cp.smallCode || '') + ' &gt; ' + attrEsc(cp.subCode || '') + (cp.unitCode ? ' | 능력단위: ' + attrEsc(cp.unitCode) : '')) : '';
+            var midPart = cp ? (attrEsc(cp.midCode || '') + (cp.midName ? ' ' + attrEsc(cp.midName) : '')) : '';
+            var smallPart = cp ? (attrEsc(cp.smallCode || '') + (cp.smallName ? ' ' + attrEsc(cp.smallName) : '')) : '';
+            var subPart = cp ? (attrEsc(cp.subCode || '') + (cp.subName ? ' ' + attrEsc(cp.subName) : '')) : '';
+            var fullClassLine = cp ? (formatNcsLargeCode(cp.largeCode) + (cp.largeName ? ' (' + attrEsc(cp.largeName) + ')' : '') + ' &gt; ' + midPart + ' &gt; ' + smallPart + ' &gt; ' + subPart + (cp.unitCode ? ' | 능력단위: ' + attrEsc(cp.unitCode) : '')) : '';
 
             return '<div class="rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition-all mb-6" data-curriculum-id="' + it.curriculum_id + '">' +
                 // Header Section
@@ -2344,11 +2500,6 @@
             var libPctSend = p.libPct;
             var majorPctSend = p.majorPct;
             var nonPctSend = p.nonPct;
-            if (p.manualLib && p.totalHours > 0) {
-                var rest = 100 - libPctSend;
-                majorPctSend = Math.round(rest * (p.majorPct || 0) / 100 * 100) / 100;
-                nonPctSend = Math.round(rest * (p.nonPct || 0) / 100 * 100) / 100;
-            }
             var payload = {
                 params: {
                     total_training_days: p.totalDays,
@@ -2365,18 +2516,10 @@
 
         function saveHours(redirectToNext) {
             var p = getParamsInputs();
-            if (p.manualLib) {
-                var restSum = (p.majorPct || 0) + (p.nonPct || 0);
-                if (Math.abs(restSum - 100) > 0.01) {
-                    alert('수동 입력 시 NCS 전공 비율과 비NCS 비율의 합이 100%가 되어야 합니다. (현재: ' + restSum.toFixed(1) + '%)');
-                    return;
-                }
-            } else {
-                var sumPct = (p.libPct || 0) + (p.majorPct || 0) + (p.nonPct || 0);
-                if (Math.abs(sumPct - 100) > 0.01) {
-                    alert('훈련시간 비율은 100%로 설정하셔야 합니다. (현재: ' + sumPct.toFixed(1) + '%)');
-                    return;
-                }
+            var sumPct = (p.libPct || 0) + (p.majorPct || 0) + (p.nonPct || 0);
+            if (Math.abs(sumPct - 100) > 0.01) {
+                alert('훈련시간 비율은 100%로 설정하셔야 합니다. (현재: ' + sumPct.toFixed(1) + '%)');
+                return;
             }
             var btnSave = document.getElementById('ncsStep4BtnSave');
             var btnNext = document.getElementById('ncsStep4BtnNext');
@@ -2506,6 +2649,7 @@
                 if (libPctEl && params.ncs_lib_arts_pct != null) libPctEl.value = params.ncs_lib_arts_pct;
                 if (majorPctEl && params.ncs_major_pct != null) majorPctEl.value = params.ncs_major_pct;
                 if (nonPctEl && params.non_ncs_pct != null) nonPctEl.value = params.non_ncs_pct;
+                updatePctFromTotal();
                 renderRows(data);
             })
             .catch(function () {

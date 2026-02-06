@@ -2618,7 +2618,7 @@ app.get('/approved/registrations/:id/training-hours', authMiddleware, requireAdm
                 hoursMap[row.curriculum_id] = { theory_hours: row.theory_hours ?? 0, practice_hours: row.practice_hours ?? 0 };
             });
         }
-        function parseClassificationFromUnitCode(abilityUnitsJson: string | null | undefined): { largeCode: string; largeName: string; midCode: string; smallCode: string; subCode: string; unitCode: string } | null {
+        function parseClassificationFromUnitCode(abilityUnitsJson: string | null | undefined): { largeCode: string; largeName: string; midCode: string; smallCode: string; subCode: string; unitCode: string; jobCode8: string } | null {
             if (!abilityUnitsJson) return null;
             let units: unknown[] = [];
             try {
@@ -2643,15 +2643,56 @@ app.get('/approved/registrations/:id/training-hours', authMiddleware, requireAdm
                 midCode,
                 smallCode,
                 subCode,
-                unitCode
+                unitCode,
+                jobCode8: largeCode + midCode + smallCode + subCode
             };
+        }
+
+        const ncsRows = (curriculum || []).filter((r: { type: string }) => r.type === 'ncs');
+        const jobCodesToLookup = ncsRows
+            .map((r: { ability_units_json?: string }) => parseClassificationFromUnitCode(r.ability_units_json)?.jobCode8)
+            .filter((c): c is string => !!c);
+        const uniqueJobCodes = [...new Set(jobCodesToLookup)] as string[];
+        let hierarchyMap: Record<string, { large_name: string; mid_name: string; small_name: string; job_name: string }> = {};
+        if (uniqueJobCodes.length > 0) {
+            try {
+                const placeholders = uniqueJobCodes.map(() => '?').join(',');
+                const { results: hierRows } = await c.env.DB.prepare(
+                    `SELECT job_code, large_name, mid_name, small_name, job_name FROM ncs_job_hierarchy WHERE job_code IN (${placeholders})`
+                ).bind(...uniqueJobCodes).all() as { results: { job_code: string; large_name: string | null; mid_name: string | null; small_name: string | null; job_name: string }[] };
+                (hierRows || []).forEach((r: { job_code: string; large_name: string | null; mid_name: string | null; small_name: string | null; job_name: string }) => {
+                    hierarchyMap[r.job_code] = {
+                        large_name: r.large_name ?? '',
+                        mid_name: r.mid_name ?? '',
+                        small_name: r.small_name ?? '',
+                        job_name: r.job_name ?? ''
+                    };
+                });
+            } catch (_) {
+                /* ncs_job_hierarchy may not exist or columns may differ */
+            }
         }
 
         const data = (curriculum || []).map((row: { id: number; type: string; name: string; job_name?: string; classification: string | null; ability_units_json?: string; sort_order: number }) => {
             const h = hoursMap[row.id] || { theory_hours: 0, practice_hours: 0 };
-            const classification_path = (row.type === 'ncs' && row.ability_units_json)
-                ? parseClassificationFromUnitCode(row.ability_units_json)
-                : null;
+            let classification_path: { largeCode: string; largeName: string; midCode: string; midName: string; smallCode: string; smallName: string; subCode: string; subName: string; unitCode: string } | null = null;
+            if (row.type === 'ncs' && row.ability_units_json) {
+                const parsed = parseClassificationFromUnitCode(row.ability_units_json);
+                if (parsed) {
+                    const hier = hierarchyMap[parsed.jobCode8];
+                    classification_path = {
+                        largeCode: parsed.largeCode,
+                        largeName: parsed.largeName,
+                        midCode: parsed.midCode,
+                        midName: hier?.mid_name ?? '',
+                        smallCode: parsed.smallCode,
+                        smallName: hier?.small_name ?? '',
+                        subCode: parsed.subCode,
+                        subName: hier?.job_name ?? '',
+                        unitCode: parsed.unitCode
+                    };
+                }
+            }
             return {
                 curriculum_id: row.id,
                 type: row.type,
