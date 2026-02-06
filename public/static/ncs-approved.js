@@ -1515,7 +1515,7 @@
                 // Container for Elements (Dynamic)
                 '<div class="mt-4 space-y-3 ncs-elements-container"></div>' +
                 '</div>' +
-                '<button type="button" class="btn-del-subject w-8 h-8 flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition" title="삭제"><i class="fas fa-times"></i></button>' +
+                '<button type="button" class="btn-del-subject h-9 px-3 border border-red-200 text-red-600 rounded-lg text-sm font-bold hover:bg-red-50 transition flex items-center gap-1.5" title="이 교과목 삭제"><i class="fas fa-trash-alt text-xs"></i> 삭제</button>' +
                 '</div>';
 
             container.appendChild(row);
@@ -1718,12 +1718,27 @@
             return { items: items };
         }
 
-        // Add NON-NCS Helpers
+        // Add NON-NCS Helpers (template: #nonNcsRowTemplate, container: #nonNcsCurriculumRows)
+        function getNonNcsRowTemplate() {
+            var template = document.getElementById('nonNcsRowTemplate');
+            if (template) {
+                var row = template.querySelector('.nonncs-curriculum-row');
+                if (row) return row;
+            }
+            return nonNcsRows.querySelector('.nonncs-curriculum-row');
+        }
+        function updateNonNcsHeaderButtons() {
+            var rows = nonNcsRows.querySelectorAll('.nonncs-curriculum-row');
+            var delBtn = document.getElementById('nonNcsCurriculumBtnDel');
+            if (delBtn) {
+                if (rows.length > 0) delBtn.classList.remove('hidden');
+                else delBtn.classList.add('hidden');
+            }
+        }
         function addNonNcsRow() {
-            // Reuse existing logic or simple re-implement
-            var first = nonNcsRows.querySelector('.nonncs-curriculum-row');
-            if (!first) return; // Expecting template row
-            var clone = first.cloneNode(true);
+            var source = getNonNcsRowTemplate();
+            if (!source) return;
+            var clone = source.cloneNode(true);
             clone.querySelectorAll('input, select').forEach(function (i) { i.value = ''; });
             var u = clone.querySelector('.nonncs-units');
             if (u) { u.innerHTML = '<div class="flex gap-2"><input type="text" class="nonncs-unit-item flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm" placeholder="단원명 입력"><button type="button" class="nonncs-unit-plus w-10 h-10 flex items-center justify-center text-blue-600 bg-blue-50 rounded-xl hover:bg-blue-100 transition">+</button></div>'; }
@@ -1731,22 +1746,15 @@
             if (o) { o.innerHTML = '<div class="flex gap-2"><input type="text" class="nonncs-obj-item flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm" placeholder="수행기준 입력"><button type="button" class="nonncs-obj-plus w-10 h-10 flex items-center justify-center text-blue-600 bg-blue-50 rounded-xl hover:bg-blue-100 transition">+</button></div>'; }
             nonNcsRows.appendChild(clone);
             wireNonNcsRow(clone);
+            updateNonNcsHeaderButtons();
         }
         function delNonNcsRow() {
-            var rows = nonNcsRows.querySelectorAll('.nonncs-curriculum-row');
-            if (rows.length <= 1) {
-                if (typeof alert === 'function') alert('비NCS 교과목은 최소 1개 이상 유지됩니다. 삭제할 수 있는 행이 없습니다.');
-                return;
-            }
-            rows[rows.length - 1].remove();
+            nonNcsRows.innerHTML = '';
+            updateNonNcsHeaderButtons();
         }
         function delNonNcsRowByElement(rowEl) {
-            var rows = nonNcsRows.querySelectorAll('.nonncs-curriculum-row');
-            if (rows.length <= 1) {
-                if (typeof alert === 'function') alert('비NCS 교과목은 최소 1개 이상 유지됩니다. 삭제할 수 있는 행이 없습니다.');
-                return;
-            }
             if (rowEl && rowEl.parentNode === nonNcsRows) rowEl.remove();
+            updateNonNcsHeaderButtons();
         }
         function wireNonNcsRow(row) {
             var units = row.querySelector('.nonncs-units');
@@ -1962,9 +1970,10 @@
                                 if (objs.length) oCont.innerHTML = objs.map(function (o) { return flexIn(o, '학습목표 입력').replace('nonncs-unit', 'nonncs-obj'); }).join('');
                             });
                             nonNcsRows.querySelectorAll('.nonncs-curriculum-row').forEach(function (r) { wireNonNcsRow(r); });
+                            updateNonNcsHeaderButtons();
                         } else {
-                            var first = nonNcsRows.querySelector('.nonncs-curriculum-row');
-                            if (first) wireNonNcsRow(first);
+                            nonNcsRows.innerHTML = '';
+                            updateNonNcsHeaderButtons();
                         }
 
                         if (loader) loader.classList.add('hidden');
@@ -1973,6 +1982,7 @@
                         var delNonAgain = document.getElementById('nonNcsCurriculumBtnDel');
                         if (addNonAgain) { addNonAgain.onclick = function () { addNonNcsRow(); }; }
                         if (delNonAgain) { delNonAgain.onclick = function () { delNonNcsRow(); }; }
+                        updateNonNcsHeaderButtons();
                     });
             });
     }

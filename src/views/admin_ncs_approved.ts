@@ -458,13 +458,13 @@ export function stepContentHtml(step: number, editId?: string, isEmbedded: boole
             </div>
             <div class="flex gap-2">
               <button type="button" id="nonNcsCurriculumBtnAdd" class="h-10 px-4 bg-slate-700 text-white rounded-xl text-sm font-bold hover:bg-slate-800 transition flex items-center gap-2">
-                <i class="fas fa-plus"></i> 교과목 추가
+                <i class="fas fa-plus"></i> 비NCS 교과목 추가
               </button>
-              <button type="button" id="nonNcsCurriculumBtnDel" class="h-10 px-4 bg-white border border-slate-200 text-slate-500 rounded-xl text-sm font-bold hover:bg-slate-50 transition">삭제</button>
+              <button type="button" id="nonNcsCurriculumBtnDel" class="nonncs-header-del h-10 px-4 bg-white border border-slate-200 text-slate-500 rounded-xl text-sm font-bold hover:bg-slate-50 transition hidden">전체 삭제</button>
             </div>
           </div>
           
-          <div id="nonNcsCurriculumRows" class="p-6 space-y-6">
+          <div id="nonNcsRowTemplate" class="hidden" aria-hidden="true" style="display: none;">
             <div class="nonncs-curriculum-row rounded-2xl border border-slate-100 p-6 bg-slate-50/30 space-y-6 relative">
               <div class="flex justify-end absolute top-4 right-4">
                 <button type="button" class="nonncs-row-delete h-9 px-3 border border-red-200 text-red-600 rounded-lg text-sm font-bold hover:bg-red-50 transition flex items-center gap-1.5" title="이 교과목 삭제">
@@ -487,7 +487,6 @@ export function stepContentHtml(step: number, editId?: string, isEmbedded: boole
                   <input type="text" class="nonncs-curriculum-name w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-blue-500/5 font-bold" placeholder="비NCS 교과목명 입력">
                 </div>
               </div>
-              
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="space-y-3">
                   <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">세부 단원(수업주제)</label>
@@ -509,6 +508,8 @@ export function stepContentHtml(step: number, editId?: string, isEmbedded: boole
                 </div>
               </div>
             </div>
+          </div>
+          <div id="nonNcsCurriculumRows" class="p-6 space-y-6">
           </div>
         </section>
 
