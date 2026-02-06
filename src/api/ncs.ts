@@ -2618,8 +2618,40 @@ app.get('/approved/registrations/:id/training-hours', authMiddleware, requireAdm
                 hoursMap[row.curriculum_id] = { theory_hours: row.theory_hours ?? 0, practice_hours: row.practice_hours ?? 0 };
             });
         }
+        function parseClassificationFromUnitCode(abilityUnitsJson: string | null | undefined): { largeCode: string; largeName: string; midCode: string; smallCode: string; subCode: string; unitCode: string } | null {
+            if (!abilityUnitsJson) return null;
+            let units: unknown[] = [];
+            try {
+                units = JSON.parse(abilityUnitsJson) as unknown[];
+            } catch {
+                return null;
+            }
+            if (!Array.isArray(units) || units.length === 0) return null;
+            const first = units[0];
+            const rawCode = typeof first === 'string' ? first : (first && typeof first === 'object' && 'code' in first ? String((first as { code: string }).code) : '');
+            const unitCode = typeof rawCode === 'string' ? rawCode.trim() : '';
+            const numPart = unitCode.split('_')[0] || '';
+            if (numPart.length < 8) return null;
+            const largeCode = numPart.substring(0, 2);
+            const midCode = numPart.substring(2, 4);
+            const smallCode = numPart.substring(4, 6);
+            const subCode = numPart.substring(6, 8);
+            const large = NCS_LARGE_CLASSES.find((x) => x.code === largeCode);
+            return {
+                largeCode,
+                largeName: large?.name ?? '',
+                midCode,
+                smallCode,
+                subCode,
+                unitCode
+            };
+        }
+
         const data = (curriculum || []).map((row: { id: number; type: string; name: string; job_name?: string; classification: string | null; ability_units_json?: string; sort_order: number }) => {
             const h = hoursMap[row.id] || { theory_hours: 0, practice_hours: 0 };
+            const classification_path = (row.type === 'ncs' && row.ability_units_json)
+                ? parseClassificationFromUnitCode(row.ability_units_json)
+                : null;
             return {
                 curriculum_id: row.id,
                 type: row.type,
@@ -2629,7 +2661,8 @@ app.get('/approved/registrations/:id/training-hours', authMiddleware, requireAdm
                 ability_units_json: row.ability_units_json,
                 sort_order: row.sort_order,
                 theory_hours: h.theory_hours,
-                practice_hours: h.practice_hours
+                practice_hours: h.practice_hours,
+                classification_path: classification_path || undefined
             };
         });
         console.log('[DEBUG] Training hours GET - Curriculum count:', data.length);

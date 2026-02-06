@@ -2021,21 +2021,56 @@
             var libPct = parseFloat(document.getElementById('ncsStep4LibPct') && document.getElementById('ncsStep4LibPct').value ? document.getElementById('ncsStep4LibPct').value : 0) || 0;
             var majorPct = parseFloat(document.getElementById('ncsStep4MajorPct') && document.getElementById('ncsStep4MajorPct').value ? document.getElementById('ncsStep4MajorPct').value : 0) || 0;
             var nonPct = parseFloat(document.getElementById('ncsStep4NonPct') && document.getElementById('ncsStep4NonPct').value ? document.getElementById('ncsStep4NonPct').value : 0) || 0;
-            return { totalDays: totalDays, dailyHours: dailyHours, totalHours: totalHours, libPct: libPct, majorPct: majorPct, nonPct: nonPct };
+            var libForceEl = document.getElementById('ncsStep4LibForce');
+            var manualLib = !!(libForceEl && libForceEl.checked);
+            var libHoursInputEl = document.getElementById('ncsStep4LibHoursInput');
+            var manualLibHours = (manualLib && libHoursInputEl && libHoursInputEl.value !== '') ? Math.max(0, parseInt(libHoursInputEl.value, 10) || 0) : 0;
+            if (manualLib && totalHours > 0) {
+                manualLibHours = Math.min(manualLibHours, totalHours);
+                libPct = Math.round((manualLibHours / totalHours) * 10000) / 100;
+            }
+            return { totalDays: totalDays, dailyHours: dailyHours, totalHours: totalHours, libPct: libPct, majorPct: majorPct, nonPct: nonPct, manualLib: manualLib, manualLibHours: manualLibHours };
+        }
+
+        function getLibHours(p) {
+            if (!p) p = getParamsInputs();
+            if (p.manualLib) return Math.min(p.manualLibHours || 0, p.totalHours || 0);
+            return Math.round((p.totalHours || 0) * (p.libPct || 0) / 100);
         }
 
         function updatePctFromTotal() {
             var p = getParamsInputs();
             var total = p.totalHours || 0;
-            var libH = Math.round(total * (p.libPct || 0) / 100);
-            var majorH = Math.round(total * (p.majorPct || 0) / 100);
-            var nonH = Math.round(total * (p.nonPct || 0) / 100);
+            var libH, majorH, nonH;
+            if (p.manualLib) {
+                libH = Math.min(p.manualLibHours || 0, total);
+                var remaining = Math.max(0, total - libH);
+                majorH = Math.round(remaining * (p.majorPct || 0) / 100);
+                nonH = Math.round(remaining * (p.nonPct || 0) / 100);
+            } else {
+                libH = Math.round(total * (p.libPct || 0) / 100);
+                majorH = Math.round(total * (p.majorPct || 0) / 100);
+                nonH = Math.round(total * (p.nonPct || 0) / 100);
+            }
             var libEl = document.getElementById('ncsStep4LibHours');
             var majorEl = document.getElementById('ncsStep4MajorHours');
             var nonEl = document.getElementById('ncsStep4NonHours');
-            if (libEl) libEl.value = libH;
-            if (majorEl) majorEl.value = majorH;
-            if (nonEl) nonEl.value = nonH;
+            var libInputWrap = document.getElementById('ncsStep4LibHoursInputWrap');
+            var libInputEl = document.getElementById('ncsStep4LibHoursInput');
+            var libPctInput = document.getElementById('ncsStep4LibPct');
+            if (libEl) libEl.textContent = libH + ' 시간';
+            if (majorEl) majorEl.textContent = majorH + ' 시간';
+            if (nonEl) nonEl.textContent = nonH + ' 시간';
+            if (p.manualLib) {
+                if (libInputWrap) libInputWrap.classList.remove('hidden');
+                if (libEl) libEl.classList.add('hidden');
+                if (libInputEl) { libInputEl.value = libH; libInputEl.max = total; }
+                if (libPctInput) { libPctInput.value = total ? (Math.round((libH / total) * 10000) / 100) : 0; libPctInput.disabled = true; }
+            } else {
+                if (libInputWrap) libInputWrap.classList.add('hidden');
+                if (libEl) libEl.classList.remove('hidden');
+                if (libPctInput) libPctInput.disabled = false;
+            }
         }
 
         function syncTotalHoursFromDays() {
@@ -2079,10 +2114,13 @@
             var tabBasic = document.getElementById('ncsStep4TabBasic');
             var tabNcs = document.getElementById('ncsStep4TabNcs');
             var tabNonncs = document.getElementById('ncsStep4TabNonncs');
-            var basicAlloc = p.totalHours ? Math.round(p.totalHours * (p.libPct || 0) / 100) : 0;
-            if (tabBasic) tabBasic.textContent = '(' + basicAssigned + '/' + basicAlloc + ')시간';
-            if (tabNcs) tabNcs.textContent = '(' + ncsAssigned + '/' + (p.totalHours ? Math.round(p.totalHours * (p.majorPct + p.libPct) / 100) : 0) + ')시간';
-            if (tabNonncs) tabNonncs.textContent = '(' + nonAssigned + '/' + (p.totalHours ? Math.round(p.totalHours * p.nonPct / 100) : 0) + ')시간';
+            var totalH = p.totalHours || 0;
+            var libH = getLibHours(p);
+            var majorAlloc = p.manualLib ? Math.round((totalH - libH) * (p.majorPct || 0) / 100) : Math.round(totalH * (p.majorPct || 0) / 100);
+            var nonAlloc = p.manualLib ? Math.round((totalH - libH) * (p.nonPct || 0) / 100) : Math.round(totalH * (p.nonPct || 0) / 100);
+            if (tabBasic) tabBasic.textContent = '(' + basicAssigned + '/' + libH + ')시간';
+            if (tabNcs) tabNcs.textContent = '(' + ncsAssigned + '/' + (libH + majorAlloc) + ')시간';
+            if (tabNonncs) tabNonncs.textContent = '(' + nonAssigned + '/' + nonAlloc + ')시간';
         }
 
         function wireParamsInputs() {
@@ -2095,6 +2133,24 @@
                     updateCalculatedApplied();
                 });
             });
+            var libForceEl = document.getElementById('ncsStep4LibForce');
+            if (libForceEl) libForceEl.addEventListener('change', function () {
+                if (libForceEl.checked) {
+                    var totalEl = document.getElementById('ncsStep4TotalHours');
+                    var libPctEl = document.getElementById('ncsStep4LibPct');
+                    var total = parseInt(totalEl && totalEl.value ? totalEl.value : 0, 10) || 0;
+                    var libPctVal = parseFloat(libPctEl && libPctEl.value ? libPctEl.value : 0) || 0;
+                    var libInputEl = document.getElementById('ncsStep4LibHoursInput');
+                    if (libInputEl) libInputEl.value = Math.min(Math.round(total * libPctVal / 100), total);
+                }
+                updatePctFromTotal();
+                updateCalculatedApplied();
+            });
+            var libHoursInputEl = document.getElementById('ncsStep4LibHoursInput');
+            if (libHoursInputEl) {
+                libHoursInputEl.addEventListener('input', function () { updatePctFromTotal(); updateCalculatedApplied(); });
+                libHoursInputEl.addEventListener('change', function () { updatePctFromTotal(); updateCalculatedApplied(); });
+            }
         }
 
         function renderRows(items) {
@@ -2114,6 +2170,11 @@
                 try { abilityUnits = it.ability_units_json ? JSON.parse(it.ability_units_json) : []; } catch (e) { }
                 var codes = abilityUnits.map(function (u) { return typeof u === 'string' ? u : (u.code || u.name || ''); }).filter(Boolean);
                 if (codes.length) nameCell += ' <span class="text-slate-500 font-mono text-xs">(' + codes.map(attrEsc).join(', ') + ')</span>';
+                var cp = it.classification_path;
+                if (cp) {
+                    var ncsLarge = (function (c) { var n = parseInt(c, 10); return isNaN(n) ? 'NCS' + c : 'NCS' + (n < 10 ? '00' : n < 100 ? '0' : '') + n; })(cp.largeCode);
+                    nameCell += '<br><span class="text-slate-400 font-mono text-xs">' + attrEsc(ncsLarge + (cp.largeName ? ' ' + cp.largeName : '') + ' > ' + (cp.midCode || '') + ' > ' + (cp.smallCode || '') + ' > ' + (cp.subCode || '')) + '</span>';
+                }
                 return '<tr class="ncs-step4-row" data-curriculum-id="' + attrEsc(String(it.curriculum_id)) + '" data-type="' + attrEsc(it.type || '') + '">' +
                     '<td class="px-4 py-2 text-slate-600">' + (i + 1) + '</td>' +
                     '<td class="px-4 py-2 font-medium text-slate-800">' + nameCell + '</td>' +
@@ -2134,6 +2195,12 @@
             return (it.type || '') === 'basic' || (it.classification && (String(it.classification).indexOf('기초') >= 0 || String(it.classification).indexOf('소양') >= 0));
         }
 
+        function formatNcsLargeCode(code) {
+            if (!code) return '';
+            var n = parseInt(code, 10);
+            if (isNaN(n)) return 'NCS' + String(code);
+            return 'NCS' + (n < 10 ? '00' : n < 100 ? '0' : '') + n;
+        }
         function cardHtml(it, th, pr) {
             var abilityUnits = [];
             try { abilityUnits = it.ability_units_json ? JSON.parse(it.ability_units_json) : []; } catch (e) { }
@@ -2142,6 +2209,8 @@
                 var code = typeof u === 'string' ? u : (u.code || '');
                 return code ? (attrEsc(name) + ' <span class="text-slate-500 font-mono">(' + attrEsc(code) + ')</span>') : attrEsc(name);
             }).join(', ') : '—';
+            var cp = it.classification_path;
+            var fullClassLine = cp ? (formatNcsLargeCode(cp.largeCode) + (cp.largeName ? ' (' + attrEsc(cp.largeName) + ')' : '') + ' &gt; ' + attrEsc(cp.midCode || '') + ' &gt; ' + attrEsc(cp.smallCode || '') + ' &gt; ' + attrEsc(cp.subCode || '') + (cp.unitCode ? ' | 능력단위: ' + attrEsc(cp.unitCode) : '')) : '';
 
             return '<div class="rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition-all mb-6" data-curriculum-id="' + it.curriculum_id + '">' +
                 // Header Section
@@ -2153,6 +2222,7 @@
                 attrEsc(it.name || '') +
                 (abilityUnits.length ? ' <span class="text-slate-500 font-mono text-sm font-normal">(' + abilityUnits.map(function (u) { var c = typeof u === 'string' ? u : (u.code || ''); return attrEsc(c); }).filter(Boolean).join(', ') + ')</span>' : '') +
                 '</h4>' +
+                (fullClassLine ? '<p class="text-xs text-slate-500 mt-1"><span class="font-bold">전체분류:</span> <span class="font-mono">' + fullClassLine + '</span></p>' : '') +
                 '<p class="text-xs text-slate-500 mt-1"><span class="font-bold">능력단위:</span> ' + unitLabel + '</p>' +
                 '</div>' +
                 '<div class="flex items-center gap-2">' +
@@ -2271,14 +2341,22 @@
                 if (cid) items.push({ curriculum_id: parseInt(cid, 10), theory_hours: theory, practice_hours: practice });
             });
             var p = getParamsInputs();
+            var libPctSend = p.libPct;
+            var majorPctSend = p.majorPct;
+            var nonPctSend = p.nonPct;
+            if (p.manualLib && p.totalHours > 0) {
+                var rest = 100 - libPctSend;
+                majorPctSend = Math.round(rest * (p.majorPct || 0) / 100 * 100) / 100;
+                nonPctSend = Math.round(rest * (p.nonPct || 0) / 100 * 100) / 100;
+            }
             var payload = {
                 params: {
                     total_training_days: p.totalDays,
                     daily_training_hours: p.dailyHours,
                     total_training_hours: p.totalHours,
-                    ncs_lib_arts_pct: p.libPct,
-                    ncs_major_pct: p.majorPct,
-                    non_ncs_pct: p.nonPct
+                    ncs_lib_arts_pct: libPctSend,
+                    ncs_major_pct: majorPctSend,
+                    non_ncs_pct: nonPctSend
                 },
                 items: items
             };
@@ -2287,10 +2365,18 @@
 
         function saveHours(redirectToNext) {
             var p = getParamsInputs();
-            var sumPct = (p.libPct || 0) + (p.majorPct || 0) + (p.nonPct || 0);
-            if (Math.abs(sumPct - 100) > 0.01) {
-                alert('훈련시간 비율은 100%로 설정하셔야 합니다. (현재: ' + sumPct.toFixed(1) + '%)');
-                return;
+            if (p.manualLib) {
+                var restSum = (p.majorPct || 0) + (p.nonPct || 0);
+                if (Math.abs(restSum - 100) > 0.01) {
+                    alert('수동 입력 시 NCS 전공 비율과 비NCS 비율의 합이 100%가 되어야 합니다. (현재: ' + restSum.toFixed(1) + '%)');
+                    return;
+                }
+            } else {
+                var sumPct = (p.libPct || 0) + (p.majorPct || 0) + (p.nonPct || 0);
+                if (Math.abs(sumPct - 100) > 0.01) {
+                    alert('훈련시간 비율은 100%로 설정하셔야 합니다. (현재: ' + sumPct.toFixed(1) + '%)');
+                    return;
+                }
             }
             var btnSave = document.getElementById('ncsStep4BtnSave');
             var btnNext = document.getElementById('ncsStep4BtnNext');
