@@ -2738,8 +2738,6 @@
         form.classList.remove('hidden');
 
         var instructors = [];
-        var textbooks = [];
-        var materials = [];
         var curriculum = [];
 
         function getToken() { return localStorage.getItem('token'); }
@@ -2766,11 +2764,6 @@
             var evaluationMethods = [];
             try { evaluationMethods = item.evaluation_methods_json ? JSON.parse(item.evaluation_methods_json) : ['']; } catch (e) { evaluationMethods = ['']; }
             if (!evaluationMethods.length) evaluationMethods = [''];
-            var textbookIds = [];
-            try { textbookIds = item.textbook_ids_json ? JSON.parse(item.textbook_ids_json) : []; } catch (e) { }
-            var materialIds = [];
-            try { materialIds = item.material_ids_json ? JSON.parse(item.material_ids_json) : []; } catch (e) { }
-
             var instructorChecks = instructors.map(function (ins) {
                 var checked = mainInstructorIds.indexOf(ins.id) !== -1 ? 'checked' : '';
                 return '<label class="flex items-center gap-2 text-sm cursor-pointer group"><input type="checkbox" class="ins-cb w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" value="' + ins.id + '" ' + checked + '> <span class="text-slate-600 group-hover:text-slate-900 transition-colors">' + esc(ins.name) + '</span></label>';
@@ -2779,16 +2772,6 @@
             var evaluatorOpts = instructors.map(function (ins) {
                 var sel = item.evaluator_id == ins.id ? 'selected' : '';
                 return '<option value="' + ins.id + '" ' + sel + '>' + esc(ins.name) + '</option>';
-            }).join('');
-
-            var textbookChecks = textbooks.map(function (tx) {
-                var checked = textbookIds.indexOf(tx.id) !== -1 ? 'checked' : '';
-                return '<label class="flex items-center gap-2 text-sm cursor-pointer group"><input type="checkbox" class="tx-cb w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" value="' + tx.id + '" ' + checked + '> <span class="text-slate-600 group-hover:text-slate-900 transition-colors">' + esc(tx.name) + '</span></label>';
-            }).join('');
-
-            var materialChecks = materials.map(function (mt) {
-                var checked = materialIds.indexOf(mt.id) !== -1 ? 'checked' : '';
-                return '<label class="flex items-center gap-2 text-sm cursor-pointer group"><input type="checkbox" class="mt-cb w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" value="' + mt.id + '" ' + checked + '> <span class="text-slate-600 group-hover:text-slate-900 transition-colors">' + esc(mt.name) + '</span></label>';
             }).join('');
 
             return '<div class="curriculum-card bg-white border border-slate-200 rounded-[2rem] shadow-sm hover:shadow-md transition-all mb-10 overflow-hidden" data-id="' + item.id + '">' +
@@ -2857,22 +2840,6 @@
                 }).join('') +
                 '</div>' +
                 '</div>' +
-
-                '<!-- 교재 선택 -->' +
-                '<div class="space-y-4">' +
-                '<label class="block text-[11px] font-black text-slate-400 uppercase tracking-widest border-l-4 border-blue-500 pl-3">교재 선택</label>' +
-                '<div class="flex flex-wrap gap-4 p-4 bg-slate-50/50 rounded-2xl border border-slate-100">' +
-                (textbookChecks || '<span class="text-slate-400 text-xs italic">등록된 교재가 없습니다.</span>') +
-                '</div>' +
-                '</div>' +
-
-                '<!-- 재료 선택 -->' +
-                '<div class="space-y-4">' +
-                '<label class="block text-[11px] font-black text-slate-400 uppercase tracking-widest border-l-4 border-blue-500 pl-3">훈련 재료 / 소모품</label>' +
-                '<div class="flex flex-wrap gap-4 p-4 bg-slate-50/50 rounded-2xl border border-slate-100">' +
-                (materialChecks || '<span class="text-slate-400 text-xs italic">등록된 재료가 없습니다.</span>') +
-                '</div>' +
-                '</div>' +
                 '</div>' +
                 '</div>';
         }
@@ -2905,15 +2872,10 @@
 
         Promise.all([
             apiFetch('/api/ncs/approved/instructors'),
-            apiFetch('/api/ncs/approved/hrd-items?category=textbook'),
-            apiFetch('/api/ncs/approved/hrd-items?category=equipment'),
-            apiFetch('/api/ncs/approved/hrd-items?category=consumable'),
             apiFetch('/api/ncs/approved/registrations/' + regId + '/evaluation-teaching')
         ]).then(function (results) {
             instructors = results[0].success ? results[0].data : [];
-            textbooks = results[1].success ? results[1].data : [];
-            materials = (results[2].success ? results[2].data : []).concat(results[3].success ? results[3].data : []);
-            curriculum = results[4].success ? results[4].data : [];
+            curriculum = results[1].success ? results[1].data : [];
 
             var secLib = document.getElementById('sectionNcsLib');
             var secMajor = document.getElementById('sectionNcsMajor');
@@ -2948,19 +2910,21 @@
                 card.querySelectorAll('.t-method-sel').forEach(function (s) { if (s.value) tMethods.push(s.value); });
                 var eMethods = [];
                 card.querySelectorAll('.e-method-sel').forEach(function (s) { if (s.value) eMethods.push(s.value); });
-                var textbooksSelected = [];
-                card.querySelectorAll('.tx-cb:checked').forEach(function (cb) { textbooksSelected.push(parseInt(cb.value, 10)); });
-                var materialsSelected = [];
-                card.querySelectorAll('.mt-cb:checked').forEach(function (cb) { materialsSelected.push(parseInt(cb.value, 10)); });
-
+                var curItem = curriculum.filter(function (it) { return it.id === id; })[0];
+                var textbookIds = [];
+                var materialIds = [];
+                if (curItem) {
+                    try { textbookIds = curItem.textbook_ids_json ? JSON.parse(curItem.textbook_ids_json) : []; } catch (e) { }
+                    try { materialIds = curItem.material_ids_json ? JSON.parse(curItem.material_ids_json) : []; } catch (e) { }
+                }
                 items.push({
                     id: id,
                     main_instructor_ids: instructorsSelected,
                     evaluator_id: evaluatorId,
                     teaching_methods: tMethods,
                     evaluation_methods: eMethods,
-                    textbook_ids: textbooksSelected,
-                    material_ids: materialsSelected
+                    textbook_ids: textbookIds,
+                    material_ids: materialIds
                 });
             });
 
@@ -3019,6 +2983,8 @@
 
         var allFacilities = [];
         var allEquipment = [];
+        var allTextbooks = [];
+        var allMaterials = [];
         var curriculum = [];
 
         function getToken() { return localStorage.getItem('token'); }
@@ -3073,6 +3039,19 @@
             try { selectedFacilities = item.facility_ids_json ? JSON.parse(item.facility_ids_json) : []; } catch (e) { }
             var selectedEquipment = [];
             try { selectedEquipment = item.equipment_ids_json ? JSON.parse(item.equipment_ids_json) : []; } catch (e) { }
+            var selectedTextbooks = [];
+            try { selectedTextbooks = item.textbook_ids_json ? JSON.parse(item.textbook_ids_json) : []; } catch (e) { }
+            var selectedMaterials = [];
+            try { selectedMaterials = item.material_ids_json ? JSON.parse(item.material_ids_json) : []; } catch (e) { }
+
+            var textbookChecks = allTextbooks.map(function (tx) {
+                var checked = selectedTextbooks.indexOf(tx.id) !== -1 ? 'checked' : '';
+                return '<label class="flex items-center gap-2 text-sm cursor-pointer group"><input type="checkbox" class="step6-tx-cb w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" value="' + tx.id + '" ' + checked + '> <span class="text-slate-600 group-hover:text-slate-900">' + esc(tx.name) + '</span></label>';
+            }).join('');
+            var materialChecks = allMaterials.map(function (mt) {
+                var checked = selectedMaterials.indexOf(mt.id) !== -1 ? 'checked' : '';
+                return '<label class="flex items-center gap-2 text-sm cursor-pointer group"><input type="checkbox" class="step6-mt-cb w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" value="' + mt.id + '" ' + checked + '> <span class="text-slate-600 group-hover:text-slate-900">' + esc(mt.name) + '</span></label>';
+            }).join('');
 
             var typeLabel = item.type === 'ncs' ? 'NCS 전공교과' : (item.type === 'basic' ? 'NCS 소양교과' : '비 NCS 교과');
             var hours = (Number(item.theory_hours) || 0) + (Number(item.practice_hours) || 0);
@@ -3087,9 +3066,23 @@
                 '<p class="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">' + typeLabel + ' <span class="mx-2 opacity-50">|</span> ' + hours + ' 훈련시간</p>' +
                 '</div>' +
                 '</div>' +
-                '<div class="flex flex-col xl:flex-row gap-12">' +
+                '<div class="flex flex-col xl:flex-row gap-12 mb-10">' +
                 createDualList('시설(강의실/실습실) 매칭', 'facilities', allFacilities, selectedFacilities) +
                 createDualList('장비 및 기자재 매칭', 'equipment', allEquipment, selectedEquipment) +
+                '</div>' +
+                '<div class="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-slate-100">' +
+                '<div class="space-y-4">' +
+                '<label class="block text-[11px] font-black text-slate-400 uppercase tracking-widest border-l-4 border-blue-500 pl-3">교재 선택</label>' +
+                '<div class="flex flex-wrap gap-4 p-4 bg-slate-50/50 rounded-2xl border border-slate-100">' +
+                (textbookChecks || '<span class="text-slate-400 text-xs italic">등록된 교재가 없습니다.</span>') +
+                '</div>' +
+                '</div>' +
+                '<div class="space-y-4">' +
+                '<label class="block text-[11px] font-black text-slate-400 uppercase tracking-widest border-l-4 border-blue-500 pl-3">훈련 재료 / 소모품</label>' +
+                '<div class="flex flex-wrap gap-4 p-4 bg-slate-50/50 rounded-2xl border border-slate-100">' +
+                (materialChecks || '<span class="text-slate-400 text-xs italic">등록된 재료가 없습니다.</span>') +
+                '</div>' +
+                '</div>' +
                 '</div>' +
                 '</div>';
         }
@@ -3147,11 +3140,15 @@
         Promise.all([
             apiFetch('/api/ncs/approved/facilities'),
             apiFetch('/api/ncs/approved/hrd-items?category=equipment'),
+            apiFetch('/api/ncs/approved/hrd-items?category=textbook'),
+            apiFetch('/api/ncs/approved/hrd-items?category=consumable'),
             apiFetch('/api/ncs/approved/registrations/' + regId + '/facilities-equipment')
         ]).then(function (results) {
             allFacilities = results[0].success ? results[0].data : [];
             allEquipment = results[1].success ? results[1].data : [];
-            curriculum = results[2].success ? results[2].data : [];
+            allTextbooks = results[2].success ? results[2].data : [];
+            allMaterials = results[3].success ? results[3].data : [];
+            curriculum = results[4].success ? results[4].data : [];
 
             form.innerHTML = curriculum.length ? curriculum.map(renderSubjectCard).join('') : '<p class="text-center text-slate-400 py-12">등록된 교과목이 없습니다.</p>';
             wireEvents();
@@ -3172,11 +3169,17 @@
                 card.querySelectorAll('.dual-list-container[data-type="equipment"] .selected-list .list-item').forEach(function (el) {
                     equipmentIds.push(parseInt(el.getAttribute('data-id'), 10));
                 });
+                var textbookIds = [];
+                card.querySelectorAll('.step6-tx-cb:checked').forEach(function (cb) { textbookIds.push(parseInt(cb.value, 10)); });
+                var materialIds = [];
+                card.querySelectorAll('.step6-mt-cb:checked').forEach(function (cb) { materialIds.push(parseInt(cb.value, 10)); });
 
                 items.push({
                     id: id,
                     facility_ids: facilityIds,
-                    equipment_ids: equipmentIds
+                    equipment_ids: equipmentIds,
+                    textbook_ids: textbookIds,
+                    material_ids: materialIds
                 });
             });
 

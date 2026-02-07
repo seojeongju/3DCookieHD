@@ -2934,7 +2934,7 @@ app.get('/approved/registrations/:id/facilities-equipment', authMiddleware, requ
 
         const { results: curriculum } = await c.env.DB.prepare(
             'SELECT * FROM ncs_approved_curriculum WHERE registration_id = ? ORDER BY sort_order ASC, id ASC'
-        ).all() as { results: any[] };
+        ).bind(id).all() as { results: any[] };
 
         return c.json({ success: true, data: curriculum || [] });
     } catch (e) {
@@ -2943,7 +2943,7 @@ app.get('/approved/registrations/:id/facilities-equipment', authMiddleware, requ
     }
 });
 
-/** 시설·장비(6단계) 저장 */
+/** 시설·장비(6단계) 저장 — 시설, 장비, 교재, 훈련재료/소모품 */
 app.put('/approved/registrations/:id/facilities-equipment', authMiddleware, requireAdmin, async (c) => {
     try {
         const id = parseInt(c.req.param('id'), 10);
@@ -2953,6 +2953,8 @@ app.put('/approved/registrations/:id/facilities-equipment', authMiddleware, requ
                 id: number;
                 facility_ids?: number[];
                 equipment_ids?: number[];
+                textbook_ids?: number[];
+                material_ids?: number[];
             }[]
         }>();
         const items = Array.isArray(body.items) ? body.items : [];
@@ -2963,14 +2965,18 @@ app.put('/approved/registrations/:id/facilities-equipment', authMiddleware, requ
 
             const facilitiesJson = it.facility_ids ? JSON.stringify(it.facility_ids) : null;
             const equipmentJson = it.equipment_ids ? JSON.stringify(it.equipment_ids) : null;
+            const textbookIdsJson = it.textbook_ids ? JSON.stringify(it.textbook_ids) : null;
+            const materialIdsJson = it.material_ids ? JSON.stringify(it.material_ids) : null;
 
             await c.env.DB.prepare(
                 `UPDATE ncs_approved_curriculum SET 
                     facility_ids_json = ?, 
                     equipment_ids_json = ?, 
+                    textbook_ids_json = ?, 
+                    material_ids_json = ?, 
                     updated_at = datetime('now') 
                 WHERE id = ? AND registration_id = ?`
-            ).bind(facilitiesJson, equipmentJson, curriculumId, id).run();
+            ).bind(facilitiesJson, equipmentJson, textbookIdsJson, materialIdsJson, curriculumId, id).run();
         }
 
         return c.json({ success: true });
