@@ -3016,13 +3016,13 @@
             return '<div class="flex-1 dual-list-block" data-type="' + type + '">' +
                 '<div class="dual-list-container" data-type="' + type + '">' +
                 '<div class="list-box-wrapper list-box-left">' +
-                '<div class="list-box-header">전체 목록 <span class="text-slate-400 font-normal text-[10px]">(클릭 시 오른쪽으로 추가)</span></div>' +
+                '<div class="list-box-header"><span class="step6-pane-label step6-pane-label-left">좌측</span> 전체 목록 <span class="text-slate-500 font-normal text-[11px]">· 클릭 시 오른쪽 박스로 추가</span></div>' +
                 '<div class="list-box-filter-wrap">' +
                 '<input type="text" class="list-box-filter w-full" placeholder="검색..." aria-label="목록 검색"></div>' +
                 '<div class="list-content available-list">' + availableItems.map(itemHtml).join('') + '</div>' +
                 '</div>' +
                 '<div class="list-box-wrapper list-box-right">' +
-                '<div class="list-box-header">선택됨 <span class="list-selected-count-inline">' + selectedCount + '</span>개 <span class="text-slate-400 font-normal text-[10px]">(클릭 시 선택 해제)</span></div>' +
+                '<div class="list-box-header"><span class="step6-pane-label step6-pane-label-right">우측</span> 선택됨 <span class="list-selected-count-inline">' + selectedCount + '</span>개 <span class="text-slate-500 font-normal text-[11px]">· 클릭 시 해제</span></div>' +
                 '<div class="list-box-filter-wrap">' +
                 '<input type="text" class="list-box-filter w-full" placeholder="검색..." aria-label="선택 목록 검색"></div>' +
                 '<div class="list-content selected-list">' + selectedItems.map(itemHtml).join('') + '</div>' +
