@@ -13,6 +13,7 @@ const app = new Hono<{ Bindings: Bindings }>();
 app.get('/stats', authMiddleware, requireAdmin, async (c) => {
   try {
     const categoryId = c.req.query('category_id');
+    const approvedCourseId = c.req.query('approved_course_id');
     const name = c.req.query('name');
     const instructorName = c.req.query('instructor_name');
     const trainingStartFrom = c.req.query('training_start_from');
@@ -20,6 +21,10 @@ app.get('/stats', authMiddleware, requireAdmin, async (c) => {
     const { DB } = c.env;
     const params: (string | number)[] = [];
     const conditions: string[] = ['1=1'];
+    if (approvedCourseId !== undefined && approvedCourseId !== '') {
+      conditions.push('s.approved_course_id = ?');
+      params.push(approvedCourseId);
+    }
     if (categoryId !== undefined && categoryId !== '') {
       conditions.push('a.category_id = ?');
       params.push(categoryId);
@@ -66,6 +71,7 @@ app.get('/stats', authMiddleware, requireAdmin, async (c) => {
 app.get('/', authMiddleware, requireAdmin, async (c) => {
   try {
     const categoryId = c.req.query('category_id');
+    const approvedCourseId = c.req.query('approved_course_id');
     const status = c.req.query('status');
     const name = c.req.query('name');
     const instructorName = c.req.query('instructor_name');
@@ -77,6 +83,10 @@ app.get('/', authMiddleware, requireAdmin, async (c) => {
     const { DB } = c.env;
     const params: (string | number)[] = [];
     const conditions: string[] = ['1=1'];
+    if (approvedCourseId !== undefined && approvedCourseId !== '') {
+      conditions.push('s.approved_course_id = ?');
+      params.push(approvedCourseId);
+    }
     if (categoryId !== undefined && categoryId !== '') {
       conditions.push('a.category_id = ?');
       params.push(categoryId);

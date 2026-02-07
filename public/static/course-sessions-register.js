@@ -113,8 +113,39 @@
             });
     }
 
+    function getQueryParam(name) {
+        var q = typeof window !== 'undefined' && window.location && window.location.search ? window.location.search.slice(1) : '';
+        var params = {};
+        q.split('&').forEach(function(pair) {
+            var i = pair.indexOf('=');
+            if (i >= 0) params[decodeURIComponent(pair.slice(0, i))] = decodeURIComponent((pair.slice(i + 1) || '').replace(/\+/g, ' '));
+        });
+        return params[name] || '';
+    }
+
     form.addEventListener('submit', submitForm);
+    var approvedCourseIdFromQuery = getQueryParam('approvedCourseId');
     loadApprovedCourses().then(function() {
-        if (editId) loadSession(editId);
+        if (editId) {
+            loadSession(editId);
+            return;
+        }
+        if (approvedCourseIdFromQuery) {
+            var sel = document.getElementById('sessionsFormApprovedCourse');
+            if (sel) sel.value = approvedCourseIdFromQuery;
+            var numEl = document.getElementById('sessionsFormSessionNumber');
+            if (numEl) {
+                fetch('/api/course-sessions?approved_course_id=' + encodeURIComponent(approvedCourseIdFromQuery) + '&limit=500', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } })
+                    .then(function(r) { return r.json(); })
+                    .then(function(json) {
+                        if (!json.success || !json.data) return;
+                        var list = Array.isArray(json.data) ? json.data : (json.data.list || []);
+                        var maxNum = 0;
+                        list.forEach(function(s) { if (s.session_number != null && s.session_number > maxNum) maxNum = s.session_number; });
+                        numEl.value = maxNum + 1;
+                    })
+                    .catch(function() { numEl.value = numEl.value || '1'; });
+            }
+        }
     });
 })();

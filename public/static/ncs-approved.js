@@ -2670,14 +2670,40 @@
             var cid = btn.getAttribute('data-curriculum-id');
             if (!cid) return;
             var row = tbody.querySelector('.ncs-step4-row[data-curriculum-id="' + cid + '"]');
-            if (!row) return;
-            var theoryIn = row.querySelector('.ncs-step4-theory');
-            var practiceIn = row.querySelector('.ncs-step4-practice');
-            var t = Math.max(0, parseInt(theoryIn && theoryIn.value ? theoryIn.value : 0, 10) || 0);
-            var p = Math.max(0, parseInt(practiceIn && practiceIn.value ? practiceIn.value : 0, 10) || 0);
+            if (!row && tbody.querySelectorAll('.ncs-step4-row').length) {
+                tbody.querySelectorAll('.ncs-step4-row').forEach(function (tr) {
+                    if (String(tr.getAttribute('data-curriculum-id')) === String(cid)) row = tr;
+                });
+            }
+            var theoryIn = row ? row.querySelector('.ncs-step4-theory') : null;
+            var practiceIn = row ? row.querySelector('.ncs-step4-practice') : null;
+            var t = 0, p = 0;
+            if (theoryIn && practiceIn) {
+                t = Math.max(0, parseInt(theoryIn.value, 10) || 0);
+                p = Math.max(0, parseInt(practiceIn.value, 10) || 0);
+            }
+            var card = btn.closest && btn.closest('[data-curriculum-id]');
+            if ((t === 0 && p === 0) && card) {
+                var cardTheory = card.querySelector('.ncs-step4-theory');
+                var cardPractice = card.querySelector('.ncs-step4-practice');
+                if (cardTheory && cardPractice) {
+                    t = Math.max(0, parseInt(cardTheory.value, 10) || 0);
+                    p = Math.max(0, parseInt(cardPractice.value, 10) || 0);
+                }
+            }
             var half = Math.round((t + p) / 2);
-            if (theoryIn) theoryIn.value = half;
-            if (practiceIn) practiceIn.value = half;
+            if (card) {
+                var cardTheory = card.querySelector('.ncs-step4-theory');
+                var cardPractice = card.querySelector('.ncs-step4-practice');
+                var cardTotal = card.querySelector('.curriculum-hour-total');
+                if (cardTheory) cardTheory.value = half;
+                if (cardPractice) cardPractice.value = half;
+                if (cardTotal) cardTotal.value = half + half;
+            }
+            if (row && theoryIn && practiceIn) {
+                theoryIn.value = half;
+                practiceIn.value = half;
+            }
             updateTotals();
             updateCalculatedApplied();
             syncRatiosFromTable();
@@ -3244,15 +3270,15 @@
                 apiFetch('/api/ncs/approved/registrations/' + regId + '/facilities-equipment')
             ]).then(function (results) {
                 if (loadingEl) loadingEl.classList.add('hidden');
-                allFacilities = results[0].success ? results[0].data : [];
-                allEquipment = results[1].success ? results[1].data : [];
-                allTextbooks = results[2].success ? results[2].data : [];
-                allMaterials = results[3].success ? results[3].data : [];
-                curriculum = results[4].success ? results[4].data : [];
+                allFacilities = Array.isArray(results[0].data) ? results[0].data : (results[0].success ? [] : allFacilities);
+                allEquipment = Array.isArray(results[1].data) ? results[1].data : (results[1].success ? [] : allEquipment);
+                allTextbooks = Array.isArray(results[2].data) ? results[2].data : (results[2].success ? [] : allTextbooks);
+                allMaterials = Array.isArray(results[3].data) ? results[3].data : (results[3].success ? [] : allMaterials);
+                curriculum = Array.isArray(results[4].data) ? results[4].data : (results[4].success ? [] : curriculum);
 
                 if (errorEl) errorEl.classList.add('hidden');
                 if (cardsEl) {
-                    if (curriculum.length) {
+                    if (curriculum && curriculum.length) {
                         cardsEl.innerHTML = curriculum.map(function (item, i) { return renderSubjectCard(item, i); }).join('');
                         cardsEl.classList.remove('hidden');
                         wireEvents();
@@ -3263,7 +3289,7 @@
                         cardsEl.classList.remove('hidden');
                     }
                 }
-                if (summaryEl && curriculum.length) summaryEl.classList.remove('hidden');
+                if (summaryEl && curriculum && curriculum.length) summaryEl.classList.remove('hidden');
             }).catch(function (err) {
                 console.error(err);
                 if (loadingEl) loadingEl.classList.add('hidden');
@@ -3272,7 +3298,16 @@
                     var retryBtn = document.getElementById('ncsStep6BtnRetry');
                     if (retryBtn) retryBtn.onclick = loadData;
                 }
-                if (cardsEl) cardsEl.classList.add('hidden');
+                if (cardsEl) {
+                    if (curriculum && curriculum.length) {
+                        cardsEl.innerHTML = curriculum.map(function (item, i) { return renderSubjectCard(item, i); }).join('');
+                        wireEvents();
+                        cardsEl.querySelectorAll('.dual-list-container').forEach(updateDualListCount);
+                        updateSummary();
+                    }
+                    cardsEl.classList.remove('hidden');
+                }
+                if (summaryEl && curriculum && curriculum.length) summaryEl.classList.remove('hidden');
             });
         }
 

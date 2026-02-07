@@ -95,7 +95,8 @@
                             '<td class="p-3 text-center text-slate-600 text-xs truncate max-w-[100px]" title="' + (item.approval_org || '') + '">' + (item.approval_org || '-') + '</td>' +
                             '<td class="p-3 text-center">' + statusBadge + '</td>' +
                             '<td class="p-3 text-right">' +
-                            '<div class="flex items-center justify-end gap-1">' +
+                            '<div class="flex items-center justify-end gap-1 flex-wrap">' +
+                            '<a href="/admin/courses/sessions/register?approvedCourseId=' + item.id + '" class="inline-flex items-center gap-1 px-2 py-1 text-xs font-bold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded transition" title="회차 개설"><i class="fas fa-calendar-plus"></i> 회차개설</a>' +
                             '<a href="/admin/courses/approved/register/' + item.id + '" class="p-1.5 text-slate-400 hover:text-primary-600 transition" title="수정"><i class="fas fa-pen"></i></a>' +
                             '<button type="button" class="btn-approved-delete p-1.5 text-slate-400 hover:text-red-500 transition" data-id="' + item.id + '" data-name="' + nameEsc + '" title="삭제"><i class="fas fa-trash-alt"></i></button>' +
                             '</div>' +
