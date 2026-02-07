@@ -695,8 +695,8 @@ export function stepContentHtml(step: number, editId?: string, isEmbedded: boole
             </div>
             <div class="flex bg-slate-200/50 p-1 rounded-xl">
               <button type="button" class="ncs-step4-tab px-4 py-2 rounded-lg text-xs font-bold transition-all bg-white text-blue-600 shadow-sm" data-tab="ncs">NCS 교과</button>
-              <button type="button" class="ncs-step4-tab px-4 py-2 rounded-lg text-xs font-bold transition-all text-slate-500 hover:text-slate-700" data-tab="basic">직업기초</button>
               <button type="button" class="ncs-step4-tab px-4 py-2 rounded-lg text-xs font-bold transition-all text-slate-500 hover:text-slate-700" data-tab="nonncs">비NCS 교과</button>
+              <button type="button" class="ncs-step4-tab px-4 py-2 rounded-lg text-xs font-bold transition-all text-slate-500 hover:text-slate-700" data-tab="basic">직업기초</button>
             </div>
           </div>
           
@@ -704,11 +704,11 @@ export function stepContentHtml(step: number, editId?: string, isEmbedded: boole
             <div id="ncsStep4TabContentNcs" class="ncs-step4-tab-content space-y-4">
               <div id="ncsStep4NcsSubjectList" class="grid grid-cols-1 gap-4"></div>
             </div>
-            <div id="ncsStep4TabContentBasic" class="ncs-step4-tab-content hidden space-y-4">
-              <div id="ncsStep4BasicSubjectList" class="grid grid-cols-1 gap-4"></div>
-            </div>
             <div id="ncsStep4TabContentNonncs" class="ncs-step4-tab-content hidden space-y-4">
               <div id="ncsStep4NonncsSubjectList" class="grid grid-cols-1 gap-4"></div>
+            </div>
+            <div id="ncsStep4TabContentBasic" class="ncs-step4-tab-content hidden space-y-4">
+              <div id="ncsStep4BasicSubjectList" class="grid grid-cols-1 gap-4"></div>
             </div>
           </div>
 

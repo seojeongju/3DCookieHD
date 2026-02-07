@@ -2206,6 +2206,10 @@
             });
             var calcEl = document.getElementById('ncsStep4CalculatedApplied');
             if (calcEl) calcEl.textContent = (p.totalHours || 0) + ' / ' + applied + ' 시간';
+            var totalH = p.totalHours || 0;
+            var pct = totalH > 0 ? Math.round((applied / totalH) * 100) : 0;
+            var percentEl = document.getElementById('ncsStep4PercentText');
+            if (percentEl) percentEl.textContent = '배정률 ' + pct + '%';
             var basicAssigned = 0, ncsAssigned = 0, nonAssigned = 0;
             function isBasic(it) {
                 return (it.type || '') === 'basic' || (it.classification && (String(it.classification).indexOf('기초') >= 0 || String(it.classification).indexOf('소양') >= 0));
@@ -2223,7 +2227,6 @@
             var tabBasic = document.getElementById('ncsStep4TabBasic');
             var tabNcs = document.getElementById('ncsStep4TabNcs');
             var tabNonncs = document.getElementById('ncsStep4TabNonncs');
-            var totalH = p.totalHours || 0;
             var libH = getLibHours(p);
             var majorAlloc = p.manualLib ? Math.round((totalH - libH) * (p.majorPct || 0) / 100) : Math.round(totalH * (p.majorPct || 0) / 100);
             var nonAlloc = p.manualLib ? Math.round((totalH - libH) * (p.nonPct || 0) / 100) : Math.round(totalH * (p.nonPct || 0) / 100);
