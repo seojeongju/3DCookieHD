@@ -1070,7 +1070,32 @@ const NCS_COMMON_STYLES = `
     transition: background 0.15s, color 0.15s;
     font-weight: 500;
   }
-  .list-item:hover { background: #f1f5f9; color: #0f172a; }
+  .list-item:hover { background: #e2e8f0; color: #0f172a; }
+  .selected-list .list-item {
+    background: #eff6ff;
+    color: #1e40af;
+  }
+  .selected-list .list-item:hover {
+    background: #dbeafe;
+    color: #1d4ed8;
+  }
+  .selected-list .list-item .list-item-check {
+    border-color: #2563eb;
+    background: #2563eb;
+  }
+  .selected-list .list-item .list-item-check::after {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    font-size: 0.65rem;
+    font-weight: 800;
+    color: #fff;
+    text-align: center;
+    line-height: 1.125rem;
+  }
   .list-item .list-item-check {
     flex-shrink: 0;
     width: 1.125rem;

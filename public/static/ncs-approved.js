@@ -3008,7 +3008,7 @@
                 var safe = function (s) { return String(s || '').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
                 var rn = it.room_number != null ? it.room_number : (it.roomNumber != null ? it.roomNumber : '');
                 var label = safe(it.name) + (rn ? ' (' + safe(rn) + ')' : '') + (it.category ? ' <span class="text-slate-400 text-xs">' + safe(it.category) + '</span>' : '');
-                return '<div class="list-item" data-id="' + it.id + '" role="option" tabindex="-1" title="클릭 선택 · 더블클릭 이동">' +
+                return '<div class="list-item" data-id="' + it.id + '" role="option" tabindex="-1" title="클릭: 추가/해제 · Ctrl+클릭: 다중선택 후 버튼 이동">' +
                     '<span class="list-item-check" aria-hidden="true"></span>' +
                     '<span class="list-item-text">' + label + '</span></div>';
             };
@@ -3016,7 +3016,7 @@
             return '<div class="flex-1 dual-list-block" data-type="' + type + '">' +
                 '<div class="dual-list-container" data-type="' + type + '">' +
                 '<div class="list-box-wrapper">' +
-                '<div class="list-box-header">전체 목록</div>' +
+                '<div class="list-box-header">전체 목록 <span class="text-slate-400 font-normal text-[10px]">(클릭 → 오른쪽 추가)</span></div>' +
                 '<div class="list-box-filter-wrap">' +
                 '<input type="text" class="list-box-filter w-full" placeholder="검색..." aria-label="목록 검색"></div>' +
                 '<div class="list-content available-list">' + availableItems.map(itemHtml).join('') + '</div>' +
@@ -3028,7 +3028,7 @@
                 '<button type="button" class="list-btn btn-move-all-left" title="전체 제거"><i class="fas fa-angle-double-left"></i></button>' +
                 '</div>' +
                 '<div class="list-box-wrapper">' +
-                '<div class="list-box-header">선택됨 <span class="list-selected-count-inline">' + selectedCount + '</span>개</div>' +
+                '<div class="list-box-header">선택됨 <span class="list-selected-count-inline">' + selectedCount + '</span>개 <span class="text-slate-400 font-normal text-[10px]">(클릭 → 해제)</span></div>' +
                 '<div class="list-box-filter-wrap">' +
                 '<input type="text" class="list-box-filter w-full" placeholder="검색..." aria-label="선택 목록 검색"></div>' +
                 '<div class="list-content selected-list">' + selectedItems.map(itemHtml).join('') + '</div>' +
@@ -3169,20 +3169,20 @@
                 if (item) {
                     e.preventDefault();
                     e.stopPropagation();
-                    if (e.detail === 2) {
-                        var container = item.closest('.dual-list-container');
-                        var leftList = container.querySelector('.available-list');
-                        var rightList = container.querySelector('.selected-list');
-                        item.classList.remove('selected');
-                        if (item.parentElement === leftList) rightList.appendChild(item); else leftList.appendChild(item);
-                        updateDualListCount(container);
-                        var card = item.closest('.step6-subject-card');
-                        if (card) updateCardBadges(card);
-                        updateSummary();
-                    } else {
+                    var container = item.closest('.dual-list-container');
+                    var leftList = container.querySelector('.available-list');
+                    var rightList = container.querySelector('.selected-list');
+                    if (e.ctrlKey || e.metaKey) {
                         item.classList.toggle('selected');
                         item.setAttribute('aria-selected', item.classList.contains('selected'));
+                        return;
                     }
+                    item.classList.remove('selected');
+                    if (item.parentElement === leftList) rightList.appendChild(item); else leftList.appendChild(item);
+                    updateDualListCount(container);
+                    var card = item.closest('.step6-subject-card');
+                    if (card) updateCardBadges(card);
+                    updateSummary();
                     return;
                 }
 
@@ -3223,12 +3223,13 @@
                 var item = e.target.closest('.list-item');
                 if (!item) return;
                 e.preventDefault();
+                if (e.ctrlKey || e.metaKey) return;
                 var container = item.closest('.dual-list-container');
                 var leftList = container.querySelector('.available-list');
                 var rightList = container.querySelector('.selected-list');
                 item.classList.remove('selected');
                 if (item.parentElement === leftList) rightList.appendChild(item); else leftList.appendChild(item);
-                cardsEl.querySelectorAll('.dual-list-container').forEach(function (c) { updateDualListCount(c); });
+                updateDualListCount(container);
                 var card = item.closest('.step6-subject-card');
                 if (card) updateCardBadges(card);
                 updateSummary();
