@@ -2232,6 +2232,53 @@
             if (tabNonncs) tabNonncs.textContent = '(' + nonAssigned + '/' + nonAlloc + ')시간';
         }
 
+        function getAssignedHoursByCategory() {
+            var basic = 0, ncs = 0, non = 0;
+            step4Items.forEach(function (it) {
+                var row = tbody.querySelector('.ncs-step4-row[data-curriculum-id="' + it.curriculum_id + '"]');
+                if (!row) return;
+                var theoryIn = row.querySelector('.ncs-step4-theory');
+                var practiceIn = row.querySelector('.ncs-step4-practice');
+                var sum = Math.max(0, parseInt(theoryIn && theoryIn.value ? theoryIn.value : 0, 10) || 0) + Math.max(0, parseInt(practiceIn && practiceIn.value ? practiceIn.value : 0, 10) || 0);
+                if (isBasicItem(it)) basic += sum;
+                else if ((it.type || '') === 'ncs') ncs += sum;
+                else non += sum;
+            });
+            return { basic: basic, ncs: ncs, non: non };
+        }
+
+        function syncRatiosFromTable() {
+            var total = parseFloat(document.getElementById('ncsStep4TotalHours') && document.getElementById('ncsStep4TotalHours').value ? document.getElementById('ncsStep4TotalHours').value : 0) || 0;
+            total = Math.max(0, total);
+            if (total <= 0 || !step4Items.length) return;
+            var assigned = getAssignedHoursByCategory();
+            var basicH = assigned.basic;
+            var majorH = assigned.ncs;
+            var nonH = assigned.non;
+            var libPctInput = document.getElementById('ncsStep4LibPct');
+            var majorPctInput = document.getElementById('ncsStep4MajorPct');
+            var nonPctInput = document.getElementById('ncsStep4NonPct');
+            var libDirectEl = document.getElementById('ncsStep4LibHoursDirect');
+            var majorDirectEl = document.getElementById('ncsStep4MajorHoursDirect');
+            var nonDirectEl = document.getElementById('ncsStep4NonHoursDirect');
+            var libPctVal = total ? Math.round((basicH / total) * 10000) / 100 : 0;
+            var majorPctVal = total ? Math.round((majorH / total) * 10000) / 100 : 0;
+            var nonPctVal = total ? Math.round((nonH / total) * 10000) / 100 : 0;
+            if (libPctInput) libPctInput.value = libPctVal;
+            if (majorPctInput) majorPctInput.value = majorPctVal;
+            if (nonPctInput) nonPctInput.value = nonPctVal;
+            if (libDirectEl) libDirectEl.value = basicH;
+            if (majorDirectEl) majorDirectEl.value = majorH;
+            if (nonDirectEl) nonDirectEl.value = nonH;
+            var libEl = document.getElementById('ncsStep4LibHours');
+            var majorEl = document.getElementById('ncsStep4MajorHours');
+            var nonEl = document.getElementById('ncsStep4NonHours');
+            if (libEl) libEl.textContent = basicH + ' 시간';
+            if (majorEl) majorEl.textContent = majorH + ' 시간';
+            if (nonEl) nonEl.textContent = nonH + ' 시간';
+            updateCalculatedApplied();
+        }
+
         function wireParamsInputs() {
             var ids = ['ncsStep4TotalDays', 'ncsStep4DailyHours', 'ncsStep4TotalHours', 'ncsStep4LibPct', 'ncsStep4MajorPct', 'ncsStep4NonPct'];
             ids.forEach(function (id) {
@@ -2330,8 +2377,17 @@
             updateTotals();
             updatePctFromTotal();
             updateCalculatedApplied();
-            tbody.addEventListener('input', function () { updateTotals(); updateCalculatedApplied(); });
-            tbody.addEventListener('change', function () { updateTotals(); updateCalculatedApplied(); });
+            syncRatiosFromTable();
+            tbody.addEventListener('input', function () {
+                updateTotals();
+                updateCalculatedApplied();
+                syncRatiosFromTable();
+            });
+            tbody.addEventListener('change', function () {
+                updateTotals();
+                updateCalculatedApplied();
+                syncRatiosFromTable();
+            });
             renderTabContent();
         }
 
@@ -2573,7 +2629,7 @@
             var row = tbody.querySelector('.ncs-step4-row[data-curriculum-id="' + cid + '"]');
             if (!row || !kind) return;
             var inp = row.querySelector(kind === 'theory' ? '.ncs-step4-theory' : '.ncs-step4-practice');
-            if (inp) { inp.value = e.target.value; updateTotals(); updateCalculatedApplied(); }
+            if (inp) { inp.value = e.target.value; updateTotals(); updateCalculatedApplied(); syncRatiosFromTable(); }
 
             // Update card total field
             var card = document.querySelector('[data-curriculum-id="' + cid + '"]');
@@ -2595,7 +2651,7 @@
             var row = tbody.querySelector('.ncs-step4-row[data-curriculum-id="' + cid + '"]');
             if (!row || !kind) return;
             var inp = row.querySelector(kind === 'theory' ? '.ncs-step4-theory' : '.ncs-step4-practice');
-            if (inp) { inp.value = e.target.value; updateTotals(); updateCalculatedApplied(); }
+            if (inp) { inp.value = e.target.value; updateTotals(); updateCalculatedApplied(); syncRatiosFromTable(); }
         });
         form.addEventListener('click', function (e) {
             var btn = e.target && e.target.closest && e.target.closest('.ncs-step4-distribute-btn');
@@ -2613,6 +2669,7 @@
             if (practiceIn) practiceIn.value = half;
             updateTotals();
             updateCalculatedApplied();
+            syncRatiosFromTable();
             renderTabContent();
         });
 
