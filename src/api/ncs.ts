@@ -2589,20 +2589,38 @@ app.get('/approved/registrations/:id/training-hours', authMiddleware, requireAdm
         };
         try {
             const reg = await c.env.DB.prepare(
-                'SELECT total_training_days, daily_training_hours, total_training_hours, ncs_lib_arts_pct, ncs_major_pct, non_ncs_pct FROM ncs_approved_registrations WHERE id = ?'
-            ).bind(id).first() as { total_training_days?: number | null; daily_training_hours?: number | null; total_training_hours?: number | null; ncs_lib_arts_pct?: number | null; ncs_major_pct?: number | null; non_ncs_pct?: number | null } | null;
+                'SELECT approved_course_id, total_training_days, daily_training_hours, total_training_hours, ncs_lib_arts_pct, ncs_major_pct, non_ncs_pct FROM ncs_approved_registrations WHERE id = ?'
+            ).bind(id).first() as { approved_course_id?: number | null; total_training_days?: number | null; daily_training_hours?: number | null; total_training_hours?: number | null; ncs_lib_arts_pct?: number | null; ncs_major_pct?: number | null; non_ncs_pct?: number | null } | null;
+
             if (reg) {
+                let d = reg.total_training_days;
+                let h = reg.daily_training_hours;
+                let th = reg.total_training_hours;
+
+                // ncs_approved_registrations에 값이 없는 경우 (최초 로드 시), approved_courses 테이블에서 기본 설정을 가져옵니다.
+                if ((!d || !h || !th) && reg.approved_course_id) {
+                    const course = await c.env.DB.prepare(
+                        'SELECT total_days, daily_hours, total_hours FROM approved_courses WHERE id = ?'
+                    ).bind(reg.approved_course_id).first() as { total_days?: number | null; daily_hours?: number | null; total_hours?: number | null } | null;
+
+                    if (course) {
+                        if (!d && course.total_days) d = course.total_days;
+                        if (!h && course.daily_hours) h = course.daily_hours;
+                        if (!th && course.total_hours) th = course.total_hours;
+                    }
+                }
+
                 params = {
-                    total_training_days: reg.total_training_days ?? null,
-                    daily_training_hours: reg.daily_training_hours ?? null,
-                    total_training_hours: reg.total_training_hours ?? null,
+                    total_training_days: d ?? null,
+                    daily_training_hours: h ?? null,
+                    total_training_hours: th ?? null,
                     ncs_lib_arts_pct: reg.ncs_lib_arts_pct ?? null,
                     ncs_major_pct: reg.ncs_major_pct ?? null,
                     non_ncs_pct: reg.non_ncs_pct ?? null
                 };
             }
-        } catch (_) {
-            /* columns may not exist yet */
+        } catch (e) {
+            console.error('[NCS_API] Get training-hours error:', e);
         }
         const { results: curriculum } = await c.env.DB.prepare(
             'SELECT id, type, name, job_name, classification, ability_units_json, sort_order FROM ncs_approved_curriculum WHERE registration_id = ? ORDER BY sort_order ASC, id ASC'
@@ -2799,7 +2817,7 @@ app.put('/approved/registrations/:id/training-hours', authMiddleware, requireAdm
     }
 });
 
-/** 평가·교수학습방법(5단계) 조회 */
+/** 평가·교수학습방법(5단계) 조회 — 훈련시간(4단계)에 설정된 교과목 목록 반환 */
 app.get('/approved/registrations/:id/evaluation-teaching', authMiddleware, requireAdmin, async (c) => {
     try {
         const id = parseInt(c.req.param('id'), 10);
@@ -2809,7 +2827,7 @@ app.get('/approved/registrations/:id/evaluation-teaching', authMiddleware, requi
 
         const { results: curriculum } = await c.env.DB.prepare(
             'SELECT * FROM ncs_approved_curriculum WHERE registration_id = ? ORDER BY sort_order ASC, id ASC'
-        ).all() as { results: any[] };
+        ).bind(id).all() as { results: any[] };
 
         return c.json({ success: true, data: curriculum || [] });
     } catch (e) {

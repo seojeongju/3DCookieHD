@@ -2204,12 +2204,20 @@
                 var practiceIn = tr.querySelector('.ncs-step4-practice');
                 applied += Math.max(0, parseInt(theoryIn && theoryIn.value ? theoryIn.value : 0, 10) || 0) + Math.max(0, parseInt(practiceIn && practiceIn.value ? practiceIn.value : 0, 10) || 0);
             });
-            var calcEl = document.getElementById('ncsStep4CalculatedApplied');
-            if (calcEl) calcEl.textContent = (p.totalHours || 0) + ' / ' + applied + ' 시간';
             var totalH = p.totalHours || 0;
+            if (!totalH) {
+                var totalInput = document.getElementById('ncsStep4TotalHours');
+                totalH = totalInput ? (parseFloat(totalInput.value) || 0) : 0;
+            }
             var pct = totalH > 0 ? Math.round((applied / totalH) * 100) : 0;
+            var calcEl = document.getElementById('ncsStep4CalculatedApplied');
             var percentEl = document.getElementById('ncsStep4PercentText');
+            if (calcEl) calcEl.textContent = (totalH || p.totalHours || 0) + ' / ' + applied + ' 시간';
             if (percentEl) percentEl.textContent = '배정률 ' + pct + '%';
+            else {
+                var afterDot = calcEl && calcEl.nextElementSibling && calcEl.nextElementSibling.nextElementSibling;
+                if (afterDot) afterDot.textContent = '배정률 ' + pct + '%';
+            }
             var basicAssigned = 0, ncsAssigned = 0, nonAssigned = 0;
             function isBasic(it) {
                 return (it.type || '') === 'basic' || (it.classification && (String(it.classification).indexOf('기초') >= 0 || String(it.classification).indexOf('소양') >= 0));
