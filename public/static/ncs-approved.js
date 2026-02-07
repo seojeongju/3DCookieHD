@@ -2971,11 +2971,16 @@
         var regId = (regInput && regInput.value) ? regInput.value.trim() : '';
         var noReg = document.getElementById('ncsStep6NoReg');
         var form = document.getElementById('ncsStep6Form');
+        var loadingEl = document.getElementById('ncsStep6Loading');
+        var errorEl = document.getElementById('ncsStep6Error');
+        var cardsEl = document.getElementById('ncsStep6Cards');
+        var summaryEl = document.getElementById('ncsStep6Summary');
 
         if (!form) return;
         if (!regId) {
             if (noReg) noReg.classList.remove('hidden');
             form.classList.add('hidden');
+            if (summaryEl) summaryEl.classList.add('hidden');
             return;
         }
         if (noReg) noReg.classList.add('hidden');
@@ -2997,43 +3002,52 @@
             var selectedIdsSet = new Set(selectedIds || []);
             var availableItems = allItems.filter(function (it) { return !selectedIdsSet.has(it.id); });
             var selectedItems = allItems.filter(function (it) { return selectedIdsSet.has(it.id); });
+            var selectedCount = selectedItems.length;
 
             var itemHtml = function (it) {
-                return '<div class="list-item" data-id="' + it.id + '">' + (it.name || '') + (it.room_number ? ' (' + it.room_number + ')' : '') + '</div>';
+                var safe = function (s) { return String(s || '').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
+                var label = safe(it.name) + (it.room_number ? ' (' + safe(it.room_number) + ')' : '') + (it.category ? ' <span class="text-slate-400 text-xs">' + safe(it.category) + '</span>' : '');
+                return '<div class="list-item" data-id="' + it.id + '" title="더블클릭: 이동">' + label + '</div>';
             };
 
-            return '<div class="flex-1 space-y-3">' +
+            return '<div class="flex-1 space-y-3 dual-list-block" data-type="' + type + '">' +
                 '<div class="flex items-center gap-2 mb-3">' +
                 '<span class="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>' +
                 '<h5 class="text-xs font-black text-slate-500 uppercase tracking-widest">' + title + '</h5>' +
+                '<span class="list-selected-count text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">' + selectedCount + '개</span>' +
                 '</div>' +
                 '<div class="dual-list-container" data-type="' + type + '">' +
-                '<!-- Available List -->' +
                 '<div class="list-box-wrapper">' +
                 '<div class="list-box-header">전체 목록</div>' +
                 '<div class="px-3 py-2 border-b border-slate-100 bg-slate-50/30">' +
-                '<input type="text" class="list-box-filter w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs" placeholder="필터링..."></div>' +
+                '<input type="text" class="list-box-filter w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs" placeholder="검색..."></div>' +
                 '<div class="list-content available-list flex-1">' + availableItems.map(itemHtml).join('') + '</div>' +
                 '</div>' +
-                '<!-- Transfer Buttons -->' +
                 '<div class="flex flex-row lg:flex-col justify-center items-center gap-1.5 px-1">' +
-                '<button type="button" class="list-btn btn-move-right w-10 h-10 flex items-center justify-center bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all shadow-sm"><i class="fas fa-angle-right lg:rotate-0 rotate-90"></i></button>' +
-                '<button type="button" class="list-btn btn-move-all-right w-10 h-10 flex items-center justify-center bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all shadow-sm"><i class="fas fa-angle-double-right lg:rotate-0 rotate-90"></i></button>' +
-                '<button type="button" class="list-btn btn-move-left w-10 h-10 flex items-center justify-center bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all shadow-sm"><i class="fas fa-angle-left lg:rotate-0 rotate-90"></i></button>' +
-                '<button type="button" class="list-btn btn-move-all-left w-10 h-10 flex items-center justify-center bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all shadow-sm"><i class="fas fa-angle-double-left lg:rotate-0 rotate-90"></i></button>' +
+                '<button type="button" class="list-btn btn-move-right w-10 h-10 flex items-center justify-center bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all shadow-sm" title="선택 항목 추가"><i class="fas fa-angle-right lg:rotate-0 rotate-90"></i></button>' +
+                '<button type="button" class="list-btn btn-move-all-right w-10 h-10 flex items-center justify-center bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all shadow-sm" title="전체 추가"><i class="fas fa-angle-double-right lg:rotate-0 rotate-90"></i></button>' +
+                '<button type="button" class="list-btn btn-move-left w-10 h-10 flex items-center justify-center bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all shadow-sm" title="선택 항목 제거"><i class="fas fa-angle-left lg:rotate-0 rotate-90"></i></button>' +
+                '<button type="button" class="list-btn btn-move-all-left w-10 h-10 flex items-center justify-center bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all shadow-sm" title="전체 제거"><i class="fas fa-angle-double-left lg:rotate-0 rotate-90"></i></button>' +
                 '</div>' +
-                '<!-- Selected List -->' +
                 '<div class="list-box-wrapper">' +
-                '<div class="list-box-header">선택된 목록</div>' +
+                '<div class="list-box-header">선택된 목록 <span class="list-selected-count-inline font-bold text-blue-600">' + selectedCount + '</span></div>' +
                 '<div class="px-3 py-2 border-b border-slate-100 bg-slate-50/30">' +
-                '<input type="text" class="list-box-filter w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs" placeholder="필터링..."></div>' +
+                '<input type="text" class="list-box-filter w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs" placeholder="검색..."></div>' +
                 '<div class="list-content selected-list flex-1">' + selectedItems.map(itemHtml).join('') + '</div>' +
                 '</div>' +
                 '</div>' +
                 '</div>';
         }
 
-        function renderSubjectCard(item) {
+        function updateDualListCount(dualListContainer) {
+            if (!dualListContainer) return;
+            var sel = dualListContainer.querySelector('.selected-list');
+            var count = sel ? sel.querySelectorAll('.list-item').length : 0;
+            var block = dualListContainer.closest('.dual-list-block');
+            if (block) block.querySelectorAll('.list-selected-count, .list-selected-count-inline').forEach(function (el) { el.textContent = count; });
+        }
+
+        function renderSubjectCard(item, index) {
             var esc = function (s) { return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
             var selectedFacilities = [];
             try { selectedFacilities = item.facility_ids_json ? JSON.parse(item.facility_ids_json) : []; } catch (e) { }
@@ -3046,59 +3060,125 @@
 
             var textbookChecks = allTextbooks.map(function (tx) {
                 var checked = selectedTextbooks.indexOf(tx.id) !== -1 ? 'checked' : '';
-                return '<label class="flex items-center gap-2 text-sm cursor-pointer group"><input type="checkbox" class="step6-tx-cb w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" value="' + tx.id + '" ' + checked + '> <span class="text-slate-600 group-hover:text-slate-900">' + esc(tx.name) + '</span></label>';
+                return '<label class="step6-tx-label flex items-center gap-2 text-sm cursor-pointer group"><input type="checkbox" class="step6-tx-cb w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" value="' + tx.id + '" ' + checked + '> <span class="step6-tx-name text-slate-600 group-hover:text-slate-900">' + esc(tx.name) + '</span></label>';
             }).join('');
             var materialChecks = allMaterials.map(function (mt) {
                 var checked = selectedMaterials.indexOf(mt.id) !== -1 ? 'checked' : '';
-                return '<label class="flex items-center gap-2 text-sm cursor-pointer group"><input type="checkbox" class="step6-mt-cb w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" value="' + mt.id + '" ' + checked + '> <span class="text-slate-600 group-hover:text-slate-900">' + esc(mt.name) + '</span></label>';
+                return '<label class="step6-mt-label flex items-center gap-2 text-sm cursor-pointer group"><input type="checkbox" class="step6-mt-cb w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" value="' + mt.id + '" ' + checked + '> <span class="step6-mt-name text-slate-600 group-hover:text-slate-900">' + esc(mt.name) + '</span></label>';
             }).join('');
 
             var typeLabel = item.type === 'ncs' ? 'NCS 전공교과' : (item.type === 'basic' ? 'NCS 소양교과' : '비 NCS 교과');
             var hours = (Number(item.theory_hours) || 0) + (Number(item.practice_hours) || 0);
+            var nFac = selectedFacilities.length;
+            var nEqu = selectedEquipment.length;
+            var nTx = selectedTextbooks.length;
+            var nMt = selectedMaterials.length;
+            var cardId = 'step6-card-' + (item.id || index);
+            var bodyId = 'step6-body-' + (item.id || index);
 
-            return '<div class="step6-subject-card bg-white border border-slate-200 rounded-[2.5rem] p-10 shadow-sm hover:shadow-md transition-all mb-12" data-id="' + item.id + '">' +
-                '<div class="flex items-center gap-4 mb-10">' +
-                '<div class="w-14 h-14 bg-blue-600 text-white rounded-2xl flex items-center justify-center text-xl shadow-lg shadow-blue-500/20">' +
-                '<i class="fas fa-graduation-cap"></i>' +
+            var header = '<div class="step6-card-header flex items-center gap-4 p-6 rounded-2xl border border-slate-200 bg-white hover:border-slate-300" data-card-id="' + cardId + '" aria-expanded="true" aria-controls="' + bodyId + '">' +
+                '<div class="w-12 h-12 bg-blue-600 text-white rounded-xl flex items-center justify-center text-lg shrink-0"><i class="fas fa-graduation-cap"></i></div>' +
+                '<div class="flex-1 min-w-0">' +
+                '<h4 class="text-lg font-black text-slate-800 truncate">' + esc(item.name) + '</h4>' +
+                '<p class="text-xs font-bold text-slate-400 mt-0.5">' + typeLabel + ' &middot; ' + hours + '시간</p>' +
                 '</div>' +
-                '<div>' +
-                '<h4 class="text-2xl font-black text-slate-800 tracking-tight">' + esc(item.name) + '</h4>' +
-                '<p class="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">' + typeLabel + ' <span class="mx-2 opacity-50">|</span> ' + hours + ' 훈련시간</p>' +
+                '<div class="flex items-center gap-2 shrink-0">' +
+                '<span class="px-2 py-1 rounded-lg bg-slate-100 text-slate-600 text-xs font-medium">시설 ' + nFac + '</span>' +
+                '<span class="px-2 py-1 rounded-lg bg-slate-100 text-slate-600 text-xs font-medium">장비 ' + nEqu + '</span>' +
+                '<span class="px-2 py-1 rounded-lg bg-slate-100 text-slate-600 text-xs font-medium">교재 ' + nTx + '</span>' +
+                '<span class="px-2 py-1 rounded-lg bg-slate-100 text-slate-600 text-xs font-medium">소모품 ' + nMt + '</span>' +
+                '<i class="fas fa-chevron-down step6-chevron text-slate-400 transition-transform"></i>' +
                 '</div>' +
-                '</div>' +
-                '<div class="flex flex-col xl:flex-row gap-12 mb-10">' +
+                '</div>';
+            var body = '<div id="' + bodyId + '" class="step6-card-body border border-t-0 border-slate-200 rounded-b-2xl bg-slate-50/30" style="max-height: 2000px;">' +
+                '<div class="step6-card-body-inner px-6 pb-6">' +
+                '<div class="flex flex-col xl:flex-row gap-12 mb-8">' +
                 createDualList('시설(강의실/실습실) 매칭', 'facilities', allFacilities, selectedFacilities) +
                 createDualList('장비 및 기자재 매칭', 'equipment', allEquipment, selectedEquipment) +
                 '</div>' +
-                '<div class="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-slate-100">' +
+                '<div class="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-slate-200">' +
                 '<div class="space-y-4">' +
                 '<label class="block text-[11px] font-black text-slate-400 uppercase tracking-widest border-l-4 border-blue-500 pl-3">교재 선택</label>' +
-                '<div class="flex flex-wrap gap-4 p-4 bg-slate-50/50 rounded-2xl border border-slate-100">' +
+                '<input type="text" class="step6-tx-filter w-full px-3 py-2 border border-slate-200 rounded-xl text-sm mb-2" placeholder="교재 검색...">' +
+                '<div class="step6-tx-wrap flex flex-wrap gap-4 p-4 bg-white rounded-2xl border border-slate-100 max-h-48 overflow-y-auto">' +
                 (textbookChecks || '<span class="text-slate-400 text-xs italic">등록된 교재가 없습니다.</span>') +
-                '</div>' +
-                '</div>' +
+                '</div></div>' +
                 '<div class="space-y-4">' +
                 '<label class="block text-[11px] font-black text-slate-400 uppercase tracking-widest border-l-4 border-blue-500 pl-3">훈련 재료 / 소모품</label>' +
-                '<div class="flex flex-wrap gap-4 p-4 bg-slate-50/50 rounded-2xl border border-slate-100">' +
+                '<input type="text" class="step6-mt-filter w-full px-3 py-2 border border-slate-200 rounded-xl text-sm mb-2" placeholder="소모품 검색...">' +
+                '<div class="step6-mt-wrap flex flex-wrap gap-4 p-4 bg-white rounded-2xl border border-slate-100 max-h-48 overflow-y-auto">' +
                 (materialChecks || '<span class="text-slate-400 text-xs italic">등록된 재료가 없습니다.</span>') +
+                '</div></div>' +
                 '</div>' +
-                '</div>' +
-                '</div>' +
-                '</div>';
+                '</div></div>';
+
+            return '<div class="step6-subject-card bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mb-4" data-id="' + item.id + '" id="' + cardId + '">' + header + body + '</div>';
+        }
+
+        function updateSummary() {
+            if (!summaryEl) return;
+            var cards = document.querySelectorAll('.step6-subject-card');
+            var n = cards.length;
+            var subjectCountEl = document.getElementById('ncsStep6SubjectCount');
+            if (subjectCountEl) subjectCountEl.textContent = n;
+
+            var withFac = 0, withEqu = 0, totalTx = 0, totalMt = 0;
+            cards.forEach(function (card) {
+                if (card.querySelectorAll('.dual-list-container[data-type="facilities"] .selected-list .list-item').length > 0) withFac++;
+                if (card.querySelectorAll('.dual-list-container[data-type="equipment"] .selected-list .list-item').length > 0) withEqu++;
+                card.querySelectorAll('.step6-tx-cb:checked').forEach(function () { totalTx++; });
+                card.querySelectorAll('.step6-mt-cb:checked').forEach(function () { totalMt++; });
+            });
+
+            var facEl = document.getElementById('ncsStep6FacilityBadge');
+            var equEl = document.getElementById('ncsStep6EquipmentBadge');
+            var txEl = document.getElementById('ncsStep6TextbookBadge');
+            var mtEl = document.getElementById('ncsStep6MaterialBadge');
+            if (facEl) facEl.textContent = '시설 배정: ' + withFac + '/' + n;
+            if (equEl) equEl.textContent = '장비 배정: ' + withEqu + '/' + n;
+            if (txEl) txEl.textContent = '교재: ' + totalTx;
+            if (mtEl) mtEl.textContent = '소모품: ' + totalMt;
+            summaryEl.classList.remove('hidden');
         }
 
         function wireEvents() {
-            form.addEventListener('click', function (e) {
+            if (!cardsEl) return;
+            cardsEl.addEventListener('click', function (e) {
+                var header = e.target.closest('.step6-card-header');
+                if (header) {
+                    var card = header.closest('.step6-subject-card');
+                    var body = card.querySelector('.step6-card-body');
+                    var chevron = header.querySelector('.step6-chevron');
+                    var expanded = body && !body.classList.contains('collapsed');
+                    if (body) body.classList.toggle('collapsed', expanded);
+                    if (body) body.style.maxHeight = expanded ? '0' : '2000px';
+                    if (chevron) chevron.style.transform = expanded ? 'rotate(-90deg)' : 'none';
+                    header.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+                    return;
+                }
+
                 var item = e.target.closest('.list-item');
                 if (item) {
-                    item.classList.toggle('selected');
+                    if (e.detail === 2) {
+                        var container = item.closest('.dual-list-container');
+                        var leftList = container.querySelector('.available-list');
+                        var rightList = container.querySelector('.selected-list');
+                        item.classList.remove('selected');
+                        if (item.parentElement === leftList) rightList.appendChild(item); else leftList.appendChild(item);
+                        updateDualListCount(container);
+                        var card = item.closest('.step6-subject-card');
+                        if (card) updateCardBadges(card);
+                        updateSummary();
+                    } else {
+                        item.classList.toggle('selected');
+                    }
                     return;
                 }
 
                 var btn = e.target.closest('.list-btn');
                 if (!btn) return;
-
                 var container = btn.closest('.dual-list-container');
+                var card = container.closest('.step6-subject-card');
                 var leftList = container.querySelector('.available-list');
                 var rightList = container.querySelector('.selected-list');
 
@@ -3107,7 +3187,7 @@
                         el.classList.remove('selected');
                         rightList.appendChild(el);
                     });
-                } else if (btn.classList.contains('btn-move-all-right')) {
+                } else                 if (btn.classList.contains('btn-move-all-right')) {
                     leftList.querySelectorAll('.list-item').forEach(function (el) {
                         el.classList.remove('selected');
                         rightList.appendChild(el);
@@ -3123,9 +3203,27 @@
                         leftList.appendChild(el);
                     });
                 }
+                card.querySelectorAll('.dual-list-container').forEach(updateDualListCount);
+                updateCardBadges(card);
+                updateSummary();
             });
 
-            form.addEventListener('input', function (e) {
+            cardsEl.addEventListener('dblclick', function (e) {
+                var item = e.target.closest('.list-item');
+                if (!item) return;
+                e.preventDefault();
+                var container = item.closest('.dual-list-container');
+                var leftList = container.querySelector('.available-list');
+                var rightList = container.querySelector('.selected-list');
+                item.classList.remove('selected');
+                if (item.parentElement === leftList) rightList.appendChild(item); else leftList.appendChild(item);
+                cardsEl.querySelectorAll('.dual-list-container').forEach(function (c) { updateDualListCount(c); });
+                var card = item.closest('.step6-subject-card');
+                if (card) updateCardBadges(card);
+                updateSummary();
+            });
+
+            cardsEl.addEventListener('input', function (e) {
                 if (e.target.classList.contains('list-box-filter')) {
                     var val = e.target.value.toLowerCase();
                     var list = e.target.closest('.list-box-wrapper').querySelector('.list-content');
@@ -3134,31 +3232,99 @@
                         item.style.display = text.indexOf(val) !== -1 ? '' : 'none';
                     });
                 }
+                if (e.target.classList.contains('step6-tx-filter')) {
+                    var val = (e.target.value || '').toLowerCase();
+                    var wrap = e.target.closest('.step6-subject-card').querySelector('.step6-tx-wrap');
+                    wrap.querySelectorAll('.step6-tx-label').forEach(function (label) {
+                        var nameEl = label.querySelector('.step6-tx-name');
+                        var show = !val || (nameEl && nameEl.textContent.toLowerCase().indexOf(val) !== -1);
+                        label.style.display = show ? '' : 'none';
+                    });
+                }
+                if (e.target.classList.contains('step6-mt-filter')) {
+                    var val = (e.target.value || '').toLowerCase();
+                    var wrap = e.target.closest('.step6-subject-card').querySelector('.step6-mt-wrap');
+                    wrap.querySelectorAll('.step6-mt-label').forEach(function (label) {
+                        var nameEl = label.querySelector('.step6-mt-name');
+                        var show = !val || (nameEl && nameEl.textContent.toLowerCase().indexOf(val) !== -1);
+                        label.style.display = show ? '' : 'none';
+                    });
+                }
+                if (e.target.classList.contains('step6-tx-cb') || e.target.classList.contains('step6-mt-cb')) updateSummary();
             });
         }
 
-        Promise.all([
-            apiFetch('/api/ncs/approved/facilities'),
-            apiFetch('/api/ncs/approved/hrd-items?category=equipment'),
-            apiFetch('/api/ncs/approved/hrd-items?category=textbook'),
-            apiFetch('/api/ncs/approved/hrd-items?category=consumable'),
-            apiFetch('/api/ncs/approved/registrations/' + regId + '/facilities-equipment')
-        ]).then(function (results) {
-            allFacilities = results[0].success ? results[0].data : [];
-            allEquipment = results[1].success ? results[1].data : [];
-            allTextbooks = results[2].success ? results[2].data : [];
-            allMaterials = results[3].success ? results[3].data : [];
-            curriculum = results[4].success ? results[4].data : [];
+        function updateCardBadges(card) {
+            if (!card) return;
+            var nFac = card.querySelectorAll('.dual-list-container[data-type="facilities"] .selected-list .list-item').length;
+            var nEqu = card.querySelectorAll('.dual-list-container[data-type="equipment"] .selected-list .list-item').length;
+            var nTx = card.querySelectorAll('.step6-tx-cb:checked').length;
+            var nMt = card.querySelectorAll('.step6-mt-cb:checked').length;
+            var header = card.querySelector('.step6-card-header');
+            if (!header) return;
+            var badges = header.querySelectorAll('.px-2.py-1.rounded-lg');
+            if (badges.length >= 4) {
+                badges[0].textContent = '시설 ' + nFac;
+                badges[1].textContent = '장비 ' + nEqu;
+                badges[2].textContent = '교재 ' + nTx;
+                badges[3].textContent = '소모품 ' + nMt;
+            }
+        }
 
-            form.innerHTML = curriculum.length ? curriculum.map(renderSubjectCard).join('') : '<p class="text-center text-slate-400 py-12">등록된 교과목이 없습니다.</p>';
-            wireEvents();
-        }).catch(function (err) {
-            console.error(err);
-            alert('정보를 불러오는데 실패했습니다.');
-        });
+        function loadData() {
+            if (loadingEl) loadingEl.classList.remove('hidden');
+            if (errorEl) errorEl.classList.add('hidden');
+            if (cardsEl) cardsEl.classList.add('hidden');
+            if (summaryEl) summaryEl.classList.add('hidden');
+
+            Promise.all([
+                apiFetch('/api/ncs/approved/facilities'),
+                apiFetch('/api/ncs/approved/hrd-items?category=equipment'),
+                apiFetch('/api/ncs/approved/hrd-items?category=textbook'),
+                apiFetch('/api/ncs/approved/hrd-items?category=consumable'),
+                apiFetch('/api/ncs/approved/registrations/' + regId + '/facilities-equipment')
+            ]).then(function (results) {
+                if (loadingEl) loadingEl.classList.add('hidden');
+                allFacilities = results[0].success ? results[0].data : [];
+                allEquipment = results[1].success ? results[1].data : [];
+                allTextbooks = results[2].success ? results[2].data : [];
+                allMaterials = results[3].success ? results[3].data : [];
+                curriculum = results[4].success ? results[4].data : [];
+
+                if (errorEl) errorEl.classList.add('hidden');
+                if (cardsEl) {
+                    if (curriculum.length) {
+                        cardsEl.innerHTML = curriculum.map(function (item, i) { return renderSubjectCard(item, i); }).join('');
+                        cardsEl.classList.remove('hidden');
+                        wireEvents();
+                        cardsEl.querySelectorAll('.dual-list-container').forEach(updateDualListCount);
+                        updateSummary();
+                    } else {
+                        cardsEl.innerHTML = '<div class="text-center py-16 bg-white rounded-2xl border border-slate-200"><p class="text-slate-500 font-medium">등록된 교과목이 없습니다.</p><p class="text-slate-400 text-sm mt-2">교과목편성(3단계)에서 먼저 교과목을 등록해 주세요.</p></div>';
+                        cardsEl.classList.remove('hidden');
+                    }
+                }
+                if (summaryEl && curriculum.length) summaryEl.classList.remove('hidden');
+            }).catch(function (err) {
+                console.error(err);
+                if (loadingEl) loadingEl.classList.add('hidden');
+                if (errorEl) {
+                    errorEl.classList.remove('hidden');
+                    var retryBtn = document.getElementById('ncsStep6BtnRetry');
+                    if (retryBtn) retryBtn.onclick = loadData;
+                }
+                if (cardsEl) cardsEl.classList.add('hidden');
+            });
+        }
+
+        var refreshBtn = document.getElementById('ncsStep6BtnRefresh');
+        if (refreshBtn) refreshBtn.addEventListener('click', loadData);
+
+        loadData();
 
         function saveFacilities(redirectToNext) {
             var items = [];
+            var noFacilityEquipment = [];
             document.querySelectorAll('.step6-subject-card').forEach(function (card) {
                 var id = parseInt(card.getAttribute('data-id'), 10);
                 var facilityIds = [];
@@ -3174,6 +3340,10 @@
                 var materialIds = [];
                 card.querySelectorAll('.step6-mt-cb:checked').forEach(function (cb) { materialIds.push(parseInt(cb.value, 10)); });
 
+                if (facilityIds.length === 0 && equipmentIds.length === 0) {
+                    var nameEl = card.querySelector('.step6-card-header h4');
+                    noFacilityEquipment.push(nameEl ? nameEl.textContent.trim() : '과목 #' + id);
+                }
                 items.push({
                     id: id,
                     facility_ids: facilityIds,
@@ -3182,6 +3352,8 @@
                     material_ids: materialIds
                 });
             });
+
+            if (redirectToNext && noFacilityEquipment.length > 0 && !confirm('시설·장비가 배정되지 않은 교과목이 ' + noFacilityEquipment.length + '개 있습니다.\n그래도 설정 완료하시겠습니까?')) return;
 
             var btnSave = document.getElementById('ncsStep6BtnSave');
             var btnNext = document.getElementById('ncsStep6BtnNext');

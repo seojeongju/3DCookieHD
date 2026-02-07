@@ -931,15 +931,44 @@ export function stepContentHtml(step: number, editId?: string, isEmbedded: boole
         </div>
       </div>
 
+      <!-- 요약: 교과목 수, 배정 현황 (JS에서 갱신) -->
+      <div id="ncsStep6Summary" class="hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div class="flex flex-wrap items-center gap-6">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">교과목</span>
+            <span id="ncsStep6SubjectCount" class="text-lg font-black text-slate-800">0</span>
+            <span class="text-sm text-slate-500">개</span>
+          </div>
+          <div class="h-6 w-px bg-slate-200"></div>
+          <div class="flex items-center gap-4 text-sm">
+            <span id="ncsStep6FacilityBadge" class="px-3 py-1 rounded-full bg-slate-100 text-slate-600 font-medium">시설 배정: 0</span>
+            <span id="ncsStep6EquipmentBadge" class="px-3 py-1 rounded-full bg-slate-100 text-slate-600 font-medium">장비 배정: 0</span>
+            <span id="ncsStep6TextbookBadge" class="px-3 py-1 rounded-full bg-slate-100 text-slate-600 font-medium">교재: 0</span>
+            <span id="ncsStep6MaterialBadge" class="px-3 py-1 rounded-full bg-slate-100 text-slate-600 font-medium">소모품: 0</span>
+          </div>
+          <button type="button" id="ncsStep6BtnRefresh" class="ml-auto flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50 transition-all">
+            <i class="fas fa-sync-alt"></i> 새로고침
+          </button>
+        </div>
+      </div>
+
       <div id="ncsStep6Form" class="space-y-12">
-        <!-- 과목별 시설/장비 매칭 영역 (JS에서 동적으로 렌더링) -->
-        <div class="flex flex-col items-center justify-center py-20 bg-white border border-dashed border-slate-300 rounded-[2.5rem]">
+        <!-- 로딩 플레이스홀더 (JS에서 카드 또는 빈 상태로 교체) -->
+        <div id="ncsStep6Loading" class="flex flex-col items-center justify-center py-20 bg-white border border-dashed border-slate-300 rounded-[2.5rem]">
            <div class="w-20 h-20 bg-slate-50 text-slate-200 rounded-full flex items-center justify-center text-4xl mb-6">
              <i class="fas fa-layer-group"></i>
            </div>
            <p class="text-slate-400 font-bold tracking-tight">매칭 정보를 불러오는 중입니다...</p>
            <p class="text-slate-300 text-xs mt-2">잠시만 기다려 주세요.</p>
         </div>
+        <!-- 에러 시 표시 (JS에서 제어) -->
+        <div id="ncsStep6Error" class="hidden flex flex-col items-center justify-center py-16 bg-red-50 border border-red-200 rounded-[2.5rem]">
+           <i class="fas fa-exclamation-triangle text-red-400 text-4xl mb-4"></i>
+           <p class="text-red-700 font-bold">정보를 불러오지 못했습니다.</p>
+           <button type="button" id="ncsStep6BtnRetry" class="mt-4 px-6 py-2 bg-red-100 text-red-700 rounded-xl font-medium hover:bg-red-200 transition-all">다시 시도</button>
+        </div>
+        <!-- 과목 카드 컨테이너 (로딩 완료 후 JS에서 여기에 렌더) -->
+        <div id="ncsStep6Cards" class="hidden space-y-4"></div>
       </div>
 
       <div class="pt-8 flex items-center justify-between border-t border-slate-200">
@@ -1015,6 +1044,13 @@ const NCS_COMMON_STYLES = `
   }
   .list-item:hover { background: #f1f5f9; color: #1e293b; }
   .list-item.selected { background: #eff6ff; color: #2563eb; font-weight: 700; box-shadow: inset 0 0 0 1px #bfdbfe; }
+  
+  /* Step6 Accordion */
+  .step6-card-header { cursor: pointer; user-select: none; transition: background 0.2s, border-color 0.2s; }
+  .step6-card-header:hover { background: #f8fafc; }
+  .step6-card-body { overflow: hidden; transition: max-height 0.3s ease-out; }
+  .step6-card-body.collapsed { max-height: 0 !important; }
+  .step6-card-body-inner { padding: 1.5rem 0; }
   
   /* Form Elements */
   input[type="number"], input[type="text"], select, textarea {
