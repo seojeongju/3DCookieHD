@@ -749,6 +749,10 @@ export const adminCoursesSessionsRegisterHtml = (editId?: string) => {
                         <input type="number" id="sessionsFormSessionNumber" min="1" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500" placeholder="1">
                     </div>
                     <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1">강사(담당 강사)</label>
+                        <input type="text" id="sessionsFormInstructor" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500" placeholder="담당 강사명 입력">
+                    </div>
+                    <div>
                         <label class="block text-sm font-bold text-slate-700 mb-1">진행상황</label>
                         <select id="sessionsFormStatus" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500">
                             <option value="recruiting">모집중</option>

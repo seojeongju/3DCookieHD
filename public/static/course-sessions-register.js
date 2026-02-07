@@ -32,6 +32,8 @@
                 var numEl = document.getElementById('sessionsFormSessionNumber');
                 if (numEl) numEl.value = d.session_number != null ? d.session_number : '';
                 document.getElementById('sessionsFormStatus').value = d.status || 'recruiting';
+                var instructorEl = document.getElementById('sessionsFormInstructor');
+                if (instructorEl) instructorEl.value = d.instructor_name || '';
                 document.getElementById('sessionsFormTrainingStart').value = (d.training_start_date || '').slice(0, 10);
                 document.getElementById('sessionsFormTrainingEnd').value = (d.training_end_date || '').slice(0, 10);
                 document.getElementById('sessionsFormRegisteredAt').value = (d.registered_at || '').slice(0, 10);
@@ -56,6 +58,8 @@
             if (isNaN(sessionNumber) || sessionNumber < 1) { alert('회차를 입력하세요 (1 이상).'); return; }
         }
         var status = document.getElementById('sessionsFormStatus').value || 'recruiting';
+        var instructorEl = document.getElementById('sessionsFormInstructor');
+        var instructorName = (instructorEl && instructorEl.value ? instructorEl.value : '').trim() || null;
         var trainingStart = (document.getElementById('sessionsFormTrainingStart').value || '').trim() || null;
         var trainingEnd = (document.getElementById('sessionsFormTrainingEnd').value || '').trim() || null;
         var registeredAt = (document.getElementById('sessionsFormRegisteredAt').value || '').trim() || null;
@@ -69,6 +73,7 @@
             method = 'PUT';
             payload = {
                 status: status,
+                instructor_name: instructorName,
                 training_start_date: trainingStart,
                 training_end_date: trainingEnd,
                 registered_at: registeredAt,
@@ -83,6 +88,7 @@
                 approved_course_id: parseInt(approvedCourseId, 10),
                 session_number: sessionNumber,
                 status: status,
+                instructor_name: instructorName,
                 training_start_date: trainingStart,
                 training_end_date: trainingEnd,
                 registered_at: registeredAt,

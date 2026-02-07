@@ -118,10 +118,10 @@ app.get('/', authMiddleware, requireAdmin, async (c) => {
 
     params.push(limit, offset);
     const rows = await DB.prepare(
-      `SELECT s.id, s.approved_course_id, s.session_number, s.status,
+      `SELECT s.id, s.approved_course_id, s.session_number, s.status, s.instructor_name,
               s.training_start_date, s.training_end_date, s.url_ncs, s.url_plan, s.url_detail_plan,
               s.registered_at, s.created_at,
-              a.name as course_name, a.category_id, a.instructor_name,
+              a.name as course_name, a.category_id, a.instructor_name as course_instructor_name,
               c.name as category_name
        FROM course_sessions s
        INNER JOIN approved_courses a ON a.id = s.approved_course_id
@@ -154,6 +154,7 @@ app.post('/', authMiddleware, requireAdmin, async (c) => {
       approved_course_id: number;
       session_number: number;
       status?: string;
+      instructor_name?: string;
       training_start_date?: string;
       training_end_date?: string;
       url_ncs?: string;
@@ -167,6 +168,7 @@ app.post('/', authMiddleware, requireAdmin, async (c) => {
       return c.json({ success: false, error: '승인과정 ID와 회차를 입력하세요' }, 400);
     }
     const status = (body.status && STATUS_VALUES.includes(body.status as any)) ? body.status : 'recruiting';
+    const instructorName = (body.instructor_name || '').trim() || null;
     const trainingStart = (body.training_start_date || '').trim() || null;
     const trainingEnd = (body.training_end_date || '').trim() || null;
     const urlNcs = (body.url_ncs || '').trim() || null;
@@ -184,15 +186,15 @@ app.post('/', authMiddleware, requireAdmin, async (c) => {
 
     await DB.prepare(
       `INSERT INTO course_sessions (
-        approved_course_id, session_number, status, training_start_date, training_end_date,
+        approved_course_id, session_number, status, instructor_name, training_start_date, training_end_date,
         url_ncs, url_plan, url_detail_plan, registered_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
-      .bind(approvedCourseId, sessionNumber, status, trainingStart, trainingEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt)
+      .bind(approvedCourseId, sessionNumber, status, instructorName, trainingStart, trainingEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt)
       .run();
 
     const row = await DB.prepare(
-      `SELECT s.id, s.approved_course_id, s.session_number, s.status,
+      `SELECT s.id, s.approved_course_id, s.session_number, s.status, s.instructor_name,
               s.training_start_date, s.training_end_date, s.url_ncs, s.url_plan, s.url_detail_plan,
               s.registered_at, s.created_at, a.name as course_name, c.name as category_name
        FROM course_sessions s
@@ -216,7 +218,7 @@ app.get('/:id', authMiddleware, requireAdmin, async (c) => {
     if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
     const { DB } = c.env;
     const row = await DB.prepare(
-      `SELECT s.id, s.approved_course_id, s.session_number, s.status,
+      `SELECT s.id, s.approved_course_id, s.session_number, s.status, s.instructor_name,
               s.training_start_date, s.training_end_date, s.url_ncs, s.url_plan, s.url_detail_plan,
               s.registered_at, s.created_at, a.name as course_name, c.name as category_name
        FROM course_sessions s
@@ -243,6 +245,7 @@ app.put('/:id', authMiddleware, requireAdmin, async (c) => {
     if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
     const body = await c.req.json<{
       status?: string;
+      instructor_name?: string;
       training_start_date?: string;
       training_end_date?: string;
       url_ncs?: string;
@@ -256,6 +259,7 @@ app.put('/:id', authMiddleware, requireAdmin, async (c) => {
     if (!existing) return c.json({ success: false, error: '회차를 찾을 수 없습니다' }, 404);
 
     const status = (body.status && STATUS_VALUES.includes(body.status as any)) ? body.status : undefined;
+    const instructorName = (body.instructor_name || '').trim() || null;
     const trainingStart = (body.training_start_date || '').trim() || null;
     const trainingEnd = (body.training_end_date || '').trim() || null;
     const urlNcs = (body.url_ncs || '').trim() || null;
@@ -265,15 +269,15 @@ app.put('/:id', authMiddleware, requireAdmin, async (c) => {
 
     await DB.prepare(
       `UPDATE course_sessions SET
-        status = COALESCE(?, status), training_start_date = ?, training_end_date = ?,
+        status = COALESCE(?, status), instructor_name = ?, training_start_date = ?, training_end_date = ?,
         url_ncs = ?, url_plan = ?, url_detail_plan = ?, registered_at = ?
        WHERE id = ?`
     )
-      .bind(status ?? null, trainingStart, trainingEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt, id)
+      .bind(status ?? null, instructorName, trainingStart, trainingEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt, id)
       .run();
 
     const row = await DB.prepare(
-      `SELECT s.id, s.approved_course_id, s.session_number, s.status,
+      `SELECT s.id, s.approved_course_id, s.session_number, s.status, s.instructor_name,
               s.training_start_date, s.training_end_date, s.url_ncs, s.url_plan, s.url_detail_plan,
               s.registered_at, s.created_at, a.name as course_name, c.name as category_name
        FROM course_sessions s
