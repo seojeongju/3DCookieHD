@@ -3019,7 +3019,7 @@
                 '</div>' +
                 '<div class="dual-list-container" data-type="' + type + '">' +
                 '<div class="list-box-wrapper">' +
-                '<div class="list-box-header">전체 목록</div>' +
+                '<div class="list-box-header">전체 목록 <span class="text-slate-400 font-normal normal-case text-[10px]">(클릭 선택 → 버튼으로 이동)</span></div>' +
                 '<div class="px-3 py-2 border-b border-slate-100 bg-slate-50/30">' +
                 '<input type="text" class="list-box-filter w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs" placeholder="검색..."></div>' +
                 '<div class="list-content available-list flex-1">' + availableItems.map(itemHtml).join('') + '</div>' +
@@ -3031,7 +3031,7 @@
                 '<button type="button" class="list-btn btn-move-all-left w-10 h-10 flex items-center justify-center bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all shadow-sm" title="전체 제거"><i class="fas fa-angle-double-left lg:rotate-0 rotate-90"></i></button>' +
                 '</div>' +
                 '<div class="list-box-wrapper">' +
-                '<div class="list-box-header">선택된 목록 <span class="list-selected-count-inline font-bold text-blue-600">' + selectedCount + '</span></div>' +
+                '<div class="list-box-header">선택된 목록 <span class="list-selected-count-inline font-bold text-blue-600">' + selectedCount + '</span> <span class="text-slate-400 font-normal normal-case text-[10px]">(선택 후 ← 이동)</span></div>' +
                 '<div class="px-3 py-2 border-b border-slate-100 bg-slate-50/30">' +
                 '<input type="text" class="list-box-filter w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs" placeholder="검색..."></div>' +
                 '<div class="list-content selected-list flex-1">' + selectedItems.map(itemHtml).join('') + '</div>' +
@@ -3170,6 +3170,8 @@
 
                 var item = e.target.closest('.list-item');
                 if (item) {
+                    e.preventDefault();
+                    e.stopPropagation();
                     if (e.detail === 2) {
                         var container = item.closest('.dual-list-container');
                         var leftList = container.querySelector('.available-list');
@@ -3182,6 +3184,7 @@
                         updateSummary();
                     } else {
                         item.classList.toggle('selected');
+                        item.setAttribute('aria-selected', item.classList.contains('selected'));
                     }
                     return;
                 }

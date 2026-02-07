@@ -1033,7 +1033,7 @@ const NCS_COMMON_STYLES = `
     padding: 0.5rem;
   }
   .list-item {
-    padding: 0.75rem 1rem;
+    padding: 0.75rem 1rem 0.75rem 2.5rem;
     font-size: 0.875rem;
     color: #334155;
     border-radius: 0.75rem;
@@ -1041,9 +1041,34 @@ const NCS_COMMON_STYLES = `
     margin-bottom: 0.25rem;
     transition: all 0.2s;
     font-weight: 500;
+    position: relative;
+    border: 2px solid transparent;
   }
   .list-item:hover { background: #f1f5f9; color: #1e293b; }
-  .list-item.selected { background: #eff6ff; color: #2563eb; font-weight: 700; box-shadow: inset 0 0 0 1px #bfdbfe; }
+  .list-item.selected {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    color: #1d4ed8;
+    font-weight: 700;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 1px #93c5fd;
+  }
+  .list-item.selected::before {
+    content: "✓";
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1.25rem;
+    height: 1.25rem;
+    background: #3b82f6;
+    color: #fff;
+    border-radius: 50%;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-align: center;
+    line-height: 1.25rem;
+  }
+  .list-content .list-item.selected + .list-item { margin-top: 0.25rem; }
   
   /* Step6 Accordion */
   .step6-card-header { cursor: pointer; user-select: none; transition: background 0.2s, border-color 0.2s; }
