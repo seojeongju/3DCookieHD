@@ -1002,73 +1002,130 @@ const NCS_COMMON_STYLES = `
   .card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
   .card:hover { transform: translateY(-2px); box-shadow: 0 12px 20px -8px rgba(0,0,0,0.1); }
   
-  /* Dual List Styles */
+  /* Dual List — Modern Picker */
   .dual-list-container {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.5rem;
-    margin-top: 1rem;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 0;
+    margin-top: 0;
+    align-items: stretch;
+    min-height: 280px;
+    border-radius: 1rem;
+    overflow: hidden;
+    box-shadow: 0 1px 3px 0 rgba(0,0,0,0.06), 0 1px 2px -1px rgba(0,0,0,0.04);
+    border: 1px solid #e2e8f0;
+    background: #fff;
   }
   .list-box-wrapper {
-    border: 1px solid #e2e8f0;
-    border-radius: 1.25rem;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    background: #fff;
+    background: #fafbfc;
   }
+  .list-box-wrapper:first-child { border-right: 1px solid #e2e8f0; }
+  .list-box-wrapper:last-child { border-left: 1px solid #e2e8f0; }
   .list-box-header {
-    background: #f8fafc;
-    padding: 0.875rem 1.25rem;
-    font-weight: 800;
-    font-size: 0.75rem;
+    padding: 0.75rem 1rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
     color: #475569;
     border-bottom: 1px solid #e2e8f0;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
   }
+  .list-box-header .list-selected-count-inline { font-weight: 700; color: #2563eb; }
+  .list-box-filter-wrap {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid #f1f5f9;
+    background: #fff;
+  }
+  .list-box-filter {
+    width: 100%;
+    padding: 0.5rem 0.75rem 0.5rem 2rem;
+    font-size: 0.8125rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    background: #f8fafc url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8' width='14' height='14'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z'/%3E%3C/svg%3E") no-repeat 0.5rem center;
+  }
+  .list-box-filter:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
   .list-content {
-    height: 240px;
+    flex: 1;
+    min-height: 200px;
+    max-height: 260px;
     overflow-y: auto;
     padding: 0.5rem;
   }
   .list-item {
-    padding: 0.75rem 1rem 0.75rem 2.5rem;
-    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.625rem 0.75rem;
+    font-size: 0.8125rem;
     color: #334155;
-    border-radius: 0.75rem;
+    border-radius: 0.5rem;
     cursor: pointer;
-    margin-bottom: 0.25rem;
-    transition: all 0.2s;
+    margin-bottom: 2px;
+    transition: background 0.15s, color 0.15s;
     font-weight: 500;
-    position: relative;
-    border: 2px solid transparent;
   }
-  .list-item:hover { background: #f1f5f9; color: #1e293b; }
-  .list-item.selected {
-    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-    color: #1d4ed8;
-    font-weight: 700;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 1px #93c5fd;
+  .list-item:hover { background: #f1f5f9; color: #0f172a; }
+  .list-item .list-item-check {
+    flex-shrink: 0;
+    width: 1.125rem;
+    height: 1.125rem;
+    border: 2px solid #cbd5e1;
+    border-radius: 0.25rem;
+    background: #fff;
+    transition: all 0.15s;
   }
-  .list-item.selected::before {
+  .list-item:hover .list-item-check { border-color: #94a3b8; }
+  .list-item.selected .list-item-check {
+    background: #2563eb;
+    border-color: #2563eb;
+  }
+  .list-item.selected .list-item-check::after {
     content: "✓";
     position: absolute;
-    left: 0.75rem;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 1.25rem;
-    height: 1.25rem;
-    background: #3b82f6;
-    color: #fff;
-    border-radius: 50%;
-    font-size: 0.7rem;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    font-size: 0.65rem;
     font-weight: 800;
+    color: #fff;
     text-align: center;
-    line-height: 1.25rem;
+    line-height: 1.125rem;
   }
-  .list-content .list-item.selected + .list-item { margin-top: 0.25rem; }
+  .list-item .list-item-check { position: relative; }
+  .list-item.selected { background: #eff6ff; color: #1d4ed8; }
+  .list-item.selected:hover { background: #dbeafe; }
+  .list-item-text { flex: 1; min-width: 0; }
+  .dual-list-actions {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1rem 0.75rem;
+    background: #f8fafc;
+    border-left: 1px solid #e2e8f0;
+    border-right: 1px solid #e2e8f0;
+  }
+  .dual-list-actions .list-btn {
+    width: 2.25rem;
+    height: 2.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    background: #fff;
+    color: #64748b;
+    transition: all 0.15s;
+  }
+  .dual-list-actions .list-btn:hover { background: #2563eb; color: #fff; border-color: #2563eb; }
+  .dual-list-actions .list-btn:active { transform: scale(0.96); }
   
   /* Step6 Accordion */
   .step6-card-header { cursor: pointer; user-select: none; transition: background 0.2s, border-color 0.2s; }
@@ -1076,8 +1133,14 @@ const NCS_COMMON_STYLES = `
   .step6-card-body { overflow: hidden; transition: max-height 0.3s ease-out; }
   .step6-card-body.collapsed { max-height: 0 !important; }
   .step6-card-body-inner { padding: 1.5rem 0; }
+  .step6-section-accordion { border-radius: 0.75rem; border: 1px solid #e2e8f0; }
+  .step6-section-accordion .step6-section-header {
+    border-radius: 0.75rem 0.75rem 0 0;
+    transition: background 0.15s;
+  }
   .step6-section-accordion .step6-section-body { transition: max-height 0.2s ease-out; }
   .step6-section-accordion .step6-section-header:focus { outline: 2px solid #3b82f6; outline-offset: 2px; }
+  .step6-section-accordion .step6-section-count { font-variant-numeric: tabular-nums; }
   
   /* Form Elements */
   input[type="number"], input[type="text"], select, textarea {

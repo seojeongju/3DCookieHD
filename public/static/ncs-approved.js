@@ -3008,33 +3008,30 @@
                 var safe = function (s) { return String(s || '').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
                 var rn = it.room_number != null ? it.room_number : (it.roomNumber != null ? it.roomNumber : '');
                 var label = safe(it.name) + (rn ? ' (' + safe(rn) + ')' : '') + (it.category ? ' <span class="text-slate-400 text-xs">' + safe(it.category) + '</span>' : '');
-                return '<div class="list-item" data-id="' + it.id + '" title="더블클릭: 이동">' + label + '</div>';
+                return '<div class="list-item" data-id="' + it.id + '" role="option" tabindex="-1" title="클릭 선택 · 더블클릭 이동">' +
+                    '<span class="list-item-check" aria-hidden="true"></span>' +
+                    '<span class="list-item-text">' + label + '</span></div>';
             };
 
-            return '<div class="flex-1 space-y-3 dual-list-block" data-type="' + type + '">' +
-                '<div class="flex items-center gap-2 mb-3">' +
-                '<span class="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>' +
-                '<h5 class="text-xs font-black text-slate-500 uppercase tracking-widest">' + title + '</h5>' +
-                '<span class="list-selected-count text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">' + selectedCount + '개</span>' +
-                '</div>' +
+            return '<div class="flex-1 dual-list-block" data-type="' + type + '">' +
                 '<div class="dual-list-container" data-type="' + type + '">' +
                 '<div class="list-box-wrapper">' +
-                '<div class="list-box-header">전체 목록 <span class="text-slate-400 font-normal normal-case text-[10px]">(클릭 선택 → 버튼으로 이동)</span></div>' +
-                '<div class="px-3 py-2 border-b border-slate-100 bg-slate-50/30">' +
-                '<input type="text" class="list-box-filter w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs" placeholder="검색..."></div>' +
-                '<div class="list-content available-list flex-1">' + availableItems.map(itemHtml).join('') + '</div>' +
+                '<div class="list-box-header">전체 목록</div>' +
+                '<div class="list-box-filter-wrap">' +
+                '<input type="text" class="list-box-filter w-full" placeholder="검색..." aria-label="목록 검색"></div>' +
+                '<div class="list-content available-list">' + availableItems.map(itemHtml).join('') + '</div>' +
                 '</div>' +
-                '<div class="flex flex-row lg:flex-col justify-center items-center gap-1.5 px-1">' +
-                '<button type="button" class="list-btn btn-move-right w-10 h-10 flex items-center justify-center bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all shadow-sm" title="선택 항목 추가"><i class="fas fa-angle-right lg:rotate-0 rotate-90"></i></button>' +
-                '<button type="button" class="list-btn btn-move-all-right w-10 h-10 flex items-center justify-center bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all shadow-sm" title="전체 추가"><i class="fas fa-angle-double-right lg:rotate-0 rotate-90"></i></button>' +
-                '<button type="button" class="list-btn btn-move-left w-10 h-10 flex items-center justify-center bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all shadow-sm" title="선택 항목 제거"><i class="fas fa-angle-left lg:rotate-0 rotate-90"></i></button>' +
-                '<button type="button" class="list-btn btn-move-all-left w-10 h-10 flex items-center justify-center bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all shadow-sm" title="전체 제거"><i class="fas fa-angle-double-left lg:rotate-0 rotate-90"></i></button>' +
+                '<div class="dual-list-actions">' +
+                '<button type="button" class="list-btn btn-move-right" title="선택 항목 추가"><i class="fas fa-angle-right"></i></button>' +
+                '<button type="button" class="list-btn btn-move-all-right" title="전체 추가"><i class="fas fa-angle-double-right"></i></button>' +
+                '<button type="button" class="list-btn btn-move-left" title="선택 항목 제거"><i class="fas fa-angle-left"></i></button>' +
+                '<button type="button" class="list-btn btn-move-all-left" title="전체 제거"><i class="fas fa-angle-double-left"></i></button>' +
                 '</div>' +
                 '<div class="list-box-wrapper">' +
-                '<div class="list-box-header">선택된 목록 <span class="list-selected-count-inline font-bold text-blue-600">' + selectedCount + '</span> <span class="text-slate-400 font-normal normal-case text-[10px]">(선택 후 ← 이동)</span></div>' +
-                '<div class="px-3 py-2 border-b border-slate-100 bg-slate-50/30">' +
-                '<input type="text" class="list-box-filter w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs" placeholder="검색..."></div>' +
-                '<div class="list-content selected-list flex-1">' + selectedItems.map(itemHtml).join('') + '</div>' +
+                '<div class="list-box-header">선택됨 <span class="list-selected-count-inline">' + selectedCount + '</span>개</div>' +
+                '<div class="list-box-filter-wrap">' +
+                '<input type="text" class="list-box-filter w-full" placeholder="검색..." aria-label="선택 목록 검색"></div>' +
+                '<div class="list-content selected-list">' + selectedItems.map(itemHtml).join('') + '</div>' +
                 '</div>' +
                 '</div>' +
                 '</div>';
