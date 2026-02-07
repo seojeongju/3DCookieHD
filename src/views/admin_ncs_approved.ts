@@ -1292,7 +1292,9 @@ export function adminNcsEmbedHtml(courseId: string, initialStep: number = 1): st
   // 하지만 stepContentHtml은 UI 구조를 그리는 것이므로 일단 빈 문자열로 넘기고, JS에서 로드 시 채워넣도록 함.
   const content = stepContentHtml(step, '', true, courseId);
 
+  // 임베드 페이지(/admin/courses/approved/register/:id)에는 NCS_COMMON_STYLES가 없으므로 반드시 포함
   return `
+    ${NCS_COMMON_STYLES}
     <div class="flex flex-col lg:flex-row gap-6 h-full min-h-[600px]">
         <!-- NCS Steps Sidebar -->
         <nav class="w-full lg:w-56 flex-shrink-0">
