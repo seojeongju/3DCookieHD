@@ -1002,17 +1002,16 @@ const NCS_COMMON_STYLES = `
   .card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
   .card:hover { transform: translateY(-2px); box-shadow: 0 12px 20px -8px rgba(0,0,0,0.1); }
   
-  /* Dual List — Modern Picker */
+  /* Dual List — 좌측/우측 박스, 클릭으로만 이동 */
   .dual-list-container {
     display: grid;
-    grid-template-columns: 1fr auto 1fr;
+    grid-template-columns: 1fr 1fr;
     gap: 0;
     margin-top: 0;
     align-items: stretch;
     min-height: 280px;
     border-radius: 1rem;
     overflow: hidden;
-    box-shadow: 0 1px 3px 0 rgba(0,0,0,0.06), 0 1px 2px -1px rgba(0,0,0,0.04);
     border: 1px solid #e2e8f0;
     background: #fff;
   }
@@ -1020,10 +1019,15 @@ const NCS_COMMON_STYLES = `
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    background: #fafbfc;
   }
-  .list-box-wrapper:first-child { border-right: 1px solid #e2e8f0; }
-  .list-box-wrapper:last-child { border-left: 1px solid #e2e8f0; }
+  .list-box-left {
+    background: #f8fafc;
+    border-right: 2px solid #e2e8f0;
+  }
+  .list-box-right {
+    background: #fff;
+    border-left: 1px solid #e2e8f0;
+  }
   .list-box-header {
     padding: 0.75rem 1rem;
     font-size: 0.8125rem;
@@ -1127,30 +1131,6 @@ const NCS_COMMON_STYLES = `
   .list-item.selected { background: #eff6ff; color: #1d4ed8; }
   .list-item.selected:hover { background: #dbeafe; }
   .list-item-text { flex: 1; min-width: 0; }
-  .dual-list-actions {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: 0.5rem;
-    padding: 1rem 0.75rem;
-    background: #f8fafc;
-    border-left: 1px solid #e2e8f0;
-    border-right: 1px solid #e2e8f0;
-  }
-  .dual-list-actions .list-btn {
-    width: 2.25rem;
-    height: 2.25rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid #e2e8f0;
-    border-radius: 0.5rem;
-    background: #fff;
-    color: #64748b;
-    transition: all 0.15s;
-  }
-  .dual-list-actions .list-btn:hover { background: #2563eb; color: #fff; border-color: #2563eb; }
-  .dual-list-actions .list-btn:active { transform: scale(0.96); }
   
   /* Step6 Accordion */
   .step6-card-header { cursor: pointer; user-select: none; transition: background 0.2s, border-color 0.2s; }

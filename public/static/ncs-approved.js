@@ -3008,27 +3008,21 @@
                 var safe = function (s) { return String(s || '').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
                 var rn = it.room_number != null ? it.room_number : (it.roomNumber != null ? it.roomNumber : '');
                 var label = safe(it.name) + (rn ? ' (' + safe(rn) + ')' : '') + (it.category ? ' <span class="text-slate-400 text-xs">' + safe(it.category) + '</span>' : '');
-                return '<div class="list-item" data-id="' + it.id + '" role="option" tabindex="-1" title="클릭: 추가/해제 · Ctrl+클릭: 다중선택 후 버튼 이동">' +
+                return '<div class="list-item" data-id="' + it.id + '" role="option" tabindex="-1" title="클릭하면 반대쪽으로 이동">' +
                     '<span class="list-item-check" aria-hidden="true"></span>' +
                     '<span class="list-item-text">' + label + '</span></div>';
             };
 
             return '<div class="flex-1 dual-list-block" data-type="' + type + '">' +
                 '<div class="dual-list-container" data-type="' + type + '">' +
-                '<div class="list-box-wrapper">' +
-                '<div class="list-box-header">전체 목록 <span class="text-slate-400 font-normal text-[10px]">(클릭 → 오른쪽 추가)</span></div>' +
+                '<div class="list-box-wrapper list-box-left">' +
+                '<div class="list-box-header">전체 목록 <span class="text-slate-400 font-normal text-[10px]">(클릭 시 오른쪽으로 추가)</span></div>' +
                 '<div class="list-box-filter-wrap">' +
                 '<input type="text" class="list-box-filter w-full" placeholder="검색..." aria-label="목록 검색"></div>' +
                 '<div class="list-content available-list">' + availableItems.map(itemHtml).join('') + '</div>' +
                 '</div>' +
-                '<div class="dual-list-actions">' +
-                '<button type="button" class="list-btn btn-move-right" title="선택 항목 추가"><i class="fas fa-angle-right"></i></button>' +
-                '<button type="button" class="list-btn btn-move-all-right" title="전체 추가"><i class="fas fa-angle-double-right"></i></button>' +
-                '<button type="button" class="list-btn btn-move-left" title="선택 항목 제거"><i class="fas fa-angle-left"></i></button>' +
-                '<button type="button" class="list-btn btn-move-all-left" title="전체 제거"><i class="fas fa-angle-double-left"></i></button>' +
-                '</div>' +
-                '<div class="list-box-wrapper">' +
-                '<div class="list-box-header">선택됨 <span class="list-selected-count-inline">' + selectedCount + '</span>개 <span class="text-slate-400 font-normal text-[10px]">(클릭 → 해제)</span></div>' +
+                '<div class="list-box-wrapper list-box-right">' +
+                '<div class="list-box-header">선택됨 <span class="list-selected-count-inline">' + selectedCount + '</span>개 <span class="text-slate-400 font-normal text-[10px]">(클릭 시 선택 해제)</span></div>' +
                 '<div class="list-box-filter-wrap">' +
                 '<input type="text" class="list-box-filter w-full" placeholder="검색..." aria-label="선택 목록 검색"></div>' +
                 '<div class="list-content selected-list">' + selectedItems.map(itemHtml).join('') + '</div>' +
@@ -3172,11 +3166,6 @@
                     var container = item.closest('.dual-list-container');
                     var leftList = container.querySelector('.available-list');
                     var rightList = container.querySelector('.selected-list');
-                    if (e.ctrlKey || e.metaKey) {
-                        item.classList.toggle('selected');
-                        item.setAttribute('aria-selected', item.classList.contains('selected'));
-                        return;
-                    }
                     item.classList.remove('selected');
                     if (item.parentElement === leftList) rightList.appendChild(item); else leftList.appendChild(item);
                     updateDualListCount(container);
@@ -3185,45 +3174,12 @@
                     updateSummary();
                     return;
                 }
-
-                var btn = e.target.closest('.list-btn');
-                if (!btn) return;
-                var container = btn.closest('.dual-list-container');
-                var card = container.closest('.step6-subject-card');
-                var leftList = container.querySelector('.available-list');
-                var rightList = container.querySelector('.selected-list');
-
-                if (btn.classList.contains('btn-move-right')) {
-                    leftList.querySelectorAll('.list-item.selected').forEach(function (el) {
-                        el.classList.remove('selected');
-                        rightList.appendChild(el);
-                    });
-                } else                 if (btn.classList.contains('btn-move-all-right')) {
-                    leftList.querySelectorAll('.list-item').forEach(function (el) {
-                        el.classList.remove('selected');
-                        rightList.appendChild(el);
-                    });
-                } else if (btn.classList.contains('btn-move-left')) {
-                    rightList.querySelectorAll('.list-item.selected').forEach(function (el) {
-                        el.classList.remove('selected');
-                        leftList.appendChild(el);
-                    });
-                } else if (btn.classList.contains('btn-move-all-left')) {
-                    rightList.querySelectorAll('.list-item').forEach(function (el) {
-                        el.classList.remove('selected');
-                        leftList.appendChild(el);
-                    });
-                }
-                card.querySelectorAll('.dual-list-container').forEach(updateDualListCount);
-                updateCardBadges(card);
-                updateSummary();
             });
 
             cardsEl.addEventListener('dblclick', function (e) {
                 var item = e.target.closest('.list-item');
                 if (!item) return;
                 e.preventDefault();
-                if (e.ctrlKey || e.metaKey) return;
                 var container = item.closest('.dual-list-container');
                 var leftList = container.querySelector('.available-list');
                 var rightList = container.querySelector('.selected-list');
