@@ -1051,6 +1051,8 @@ const NCS_COMMON_STYLES = `
   .step6-card-body { overflow: hidden; transition: max-height 0.3s ease-out; }
   .step6-card-body.collapsed { max-height: 0 !important; }
   .step6-card-body-inner { padding: 1.5rem 0; }
+  .step6-section-accordion .step6-section-body { transition: max-height 0.2s ease-out; }
+  .step6-section-accordion .step6-section-header:focus { outline: 2px solid #3b82f6; outline-offset: 2px; }
   
   /* Form Elements */
   input[type="number"], input[type="text"], select, textarea {

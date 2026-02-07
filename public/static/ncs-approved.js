@@ -3006,7 +3006,8 @@
 
             var itemHtml = function (it) {
                 var safe = function (s) { return String(s || '').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
-                var label = safe(it.name) + (it.room_number ? ' (' + safe(it.room_number) + ')' : '') + (it.category ? ' <span class="text-slate-400 text-xs">' + safe(it.category) + '</span>' : '');
+                var rn = it.room_number != null ? it.room_number : (it.roomNumber != null ? it.roomNumber : '');
+                var label = safe(it.name) + (rn ? ' (' + safe(rn) + ')' : '') + (it.category ? ' <span class="text-slate-400 text-xs">' + safe(it.category) + '</span>' : '');
                 return '<div class="list-item" data-id="' + it.id + '" title="더블클릭: 이동">' + label + '</div>';
             };
 
@@ -3039,12 +3040,31 @@
                 '</div>';
         }
 
+        function createSectionAccordion(sectionType, title, contentHtml, initialCount) {
+            var n = initialCount == null ? 0 : initialCount;
+            return '<div class="step6-section-accordion border border-slate-200 rounded-xl overflow-hidden mb-4" data-section="' + sectionType + '">' +
+                '<div class="step6-section-header flex items-center justify-between gap-2 px-4 py-3 bg-slate-50 cursor-pointer hover:bg-slate-100 border-b border-slate-200 select-none" role="button" tabindex="0" aria-expanded="false">' +
+                '<span class="text-sm font-bold text-slate-700">' + title + '</span>' +
+                '<span class="step6-section-count text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">' + n + '개</span>' +
+                '<i class="fas fa-chevron-down step6-section-chevron text-slate-400 text-xs transition-transform"></i>' +
+                '</div>' +
+                '<div class="step6-section-body overflow-hidden transition-all duration-200" style="max-height: 0;">' +
+                '<div class="step6-section-body-inner p-4 bg-white">' + contentHtml + '</div>' +
+                '</div>' +
+                '</div>';
+        }
+
         function updateDualListCount(dualListContainer) {
             if (!dualListContainer) return;
             var sel = dualListContainer.querySelector('.selected-list');
             var count = sel ? sel.querySelectorAll('.list-item').length : 0;
             var block = dualListContainer.closest('.dual-list-block');
             if (block) block.querySelectorAll('.list-selected-count, .list-selected-count-inline').forEach(function (el) { el.textContent = count; });
+            var section = dualListContainer.closest('.step6-section-accordion');
+            if (section) {
+                var countEl = section.querySelector('.step6-section-count');
+                if (countEl) countEl.textContent = count + '개';
+            }
         }
 
         function renderSubjectCard(item, index) {
@@ -3058,15 +3078,6 @@
             var selectedMaterials = [];
             try { selectedMaterials = item.material_ids_json ? JSON.parse(item.material_ids_json) : []; } catch (e) { }
 
-            var textbookChecks = allTextbooks.map(function (tx) {
-                var checked = selectedTextbooks.indexOf(tx.id) !== -1 ? 'checked' : '';
-                return '<label class="step6-tx-label flex items-center gap-2 text-sm cursor-pointer group"><input type="checkbox" class="step6-tx-cb w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" value="' + tx.id + '" ' + checked + '> <span class="step6-tx-name text-slate-600 group-hover:text-slate-900">' + esc(tx.name) + '</span></label>';
-            }).join('');
-            var materialChecks = allMaterials.map(function (mt) {
-                var checked = selectedMaterials.indexOf(mt.id) !== -1 ? 'checked' : '';
-                return '<label class="step6-mt-label flex items-center gap-2 text-sm cursor-pointer group"><input type="checkbox" class="step6-mt-cb w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" value="' + mt.id + '" ' + checked + '> <span class="step6-mt-name text-slate-600 group-hover:text-slate-900">' + esc(mt.name) + '</span></label>';
-            }).join('');
-
             var typeLabel = item.type === 'ncs' ? 'NCS 전공교과' : (item.type === 'basic' ? 'NCS 소양교과' : '비 NCS 교과');
             var hours = (Number(item.theory_hours) || 0) + (Number(item.practice_hours) || 0);
             var nFac = selectedFacilities.length;
@@ -3075,6 +3086,11 @@
             var nMt = selectedMaterials.length;
             var cardId = 'step6-card-' + (item.id || index);
             var bodyId = 'step6-body-' + (item.id || index);
+
+            var sectionFac = createSectionAccordion('facilities', '시설(강의실/실습실) 매칭', createDualList('시설(강의실/실습실) 매칭', 'facilities', allFacilities, selectedFacilities), nFac);
+            var sectionEqu = createSectionAccordion('equipment', '장비 및 기자재 매칭', createDualList('장비 및 기자재 매칭', 'equipment', allEquipment, selectedEquipment), nEqu);
+            var sectionTx = createSectionAccordion('textbook', '교재 선택', createDualList('교재 선택', 'textbook', allTextbooks, selectedTextbooks), nTx);
+            var sectionMt = createSectionAccordion('material', '훈련 재료 / 소모품', createDualList('훈련 재료 / 소모품', 'material', allMaterials, selectedMaterials), nMt);
 
             var header = '<div class="step6-card-header flex items-center gap-4 p-6 rounded-2xl border border-slate-200 bg-white hover:border-slate-300" data-card-id="' + cardId + '" aria-expanded="true" aria-controls="' + bodyId + '">' +
                 '<div class="w-12 h-12 bg-blue-600 text-white rounded-xl flex items-center justify-center text-lg shrink-0"><i class="fas fa-graduation-cap"></i></div>' +
@@ -3092,24 +3108,7 @@
                 '</div>';
             var body = '<div id="' + bodyId + '" class="step6-card-body border border-t-0 border-slate-200 rounded-b-2xl bg-slate-50/30" style="max-height: 2000px;">' +
                 '<div class="step6-card-body-inner px-6 pb-6">' +
-                '<div class="flex flex-col xl:flex-row gap-12 mb-8">' +
-                createDualList('시설(강의실/실습실) 매칭', 'facilities', allFacilities, selectedFacilities) +
-                createDualList('장비 및 기자재 매칭', 'equipment', allEquipment, selectedEquipment) +
-                '</div>' +
-                '<div class="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-slate-200">' +
-                '<div class="space-y-4">' +
-                '<label class="block text-[11px] font-black text-slate-400 uppercase tracking-widest border-l-4 border-blue-500 pl-3">교재 선택</label>' +
-                '<input type="text" class="step6-tx-filter w-full px-3 py-2 border border-slate-200 rounded-xl text-sm mb-2" placeholder="교재 검색...">' +
-                '<div class="step6-tx-wrap flex flex-wrap gap-4 p-4 bg-white rounded-2xl border border-slate-100 max-h-48 overflow-y-auto">' +
-                (textbookChecks || '<span class="text-slate-400 text-xs italic">등록된 교재가 없습니다.</span>') +
-                '</div></div>' +
-                '<div class="space-y-4">' +
-                '<label class="block text-[11px] font-black text-slate-400 uppercase tracking-widest border-l-4 border-blue-500 pl-3">훈련 재료 / 소모품</label>' +
-                '<input type="text" class="step6-mt-filter w-full px-3 py-2 border border-slate-200 rounded-xl text-sm mb-2" placeholder="소모품 검색...">' +
-                '<div class="step6-mt-wrap flex flex-wrap gap-4 p-4 bg-white rounded-2xl border border-slate-100 max-h-48 overflow-y-auto">' +
-                (materialChecks || '<span class="text-slate-400 text-xs italic">등록된 재료가 없습니다.</span>') +
-                '</div></div>' +
-                '</div>' +
+                sectionFac + sectionEqu + sectionTx + sectionMt +
                 '</div></div>';
 
             return '<div class="step6-subject-card bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mb-4" data-id="' + item.id + '" id="' + cardId + '">' + header + body + '</div>';
@@ -3126,8 +3125,8 @@
             cards.forEach(function (card) {
                 if (card.querySelectorAll('.dual-list-container[data-type="facilities"] .selected-list .list-item').length > 0) withFac++;
                 if (card.querySelectorAll('.dual-list-container[data-type="equipment"] .selected-list .list-item').length > 0) withEqu++;
-                card.querySelectorAll('.step6-tx-cb:checked').forEach(function () { totalTx++; });
-                card.querySelectorAll('.step6-mt-cb:checked').forEach(function () { totalMt++; });
+                totalTx += card.querySelectorAll('.dual-list-container[data-type="textbook"] .selected-list .list-item').length;
+                totalMt += card.querySelectorAll('.dual-list-container[data-type="material"] .selected-list .list-item').length;
             });
 
             var facEl = document.getElementById('ncsStep6FacilityBadge');
@@ -3144,6 +3143,18 @@
         function wireEvents() {
             if (!cardsEl) return;
             cardsEl.addEventListener('click', function (e) {
+                var sectionHeader = e.target.closest('.step6-section-header');
+                if (sectionHeader) {
+                    var section = sectionHeader.closest('.step6-section-accordion');
+                    var sectionBody = section && section.querySelector('.step6-section-body');
+                    var chevron = sectionHeader.querySelector('.step6-section-chevron');
+                    var expanded = sectionBody && sectionBody.style.maxHeight && sectionBody.style.maxHeight !== '0px';
+                    if (sectionBody) sectionBody.style.maxHeight = expanded ? '0' : '800px';
+                    if (chevron) chevron.style.transform = expanded ? 'none' : 'rotate(-90deg)';
+                    sectionHeader.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+                    return;
+                }
+
                 var header = e.target.closest('.step6-card-header');
                 if (header) {
                     var card = header.closest('.step6-subject-card');
@@ -3232,25 +3243,6 @@
                         item.style.display = text.indexOf(val) !== -1 ? '' : 'none';
                     });
                 }
-                if (e.target.classList.contains('step6-tx-filter')) {
-                    var val = (e.target.value || '').toLowerCase();
-                    var wrap = e.target.closest('.step6-subject-card').querySelector('.step6-tx-wrap');
-                    wrap.querySelectorAll('.step6-tx-label').forEach(function (label) {
-                        var nameEl = label.querySelector('.step6-tx-name');
-                        var show = !val || (nameEl && nameEl.textContent.toLowerCase().indexOf(val) !== -1);
-                        label.style.display = show ? '' : 'none';
-                    });
-                }
-                if (e.target.classList.contains('step6-mt-filter')) {
-                    var val = (e.target.value || '').toLowerCase();
-                    var wrap = e.target.closest('.step6-subject-card').querySelector('.step6-mt-wrap');
-                    wrap.querySelectorAll('.step6-mt-label').forEach(function (label) {
-                        var nameEl = label.querySelector('.step6-mt-name');
-                        var show = !val || (nameEl && nameEl.textContent.toLowerCase().indexOf(val) !== -1);
-                        label.style.display = show ? '' : 'none';
-                    });
-                }
-                if (e.target.classList.contains('step6-tx-cb') || e.target.classList.contains('step6-mt-cb')) updateSummary();
             });
         }
 
@@ -3258,8 +3250,8 @@
             if (!card) return;
             var nFac = card.querySelectorAll('.dual-list-container[data-type="facilities"] .selected-list .list-item').length;
             var nEqu = card.querySelectorAll('.dual-list-container[data-type="equipment"] .selected-list .list-item').length;
-            var nTx = card.querySelectorAll('.step6-tx-cb:checked').length;
-            var nMt = card.querySelectorAll('.step6-mt-cb:checked').length;
+            var nTx = card.querySelectorAll('.dual-list-container[data-type="textbook"] .selected-list .list-item').length;
+            var nMt = card.querySelectorAll('.dual-list-container[data-type="material"] .selected-list .list-item').length;
             var header = card.querySelector('.step6-card-header');
             if (!header) return;
             var badges = header.querySelectorAll('.px-2.py-1.rounded-lg');
@@ -3269,6 +3261,16 @@
                 badges[2].textContent = '교재 ' + nTx;
                 badges[3].textContent = '소모품 ' + nMt;
             }
+            card.querySelectorAll('.step6-section-accordion').forEach(function (sec) {
+                var type = sec.getAttribute('data-section');
+                var cnt = 0;
+                if (type === 'facilities') cnt = nFac;
+                else if (type === 'equipment') cnt = nEqu;
+                else if (type === 'textbook') cnt = nTx;
+                else if (type === 'material') cnt = nMt;
+                var ce = sec.querySelector('.step6-section-count');
+                if (ce) ce.textContent = cnt + '개';
+            });
         }
 
         function loadData() {
@@ -3278,7 +3280,7 @@
             if (summaryEl) summaryEl.classList.add('hidden');
 
             Promise.all([
-                apiFetch('/api/ncs/approved/facilities'),
+                apiFetch('/api/hrd/facilities'),
                 apiFetch('/api/ncs/approved/hrd-items?category=equipment'),
                 apiFetch('/api/ncs/approved/hrd-items?category=textbook'),
                 apiFetch('/api/ncs/approved/hrd-items?category=consumable'),
@@ -3336,9 +3338,9 @@
                     equipmentIds.push(parseInt(el.getAttribute('data-id'), 10));
                 });
                 var textbookIds = [];
-                card.querySelectorAll('.step6-tx-cb:checked').forEach(function (cb) { textbookIds.push(parseInt(cb.value, 10)); });
+                card.querySelectorAll('.dual-list-container[data-type="textbook"] .selected-list .list-item').forEach(function (el) { textbookIds.push(parseInt(el.getAttribute('data-id'), 10)); });
                 var materialIds = [];
-                card.querySelectorAll('.step6-mt-cb:checked').forEach(function (cb) { materialIds.push(parseInt(cb.value, 10)); });
+                card.querySelectorAll('.dual-list-container[data-type="material"] .selected-list .list-item').forEach(function (el) { materialIds.push(parseInt(el.getAttribute('data-id'), 10)); });
 
                 if (facilityIds.length === 0 && equipmentIds.length === 0) {
                     var nameEl = card.querySelector('.step6-card-header h4');
