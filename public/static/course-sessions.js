@@ -14,29 +14,35 @@
     var STATUS_LABELS = { recruiting: '모집중', in_progress: '진행중', completed: '종료', always_open: '상시모집', closed: '폐강' };
     var STATUS_CLASS = { recruiting: 'bg-blue-100 text-blue-800', in_progress: 'bg-blue-100 text-blue-800', completed: 'bg-slate-100 text-slate-700', always_open: 'bg-slate-100 text-slate-500', closed: 'bg-red-100 text-red-700' };
 
+    function getFilterValue(id) {
+        var el = document.getElementById(id);
+        return el && el.value != null ? el.value : '';
+    }
+
     function buildQuery() {
         var params = new URLSearchParams();
-        var categoryId = document.getElementById('sessionsFilterCategory').value;
-        var status = document.getElementById('sessionsFilterStatus').value;
-        var name = (document.getElementById('sessionsFilterName').value || '').trim();
-        var instructor = (document.getElementById('sessionsFilterInstructor').value || '').trim();
-        var trainingStart = document.getElementById('sessionsFilterTrainingStart').value;
+        var categoryId = getFilterValue('sessionsFilterCategory');
+        var status = getFilterValue('sessionsFilterStatus');
+        var name = (getFilterValue('sessionsFilterName') || '').trim();
+        var instructor = (getFilterValue('sessionsFilterInstructor') || '').trim();
+        var trainingStart = getFilterValue('sessionsFilterTrainingStart');
         if (categoryId) params.set('category_id', categoryId);
         if (status) params.set('status', status);
         if (name) params.set('name', name);
         if (instructor) params.set('instructor_name', instructor);
         if (trainingStart) params.set('training_start_from', trainingStart);
         params.set('page', String(currentPage));
-        params.set('limit', String(parseInt(document.getElementById('sessionsPageSize').value, 10) || 15));
+        var pageSizeEl = document.getElementById('sessionsPageSize');
+        params.set('limit', String(parseInt(pageSizeEl && pageSizeEl.value ? pageSizeEl.value : 15, 10) || 15));
         return params.toString();
     }
 
     function buildStatsQuery() {
         var params = new URLSearchParams();
-        var categoryId = document.getElementById('sessionsFilterCategory').value;
-        var name = (document.getElementById('sessionsFilterName').value || '').trim();
-        var instructor = (document.getElementById('sessionsFilterInstructor').value || '').trim();
-        var trainingStart = document.getElementById('sessionsFilterTrainingStart').value;
+        var categoryId = getFilterValue('sessionsFilterCategory');
+        var name = (getFilterValue('sessionsFilterName') || '').trim();
+        var instructor = (getFilterValue('sessionsFilterInstructor') || '').trim();
+        var trainingStart = getFilterValue('sessionsFilterTrainingStart');
         if (categoryId) params.set('category_id', categoryId);
         if (name) params.set('name', name);
         if (instructor) params.set('instructor_name', instructor);
@@ -52,6 +58,7 @@
                 if (!json.success || !json.data) return;
                 var data = json.data;
                 var el = document.getElementById('sessionsStats');
+                if (!el) return;
                 var html = '';
                 ['recruiting', 'in_progress', 'completed', 'always_open', 'closed'].forEach(function (key) {
                     var cnt = data[key] != null ? data[key] : 0;
@@ -62,7 +69,8 @@
                 el.innerHTML = html;
                 el.querySelectorAll('.sessions-stat-btn').forEach(function (btn) {
                     btn.addEventListener('click', function () {
-                        document.getElementById('sessionsFilterStatus').value = btn.getAttribute('data-status');
+                        var statusEl = document.getElementById('sessionsFilterStatus');
+                        if (statusEl) statusEl.value = btn.getAttribute('data-status') || '';
                         currentPage = 1;
                         loadStats();
                         loadSessionsList();
@@ -190,19 +198,22 @@
             .catch(function () { alert('삭제 중 오류가 발생했습니다.'); });
     };
 
-    document.getElementById('sessionsBtnSearch').addEventListener('click', function () { currentPage = 1; loadStats(); loadSessionsList(); });
-    document.getElementById('sessionsBtnReset').addEventListener('click', function () {
-        document.getElementById('sessionsFilterCategory').value = '';
-        document.getElementById('sessionsFilterStatus').value = '';
-        document.getElementById('sessionsFilterName').value = '';
-        document.getElementById('sessionsFilterInstructor').value = '';
-        document.getElementById('sessionsFilterTrainingStart').value = '';
+    var btnSearch = document.getElementById('sessionsBtnSearch');
+    if (btnSearch) btnSearch.addEventListener('click', function () { currentPage = 1; loadStats(); loadSessionsList(); });
+    var btnReset = document.getElementById('sessionsBtnReset');
+    if (btnReset) btnReset.addEventListener('click', function () {
+        ['sessionsFilterCategory', 'sessionsFilterStatus', 'sessionsFilterName', 'sessionsFilterInstructor', 'sessionsFilterTrainingStart'].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) el.value = '';
+        });
         currentPage = 1;
         loadStats();
         loadSessionsList();
     });
-    document.getElementById('sessionsPageSize').addEventListener('change', function () { currentPage = 1; loadSessionsList(); });
-    document.getElementById('sessionsBtnRefresh').addEventListener('click', function () { loadStats(); loadSessionsList(); });
+    var pageSizeEl = document.getElementById('sessionsPageSize');
+    if (pageSizeEl) pageSizeEl.addEventListener('change', function () { currentPage = 1; loadSessionsList(); });
+    var btnRefresh = document.getElementById('sessionsBtnRefresh');
+    if (btnRefresh) btnRefresh.addEventListener('click', function () { loadStats(); loadSessionsList(); });
 
     loadCategories().then(function () {
         loadStats();
