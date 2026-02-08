@@ -1,12 +1,44 @@
 # 현재 작업 상태 및 다음 세션 가이드
 
-**작성일**: 2025-01-27  
+**최종 갱신**: 2026-02-08  
 **브랜치**: `education-platform`  
-**최근 배포**: https://2e74e95d.3dcookiehd.pages.dev
+**최근 커밋**: 마이그레이션 0006/0032 수정, session_name API 안내 (1b6bae7)
 
 ---
 
-## 🎯 최근 완료된 작업 (2025-01-27 세션)
+## 🎯 최근 완료된 작업 (2026-02 세션)
+
+### 1. 회차별 과정명 기능 ✅
+- **표시 형식**: 승인받은 과정명 + 회차 + 회차별과정명
+- **구현**: DB `course_sessions.session_name`(0062), 등록/수정 폼, 개설 현황 리스트, 미리보기
+- **파일**: `migrations/0062_course_sessions_session_name.sql`, `src/api/course_sessions.ts`, `src/views/admin_courses_sub.ts`, `public/static/course-sessions-register.js`, `public/static/course-sessions.js`
+- **저장 안 될 때**: DB에 마이그레이션 0062 미적용 시 발생. `npm run db:migrate:prod` 실행 필요. API는 해당 시 명확한 오류 메시지 반환.
+
+### 2. 모바일 반응형 ✅
+- **공개**: 네비게이션 모바일 햄버거 메뉴 + 드로어
+- **관리자**: 사이드바 모바일 토글(햄버거 + 오버레이), 테이블 가로 스크롤
+- **파일**: `src/views/components/navigation.ts`, `src/views/components/hrd_sidebar.ts`, `src/views/admin_courses_sub.ts`, `public/static/style.css`, `src/views/components/layout.ts`
+
+### 3. 마이그레이션 수정 ✅ (커밋됨)
+- **0006_production_test_data.sql**: `users` 테이블에 `status` 컬럼 제거(0009에서 추가되므로)
+- **0032_relax_counseling_constraint.sql**: `hrd_counseling_logs` 이전 시 `counseling_type`/`consultation_id` 없음 대비 → 기본값/NULL 사용
+- **API**: session_name 컬럼 없을 때 "마이그레이션 0062 적용하세요" 안내 반환
+
+### 4. 배포 상태 ⚠️
+- **푸시**: 완료 (origin/education-platform)
+- **마지막 배포**: Cloudflare D1 바인딩 오류로 실패 (`binding DB of type d1 failed to generate`). 잠시 후 `npm run deploy:prod` 재시도 필요.
+
+---
+
+## 📋 다음 세션에서 이어서 할 일
+
+1. **배포 재시도**: `npm run db:migrate:prod` 적용 후 `npm run deploy:prod` 실행. D1 오류 시 Cloudflare 대시보드에서 Pages ↔ D1 연결 확인.
+2. **회차별 과정명 검증**: 프로덕션에서 회차별과정명 입력 후 저장·리스트 표시 확인.
+3. **마이그레이션**: 로컬/원격에서 0006, 0032, 0062까지 정상 적용 여부 확인.
+
+---
+
+## 🎯 이전 세션 참고 (2025-01-27)
 
 ### 1. 강사 대시보드 로그아웃 기능 통일 ✅
 - **상태**: 완료 및 배포됨
@@ -132,11 +164,9 @@
 
 ## 🚀 배포 정보
 
-- **최근 배포 URL**: https://2e74e95d.3dcookiehd.pages.dev
-- **배포 방법**: 
-  - 자동 배포: GitHub push 시 자동 배포 (권장)
-  - 수동 배포: `npm run deploy:prod` 실행
-- **주의사항**: 자동 배포와 수동 배포를 동시에 사용하지 마세요
+- **브랜치**: education-platform (최신 푸시 완료)
+- **배포 방법**: 자동 배포(GitHub push) 또는 `npm run deploy:prod`
+- **참고**: 2026-02-08 배포 시 D1 바인딩 오류 발생 → 재시도 또는 Cloudflare 대시보드 확인
 
 ---
 
@@ -206,5 +236,12 @@ npm run db:migrate:local
 3. **데이터 로딩**: 탭 전환 시 데이터를 다시 로드하도록 `setTimeout`을 사용합니다.
 
 ---
+
+---
+
+## 💾 백업/복원
+
+- **Git 태그**: 현재 시점 백업용 태그 생성 시 `git tag backup-2026-02-08` 후 `git push origin backup-2026-02-08`
+- **복원**: `git checkout backup-2026-02-08` 또는 해당 커밋 해시(1b6bae7)로 체크아웃
 
 **다음 세션 시작 시 이 문서를 참고하여 작업을 이어가세요!**
