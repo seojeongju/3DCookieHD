@@ -164,6 +164,13 @@ app.post('/', authMiddleware, requireAdmin, async (c) => {
       url_plan?: string;
       url_detail_plan?: string;
       registered_at?: string;
+      recruitment_status?: string;
+      representative_image_exposure?: string;
+      recruitment_grace_period?: number;
+      syllabus_exposure?: string;
+      main_slide_image_url?: string;
+      course_list_image_url?: string;
+      course_detail_description?: string;
     }>();
     const approvedCourseId = body.approved_course_id;
     const sessionNumber = body.session_number;
@@ -181,6 +188,13 @@ app.post('/', authMiddleware, requireAdmin, async (c) => {
     const urlPlan = (body.url_plan || '').trim() || null;
     const urlDetailPlan = (body.url_detail_plan || '').trim() || null;
     const registeredAt = (body.registered_at || '').trim() || null;
+    const recruitmentStatus = (body.recruitment_status || 'normal').trim() || 'normal';
+    const representativeImageExposure = (body.representative_image_exposure || 'expose').trim() || 'expose';
+    const recruitmentGracePeriod = typeof body.recruitment_grace_period === 'number' ? body.recruitment_grace_period : (parseInt(String(body.recruitment_grace_period || '0'), 10) || 0);
+    const syllabusExposure = (body.syllabus_exposure || 'hide').trim() || 'hide';
+    const mainSlideImageUrl = (body.main_slide_image_url || '').trim() || null;
+    const courseListImageUrl = (body.course_list_image_url || '').trim() || null;
+    const courseDetailDescription = (body.course_detail_description || '').trim() || null;
 
     const { DB } = c.env;
     const existing = await DB.prepare(
@@ -194,22 +208,38 @@ app.post('/', authMiddleware, requireAdmin, async (c) => {
       await DB.prepare(
         `INSERT INTO course_sessions (
           approved_course_id, session_number, status, instructor_name, target_audience, days_of_week, location,
-          training_start_date, training_end_date, url_ncs, url_plan, url_detail_plan, registered_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          training_start_date, training_end_date, url_ncs, url_plan, url_detail_plan, registered_at,
+          recruitment_status, representative_image_exposure, recruitment_grace_period, syllabus_exposure,
+          main_slide_image_url, course_list_image_url, course_detail_description
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
-        .bind(approvedCourseId, sessionNumber, status, instructorName, targetAudience, daysOfWeek, location, trainingStart, trainingEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt)
+        .bind(approvedCourseId, sessionNumber, status, instructorName, targetAudience, daysOfWeek, location, trainingStart, trainingEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt, recruitmentStatus, representativeImageExposure, recruitmentGracePeriod, syllabusExposure, mainSlideImageUrl, courseListImageUrl, courseDetailDescription)
         .run();
     } catch (err: unknown) {
       const msg = String(err && typeof err === 'object' && 'message' in err ? (err as Error).message : err);
-      if (/instructor_name|target_audience|days_of_week|location|no such column/i.test(msg)) {
-        await DB.prepare(
-          `INSERT INTO course_sessions (
-            approved_course_id, session_number, status, training_start_date, training_end_date,
-            url_ncs, url_plan, url_detail_plan, registered_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-        )
-          .bind(approvedCourseId, sessionNumber, status, trainingStart, trainingEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt)
-          .run();
+      if (/recruitment_status|representative_image_exposure|recruitment_grace_period|syllabus_exposure|main_slide_image_url|course_list_image_url|course_detail_description|no such column/i.test(msg)) {
+        try {
+          await DB.prepare(
+            `INSERT INTO course_sessions (
+              approved_course_id, session_number, status, instructor_name, target_audience, days_of_week, location,
+              training_start_date, training_end_date, url_ncs, url_plan, url_detail_plan, registered_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          )
+            .bind(approvedCourseId, sessionNumber, status, instructorName, targetAudience, daysOfWeek, location, trainingStart, trainingEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt)
+            .run();
+        } catch (err2: unknown) {
+          const msg2 = String(err2 && typeof err2 === 'object' && 'message' in err2 ? (err2 as Error).message : err2);
+          if (/instructor_name|target_audience|days_of_week|location|no such column/i.test(msg2)) {
+            await DB.prepare(
+              `INSERT INTO course_sessions (
+                approved_course_id, session_number, status, training_start_date, training_end_date,
+                url_ncs, url_plan, url_detail_plan, registered_at
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+            )
+              .bind(approvedCourseId, sessionNumber, status, trainingStart, trainingEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt)
+              .run();
+          } else throw err2;
+        }
       } else throw err;
     }
 
@@ -243,6 +273,8 @@ app.get('/:id', authMiddleware, requireAdmin, async (c) => {
         `SELECT s.id, s.approved_course_id, s.session_number, s.status,
                 s.training_start_date, s.training_end_date, s.url_ncs, s.url_plan, s.url_detail_plan,
                 s.registered_at, s.created_at, s.target_audience, s.days_of_week, s.location,
+                s.recruitment_status, s.representative_image_exposure, s.recruitment_grace_period,
+                s.syllabus_exposure, s.main_slide_image_url, s.course_list_image_url, s.course_detail_description,
                 a.name as course_name, a.instructor_name, c.name as category_name
          FROM course_sessions s
          INNER JOIN approved_courses a ON a.id = s.approved_course_id
@@ -252,17 +284,32 @@ app.get('/:id', authMiddleware, requireAdmin, async (c) => {
         .bind(id)
         .first() as Record<string, unknown> | null;
     } catch {
-      row = await DB.prepare(
-        `SELECT s.id, s.approved_course_id, s.session_number, s.status,
-                s.training_start_date, s.training_end_date, s.url_ncs, s.url_plan, s.url_detail_plan,
-                s.registered_at, s.created_at, a.name as course_name, a.instructor_name, c.name as category_name
-         FROM course_sessions s
-         INNER JOIN approved_courses a ON a.id = s.approved_course_id
-         LEFT JOIN course_categories c ON c.id = a.category_id
-         WHERE s.id = ?`
-      )
-        .bind(id)
-        .first() as Record<string, unknown> | null;
+      try {
+        row = await DB.prepare(
+          `SELECT s.id, s.approved_course_id, s.session_number, s.status,
+                  s.training_start_date, s.training_end_date, s.url_ncs, s.url_plan, s.url_detail_plan,
+                  s.registered_at, s.created_at, s.target_audience, s.days_of_week, s.location,
+                  a.name as course_name, a.instructor_name, c.name as category_name
+           FROM course_sessions s
+           INNER JOIN approved_courses a ON a.id = s.approved_course_id
+           LEFT JOIN course_categories c ON c.id = a.category_id
+           WHERE s.id = ?`
+        )
+          .bind(id)
+          .first() as Record<string, unknown> | null;
+      } catch {
+        row = await DB.prepare(
+          `SELECT s.id, s.approved_course_id, s.session_number, s.status,
+                  s.training_start_date, s.training_end_date, s.url_ncs, s.url_plan, s.url_detail_plan,
+                  s.registered_at, s.created_at, a.name as course_name, a.instructor_name, c.name as category_name
+           FROM course_sessions s
+           INNER JOIN approved_courses a ON a.id = s.approved_course_id
+           LEFT JOIN course_categories c ON c.id = a.category_id
+           WHERE s.id = ?`
+        )
+          .bind(id)
+          .first() as Record<string, unknown> | null;
+      }
     }
     if (!row) return c.json({ success: false, error: '회차를 찾을 수 없습니다' }, 404);
     return c.json({ success: true, data: row });
@@ -291,6 +338,13 @@ app.put('/:id', authMiddleware, requireAdmin, async (c) => {
       url_plan?: string;
       url_detail_plan?: string;
       registered_at?: string;
+      recruitment_status?: string;
+      representative_image_exposure?: string;
+      recruitment_grace_period?: number;
+      syllabus_exposure?: string;
+      main_slide_image_url?: string;
+      course_list_image_url?: string;
+      course_detail_description?: string;
     }>();
 
     const { DB } = c.env;
@@ -308,28 +362,53 @@ app.put('/:id', authMiddleware, requireAdmin, async (c) => {
     const urlPlan = (body.url_plan || '').trim() || null;
     const urlDetailPlan = (body.url_detail_plan || '').trim() || null;
     const registeredAt = (body.registered_at || '').trim() || null;
+    const recruitmentStatus = (body.recruitment_status || '').trim() || null;
+    const representativeImageExposure = (body.representative_image_exposure || '').trim() || null;
+    const recruitmentGracePeriod = body.recruitment_grace_period != null ? (typeof body.recruitment_grace_period === 'number' ? body.recruitment_grace_period : parseInt(String(body.recruitment_grace_period), 10) || 0) : null;
+    const syllabusExposure = (body.syllabus_exposure || '').trim() || null;
+    const mainSlideImageUrl = (body.main_slide_image_url || '').trim() || null;
+    const courseListImageUrl = (body.course_list_image_url || '').trim() || null;
+    const courseDetailDescription = (body.course_detail_description || '').trim() || null;
 
     try {
       await DB.prepare(
         `UPDATE course_sessions SET
           status = COALESCE(?, status), instructor_name = ?, target_audience = ?, days_of_week = ?, location = ?,
           training_start_date = ?, training_end_date = ?,
-          url_ncs = ?, url_plan = ?, url_detail_plan = ?, registered_at = ?
+          url_ncs = ?, url_plan = ?, url_detail_plan = ?, registered_at = ?,
+          recruitment_status = COALESCE(?, recruitment_status), representative_image_exposure = COALESCE(?, representative_image_exposure),
+          recruitment_grace_period = COALESCE(?, recruitment_grace_period), syllabus_exposure = COALESCE(?, syllabus_exposure),
+          main_slide_image_url = ?, course_list_image_url = ?, course_detail_description = ?
          WHERE id = ?`
       )
-        .bind(status ?? null, instructorName, targetAudience, daysOfWeek, location, trainingStart, trainingEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt, id)
+        .bind(status ?? null, instructorName, targetAudience, daysOfWeek, location, trainingStart, trainingEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt, recruitmentStatus, representativeImageExposure, recruitmentGracePeriod, syllabusExposure, mainSlideImageUrl, courseListImageUrl, courseDetailDescription, id)
         .run();
     } catch (err: unknown) {
       const msg = String(err && typeof err === 'object' && 'message' in err ? (err as Error).message : err);
-      if (/instructor_name|target_audience|days_of_week|location|no such column/i.test(msg)) {
-        await DB.prepare(
-          `UPDATE course_sessions SET
-            status = COALESCE(?, status), training_start_date = ?, training_end_date = ?,
-            url_ncs = ?, url_plan = ?, url_detail_plan = ?, registered_at = ?
-           WHERE id = ?`
-        )
-          .bind(status ?? null, trainingStart, trainingEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt, id)
-          .run();
+      if (/recruitment_status|representative_image_exposure|recruitment_grace_period|syllabus_exposure|main_slide_image_url|course_list_image_url|course_detail_description|no such column/i.test(msg)) {
+        try {
+          await DB.prepare(
+            `UPDATE course_sessions SET
+              status = COALESCE(?, status), instructor_name = ?, target_audience = ?, days_of_week = ?, location = ?,
+              training_start_date = ?, training_end_date = ?,
+              url_ncs = ?, url_plan = ?, url_detail_plan = ?, registered_at = ?
+             WHERE id = ?`
+          )
+            .bind(status ?? null, instructorName, targetAudience, daysOfWeek, location, trainingStart, trainingEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt, id)
+            .run();
+        } catch (err2: unknown) {
+          const msg2 = String(err2 && typeof err2 === 'object' && 'message' in err2 ? (err2 as Error).message : err2);
+          if (/instructor_name|target_audience|days_of_week|location|no such column/i.test(msg2)) {
+            await DB.prepare(
+              `UPDATE course_sessions SET
+                status = COALESCE(?, status), training_start_date = ?, training_end_date = ?,
+                url_ncs = ?, url_plan = ?, url_detail_plan = ?, registered_at = ?
+               WHERE id = ?`
+            )
+              .bind(status ?? null, trainingStart, trainingEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt, id)
+              .run();
+          } else throw err2;
+        }
       } else throw err;
     }
 

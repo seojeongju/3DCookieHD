@@ -919,7 +919,10 @@ export const adminCoursesSessionsRegisterHtml = (editId?: string) => {
                         </div>
 
                         <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-1">장소</label>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">장소(교육장소)</label>
+                            <select id="sessionsFormLocationSelect" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white mb-2" aria-label="등록된 훈련시설 선택">
+                                <option value="">등록된 훈련시설 선택 (또는 아래 직접 입력)</option>
+                            </select>
                             <input type="text" id="sessionsFormLocation" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" placeholder="예: 3D쿠키홍대센터 제1강의실">
                         </div>
 
@@ -931,25 +934,83 @@ export const adminCoursesSessionsRegisterHtml = (editId?: string) => {
                 </section>
 
                 <section class="border border-slate-200 rounded-xl p-5 bg-white">
-                    <h3 class="font-bold text-slate-800 mb-4">강사 및 URL</h3>
+                    <h3 class="font-bold text-slate-800 mb-4">강사(담당 강사)</h3>
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-2">강사</label>
+                        <div id="sessionsFormInstructorList" class="flex flex-wrap gap-x-6 gap-y-2 min-h-[2.5rem] px-4 py-3 border border-slate-200 rounded-xl bg-slate-50/50 text-sm">
+                            <span class="text-slate-400">강사 목록 로딩 중...</span>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-1">여러 명 선택 시 저장 후 쉼표로 구분되어 표시됩니다.</p>
+                    </div>
+                </section>
+
+                <section class="border border-slate-200 rounded-xl p-5 bg-white">
+                    <h3 class="font-bold text-slate-800 mb-4">연동 홈페이지 설정</h3>
+                    <p class="text-xs text-slate-500 mb-4">연동홈페이지에 대표이미지·과정설명이 노출되는 홈페이지에만 해당됩니다.</p>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-1">강사(담당 강사)</label>
-                            <input type="text" id="sessionsFormInstructor" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" placeholder="담당 강사명 입력">
+                            <label class="block text-sm font-bold text-slate-700 mb-1">모집상황</label>
+                            <select id="sessionsFormRecruitmentStatus" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white">
+                                <option value="normal">정상</option>
+                                <option value="suspended">유예</option>
+                                <option value="closed">마감</option>
+                            </select>
+                            <p class="text-xs text-slate-500 mt-1">정상일 경우에 수강신청을 받을 수 있습니다.</p>
                         </div>
-                        <div class="md:col-span-2">
-                            <label class="block text-sm font-bold text-slate-700 mb-1">NCS교과 URL</label>
-                            <input type="url" id="sessionsFormUrlNcs" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" placeholder="https://">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2">대표이미지 노출</label>
+                            <div class="flex gap-4">
+                                <label class="inline-flex items-center gap-2 cursor-pointer"><input type="radio" name="sessionsFormRepImageExposure" value="expose" class="text-emerald-600" checked> 노출</label>
+                                <label class="inline-flex items-center gap-2 cursor-pointer"><input type="radio" name="sessionsFormRepImageExposure" value="hide" class="text-emerald-600"> 미노출</label>
+                            </div>
+                            <p class="text-xs text-slate-500 mt-1">메인 슬라이드에 과정을 노출 시킵니다.</p>
                         </div>
-                        <div class="md:col-span-2">
-                            <label class="block text-sm font-bold text-slate-700 mb-1">교수계획서 실행 URL</label>
-                            <input type="url" id="sessionsFormUrlPlan" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" placeholder="https://">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">모집유예기간</label>
+                            <input type="number" id="sessionsFormRecruitmentGracePeriod" min="0" value="0" class="w-full max-w-[8rem] px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
+                            <p class="text-xs text-slate-500 mt-1">과정시작일에서 등록된 수만큼 모집기간이 늘어납니다.</p>
                         </div>
-                        <div class="md:col-span-2">
-                            <label class="block text-sm font-bold text-slate-700 mb-1">세부교수계획서 실행 URL</label>
-                            <input type="url" id="sessionsFormUrlDetailPlan" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" placeholder="https://">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2">수업계획서 노출</label>
+                            <div class="flex gap-4">
+                                <label class="inline-flex items-center gap-2 cursor-pointer"><input type="radio" name="sessionsFormSyllabusExposure" value="expose" class="text-emerald-600"> 노출</label>
+                                <label class="inline-flex items-center gap-2 cursor-pointer"><input type="radio" name="sessionsFormSyllabusExposure" value="hide" class="text-emerald-600" checked> 미노출</label>
+                            </div>
+                            <p class="text-xs text-slate-500 mt-1">수업계획서 노출시 연동홈페이지 과정상세보기 페이지에 노출 시킵니다.</p>
                         </div>
                     </div>
+                </section>
+
+                <section class="border border-slate-200 rounded-xl p-5 bg-white bg-blue-50/30">
+                    <h3 class="font-bold text-slate-800 mb-4">과정 대표 이미지</h3>
+                    <p class="text-xs text-slate-500 mb-4">연동홈페이지에 대표이미지가 노출되는 홈페이지에만 해당됩니다.</p>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">메인 슬라이드 대표 이미지</label>
+                            <div class="flex items-center gap-3 flex-wrap">
+                                <input type="file" id="sessionsFormMainSlideImage" accept="image/*" class="text-sm text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-emerald-50 file:text-emerald-700 file:font-bold">
+                                <span id="sessionsFormMainSlideImageInfo" class="text-xs text-slate-500"></span>
+                            </div>
+                            <p class="text-xs text-slate-500 mt-1">권장 사이즈: 가로 1000 / 세로 370px. 모집중인 과정만 노출됩니다.</p>
+                            <input type="hidden" id="sessionsFormMainSlideImageUrl" value="">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">과정 목록 대표 이미지</label>
+                            <div class="flex items-center gap-3 flex-wrap">
+                                <input type="file" id="sessionsFormCourseListImage" accept="image/*" class="text-sm text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-emerald-50 file:text-emerald-700 file:font-bold">
+                                <span id="sessionsFormCourseListImageInfo" class="text-xs text-slate-500"></span>
+                            </div>
+                            <p class="text-xs text-slate-500 mt-1">권장 사이즈: 가로 350px / 세로 175px. 과정 목록 전체에 노출됩니다.</p>
+                            <input type="hidden" id="sessionsFormCourseListImageUrl" value="">
+                        </div>
+                        <p class="text-xs text-slate-500">과정 대표 이미지가 슬라이드 되는 연동 홈페이지일 경우 메인 슬라이드 대표 이미지 사이즈로 등록해주세요.</p>
+                    </div>
+                </section>
+
+                <section class="border border-slate-200 rounded-xl p-5 bg-white">
+                    <h3 class="font-bold text-slate-800 mb-4">과정 상세 정보(과정설명)</h3>
+                    <p class="text-xs text-slate-500 mb-4">상세 정보 등록시 연동홈페이지의 각 과정 수강신청 버튼 하단에 과정 설명이 노출됩니다.</p>
+                    <textarea id="sessionsFormCourseDetailDescription" class="w-full min-h-[280px] border border-slate-200 rounded-xl text-sm p-4 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" placeholder="과정 설명을 입력하세요 (HTML 지원)"></textarea>
                 </section>
 
                 <div class="flex flex-wrap gap-3 pt-4 border-t border-slate-200">
@@ -959,6 +1020,7 @@ export const adminCoursesSessionsRegisterHtml = (editId?: string) => {
             </form>
         </div>
     </div>
+    <script src="https://cdn.tiny.cloud/1/mvw2dv577uz6ru7oboooo1vpsgfgtj25kfa5sci9bblekdy3/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
     <script src="/static/course-sessions-register.js"></script>
     `
     );
