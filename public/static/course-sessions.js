@@ -190,6 +190,10 @@
         });
     }
 
+    window.openSessionEdit = function (id) {
+        if (id) window.location.href = '/admin/courses/sessions/register/' + id;
+    };
+
     window.deleteSession = function (id) {
         if (!confirm('이 회차를 삭제할까요?')) return;
         fetch('/api/course-sessions/' + id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } })
