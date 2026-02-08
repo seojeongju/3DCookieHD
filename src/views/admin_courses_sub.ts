@@ -40,7 +40,7 @@ const courseSubPageLayout = (
         ${hrdSidebar(activeMenu)}
         <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
             <!-- Header -->
-            <header class="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-6 shrink-0 z-10">
+            <header class="bg-white border-b border-slate-200 h-14 sm:h-16 flex items-center justify-between px-4 sm:px-6 shrink-0 z-10">
                 <div class="flex items-center gap-4">
                     <h1 class="text-lg font-bold text-slate-800">${title}</h1>
                     <nav class="hidden sm:flex items-center text-xs text-slate-500 gap-2">
@@ -56,8 +56,8 @@ const courseSubPageLayout = (
                 </div>
             </header>
 
-            <!-- Main Content -->
-            <main class="flex-1 overflow-auto p-6 custom-scrollbar bg-slate-50">
+            <!-- Main Content (모바일 패딩) -->
+            <main class="flex-1 overflow-auto p-4 sm:p-6 custom-scrollbar bg-slate-50">
                 ${contentHtml}
             </main>
         </div>
@@ -716,9 +716,10 @@ export const adminCoursesSessionsHtml = () =>
             </div>
         </div>
 
-        <!-- Table -->
+        <!-- Table (모바일 가로 스크롤) -->
         <div class="flex-1 overflow-auto custom-scrollbar relative">
-            <table class="w-full text-left border-collapse">
+            <div class="overflow-x-auto min-w-0">
+            <table class="w-full text-left border-collapse min-w-[800px]">
                 <thead class="bg-slate-100 text-slate-500 text-xs font-bold uppercase sticky top-0 z-10 shadow-sm">
                     <tr>
                         <th class="p-3 w-16 text-center border-b border-slate-200">No.</th>
@@ -735,6 +736,7 @@ export const adminCoursesSessionsHtml = () =>
                     <tr><td colspan="8" class="p-12 text-center text-slate-400">데이터 로딩 중...</td></tr>
                 </tbody>
             </table>
+            </div>
         </div>
 
         <!-- Pagination -->
@@ -844,7 +846,7 @@ export const adminCoursesSessionsRegisterHtml = (editId?: string) => {
                             <div>
                                 <label class="block text-sm font-bold text-slate-700 mb-1">회차별과정명</label>
                                 <input type="text" id="sessionsFormSessionName" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" placeholder="예: 1기 실무반">
-                                <p class="text-xs text-slate-500 mt-1">승인받은과정명 + 이 입력값이 <strong>회차별과정명</strong>으로 표시됩니다. 비워두면 과정명만 사용됩니다.</p>
+                                <p class="text-xs text-slate-500 mt-1">승인받은 과정명 + 회차 + 이 입력값(회차별과정명)으로 표시됩니다. 비워두면 과정명 + 회차만 사용됩니다.</p>
                                 <p id="sessionsFormSessionNamePreview" class="text-xs text-emerald-600 mt-1.5 font-medium truncate" aria-live="polite"></p>
                             </div>
                         </div>

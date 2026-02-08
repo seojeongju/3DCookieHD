@@ -77,11 +77,16 @@
     function updateSessionNamePreview() {
         var courseEl = document.getElementById('sessionsDetailCourseName');
         var courseName = courseEl ? (courseEl.textContent || '').trim() : '';
+        var sessionNumEl = document.getElementById('sessionsFormSessionNumber');
+        var sessionNum = (sessionNumEl && sessionNumEl.value) ? sessionNumEl.value.trim() : '';
         var sessionNameEl = document.getElementById('sessionsFormSessionName');
         var sessionPart = (sessionNameEl && sessionNameEl.value) ? sessionNameEl.value.trim() : '';
         var previewEl = document.getElementById('sessionsFormSessionNamePreview');
         if (!previewEl) return;
-        var full = (courseName && sessionPart) ? (courseName + ' + ' + sessionPart) : (courseName || sessionPart || '');
+        var parts = [courseName];
+        if (sessionNum) parts.push(sessionNum + '회차');
+        if (sessionPart) parts.push(sessionPart);
+        var full = parts.filter(Boolean).join(' + ');
         previewEl.textContent = full ? '미리보기: ' + full : '';
     }
 
@@ -444,6 +449,9 @@
     var sessionNameInput = document.getElementById('sessionsFormSessionName');
     if (sessionNameInput) sessionNameInput.addEventListener('input', updateSessionNamePreview);
     if (sessionNameInput) sessionNameInput.addEventListener('change', updateSessionNamePreview);
+    var sessionNumInput = document.getElementById('sessionsFormSessionNumber');
+    if (sessionNumInput) sessionNumInput.addEventListener('input', updateSessionNamePreview);
+    if (sessionNumInput) sessionNumInput.addEventListener('change', updateSessionNamePreview);
 
     document.querySelectorAll('.session-detail-tab').forEach(function(btn) {
         btn.addEventListener('click', function() {

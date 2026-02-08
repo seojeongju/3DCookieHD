@@ -119,7 +119,14 @@
                     var reQuot = /"/g;
                     tbody.innerHTML = list.map(function (item, i) {
                         var no = startNo + i;
-                        var courseNameEsc = (item.course_name || '').replace(reQuot, '&quot;').replace(reLt, '&lt;');
+                        var courseName = item.course_name || '';
+                        var sessionNum = item.session_number != null ? String(item.session_number) + '회차' : '';
+                        var sessionNamePart = (item.session_name || '').trim();
+                        var parts = [courseName];
+                        if (sessionNum) parts.push(sessionNum);
+                        if (sessionNamePart) parts.push(sessionNamePart);
+                        var displayName = parts.filter(Boolean).join(' + ');
+                        var courseNameEsc = displayName.replace(reQuot, '&quot;').replace(reLt, '&lt;');
                         var statusLabel = STATUS_LABELS[item.status] || item.status;
 
                         var statusCls = '';

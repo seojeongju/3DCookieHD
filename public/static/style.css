@@ -1,1 +1,7 @@
+/* 반응형·모바일 보강 */
+html { -webkit-text-size-adjust: 100%; }
+body { font-family: Arial, Helvetica, sans-serif; }
+@media (max-width: 1023px) {
+    .overflow-x-auto { -webkit-overflow-scrolling: touch; }
+}
 h1 { font-family: Arial, Helvetica, sans-serif; }

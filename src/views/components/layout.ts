@@ -11,6 +11,7 @@ export const layoutHtml = (title: string, content: string, activeMenu = '', head
     <title>${title} - 와우쓰리디홍대센터</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="/static/style.css" rel="stylesheet">
     <script>
       tailwind.config = {
         theme: {
@@ -27,7 +28,7 @@ export const layoutHtml = (title: string, content: string, activeMenu = '', head
     </script>
     ${headExtra}
 </head>
-<body class="bg-gray-50">
+<body class="bg-gray-50 overflow-x-hidden">
     ${navigationHtml(activeMenu)}
     <main>
         ${content}
