@@ -165,14 +165,14 @@ export const educationGalleryHtml = `
 
         async function loadAll() {
             try {
-                var eduRes = await fetch('/api/posts?category=education_photo&status=published&limit=100');
+                var eduRes = await fetch('/api/posts?category=education_photo&status=published&limit=2000');
                 var eduData = await eduRes.json();
                 var eduRaw = (eduData.success && eduData.data) ? eduData.data.map(function(p) {
                     p._type = 'education_photo';
                     p._date = parseContentRegDate(p.content) || p.created_at;
                     return p;
                 }) : [];
-                educationList = eduRaw.filter(function(p) { return !!getItemImage(p); });
+                educationList = eduRaw;
                 educationList.sort(function(a, b) { return new Date(b._date || 0) - new Date(a._date || 0); });
                 currentPage = 1;
                 renderGrid();
