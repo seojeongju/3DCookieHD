@@ -122,19 +122,21 @@ export function adminCoursesMainHtml(): string {
                         </div>
                     </div>
                     <div class="overflow-x-auto custom-scrollbar">
-                        <table class="w-full text-left border-collapse min-w-[700px]">
+                        <table class="w-full text-left border-collapse min-w-[920px]">
                             <thead class="bg-slate-50 text-slate-500 text-xs font-bold uppercase border-b border-slate-200">
                                 <tr>
                                     <th class="p-3 w-12 text-center">No.</th>
                                     <th class="p-3">개설 과정명</th>
                                     <th class="p-3 w-20 text-center">회차</th>
-                                    <th class="p-3 w-24 text-center">상태</th>
-                                    <th class="p-3 w-28 text-center">훈련시작일</th>
-                                    <th class="p-3 w-24 text-right">관리</th>
+                                    <th class="p-3 w-20 text-center">상태</th>
+                                    <th class="p-3 w-36 text-center">훈련시작일</th>
+                                    <th class="p-3 w-24 text-center">등록일</th>
+                                    <th class="p-3 w-20 text-center">홈페이지</th>
+                                    <th class="p-3 w-28 text-right">관리</th>
                                 </tr>
                             </thead>
                             <tbody id="sessionsListBody" class="text-sm divide-y divide-slate-100">
-                                <tr><td colspan="6" class="p-8 text-center text-slate-400"><i class="fas fa-spinner fa-spin mr-2"></i> 로딩 중...</td></tr>
+                                <tr><td colspan="8" class="p-8 text-center text-slate-400"><i class="fas fa-spinner fa-spin mr-2"></i> 로딩 중...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -198,6 +200,27 @@ export function adminCoursesMainHtml(): string {
                     });
             }
 
+            var statusClassMap = { recruiting: 'bg-blue-100 text-blue-700', in_progress: 'bg-blue-100 text-blue-800', completed: 'bg-slate-100 text-slate-600', always_open: 'bg-slate-100 text-slate-500', closed: 'bg-red-100 text-red-700' };
+
+            window.dashboardSetHomepageExposed = function(id, val) {
+                if (!id) return;
+                fetch('/api/course-sessions/' + id, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({ homepage_exposed: val })
+                }).then(function(r) { return r.json(); })
+                  .then(function(json) { if (json.success) loadSessions(); else alert(json.error || '처리 실패'); })
+                  .catch(function() { alert('처리 중 오류가 발생했습니다.'); });
+            };
+
+            window.dashboardDeleteSession = function(id) {
+                if (!id || !confirm('이 회차를 삭제할까요?')) return;
+                fetch('/api/course-sessions/' + id, { method: 'DELETE', headers: headers })
+                    .then(function(r) { return r.json(); })
+                    .then(function(json) { if (json.success) loadSessions(); else alert(json.error || '삭제 실패'); })
+                    .catch(function() { alert('삭제 중 오류가 발생했습니다.'); });
+            };
+
             function loadSessions() {
                 var tbody = document.getElementById('sessionsListBody');
                 fetch('/api/course-sessions?page=1&limit=' + ${RECENT_LIMIT}, { headers: headers })
@@ -207,26 +230,40 @@ export function adminCoursesMainHtml(): string {
                         var p = json.pagination || {};
                         document.getElementById('sessionsCount').textContent = (p.total != null ? p.total : list.length) + '건';
                         if (list.length === 0) {
-                            tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-400">개설된 회차가 없습니다.</td></tr>';
+                            tbody.innerHTML = '<tr><td colspan="8" class="p-8 text-center text-slate-400">개설된 회차가 없습니다.</td></tr>';
                             return;
                         }
                         var statusMap = { recruiting: '모집중', in_progress: '진행중', completed: '종료', always_open: '상시모집', closed: '폐강' };
                         tbody.innerHTML = list.map(function(item, i) {
-                            var startDate = item.training_start_date ? item.training_start_date.toString().substring(0, 10) : '-';
+                            var startStr = item.training_start_date ? item.training_start_date.toString().substring(0, 10) : '';
+                            var endStr = item.training_end_date ? item.training_end_date.toString().substring(0, 10) : '';
+                            var trainingRange = [startStr, endStr].filter(Boolean).join(' ~ ') || '-';
+                            var regDate = (item.registered_at || item.created_at || '').toString().substring(0, 10) || '-';
                             var statusText = statusMap[item.status] || item.status || '-';
+                            var statusCls = statusClassMap[item.status] || 'bg-slate-100 text-slate-600';
+                            var isExposed = item.homepage_exposed === 1 || item.homepage_exposed === true;
+                            var homepageBtn = isExposed
+                                ? '<button type="button" onclick="window.dashboardSetHomepageExposed(' + item.id + ', 0)" class="px-2 py-1 text-xs font-bold rounded bg-slate-100 text-slate-600 hover:bg-red-100 hover:text-red-600 transition" title="홈페이지에서 삭제">삭제</button>'
+                                : '<button type="button" onclick="window.dashboardSetHomepageExposed(' + item.id + ', 1)" class="px-2 py-1 text-xs font-bold rounded bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition" title="홈페이지에 등록">등록</button>';
                             return '<tr class="hover:bg-slate-50">' +
                                 '<td class="p-3 text-center text-slate-500">' + (i + 1) + '</td>' +
                                 '<td class="p-3"><span class="font-medium text-slate-800">' + esc(item.course_name) + '</span></td>' +
-                                '<td class="p-3 text-center">' + esc(item.session_number != null ? item.session_number + '회차' : item.session_name || '-') + '</td>' +
-                                '<td class="p-3 text-center"><span class="text-xs text-slate-600">' + esc(statusText) + '</span></td>' +
-                                '<td class="p-3 text-center text-slate-500 text-xs">' + esc(startDate) + '</td>' +
-                                '<td class="p-3 text-right"><a href="/admin/courses/sessions/' + item.id + '/syllabus" class="text-primary-600 hover:underline text-xs font-bold">상세</a></td>' +
-                                '</tr>';
+                                '<td class="p-3 text-center font-bold text-slate-600 text-xs">' + (item.session_number != null ? item.session_number + '회차' : esc(item.session_name || '-')) + '</td>' +
+                                '<td class="p-3 text-center"><span class="px-2 py-0.5 rounded text-[11px] font-bold ' + statusCls + '">' + esc(statusText) + '</span></td>' +
+                                '<td class="p-3 text-center text-slate-600 text-xs">' + esc(trainingRange) + '</td>' +
+                                '<td class="p-3 text-center text-slate-500 text-xs">' + esc(regDate) + '</td>' +
+                                '<td class="p-3 text-center">' + homepageBtn + '</td>' +
+                                '<td class="p-3 text-right">' +
+                                '<div class="flex items-center justify-end gap-1">' +
+                                '<a href="/admin/courses/sessions/' + item.id + '/syllabus" class="p-1.5 text-slate-400 hover:text-primary-600 transition" title="상세"><i class="fas fa-file-alt"></i></a>' +
+                                '<a href="/admin/courses/sessions/register/' + item.id + '" class="p-1.5 text-slate-400 hover:text-primary-600 transition" title="수정"><i class="fas fa-pen"></i></a>' +
+                                '<button type="button" onclick="window.dashboardDeleteSession(' + item.id + ')" class="p-1.5 text-slate-400 hover:text-red-500 transition" title="삭제"><i class="fas fa-trash-alt"></i></button>' +
+                                '</div></td></tr>';
                         }).join('');
                     })
                     .catch(function(e) {
                         console.error(e);
-                        tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-red-500">조회 실패</td></tr>';
+                        tbody.innerHTML = '<tr><td colspan="8" class="p-8 text-center text-red-500">조회 실패</td></tr>';
                     });
             }
 
