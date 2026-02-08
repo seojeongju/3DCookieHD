@@ -1006,9 +1006,9 @@ app.get('/approved/classification', async (c) => {
                 const mapped = results.map((r: any) => ({
                     largeCode: ncsLclasCd,
                     midCode: r.mid_code,
-                    midName: r.mid_name,
+                    midName: (r.mid_name != null && String(r.mid_name).trim() !== '') ? r.mid_name : (r.mid_code || ''),
                     smallCode: r.small_code,
-                    smallName: r.small_name,
+                    smallName: (r.small_name != null && String(r.small_name).trim() !== '') ? r.small_name : (r.small_code || ''),
                 }));
                 return c.json({ success: true, data: mapped, _meta: { source: 'local_db', count: mapped.length } });
             }

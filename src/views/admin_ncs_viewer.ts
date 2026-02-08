@@ -208,16 +208,19 @@ export function adminNcsViewerHtml(): string {
                 el.innerHTML = items.map(it => {
                     const isActive = it[idKey] === currentId;
                     const synced = it.isSynced;
-                    
+                    var nameVal = (it[nameKey] != null && it[nameKey] !== '') ? String(it[nameKey]).trim() : '';
+                    var codeStr = it[idKey] != null ? String(it[idKey]) : '';
+                    var nameEsc = (nameVal || codeStr).replace(/\\\\/g, '\\\\\\\\').replace(/'/g, "\\\\'");
+                    var displayName = (nameVal && nameVal !== codeStr) ? (codeStr + ' ' + nameVal) : (codeStr || '-');
                     return \`
-                    <div onclick="window._ncsClick('\${el.id}', '\${it[idKey]}', '\${it[nameKey].replace(/'/g, "\\\\'")}')" 
+                    <div onclick="window._ncsClick('\${el.id}', '\${String(it[idKey] || '').replace(/'/g, "\\\\'")}', '\${nameEsc}')" 
                          class="select-item px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 cursor-pointer rounded-lg transition-all flex justify-between items-center group \${isActive ? 'active' : ''}">
                         <div class="flex flex-col min-w-0 flex-1">
                             <div class="flex items-center gap-1.5 mb-1">
                                 <span class="text-[9px] font-black text-slate-400 group-hover:text-blue-400 leading-none">\${it[idKey]}</span>
                                 \${isJob && synced ? '<span class="px-1 py-0.5 bg-green-100 text-green-600 text-[8px] font-black rounded uppercase">SYNCED</span>' : ''}
                             </div>
-                            <span class="truncate font-medium">\${it[nameKey]}</span>
+                            <span class="truncate font-medium">\${displayName}</span>
                         </div>
                         <div class="flex items-center gap-2">
                              <i class="fas fa-chevron-right text-[10px] text-slate-300 group-hover:text-blue-400"></i>
