@@ -80,7 +80,7 @@ export function adminCoursesMainHtml(): string {
                         </div>
                     </div>
                     <div class="overflow-x-auto custom-scrollbar">
-                        <table class="w-full text-left border-collapse min-w-[700px]">
+                        <table class="w-full text-left border-collapse min-w-[1000px]">
                             <thead class="bg-slate-50 text-slate-500 text-xs font-bold uppercase border-b border-slate-200">
                                 <tr>
                                     <th class="p-3 w-12 text-center">No.</th>
@@ -88,12 +88,15 @@ export function adminCoursesMainHtml(): string {
                                     <th class="p-3">승인 과정명</th>
                                     <th class="p-3 w-24">교·강사</th>
                                     <th class="p-3 w-20 text-center">훈련시간</th>
-                                    <th class="p-3 w-16 text-center">회차</th>
-                                    <th class="p-3 w-20 text-right">관리</th>
+                                    <th class="p-3 w-16 text-center">정원</th>
+                                    <th class="p-3 w-24 text-center">승인기관</th>
+                                    <th class="p-3 w-20 text-center">상태</th>
+                                    <th class="p-3 w-20 text-center">회차</th>
+                                    <th class="p-3 w-28 text-right">관리</th>
                                 </tr>
                             </thead>
                             <tbody id="approvedListBody" class="text-sm divide-y divide-slate-100">
-                                <tr><td colspan="7" class="p-8 text-center text-slate-400"><i class="fas fa-spinner fa-spin mr-2"></i> 로딩 중...</td></tr>
+                                <tr><td colspan="10" class="p-8 text-center text-slate-400"><i class="fas fa-spinner fa-spin mr-2"></i> 로딩 중...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -177,26 +180,58 @@ export function adminCoursesMainHtml(): string {
                         var p = json.pagination || {};
                         document.getElementById('approvedCount').textContent = (p.total != null ? p.total : list.length) + '건';
                         if (list.length === 0) {
-                            tbody.innerHTML = '<tr><td colspan="7" class="p-8 text-center text-slate-400">등록된 승인 과정이 없습니다.</td></tr>';
+                            tbody.innerHTML = '<tr><td colspan="10" class="p-8 text-center text-slate-400">등록된 승인 과정이 없습니다.</td></tr>';
                             return;
                         }
                         tbody.innerHTML = list.map(function(item, i) {
                             var timeStr = [item.training_time_start, item.training_time_end].filter(Boolean).join('~') || '-';
-                            var sessionCount = item.session_count != null ? item.session_count : '-';
-                            return '<tr class="hover:bg-slate-50">' +
-                                '<td class="p-3 text-center text-slate-500">' + (i + 1) + '</td>' +
-                                '<td class="p-3"><span class="text-xs text-slate-600">' + esc(item.category_name || '-') + '</span></td>' +
-                                '<td class="p-3"><span class="font-medium text-slate-800">' + esc(item.name) + '</span></td>' +
-                                '<td class="p-3 text-slate-600">' + esc(item.instructor_name || '-') + '</td>' +
-                                '<td class="p-3 text-center text-slate-500 text-xs">' + esc(timeStr) + '</td>' +
-                                '<td class="p-3 text-center">' + sessionCount + '</td>' +
-                                '<td class="p-3 text-right"><a href="/admin/courses/approved/register/' + item.id + '" class="text-primary-600 hover:underline text-xs font-bold">상세</a></td>' +
+                            var cap = item.capacity != null ? item.capacity + '명' : '-';
+                            var approvalOrg = (item.approval_org || '').trim();
+                            var approvalDisplay = approvalOrg ? (approvalOrg.length > 8 ? approvalOrg.slice(0, 7) + '\u2026' : approvalOrg) : '-';
+                            var statusBadge = item.status === 'inactive'
+                                ? '<span class="inline-block px-2 py-0.5 rounded bg-slate-100 text-slate-500 text-[10px] font-bold whitespace-nowrap">비활성</span>'
+                                : '<span class="inline-block px-2 py-0.5 rounded bg-green-100 text-green-700 text-[10px] font-bold whitespace-nowrap">활성</span>';
+                            var sc = item.session_count != null ? parseInt(item.session_count, 10) : 0;
+                            var sessionCell = sc > 0
+                                ? '<a href="/admin/courses/sessions?approved_course_id=' + item.id + '" class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-blue-50 text-blue-700 text-[10px] font-bold hover:bg-blue-100 transition whitespace-nowrap" title="회차 목록"><i class="fas fa-list-ol"></i> ' + sc + '회차</a>'
+                                : '<span class="text-slate-300 text-[10px]">0회차</span>';
+                            var nameEsc = esc(item.name || '');
+                            var mgmt = '<div class="flex items-center justify-end gap-0.5 flex-nowrap">' +
+                                '<a href="/admin/courses/sessions/register?approvedCourseId=' + item.id + '" class="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-bold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded transition whitespace-nowrap" title="회차 개설"><i class="fas fa-calendar-plus"></i> 회차</a>' +
+                                '<a href="/admin/courses/approved/register/' + item.id + '" class="p-1.5 text-slate-400 hover:text-primary-600 transition" title="수정"><i class="fas fa-pen"></i></a>' +
+                                '<button type="button" class="btn-approved-delete p-1.5 text-slate-400 hover:text-red-500 transition" data-id="' + item.id + '" data-name="' + nameEsc + '" title="삭제"><i class="fas fa-trash-alt"></i></button>' +
+                                '</div>';
+                            return '<tr class="hover:bg-slate-50/80 transition align-middle">' +
+                                '<td class="p-3 text-center text-slate-500 text-xs align-middle">' + (i + 1) + '</td>' +
+                                '<td class="p-3 text-slate-600 text-xs font-medium align-middle whitespace-nowrap">' + esc(item.category_name || '-') + '</td>' +
+                                '<td class="p-3 align-middle min-w-0" title="' + nameEsc + '"><div class="font-bold text-slate-700 text-sm line-clamp-2 leading-tight">' + nameEsc + '</div></td>' +
+                                '<td class="p-3 text-slate-600 text-xs align-middle min-w-0"><span class="block truncate">' + esc(item.instructor_name || '-') + '</span></td>' +
+                                '<td class="p-3 text-center text-slate-600 text-xs align-middle whitespace-nowrap">' + esc(timeStr) + '</td>' +
+                                '<td class="p-3 text-center text-slate-600 text-xs align-middle">' + cap + '</td>' +
+                                '<td class="p-3 text-center text-slate-600 text-xs align-middle overflow-hidden" style="max-width: 80px;" title="' + esc(approvalOrg) + '"><span class="block truncate">' + esc(approvalDisplay) + '</span></td>' +
+                                '<td class="p-3 text-center align-middle">' + statusBadge + '</td>' +
+                                '<td class="p-3 text-center align-middle">' + sessionCell + '</td>' +
+                                '<td class="p-3 text-right align-middle">' + mgmt + '</td>' +
                                 '</tr>';
                         }).join('');
+                        tbody.querySelectorAll('.btn-approved-delete').forEach(function(btn) {
+                            btn.addEventListener('click', function() {
+                                var id = parseInt(btn.getAttribute('data-id'), 10);
+                                var name = btn.getAttribute('data-name') || '';
+                                if (!confirm('승인 과정 "' + name + '"을(를) 삭제하시겠습니까?')) return;
+                                fetch('/api/approved-courses/' + id, { method: 'DELETE', headers: headers })
+                                    .then(function(r) { return r.json().catch(function() { return {}; }); })
+                                    .then(function(res) {
+                                        if (res.ok !== false && res.success !== false) loadApproved();
+                                        else alert(res.message || '삭제에 실패했습니다.');
+                                    })
+                                    .catch(function() { alert('삭제 요청에 실패했습니다.'); });
+                            });
+                        });
                     })
                     .catch(function(e) {
                         console.error(e);
-                        tbody.innerHTML = '<tr><td colspan="7" class="p-8 text-center text-red-500">조회 실패</td></tr>';
+                        tbody.innerHTML = '<tr><td colspan="10" class="p-8 text-center text-red-500">조회 실패</td></tr>';
                     });
             }
 
