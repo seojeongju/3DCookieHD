@@ -115,6 +115,7 @@ import { prototypeGalleryHtml } from './views/prototype_gallery';
 import { adminPrototypeGalleryHtml } from './views/admin_prototype_gallery';
 import { educationGalleryHtml } from './views/education_gallery';
 import { adminEducationGalleryHtml } from './views/admin_education_gallery';
+import { adminPortfolioGalleryHtml } from './views/admin_portfolio_gallery';
 import { scheduleHtml } from './views/schedule';
 import { locationsHtml } from './views/locations';
 import { coursesListHtml } from './views/courses';
@@ -316,6 +317,7 @@ app.get('/admin/reviews', (c) => c.html(adminReviewsListHtml(hrdSidebar('reviews
 app.get('/admin/posts', (c) => c.html(adminPostsListHtml(hrdSidebar('posts'))));
 app.get('/admin/prototype-gallery', (c) => c.html(adminPrototypeGalleryHtml(hrdSidebar('prototype-gallery'))));
 app.get('/admin/education-gallery', (c) => c.html(adminEducationGalleryHtml(hrdSidebar('education-gallery'))));
+app.get('/admin/portfolio-gallery', (c) => c.html(adminPortfolioGalleryHtml(hrdSidebar('portfolio-gallery'))));
 app.get('/admin/inquiries', (c) => c.html(adminInquiriesHtml(hrdSidebar('inquiries'))));
 
 // 과정별 LMS 상세 관리 (LMS Dashboard & Inner Pages)

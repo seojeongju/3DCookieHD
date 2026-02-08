@@ -32,25 +32,18 @@ export const educationGalleryHtml = `
     <div class="bg-gradient-to-br from-primary-800 to-primary-900 text-white py-20 relative overflow-hidden">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
             <span class="px-3 py-1 bg-white/20 text-white text-[10px] font-black rounded-full mb-4 inline-block uppercase tracking-widest">GALLERY</span>
-            <h1 class="text-5xl font-black mb-6 tracking-tight">교육사진 · 포트폴리오 갤러리</h1>
+            <h1 class="text-5xl font-black mb-6 tracking-tight">교육사진 갤러리</h1>
             <p class="text-xl text-primary-100 max-w-2xl mx-auto font-medium leading-relaxed">
-                교육 현장 사진과 수강생 포트폴리오를 한곳에서 만나보세요.
+                교육 현장 사진과 수업 모습을 소개합니다. 포트폴리오는 <a href="/portfolios" class="underline hover:text-white">포트폴리오 갤러리</a>에서 확인하세요.
             </p>
         </div>
     </div>
 
-    <!-- 필터 + 올리기 -->
+    <!-- 보기 옵션 + 올리기 (교육 사진만) -->
     <div class="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 -mt-6 relative z-20">
         <div class="bg-white rounded-2xl shadow-xl p-4 flex flex-col sm:flex-row gap-4 items-center justify-between border border-gray-100">
             <div class="flex flex-wrap gap-4 items-center">
-                <div class="flex flex-col gap-0.5">
-                    <div class="flex gap-2 flex-wrap items-center">
-                        <button type="button" onclick="setFilter('all')" class="filter-btn px-5 py-2.5 rounded-xl text-sm font-bold bg-gray-100 text-gray-600 hover:bg-gray-200 transition" data-filter="all">전체</button>
-                        <button type="button" onclick="setFilter('education_photo')" class="filter-btn px-5 py-2.5 rounded-xl text-sm font-bold bg-primary-600 text-white transition" data-filter="education_photo">교육 사진</button>
-                        <button type="button" onclick="setFilter('portfolio')" class="filter-btn px-5 py-2.5 rounded-xl text-sm font-bold bg-gray-100 text-gray-600 hover:bg-gray-200 transition" data-filter="portfolio">포트폴리오</button>
-                    </div>
-                    <p id="filterCaption" class="text-xs text-gray-500">관리자 &gt; 교육사진 갤러리에서 등록한 사진입니다.</p>
-                </div>
+                <p class="text-xs text-gray-500">관리자 &gt; 교육사진 갤러리에서 등록한 사진입니다.</p>
                 <span class="hidden sm:inline-block w-px h-8 bg-gray-200"></span>
                 <span class="text-xs text-gray-400 font-medium mr-1">보기:</span>
                 <button type="button" id="viewBtnGrid" onclick="setViewMode('grid')" class="view-mode-btn px-3 py-2 rounded-lg text-sm font-bold bg-primary-100 text-primary-700 transition" data-view="grid" title="그리드"><i class="fas fa-th-large mr-1"></i>그리드</button>
@@ -58,7 +51,6 @@ export const educationGalleryHtml = `
             </div>
             <div id="uploadArea" class="hidden flex gap-2">
                 <button type="button" onclick="openEducationPhotoModal()" class="px-4 py-2.5 bg-primary-600 text-white rounded-xl font-bold text-sm hover:bg-primary-700 transition"><i class="fas fa-camera mr-2"></i>교육 사진 올리기</button>
-                <button type="button" onclick="openPortfolioModal()" class="px-4 py-2.5 bg-gray-800 text-white rounded-xl font-bold text-sm hover:bg-gray-900 transition"><i class="fas fa-folder-plus mr-2"></i>포트폴리오 올리기</button>
             </div>
         </div>
     </div>
@@ -80,7 +72,7 @@ export const educationGalleryHtml = `
             <div class="relative">
                 <img id="modalImage" src="" alt="" class="w-full h-80 object-cover rounded-t-2xl">
                 <button type="button" onclick="closeDetailModal()" class="absolute top-4 right-4 w-12 h-12 bg-white/90 hover:bg-white text-gray-800 rounded-full flex items-center justify-center transition"><i class="fas fa-times text-xl"></i></button>
-                <span id="modalTypeBadge" class="absolute top-4 left-4 px-3 py-1 rounded-full text-xs font-bold text-white bg-primary-600"></span>
+                <span class="absolute top-4 left-4 px-3 py-1 rounded-full text-xs font-bold text-white bg-primary-600">교육 사진</span>
             </div>
             <div class="p-8">
                 <h2 id="modalTitle" class="text-2xl font-bold text-gray-800 mb-2"></h2>
@@ -122,68 +114,15 @@ export const educationGalleryHtml = `
         </div>
     </div>
 
-    <!-- 포트폴리오 올리기 모달 -->
-    <div id="portfolioModal" class="fixed inset-0 bg-black/50 hidden z-[80] flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div class="p-6 border-b flex justify-between items-center">
-                <h3 class="text-xl font-bold text-gray-800">포트폴리오 올리기</h3>
-                <button type="button" onclick="closePortfolioModal()" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times text-xl"></i></button>
-            </div>
-            <form id="portfolioForm" onsubmit="submitPortfolio(event)" class="p-6 space-y-4">
-                <div>
-                    <label class="block text-gray-700 font-medium mb-2">제목 <span class="text-red-500">*</span></label>
-                    <input type="text" id="pfTitle" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500" placeholder="예: 3D 캐릭터 모델링">
-                </div>
-                <div>
-                    <label class="block text-gray-700 font-medium mb-2">설명</label>
-                    <textarea id="pfDescription" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500" placeholder="작품에 대한 설명"></textarea>
-                </div>
-                <div>
-                    <label class="block text-gray-700 font-medium mb-2">썸네일 이미지 URL</label>
-                    <input type="url" id="pfThumbnail" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500" placeholder="https://...">
-                </div>
-                <div>
-                    <label class="block text-gray-700 font-medium mb-2">작품 링크 (선택)</label>
-                    <input type="url" id="pfContentUrl" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500" placeholder="https://... (Google Drive, 포트폴리오 사이트 등)">
-                </div>
-                <div>
-                    <label class="block text-gray-700 font-medium mb-2">분류</label>
-                    <select id="pfCategory" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500">
-                        <option value="3d_modeling">3D 모델링</option>
-                        <option value="design">디자인</option>
-                        <option value="coding">코딩/개발</option>
-                        <option value="other">기타</option>
-                    </select>
-                </div>
-                <div class="flex gap-3 pt-4">
-                    <button type="button" onclick="closePortfolioModal()" class="flex-1 py-3 border border-gray-300 rounded-xl font-bold text-gray-600 hover:bg-gray-50">취소</button>
-                    <button type="submit" class="flex-1 py-3 bg-gray-800 text-white rounded-xl font-bold hover:bg-gray-900">등록</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
     ${footerHtml()}
 
     <script>
-        let currentFilter = 'all';
         let galleryViewMode = 'grid';
         let currentPage = 1;
         let itemsPerPage = 12;
         let educationList = [];
-        let portfolioList = [];
-        let mergedList = [];
-
-        function getInitialFilter() {
-            var m = location.search.match(/[?&]filter=([^&]+)/);
-            var v = m ? m[1].toLowerCase().trim() : '';
-            if (v === 'education_photo' || v === 'portfolio') return v;
-            if (v === 'all') return 'all';
-            return 'education_photo';
-        }
 
         document.addEventListener('DOMContentLoaded', function() {
-            currentFilter = getInitialFilter();
             loadAll();
             updateAuthMenu();
         });
@@ -226,57 +165,21 @@ export const educationGalleryHtml = `
 
         async function loadAll() {
             try {
-                var [eduRes, portRes] = await Promise.all([
-                    fetch('/api/posts?category=education_photo&status=published&limit=100'),
-                    fetch('/api/posts?category=portfolio&status=published&limit=100')
-                ]);
+                var eduRes = await fetch('/api/posts?category=education_photo&status=published&limit=100');
                 var eduData = await eduRes.json();
-                var portData = await portRes.json();
                 var eduRaw = (eduData.success && eduData.data) ? eduData.data.map(function(p) {
                     p._type = 'education_photo';
                     p._date = parseContentRegDate(p.content) || p.created_at;
                     return p;
                 }) : [];
-                var portRaw = (portData.success && portData.data) ? portData.data.map(function(p) { p._type = 'portfolio'; p._date = p.created_at; return p; }) : [];
-                // 사진이 있는 항목만 표시 (사진 없으면 다음 항목으로 밀림), 최신순 유지
                 educationList = eduRaw.filter(function(p) { return !!getItemImage(p); });
-                portfolioList = portRaw.filter(function(p) { return !!getItemImage(p); });
-                mergeAndRender();
-                updateFilterCaption();
+                educationList.sort(function(a, b) { return new Date(b._date || 0) - new Date(a._date || 0); });
+                currentPage = 1;
+                renderGrid();
             } catch (e) {
                 console.error(e);
                 document.getElementById('galleryGrid').innerHTML = '<div class="col-span-full py-20 text-center text-red-500">갤러리를 불러오지 못했습니다.</div>';
             }
-        }
-
-        function mergeAndRender() {
-            mergedList = educationList.concat(portfolioList);
-            mergedList.sort(function(a, b) { return new Date(b._date || 0) - new Date(a._date || 0); });
-            setFilter(currentFilter);
-        }
-
-        function updateFilterCaption() {
-            var cap = document.getElementById('filterCaption');
-            if (!cap) return;
-            if (currentFilter === 'education_photo') cap.textContent = '관리자 > 교육사진 갤러리에서 등록한 사진입니다.';
-            else if (currentFilter === 'portfolio') cap.textContent = '수강생·강사 포트폴리오입니다.';
-            else cap.textContent = '교육 사진과 포트폴리오를 함께 볼 수 있습니다.';
-        }
-        function setFilter(filter) {
-            currentFilter = filter;
-            currentPage = 1;
-            var q = filter === 'education_photo' ? '?filter=education_photo' : filter === 'portfolio' ? '?filter=portfolio' : filter === 'all' ? '?filter=all' : '';
-            var newUrl = location.pathname + q;
-            if (typeof history.replaceState === 'function') history.replaceState(null, '', newUrl);
-            document.querySelectorAll('.filter-btn').forEach(function(btn) {
-                if (btn.dataset.filter === filter) {
-                    btn.className = 'filter-btn px-5 py-2.5 rounded-xl text-sm font-bold bg-primary-600 text-white transition';
-                } else {
-                    btn.className = 'filter-btn px-5 py-2.5 rounded-xl text-sm font-bold bg-gray-100 text-gray-600 hover:bg-gray-200 transition';
-                }
-            });
-            updateFilterCaption();
-            renderGrid();
         }
 
         function setViewMode(mode) {
@@ -294,7 +197,7 @@ export const educationGalleryHtml = `
         }
 
         function goToPage(page) {
-            var list = getCurrentList();
+            var list = educationList;
             var totalPages = Math.max(1, Math.ceil((list.length || 0) / itemsPerPage));
             if (page < 1 || page > totalPages) return;
             currentPage = page;
@@ -306,7 +209,7 @@ export const educationGalleryHtml = `
             var grid = document.getElementById('galleryGrid');
             var paginationEl = document.getElementById('pagination');
             if (!grid) return;
-            var fullList = getCurrentList();
+            var fullList = educationList;
             var total = fullList.length || 0;
             var totalPages = Math.max(1, Math.ceil(total / itemsPerPage));
             var start = (currentPage - 1) * itemsPerPage;
@@ -325,8 +228,8 @@ export const educationGalleryHtml = `
 
             grid.innerHTML = pageList.map(function(item, pageIdx) {
                 var idx = start + pageIdx;
-                var typeLabel = item._type === 'education_photo' ? '교육 사진' : '포트폴리오';
-                var typeClass = item._type === 'education_photo' ? 'bg-primary-600' : 'bg-gray-700';
+                var typeLabel = '교육 사진';
+                var typeClass = 'bg-primary-600';
                 var img = (item.images && item.images.length) ? item.images[0] : (item.thumbnail_url || '');
                 var hasImage = !!img;
                 var titleEsc = (item.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -378,13 +281,8 @@ export const educationGalleryHtml = `
             }
         }
 
-        function getCurrentList() {
-            return currentFilter === 'all' ? mergedList : currentFilter === 'education_photo' ? educationList : portfolioList;
-        }
-
         function openDetail(idx) {
-            var list = getCurrentList();
-            var item = list[idx];
+            var item = educationList[idx];
             if (!item) return;
             var img = (item.images && item.images.length) ? item.images[0] : (item.thumbnail_url || '');
             var modalImgEl = document.getElementById('modalImage');
@@ -392,7 +290,6 @@ export const educationGalleryHtml = `
             if (modalImgEl) modalImgEl.src = img || '';
             if (modalImgEl) modalImgEl.style.display = img ? 'block' : 'none';
             if (modalImgWrap) modalImgWrap.style.display = img ? 'block' : 'none';
-            document.getElementById('modalTypeBadge').textContent = item._type === 'education_photo' ? '교육 사진' : '포트폴리오';
             document.getElementById('modalTitle').textContent = item.title || '';
             document.getElementById('modalAuthor').textContent = (item.author_name || item.student_name || '-');
             document.getElementById('modalDate').textContent = new Date(item._date).toLocaleDateString('ko-KR');
@@ -451,54 +348,6 @@ export const educationGalleryHtml = `
             }
         }
 
-        function openPortfolioModal() {
-            document.getElementById('portfolioForm').reset();
-            document.getElementById('portfolioModal').classList.remove('hidden');
-        }
-        function closePortfolioModal() {
-            document.getElementById('portfolioModal').classList.add('hidden');
-        }
-
-        async function submitPortfolio(e) {
-            e.preventDefault();
-            var title = document.getElementById('pfTitle').value.trim();
-            var description = document.getElementById('pfDescription').value.trim();
-            var thumbnail_url = document.getElementById('pfThumbnail').value.trim() || '';
-            var content_url = document.getElementById('pfContentUrl').value.trim() || '';
-            if (!title) { alert('제목을 입력하세요.'); return; }
-            var token = localStorage.getItem('token');
-            if (!token) { alert('로그인이 필요합니다.'); return; }
-            var images = [];
-            if (thumbnail_url) images.push(thumbnail_url);
-            if (content_url && content_url !== thumbnail_url) images.push(content_url);
-            if (images.length === 0) { alert('썸네일 URL 또는 콘텐츠 URL 중 하나는 입력하세요.'); return; }
-            try {
-                var res = await fetch('/api/posts', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-                    body: JSON.stringify({
-                        title: title,
-                        content: description || '',
-                        category: 'portfolio',
-                        status: 'published',
-                        images: images,
-                        pinned: false
-                    })
-                });
-                var result = await res.json();
-                if (res.status === 401) { alert('로그인 세션이 만료되었습니다.'); location.href = '/login'; return; }
-                if (result.success) {
-                    alert('포트폴리오가 등록되었습니다.');
-                    closePortfolioModal();
-                    loadAll();
-                } else {
-                    alert('오류: ' + (result.error || '등록 실패'));
-                }
-            } catch (err) {
-                console.error(err);
-                alert('등록 중 오류가 발생했습니다.');
-            }
-        }
     </script>
 </body>
 </html>
