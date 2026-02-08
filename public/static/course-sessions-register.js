@@ -89,6 +89,14 @@
                 document.getElementById('sessionsFormTrainingStart').value = (d.training_start_date || '').slice(0, 10);
                 document.getElementById('sessionsFormTrainingEnd').value = (d.training_end_date || '').slice(0, 10);
                 document.getElementById('sessionsFormRegisteredAt').value = (d.registered_at || '').slice(0, 10);
+                var locationEl = document.getElementById('sessionsFormLocation');
+                if (locationEl) locationEl.value = d.location || '';
+                document.querySelectorAll('input[name="sessionsTargetAudience"]').forEach(function(cb) {
+                    cb.checked = (d.target_audience || '').split(',').map(function(s) { return s.trim(); }).indexOf(cb.value) >= 0;
+                });
+                document.querySelectorAll('input[name="sessionsDaysOfWeek"]').forEach(function(cb) {
+                    cb.checked = (d.days_of_week || '').split(',').map(function(s) { return s.trim(); }).indexOf(cb.value) >= 0;
+                });
                 document.getElementById('sessionsFormUrlNcs').value = d.url_ncs || '';
                 document.getElementById('sessionsFormUrlPlan').value = d.url_plan || '';
                 document.getElementById('sessionsFormUrlDetailPlan').value = d.url_detail_plan || '';
@@ -113,6 +121,12 @@
         var status = document.getElementById('sessionsFormStatus').value || 'recruiting';
         var instructorEl = document.getElementById('sessionsFormInstructor');
         var instructorName = (instructorEl && instructorEl.value ? instructorEl.value : '').trim() || null;
+        var targetAudience = [];
+        document.querySelectorAll('input[name="sessionsTargetAudience"]:checked').forEach(function(cb) { targetAudience.push(cb.value); });
+        var daysOfWeek = [];
+        document.querySelectorAll('input[name="sessionsDaysOfWeek"]:checked').forEach(function(cb) { daysOfWeek.push(cb.value); });
+        var locationEl = document.getElementById('sessionsFormLocation');
+        var locationVal = (locationEl && locationEl.value ? locationEl.value : '').trim() || null;
         var trainingStart = (document.getElementById('sessionsFormTrainingStart').value || '').trim() || null;
         var trainingEnd = (document.getElementById('sessionsFormTrainingEnd').value || '').trim() || null;
         var registeredAt = (document.getElementById('sessionsFormRegisteredAt').value || '').trim() || null;
@@ -127,6 +141,9 @@
             payload = {
                 status: status,
                 instructor_name: instructorName,
+                target_audience: targetAudience.length ? targetAudience : null,
+                days_of_week: daysOfWeek.length ? daysOfWeek : null,
+                location: locationVal,
                 training_start_date: trainingStart,
                 training_end_date: trainingEnd,
                 registered_at: registeredAt,
@@ -142,6 +159,9 @@
                 session_number: sessionNumber,
                 status: status,
                 instructor_name: instructorName,
+                target_audience: targetAudience.length ? targetAudience : null,
+                days_of_week: daysOfWeek.length ? daysOfWeek : null,
+                location: locationVal,
                 training_start_date: trainingStart,
                 training_end_date: trainingEnd,
                 registered_at: registeredAt,

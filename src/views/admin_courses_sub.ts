@@ -854,39 +854,88 @@ export const adminCoursesSessionsRegisterHtml = (editId?: string) => {
                     </div>
                 </section>
 
-                <!-- 회차·강사·상태·일정·URL (기존 폼 필드) -->
+                <!-- 회차별 과정개설 추가 정보 (참조 UI) -->
                 <section class="border border-slate-200 rounded-xl p-5 bg-white">
-                    <h3 class="font-bold text-slate-800 mb-4">회차 및 운영 정보</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="flex items-center gap-2 mb-4">
+                        <h3 class="font-bold text-slate-800">회차별 과정개설 추가 정보</h3>
+                        <span class="flex items-center gap-1 text-red-600 text-xs font-bold"><i class="fas fa-exclamation-circle"></i> 필수등록</span>
+                    </div>
+
+                    <div class="space-y-6">
                         <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-1">회차 <span class="text-red-500">*</span></label>
-                            <input type="number" id="sessionsFormSessionNumber" min="1" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" placeholder="1">
+                            <label class="block text-sm font-bold text-slate-700 mb-1"><span class="text-red-500">*</span> 회차</label>
+                            <input type="number" id="sessionsFormSessionNumber" min="1" class="w-full max-w-xs px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" placeholder="1">
+                            <p class="text-xs text-slate-500 mt-1">승인받은 과정별 회차는 중복될 수 없습니다.</p>
                         </div>
+
                         <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-1">강사(담당 강사)</label>
-                            <input type="text" id="sessionsFormInstructor" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" placeholder="담당 강사명 입력">
+                            <label class="block text-sm font-bold text-slate-700 mb-2"><span class="text-red-500">*</span> 대상자</label>
+                            <div class="flex flex-wrap gap-x-6 gap-y-2">
+                                <label class="inline-flex items-center gap-2 cursor-pointer"><input type="checkbox" name="sessionsTargetAudience" value="실업자" class="rounded text-emerald-600"> 실업자</label>
+                                <label class="inline-flex items-center gap-2 cursor-pointer"><input type="checkbox" name="sessionsTargetAudience" value="재직자" class="rounded text-emerald-600"> 재직자</label>
+                                <label class="inline-flex items-center gap-2 cursor-pointer"><input type="checkbox" name="sessionsTargetAudience" value="일반" class="rounded text-emerald-600"> 일반</label>
+                                <label class="inline-flex items-center gap-2 cursor-pointer"><input type="checkbox" name="sessionsTargetAudience" value="통합" class="rounded text-emerald-600"> 실업자/재직자/일반(통합)</label>
+                                <label class="inline-flex items-center gap-2 cursor-pointer"><input type="checkbox" name="sessionsTargetAudience" value="구직자" class="rounded text-emerald-600"> 구직자</label>
+                                <label class="inline-flex items-center gap-2 cursor-pointer"><input type="checkbox" name="sessionsTargetAudience" value="산재근로자" class="rounded text-emerald-600"> 산재근로자</label>
+                                <label class="inline-flex items-center gap-2 cursor-pointer"><input type="checkbox" name="sessionsTargetAudience" value="일반고" class="rounded text-emerald-600"> 일반고</label>
+                                <label class="inline-flex items-center gap-2 cursor-pointer"><input type="checkbox" name="sessionsTargetAudience" value="기타" class="rounded text-emerald-600"> 기타</label>
+                            </div>
                         </div>
+
                         <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-1">진행상황</label>
-                            <select id="sessionsFormStatus" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
+                            <label class="block text-sm font-bold text-slate-700 mb-1"><span class="text-red-500">*</span> 진행상황</label>
+                            <select id="sessionsFormStatus" class="w-full max-w-xs px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
                                 <option value="recruiting">모집중</option>
                                 <option value="in_progress">진행중</option>
                                 <option value="completed">종료</option>
                                 <option value="always_open">상시모집</option>
                                 <option value="closed">폐강</option>
                             </select>
+                            <p class="text-xs text-slate-500 mt-1">상시모집인 경우 진행상황 수정은 수동으로 하셔야 합니다.</p>
                         </div>
+
                         <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-1">훈련 시작일</label>
-                            <input type="date" id="sessionsFormTrainingStart" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
+                            <label class="block text-sm font-bold text-slate-700 mb-2"><span class="text-red-500">*</span> 요일</label>
+                            <div class="flex flex-wrap gap-x-6 gap-y-2">
+                                <label class="inline-flex items-center gap-2 cursor-pointer"><input type="checkbox" name="sessionsDaysOfWeek" value="일" class="rounded text-emerald-600"> 일요일</label>
+                                <label class="inline-flex items-center gap-2 cursor-pointer"><input type="checkbox" name="sessionsDaysOfWeek" value="월" class="rounded text-emerald-600"> 월요일</label>
+                                <label class="inline-flex items-center gap-2 cursor-pointer"><input type="checkbox" name="sessionsDaysOfWeek" value="화" class="rounded text-emerald-600"> 화요일</label>
+                                <label class="inline-flex items-center gap-2 cursor-pointer"><input type="checkbox" name="sessionsDaysOfWeek" value="수" class="rounded text-emerald-600"> 수요일</label>
+                                <label class="inline-flex items-center gap-2 cursor-pointer"><input type="checkbox" name="sessionsDaysOfWeek" value="목" class="rounded text-emerald-600"> 목요일</label>
+                                <label class="inline-flex items-center gap-2 cursor-pointer"><input type="checkbox" name="sessionsDaysOfWeek" value="금" class="rounded text-emerald-600"> 금요일</label>
+                                <label class="inline-flex items-center gap-2 cursor-pointer"><input type="checkbox" name="sessionsDaysOfWeek" value="토" class="rounded text-emerald-600"> 토요일</label>
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-1">훈련 종료일</label>
-                            <input type="date" id="sessionsFormTrainingEnd" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-bold text-slate-700 mb-1"><span class="text-red-500">*</span> 시작일</label>
+                                <input type="date" id="sessionsFormTrainingStart" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-slate-700 mb-1"><span class="text-red-500">*</span> 종료일</label>
+                                <input type="date" id="sessionsFormTrainingEnd" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
+                            </div>
                         </div>
+
                         <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-1">등록일자</label>
-                            <input type="date" id="sessionsFormRegisteredAt" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
+                            <label class="block text-sm font-bold text-slate-700 mb-1">장소</label>
+                            <input type="text" id="sessionsFormLocation" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" placeholder="예: 3D쿠키홍대센터 제1강의실">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">등록일</label>
+                            <input type="date" id="sessionsFormRegisteredAt" class="w-full max-w-xs px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
+                        </div>
+                    </div>
+                </section>
+
+                <section class="border border-slate-200 rounded-xl p-5 bg-white">
+                    <h3 class="font-bold text-slate-800 mb-4">강사 및 URL</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">강사(담당 강사)</label>
+                            <input type="text" id="sessionsFormInstructor" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" placeholder="담당 강사명 입력">
                         </div>
                         <div class="md:col-span-2">
                             <label class="block text-sm font-bold text-slate-700 mb-1">NCS교과 URL</label>

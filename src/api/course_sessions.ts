@@ -155,6 +155,9 @@ app.post('/', authMiddleware, requireAdmin, async (c) => {
       session_number: number;
       status?: string;
       instructor_name?: string;
+      target_audience?: string | string[];
+      days_of_week?: string | string[];
+      location?: string;
       training_start_date?: string;
       training_end_date?: string;
       url_ncs?: string;
@@ -169,6 +172,9 @@ app.post('/', authMiddleware, requireAdmin, async (c) => {
     }
     const status = (body.status && STATUS_VALUES.includes(body.status as any)) ? body.status : 'recruiting';
     const instructorName = (body.instructor_name || '').trim() || null;
+    const targetAudience = Array.isArray(body.target_audience) ? body.target_audience.join(',') : (typeof body.target_audience === 'string' ? body.target_audience.trim() : null) || null;
+    const daysOfWeek = Array.isArray(body.days_of_week) ? body.days_of_week.join(',') : (typeof body.days_of_week === 'string' ? body.days_of_week.trim() : null) || null;
+    const location = (body.location || '').trim() || null;
     const trainingStart = (body.training_start_date || '').trim() || null;
     const trainingEnd = (body.training_end_date || '').trim() || null;
     const urlNcs = (body.url_ncs || '').trim() || null;
@@ -187,15 +193,15 @@ app.post('/', authMiddleware, requireAdmin, async (c) => {
     try {
       await DB.prepare(
         `INSERT INTO course_sessions (
-          approved_course_id, session_number, status, instructor_name, training_start_date, training_end_date,
-          url_ncs, url_plan, url_detail_plan, registered_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          approved_course_id, session_number, status, instructor_name, target_audience, days_of_week, location,
+          training_start_date, training_end_date, url_ncs, url_plan, url_detail_plan, registered_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
-        .bind(approvedCourseId, sessionNumber, status, instructorName, trainingStart, trainingEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt)
+        .bind(approvedCourseId, sessionNumber, status, instructorName, targetAudience, daysOfWeek, location, trainingStart, trainingEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt)
         .run();
     } catch (err: unknown) {
       const msg = String(err && typeof err === 'object' && 'message' in err ? (err as Error).message : err);
-      if (/instructor_name|no such column/i.test(msg)) {
+      if (/instructor_name|target_audience|days_of_week|location|no such column/i.test(msg)) {
         await DB.prepare(
           `INSERT INTO course_sessions (
             approved_course_id, session_number, status, training_start_date, training_end_date,
@@ -231,17 +237,33 @@ app.get('/:id', authMiddleware, requireAdmin, async (c) => {
     const id = parseInt(c.req.param('id'), 10);
     if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
     const { DB } = c.env;
-    const row = await DB.prepare(
-      `SELECT s.id, s.approved_course_id, s.session_number, s.status,
-              s.training_start_date, s.training_end_date, s.url_ncs, s.url_plan, s.url_detail_plan,
-              s.registered_at, s.created_at, a.name as course_name, a.instructor_name, c.name as category_name
-       FROM course_sessions s
-       INNER JOIN approved_courses a ON a.id = s.approved_course_id
-       LEFT JOIN course_categories c ON c.id = a.category_id
-       WHERE s.id = ?`
-    )
-      .bind(id)
-      .first();
+    let row: Record<string, unknown> | null = null;
+    try {
+      row = await DB.prepare(
+        `SELECT s.id, s.approved_course_id, s.session_number, s.status,
+                s.training_start_date, s.training_end_date, s.url_ncs, s.url_plan, s.url_detail_plan,
+                s.registered_at, s.created_at, s.target_audience, s.days_of_week, s.location,
+                a.name as course_name, a.instructor_name, c.name as category_name
+         FROM course_sessions s
+         INNER JOIN approved_courses a ON a.id = s.approved_course_id
+         LEFT JOIN course_categories c ON c.id = a.category_id
+         WHERE s.id = ?`
+      )
+        .bind(id)
+        .first() as Record<string, unknown> | null;
+    } catch {
+      row = await DB.prepare(
+        `SELECT s.id, s.approved_course_id, s.session_number, s.status,
+                s.training_start_date, s.training_end_date, s.url_ncs, s.url_plan, s.url_detail_plan,
+                s.registered_at, s.created_at, a.name as course_name, a.instructor_name, c.name as category_name
+         FROM course_sessions s
+         INNER JOIN approved_courses a ON a.id = s.approved_course_id
+         LEFT JOIN course_categories c ON c.id = a.category_id
+         WHERE s.id = ?`
+      )
+        .bind(id)
+        .first() as Record<string, unknown> | null;
+    }
     if (!row) return c.json({ success: false, error: '회차를 찾을 수 없습니다' }, 404);
     return c.json({ success: true, data: row });
   } catch (e) {
@@ -260,6 +282,9 @@ app.put('/:id', authMiddleware, requireAdmin, async (c) => {
     const body = await c.req.json<{
       status?: string;
       instructor_name?: string;
+      target_audience?: string | string[];
+      days_of_week?: string | string[];
+      location?: string;
       training_start_date?: string;
       training_end_date?: string;
       url_ncs?: string;
@@ -274,6 +299,9 @@ app.put('/:id', authMiddleware, requireAdmin, async (c) => {
 
     const status = (body.status && STATUS_VALUES.includes(body.status as any)) ? body.status : undefined;
     const instructorName = (body.instructor_name || '').trim() || null;
+    const targetAudience = Array.isArray(body.target_audience) ? body.target_audience.join(',') : (typeof body.target_audience === 'string' ? body.target_audience.trim() : null) || null;
+    const daysOfWeek = Array.isArray(body.days_of_week) ? body.days_of_week.join(',') : (typeof body.days_of_week === 'string' ? body.days_of_week.trim() : null) || null;
+    const location = (body.location || '').trim() || null;
     const trainingStart = (body.training_start_date || '').trim() || null;
     const trainingEnd = (body.training_end_date || '').trim() || null;
     const urlNcs = (body.url_ncs || '').trim() || null;
@@ -284,15 +312,16 @@ app.put('/:id', authMiddleware, requireAdmin, async (c) => {
     try {
       await DB.prepare(
         `UPDATE course_sessions SET
-          status = COALESCE(?, status), instructor_name = ?, training_start_date = ?, training_end_date = ?,
+          status = COALESCE(?, status), instructor_name = ?, target_audience = ?, days_of_week = ?, location = ?,
+          training_start_date = ?, training_end_date = ?,
           url_ncs = ?, url_plan = ?, url_detail_plan = ?, registered_at = ?
          WHERE id = ?`
       )
-        .bind(status ?? null, instructorName, trainingStart, trainingEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt, id)
+        .bind(status ?? null, instructorName, targetAudience, daysOfWeek, location, trainingStart, trainingEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt, id)
         .run();
     } catch (err: unknown) {
       const msg = String(err && typeof err === 'object' && 'message' in err ? (err as Error).message : err);
-      if (/instructor_name|no such column/i.test(msg)) {
+      if (/instructor_name|target_audience|days_of_week|location|no such column/i.test(msg)) {
         await DB.prepare(
           `UPDATE course_sessions SET
             status = COALESCE(?, status), training_start_date = ?, training_end_date = ?,
