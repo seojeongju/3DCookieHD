@@ -200,6 +200,16 @@ export const educationGalleryHtml = `
             return y + '-' + mon + '-' + d;
         }
 
+        function getItemImage(item) {
+            var img = (item.images && item.images.length) ? item.images[0] : (item.thumbnail_url || '');
+            if (!img && (item.content || item.description)) {
+                var text = (item.content || item.description || '');
+                var m = text.match(/<img[^>]+src=["']([^"']+)["']/i);
+                if (m && m[1]) img = m[1];
+            }
+            return img;
+        }
+
         async function loadAll() {
             try {
                 var [eduRes, portRes] = await Promise.all([
@@ -208,12 +218,15 @@ export const educationGalleryHtml = `
                 ]);
                 var eduData = await eduRes.json();
                 var portData = await portRes.json();
-                educationList = (eduData.success && eduData.data) ? eduData.data.map(function(p) {
+                var eduRaw = (eduData.success && eduData.data) ? eduData.data.map(function(p) {
                     p._type = 'education_photo';
                     p._date = parseContentRegDate(p.content) || p.created_at;
                     return p;
                 }) : [];
-                portfolioList = (portData.success && portData.data) ? portData.data.map(function(p) { p._type = 'portfolio'; p._date = p.created_at; return p; }) : [];
+                var portRaw = (portData.success && portData.data) ? portData.data.map(function(p) { p._type = 'portfolio'; p._date = p.created_at; return p; }) : [];
+                // 사진이 있는 항목만 표시 (사진 없으면 다음 항목으로 밀림), 최신순 유지
+                educationList = eduRaw.filter(function(p) { return !!getItemImage(p); });
+                portfolioList = portRaw.filter(function(p) { return !!getItemImage(p); });
                 mergeAndRender();
             } catch (e) {
                 console.error(e);

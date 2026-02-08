@@ -266,52 +266,31 @@ export const homeHtml = `
                     var db = parseContentRegDate(b.content) || b.created_at || 0;
                     return new Date(db) - new Date(da);
                 });
-                var withImage = [];
-                var noImage = [];
-                list.forEach(function(p) {
+                function getFirstImage(p) {
                     var img = (p.images && p.images.length) ? p.images[0] : '';
                     if (!img && p.content) {
                         var m = p.content.match(/<img[^>]+src=["']([^"']+)["']/i);
                         if (m && m[1]) img = m[1];
                     }
-                    if (img) withImage.push(p); else noImage.push(p);
-                });
-                if (list.length === 0) {
+                    return img;
+                }
+                var withImage = list.filter(function(p) { return !!getFirstImage(p); });
+                if (withImage.length === 0) {
                     container.innerHTML = '<div class="col-span-2 md:col-span-4 text-center py-12">' +
                         '<p class="text-gray-500 mb-6">등록된 시제품이 없습니다.</p>' +
                         '<a href="/prototype-gallery" class="inline-flex items-center gap-2 px-6 py-3 bg-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-300 transition">시제품 갤러리 보기 <i class="fas fa-arrow-right"></i></a></div>';
                     return;
                 }
-                var html = '';
-                if (withImage.length > 0) {
-                    var cards = withImage.slice(0, 8).map(function(p) {
-                        var img = (p.images && p.images.length) ? p.images[0] : '';
-                        if (!img && p.content) {
-                            var m = p.content.match(/<img[^>]+src=["']([^"']+)["']/i);
-                            if (m && m[1]) img = m[1];
-                        }
-                        var safeTitle = (p.title || '시제품').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                        return '<a href="/prototype-gallery" class="relative block rounded-xl overflow-hidden shadow-md hover:shadow-xl transition aspect-square bg-gray-200 group">' +
-                            '<img src="' + img + '" alt="' + safeTitle + '" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">' +
-                            '<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-3">' +
-                            '<span class="text-white text-sm font-bold truncate w-full">' + (p.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</span>' +
-                            '</div></a>';
-                    }).join('');
-                    html += cards;
-                }
-                if (noImage.length > 0) {
-                    var listRows = noImage.slice(0, 10).map(function(p) {
-                        var titleEsc = (p.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                        var dateStr = p.created_at ? new Date(p.created_at).toLocaleDateString('ko-KR') : '';
-                        return '<a href="/prototype-gallery" class="col-span-2 md:col-span-4 flex items-center gap-4 py-3 px-4 rounded-xl border border-gray-100 bg-white hover:bg-gray-50 transition text-left">' +
-                            '<span class="shrink-0 w-10 h-10 rounded-lg bg-gray-200 text-gray-600 flex items-center justify-center"><i class="fas fa-cube"></i></span>' +
-                            '<div class="min-w-0 flex-1"><span class="font-bold text-gray-800 truncate block">' + titleEsc + '</span>' +
-                            (dateStr ? '<span class="text-sm text-gray-500">' + dateStr + '</span>' : '') + '</div>' +
-                            '<i class="fas fa-chevron-right text-gray-400 shrink-0"></i></a>';
-                    }).join('');
-                    html += listRows;
-                }
-                container.innerHTML = html;
+                var cards = withImage.slice(0, 8).map(function(p) {
+                    var img = getFirstImage(p);
+                    var safeTitle = (p.title || '시제품').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    return '<a href="/prototype-gallery" class="relative block rounded-xl overflow-hidden shadow-md hover:shadow-xl transition aspect-square bg-gray-200 group">' +
+                        '<img src="' + img + '" alt="' + safeTitle + '" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">' +
+                        '<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-3">' +
+                        '<span class="text-white text-sm font-bold truncate w-full">' + (p.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</span>' +
+                        '</div></a>';
+                }).join('');
+                container.innerHTML = cards;
             } catch (e) {
                 console.error('loadPrototypes error:', e);
                 container.innerHTML = '<div class="col-span-2 md:col-span-4 text-center py-12 text-gray-500">시제품 목록을 불러오지 못했습니다.</div>';
@@ -337,57 +316,38 @@ export const homeHtml = `
                     return;
                 }
                 var list = (result.data || []).slice();
+                // 최신순 정렬 (등록일 또는 created_at 기준)
                 list.sort(function(a, b) {
                     var da = parseContentRegDate(a.content) || a.created_at || 0;
                     var db = parseContentRegDate(b.content) || b.created_at || 0;
                     return new Date(db) - new Date(da);
                 });
-                var withImage = [];
-                var noImage = [];
-                list.forEach(function(p) {
+                // 사진이 있는 항목만 사용 (사진 없으면 다음 항목으로 밀림)
+                function getFirstImage(p) {
                     var img = (p.images && p.images.length) ? p.images[0] : '';
                     if (!img && p.content) {
                         var m = p.content.match(/<img[^>]+src=["']([^"']+)["']/i);
                         if (m && m[1]) img = m[1];
                     }
-                    if (img) withImage.push(p); else noImage.push(p);
-                });
-                if (list.length === 0) {
+                    return img;
+                }
+                var withImage = list.filter(function(p) { return !!getFirstImage(p); });
+                if (withImage.length === 0) {
                     container.innerHTML = '<div class="col-span-2 md:col-span-4 text-center py-12">' +
                         '<p class="text-gray-500 mb-6">등록된 교육사진이 없습니다.</p>' +
                         '<a href="/education-photos" class="inline-flex items-center gap-2 px-6 py-3 bg-primary-100 text-primary-700 font-bold rounded-xl hover:bg-primary-200 transition">교육사진 갤러리 보기 <i class="fas fa-arrow-right"></i></a></div>';
                     return;
                 }
-                var html = '';
-                if (withImage.length > 0) {
-                    var cards = withImage.slice(0, 8).map(function(p) {
-                        var img = (p.images && p.images.length) ? p.images[0] : '';
-                        if (!img && p.content) {
-                            var m = p.content.match(/<img[^>]+src=["']([^"']+)["']/i);
-                            if (m && m[1]) img = m[1];
-                        }
-                        var safeTitle = (p.title || '교육사진').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                        return '<a href="/education-photos" class="relative block rounded-xl overflow-hidden shadow-md hover:shadow-xl transition aspect-square bg-gray-200 group">' +
-                            '<img src="' + img + '" alt="' + safeTitle + '" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">' +
-                            '<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-3">' +
-                            '<span class="text-white text-sm font-bold truncate w-full">' + (p.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</span>' +
-                            '</div></a>';
-                    }).join('');
-                    html += cards;
-                }
-                if (noImage.length > 0) {
-                    var listRows = noImage.slice(0, 10).map(function(p) {
-                        var titleEsc = (p.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                        var dateStr = p.created_at ? new Date(p.created_at).toLocaleDateString('ko-KR') : '';
-                        return '<a href="/education-photos" class="col-span-2 md:col-span-4 flex items-center gap-4 py-3 px-4 rounded-xl border border-gray-100 bg-white hover:bg-gray-50 transition text-left">' +
-                            '<span class="shrink-0 w-10 h-10 rounded-lg bg-primary-100 text-primary-600 flex items-center justify-center"><i class="fas fa-camera"></i></span>' +
-                            '<div class="min-w-0 flex-1"><span class="font-bold text-gray-800 truncate block">' + titleEsc + '</span>' +
-                            (dateStr ? '<span class="text-sm text-gray-500">' + dateStr + '</span>' : '') + '</div>' +
-                            '<i class="fas fa-chevron-right text-gray-400 shrink-0"></i></a>';
-                    }).join('');
-                    html += listRows;
-                }
-                container.innerHTML = html;
+                var cards = withImage.slice(0, 8).map(function(p) {
+                    var img = getFirstImage(p);
+                    var safeTitle = (p.title || '교육사진').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    return '<a href="/education-photos" class="relative block rounded-xl overflow-hidden shadow-md hover:shadow-xl transition aspect-square bg-gray-200 group">' +
+                        '<img src="' + img + '" alt="' + safeTitle + '" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">' +
+                        '<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-3">' +
+                        '<span class="text-white text-sm font-bold truncate w-full">' + (p.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</span>' +
+                        '</div></a>';
+                }).join('');
+                container.innerHTML = cards;
             } catch (e) {
                 console.error('loadEducationPhotos error:', e);
                 container.innerHTML = '<div class="col-span-2 md:col-span-4 text-center py-12 text-gray-500">교육사진 목록을 불러오지 못했습니다.</div>';

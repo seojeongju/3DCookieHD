@@ -122,6 +122,15 @@ export const prototypeGalleryHtml = `
             return y + '-' + mon + '-' + d;
         }
 
+        function getItemImage(item) {
+            var img = (item.images && item.images.length) ? item.images[0] : (item.thumbnail_url || '');
+            if (!img && (item.content || '')) {
+                var m = (item.content || '').match(/<img[^>]+src=["']([^"']+)["']/i);
+                if (m && m[1]) img = m[1];
+            }
+            return img;
+        }
+
         async function loadAll() {
             try {
                 var res = await fetch('/api/posts?category=prototype&status=published&limit=100');
@@ -130,11 +139,12 @@ export const prototypeGalleryHtml = `
                     document.getElementById('galleryGrid').innerHTML = '<div class="col-span-full py-20 text-center text-red-500">데이터를 불러오는데 실패했습니다.</div>';
                     return;
                 }
-                currentList = (result.data || []).map(function(p) {
+                var raw = (result.data || []).map(function(p) {
                     p._date = parseContentRegDate(p.content) || p.created_at;
                     return p;
                 });
-                currentList.sort(function(a, b) { return new Date(b._date || 0) - new Date(a._date || 0); });
+                raw.sort(function(a, b) { return new Date(b._date || 0) - new Date(a._date || 0); });
+                currentList = raw.filter(function(p) { return !!getItemImage(p); });
                 currentPage = 1;
                 renderGrid();
             } catch (e) {
