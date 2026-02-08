@@ -118,10 +118,10 @@ app.get('/', authMiddleware, requireAdmin, async (c) => {
 
     params.push(limit, offset);
     const rows = await DB.prepare(
-      `SELECT s.id, s.approved_course_id, s.session_number, s.status, s.instructor_name,
+      `SELECT s.id, s.approved_course_id, s.session_number, s.status,
               s.training_start_date, s.training_end_date, s.url_ncs, s.url_plan, s.url_detail_plan,
               s.registered_at, s.created_at,
-              a.name as course_name, a.category_id, a.instructor_name as course_instructor_name,
+              a.name as course_name, a.category_id, a.instructor_name,
               c.name as category_name
        FROM course_sessions s
        INNER JOIN approved_courses a ON a.id = s.approved_course_id
@@ -184,19 +184,33 @@ app.post('/', authMiddleware, requireAdmin, async (c) => {
       .first();
     if (existing) return c.json({ success: false, error: '이미 같은 회차가 등록되어 있습니다' }, 400);
 
-    await DB.prepare(
-      `INSERT INTO course_sessions (
-        approved_course_id, session_number, status, instructor_name, training_start_date, training_end_date,
-        url_ncs, url_plan, url_detail_plan, registered_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    )
-      .bind(approvedCourseId, sessionNumber, status, instructorName, trainingStart, trainingEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt)
-      .run();
+    try {
+      await DB.prepare(
+        `INSERT INTO course_sessions (
+          approved_course_id, session_number, status, instructor_name, training_start_date, training_end_date,
+          url_ncs, url_plan, url_detail_plan, registered_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+        .bind(approvedCourseId, sessionNumber, status, instructorName, trainingStart, trainingEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt)
+        .run();
+    } catch (err: unknown) {
+      const msg = String(err && typeof err === 'object' && 'message' in err ? (err as Error).message : err);
+      if (/instructor_name|no such column/i.test(msg)) {
+        await DB.prepare(
+          `INSERT INTO course_sessions (
+            approved_course_id, session_number, status, training_start_date, training_end_date,
+            url_ncs, url_plan, url_detail_plan, registered_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        )
+          .bind(approvedCourseId, sessionNumber, status, trainingStart, trainingEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt)
+          .run();
+      } else throw err;
+    }
 
     const row = await DB.prepare(
-      `SELECT s.id, s.approved_course_id, s.session_number, s.status, s.instructor_name,
+      `SELECT s.id, s.approved_course_id, s.session_number, s.status,
               s.training_start_date, s.training_end_date, s.url_ncs, s.url_plan, s.url_detail_plan,
-              s.registered_at, s.created_at, a.name as course_name, c.name as category_name
+              s.registered_at, s.created_at, a.name as course_name, a.instructor_name, c.name as category_name
        FROM course_sessions s
        INNER JOIN approved_courses a ON a.id = s.approved_course_id
        LEFT JOIN course_categories c ON c.id = a.category_id
@@ -218,9 +232,9 @@ app.get('/:id', authMiddleware, requireAdmin, async (c) => {
     if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
     const { DB } = c.env;
     const row = await DB.prepare(
-      `SELECT s.id, s.approved_course_id, s.session_number, s.status, s.instructor_name,
+      `SELECT s.id, s.approved_course_id, s.session_number, s.status,
               s.training_start_date, s.training_end_date, s.url_ncs, s.url_plan, s.url_detail_plan,
-              s.registered_at, s.created_at, a.name as course_name, c.name as category_name
+              s.registered_at, s.created_at, a.name as course_name, a.instructor_name, c.name as category_name
        FROM course_sessions s
        INNER JOIN approved_courses a ON a.id = s.approved_course_id
        LEFT JOIN course_categories c ON c.id = a.category_id
@@ -267,19 +281,33 @@ app.put('/:id', authMiddleware, requireAdmin, async (c) => {
     const urlDetailPlan = (body.url_detail_plan || '').trim() || null;
     const registeredAt = (body.registered_at || '').trim() || null;
 
-    await DB.prepare(
-      `UPDATE course_sessions SET
-        status = COALESCE(?, status), instructor_name = ?, training_start_date = ?, training_end_date = ?,
-        url_ncs = ?, url_plan = ?, url_detail_plan = ?, registered_at = ?
-       WHERE id = ?`
-    )
-      .bind(status ?? null, instructorName, trainingStart, trainingEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt, id)
-      .run();
+    try {
+      await DB.prepare(
+        `UPDATE course_sessions SET
+          status = COALESCE(?, status), instructor_name = ?, training_start_date = ?, training_end_date = ?,
+          url_ncs = ?, url_plan = ?, url_detail_plan = ?, registered_at = ?
+         WHERE id = ?`
+      )
+        .bind(status ?? null, instructorName, trainingStart, trainingEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt, id)
+        .run();
+    } catch (err: unknown) {
+      const msg = String(err && typeof err === 'object' && 'message' in err ? (err as Error).message : err);
+      if (/instructor_name|no such column/i.test(msg)) {
+        await DB.prepare(
+          `UPDATE course_sessions SET
+            status = COALESCE(?, status), training_start_date = ?, training_end_date = ?,
+            url_ncs = ?, url_plan = ?, url_detail_plan = ?, registered_at = ?
+           WHERE id = ?`
+        )
+          .bind(status ?? null, trainingStart, trainingEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt, id)
+          .run();
+      } else throw err;
+    }
 
     const row = await DB.prepare(
-      `SELECT s.id, s.approved_course_id, s.session_number, s.status, s.instructor_name,
+      `SELECT s.id, s.approved_course_id, s.session_number, s.status,
               s.training_start_date, s.training_end_date, s.url_ncs, s.url_plan, s.url_detail_plan,
-              s.registered_at, s.created_at, a.name as course_name, c.name as category_name
+              s.registered_at, s.created_at, a.name as course_name, a.instructor_name, c.name as category_name
        FROM course_sessions s
        INNER JOIN approved_courses a ON a.id = s.approved_course_id
        LEFT JOIN course_categories c ON c.id = a.category_id

@@ -94,25 +94,25 @@
 
     function loadSessionsList() {
         var tbody = document.getElementById('sessionsListBody');
-        tbody.innerHTML = '<tr><td colspan="8" class="px-4 py-8 text-center text-slate-400"><i class="fas fa-spinner fa-spin mr-2"></i> 로딩 중...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-slate-400"><i class="fas fa-spinner fa-spin mr-2"></i> 로딩 중...</td></tr>';
         var token = localStorage.getItem('token');
         var qs = buildQuery();
         fetch('/api/course-sessions?' + qs, { headers: { 'Authorization': 'Bearer ' + token } })
             .then(function (r) { return r.json(); })
             .then(function (json) {
                 if (!json.success) {
-                    tbody.innerHTML = '<tr><td colspan="8" class="px-4 py-8 text-center text-red-500">조회 실패</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-red-500">조회 실패</td></tr>';
                     return;
                 }
-                var list = json.data || [];
+                var list = Array.isArray(json.data) ? json.data : [];
                 var pagination = json.pagination || {};
                 var summaryEl = document.getElementById('sessionsSummary');
                 if (summaryEl) {
-                    summaryEl.textContent = 'Showing ' + (pagination.total || 0) + ' entries';
+                    summaryEl.textContent = list.length === 0 ? '목록 없음' : '총 ' + (pagination.total || 0) + '건';
                     summaryEl.classList.remove('hidden');
                 }
                 if (list.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="7" class="p-12 text-center text-slate-400"><i class="fas fa-calendar-plus text-3xl mb-3 block opacity-50"></i> 등록된 회차가 없습니다.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="7" class="p-12 text-center text-slate-500"><i class="fas fa-calendar-plus text-3xl mb-3 block opacity-50"></i><p class="font-medium">등록된 회차가 없습니다.</p><p class="text-sm text-slate-400 mt-1">회차별 과정 신규 개설 버튼으로 첫 회차를 등록해 보세요.</p></td></tr>';
                 } else {
                     var startNo = (pagination.page - 1) * (pagination.limit || 15) + 1;
                     var reLt = new RegExp('<', 'g');
@@ -169,7 +169,7 @@
                 }
                 renderPagination(pagination);
             })
-            .catch(function () { tbody.innerHTML = '<tr><td colspan="8" class="px-4 py-8 text-center text-red-500">로드 실패</td></tr>'; });
+            .catch(function () { tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-red-500">목록을 불러올 수 없습니다.</td></tr>'; });
     }
 
     function renderPagination(p) {
