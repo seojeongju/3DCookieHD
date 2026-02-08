@@ -2780,16 +2780,31 @@
             var units = [];
             try { units = item.units_json ? JSON.parse(item.units_json) : []; } catch (e) { }
 
-            var unitLabel = abilityUnits.length ? abilityUnits.join(', ') : (units.length ? units.join(', ') : '—');
+            function toCodeName(entry) {
+                if (entry == null) return { code: '', name: '' };
+                if (typeof entry === 'string') return { code: entry.trim(), name: '' };
+                var c = (entry.code || entry.unit_code || '').toString().trim();
+                var n = (entry.name || entry.unit_name || '').toString().trim();
+                return { code: c, name: n };
+            }
             var unitCodeNameLines = [];
-            if (Array.isArray(units) && units.length) {
-                units.forEach(function (u) {
-                    var code = (u.code || u.unit_code || '').toString().trim();
-                    var name = (u.name || u.unit_name || '').toString().trim();
-                    if (code || name) unitCodeNameLines.push('[' + esc(code) + '] ' + esc(name));
+            var allEntries = [];
+            if (Array.isArray(abilityUnits) && abilityUnits.length) {
+                abilityUnits.forEach(function (entry) {
+                    var cn = toCodeName(entry);
+                    if (cn.code || cn.name) allEntries.push(cn);
                 });
             }
-            if (!unitCodeNameLines.length && unitLabel !== '—') unitCodeNameLines.push(esc(unitLabel));
+            if (Array.isArray(units) && units.length && !allEntries.length) {
+                units.forEach(function (entry) {
+                    var cn = toCodeName(entry);
+                    if (cn.code || cn.name) allEntries.push(cn);
+                });
+            }
+            allEntries.forEach(function (cn) {
+                unitCodeNameLines.push((cn.code ? '[' + esc(cn.code) + '] ' : '') + esc(cn.name || cn.code));
+            });
+            var unitLabel = unitCodeNameLines.length ? unitCodeNameLines.join(', ') : '—';
             var abilityUnitBlock = unitCodeNameLines.length
                 ? '<p class="text-xs font-bold text-slate-400 mt-2 uppercase tracking-widest pl-8">능력단위요소명</p><p class="text-sm text-slate-600 mt-1 pl-8">' + unitCodeNameLines.join(' · ') + '</p>'
                 : '<p class="text-xs font-bold text-slate-400 mt-2 uppercase tracking-widest pl-8">능력단위(단원)명 : ' + esc(unitLabel) + '</p>';
