@@ -22,7 +22,7 @@ export function adminNcsViewerHtml(): string {
 </head>
 <body class="bg-slate-50 text-slate-900 antialiased overflow-hidden">
     <div class="flex h-screen overflow-hidden">
-        \${hrdSidebar('ncs-viewer')}
+        ${hrdSidebar('ncs-viewer')}
 
         <main class="flex-1 flex flex-col overflow-hidden relative">
             <div class="absolute inset-0 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:32px_32px] opacity-40 pointer-events-none"></div>
