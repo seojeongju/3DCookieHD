@@ -2781,6 +2781,18 @@
             try { units = item.units_json ? JSON.parse(item.units_json) : []; } catch (e) { }
 
             var unitLabel = abilityUnits.length ? abilityUnits.join(', ') : (units.length ? units.join(', ') : '—');
+            var unitCodeNameLines = [];
+            if (Array.isArray(units) && units.length) {
+                units.forEach(function (u) {
+                    var code = (u.code || u.unit_code || '').toString().trim();
+                    var name = (u.name || u.unit_name || '').toString().trim();
+                    if (code || name) unitCodeNameLines.push('[' + esc(code) + '] ' + esc(name));
+                });
+            }
+            if (!unitCodeNameLines.length && unitLabel !== '—') unitCodeNameLines.push(esc(unitLabel));
+            var abilityUnitBlock = unitCodeNameLines.length
+                ? '<p class="text-xs font-bold text-slate-400 mt-2 uppercase tracking-widest pl-8">능력단위요소명</p><p class="text-sm text-slate-600 mt-1 pl-8">' + unitCodeNameLines.join(' · ') + '</p>'
+                : '<p class="text-xs font-bold text-slate-400 mt-2 uppercase tracking-widest pl-8">능력단위(단원)명 : ' + esc(unitLabel) + '</p>';
 
             var mainInstructorIds = [];
             try { mainInstructorIds = item.main_instructor_ids_json ? JSON.parse(item.main_instructor_ids_json) : []; } catch (e) { }
@@ -2805,7 +2817,7 @@
                 '<div class="flex flex-wrap justify-between items-start gap-4 mb-8">' +
                 '<div>' +
                 '<h5 class="text-xl font-black text-slate-800 tracking-tight flex items-center gap-3"><i class="fas fa-book-open text-blue-600"></i> ' + esc(item.name) + '</h5>' +
-                '<p class="text-xs font-bold text-slate-400 mt-2 uppercase tracking-widest pl-8">능력단위(단원)명 : ' + esc(unitLabel) + '</p>' +
+                abilityUnitBlock +
                 '</div>' +
                 '</div>' +
 
@@ -2837,8 +2849,8 @@
                     return '<div class="method-item flex gap-2">' +
                         '<select class="t-method-sel flex-1 px-5 py-3 border border-slate-200 rounded-2xl text-sm bg-white font-bold text-slate-700 shadow-sm">' +
                         '<option value="">:: 교수학습방법 선택 ::</option>' +
-                        ['강의', '토의·토론', '실습', '실기', '과제박람회', '현장견학', '프로젝트'].map(function (opt) {
-                            return '<option value="' + opt + '" ' + (opt === m ? 'selected' : '') + '>' + opt + '</option>';
+                        ['강의법', '문답법', '토의법', '문제해결법', '구안법', '탐구학습', '협동학습', '개별지도 교수법', '목표도달학습', '문제중심학습', '기타', '혼합형'].map(function (opt) {
+                            return '<option value="' + esc(opt) + '" ' + (opt === m ? 'selected' : '') + '>' + opt + '</option>';
                         }).join('') +
                         '</select>' +
                         '<button type="button" class="t-method-plus w-11 h-11 flex items-center justify-center bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-100 transition-all"><i class="fas fa-plus"></i></button>' +
@@ -2856,8 +2868,8 @@
                     return '<div class="method-item flex gap-2">' +
                         '<select class="e-method-sel flex-1 px-5 py-3 border border-slate-200 rounded-2xl text-sm bg-white font-bold text-slate-700 shadow-sm">' +
                         '<option value="">:: 평가방법 선택 ::</option>' +
-                        ['서술형시험', '논술형시험', '사례연구', '발표', '포트폴리오', '수행평가', '작업장평가'].map(function (opt) {
-                            return '<option value="' + opt + '" ' + (opt === m ? 'selected' : '') + '>' + opt + '</option>';
+                        ['포트폴리오', '문제해결 시나리오', '서술형 시험', '논술형 시험', '사례연구', '평가자 질문', '평가자 체크리스트', '피 평가자 체크리스트', '일지/저널', '역할연기', '구두발표', '작업장평가', '기타', '혼합형'].map(function (opt) {
+                            return '<option value="' + esc(opt) + '" ' + (opt === m ? 'selected' : '') + '>' + opt + '</option>';
                         }).join('') +
                         '</select>' +
                         '<button type="button" class="e-method-plus w-11 h-11 flex items-center justify-center bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-100 transition-all"><i class="fas fa-plus"></i></button>' +
@@ -2897,11 +2909,30 @@
         }
 
         Promise.all([
+            apiFetch('/api/ncs/approved/registrations/' + regId),
             apiFetch('/api/ncs/approved/instructors'),
             apiFetch('/api/ncs/approved/registrations/' + regId + '/evaluation-teaching')
         ]).then(function (results) {
-            instructors = results[0].success ? results[0].data : [];
-            curriculum = results[1].success ? results[1].data : [];
+            var reg = results[0].success ? results[0].data : null;
+            var allInstructors = results[1].success ? results[1].data : [];
+            curriculum = results[2].success ? results[2].data : [];
+
+            var courseInstructorNames = {};
+            if (reg && reg.approved_course_id) {
+                return apiFetch('/api/approved-courses/' + reg.approved_course_id).then(function (courseRes) {
+                    if (courseRes.success && courseRes.data && courseRes.data.instructor_name) {
+                        var names = String(courseRes.data.instructor_name).split(',');
+                        names.forEach(function (n) { var t = n.trim(); if (t) courseInstructorNames[t] = true; });
+                    }
+                    instructors = Object.keys(courseInstructorNames).length
+                        ? allInstructors.filter(function (ins) { return courseInstructorNames[ins.name]; })
+                        : allInstructors;
+                    return Promise.resolve();
+                });
+            }
+            instructors = allInstructors;
+            return Promise.resolve();
+        }).then(function () {
 
             var secLib = document.getElementById('sectionNcsLib');
             var secMajor = document.getElementById('sectionNcsMajor');
