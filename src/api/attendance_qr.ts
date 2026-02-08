@@ -112,9 +112,10 @@ app.post('/checkin', async (c) => {
             }
         }
 
-        // 지각 여부 확인 (TODO: 시간 기준 설정)
+        // 지각 여부: valid_from(출석 시작 시각) 기준으로 LATE_MINUTES 초과 시 지각 처리
+        const LATE_MINUTES = 10;
         const sessionTime = new Date(session.valid_from as string);
-        const lateThreshold = new Date(sessionTime.getTime() + 10 * 60000); // 10분
+        const lateThreshold = new Date(sessionTime.getTime() + LATE_MINUTES * 60000);
         if (now > lateThreshold) {
             status = 'late';
         }

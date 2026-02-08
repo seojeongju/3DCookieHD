@@ -52,17 +52,17 @@
     }
     function loadApprovedList() {
         var tbody = document.getElementById('approvedListBody');
-        tbody.innerHTML = '<tr><td colspan="9" class="px-4 py-8 text-center text-slate-400"><i class="fas fa-spinner fa-spin mr-2"></i> 로딩 중...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" class="px-4 py-8 text-center text-slate-400"><i class="fas fa-spinner fa-spin mr-2"></i> 로딩 중...</td></tr>';
         fetch('/api/approved-courses?' + buildQuery(), { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } })
             .then(function (r) { return r.json(); })
             .then(function (json) {
-                if (!json.success) { tbody.innerHTML = '<tr><td colspan="9" class="px-4 py-8 text-center text-red-500">조회 실패</td></tr>'; return; }
+                if (!json.success) { tbody.innerHTML = '<tr><td colspan="10" class="px-4 py-8 text-center text-red-500">조회 실패</td></tr>'; return; }
                 var list = json.data || [];
                 var pagination = json.pagination || {};
                 var reLt = new RegExp('<', 'g');
                 var reQuot = /"/g;
                 if (list.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="9" class="p-12 text-center text-slate-400"><i class="fas fa-inbox text-3xl mb-3 block opacity-50"></i> 등록된 승인 과정이 없습니다.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="10" class="p-12 text-center text-slate-400"><i class="fas fa-inbox text-3xl mb-3 block opacity-50"></i> 등록된 승인 과정이 없습니다.</td></tr>';
                 } else {
                     var startNo = (pagination.page - 1) * (pagination.limit || 15) + 1;
                     tbody.innerHTML = list.map(function (item, i) {
@@ -87,6 +87,11 @@
                         var approvalOrg = (item.approval_org || '').trim();
                         var approvalDisplay = approvalOrg ? (approvalOrg.length > 8 ? approvalOrg.slice(0, 7) + '…' : approvalOrg) : '-';
 
+                        var sessionCount = item.session_count != null ? parseInt(item.session_count, 10) : 0;
+                        var sessionCell = sessionCount > 0
+                            ? '<a href="/admin/courses/sessions?approved_course_id=' + item.id + '" class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-blue-50 text-blue-700 text-[10px] font-bold hover:bg-blue-100 transition whitespace-nowrap" title="회차 목록 보기"><i class="fas fa-list-ol"></i> ' + sessionCount + '회차</a>'
+                            : '<span class="text-slate-300 text-[10px]">0회차</span>';
+
                         return '<tr class="hover:bg-slate-50/80 transition align-middle">' +
                             '<td class="p-3 text-center text-slate-500 text-xs align-middle">' + no + '</td>' +
                             '<td class="p-3 text-slate-600 text-xs font-medium align-middle whitespace-nowrap">' + (item.category_name || '-') + '</td>' +
@@ -99,6 +104,7 @@
                             '<td class="p-3 text-center text-slate-600 text-xs align-middle">' + cap + '</td>' +
                             '<td class="p-3 text-center text-slate-600 text-xs align-middle overflow-hidden" style="max-width: 80px;" title="' + (approvalOrg || '') + '"><span class="block truncate">' + approvalDisplay + '</span></td>' +
                             '<td class="p-3 text-center align-middle approved-col-status">' + statusBadge + '</td>' +
+                            '<td class="p-3 text-center align-middle">' + sessionCell + '</td>' +
                             '<td class="p-3 text-right align-middle">' +
                             '<div class="flex items-center justify-end gap-0.5 flex-nowrap">' +
                             '<a href="/admin/courses/sessions/register?approvedCourseId=' + item.id + '" class="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-bold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded transition whitespace-nowrap" title="회차 개설"><i class="fas fa-calendar-plus"></i> 회차</a>' +
@@ -114,7 +120,7 @@
                 }
                 renderPagination(pagination);
             })
-            .catch(function () { tbody.innerHTML = '<tr><td colspan="9" class="px-4 py-8 text-center text-red-500">로드 실패</td></tr>'; });
+            .catch(function () { tbody.innerHTML = '<tr><td colspan="10" class="px-4 py-8 text-center text-red-500">로드 실패</td></tr>'; });
     }
     function renderPagination(p) {
         var el = document.getElementById('approvedPagination');

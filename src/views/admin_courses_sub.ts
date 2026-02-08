@@ -353,11 +353,12 @@ export const adminCoursesApprovedHtml = () =>
                         <th class="p-3 text-center border-b border-slate-200">정원</th>
                         <th class="p-3 w-20 text-center border-b border-slate-200">승인기관</th>
                         <th class="p-3 text-center border-b border-slate-200 approved-col-status">상태</th>
+                        <th class="p-3 text-center border-b border-slate-200 w-20">회차</th>
                         <th class="p-3 text-right border-b border-slate-200" style="width: 130px;">관리</th>
                     </tr>
                 </thead>
                 <tbody id="approvedListBody" class="text-sm divide-y divide-slate-100">
-                    <tr><td colspan="9" class="p-12 text-center text-slate-400">데이터 로딩 중...</td></tr>
+                    <tr><td colspan="10" class="p-12 text-center text-slate-400">데이터 로딩 중...</td></tr>
                 </tbody>
             </table>
         </div>

@@ -86,7 +86,7 @@ app.get('/', authMiddleware, async (c) => {
     const countResult = await DB.prepare(countQuery).bind(...params).first<{ total: number }>();
     const total = countResult?.total || 0;
 
-    // 목록 조회
+    // 목록 조회 (과정 기간 포함)
     const query = `
       SELECT
         e.*,
@@ -96,6 +96,8 @@ app.get('/', authMiddleware, async (c) => {
         c.title as course_title,
         c.category as course_category,
         c.thumbnail_url as course_thumbnail,
+        c.start_date as course_start_date,
+        c.end_date as course_end_date,
         cam.name as campus_name
       FROM enrollments e
       LEFT JOIN users u ON e.user_id = u.id

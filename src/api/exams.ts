@@ -585,6 +585,35 @@ exams.post('/:id/grade', authMiddleware, async (c) => {
     }
 });
 
+// GET /api/exams/:id/my-result - Get logged-in student's submission result for this exam
+exams.get('/:id/my-result', authMiddleware, async (c) => {
+    const examId = c.req.param('id');
+    try {
+        const user = c.get('user');
+        if (user.role !== 'student') {
+            return errorResponse(c, '학생만 조회할 수 있습니다', 403);
+        }
+        const submission: any = await c.env.DB.prepare(`
+            SELECT es.id, es.total_score, es.submitted_at, es.status
+            FROM exam_submissions es
+            WHERE es.exam_id = ? AND es.student_id = ?
+        `).bind(examId, user.userId).first();
+        if (!submission) {
+            return notFoundResponse(c, '제출 내역이 없습니다');
+        }
+        const exam: any = await c.env.DB.prepare(`
+            SELECT e.id, e.title, e.total_points
+            FROM exams e WHERE e.id = ?
+        `).bind(examId).first();
+        return successResponse(c, {
+            submission: { id: submission.id, total_score: submission.total_score, submitted_at: submission.submitted_at, status: submission.status },
+            exam: exam ? { title: exam.title, total_points: exam.total_points } : null,
+        });
+    } catch (e: any) {
+        return errorResponse(c, e?.message || '조회 실패', 500);
+    }
+});
+
 // GET /api/exams/:id/submissions/:submission_id - Get submission details with answers for grading
 exams.get('/:id/submissions/:submission_id', authMiddleware, async (c) => {
     const examId = c.req.param('id');

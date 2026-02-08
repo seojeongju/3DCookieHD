@@ -19,13 +19,19 @@
         return el && el.value != null ? el.value : '';
     }
 
+    function getApprovedCourseIdFromUrl() {
+        var match = /approved_course_id=([^&]+)/.exec(window.location.search || '');
+        return match ? decodeURIComponent(match[1]) : '';
+    }
     function buildQuery() {
         var params = new URLSearchParams();
+        var approvedCourseId = getFilterValue('sessionsFilterApprovedCourseId') || getApprovedCourseIdFromUrl();
         var categoryId = getFilterValue('sessionsFilterCategory');
         var status = getFilterValue('sessionsFilterStatus');
         var name = (getFilterValue('sessionsFilterName') || '').trim();
         var instructor = (getFilterValue('sessionsFilterInstructor') || '').trim();
         var trainingStart = getFilterValue('sessionsFilterTrainingStart');
+        if (approvedCourseId) params.set('approved_course_id', approvedCourseId);
         if (categoryId) params.set('category_id', categoryId);
         if (status) params.set('status', status);
         if (name) params.set('name', name);
@@ -39,10 +45,12 @@
 
     function buildStatsQuery() {
         var params = new URLSearchParams();
+        var approvedCourseId = getFilterValue('sessionsFilterApprovedCourseId') || getApprovedCourseIdFromUrl();
         var categoryId = getFilterValue('sessionsFilterCategory');
         var name = (getFilterValue('sessionsFilterName') || '').trim();
         var instructor = (getFilterValue('sessionsFilterInstructor') || '').trim();
         var trainingStart = getFilterValue('sessionsFilterTrainingStart');
+        if (approvedCourseId) params.set('approved_course_id', approvedCourseId);
         if (categoryId) params.set('category_id', categoryId);
         if (name) params.set('name', name);
         if (instructor) params.set('instructor_name', instructor);

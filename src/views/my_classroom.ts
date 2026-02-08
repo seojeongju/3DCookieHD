@@ -120,28 +120,28 @@ export const myClassroomHtml = `
                     return;
                 }
 
-                // TODO: 실제 API 연동 (GET /api/enrollments/me)
-                // 현재는 임시 데이터 사용
-                // const response = await fetch('/api/enrollments/me', { ... });
-                
-                // 임시 데이터
-                const courses = [
-                    {
-                        id: 1,
-                        title: 'UI/UX 반응형 웹디자인 & 웹퍼블리셔',
-                        period: '2024.12.01 ~ 2025.05.31',
-                        progress: 45,
-                        status: '수강중'
-                    },
-                    {
-                        id: 2,
-                        title: 'React 프론트엔드 개발자 양성',
-                        period: '2024.11.15 ~ 2025.03.14',
-                        progress: 20,
-                        status: '수강중'
-                    }
-                ];
-                
+                const response = await fetch('/api/enrollments?status=approved&limit=50', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const result = await response.json();
+                if (!result.success) {
+                    document.getElementById('courseList').innerHTML = '<div class="p-6 text-center text-red-500">수강 목록을 불러올 수 없습니다.</div>';
+                    return;
+                }
+                const list = result.data || [];
+                const courses = list.map(function (e) {
+                    var start = (e.course_start_date || '').toString().substring(0, 10);
+                    var end = (e.course_end_date || '').toString().substring(0, 10);
+                    var period = (start && end) ? (start + ' ~ ' + end) : (start || end || '-');
+                    var statusText = (e.status === 'approved') ? '수강중' : (e.status === 'completed') ? '수료' : (e.status || '');
+                    return {
+                        id: e.course_id,
+                        title: e.course_title || '과정',
+                        period: period,
+                        progress: Number(e.progress) || 0,
+                        status: statusText
+                    };
+                });
                 renderCourses(courses);
 
             } catch (error) {

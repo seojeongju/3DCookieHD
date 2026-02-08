@@ -26,6 +26,8 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; }
+        @keyframes skeleton-shimmer { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
+        .skeleton-row .skeleton-bar { background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%); background-size: 200% 100%; animation: skeleton-shimmer 1.2s ease-in-out infinite; border-radius: 4px; height: 14px; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 text-sm">
@@ -54,6 +56,19 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
 
             <!-- Main Content -->
             <main class="flex-1 overflow-auto p-6 custom-scrollbar bg-slate-50">
+                <!-- 0. List type: 등록된 과정 / 일반과정 -->
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">리스트 구분</span>
+                    <div class="inline-flex rounded-xl border border-slate-200 bg-white p-0.5 shadow-sm">
+                        <button type="button" id="tabListAll" class="list-type-tab px-4 py-2 rounded-lg text-sm font-bold transition-all bg-primary-600 text-white shadow-sm">
+                            <i class="fas fa-list mr-1.5"></i> 등록된 과정
+                        </button>
+                        <button type="button" id="tabListGeneral" class="list-type-tab px-4 py-2 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all">
+                            <i class="fas fa-graduation-cap mr-1.5"></i> 일반과정
+                        </button>
+                    </div>
+                </div>
+
                 <!-- 1. Search Filter Panel -->
                 <div class="bg-white border border-slate-200 rounded-lg p-5 mb-6 shadow-sm">
                     <div class="flex items-center gap-2 mb-4 border-b border-slate-100 pb-3">
@@ -119,7 +134,8 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
                     <!-- Grid Toolbar -->
                     <div class="p-4 border-b border-slate-100 flex items-center justify-between shrink-0">
                         <div class="flex items-center gap-3">
-                            <span class="text-sm font-bold text-slate-700">검색결과 <span id="totalCount" class="text-primary-600">0</span>건</span>
+                            <span class="text-sm font-bold text-slate-700">검색결과 <span id="totalCount" class="text-primary-600">0</span>건 <span id="paginationRange" class="text-slate-400 font-normal text-xs"></span></span>
+                            <button type="button" id="btnRefresh" class="p-1.5 text-slate-500 hover:text-primary-600 hover:bg-primary-50 rounded transition" title="새로고침"><i class="fas fa-sync-alt text-xs"></i></button>
                             <div class="h-4 w-px bg-slate-300"></div>
                             <button type="button" class="text-xs text-slate-500 hover:text-red-600 transition flex items-center gap-1" onclick="deleteSelected()">
                                 <i class="far fa-trash-alt"></i> 선택 삭제
@@ -129,7 +145,7 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
                              <a href="/admin/courses/sessions" class="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 border border-slate-300 rounded text-xs font-bold text-slate-600 hover:bg-slate-50 transition">
                                 <i class="fas fa-list-ul"></i> 회차별 관리
                             </a>
-                            <button type="button" class="inline-flex items-center gap-2 px-3 py-1.5 border border-green-600 text-green-700 bg-green-50 rounded text-xs font-bold hover:bg-green-100 transition">
+                            <button type="button" id="btnExportExcel" class="inline-flex items-center gap-2 px-3 py-1.5 border border-green-600 text-green-700 bg-green-50 rounded text-xs font-bold hover:bg-green-100 transition">
                                 <i class="far fa-file-excel"></i> 엑셀 저장
                             </button>
                             <button onclick="openCreateModal()" class="inline-flex items-center gap-2 px-4 py-1.5 bg-primary-600 text-white rounded text-xs font-bold hover:bg-primary-700 transition shadow-sm">
@@ -156,12 +172,11 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
                                 </tr>
                             </thead>
                             <tbody id="courseTableBody" class="text-sm divide-y divide-slate-100">
-                                <tr>
-                                    <td colspan="10" class="p-12 text-center text-slate-400">
-                                        <i class="fas fa-spinner fa-spin text-2xl mb-3 text-slate-300"></i>
-                                        <p>데이터를 불러오는 중입니다...</p>
-                                    </td>
-                                </tr>
+                                <tr class="skeleton-row"><td class="p-3 text-center"><div class="skeleton-bar w-4 h-4 mx-auto rounded"></div></td><td class="p-3 text-center"><div class="skeleton-bar w-6 inline-block"></div></td><td class="p-3"><div class="skeleton-bar w-20"></div></td><td class="p-3"><div class="skeleton-bar w-3/4 max-w-xs"></div><div class="skeleton-bar w-1/2 mt-2"></div></td><td class="p-3 text-center"><div class="skeleton-bar w-24 inline-block"></div></td><td class="p-3 text-center"><div class="skeleton-bar w-12 inline-block"></div></td><td class="p-3 text-center"><div class="skeleton-bar w-16 inline-block"></div></td><td class="p-3 text-right"><div class="skeleton-bar w-14 inline-block"></div></td><td class="p-3 text-center"><div class="skeleton-bar w-14 inline-block rounded-full"></div></td><td class="p-3"></td></tr>
+                                <tr class="skeleton-row"><td class="p-3 text-center"><div class="skeleton-bar w-4 h-4 mx-auto rounded"></div></td><td class="p-3 text-center"><div class="skeleton-bar w-6 inline-block"></div></td><td class="p-3"><div class="skeleton-bar w-20"></div></td><td class="p-3"><div class="skeleton-bar w-4/5 max-w-xs"></div><div class="skeleton-bar w-2/5 mt-2"></div></td><td class="p-3 text-center"><div class="skeleton-bar w-24 inline-block"></div></td><td class="p-3 text-center"><div class="skeleton-bar w-12 inline-block"></div></td><td class="p-3 text-center"><div class="skeleton-bar w-16 inline-block"></div></td><td class="p-3 text-right"><div class="skeleton-bar w-14 inline-block"></div></td><td class="p-3 text-center"><div class="skeleton-bar w-14 inline-block rounded-full"></div></td><td class="p-3"></td></tr>
+                                <tr class="skeleton-row"><td class="p-3 text-center"><div class="skeleton-bar w-4 h-4 mx-auto rounded"></div></td><td class="p-3 text-center"><div class="skeleton-bar w-6 inline-block"></div></td><td class="p-3"><div class="skeleton-bar w-20"></div></td><td class="p-3"><div class="skeleton-bar w-2/3 max-w-xs"></div><div class="skeleton-bar w-1/3 mt-2"></div></td><td class="p-3 text-center"><div class="skeleton-bar w-24 inline-block"></div></td><td class="p-3 text-center"><div class="skeleton-bar w-12 inline-block"></div></td><td class="p-3 text-center"><div class="skeleton-bar w-16 inline-block"></div></td><td class="p-3 text-right"><div class="skeleton-bar w-14 inline-block"></div></td><td class="p-3 text-center"><div class="skeleton-bar w-14 inline-block rounded-full"></div></td><td class="p-3"></td></tr>
+                                <tr class="skeleton-row"><td class="p-3 text-center"><div class="skeleton-bar w-4 h-4 mx-auto rounded"></div></td><td class="p-3 text-center"><div class="skeleton-bar w-6 inline-block"></div></td><td class="p-3"><div class="skeleton-bar w-20"></div></td><td class="p-3"><div class="skeleton-bar w-3/4 max-w-xs"></div><div class="skeleton-bar w-2/5 mt-2"></div></td><td class="p-3 text-center"><div class="skeleton-bar w-24 inline-block"></div></td><td class="p-3 text-center"><div class="skeleton-bar w-12 inline-block"></div></td><td class="p-3 text-center"><div class="skeleton-bar w-16 inline-block"></div></td><td class="p-3 text-right"><div class="skeleton-bar w-14 inline-block"></div></td><td class="p-3 text-center"><div class="skeleton-bar w-14 inline-block rounded-full"></div></td><td class="p-3"></td></tr>
+                                <tr class="skeleton-row"><td class="p-3 text-center"><div class="skeleton-bar w-4 h-4 mx-auto rounded"></div></td><td class="p-3 text-center"><div class="skeleton-bar w-6 inline-block"></div></td><td class="p-3"><div class="skeleton-bar w-20"></div></td><td class="p-3"><div class="skeleton-bar w-1/2 max-w-xs"></div><div class="skeleton-bar w-1/4 mt-2"></div></td><td class="p-3 text-center"><div class="skeleton-bar w-24 inline-block"></div></td><td class="p-3 text-center"><div class="skeleton-bar w-12 inline-block"></div></td><td class="p-3 text-center"><div class="skeleton-bar w-16 inline-block"></div></td><td class="p-3 text-right"><div class="skeleton-bar w-14 inline-block"></div></td><td class="p-3 text-center"><div class="skeleton-bar w-14 inline-block rounded-full"></div></td><td class="p-3"></td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -190,8 +205,8 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
                     <h4 class="font-bold text-slate-800 mb-1">승인 과정 불러오기</h4>
                     <p class="text-xs text-slate-500">HRD-Net 승인 정보를 기반으로<br>빠르게 개설합니다.</p>
                 </a>
-                <button onclick="alert('준비중입니다. 승인 과정 불러오기를 이용해주세요.'); closeCreateModal();" class="block p-6 border-2 border-slate-200 rounded-xl hover:border-slate-300 hover:bg-slate-50 transition group text-center disabled:opacity-50">
-                    <div class="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-500">
+                <button type="button" onclick="closeCreateModal(); openDirectInputModal();" class="block p-6 border-2 border-slate-200 rounded-xl hover:border-primary-500 hover:bg-primary-50 transition group text-center">
+                    <div class="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-500 group-hover:bg-primary-100 group-hover:text-primary-600 transition">
                         <i class="fas fa-pen text-xl"></i>
                     </div>
                     <h4 class="font-bold text-slate-800 mb-1">직접 입력 등록</h4>
@@ -204,26 +219,162 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
         </div>
     </div>
 
+    <!-- 직접 입력 등록 모달 -->
+    <div id="directInputModal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div class="bg-slate-800 text-white px-6 py-4 flex justify-between items-center shrink-0">
+                <h3 class="font-bold text-lg">과정 직접 입력 등록</h3>
+                <button type="button" onclick="closeDirectInputModal()" class="text-slate-400 hover:text-white p-1"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="directInputForm" class="p-6 overflow-y-auto space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">과정명 <span class="text-red-500">*</span></label>
+                    <input type="text" name="title" required class="w-full py-2 px-3 border border-slate-200 rounded-lg text-sm" placeholder="과정명 입력">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">과정 구분 <span class="text-red-500">*</span></label>
+                        <select name="category" required class="w-full py-2 px-3 border border-slate-200 rounded-lg text-sm">
+                            <option value="일반과정">일반직무 (재직자)</option>
+                            <option value="국비지원">국가기간 전략산업</option>
+                            <option value="국민내일배움">국민내일배움카드</option>
+                            <option value="특강">단기 특강</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">담당교사</label>
+                        <select name="teacher_id" class="w-full py-2 px-3 border border-slate-200 rounded-lg text-sm">
+                            <option value="">미배정</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">설명</label>
+                    <textarea name="description" rows="3" class="w-full py-2 px-3 border border-slate-200 rounded-lg text-sm" placeholder="과정 설명 (선택)"></textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">시작일</label>
+                        <input type="date" name="start_date" class="w-full py-2 px-3 border border-slate-200 rounded-lg text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">종료일</label>
+                        <input type="date" name="end_date" class="w-full py-2 px-3 border border-slate-200 rounded-lg text-sm">
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">정원</label>
+                        <input type="number" name="max_students" min="1" value="20" class="w-full py-2 px-3 border border-slate-200 rounded-lg text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">수강료 (원)</label>
+                        <input type="number" name="price" min="0" value="0" class="w-full py-2 px-3 border border-slate-200 rounded-lg text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">총 훈련시간</label>
+                        <input type="number" name="duration_hours" min="0" class="w-full py-2 px-3 border border-slate-200 rounded-lg text-sm" placeholder="시간">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">수업 시간/요일</label>
+                    <input type="text" name="schedule" class="w-full py-2 px-3 border border-slate-200 rounded-lg text-sm" placeholder="예: 월~금 09:00-18:00">
+                </div>
+            </form>
+            <div class="p-4 border-t border-slate-100 flex justify-end gap-2 shrink-0 bg-slate-50">
+                <button type="button" onclick="closeDirectInputModal()" class="px-4 py-2 border border-slate-200 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-100">취소</button>
+                <button type="button" onclick="submitDirectInput()" class="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-bold hover:bg-primary-700">등록</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const API_BASE = '/api/courses';
+        const STORAGE_KEY = 'admin_courses_filter';
         let currentPage = 1;
         const ITEMS_PER_PAGE = 20;
+        let listType = 'all';
+        let lastCourseList = [];
+        let lastTotalCount = 0;
+
+        function saveFilter() {
+            try {
+                sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
+                    listType: listType,
+                    page: currentPage,
+                    year: document.getElementById('yearFilter').value,
+                    category: document.getElementById('categoryFilter').value,
+                    status: document.getElementById('statusFilter').value,
+                    search: document.getElementById('searchInput').value
+                }));
+            } catch (e) {}
+        }
+        function loadFilter() {
+            try {
+                const raw = sessionStorage.getItem(STORAGE_KEY);
+                if (!raw) return;
+                const s = JSON.parse(raw);
+                if (s.listType) listType = s.listType;
+                if (s.page) currentPage = parseInt(s.page, 10) || 1;
+                const yearFilter = document.getElementById('yearFilter');
+                const categoryFilter = document.getElementById('categoryFilter');
+                const statusFilter = document.getElementById('statusFilter');
+                const searchInput = document.getElementById('searchInput');
+                if (yearFilter && s.year !== undefined) yearFilter.value = s.year;
+                if (categoryFilter && s.category !== undefined) categoryFilter.value = s.category;
+                if (statusFilter && s.status !== undefined) statusFilter.value = s.status;
+                if (searchInput && s.search !== undefined) searchInput.value = s.search || '';
+            } catch (e) {}
+        }
+
+        function updateListTypeUI() {
+            const tabAll = document.getElementById('tabListAll');
+            const tabGeneral = document.getElementById('tabListGeneral');
+            const catFilter = document.getElementById('categoryFilter');
+            if (listType === 'all') {
+                tabAll.classList.add('bg-primary-600', 'text-white', 'shadow-sm');
+                tabAll.classList.remove('bg-white', 'text-slate-600');
+                tabGeneral.classList.remove('bg-primary-600', 'text-white', 'shadow-sm');
+                tabGeneral.classList.add('text-slate-600');
+                catFilter.value = catFilter.dataset.savedCategory || '';
+            } else {
+                tabGeneral.classList.add('bg-primary-600', 'text-white', 'shadow-sm');
+                tabGeneral.classList.remove('text-slate-600');
+                tabAll.classList.remove('bg-primary-600', 'text-white', 'shadow-sm');
+                tabAll.classList.add('text-slate-600');
+                catFilter.value = '일반과정';
+            }
+        }
 
         window.onload = function() {
-            // Check auth (Simple check)
             const token = localStorage.getItem('token');
             if(!token) window.location.href = '/login';
-            
-            // Initial Load
-            loadCourses(1);
+            loadFilter();
+            updateListTypeUI();
+            loadCourses(currentPage);
 
-            // Bind Events
             document.getElementById('checkAll').addEventListener('change', function(e) {
                 const checkboxes = document.querySelectorAll('.row-checkbox');
                 checkboxes.forEach(cb => cb.checked = e.target.checked);
             });
+
+            document.getElementById('tabListAll').addEventListener('click', function() {
+                if (listType === 'all') return;
+                listType = 'all';
+                document.getElementById('categoryFilter').dataset.savedCategory = document.getElementById('categoryFilter').value;
+                updateListTypeUI();
+                loadCourses(1);
+            });
+            document.getElementById('tabListGeneral').addEventListener('click', function() {
+                if (listType === 'general') return;
+                listType = 'general';
+                updateListTypeUI();
+                loadCourses(1);
+            });
+
+            document.getElementById('btnExportExcel').addEventListener('click', exportExcel);
+            document.getElementById('btnRefresh').addEventListener('click', function() { loadCourses(currentPage); });
             
-            // Set User Info
             try {
                 const user = JSON.parse(localStorage.getItem('user'));
                 if(user) document.getElementById('loginUserName').textContent = user.name + ' 님';
@@ -231,9 +382,18 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
             document.getElementById('lastLoginTime').textContent = new Date().toLocaleTimeString();
         };
 
+        function renderSkeleton() {
+            const tbody = document.getElementById('courseTableBody');
+            const skeletonHtml = [1,2,3,4,5].map(function() {
+                return '<tr class="skeleton-row"><td class="p-3 text-center"><div class="skeleton-bar w-4 h-4 mx-auto rounded"></div></td><td class="p-3 text-center"><div class="skeleton-bar w-6 inline-block"></div></td><td class="p-3"><div class="skeleton-bar w-20"></div></td><td class="p-3"><div class="skeleton-bar w-3/4 max-w-xs"></div><div class="skeleton-bar w-1/2 mt-2"></div></td><td class="p-3 text-center"><div class="skeleton-bar w-24 inline-block"></div></td><td class="p-3 text-center"><div class="skeleton-bar w-12 inline-block"></div></td><td class="p-3 text-center"><div class="skeleton-bar w-16 inline-block"></div></td><td class="p-3 text-right"><div class="skeleton-bar w-14 inline-block"></div></td><td class="p-3 text-center"><div class="skeleton-bar w-14 inline-block rounded-full"></div></td><td class="p-3"></td></tr>';
+            }).join('');
+            tbody.innerHTML = skeletonHtml;
+        }
+
         async function loadCourses(page) {
             currentPage = page;
             const tbody = document.getElementById('courseTableBody');
+            renderSkeleton();
             
             // Filters
             const year = document.getElementById('yearFilter').value;
@@ -241,13 +401,15 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
             const status = document.getElementById('statusFilter').value;
             const search = document.getElementById('searchInput').value;
             
-            // Build URL
+            // 리스트 구분: 일반과정 탭이면 카테고리 고정
+            const effectiveCategory = listType === 'general' ? '일반과정' : (category || '');
+            
             const params = new URLSearchParams({
                 page: page,
                 limit: ITEMS_PER_PAGE,
                 sort: 'latest'
             });
-            if(category) params.append('category', category);
+            if(effectiveCategory) params.append('category', effectiveCategory);
             if(status) params.append('status', status);
             if(search) params.append('search', search);
             if(year) params.append('year', year);
@@ -263,7 +425,17 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
                 }
 
                 const list = json.data || [];
-                document.getElementById('totalCount').textContent = (json.pagination?.total || list.length).toLocaleString();
+                lastCourseList = list;
+                lastTotalCount = json.pagination?.total ?? list.length;
+                document.getElementById('totalCount').textContent = lastTotalCount.toLocaleString();
+                const rangeEl = document.getElementById('paginationRange');
+                if (lastTotalCount > 0) {
+                    const from = (page - 1) * ITEMS_PER_PAGE + 1;
+                    const to = Math.min(page * ITEMS_PER_PAGE, lastTotalCount);
+                    rangeEl.textContent = '( ' + from + '-' + to + ' / ' + lastTotalCount + ' )';
+                } else {
+                    rangeEl.textContent = '';
+                }
 
                 if(list.length === 0) {
                     tbody.innerHTML = \`
@@ -335,6 +507,7 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
                 }).join('');
 
                 renderPagination(json.pagination?.totalPages || 1);
+                saveFilter();
 
             } catch(e) {
                 console.error(e);
@@ -383,6 +556,64 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
             document.getElementById('createModeModal').classList.add('hidden');
         }
 
+        async function openDirectInputModal() {
+            document.getElementById('directInputModal').classList.remove('hidden');
+            document.getElementById('directInputForm').reset();
+            const teacherSelect = document.querySelector('#directInputForm select[name="teacher_id"]');
+            teacherSelect.innerHTML = '<option value="">미배정</option>';
+            try {
+                const res = await fetch('/api/hrd/personnel', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
+                const json = await res.json();
+                if (json.success && json.data && json.data.length) {
+                    json.data.forEach(function(p) {
+                        const opt = document.createElement('option');
+                        opt.value = p.user_id || p.id || '';
+                        opt.textContent = (p.name || '') + (p.position ? ' (' + p.position + ')' : '');
+                        teacherSelect.appendChild(opt);
+                    });
+                }
+            } catch (e) {}
+        }
+        function closeDirectInputModal() {
+            document.getElementById('directInputModal').classList.add('hidden');
+        }
+        async function submitDirectInput() {
+            const form = document.getElementById('directInputForm');
+            const title = form.querySelector('[name="title"]').value.trim();
+            if (!title) { alert('과정명을 입력하세요.'); return; }
+            const category = form.querySelector('[name="category"]').value;
+            const body = {
+                title: title,
+                category: category,
+                description: form.querySelector('[name="description"]').value.trim() || null,
+                start_date: form.querySelector('[name="start_date"]').value || null,
+                end_date: form.querySelector('[name="end_date"]').value || null,
+                max_students: parseInt(form.querySelector('[name="max_students"]').value, 10) || 20,
+                price: parseInt(form.querySelector('[name="price"]').value, 10) || 0,
+                duration_hours: parseInt(form.querySelector('[name="duration_hours"]').value, 10) || null,
+                schedule: form.querySelector('[name="schedule"]').value.trim() || null,
+                teacher_id: form.querySelector('[name="teacher_id"]').value || null
+            };
+            if (!body.teacher_id) delete body.teacher_id;
+            try {
+                const res = await fetch(API_BASE, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+                    body: JSON.stringify(body)
+                });
+                const json = await res.json();
+                if (json.success) {
+                    alert('과정이 등록되었습니다.');
+                    closeDirectInputModal();
+                    loadCourses(1);
+                } else {
+                    alert(json.message || json.error || '등록 실패');
+                }
+            } catch (e) {
+                alert('오류: ' + (e.message || e));
+            }
+        }
+
         async function deleteCourse(id) {
             if(!confirm('정말 삭제하시겠습니까? \\n(수강생이 있는 과정은 삭제할 수 없습니다)')) return;
             try {
@@ -402,10 +633,82 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
             }
         }
 
-        function deleteSelected() {
+        async function exportExcel() {
+            const token = localStorage.getItem('token');
+            const year = document.getElementById('yearFilter').value;
+            const status = document.getElementById('statusFilter').value;
+            const search = document.getElementById('searchInput').value;
+            const effectiveCategory = listType === 'general' ? '일반과정' : document.getElementById('categoryFilter').value;
+            const params = new URLSearchParams({ page: '1', limit: '10000', sort: 'latest' });
+            if(effectiveCategory) params.append('category', effectiveCategory);
+            if(status) params.append('status', status);
+            if(search) params.append('search', search);
+            if(year) params.append('year', year);
+            try {
+                const res = await fetch(API_BASE + '?' + params.toString(), { headers: { 'Authorization': 'Bearer ' + token } });
+                const json = await res.json();
+                if(!json.success || !json.data) { throw new Error(json.message || '조회 실패'); }
+                const list = json.data || [];
+                const BOM = '\uFEFF';
+                const headers = ['No', '구분', '과정명', '과목코드', 'NCS직종', '시작일', '종료일', '훈련일수', '훈련시간', '정원', '현원', '담당교사', '수강료', '상태'];
+                const rows = list.map((item, i) => {
+                    const statusInfo = getStatusBadge(item.status);
+                    let days = 0;
+                    try {
+                        if (item.class_days) days = (typeof item.class_days === 'string' ? JSON.parse(item.class_days) : item.class_days).length;
+                    } catch (_) {}
+                    return [
+                        i + 1,
+                        item.category || '기타',
+                        (item.title || '').replace(/"/g, '""'),
+                        item.code || '-',
+                        item.ncs_name || '미지정',
+                        (item.start_date || '').substring(0, 10),
+                        (item.end_date || '').substring(0, 10),
+                        days,
+                        item.duration_hours || '-',
+                        item.max_students || '-',
+                        item.current_students || 0,
+                        item.teacher_name || '미배정',
+                        item.price ? Number(item.price).toLocaleString() : '무료',
+                        statusInfo.label
+                    ].map(c => '"' + String(c).replace(/"/g, '""') + '"').join(',');
+                });
+                const csv = BOM + headers.map(h => '"' + h + '"').join(',') + '\\n' + rows.join('\\n');
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = '과정목록_' + new Date().toISOString().slice(0,10) + '.csv';
+                a.click();
+                URL.revokeObjectURL(a.href);
+            } catch(e) {
+                alert('엑셀 저장 중 오류: ' + (e.message || e));
+            }
+        }
+
+        async function deleteSelected() {
             const checked = document.querySelectorAll('.row-checkbox:checked');
             if(checked.length === 0) return alert('선택된 항목이 없습니다.');
-            alert('일괄 삭제 기능은 안전을 위해 아직 활성화되지 않았습니다.\\n개별 삭제를 이용해주세요.');
+            if(!confirm('선택한 ' + checked.length + '개 과정을 삭제하시겠습니까?\\n수강생이 있는 과정은 삭제할 수 없습니다.')) return;
+            const token = localStorage.getItem('token');
+            const ids = Array.from(checked).map(cb => cb.value);
+            let done = 0, failedByEnrollment = 0, failedOther = 0;
+            for (const id of ids) {
+                try {
+                    const res = await fetch(API_BASE + '/' + id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
+                    const json = await res.json();
+                    if (json.success) { done++; }
+                    else if (json.message && json.message.indexOf('수강생') !== -1) { failedByEnrollment++; }
+                    else { failedOther++; }
+                } catch (_) { failedOther++; }
+            }
+            if (failedByEnrollment > 0 || failedOther > 0) {
+                var msg = '삭제 완료: ' + done + '건.';
+                if (failedByEnrollment > 0) msg += '\\n수강생이 있어 삭제할 수 없음: ' + failedByEnrollment + '건 (수강 취소 후 삭제 가능).';
+                if (failedOther > 0) msg += '\\n기타 실패: ' + failedOther + '건.';
+                alert(msg);
+            } else if (done > 0) alert('선택한 ' + done + '건이 삭제되었습니다.');
+            loadCourses(currentPage);
         }
     </script>
 </body>

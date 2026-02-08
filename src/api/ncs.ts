@@ -3024,6 +3024,79 @@ app.get('/approved/syllabus/objectives', authMiddleware, requireAdmin, async (c)
     }
 });
 
+/** 교수계획서 문서 조회 (회차·교과목별) */
+app.get('/approved/syllabus/document', authMiddleware, requireAdmin, async (c) => {
+    try {
+        const sessionId = c.req.query('session_id');
+        const curriculumId = c.req.query('curriculum_id');
+        const sid = sessionId ? parseInt(String(sessionId), 10) : NaN;
+        const cid = curriculumId ? parseInt(String(curriculumId), 10) : NaN;
+        if (isNaN(sid) || isNaN(cid)) return c.json({ success: false, error: 'session_id, curriculum_id 필요' }, 400);
+        const row = await c.env.DB.prepare(
+            'SELECT id, session_id, curriculum_id, training_level, training_hours, instructors, teaching_method, trainees, author, textbook, publisher, pub_year, learning_objectives, evaluation_criteria, instructions, updated_at FROM syllabus_documents WHERE session_id = ? AND curriculum_id = ?'
+        ).bind(sid, cid).first();
+        return c.json({ success: true, data: row || null });
+    } catch (e) {
+        console.error('ncs syllabus document get:', e);
+        return c.json({ success: false, error: '교수계획서 조회 실패' }, 500);
+    }
+});
+
+/** 교수계획서 문서 저장 (회차·교과목별) */
+app.put('/approved/syllabus/document', authMiddleware, requireAdmin, async (c) => {
+    try {
+        const body = await c.req.json<{
+            session_id: number;
+            curriculum_id: number;
+            training_level?: string;
+            training_hours?: string;
+            instructors?: string;
+            teaching_method?: string;
+            trainees?: string;
+            author?: string;
+            textbook?: string;
+            publisher?: string;
+            pub_year?: string;
+            learning_objectives?: string;
+            evaluation_criteria?: string;
+            instructions?: string;
+        }>();
+        const sid = body.session_id != null ? parseInt(String(body.session_id), 10) : NaN;
+        const cid = body.curriculum_id != null ? parseInt(String(body.curriculum_id), 10) : NaN;
+        if (isNaN(sid) || isNaN(cid)) return c.json({ success: false, error: 'session_id, curriculum_id 필요' }, 400);
+        const training_level = (body.training_level ?? '').trim() || null;
+        const training_hours = (body.training_hours ?? '').trim() || null;
+        const instructors = (body.instructors ?? '').trim() || null;
+        const teaching_method = (body.teaching_method ?? '').trim() || null;
+        const trainees = (body.trainees ?? '').trim() || null;
+        const author = (body.author ?? '').trim() || null;
+        const textbook = (body.textbook ?? '').trim() || null;
+        const publisher = (body.publisher ?? '').trim() || null;
+        const pub_year = (body.pub_year ?? '').trim() || null;
+        const learning_objectives = (body.learning_objectives ?? '').trim() || null;
+        const evaluation_criteria = (body.evaluation_criteria ?? '').trim() || null;
+        const instructions = (body.instructions ?? '').trim() || null;
+
+        const existing = await c.env.DB.prepare('SELECT id FROM syllabus_documents WHERE session_id = ? AND curriculum_id = ?').bind(sid, cid).first();
+        if (existing) {
+            await c.env.DB.prepare(
+                `UPDATE syllabus_documents SET training_level = ?, training_hours = ?, instructors = ?, teaching_method = ?, trainees = ?, author = ?, textbook = ?, publisher = ?, pub_year = ?, learning_objectives = ?, evaluation_criteria = ?, instructions = ?, updated_at = datetime('now') WHERE session_id = ? AND curriculum_id = ?`
+            ).bind(training_level, training_hours, instructors, teaching_method, trainees, author, textbook, publisher, pub_year, learning_objectives, evaluation_criteria, instructions, sid, cid).run();
+        } else {
+            await c.env.DB.prepare(
+                `INSERT INTO syllabus_documents (session_id, curriculum_id, training_level, training_hours, instructors, teaching_method, trainees, author, textbook, publisher, pub_year, learning_objectives, evaluation_criteria, instructions) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+            ).bind(sid, cid, training_level, training_hours, instructors, teaching_method, trainees, author, textbook, publisher, pub_year, learning_objectives, evaluation_criteria, instructions).run();
+        }
+        return c.json({ success: true });
+    } catch (e) {
+        if (isD1SchemaError(e)) {
+            return c.json({ success: false, error: '교수계획서 저장 테이블이 없습니다. 마이그레이션 0063을 적용하세요.' }, 400);
+        }
+        console.error('ncs syllabus document put:', e);
+        return c.json({ success: false, error: '교수계획서 저장 실패' }, 500);
+    }
+});
+
 /** 시설·장비(6단계) 저장 — 시설, 장비, 교재, 훈련재료/소모품 */
 app.put('/approved/registrations/:id/facilities-equipment', authMiddleware, requireAdmin, async (c) => {
     try {
@@ -3067,13 +3140,13 @@ app.put('/approved/registrations/:id/facilities-equipment', authMiddleware, requ
     }
 });
 
-/** 시설 목록 조회 */
+/** 시설 목록 조회 (hrd_facilities: room_number 없음, status는 '양호' 등) */
 app.get('/approved/facilities', authMiddleware, requireAdmin, async (c) => {
     try {
         const { results } = await c.env.DB.prepare(
-            'SELECT id, name, room_number FROM hrd_facilities WHERE status = "active" ORDER BY name ASC'
+            'SELECT id, name FROM hrd_facilities ORDER BY name ASC'
         ).all();
-        return c.json({ success: true, data: results || [] });
+        return c.json({ success: true, data: (results || []).map((r: { id: number; name: string }) => ({ id: r.id, name: r.name, room_number: null })) });
     } catch (e) {
         console.error('ncs approved facilities get:', e);
         return c.json({ success: false, error: '시설 목록 조회 실패' }, 500);

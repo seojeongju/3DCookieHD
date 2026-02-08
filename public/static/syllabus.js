@@ -286,7 +286,7 @@
         if (el('syllabusInstructors')) el('syllabusInstructors').value = sessionData && sessionData.instructor_name ? String(sessionData.instructor_name) : '';
         if (el('syllabusTeachingMethod')) el('syllabusTeachingMethod').value = '혼합형';
 
-        loadNcsObjectives();
+        loadSyllabusDocument();
 
         var subj = subjects.filter(function(s) { return s.id === currentCurriculumId; })[0];
         renderStep6List(subj);
@@ -331,13 +331,75 @@
             });
     }
 
+    function loadSyllabusDocument() {
+        if (!sessionId || !currentCurriculumId) return;
+        fetch('/api/ncs/approved/syllabus/document?session_id=' + encodeURIComponent(sessionId) + '&curriculum_id=' + encodeURIComponent(currentCurriculumId), { headers: headers })
+            .then(function(r) { return r.json(); })
+            .then(function(res) {
+                if (res.success && res.data) {
+                    var d = res.data;
+                    if (el('syllabusTrainingLevel')) el('syllabusTrainingLevel').value = d.training_level || '';
+                    if (el('syllabusTrainingHours')) el('syllabusTrainingHours').value = d.training_hours || '';
+                    if (el('syllabusInstructors')) el('syllabusInstructors').value = d.instructors || '';
+                    if (el('syllabusTeachingMethod')) el('syllabusTeachingMethod').value = d.teaching_method || '';
+                    if (el('syllabusTrainees')) el('syllabusTrainees').value = d.trainees || '';
+                    if (el('syllabusAuthor')) el('syllabusAuthor').value = d.author || '';
+                    if (el('syllabusTextbook')) el('syllabusTextbook').value = d.textbook || '';
+                    if (el('syllabusPublisher')) el('syllabusPublisher').value = d.publisher || '';
+                    if (el('syllabusPubYear')) el('syllabusPubYear').value = d.pub_year || '';
+                    if (el('syllabusLearningObjectives')) el('syllabusLearningObjectives').value = d.learning_objectives || '';
+                    if (el('syllabusEvaluationCriteria')) el('syllabusEvaluationCriteria').value = d.evaluation_criteria || '';
+                    if (el('syllabusInstructions')) el('syllabusInstructions').value = d.instructions || '';
+                } else {
+                    loadNcsObjectives();
+                }
+            })
+            .catch(function() { loadNcsObjectives(); });
+    }
+
     function onLoadNcsClick() {
         if (!currentCurriculumId) return;
         loadNcsObjectives();
     }
 
     function onSaveDocClick() {
-        alert('문서 저장 API 연동은 추후 구현 예정입니다. 현재는 학습목표·평가기준을 NCS에서 불러와 편집할 수 있습니다.');
+        if (!sessionId || !currentCurriculumId) {
+            alert('교과목을 선택한 뒤 저장해 주세요.');
+            return;
+        }
+        var payload = {
+            session_id: parseInt(sessionId, 10),
+            curriculum_id: currentCurriculumId,
+            training_level: (el('syllabusTrainingLevel') && el('syllabusTrainingLevel').value) ? el('syllabusTrainingLevel').value.trim() : '',
+            training_hours: (el('syllabusTrainingHours') && el('syllabusTrainingHours').value) ? el('syllabusTrainingHours').value.trim() : '',
+            instructors: (el('syllabusInstructors') && el('syllabusInstructors').value) ? el('syllabusInstructors').value.trim() : '',
+            teaching_method: (el('syllabusTeachingMethod') && el('syllabusTeachingMethod').value) ? el('syllabusTeachingMethod').value.trim() : '',
+            trainees: (el('syllabusTrainees') && el('syllabusTrainees').value) ? el('syllabusTrainees').value.trim() : '',
+            author: (el('syllabusAuthor') && el('syllabusAuthor').value) ? el('syllabusAuthor').value.trim() : '',
+            textbook: (el('syllabusTextbook') && el('syllabusTextbook').value) ? el('syllabusTextbook').value.trim() : '',
+            publisher: (el('syllabusPublisher') && el('syllabusPublisher').value) ? el('syllabusPublisher').value.trim() : '',
+            pub_year: (el('syllabusPubYear') && el('syllabusPubYear').value) ? el('syllabusPubYear').value.trim() : '',
+            learning_objectives: (el('syllabusLearningObjectives') && el('syllabusLearningObjectives').value) ? el('syllabusLearningObjectives').value.trim() : '',
+            evaluation_criteria: (el('syllabusEvaluationCriteria') && el('syllabusEvaluationCriteria').value) ? el('syllabusEvaluationCriteria').value.trim() : '',
+            instructions: (el('syllabusInstructions') && el('syllabusInstructions').value) ? el('syllabusInstructions').value.trim() : ''
+        };
+        var btn = el('syllabusSaveDoc');
+        if (btn) btn.disabled = true;
+        fetch('/api/ncs/approved/syllabus/document', {
+            method: 'PUT',
+            headers: headers,
+            body: JSON.stringify(payload)
+        }).then(function(r) { return r.json(); }).then(function(json) {
+            if (btn) btn.disabled = false;
+            if (json.success) {
+                alert('교수계획서가 저장되었습니다.');
+            } else {
+                alert(json.error || '저장 실패');
+            }
+        }).catch(function() {
+            if (btn) btn.disabled = false;
+            alert('저장 중 오류가 발생했습니다.');
+        });
     }
 
     if (el('syllabusLoadNcs')) el('syllabusLoadNcs').addEventListener('click', onLoadNcsClick);

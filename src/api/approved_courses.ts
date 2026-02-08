@@ -72,7 +72,8 @@ app.get('/', authMiddleware, requireAdmin, async (c) => {
               a.capacity, a.url_ncs, a.url_plan, a.url_detail_plan, a.approval_org,
               a.status, a.instructor_name, a.registered_at, a.created_at,
               a.textbook_ids_json, a.consumable_ids_json, a.equipment_ids_json, a.facility_ids_json,
-              c.name as category_name
+              c.name as category_name,
+              (SELECT COUNT(*) FROM course_sessions s WHERE s.approved_course_id = a.id) as session_count
        FROM approved_courses a
        LEFT JOIN course_categories c ON c.id = a.category_id
        WHERE ${whereClause}

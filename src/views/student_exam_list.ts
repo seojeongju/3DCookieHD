@@ -166,8 +166,29 @@ export const studentExamListHtml = `
             }
         }
 
-        function viewResult(examId) {
-            alert('결과 보기 기능은 준비중입니다.');
+        async function viewResult(examId) {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(\`/api/exams/\${examId}/my-result\`, { headers: { 'Authorization': 'Bearer ' + token } });
+                const json = await res.json();
+                if (!json.success) {
+                    alert(json.message || '결과를 불러올 수 없습니다.');
+                    return;
+                }
+                const sub = json.data.submission || {};
+                const exam = json.data.exam || {};
+                const score = sub.total_score != null ? sub.total_score : '-';
+                const total = exam.total_points != null ? exam.total_points : '-';
+                const submitted = sub.submitted_at ? new Date(sub.submitted_at).toLocaleString() : '-';
+                const statusText = sub.status === 'graded' ? '채점 완료' : sub.status === 'submitted' ? '제출됨 (채점 대기)' : sub.status || '';
+                const msg = (exam.title ? exam.title + '\\n\\n' : '') +
+                    '제출일: ' + submitted + '\\n' +
+                    '총점: ' + score + (total !== '-' ? ' / ' + total + '점' : '') + '\\n' +
+                    '상태: ' + statusText;
+                alert(msg);
+            } catch (e) {
+                alert('결과를 불러오는 중 오류가 발생했습니다.');
+            }
         }
     </script>
 </body>
