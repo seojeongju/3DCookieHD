@@ -42,11 +42,16 @@ export const educationGalleryHtml = `
     <!-- 필터 + 올리기 -->
     <div class="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 -mt-6 relative z-20">
         <div class="bg-white rounded-2xl shadow-xl p-4 flex flex-col sm:flex-row gap-4 items-center justify-between border border-gray-100">
-            <div class="flex gap-2 flex-wrap items-center">
-                <button type="button" onclick="setFilter('all')" class="filter-btn px-5 py-2.5 rounded-xl text-sm font-bold bg-primary-600 text-white transition" data-filter="all">전체</button>
-                <button type="button" onclick="setFilter('education_photo')" class="filter-btn px-5 py-2.5 rounded-xl text-sm font-bold bg-gray-100 text-gray-600 hover:bg-gray-200 transition" data-filter="education_photo">교육 사진</button>
-                <button type="button" onclick="setFilter('portfolio')" class="filter-btn px-5 py-2.5 rounded-xl text-sm font-bold bg-gray-100 text-gray-600 hover:bg-gray-200 transition" data-filter="portfolio">포트폴리오</button>
-                <span class="hidden sm:inline-block w-px h-6 bg-gray-200 mx-1"></span>
+            <div class="flex flex-wrap gap-4 items-center">
+                <div class="flex flex-col gap-0.5">
+                    <div class="flex gap-2 flex-wrap items-center">
+                        <button type="button" onclick="setFilter('all')" class="filter-btn px-5 py-2.5 rounded-xl text-sm font-bold bg-gray-100 text-gray-600 hover:bg-gray-200 transition" data-filter="all">전체</button>
+                        <button type="button" onclick="setFilter('education_photo')" class="filter-btn px-5 py-2.5 rounded-xl text-sm font-bold bg-primary-600 text-white transition" data-filter="education_photo">교육 사진</button>
+                        <button type="button" onclick="setFilter('portfolio')" class="filter-btn px-5 py-2.5 rounded-xl text-sm font-bold bg-gray-100 text-gray-600 hover:bg-gray-200 transition" data-filter="portfolio">포트폴리오</button>
+                    </div>
+                    <p id="filterCaption" class="text-xs text-gray-500">관리자 &gt; 교육사진 갤러리에서 등록한 사진입니다.</p>
+                </div>
+                <span class="hidden sm:inline-block w-px h-8 bg-gray-200"></span>
                 <span class="text-xs text-gray-400 font-medium mr-1">보기:</span>
                 <button type="button" id="viewBtnGrid" onclick="setViewMode('grid')" class="view-mode-btn px-3 py-2 rounded-lg text-sm font-bold bg-primary-100 text-primary-700 transition" data-view="grid" title="그리드"><i class="fas fa-th-large mr-1"></i>그리드</button>
                 <button type="button" id="viewBtnImage" onclick="setViewMode('image')" class="view-mode-btn px-3 py-2 rounded-lg text-sm font-bold bg-gray-100 text-gray-600 hover:bg-gray-200 transition" data-view="image" title="이미지 크게"><i class="fas fa-image mr-1"></i>이미지</button>
@@ -169,7 +174,16 @@ export const educationGalleryHtml = `
         let portfolioList = [];
         let mergedList = [];
 
+        function getInitialFilter() {
+            var m = location.search.match(/[?&]filter=([^&]+)/);
+            var v = m ? m[1].toLowerCase().trim() : '';
+            if (v === 'education_photo' || v === 'portfolio') return v;
+            if (v === 'all') return 'all';
+            return 'education_photo';
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
+            currentFilter = getInitialFilter();
             loadAll();
             updateAuthMenu();
         });
@@ -228,6 +242,7 @@ export const educationGalleryHtml = `
                 educationList = eduRaw.filter(function(p) { return !!getItemImage(p); });
                 portfolioList = portRaw.filter(function(p) { return !!getItemImage(p); });
                 mergeAndRender();
+                updateFilterCaption();
             } catch (e) {
                 console.error(e);
                 document.getElementById('galleryGrid').innerHTML = '<div class="col-span-full py-20 text-center text-red-500">갤러리를 불러오지 못했습니다.</div>';
@@ -240,9 +255,19 @@ export const educationGalleryHtml = `
             setFilter(currentFilter);
         }
 
+        function updateFilterCaption() {
+            var cap = document.getElementById('filterCaption');
+            if (!cap) return;
+            if (currentFilter === 'education_photo') cap.textContent = '관리자 > 교육사진 갤러리에서 등록한 사진입니다.';
+            else if (currentFilter === 'portfolio') cap.textContent = '수강생·강사 포트폴리오입니다.';
+            else cap.textContent = '교육 사진과 포트폴리오를 함께 볼 수 있습니다.';
+        }
         function setFilter(filter) {
             currentFilter = filter;
             currentPage = 1;
+            var q = filter === 'education_photo' ? '?filter=education_photo' : filter === 'portfolio' ? '?filter=portfolio' : filter === 'all' ? '?filter=all' : '';
+            var newUrl = location.pathname + q;
+            if (typeof history.replaceState === 'function') history.replaceState(null, '', newUrl);
             document.querySelectorAll('.filter-btn').forEach(function(btn) {
                 if (btn.dataset.filter === filter) {
                     btn.className = 'filter-btn px-5 py-2.5 rounded-xl text-sm font-bold bg-primary-600 text-white transition';
@@ -250,6 +275,7 @@ export const educationGalleryHtml = `
                     btn.className = 'filter-btn px-5 py-2.5 rounded-xl text-sm font-bold bg-gray-100 text-gray-600 hover:bg-gray-200 transition';
                 }
             });
+            updateFilterCaption();
             renderGrid();
         }
 

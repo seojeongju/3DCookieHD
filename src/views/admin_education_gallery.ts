@@ -36,6 +36,9 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
                         <p class="text-gray-600 mt-1 text-sm">교육사진 갤러리 게시글을 관리합니다.</p>
                     </div>
                     <div class="flex gap-2 flex-wrap">
+                        <a href="/education-photos?filter=education_photo" target="_blank" rel="noopener" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition flex items-center text-sm font-medium shadow-sm border border-gray-200">
+                            <i class="fas fa-external-link-alt mr-2"></i> 공개 갤러리 미리보기
+                        </a>
                         <button type="button" onclick="openBulkImageModal()" class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition flex items-center text-sm font-medium shadow-sm">
                             <i class="fas fa-link mr-2"></i> 이미지 URL 일괄 입력
                         </button>
