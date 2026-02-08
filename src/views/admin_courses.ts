@@ -137,8 +137,19 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
                 <div class="bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col h-[calc(100vh-340px)] min-h-[420px] overflow-hidden">
                     <!-- Grid Toolbar -->
                     <div class="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between shrink-0 bg-slate-50/50">
-                        <div class="flex items-center gap-3">
+                        <div class="flex items-center gap-3 flex-wrap">
                             <span class="text-sm font-bold text-slate-700">검색결과 <span id="totalCount" class="text-primary-600">0</span>건 <span id="paginationRange" class="text-slate-400 font-normal text-xs"></span></span>
+                            <span class="text-slate-300">|</span>
+                            <label class="flex items-center gap-1.5 text-xs text-slate-500">
+                                <span>페이지당</span>
+                                <select id="rowsPerPageCourses" onchange="setRowsPerPageCourses(parseInt(this.value, 10))" class="border border-slate-300 rounded-lg px-2 py-1.5 text-sm focus:ring-2 focus:ring-primary-500">
+                                    <option value="10">10</option>
+                                    <option value="20" selected>20</option>
+                                    <option value="30">30</option>
+                                    <option value="50">50</option>
+                                </select>
+                                <span>건</span>
+                            </label>
                             <span class="text-slate-300">|</span>
                             <button type="button" id="btnRefresh" class="p-2 text-slate-500 hover:text-primary-600 hover:bg-white rounded-lg border border-transparent hover:border-slate-200 transition" title="새로고침"><i class="fas fa-sync-alt text-xs"></i></button>
                             <button type="button" class="text-xs text-slate-500 hover:text-red-600 transition flex items-center gap-1.5 px-2 py-1.5 rounded-lg hover:bg-red-50" onclick="deleteSelected()">
@@ -186,8 +197,9 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
                     </div>
 
                     <!-- Pagination -->
-                    <div class="px-4 py-3 border-t border-slate-200 flex items-center justify-center gap-2 shrink-0 bg-slate-50/80" id="pagination">
-                        <!-- Filled by JS -->
+                    <div class="px-4 py-3 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-2 shrink-0 bg-slate-50/80">
+                        <div id="paginationRangeBottom" class="text-sm text-slate-600"></div>
+                        <nav id="pagination" class="flex flex-wrap items-center justify-center gap-1"></nav>
                     </div>
                 </div>
             </main>
@@ -297,7 +309,14 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
         const STORAGE_KEY = 'admin_courses_filter';
         const CATEGORY_DIRECT_VALUE = '__direct__';
         let currentPage = 1;
-        const ITEMS_PER_PAGE = 20;
+        let itemsPerPageCourses = 20;
+
+        function setRowsPerPageCourses(n) {
+            itemsPerPageCourses = n;
+            const sel = document.getElementById('rowsPerPageCourses');
+            if (sel) sel.value = String(n);
+            loadCourses(1);
+        }
         let listType = 'all';
         let lastCourseList = [];
         let lastTotalCount = 0;
@@ -479,7 +498,7 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
             
             const params = new URLSearchParams({
                 page: page,
-                limit: ITEMS_PER_PAGE,
+                limit: itemsPerPageCourses,
                 sort: 'latest'
             });
             if(effectiveCategory) params.append('category', effectiveCategory);
@@ -503,11 +522,13 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
                 document.getElementById('totalCount').textContent = lastTotalCount.toLocaleString();
                 const rangeEl = document.getElementById('paginationRange');
                 if (lastTotalCount > 0) {
-                    const from = (page - 1) * ITEMS_PER_PAGE + 1;
-                    const to = Math.min(page * ITEMS_PER_PAGE, lastTotalCount);
+                    const from = (page - 1) * itemsPerPageCourses + 1;
+                    const to = Math.min(page * itemsPerPageCourses, lastTotalCount);
                     rangeEl.textContent = '( ' + from + '-' + to + ' / ' + lastTotalCount + ' )';
+                    document.getElementById('paginationRangeBottom').textContent = from + '-' + to + ' / ' + lastTotalCount + '건';
                 } else {
                     rangeEl.textContent = '';
+                    document.getElementById('paginationRangeBottom').textContent = '';
                 }
 
                 if(list.length === 0) {
@@ -519,13 +540,14 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
                         (search ? '' : '<div class="empty-cta"><button type="button" onclick="openCreateModal()" class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-xl text-sm font-bold hover:bg-primary-700 transition shadow-sm"><i class="fas fa-plus"></i> 신규 과정 등록</button></div>') +
                         '</div></td></tr>';
                     tbody.innerHTML = emptyHtml;
+                    document.getElementById('paginationRangeBottom').textContent = '';
                     renderPagination(0);
                     return;
                 }
 
                 // Render Rows
                 tbody.innerHTML = list.map((item, index) => {
-                   const rowNum = (json.pagination?.total || 0) - ((page-1)*ITEMS_PER_PAGE) - index;
+                   const rowNum = (json.pagination?.total || 0) - ((page-1)*itemsPerPageCourses) - index;
                    const statusInfo = getStatusBadge(item.status);
                    const days = item.class_days ? JSON.parse(item.class_days).length : 0;
                    const hours = item.duration_hours || '-';
@@ -601,23 +623,23 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
 
         function renderPagination(totalPages) {
             const container = document.getElementById('pagination');
-            let html = '';
-            
-            // Prev
-            html += \`<button onclick="loadCourses(\${Math.max(1, currentPage-1)})" class="w-8 h-8 flex items-center justify-center rounded border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 \${currentPage===1?'opacity-50 cursor-not-allowed':''}"><i class="fas fa-chevron-left text-xs"></i></button>\`;
-            
-            // Pages (Simple range for now)
-            for(let i=1; i<=totalPages; i++) {
-                if(i === currentPage) {
-                    html += \`<button onclick="loadCourses(\${i})" class="w-8 h-8 flex items-center justify-center rounded border border-primary-600 bg-primary-600 text-white font-bold text-xs shadow-sm">\${i}</button>\`;
-                } else {
-                    html += \`<button onclick="loadCourses(\${i})" class="w-8 h-8 flex items-center justify-center rounded border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 text-xs">\${i}</button>\`;
-                }
+            if (totalPages <= 1) { container.innerHTML = ''; return; }
+            const radius = 2;
+            const pages = [];
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= currentPage - radius && i <= currentPage + radius)) pages.push(i);
+                else if (pages[pages.length - 1] !== '...') pages.push('...');
             }
-
-            // Next
-            html += \`<button onclick="loadCourses(\${Math.min(totalPages, currentPage+1)})" class="w-8 h-8 flex items-center justify-center rounded border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 \${currentPage===totalPages?'opacity-50 cursor-not-allowed':''}"><i class="fas fa-chevron-right text-xs"></i></button>\`;
-            
+            let html = '';
+            html += \`<button type="button" onclick="loadCourses(\${currentPage - 1})" \${currentPage <= 1 ? 'disabled' : ''} class="px-3 py-2 rounded-lg border border-slate-300 text-sm font-medium \${currentPage <= 1 ? 'opacity-50 cursor-not-allowed bg-slate-50 text-slate-400' : 'bg-white text-slate-700 hover:bg-slate-50'}"><i class="fas fa-chevron-left mr-1"></i> 이전</button>\`;
+            pages.forEach(function(n) {
+                if (n === '...') html += '<span class="px-2 py-2 text-slate-400">…</span>';
+                else {
+                    const active = n === currentPage;
+                    html += \`<button type="button" onclick="loadCourses(\${n})" class="min-w-[2.25rem] px-3 py-2 rounded-lg text-sm font-medium \${active ? 'bg-primary-600 text-white border border-primary-600' : 'bg-white border border-slate-300 text-slate-600 hover:bg-slate-50'}">\${n}</button>\`;
+                }
+            });
+            html += \`<button type="button" onclick="loadCourses(\${currentPage + 1})" \${currentPage >= totalPages ? 'disabled' : ''} class="px-3 py-2 rounded-lg border border-slate-300 text-sm font-medium \${currentPage >= totalPages ? 'opacity-50 cursor-not-allowed bg-slate-50 text-slate-400' : 'bg-white text-slate-700 hover:bg-slate-50'}">다음 <i class="fas fa-chevron-right ml-1"></i></button>\`;
             container.innerHTML = html;
         }
 

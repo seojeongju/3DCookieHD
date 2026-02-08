@@ -90,13 +90,23 @@ export const adminHrdItemsTransactionsHtml = () => `
 
                     <!-- Transactions Table -->
                     <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50/50">
+                        <div class="px-6 py-4 border-b border-gray-200 flex flex-wrap justify-between items-center gap-3 bg-gray-50/50">
                             <h2 class="font-bold text-gray-800 flex items-center">
                                 <i class="fas fa-history mr-2 text-gray-500"></i> 전체 입/출고 내역
                             </h2>
-                            <span id="totalCount" class="text-xs font-medium text-gray-500 bg-white px-2 py-1 rounded border border-gray-200 shadow-sm">
-                                총 0건
-                            </span>
+                            <div class="flex items-center gap-3">
+                                <span id="totalCount" class="text-xs font-medium text-gray-500 bg-white px-2 py-1 rounded border border-gray-200 shadow-sm">총 0건</span>
+                                <label class="flex items-center gap-1.5 text-sm text-gray-500">
+                                    <span>페이지당</span>
+                                    <select id="rowsPerPageTx" onchange="window.setRowsPerPageTx(parseInt(this.value,10))" class="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-500">
+                                        <option value="10">10</option>
+                                        <option value="20" selected>20</option>
+                                        <option value="30">30</option>
+                                        <option value="50">50</option>
+                                    </select>
+                                    <span>건</span>
+                                </label>
+                            </div>
                         </div>
                         <div class="overflow-x-auto">
                             <table class="w-full text-sm text-left">
@@ -118,7 +128,10 @@ export const adminHrdItemsTransactionsHtml = () => `
                             </table>
                         </div>
                         <!-- Pagination -->
-                        <div class="px-6 py-4 border-t border-gray-200 flex justify-center bg-gray-50/30" id="paginationContainer"></div>
+                        <div class="px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gray-50/30">
+                            <div id="paginationRangeTx" class="text-sm text-gray-600"></div>
+                            <nav id="paginationContainer" class="flex flex-wrap items-center justify-center gap-1"></nav>
+                        </div>
                     </div>
 
                 </div>
@@ -215,10 +228,18 @@ export const adminHrdItemsTransactionsHtml = () => `
 
     <script type="module">
         let currentPage = 1;
-        const limit = 20;
+        let limit = 20;
+
+        function setRowsPerPageTx(n) {
+            limit = n;
+            const sel = document.getElementById('rowsPerPageTx');
+            if (sel) sel.value = String(n);
+            loadTransactions(1);
+        }
 
         async function loadTransactions(page = 1) {
             currentPage = page;
+            document.getElementById('paginationRangeTx').textContent = '';
             const search = document.getElementById('searchInput').value;
             const type = document.getElementById('typeFilter').value;
             const category = document.getElementById('categoryFilter').value;
@@ -245,9 +266,15 @@ export const adminHrdItemsTransactionsHtml = () => `
 
                 if (result.data.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-10 text-center text-gray-400">조회된 이력이 없습니다.</td></tr>';
+                    document.getElementById('paginationRangeTx').textContent = '';
                     document.getElementById('paginationContainer').innerHTML = '';
                     return;
                 }
+                const total = result.total;
+                const pageNum = page;
+                const start = total === 0 ? 0 : (pageNum - 1) * limit + 1;
+                const end = Math.min(pageNum * limit, total);
+                document.getElementById('paginationRangeTx').textContent = total > 0 ? start + '-' + end + ' / ' + total + '건' : '';
 
                 tbody.innerHTML = result.data.map((item, index) => {
                     const idx = result.total - ((page - 1) * limit) - index;
@@ -312,42 +339,28 @@ export const adminHrdItemsTransactionsHtml = () => `
             const container = document.getElementById('paginationContainer');
             if(totalPages <= 1) { container.innerHTML = ''; return; }
 
-            let html = '<div class="flex items-center space-x-1">';
-            
-            // Prev
-            html += \`<button onclick="loadTransactions(\${Math.max(1, page-1)})" class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 disabled:opacity-50" \${page===1?'disabled':''}><i class="fas fa-chevron-left"></i></button>\`;
-
-            // Page Numbers
-            let start = Math.max(1, page - 2);
-            let end = Math.min(totalPages, page + 2);
-
-            if(start > 1) {
-                 html += \`<button onclick="loadTransactions(1)" class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50">1</button>\`;
-                 if(start > 2) html += '<span class="text-gray-300 px-1">...</span>';
+            const radius = 2;
+            const pages = [];
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= page - radius && i <= page + radius)) pages.push(i);
+                else if (pages[pages.length - 1] !== '...') pages.push('...');
             }
-
-            for(let i=start; i<=end; i++) {
-                if(i === page) {
-                    html += \`<button class="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-600 text-white font-bold shadow-sm">\${i}</button>\`;
-                } else {
-                    html += \`<button onclick="loadTransactions(\${i})" class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50">\${i}</button>\`;
+            let html = '';
+            html += \`<button type="button" onclick="loadTransactions(\${page - 1})" \${page <= 1 ? 'disabled' : ''} class="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium \${page <= 1 ? 'opacity-50 cursor-not-allowed bg-gray-50 text-gray-400' : 'bg-white text-gray-700 hover:bg-gray-50'}"><i class="fas fa-chevron-left mr-1"></i> 이전</button>\`;
+            pages.forEach(function(n) {
+                if (n === '...') html += '<span class="px-2 py-2 text-gray-400">…</span>';
+                else {
+                    const active = n === page;
+                    html += \`<button type="button" onclick="loadTransactions(\${n})" class="min-w-[2.25rem] px-3 py-2 rounded-lg text-sm font-medium \${active ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'}">\${n}</button>\`;
                 }
-            }
-
-            if(end < totalPages) {
-                if(end < totalPages - 1) html += '<span class="text-gray-300 px-1">...</span>';
-                html += \`<button onclick="loadTransactions(\${totalPages})" class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50">\${totalPages}</button>\`;
-            }
-
-            // Next
-            html += \`<button onclick="loadTransactions(\${Math.min(totalPages, page+1)})" class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 disabled:opacity-50" \${page===totalPages?'disabled':''}><i class="fas fa-chevron-right"></i></button>\`;
-
-            html += '</div>';
+            });
+            html += \`<button type="button" onclick="loadTransactions(\${page + 1})" \${page >= totalPages ? 'disabled' : ''} class="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium \${page >= totalPages ? 'opacity-50 cursor-not-allowed bg-gray-50 text-gray-400' : 'bg-white text-gray-700 hover:bg-gray-50'}">다음 <i class="fas fa-chevron-right ml-1"></i></button>\`;
             container.innerHTML = html;
         }
 
         // --- Global Functions ---
         window.loadTransactions = loadTransactions;
+        window.setRowsPerPageTx = setRowsPerPageTx;
 
         // Modal Logic
         window.openTransactionModal = () => {

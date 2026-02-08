@@ -39,15 +39,27 @@ export const adminInquiriesHtml = (sidebar: string | null = null) => `
                 <div class="max-w-7xl mx-auto">
                     <!-- Filters -->
                     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6 flex flex-wrap gap-4 items-center justify-between">
-                        <div class="flex items-center gap-2">
-                            <button onclick="filterStatus('all')" id="btn-all" class="px-4 py-2 rounded-lg text-sm font-medium transition bg-gray-100 text-gray-600">전체</button>
-                            <button onclick="filterStatus('pending')" id="btn-pending" class="px-4 py-2 rounded-lg text-sm font-medium transition text-gray-500 hover:bg-gray-50">대기중</button>
-                            <button onclick="filterStatus('completed')" id="btn-completed" class="px-4 py-2 rounded-lg text-sm font-medium transition text-gray-500 hover:bg-gray-50">답변완료</button>
-                            <input type="hidden" id="currentStatus" value="pending"> <!-- Default pending as usually admins prioritize new ones -->
-                        </div>
-                        <div class="relative">
-                            <i class="fas fa-search absolute left-3 top-3 text-gray-400 text-sm"></i>
-                            <input type="text" id="searchInput" placeholder="이름, 연락처 검색..." onkeyup="if(event.key === 'Enter') loadInquiries()" class="pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none w-64">
+                        <div class="flex flex-wrap gap-3 items-center">
+                            <button type="button" onclick="filterStatus('all')" id="btn-all" class="px-4 py-2 rounded-lg text-sm font-medium transition bg-gray-100 text-gray-600">전체</button>
+                            <button type="button" onclick="filterStatus('pending')" id="btn-pending" class="px-4 py-2 rounded-lg text-sm font-medium transition text-gray-500 hover:bg-gray-50">대기중</button>
+                            <button type="button" onclick="filterStatus('completed')" id="btn-completed" class="px-4 py-2 rounded-lg text-sm font-medium transition text-gray-500 hover:bg-gray-50">답변완료</button>
+                            <input type="hidden" id="currentStatus" value="pending">
+                            <div class="relative">
+                                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                                <input type="text" id="searchInput" placeholder="이름, 연락처 검색..." onkeyup="if(event.key === 'Enter') loadInquiries(1)" class="pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none w-64">
+                            </div>
+                            <button type="button" onclick="loadInquiries(1)" class="p-2.5 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-blue-600 transition" title="새로고침"><i class="fas fa-sync-alt"></i></button>
+                            <span id="searchResultText" class="text-sm text-gray-500"></span>
+                            <label class="flex items-center gap-1.5 text-sm text-gray-500">
+                                <span>페이지당</span>
+                                <select id="rowsPerPageInq" onchange="setRowsPerPageInq(parseInt(this.value, 10))" class="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-500">
+                                    <option value="10">10</option>
+                                    <option value="20">20</option>
+                                    <option value="30">30</option>
+                                    <option value="50">50</option>
+                                </select>
+                                <span>건</span>
+                            </label>
                         </div>
                     </div>
 
@@ -67,7 +79,10 @@ export const adminInquiriesHtml = (sidebar: string | null = null) => `
                                 <!-- Data -->
                             </tbody>
                         </table>
-                        <div id="pagination" class="p-4 flex justify-center border-t border-gray-100"></div>
+                        <div id="paginationWrapInq" class="p-4 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                            <div id="paginationRangeInq" class="text-sm text-gray-600"></div>
+                            <nav id="pagination" class="flex flex-wrap items-center justify-center gap-1"></nav>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -211,8 +226,14 @@ export const adminInquiriesHtml = (sidebar: string | null = null) => `
 
     <script>
         let currentPage = 1;
-        const itemsPerPage = 10;
+        let itemsPerPage = 10;
         let currentStatus = 'pending';
+
+        function setRowsPerPageInq(n) {
+            itemsPerPage = n;
+            document.getElementById('rowsPerPageInq').value = String(n);
+            loadInquiries(1);
+        }
 
         document.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
@@ -238,6 +259,9 @@ export const adminInquiriesHtml = (sidebar: string | null = null) => `
         }
 
         async function loadInquiries(page = 1) {
+            currentPage = page;
+            document.getElementById('searchResultText').textContent = '';
+            document.getElementById('paginationRangeInq').textContent = '';
             const search = document.getElementById('searchInput').value;
             let url = \`/api/consultations?page=\${page}&limit=\${itemsPerPage}\`;
             if (currentStatus !== 'all') url += \`&status=\${currentStatus}\`;
@@ -248,6 +272,17 @@ export const adminInquiriesHtml = (sidebar: string | null = null) => `
                 const result = await res.json();
                 
                 const tbody = document.getElementById('inquiriesList');
+                const p = result.pagination || {};
+                const total = p.total != null ? p.total : 0;
+                const totalPages = p.totalPages != null ? p.totalPages : 1;
+                const pageNum = p.page != null ? p.page : 1;
+                if (p.limit) {
+                    itemsPerPage = p.limit;
+                    const sel = document.getElementById('rowsPerPageInq');
+                    if (sel) sel.value = String(p.limit);
+                }
+                document.getElementById('searchResultText').textContent = '검색결과 ' + total + '건';
+
                 if (result.success && result.data.length > 0) {
                     tbody.innerHTML = result.data.map(item => \`
                         <tr class="hover:bg-gray-50 transition cursor-pointer" onclick="openModal(\${item.id})">
@@ -273,13 +308,38 @@ export const adminInquiriesHtml = (sidebar: string | null = null) => `
                             </td>
                         </tr>
                     \`).join('');
-                    renderPagination(result.pagination);
+                    const start = total === 0 ? 0 : (pageNum - 1) * (p.limit || itemsPerPage) + 1;
+                    const end = Math.min(pageNum * (p.limit || itemsPerPage), total);
+                    document.getElementById('paginationRangeInq').textContent = total > 0 ? start + '-' + end + ' / ' + total + '건' : '';
+                    const nav = document.getElementById('pagination');
+                    if (totalPages <= 1) {
+                        nav.innerHTML = '';
+                    } else {
+                        const radius = 2;
+                        const pages = [];
+                        for (let i = 1; i <= totalPages; i++) {
+                            if (i === 1 || i === totalPages || (i >= pageNum - radius && i <= pageNum + radius)) pages.push(i);
+                            else if (pages[pages.length - 1] !== '...') pages.push('...');
+                        }
+                        let html = '';
+                        html += '<button type="button" onclick="loadInquiries(' + (pageNum - 1) + ')" ' + (pageNum <= 1 ? 'disabled' : '') + ' class="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium ' + (pageNum <= 1 ? 'opacity-50 cursor-not-allowed bg-gray-50 text-gray-400' : 'bg-white text-gray-700 hover:bg-gray-50') + '"><i class="fas fa-chevron-left mr-1"></i> 이전</button>';
+                        pages.forEach(function(n) {
+                            if (n === '...') html += '<span class="px-2 py-2 text-gray-400">…</span>';
+                            else {
+                                const active = n === pageNum;
+                                html += '<button type="button" onclick="loadInquiries(' + n + ')" class="min-w-[2.25rem] px-3 py-2 rounded-lg text-sm font-medium ' + (active ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50') + '">' + n + '</button>';
+                            }
+                        });
+                        html += '<button type="button" onclick="loadInquiries(' + (pageNum + 1) + ')" ' + (pageNum >= totalPages ? 'disabled' : '') + ' class="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium ' + (pageNum >= totalPages ? 'opacity-50 cursor-not-allowed bg-gray-50 text-gray-400' : 'bg-white text-gray-700 hover:bg-gray-50') + '">다음 <i class="fas fa-chevron-right ml-1"></i></button>';
+                        nav.innerHTML = html;
+                    }
                 } else {
-                    tbody.innerHTML = \`<tr><td colspan="5" class="px-6 py-12 text-center text-gray-400">문의 내역이 없습니다.</td></tr>\`;
+                    tbody.innerHTML = \`<tr><td colspan="5" class="px-6 py-16 text-center"><div class="flex flex-col items-center text-gray-500"><i class="fas fa-headset text-4xl text-gray-300 mb-3"></i><p class="font-medium">문의 내역이 없습니다</p></div></td></tr>\`;
                     document.getElementById('pagination').innerHTML = '';
                 }
             } catch (e) {
                 console.error(e);
+                document.getElementById('pagination').innerHTML = '';
             }
         }
 
@@ -294,21 +354,6 @@ export const adminInquiriesHtml = (sidebar: string | null = null) => `
             if (status === 'completed') return '답변완료';
             if (status === 'cancelled') return '취소';
             return status;
-        }
-
-        function renderPagination(pagination) {
-            const { page, totalPages } = pagination;
-            const container = document.getElementById('pagination');
-            let html = '';
-            
-            if (totalPages > 1) {
-                html += \`<div class="flex space-x-1">\`;
-                for(let i=1; i<=totalPages; i++) {
-                     html += \`<button onclick="loadInquiries(\${i})" class="px-3 py-1 rounded \${i === page ? 'bg-blue-600 text-white font-bold' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}">\${i}</button>\`;
-                }
-                html += \`</div>\`;
-            }
-            container.innerHTML = html;
         }
 
         let currentItem = null;

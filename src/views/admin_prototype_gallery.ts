@@ -29,57 +29,73 @@ export const adminPrototypeGalleryHtml = (sidebar: string) => `
     <div class="flex h-screen overflow-hidden">
         ${sidebar}
         <div class="flex-1 flex flex-col overflow-hidden bg-gray-50">
-            <div class="bg-white border-b border-gray-200 px-8 py-6">
-                <div class="flex justify-between items-center">
+            <div class="bg-white border-b border-gray-200 px-8 py-6 shadow-sm">
+                <div class="flex flex-wrap justify-between items-start gap-4">
                     <div>
                         <h1 class="text-2xl font-bold text-gray-800">시제품 제작사진 관리</h1>
-                        <p class="text-gray-600 mt-1">시제품 갤러리 게시글을 관리합니다.</p>
+                        <p class="text-gray-600 mt-1 text-sm">시제품 갤러리 게시글을 관리합니다.</p>
                     </div>
                     <div class="flex gap-2 flex-wrap">
-                        <button onclick="openCsvImportModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center">
+                        <button type="button" onclick="openCsvImportModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center text-sm font-medium shadow-sm">
                             <i class="fas fa-file-csv mr-2"></i> CSV 일괄 등록
                         </button>
-                        <button onclick="openBulkImageModal()" class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition flex items-center">
+                        <button type="button" onclick="openBulkImageModal()" class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition flex items-center text-sm font-medium shadow-sm">
                             <i class="fas fa-link mr-2"></i> 이미지 URL 일괄 입력
                         </button>
-                        <button onclick="openModal(null)" class="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition flex items-center">
+                        <button type="button" onclick="openModal(null)" class="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition flex items-center text-sm font-medium shadow-sm">
                             <i class="fas fa-plus mr-2"></i> 시제품 등록
                         </button>
                     </div>
                 </div>
             </div>
             <main class="flex-1 overflow-y-auto p-8 custom-scrollbar">
-                <div class="bg-white rounded-lg shadow-sm mb-6 p-4">
-                    <div class="flex gap-4 items-center">
-                        <div class="relative flex-1 max-w-md">
-                            <input type="text" id="searchInput" placeholder="제목/내용 검색" onkeyup="if(event.key === 'Enter') loadPosts(1)" class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
-                            <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-6 p-4">
+                    <div class="flex flex-wrap gap-3 items-center">
+                        <div class="relative flex-1 min-w-[200px] max-w-md">
+                            <input type="text" id="searchInput" placeholder="제목/내용 검색" onkeyup="if(event.key === 'Enter') loadPosts(1)" class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
+                            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                         </div>
-                        <button onclick="loadPosts(1)" class="p-2 text-gray-600 hover:text-amber-600"><i class="fas fa-sync-alt"></i></button>
+                        <button type="button" onclick="loadPosts(1)" class="p-2.5 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-amber-600 transition" title="새로고침"><i class="fas fa-sync-alt"></i></button>
+                        <div class="flex items-center gap-2 text-sm text-gray-500">
+                            <span id="searchResultText"></span>
+                            <label class="flex items-center gap-1.5">
+                                <span>페이지당</span>
+                                <select id="rowsPerPage" onchange="setRowsPerPage(parseInt(this.value, 10))" class="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:ring-2 focus:ring-amber-500">
+                                    <option value="10">10</option>
+                                    <option value="20">20</option>
+                                    <option value="30">30</option>
+                                    <option value="50">50</option>
+                                </select>
+                                <span>건</span>
+                            </label>
+                        </div>
                     </div>
                 </div>
-                <div class="bg-white rounded-lg shadow overflow-hidden">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden min-h-[320px]">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">상태</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">제목</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">작성자</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">조회수</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">작성일</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">관리</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">상태</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">제목</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">작성자</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">조회수</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">작성일</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">관리</th>
                             </tr>
                         </thead>
                         <tbody id="tableBody" class="bg-white divide-y divide-gray-200">
                             <tr>
-                                <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                                <td colspan="6" class="px-6 py-16 text-center text-gray-500">
                                     <i class="fas fa-spinner fa-spin mr-2"></i> 데이터를 불러오는 중...
                                 </td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
-                <div class="mt-4 flex justify-center" id="pagination"></div>
+                <div id="paginationWrap" class="mt-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div id="paginationRange" class="text-sm text-gray-600"></div>
+                    <nav id="pagination" class="flex flex-wrap items-center justify-center gap-1"></nav>
+                </div>
             </main>
         </div>
     </div>
@@ -89,58 +105,6 @@ export const adminPrototypeGalleryHtml = (sidebar: string) => `
         <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
             <div class="p-6 border-b border-gray-200 flex justify-between items-center">
                 <h3 class="text-xl font-bold text-gray-800">구 사이트 시제품 CSV 일괄 등록</h3>
-                <button onclick="closeCsvImportModal()" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times text-xl"></i></button>
-            </div>
-            <div class="p-6 overflow-y-auto flex-1">
-                <p class="text-gray-600 text-sm mb-4">구 사이트 관리자에서 <strong>시제품 제작 사진</strong> 목록을 CSV로 다운받은 파일을 선택하세요. 제목·등록자·등록일자·이미지 URL(있으면) 컬럼을 인식해 시제품으로 등록합니다.</p>
-                <div class="mb-4">
-                    <label class="block text-gray-700 font-medium mb-2">CSV 파일 선택</label>
-                    <input type="file" id="csvFileInput" accept=".csv,text/csv,application/csv" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-                </div>
-                <div id="csvPreview" class="hidden mb-4 p-4 bg-gray-50 rounded-lg text-sm"><span id="csvPreviewText"></span></div>
-                <div id="csvProgress" class="hidden mb-4">
-                    <div class="flex justify-between text-sm text-gray-600 mb-1"><span id="csvProgressText">0 / 0 등록 중...</span></div>
-                    <div class="w-full bg-gray-200 rounded-full h-2"><div id="csvProgressBar" class="bg-blue-600 h-2 rounded-full transition-all" style="width: 0%"></div></div>
-                </div>
-                <div id="csvResult" class="hidden p-4 rounded-lg text-sm"></div>
-            </div>
-            <div class="p-6 border-t border-gray-200 flex justify-end gap-2">
-                <button type="button" onclick="closeCsvImportModal()" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">닫기</button>
-                <button type="button" id="csvStartBtn" onclick="startCsvImport()" disabled class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">등록 시작</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 이미지 URL 일괄 입력 모달 -->
-    <div id="bulkImageModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-            <div class="p-6 border-b border-gray-200 flex justify-between items-center">
-                <h3 class="text-xl font-bold text-gray-800">이미지 URL 일괄 입력</h3>
-                <button onclick="closeBulkImageModal()" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times text-xl"></i></button>
-            </div>
-            <div class="p-6 overflow-y-auto flex-1">
-                <p class="text-gray-600 text-sm mb-4">CSV로 등록한 글에 <strong>사진이 없을 때</strong> 사용하세요. 구 사이트에서 각 게시글 상세 페이지를 열고 이미지에 마우스 오른쪽 → <strong>이미지 주소 복사</strong>한 뒤, 아래에 <strong>목록 순서대로 한 줄에 하나씩</strong> 붙여넣으세요.</p>
-                <div id="bulkImageListInfo" class="mb-2 text-sm text-gray-500">시제품 목록 불러오는 중...</div>
-                <label class="block text-gray-700 font-medium mb-2">이미지 URL (한 줄에 하나)</label>
-                <textarea id="bulkImageUrls" rows="12" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 font-mono text-sm" placeholder="https://example.com/photo1.jpg&#10;https://example.com/photo2.jpg"></textarea>
-                <div id="bulkImageProgress" class="hidden mt-4">
-                    <div class="flex justify-between text-sm text-gray-600 mb-1"><span id="bulkImageProgressText">0 / 0 적용 중...</span></div>
-                    <div class="w-full bg-gray-200 rounded-full h-2"><div id="bulkImageProgressBar" class="bg-emerald-600 h-2 rounded-full transition-all" style="width: 0%"></div></div>
-                </div>
-                <div id="bulkImageResult" class="hidden mt-4 p-4 rounded-lg text-sm"></div>
-            </div>
-            <div class="p-6 border-t border-gray-200 flex justify-end gap-2">
-                <button type="button" onclick="closeBulkImageModal()" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">닫기</button>
-                <button type="button" id="bulkImageApplyBtn" onclick="applyBulkImageUrls()" class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">적용하기</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- CSV 일괄 등록 모달 -->
-    <div id="csvImportModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-            <div class="p-6 border-b border-gray-200 flex justify-between items-center">
-                <h3 class="text-xl font-bold text-gray-800">구 사이트 CSV 일괄 등록 (시제품)</h3>
                 <button onclick="closeCsvImportModal()" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times text-xl"></i></button>
             </div>
             <div class="p-6 overflow-y-auto flex-1">
@@ -234,7 +198,13 @@ export const adminPrototypeGalleryHtml = (sidebar: string) => `
 
     <script>
         let currentPage = 1;
-        const itemsPerPage = 10;
+        let itemsPerPage = 10;
+
+        function setRowsPerPage(n) {
+            itemsPerPage = n;
+            document.getElementById('rowsPerPage').value = String(n);
+            loadPosts(1);
+        }
 
         document.addEventListener('DOMContentLoaded', () => {
             loadPosts(1);
@@ -525,6 +495,8 @@ export const adminPrototypeGalleryHtml = (sidebar: string) => `
         let currentList = [];
         async function loadPosts(page) {
             currentPage = page;
+            document.getElementById('searchResultText').textContent = '';
+            document.getElementById('paginationRange').textContent = '';
             const search = document.getElementById('searchInput').value;
             let url = '/api/posts?page=' + page + '&limit=' + itemsPerPage + '&category=prototype';
             if (search) url += '&search=' + encodeURIComponent(search);
@@ -534,11 +506,24 @@ export const adminPrototypeGalleryHtml = (sidebar: string) => `
                 const tbody = document.getElementById('tableBody');
                 if (!result.success) {
                     tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-red-500">데이터를 불러오는데 실패했습니다.</td></tr>';
+                    document.getElementById('pagination').innerHTML = '';
                     return;
                 }
                 currentList = result.data || [];
+                const p = result.pagination || {};
+                const total = p.total != null ? p.total : 0;
+                const totalPages = p.totalPages != null ? p.totalPages : 1;
+                const pageNum = p.page != null ? p.page : 1;
+                if (p.limit) {
+                    itemsPerPage = p.limit;
+                    const sel = document.getElementById('rowsPerPage');
+                    if (sel) sel.value = String(p.limit);
+                }
+                document.getElementById('searchResultText').textContent = '검색결과 ' + total + '건';
+
                 if (currentList.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-12 text-center text-gray-500">등록된 시제품이 없습니다.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-16 text-center"><div class="flex flex-col items-center justify-center text-gray-500"><i class="fas fa-cube text-4xl text-gray-300 mb-3"></i><p class="font-medium">등록된 시제품이 없습니다</p><p class="text-sm mt-1">CSV 일괄 등록 또는 시제품 등록 버튼으로 추가해 보세요.</p></div></td></tr>';
+                    document.getElementById('paginationRange').textContent = '';
                     document.getElementById('pagination').innerHTML = '';
                     return;
                 }
@@ -557,25 +542,43 @@ export const adminPrototypeGalleryHtml = (sidebar: string) => `
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">\${post.views || 0}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">\${new Date(post.created_at).toLocaleDateString('ko-KR')}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm">
-                            <button onclick="editPostByIndex(\${idx})" class="text-amber-600 hover:text-amber-800 mr-3"><i class="fas fa-edit"></i> 수정</button>
-                            <button onclick="deletePost(\${post.id})" class="text-red-600 hover:text-red-800"><i class="fas fa-trash"></i> 삭제</button>
+                            <button type="button" onclick="editPostByIndex(\${idx})" class="text-amber-600 hover:text-amber-800 mr-3"><i class="fas fa-edit"></i> 수정</button>
+                            <button type="button" onclick="deletePost(\${post.id})" class="text-red-600 hover:text-red-800"><i class="fas fa-trash"></i> 삭제</button>
                         </td>
                     </tr>
                 \`).join('');
-                const p = result.pagination;
-                if (p && p.totalPages > 1) {
-                    let html = '<nav class="flex gap-2">';
-                    for (let i = 1; i <= p.totalPages; i++) {
-                        html += '<button onclick="loadPosts(' + i + ')" class="px-4 py-2 rounded-lg ' + (i === p.page ? 'bg-amber-600 text-white' : 'bg-white border text-gray-700 hover:bg-gray-50') + '">' + i + '</button>';
-                    }
-                    html += '</nav>';
-                    document.getElementById('pagination').innerHTML = html;
-                } else {
-                    document.getElementById('pagination').innerHTML = '';
+
+                const start = total === 0 ? 0 : (pageNum - 1) * (p.limit || itemsPerPage) + 1;
+                const end = Math.min(pageNum * (p.limit || itemsPerPage), total);
+                document.getElementById('paginationRange').textContent = total > 0 ? start + '-' + end + ' / ' + total + '건' : '';
+
+                const nav = document.getElementById('pagination');
+                if (totalPages <= 1) {
+                    nav.innerHTML = '';
+                    return;
                 }
+                const radius = 2;
+                const pages = [];
+                for (let i = 1; i <= totalPages; i++) {
+                    if (i === 1 || i === totalPages || (i >= pageNum - radius && i <= pageNum + radius)) pages.push(i);
+                    else if (pages[pages.length - 1] !== '...') pages.push('...');
+                }
+                let html = '';
+                html += '<button type="button" onclick="loadPosts(' + (pageNum - 1) + ')" ' + (pageNum <= 1 ? 'disabled' : '') + ' class="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium ' + (pageNum <= 1 ? 'opacity-50 cursor-not-allowed bg-gray-50 text-gray-400' : 'bg-white text-gray-700 hover:bg-gray-50') + '"><i class="fas fa-chevron-left mr-1"></i> 이전</button>';
+                pages.forEach(function(n) {
+                    if (n === '...') {
+                        html += '<span class="px-2 py-2 text-gray-400">…</span>';
+                    } else {
+                        const active = n === pageNum;
+                        html += '<button type="button" onclick="loadPosts(' + n + ')" class="min-w-[2.25rem] px-3 py-2 rounded-lg text-sm font-medium ' + (active ? 'bg-amber-600 text-white' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50') + '">' + n + '</button>';
+                    }
+                });
+                html += '<button type="button" onclick="loadPosts(' + (pageNum + 1) + ')" ' + (pageNum >= totalPages ? 'disabled' : '') + ' class="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium ' + (pageNum >= totalPages ? 'opacity-50 cursor-not-allowed bg-gray-50 text-gray-400' : 'bg-white text-gray-700 hover:bg-gray-50') + '">다음 <i class="fas fa-chevron-right ml-1"></i></button>';
+                nav.innerHTML = html;
             } catch (e) {
                 console.error(e);
                 document.getElementById('tableBody').innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-red-500">오류가 발생했습니다.</td></tr>';
+                document.getElementById('pagination').innerHTML = '';
             }
         }
 

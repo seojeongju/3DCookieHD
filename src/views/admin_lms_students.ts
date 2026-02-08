@@ -84,10 +84,23 @@ export const adminLmsStudentsHtml = `
                         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">과정별 수강 신청 현황</p>
                     </div>
                 </div>
-                <div class="relative w-full sm:w-72">
-                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
-                    <input type="text" id="studentSearch" placeholder="이름 또는 이메일 검색..." 
-                           class="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-300 outline-none transition-all text-sm font-medium">
+                <div class="flex flex-wrap items-center gap-3">
+                    <div class="relative w-full sm:w-72">
+                        <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                        <input type="text" id="studentSearch" placeholder="이름 또는 이메일 검색..." 
+                               class="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-300 outline-none transition-all text-sm font-medium">
+                    </div>
+                    <span id="searchResultTextLms" class="text-sm text-slate-500"></span>
+                    <label class="flex items-center gap-1.5 text-sm text-slate-500">
+                        <span>페이지당</span>
+                        <select id="rowsPerPageLms" onchange="window.__lmsSetRowsPerPage(parseInt(this.value,10))" class="border border-slate-300 rounded-lg px-2 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500">
+                            <option value="10">10</option>
+                            <option value="20" selected>20</option>
+                            <option value="30">30</option>
+                            <option value="50">50</option>
+                        </select>
+                        <span>건</span>
+                    </label>
                 </div>
             </div>
             <div class="overflow-x-auto custom-scrollbar">
@@ -110,7 +123,10 @@ export const adminLmsStudentsHtml = `
                     </tbody>
                 </table>
             </div>
-            <div id="paginationContainer" class="px-8 py-4 border-t border-slate-100 flex justify-center gap-2"></div>
+            <div class="px-8 py-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div id="paginationRangeLms" class="text-sm text-slate-600"></div>
+                <nav id="paginationContainer" class="flex flex-wrap items-center justify-center gap-1"></nav>
+            </div>
         </div>
     </div>
 
@@ -121,13 +137,20 @@ export const adminLmsStudentsHtml = `
             const courseId = pathParts[courseIdIndex];
             let allStudents = [];
             let currentPage = 1;
-            const limit = 20;
+            let limit = 20;
 
             function getToken() { return localStorage.getItem('token'); }
+            function setRowsPerPageLms(n) {
+                limit = n;
+                document.getElementById('rowsPerPageLms').value = String(n);
+                loadStudents(1);
+            }
 
             async function loadStudents(page = 1) {
                 if (!courseId) return;
                 currentPage = page;
+                document.getElementById('searchResultTextLms').textContent = '';
+                document.getElementById('paginationRangeLms').textContent = '';
                 const tbody = document.getElementById('studentsTableBody');
                 tbody.innerHTML = '<tr><td colspan="4" class="px-8 py-12 text-center text-slate-400"><i class="fas fa-spinner fa-spin text-2xl mb-4 block"></i>불러오는 중...</td></tr>';
                 try {
@@ -141,9 +164,22 @@ export const adminLmsStudentsHtml = `
                         return;
                     }
                     allStudents = result.data || [];
+                    const p = result.pagination || {};
+                    const total = p.total != null ? p.total : 0;
+                    const totalPages = p.totalPages != null ? p.totalPages : 1;
+                    const pageNum = p.page != null ? p.page : page;
+                    if (p.limit) {
+                        limit = p.limit;
+                        const sel = document.getElementById('rowsPerPageLms');
+                        if (sel) sel.value = String(p.limit);
+                    }
+                    document.getElementById('searchResultTextLms').textContent = '검색결과 ' + total + '건';
                     updateSummary(allStudents, result.pagination || {});
                     renderTable(allStudents);
-                    renderPagination(result.pagination || {});
+                    const start = total === 0 ? 0 : (pageNum - 1) * (p.limit || limit) + 1;
+                    const end = Math.min(pageNum * (p.limit || limit), total);
+                    document.getElementById('paginationRangeLms').textContent = total > 0 ? start + '-' + end + ' / ' + total + '건' : '';
+                    renderPagination(totalPages, pageNum);
                 } catch (e) {
                     console.error(e);
                     tbody.innerHTML = '<tr><td colspan="4" class="px-8 py-12 text-center text-red-500">오류가 발생했습니다.</td></tr>';
@@ -196,22 +232,34 @@ export const adminLmsStudentsHtml = `
                 }).join('');
             }
 
-            function renderPagination(pagination) {
+            function renderPagination(totalPages, pageNum) {
                 const container = document.getElementById('paginationContainer');
-                if (!pagination || !pagination.totalPages || pagination.totalPages <= 1) {
+                if (!totalPages || totalPages <= 1) {
                     container.innerHTML = '';
                     return;
                 }
-                const totalPages = pagination.totalPages;
-                const current = pagination.currentPage || currentPage;
+                const current = pageNum != null ? pageNum : currentPage;
+                const radius = 2;
+                const pages = [];
+                for (let i = 1; i <= totalPages; i++) {
+                    if (i === 1 || i === totalPages || (i >= current - radius && i <= current + radius)) pages.push(i);
+                    else if (pages[pages.length - 1] !== '...') pages.push('...');
+                }
                 let html = '';
-                if (current > 1) html += '<button onclick="window.__lmsStudentsPage(' + (current - 1) + ')" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-bold transition">이전</button>';
-                html += '<span class="px-4 py-2 text-sm font-bold text-slate-500">' + current + ' / ' + totalPages + '</span>';
-                if (current < totalPages) html += '<button onclick="window.__lmsStudentsPage(' + (current + 1) + ')" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-bold transition">다음</button>';
+                html += '<button type="button" onclick="window.__lmsStudentsPage(' + (current - 1) + ')" ' + (current <= 1 ? 'disabled' : '') + ' class="px-3 py-2 rounded-lg border border-slate-300 text-sm font-medium ' + (current <= 1 ? 'opacity-50 cursor-not-allowed bg-slate-50 text-slate-400' : 'bg-white text-slate-700 hover:bg-slate-50') + '"><i class="fas fa-chevron-left mr-1"></i> 이전</button>';
+                pages.forEach(function(n) {
+                    if (n === '...') html += '<span class="px-2 py-2 text-slate-400">…</span>';
+                    else {
+                        const active = n === current;
+                        html += '<button type="button" onclick="window.__lmsStudentsPage(' + n + ')" class="min-w-[2.25rem] px-3 py-2 rounded-lg text-sm font-medium ' + (active ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-300 text-slate-600 hover:bg-slate-50') + '">' + n + '</button>';
+                    }
+                });
+                html += '<button type="button" onclick="window.__lmsStudentsPage(' + (current + 1) + ')" ' + (current >= totalPages ? 'disabled' : '') + ' class="px-3 py-2 rounded-lg border border-slate-300 text-sm font-medium ' + (current >= totalPages ? 'opacity-50 cursor-not-allowed bg-slate-50 text-slate-400' : 'bg-white text-slate-700 hover:bg-slate-50') + '">다음 <i class="fas fa-chevron-right ml-1"></i></button>';
                 container.innerHTML = html;
             }
 
             window.__lmsStudentsPage = function(page) { loadStudents(page); };
+            window.__lmsSetRowsPerPage = function(n) { setRowsPerPageLms(n); };
 
             document.getElementById('studentSearch').addEventListener('keyup', function(e) {
                 if (e.key === 'Enter') loadStudents(1);

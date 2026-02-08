@@ -1,4 +1,4 @@
-﻿import { hrdSidebar } from './components/hrd_sidebar';
+import { hrdSidebar } from './components/hrd_sidebar';
 
 export const adminHrdItemsHtml = () => `
 <!DOCTYPE html>
@@ -55,10 +55,24 @@ export const adminHrdItemsHtml = () => `
                             <button onclick="filterCategory('consumable')" id="tab-consumable" class="px-4 py-2 text-sm font-medium rounded-md text-gray-500 hover:text-gray-700 transition-all">소모품</button>
                         </div>
 
-                        <!-- 검색 -->
-                        <div class="relative w-full md:w-64">
-                            <input type="text" id="searchInput" placeholder="물품명 또는 관리번호 검색" class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
-                            <i class="fas fa-search absolute left-3 top-2.5 text-gray-400"></i>
+                        <!-- 검색 및 행 수 -->
+                        <div class="flex flex-wrap items-center gap-3">
+                            <div class="relative w-full md:w-64">
+                                <input type="text" id="searchInput" placeholder="물품명 또는 관리번호 검색" class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                                <i class="fas fa-search absolute left-3 top-2.5 text-gray-400"></i>
+                            </div>
+                            <button type="button" onclick="loadItems(1)" class="p-2.5 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-blue-600 transition" title="새로고침"><i class="fas fa-sync-alt"></i></button>
+                            <span id="searchResultTextItems" class="text-sm text-gray-500"></span>
+                            <label class="flex items-center gap-1.5 text-sm text-gray-500">
+                                <span>페이지당</span>
+                                <select id="rowsPerPageItems" onchange="setRowsPerPageItems(parseInt(this.value,10))" class="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-500">
+                                    <option value="10">10</option>
+                                    <option value="20">20</option>
+                                    <option value="30">30</option>
+                                    <option value="50">50</option>
+                                </select>
+                                <span>건</span>
+                            </label>
                         </div>
                     </div>
                 </div>
@@ -92,7 +106,10 @@ export const adminHrdItemsHtml = () => `
                     </table>
                 </div>
                 <!-- Pagination -->
-                <div id="paginationContainer" class="flex justify-center mt-6 h-8"></div>
+                <div class="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div id="paginationRangeItems" class="text-sm text-gray-600"></div>
+                    <nav id="paginationContainer" class="flex flex-wrap items-center justify-center gap-1"></nav>
+                </div>
             </main>
         </div>
     </div>
@@ -342,6 +359,12 @@ export const adminHrdItemsHtml = () => `
     <script>
         let currentCategory = 'all';
         let currentPage = 1;
+        window.itemsPerPageItems = 10;
+        function setRowsPerPageItems(n) {
+            window.itemsPerPageItems = n;
+            document.getElementById('rowsPerPageItems').value = String(n);
+            loadItems(1);
+        }
         let facilitiesData = [];
 
         document.addEventListener('DOMContentLoaded', async () => {
@@ -466,12 +489,14 @@ function filterCategory(category) {
 
 async function loadItems(page = 1) {
     currentPage = page;
+    document.getElementById('searchResultTextItems').textContent = '';
+    document.getElementById('paginationRangeItems').textContent = '';
     try {
         const search = document.getElementById('searchInput').value;
         let url = '/api/hrd/items?';
         if (currentCategory !== 'all') url += 'category=' + currentCategory + '&';
         if (search) url += 'search=' + encodeURIComponent(search);
-        url += '&page=' + page + '&limit=10';
+        url += '&page=' + page + '&limit=' + (window.itemsPerPageItems ?? 10);
 
         const response = await fetch(url);
         const result = await response.json();
@@ -484,9 +509,20 @@ async function loadItems(page = 1) {
 
         if (result.data.length === 0) {
             tbody.innerHTML = '<tr><td colspan="9" class="px-6 py-10 text-center text-gray-500">등록된 물품이 없습니다.</td></tr>';
+            document.getElementById('searchResultTextItems').textContent = '검색결과 0건';
             document.getElementById('paginationContainer').innerHTML = '';
             return;
         }
+        const total = result.total != null ? result.total : 0;
+        const limit = result.limit != null ? result.limit : (window.itemsPerPageItems ?? 10);
+        if (result.limit) window.itemsPerPageItems = result.limit;
+        document.getElementById('searchResultTextItems').textContent = '검색결과 ' + total + '건';
+        const pageNum = result.page != null ? result.page : page;
+        const start = total === 0 ? 0 : (pageNum - 1) * limit + 1;
+        const end = Math.min(pageNum * limit, total);
+        document.getElementById('paginationRangeItems').textContent = total > 0 ? start + '-' + end + ' / ' + total + '건' : '';
+        const sel = document.getElementById('rowsPerPageItems');
+        if (sel) sel.value = String(limit);
 
         tbody.innerHTML = result.data.map(item => {
             const itemData = JSON.stringify(item).replace(/"/g, '&quot;');
@@ -549,35 +585,24 @@ function renderPagination(total, page, limit) {
     const container = document.getElementById('paginationContainer');
     if (totalPages <= 1 && page === 1) { container.innerHTML = ''; return; }
 
-    let html = '<div class="flex items-center space-x-2">';
-
-    // Prev
-    const prevDisabled = page === 1;
-    html += \`<button onclick="loadItems(\${page - 1})" \${prevDisabled ? 'disabled' : ''} class="px-3 py-1 rounded border \${prevDisabled ? 'bg-gray-50 text-gray-300 cursor-not-allowed' : 'bg-white hover:bg-gray-50 text-gray-600'}"><i class="fas fa-chevron-left"></i></button>\`;
-
-            // Numbers
-            let startPage = Math.max(1, page - 2);
-            let endPage = Math.min(totalPages, page + 2);
-            
-            if(startPage > 1) html += '<span class="px-2 text-gray-400">...</span>';
-
-            for(let i=startPage; i<=endPage; i++) {
-                if (i === page) {
-                    html += \`<button class="px-3 py-1 rounded bg-blue-600 text-white font-medium shadow-sm">\${i}</button>\`;
-                } else {
-                    html += \`<button onclick="loadItems(\${i})" class="px-3 py-1 rounded border bg-white hover:bg-gray-50 text-gray-600">\${i}</button>\`;
-                }
-            }
-            
-            if(endPage < totalPages) html += '<span class="px-2 text-gray-400">...</span>';
-
-            // Next
-            const nextDisabled = page === totalPages;
-            html += \`<button onclick="loadItems(\${page + 1})" \${nextDisabled ? 'disabled' : ''} class="px-3 py-1 rounded border \${nextDisabled ? 'bg-gray-50 text-gray-300 cursor-not-allowed' : 'bg-white hover:bg-gray-50 text-gray-600'}"><i class="fas fa-chevron-right"></i></button>\`;
-
-            html += '</div>';
-            container.innerHTML = html;
+    const radius = 2;
+    const pages = [];
+    for (let i = 1; i <= totalPages; i++) {
+        if (i === 1 || i === totalPages || (i >= page - radius && i <= page + radius)) pages.push(i);
+        else if (pages[pages.length - 1] !== '...') pages.push('...');
+    }
+    let html = '';
+    html += \`<button type="button" onclick="loadItems(\${page - 1})" \${page <= 1 ? 'disabled' : ''} class="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium \${page <= 1 ? 'opacity-50 cursor-not-allowed bg-gray-50 text-gray-400' : 'bg-white text-gray-700 hover:bg-gray-50'}"><i class="fas fa-chevron-left mr-1"></i> 이전</button>\`;
+    pages.forEach(function(n) {
+        if (n === '...') html += '<span class="px-2 py-2 text-gray-400">…</span>';
+        else {
+            const active = n === page;
+            html += \`<button type="button" onclick="loadItems(\${n})" class="min-w-[2.25rem] px-3 py-2 rounded-lg text-sm font-medium \${active ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'}">\${n}</button>\`;
         }
+    });
+    html += \`<button type="button" onclick="loadItems(\${page + 1})" \${page >= totalPages ? 'disabled' : ''} class="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium \${page >= totalPages ? 'opacity-50 cursor-not-allowed bg-gray-50 text-gray-400' : 'bg-white text-gray-700 hover:bg-gray-50'}">다음 <i class="fas fa-chevron-right ml-1"></i></button>\`;
+    container.innerHTML = html;
+}
 
 function openModal(id) {
     document.getElementById(id).classList.remove('hidden');

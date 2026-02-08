@@ -101,22 +101,31 @@ export const adminPostsListHtml = (sidebar: string | null = null) => `
             <!-- 검색 및 필터 -->
             <div class="p-4 flex flex-wrap gap-4 items-center justify-between">
                 <input type="hidden" id="currentCategory" value="">
-                <div class="flex gap-4 items-center flex-1">
-                    <div class="relative flex-1 max-w-md">
-                        <input type="text" id="searchInput" placeholder="제목/내용 검색" onkeyup="if(event.key === 'Enter') loadPosts()" class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                <div class="flex flex-wrap gap-3 items-center flex-1">
+                    <div class="relative flex-1 min-w-[200px] max-w-md">
+                        <input type="text" id="searchInput" placeholder="제목/내용 검색" onkeyup="if(event.key === 'Enter') loadPosts(1)" class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                     </div>
-                </div>
-                <div class="flex gap-2">
-                    <button onclick="loadPosts()" class="p-2 text-gray-600 hover:text-blue-600">
-                        <i class="fas fa-sync-alt"></i>
-                    </button>
+                    <button type="button" onclick="loadPosts(1)" class="p-2.5 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-blue-600 transition" title="새로고침"><i class="fas fa-sync-alt"></i></button>
+                    <div class="flex items-center gap-2 text-sm text-gray-500">
+                        <span id="searchResultText"></span>
+                        <label class="flex items-center gap-1.5">
+                            <span>페이지당</span>
+                            <select id="rowsPerPage" onchange="setRowsPerPage(parseInt(this.value, 10))" class="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-500">
+                                <option value="10">10</option>
+                                <option value="20">20</option>
+                                <option value="30">30</option>
+                                <option value="50">50</option>
+                            </select>
+                            <span>건</span>
+                        </label>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- 목록 테이블 -->
-        <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden min-h-[320px]">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
@@ -141,7 +150,10 @@ export const adminPostsListHtml = (sidebar: string | null = null) => `
         </div>
         
         <!-- 페이지네이션 -->
-        <div class="mt-4 flex justify-center" id="pagination"></div>
+        <div id="paginationWrap" class="mt-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div id="paginationRange" class="text-sm text-gray-600"></div>
+            <nav id="pagination" class="flex flex-wrap items-center justify-center gap-1"></nav>
+        </div>
     </div>
 
     <!-- 게시글 작성/수정 모달 -->
@@ -201,7 +213,13 @@ export const adminPostsListHtml = (sidebar: string | null = null) => `
 
     <script>
         let currentPage = 1;
-        const itemsPerPage = 10;
+        let itemsPerPage = 10;
+
+        function setRowsPerPage(n) {
+            itemsPerPage = n;
+            document.getElementById('rowsPerPage').value = String(n);
+            loadPosts(1);
+        }
 
         // 페이지 로드 시 목록 조회
         document.addEventListener('DOMContentLoaded', () => {
@@ -367,6 +385,8 @@ export const adminPostsListHtml = (sidebar: string | null = null) => `
 
         async function loadPosts(page = 1) {
             currentPage = page;
+            document.getElementById('searchResultText').textContent = '';
+            document.getElementById('paginationRange').textContent = '';
             const category = document.getElementById('currentCategory').value;
             const search = document.getElementById('searchInput').value;
             
@@ -408,11 +428,24 @@ export const adminPostsListHtml = (sidebar: string | null = null) => `
                 
                 if (!result.success) {
                     tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-4 text-center text-red-500">데이터를 불러오는데 실패했습니다.</td></tr>';
+                    document.getElementById('pagination').innerHTML = '';
                     return;
                 }
 
+                const p = result.pagination || {};
+                const total = p.total != null ? p.total : 0;
+                const totalPages = p.totalPages != null ? p.totalPages : 1;
+                const pageNum = p.page != null ? p.page : 1;
+                if (p.limit) {
+                    itemsPerPage = p.limit;
+                    const sel = document.getElementById('rowsPerPage');
+                    if (sel) sel.value = String(p.limit);
+                }
+                document.getElementById('searchResultText').textContent = '검색결과 ' + total + '건';
+
                 if (result.data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-12 text-center text-gray-500">등록된 게시글이 없습니다.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-16 text-center"><div class="flex flex-col items-center text-gray-500"><i class="fas fa-newspaper text-4xl text-gray-300 mb-3"></i><p class="font-medium">등록된 게시글이 없습니다</p></div></td></tr>';
+                    document.getElementById('paginationRange').textContent = '';
                     document.getElementById('pagination').innerHTML = '';
                     return;
                 }
@@ -457,11 +490,37 @@ export const adminPostsListHtml = (sidebar: string | null = null) => `
                     </tr>
                 \`).join('');
 
-                renderPagination(result.pagination);
+                const start = total === 0 ? 0 : (pageNum - 1) * (p.limit || itemsPerPage) + 1;
+                const end = Math.min(pageNum * (p.limit || itemsPerPage), total);
+                document.getElementById('paginationRange').textContent = total > 0 ? start + '-' + end + ' / ' + total + '건' : '';
+
+                const nav = document.getElementById('pagination');
+                if (totalPages <= 1) {
+                    nav.innerHTML = '';
+                    return;
+                }
+                const radius = 2;
+                const pages = [];
+                for (let i = 1; i <= totalPages; i++) {
+                    if (i === 1 || i === totalPages || (i >= pageNum - radius && i <= pageNum + radius)) pages.push(i);
+                    else if (pages[pages.length - 1] !== '...') pages.push('...');
+                }
+                let html = '';
+                html += '<button type="button" onclick="loadPosts(' + (pageNum - 1) + ')" ' + (pageNum <= 1 ? 'disabled' : '') + ' class="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium ' + (pageNum <= 1 ? 'opacity-50 cursor-not-allowed bg-gray-50 text-gray-400' : 'bg-white text-gray-700 hover:bg-gray-50') + '"><i class="fas fa-chevron-left mr-1"></i> 이전</button>';
+                pages.forEach(function(n) {
+                    if (n === '...') html += '<span class="px-2 py-2 text-gray-400">…</span>';
+                    else {
+                        const active = n === pageNum;
+                        html += '<button type="button" onclick="loadPosts(' + n + ')" class="min-w-[2.25rem] px-3 py-2 rounded-lg text-sm font-medium ' + (active ? 'bg-indigo-600 text-white' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50') + '">' + n + '</button>';
+                    }
+                });
+                html += '<button type="button" onclick="loadPosts(' + (pageNum + 1) + ')" ' + (pageNum >= totalPages ? 'disabled' : '') + ' class="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium ' + (pageNum >= totalPages ? 'opacity-50 cursor-not-allowed bg-gray-50 text-gray-400' : 'bg-white text-gray-700 hover:bg-gray-50') + '">다음 <i class="fas fa-chevron-right ml-1"></i></button>';
+                nav.innerHTML = html;
                 
             } catch (error) {
                 console.error('Error:', error);
                 document.getElementById('postsTableBody').innerHTML = '<tr><td colspan="7" class="px-6 py-4 text-center text-red-500">오류가 발생했습니다.</td></tr>';
+                document.getElementById('pagination').innerHTML = '';
             }
         }
 
@@ -481,47 +540,6 @@ export const adminPostsListHtml = (sidebar: string | null = null) => `
             const tmp = document.createElement("DIV");
             tmp.innerHTML = html;
             return tmp.textContent || tmp.innerText || "";
-        }
-
-        function renderPagination(pagination) {
-            const { page, totalPages } = pagination;
-            let html = '';
-            
-            if (totalPages > 1) {
-                html += \`
-                    <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                        <button onclick="loadPosts(\${page - 1})" \${page === 1 ? 'disabled' : ''} class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 \${page === 1 ? 'cursor-not-allowed opacity-50' : ''}">
-                            <span class="sr-only">Previous</span>
-                            <i class="fas fa-chevron-left"></i>
-                        </button>
-                \`;
-
-                for (let i = 1; i <= totalPages; i++) {
-                    if (i === page) {
-                        html += \`
-                            <button aria-current="page" class="z-10 bg-indigo-50 border-indigo-500 text-indigo-600 relative inline-flex items-center px-4 py-2 border text-sm font-medium">
-                                \${i}
-                            </button>
-                        \`;
-                    } else {
-                        html += \`
-                            <button onclick="loadPosts(\${i})" class="bg-white border-gray-300 text-gray-500 hover:bg-gray-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium">
-                                \${i}
-                            </button>
-                        \`;
-                    }
-                }
-
-                html += \`
-                        <button onclick="loadPosts(\${page + 1})" \${page === totalPages ? 'disabled' : ''} class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 \${page === totalPages ? 'cursor-not-allowed opacity-50' : ''}">
-                            <span class="sr-only">Next</span>
-                            <i class="fas fa-chevron-right"></i>
-                        </button>
-                    </nav>
-                \`;
-            }
-            
-            document.getElementById('pagination').innerHTML = html;
         }
 
         function editPost(post) {
