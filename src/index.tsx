@@ -41,6 +41,7 @@ import { adminJobseekersListHtml } from './views/admin_jobseekers';
 import { jobsListHtml } from './views/jobs';
 import { jobseekersListHtml } from './views/jobseekers';
 import { adminCoursesListHtml } from './views/admin_courses';
+import { adminCoursesMainHtml } from './views/admin_courses_main';
 import {
     adminCoursesCategoriesHtml,
     adminCoursesApprovedHtml,
@@ -266,7 +267,8 @@ app.route('/api/setup', setupApi);
 app.get('/admin', (c) => c.html(adminDashboardHtml));
 app.get('/admin/jobs', (c) => c.html(adminJobsListHtml));
 app.get('/admin/jobseekers', (c) => c.html(adminJobseekersListHtml));
-app.get('/admin/courses', (c) => c.html(adminCoursesListHtml()));
+app.get('/admin/courses', (c) => c.html(adminCoursesMainHtml()));
+app.get('/admin/courses/register', (c) => c.html(adminCoursesListHtml()));
 app.get('/admin/courses/categories', (c) => c.html(adminCoursesCategoriesHtml()));
 app.get('/admin/courses/approved', (c) => c.html(adminCoursesApprovedHtml()));
 app.get('/admin/courses/approved/register', (c) => c.html(adminCoursesApprovedRegisterHtml(c.req.query('id'))));

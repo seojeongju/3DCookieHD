@@ -217,8 +217,13 @@ app.get('/files/*', async (c) => {
     console.log('R2 object found:', !!object);
 
     if (!object) {
-      // 파일이 없으면 더 자세한 정보 로깅
       console.error('File not found in R2:', filePath);
+      const accept = c.req.header('Accept') || '';
+      const wantsHtml = accept.includes('text/html');
+      if (wantsHtml) {
+        const html = `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>파일을 찾을 수 없습니다</title><script src="https://cdn.tailwindcss.com"></script></head><body class="bg-gray-100 min-h-screen flex items-center justify-center p-4"><div class="bg-white rounded-xl shadow-lg p-8 max-w-md text-center"><h1 class="text-xl font-bold text-gray-800 mb-2">파일을 찾을 수 없습니다</h1><p class="text-gray-500 text-sm mb-6">요청한 파일이 저장소에 없거나 삭제되었을 수 있습니다.</p><button onclick="window.close()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">창 닫기</button></div></body></html>`;
+        return new Response(html, { status: 404, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+      }
       return c.json({ success: false, error: `파일을 찾을 수 없습니다: ${filePath}` }, 404);
     }
 

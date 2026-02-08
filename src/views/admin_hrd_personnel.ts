@@ -895,7 +895,17 @@ export const adminHrdPersonnelHtml = () => `
                     method: 'GET',
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
-                if (!response.ok) throw new Error('파일 다운로드 실패: ' + response.status);
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        try {
+                            const errJson = await response.json();
+                            if (errJson && errJson.error) { /* fall through to same message */ }
+                        } catch (_) { }
+                        alert('파일을 찾을 수 없습니다.\n저장소에 없거나 삭제되었을 수 있습니다.\n해당 첨부파일을 다시 업로드해 주세요.');
+                        return;
+                    }
+                    throw new Error('파일 다운로드 실패: ' + response.status);
+                }
                 const blob = await response.blob();
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -909,7 +919,7 @@ export const adminHrdPersonnelHtml = () => `
                 }, 100);
             } catch (error) {
                 console.error('Download error:', error);
-                alert('파일 다운로드 중 오류가 발생했습니다: ' + (error.message || error));
+                alert('파일 다운로드 중 오류가 발생했습니다.\n' + (error.message || error));
             }
         }
         window.downloadFile = downloadFile;

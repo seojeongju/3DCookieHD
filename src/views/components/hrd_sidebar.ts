@@ -44,7 +44,7 @@ export const hrdSidebar = (activeMenu: string) => `
                 <i class="fas fa-graduation-cap w-6 text-lg ${(activeMenu === 'courses' || activeMenu === 'courses-register') ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
                 <span class="font-medium text-[14px]">교육과정 관리</span>
             </a>
-            <a href="/admin/courses" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'courses-register' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
+            <a href="/admin/courses/register" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'courses-register' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
                 <i class="fas fa-plus-circle w-6 text-sm ${activeMenu === 'courses-register' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
                 <span class="font-medium text-[13px]">일반과정등록</span>
             </a>
