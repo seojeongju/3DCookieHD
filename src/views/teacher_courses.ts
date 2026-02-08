@@ -88,7 +88,18 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
                              조회
                         </button>
                     </div>
-                    <div class="flex items-center gap-3 pl-6 border-l border-gray-100">
+                    <div class="flex items-center gap-3 pl-6 border-l border-gray-100 flex-wrap">
+                        <span id="searchResultTextTeacherCourses" class="text-sm text-gray-500">검색결과 0건</span>
+                        <label class="flex items-center gap-1.5 text-sm text-gray-500">
+                            <span>페이지당</span>
+                            <select id="rowsPerPageTeacherCourses" onchange="setRowsPerPageTeacherCourses(parseInt(this.value,10))" class="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-500">
+                                <option value="12">12</option>
+                                <option value="24">24</option>
+                                <option value="36">36</option>
+                                <option value="50">50</option>
+                            </select>
+                            <span>건</span>
+                        </label>
                         <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">진행 중인 강의</span>
                         <div class="bg-blue-600 text-white w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shadow-lg shadow-blue-100" id="totalCount">0</div>
                     </div>
@@ -103,14 +114,24 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
                 </div>
 
                 <!-- 페이지네이션 -->
-                <div id="paginationContainer" class="mt-8 flex justify-center items-center gap-2"></div>
+                <div class="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div id="paginationRangeTeacherCourses" class="text-sm text-gray-600"></div>
+                    <nav id="paginationContainer" class="flex flex-wrap items-center justify-center gap-1"></nav>
+                </div>
             </main>
         </div>
     </div>
 
     <script>
         let currentPage = 1;
-        const limit = 12;
+        let limit = 12;
+
+        function setRowsPerPageTeacherCourses(n) {
+            limit = n;
+            const sel = document.getElementById('rowsPerPageTeacherCourses');
+            if (sel) sel.value = String(n);
+            loadCourses(1);
+        }
 
         document.addEventListener('DOMContentLoaded', () => {
             checkLogin();
@@ -163,9 +184,21 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
                 const result = await response.json();
 
                 if (result.success) {
+                    const p = result.pagination || {};
+                    const total = p.total != null ? p.total : 0;
+                    const pageNum = p.page != null ? p.page : currentPage;
+                    if (p.limit) {
+                        limit = p.limit;
+                        const sel = document.getElementById('rowsPerPageTeacherCourses');
+                        if (sel) sel.value = String(p.limit);
+                    }
+                    document.getElementById('searchResultTextTeacherCourses').textContent = '검색결과 ' + total + '건';
+                    document.getElementById('totalCount').textContent = total;
+                    const start = total === 0 ? 0 : (pageNum - 1) * (p.limit || limit) + 1;
+                    const end = Math.min(pageNum * (p.limit || limit), total);
+                    document.getElementById('paginationRangeTeacherCourses').textContent = total > 0 ? start + '-' + end + ' / ' + total + '건' : '';
                     renderCourses(result.data || []);
-                    renderPagination(result.pagination || {});
-                    document.getElementById('totalCount').textContent = result.pagination?.total || 0;
+                    renderPagination(p);
                 } else {
                     console.error('Failed to load courses:', result.error);
                     document.getElementById('coursesContainer').innerHTML = 
@@ -291,43 +324,25 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
                 container.innerHTML = '';
                 return;
             }
-
-            const pages = [];
             const totalPages = pagination.totalPages;
-            const current = pagination.currentPage || currentPage;
-
-            // Previous Button
-            const prevClass = current === 1 
-                ? 'px-3 py-2 border border-gray-300 rounded-lg text-gray-400 cursor-not-allowed' 
-                : 'px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition';
-            pages.push('<button onclick="loadCourses(' + (current - 1) + ')" class="' + prevClass + '" ' + (current === 1 ? 'disabled' : '') + '><i class="fas fa-chevron-left"></i></button>');
-
-            // Page Numbers
-            const startPage = Math.max(1, current - 2);
-            const endPage = Math.min(totalPages, current + 2);
-
-            if (startPage > 1) {
-                pages.push('<button onclick="loadCourses(1)" class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">1</button>');
-                if (startPage > 2) pages.push('<span class="px-3 py-2 text-gray-400">...</span>');
+            const current = pagination.page != null ? pagination.page : (pagination.currentPage != null ? pagination.currentPage : currentPage);
+            const radius = 2;
+            const pages = [];
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= current - radius && i <= current + radius)) pages.push(i);
+                else if (pages[pages.length - 1] !== '...') pages.push('...');
             }
-
-            for (let i = startPage; i <= endPage; i++) {
-                const btnClass = i === current ? 'bg-blue-600 text-white' : 'hover:bg-gray-50';
-                pages.push('<button onclick="loadCourses(' + i + ')" class="px-3 py-2 border border-gray-300 rounded-lg ' + btnClass + ' transition">' + i + '</button>');
-            }
-
-            if (endPage < totalPages) {
-                if (endPage < totalPages - 1) pages.push('<span class="px-3 py-2 text-gray-400">...</span>');
-                pages.push('<button onclick="loadCourses(' + totalPages + ')" class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">' + totalPages + '</button>');
-            }
-
-            // Next Button
-            const nextClass = current === totalPages 
-                ? 'px-3 py-2 border border-gray-300 rounded-lg text-gray-400 cursor-not-allowed' 
-                : 'px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition';
-            pages.push('<button onclick="loadCourses(' + (current + 1) + ')" class="' + nextClass + '" ' + (current === totalPages ? 'disabled' : '') + '><i class="fas fa-chevron-right"></i></button>');
-
-            container.innerHTML = pages.join('');
+            let html = '';
+            html += '<button type="button" onclick="loadCourses(' + (current - 1) + ')" ' + (current <= 1 ? 'disabled' : '') + ' class="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium ' + (current <= 1 ? 'opacity-50 cursor-not-allowed bg-gray-50 text-gray-400' : 'bg-white text-gray-700 hover:bg-gray-50') + '"><i class="fas fa-chevron-left mr-1"></i> 이전</button>';
+            pages.forEach(function(n) {
+                if (n === '...') html += '<span class="px-2 py-2 text-gray-400">…</span>';
+                else {
+                    const active = n === current;
+                    html += '<button type="button" onclick="loadCourses(' + n + ')" class="min-w-[2.25rem] px-3 py-2 rounded-lg text-sm font-medium ' + (active ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50') + '">' + n + '</button>';
+                }
+            });
+            html += '<button type="button" onclick="loadCourses(' + (current + 1) + ')" ' + (current >= totalPages ? 'disabled' : '') + ' class="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium ' + (current >= totalPages ? 'opacity-50 cursor-not-allowed bg-gray-50 text-gray-400' : 'bg-white text-gray-700 hover:bg-gray-50') + '">다음 <i class="fas fa-chevron-right ml-1"></i></button>';
+            container.innerHTML = html;
         }
 
         function getLmsTab() {

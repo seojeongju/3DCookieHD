@@ -112,11 +112,12 @@ export function adminNcsViewerHtml(): string {
                                         <th class="px-6 py-4">능력단위명</th>
                                         <th class="px-6 py-4 w-24 text-center">수준</th>
                                         <th class="px-6 py-4 w-48">소분류(직종)</th>
+                                        <th class="px-6 py-4 w-52">과정명</th>
                                     </tr>
                                 </thead>
                                 <tbody id="unitTableBody" class="divide-y divide-slate-50">
                                     <tr>
-                                        <td colspan="5" class="px-6 py-20 text-center">
+                                        <td colspan="6" class="px-6 py-20 text-center">
                                             <div class="text-slate-300 mb-2 italic">세분류(직종)를 선택하여 상시 능력단위 목록을 조회하세요.</div>
                                             <i class="fas fa-search text-slate-200 text-4xl"></i>
                                         </td>
@@ -315,17 +316,20 @@ export function adminNcsViewerHtml(): string {
 
             async function loadUnits(jobCode, jobName) {
                 document.getElementById('selectedJobName').textContent = ' > ' + jobName;
-                unitTableBody.innerHTML = '<tr><td colspan="5" class="px-6 py-20 text-center"><i class="fas fa-spinner fa-spin text-2xl text-blue-600 mb-2"></i><br><span class="text-slate-400">능력단위를 불러오는 중...</span></td></tr>';
+                unitTableBody.innerHTML = '<tr><td colspan="6" class="px-6 py-20 text-center"><i class="fas fa-spinner fa-spin text-2xl text-blue-600 mb-2"></i><br><span class="text-slate-400">능력단위를 불러오는 중...</span></td></tr>';
                 
                 const res = await api('/approved/units-by-job?jobCode=' + jobCode);
                 if (res.success) {
                     const units = res.data;
                     document.getElementById('unitTotalCount').textContent = '총 ' + units.length + '개';
                     if (units.length === 0) {
-                        unitTableBody.innerHTML = '<tr><td colspan="5" class="px-6 py-20 text-center text-slate-400 italic">조회된 능력단위가 없습니다. 직접 등록이 필요할 수 있습니다.</td></tr>';
+                        unitTableBody.innerHTML = '<tr><td colspan="6" class="px-6 py-20 text-center text-slate-400 italic">조회된 능력단위가 없습니다. 직접 등록이 필요할 수 있습니다.</td></tr>';
                         return;
                     }
-                    unitTableBody.innerHTML = units.map((u, idx) => \`
+                    unitTableBody.innerHTML = units.map((u, idx) => {
+                        const courseTitles = (u.course_titles && Array.isArray(u.course_titles)) ? u.course_titles : [];
+                        const courseNamesText = courseTitles.length > 0 ? courseTitles.join(', ') : '-';
+                        return \`
                         <tr class="hover:bg-slate-50 transition-colors group">
                             <td class="px-6 py-4 text-center text-slate-400 font-bold">\${idx + 1}</td>
                             <td class="px-6 py-4">
@@ -339,10 +343,11 @@ export function adminNcsViewerHtml(): string {
                                 <span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-[10px] font-black">\${u.level}수준</span>
                             </td>
                             <td class="px-6 py-4 text-slate-500 text-sm font-medium">\${jobName}</td>
+                            <td class="px-6 py-4 text-slate-600 text-sm">\${courseNamesText}</td>
                         </tr>
-                    \`).join('');
+                    \`;}).join('');
                 } else {
-                    unitTableBody.innerHTML = '<tr><td colspan="5" class="px-6 py-20 text-center text-red-400">오류가 발생했습니다: ' + res.error + '</td></tr>';
+                    unitTableBody.innerHTML = '<tr><td colspan="6" class="px-6 py-20 text-center text-red-400">오류가 발생했습니다: ' + res.error + '</td></tr>';
                 }
             }
 
@@ -423,7 +428,7 @@ export function adminNcsViewerHtml(): string {
                         document.getElementById('cntMid').textContent = '0';
                         document.getElementById('cntSmall').textContent = '0';
                         document.getElementById('cntJob').textContent = '0';
-                        unitTableBody.innerHTML = '<tr><td colspan="5" class="px-6 py-20 text-center"><div class="text-slate-300 mb-2 italic">세분류(직종)를 선택하여 상시 능력단위 목록을 조회하세요.</div><i class="fas fa-search text-slate-200 text-4xl"></i></td></tr>';
+                        unitTableBody.innerHTML = '<tr><td colspan="6" class="px-6 py-20 text-center"><div class="text-slate-300 mb-2 italic">세분류(직종)를 선택하여 상시 능력단위 목록을 조회하세요.</div><i class="fas fa-search text-slate-200 text-4xl"></i></td></tr>';
                         document.getElementById('selectedJobName').textContent = '';
                         document.getElementById('unitTotalCount').textContent = '총 0개';
                     }

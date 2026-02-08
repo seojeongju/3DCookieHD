@@ -67,13 +67,30 @@ export const myClassroomHtml = `
         
         <!-- 수강 중인 과정 목록 -->
         <div class="bg-white rounded-lg shadow overflow-hidden mb-8">
-            <div class="p-6 border-b border-gray-200">
+            <div class="p-6 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <h2 class="text-xl font-bold text-gray-800">수강 중인 과정</h2>
+                <div class="flex flex-wrap items-center gap-3">
+                    <span id="searchResultTextMyClassroom" class="text-sm text-gray-500"></span>
+                    <label class="flex items-center gap-1.5 text-sm text-gray-500">
+                        <span>페이지당</span>
+                        <select id="rowsPerPageMyClassroom" onchange="setRowsPerPageMyClassroom(parseInt(this.value,10))" class="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:ring-2 focus:ring-primary-500">
+                            <option value="10">10</option>
+                            <option value="20">20</option>
+                            <option value="30">30</option>
+                            <option value="50" selected>50</option>
+                        </select>
+                        <span>건</span>
+                    </label>
+                </div>
             </div>
             <div id="courseList" class="divide-y divide-gray-200">
                 <div class="p-12 text-center text-gray-500">
                     <i class="fas fa-spinner fa-spin mr-2"></i> 데이터를 불러오는 중...
                 </div>
+            </div>
+            <div class="mt-6 px-6 pb-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-gray-100">
+                <div id="paginationRangeMyClassroom" class="text-sm text-gray-600"></div>
+                <nav id="paginationContainerMyClassroom" class="flex flex-wrap items-center justify-center gap-1"></nav>
             </div>
         </div>
 
@@ -107,11 +124,21 @@ export const myClassroomHtml = `
     </div>
 
     <script>
+        let currentPageMyClassroom = 1;
+        let limitMyClassroom = 50;
+
         document.addEventListener('DOMContentLoaded', () => {
-            loadMyCourses();
+            loadMyCourses(1);
         });
 
-        async function loadMyCourses() {
+        function setRowsPerPageMyClassroom(n) {
+            limitMyClassroom = n;
+            var sel = document.getElementById('rowsPerPageMyClassroom');
+            if (sel) sel.value = String(n);
+            loadMyCourses(1);
+        }
+
+        async function loadMyCourses(page) {
             try {
                 const token = localStorage.getItem('token');
                 if (!token) {
@@ -119,8 +146,12 @@ export const myClassroomHtml = `
                     window.location.href = '/login';
                     return;
                 }
+                currentPageMyClassroom = page || 1;
+                document.getElementById('searchResultTextMyClassroom').textContent = '';
+                document.getElementById('paginationRangeMyClassroom').textContent = '';
+                document.getElementById('paginationContainerMyClassroom').innerHTML = '';
 
-                const response = await fetch('/api/enrollments?status=approved&limit=50', {
+                const response = await fetch('/api/enrollments?status=approved&page=' + currentPageMyClassroom + '&limit=' + limitMyClassroom, {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
                 const result = await response.json();
@@ -129,10 +160,24 @@ export const myClassroomHtml = `
                     return;
                 }
                 const list = result.data || [];
+                const p = result.pagination || {};
+                const total = p.total != null ? p.total : list.length;
+                const totalPages = p.totalPages != null ? p.totalPages : 1;
+                const pageNum = p.page != null ? p.page : currentPageMyClassroom;
+                if (p.limit) {
+                    limitMyClassroom = p.limit;
+                    var sel = document.getElementById('rowsPerPageMyClassroom');
+                    if (sel) sel.value = String(p.limit);
+                }
+                document.getElementById('searchResultTextMyClassroom').textContent = '검색결과 ' + total + '건';
+                const start = total === 0 ? 0 : (pageNum - 1) * (p.limit || limitMyClassroom) + 1;
+                const end = Math.min(pageNum * (p.limit || limitMyClassroom), total);
+                document.getElementById('paginationRangeMyClassroom').textContent = total > 0 ? start + '-' + end + ' / ' + total + '건' : '';
+
                 const courses = list.map(function (e) {
-                    var start = (e.course_start_date || '').toString().substring(0, 10);
-                    var end = (e.course_end_date || '').toString().substring(0, 10);
-                    var period = (start && end) ? (start + ' ~ ' + end) : (start || end || '-');
+                    var startStr = (e.course_start_date || '').toString().substring(0, 10);
+                    var endStr = (e.course_end_date || '').toString().substring(0, 10);
+                    var period = (startStr && endStr) ? (startStr + ' ~ ' + endStr) : (startStr || endStr || '-');
                     var statusText = (e.status === 'approved') ? '수강중' : (e.status === 'completed') ? '수료' : (e.status || '');
                     return {
                         id: e.course_id,
@@ -143,11 +188,35 @@ export const myClassroomHtml = `
                     };
                 });
                 renderCourses(courses);
+                renderPaginationMyClassroom(totalPages, pageNum);
 
             } catch (error) {
                 console.error('Error:', error);
                 document.getElementById('courseList').innerHTML = '<div class="p-6 text-center text-red-500">오류가 발생했습니다.</div>';
             }
+        }
+
+        function renderPaginationMyClassroom(totalPages, pageNum) {
+            var container = document.getElementById('paginationContainerMyClassroom');
+            if (!totalPages || totalPages <= 1) { container.innerHTML = ''; return; }
+            var current = pageNum != null ? pageNum : currentPageMyClassroom;
+            var radius = 2;
+            var pages = [];
+            for (var i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= current - radius && i <= current + radius)) pages.push(i);
+                else if (pages[pages.length - 1] !== '...') pages.push('...');
+            }
+            var html = '';
+            html += '<button type="button" onclick="loadMyCourses(' + (current - 1) + ')" ' + (current <= 1 ? 'disabled' : '') + ' class="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium ' + (current <= 1 ? 'opacity-50 cursor-not-allowed bg-gray-50 text-gray-400' : 'bg-white text-gray-700 hover:bg-gray-50') + '"><i class="fas fa-chevron-left mr-1"></i> 이전</button>';
+            pages.forEach(function(n) {
+                if (n === '...') html += '<span class="px-2 py-2 text-gray-400">…</span>';
+                else {
+                    var active = n === current;
+                    html += '<button type="button" onclick="loadMyCourses(' + n + ')" class="min-w-[2.25rem] px-3 py-2 rounded-lg text-sm font-medium ' + (active ? 'bg-primary-600 text-white' : 'bg-white border border-gray-300 text-gray-600 hover:bg-gray-50') + '">' + n + '</button>';
+                }
+            });
+            html += '<button type="button" onclick="loadMyCourses(' + (current + 1) + ')" ' + (current >= totalPages ? 'disabled' : '') + ' class="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium ' + (current >= totalPages ? 'opacity-50 cursor-not-allowed bg-gray-50 text-gray-400' : 'bg-white text-gray-700 hover:bg-gray-50') + '">다음 <i class="fas fa-chevron-right ml-1"></i></button>';
+            container.innerHTML = html;
         }
 
         function renderCourses(courses) {

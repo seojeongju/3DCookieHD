@@ -1314,6 +1314,30 @@ app.get('/approved/units-by-job', async (c) => {
             return (a.code || '').localeCompare(b.code || '');
         });
 
+        // 4. 능력단위별 연동 과정명 조회 (course_ncs_units → courses)
+        const codeToTitles = new Map<string, string[]>();
+        try {
+            const { results: courseRows } = await c.env.DB.prepare(`
+                SELECT u.code, c.title
+                FROM courses c
+                JOIN course_ncs_units cnu ON c.id = cnu.course_id
+                JOIN ncs_units u ON u.id = cnu.ncs_unit_id
+                WHERE u.code LIKE ?
+            `).bind(jobCode + '%').all() as { results: { code?: string; title?: string }[] };
+            courseRows.forEach((row: { code?: string; title?: string }) => {
+                const code = (row.code || '').trim();
+                const title = (row.title || '').trim();
+                if (!code) return;
+                if (!codeToTitles.has(code)) codeToTitles.set(code, []);
+                if (title && !codeToTitles.get(code)!.includes(title)) codeToTitles.get(code)!.push(title);
+            });
+        } catch (e) {
+            console.warn('Course titles lookup for units-by-job:', e);
+        }
+        data.forEach((u: { code?: string; course_titles?: string[] }) => {
+            u.course_titles = codeToTitles.get((u.code || '').trim()) || [];
+        });
+
         return c.json({ success: true, data });
     } catch (e) {
         console.error('units-by-job error:', e);

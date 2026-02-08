@@ -113,16 +113,28 @@ export const teacherStudentsHtml = `
                                 </div>
                             </div>
                             
-                            <div class="flex items-center gap-3 w-full md:w-auto">
+                            <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
                                 <div class="relative flex-1 md:flex-none md:w-64">
                                     <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 text-sm"></i>
                                     <input type="text" id="studentSearch" placeholder="이름 또는 ID 검색..." 
                                            class="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:bg-white outline-none transition-all text-sm font-medium tracking-tight"
-                                           onkeyup="if(event.key==='Enter') filterStudents()">
+                                           onkeyup="if(event.key==='Enter') loadStudents(1)">
                                 </div>
-                                <button onclick="filterStudents()" class="px-6 py-4 bg-indigo-600 text-white font-black text-[10px] rounded-2xl hover:bg-slate-900 transition-all uppercase tracking-widest shadow-lg shadow-indigo-100">
+                                <button type="button" onclick="loadStudents(1)" class="px-6 py-4 bg-indigo-600 text-white font-black text-[10px] rounded-2xl hover:bg-slate-900 transition-all uppercase tracking-widest shadow-lg shadow-indigo-100">
                                     조회
                                 </button>
+                                <button type="button" onclick="loadStudents(1)" class="p-2.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-indigo-600 transition" title="새로고침"><i class="fas fa-sync-alt"></i></button>
+                                <span id="searchResultTextTeacherStudents" class="text-sm text-slate-500"></span>
+                                <label class="flex items-center gap-1.5 text-sm text-slate-500">
+                                    <span>페이지당</span>
+                                    <select id="rowsPerPageTeacherStudents" onchange="setRowsPerPageTeacherStudents(parseInt(this.value,10))" class="border border-slate-300 rounded-lg px-2 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500">
+                                        <option value="10">10</option>
+                                        <option value="20" selected>20</option>
+                                        <option value="30">30</option>
+                                        <option value="50">50</option>
+                                    </select>
+                                    <span>건</span>
+                                </label>
                             </div>
                         </div>
 
@@ -145,9 +157,12 @@ export const teacherStudentsHtml = `
                         </div>
 
                         <!-- 풋터 & 페이지네이션 -->
-                        <div class="mt-8 flex justify-between items-center px-8">
+                        <div class="mt-8 flex flex-col sm:flex-row justify-between items-center gap-4 px-8">
                             <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">시스템 데이터 표시</p>
-                            <div id="paginationContainer" class="flex gap-2"></div>
+                            <div class="flex flex-col sm:flex-row items-center justify-between gap-4 w-full sm:w-auto">
+                                <div id="paginationRangeTeacherStudents" class="text-sm text-slate-600"></div>
+                                <nav id="paginationContainer" class="flex flex-wrap items-center justify-center gap-1"></nav>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -160,7 +175,13 @@ export const teacherStudentsHtml = `
         let allStudents = [];
         let selectedCourseId = null;
         let currentPage = 1;
-        const limit = 20;
+        let limit = 20;
+
+        function setRowsPerPageTeacherStudents(n) {
+            limit = n;
+            document.getElementById('rowsPerPageTeacherStudents').value = String(n);
+            loadStudents(1);
+        }
 
         document.addEventListener('DOMContentLoaded', () => {
             const userStr = localStorage.getItem('user');
@@ -248,8 +269,11 @@ export const teacherStudentsHtml = `
         }
 
         async function loadStudents(page = 1) {
+            if (!selectedCourseId) return;
             try {
                 currentPage = page;
+                document.getElementById('searchResultTextTeacherStudents').textContent = '';
+                document.getElementById('paginationRangeTeacherStudents').textContent = '';
                 const token = localStorage.getItem('token');
                 const response = await fetch('/api/enrollments?course_id=' + selectedCourseId + '&status=approved&page=' + page + '&limit=' + limit, {
                     headers: { 'Authorization': 'Bearer ' + token }
@@ -258,9 +282,22 @@ export const teacherStudentsHtml = `
 
                 if (result.success) {
                     allStudents = result.data || [];
-                    document.getElementById('studentCountLabel').textContent = allStudents.length + '명 수강생 조회됨';
+                    const p = result.pagination || {};
+                    const total = p.total != null ? p.total : allStudents.length;
+                    const totalPages = p.totalPages != null ? p.totalPages : 1;
+                    const pageNum = p.page != null ? p.page : page;
+                    if (p.limit) {
+                        limit = p.limit;
+                        const sel = document.getElementById('rowsPerPageTeacherStudents');
+                        if (sel) sel.value = String(p.limit);
+                    }
+                    document.getElementById('searchResultTextTeacherStudents').textContent = '검색결과 ' + total + '건';
+                    document.getElementById('studentCountLabel').textContent = total + '명 수강생 조회됨';
+                    const start = total === 0 ? 0 : (pageNum - 1) * (p.limit || limit) + 1;
+                    const end = Math.min(pageNum * (p.limit || limit), total);
+                    document.getElementById('paginationRangeTeacherStudents').textContent = total > 0 ? start + '-' + end + ' / ' + total + '건' : '';
                     renderStudents();
-                    renderPagination(result.pagination || {});
+                    renderPagination(totalPages, pageNum);
                 }
             } catch (error) { console.error(error); }
         }
@@ -320,11 +357,27 @@ export const teacherStudentsHtml = `
 
         function filterStudents() { renderStudents(); }
 
-        function renderPagination(pagination) {
+        function renderPagination(totalPages, pageNum) {
             const container = document.getElementById('paginationContainer');
-            if (!pagination || pagination.totalPages <= 1) { container.innerHTML = ''; return; }
-            // Basic pagination render for now
-            container.innerHTML = '<button class="px-4 py-2 bg-indigo-600 text-white font-black text-[9px] rounded-xl uppercase tracking-widest">Page 1</button>';
+            if (!totalPages || totalPages <= 1) { container.innerHTML = ''; return; }
+            const current = pageNum != null ? pageNum : currentPage;
+            const radius = 2;
+            const pages = [];
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= current - radius && i <= current + radius)) pages.push(i);
+                else if (pages[pages.length - 1] !== '...') pages.push('...');
+            }
+            let html = '';
+            html += '<button type="button" onclick="loadStudents(' + (current - 1) + ')" ' + (current <= 1 ? 'disabled' : '') + ' class="px-3 py-2 rounded-lg border border-slate-300 text-sm font-medium ' + (current <= 1 ? 'opacity-50 cursor-not-allowed bg-slate-50 text-slate-400' : 'bg-white text-slate-700 hover:bg-slate-50') + '"><i class="fas fa-chevron-left mr-1"></i> 이전</button>';
+            pages.forEach(function(n) {
+                if (n === '...') html += '<span class="px-2 py-2 text-slate-400">…</span>';
+                else {
+                    const active = n === current;
+                    html += '<button type="button" onclick="loadStudents(' + n + ')" class="min-w-[2.25rem] px-3 py-2 rounded-lg text-sm font-medium ' + (active ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-300 text-slate-600 hover:bg-slate-50') + '">' + n + '</button>';
+                }
+            });
+            html += '<button type="button" onclick="loadStudents(' + (current + 1) + ')" ' + (current >= totalPages ? 'disabled' : '') + ' class="px-3 py-2 rounded-lg border border-slate-300 text-sm font-medium ' + (current >= totalPages ? 'opacity-50 cursor-not-allowed bg-slate-50 text-slate-400' : 'bg-white text-slate-700 hover:bg-slate-50') + '">다음 <i class="fas fa-chevron-right ml-1"></i></button>';
+            container.innerHTML = html;
         }
 
         function viewStudentDetail(id) { alert('수강생 #' + id + ' 의 분석 리포트를 생성 중입니다.'); }
