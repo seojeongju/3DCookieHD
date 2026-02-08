@@ -2945,6 +2945,83 @@ app.get('/approved/registrations/:id/facilities-equipment', authMiddleware, requ
     }
 });
 
+/** 교수계획서: 회차(session)별 교과목 목록 — session → approved_course → ncs_registration → curriculum */
+app.get('/approved/syllabus/session/:sessionId/subjects', authMiddleware, requireAdmin, async (c) => {
+    try {
+        const sessionId = parseInt(c.req.param('sessionId'), 10);
+        if (isNaN(sessionId)) return c.json({ success: false, error: '잘못된 회차 ID' }, 400);
+        const { DB } = c.env;
+        const sql = `SELECT s.id, s.approved_course_id, s.session_number, s.instructor_name, s.training_start_date, s.training_end_date,
+              a.name as course_name, a.total_hours, a.daily_hours, a.training_time_start, a.training_time_end
+         FROM course_sessions s
+         LEFT JOIN approved_courses a ON a.id = s.approved_course_id
+         WHERE s.id = ?`;
+        const sessionRow = await DB.prepare(sql).bind(sessionId).first() as Record<string, unknown> | null;
+        if (!sessionRow) return c.json({ success: false, error: '회차를 찾을 수 없습니다' }, 404);
+        const approvedCourseId = sessionRow.approved_course_id as number | null;
+        if (!approvedCourseId) return c.json({ success: true, data: { session: sessionRow, subjects: [] } });
+        const reg = await DB.prepare('SELECT id FROM ncs_approved_registrations WHERE approved_course_id = ?').bind(approvedCourseId).first() as { id: number } | null;
+        if (!reg) return c.json({ success: true, data: { session: sessionRow, subjects: [] } });
+        const { results: curriculum } = await DB.prepare(
+            'SELECT id, type, name, classification, ability_units_json, units_json, objectives_json FROM ncs_approved_curriculum WHERE registration_id = ? ORDER BY sort_order ASC, id ASC'
+        ).bind(reg.id).all() as { results: any[] };
+        return c.json({ success: true, data: { session: sessionRow, subjects: curriculum || [] } });
+    } catch (e) {
+        console.error('ncs syllabus session subjects:', e);
+        return c.json({ success: false, error: '교과목 목록 조회 실패' }, 500);
+    }
+});
+
+/** 교수계획서: NCS 능력단위 기반 학습목표·평가기준 — curriculum_id 또는 unit_codes 로 조회 */
+app.get('/approved/syllabus/objectives', authMiddleware, requireAdmin, async (c) => {
+    try {
+        const curriculumId = c.req.query('curriculum_id');
+        const unitCodesParam = c.req.query('unit_codes');
+        const { DB } = c.env;
+        let unitCodes: string[] = [];
+        if (curriculumId) {
+            const row = await DB.prepare('SELECT ability_units_json FROM ncs_approved_curriculum WHERE id = ?').bind(curriculumId).first() as { ability_units_json?: string } | null;
+            if (!row || !row.ability_units_json) return c.json({ success: true, data: { learning_objectives: '', evaluation_criteria: '' } });
+            try {
+                const parsed = JSON.parse(row.ability_units_json) as (string | { code?: string })[];
+                unitCodes = (parsed || []).map((u) => (typeof u === 'string' ? u : (u?.code || ''))).filter(Boolean);
+            } catch (_) { return c.json({ success: true, data: { learning_objectives: '', evaluation_criteria: '' } }); }
+        } else if (unitCodesParam) {
+            unitCodes = String(unitCodesParam).split(',').map((c) => c.trim()).filter(Boolean);
+        }
+        if (unitCodes.length === 0) return c.json({ success: true, data: { learning_objectives: '', evaluation_criteria: '' } });
+        const learningParts: string[] = [];
+        const criteriaParts: string[] = [];
+        for (const unitCode of unitCodes) {
+            const unit = await DB.prepare('SELECT elements_json FROM ncs_units WHERE code = ?').bind(unitCode).first() as { elements_json?: string } | null;
+            if (!unit?.elements_json) continue;
+            try {
+                const elements = JSON.parse(unit.elements_json) as { name?: string; code?: string; criteria_text?: string; criteriaText?: string; knowledge_text?: string; skill_text?: string; attitude_text?: string }[];
+                if (!Array.isArray(elements)) continue;
+                elements.forEach((el, i) => {
+                    const criteria = (el.criteria_text || el.criteriaText || '').trim();
+                    const knowledge = (el.knowledge_text || '').trim();
+                    const skill = (el.skill_text || '').trim();
+                    const attitude = (el.attitude_text || '').trim();
+                    const name = (el.name || '').trim();
+                    const num = i + 1;
+                    if (name || knowledge || skill || attitude) {
+                        const line = `${num}. ${name || '수행준거'} ${knowledge ? ' ' + knowledge : ''} ${skill ? ' ' + skill : ''} ${attitude ? ' ' + attitude : ''}`.trim();
+                        if (line) learningParts.push(line);
+                    }
+                    if (criteria) criteriaParts.push(`${num}. ${criteria}`);
+                });
+            } catch (_) { /* ignore */ }
+        }
+        const learning_objectives = learningParts.join('\n');
+        const evaluation_criteria = criteriaParts.length ? criteriaParts.join('\n') : learningParts.join('\n');
+        return c.json({ success: true, data: { learning_objectives, evaluation_criteria } });
+    } catch (e) {
+        console.error('ncs syllabus objectives:', e);
+        return c.json({ success: false, error: '학습목표/평가기준 조회 실패' }, 500);
+    }
+});
+
 /** 시설·장비(6단계) 저장 — 시설, 장비, 교재, 훈련재료/소모품 */
 app.put('/approved/registrations/:id/facilities-equipment', authMiddleware, requireAdmin, async (c) => {
     try {

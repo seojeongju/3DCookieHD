@@ -747,10 +747,16 @@ export const adminCoursesSessionsRegisterHtml = (editId?: string) => {
             </div>
         </div>
 
-        <!-- NCS 안내 (탭 ncs 영역) -->
+        <!-- NCS 훈련과정 개설정보 (승인과정 관리에서 등록) -->
         <div id="sessionsTabContentNcs" class="hidden px-6 py-5 border-b border-slate-100 bg-amber-50/50">
-            <p id="sessionsNcsNotice" class="text-slate-700 text-sm">해당 과정의 NCS 훈련과정 여부는 승인 과정 선택 후 표시됩니다.</p>
-            <p class="text-slate-600 text-sm mt-2">NCS 훈련과정은 승인받은 과정을 등록 후 NCS 훈련과정 정보 등록을 하셔야 합니다.</p>
+            <p class="text-slate-700 text-sm font-medium mb-2">NCS 훈련과정 개설정보(과정개요, 교과목 편성, 훈련시간 설정, 평가·교수학습방법 등)는 <strong>승인받은 과정 관리</strong>에서 등록·수정합니다.</p>
+            <p class="text-slate-600 text-sm mb-4">회차별 과정개설은 “어떤 승인과정의 몇 회차를, 언제, 어디서, 누가 진행하는지”만 정하며, 과정의 NCS 내용은 승인과정 쪽에서 한 번만 등록하면 됩니다.</p>
+            <div id="sessionsNcsRegisterLinkWrap" class="hidden">
+                <a id="sessionsNcsRegisterLink" href="#" class="inline-flex items-center px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700">
+                    <i class="fas fa-edit mr-2"></i>선택한 과정의 NCS 훈련과정 개설정보 등록/보기
+                </a>
+            </div>
+            <p id="sessionsNcsNotice" class="text-slate-500 text-sm mt-4">승인받은 과정을 선택하면 위 버튼으로 해당 과정의 NCS 정보 페이지로 이동할 수 있습니다.</p>
         </div>
 
         <!-- 회차별 개설과정 정보 -->
@@ -763,10 +769,10 @@ export const adminCoursesSessionsRegisterHtml = (editId?: string) => {
                         <h2 class="font-black text-slate-800">회차별 개설과정 정보</h2>
                         <span class="flex items-center gap-1.5 text-red-600 text-xs font-bold"><i class="fas fa-exclamation-circle"></i> 필수등록</span>
                     </div>
-                    <p class="px-5 py-2 text-sm text-slate-500">등록된 승인받은 과정 정보로 과정을 회차별 개설할 수 있습니다. 아래의 정보를 등록해 주세요.</p>
+                    <p class="px-5 py-2 text-sm text-slate-500">승인받은 과정을 선택한 뒤, 이 회차만의 일정·진행상황·강사·장소 등을 등록하세요. 과정 상세·NCS 훈련과정 개설정보는 승인받은 과정 관리에서 등록합니다.</p>
 
                     <div class="p-5">
-                        <div class="flex flex-wrap items-center gap-2 mb-6">
+                        <div class="flex flex-wrap items-center gap-2 mb-4">
                             <label class="text-sm font-bold text-slate-700">승인받은 과정 선택</label>
                             <span class="text-red-500 text-xs font-bold">*</span>
                         </div>
@@ -774,82 +780,15 @@ export const adminCoursesSessionsRegisterHtml = (editId?: string) => {
                             <option value="">선택</option>
                         </select>
 
-                        <!-- 2열 과정 상세 (승인 과정 선택 시 채워짐) -->
-                        <div id="sessionsCourseDetailBox" class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-5 hidden">
-                            <div class="space-y-4">
-                                <div>
-                                    <label class="block text-xs font-bold text-slate-500 mb-1">과정명 <span class="text-red-500">*</span></label>
-                                    <input type="text" id="sessionsDetailCourseName" readonly class="w-full px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-lg text-sm font-medium text-slate-700" value="">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-bold text-slate-500 mb-1">과정분류</label>
-                                    <input type="text" id="sessionsDetailCategory" readonly class="w-full px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-lg text-sm text-slate-600" value="">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-bold text-slate-500 mb-1">시간당 단가</label>
-                                    <input type="text" id="sessionsDetailHourlyRate" readonly class="w-full px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-lg text-sm text-slate-600" value="0">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-bold text-slate-500 mb-1">총 훈련일수</label>
-                                    <input type="text" id="sessionsDetailTotalDays" readonly class="w-full px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-lg text-sm text-slate-600" value="">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-bold text-slate-500 mb-1">총 훈련비용</label>
-                                    <input type="text" id="sessionsDetailTotalCost" readonly class="w-full px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-lg text-sm text-slate-600" value="0">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-bold text-slate-500 mb-1">수업계획서</label>
-                                    <p id="sessionsDetailPlanText" class="text-sm text-slate-500">등록된 수업계획서가 없습니다.</p>
-                                </div>
-                            </div>
-                            <div class="space-y-4">
-                                <div>
-                                    <label class="block text-xs font-bold text-slate-500 mb-1">모집인원</label>
-                                    <input type="text" id="sessionsDetailCapacity" readonly class="w-full px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-lg text-sm text-slate-600" value="">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-bold text-slate-500 mb-1">총 훈련시간</label>
-                                    <input type="text" id="sessionsDetailTotalHours" readonly class="w-full px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-lg text-sm text-slate-600" value="">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-bold text-slate-500 mb-1">일일 훈련시간</label>
-                                    <input type="text" id="sessionsDetailDailyHours" readonly class="w-full px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-lg text-sm text-slate-600" value="">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-bold text-slate-500 mb-1">정부지원금</label>
-                                    <input type="text" id="sessionsDetailGovSubsidy" readonly class="w-full px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-lg text-sm text-slate-600" value="0">
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 훈련시간 / 점심시간 -->
-                        <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div>
-                                <h3 class="text-sm font-bold text-slate-700 mb-3">훈련시간</h3>
-                                <div class="flex flex-wrap items-center gap-4">
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-slate-500 text-sm">시작</span>
-                                        <input type="time" id="sessionsDetailTrainingStart" readonly class="px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-sm text-slate-600 w-28">
-                                    </div>
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-slate-500 text-sm">종료</span>
-                                        <input type="time" id="sessionsDetailTrainingEnd" readonly class="px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-sm text-slate-600 w-28">
-                                    </div>
-                                </div>
-                            </div>
-                            <div>
-                                <h3 class="text-sm font-bold text-slate-700 mb-3">점심시간</h3>
-                                <div class="flex flex-wrap items-center gap-4">
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-slate-500 text-sm">시작</span>
-                                        <input type="time" id="sessionsDetailLunchStart" readonly class="px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-sm text-slate-600 w-28" value="00:00">
-                                    </div>
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-slate-500 text-sm">종료</span>
-                                        <input type="time" id="sessionsDetailLunchEnd" readonly class="px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-sm text-slate-600 w-28" value="00:00">
-                                    </div>
-                                </div>
-                            </div>
+                        <!-- 선택한 승인과정 요약 (상세·NCS는 승인과정 관리에서) -->
+                        <div id="sessionsCourseDetailBox" class="mt-6 hidden rounded-xl border border-slate-200 bg-white p-4">
+                            <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">선택한 승인과정</p>
+                            <p id="sessionsDetailCourseName" class="font-bold text-slate-800 mb-2"></p>
+                            <p id="sessionsCourseSummaryLine" class="text-sm text-slate-600 mb-3"></p>
+                            <p id="sessionsDetailPlanText" class="text-sm text-slate-500 mb-3">등록된 수업계획서가 없습니다.</p>
+                            <a id="sessionsApprovedCourseLink" href="#" class="inline-flex items-center text-sm font-medium text-emerald-600 hover:text-emerald-700">
+                                <i class="fas fa-external-link-alt mr-2"></i>승인과정 상세 및 NCS 훈련과정 개설정보 등록/보기
+                            </a>
                         </div>
                     </div>
                 </section>
@@ -915,6 +854,35 @@ export const adminCoursesSessionsRegisterHtml = (editId?: string) => {
                             <div>
                                 <label class="block text-sm font-bold text-slate-700 mb-1"><span class="text-red-500">*</span> 종료일</label>
                                 <input type="date" id="sessionsFormTrainingEnd" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 rounded-xl border border-slate-200 bg-slate-50/50 p-5">
+                            <div>
+                                <h3 class="text-sm font-bold text-slate-700 mb-3">훈련시간</h3>
+                                <div class="flex flex-wrap items-center gap-4">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-slate-500 text-sm">시작</span>
+                                        <input type="time" id="sessionsFormTrainingTimeStart" class="px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 w-28 bg-white">
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-slate-500 text-sm">종료</span>
+                                        <input type="time" id="sessionsFormTrainingTimeEnd" class="px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 w-28 bg-white">
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-bold text-slate-700 mb-3">점심시간</h3>
+                                <div class="flex flex-wrap items-center gap-4">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-slate-500 text-sm">시작</span>
+                                        <input type="time" id="sessionsFormLunchTimeStart" class="px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 w-28 bg-white" value="12:00">
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-slate-500 text-sm">종료</span>
+                                        <input type="time" id="sessionsFormLunchTimeEnd" class="px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 w-28 bg-white" value="13:00">
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -1074,3 +1042,92 @@ export const adminCoursesCopyHtml = () =>
     <p class="text-sm text-slate-500 text-center">기초 데이터로 복사한 회차는 과정등록 시 바로 사용할 수 있습니다.</p>
     `
     );
+
+/** 교수계획서 작성 페이지 — 회차별 교과목 선택 후 NCS 학습목표/평가기준 로드 */
+export const adminSyllabusHtml = (sessionId: string) => {
+    return courseSubPageLayout(
+        'courses-sessions',
+        '교수계획서',
+        '과정·회차별 교과목을 선택하여 교수계획서를 작성합니다. 학습목표와 평가기준은 NCS 능력단위에서 불러옵니다.',
+        'fa-file-alt',
+        `
+    <div class="bento-card bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="px-6 py-5 border-b border-slate-200 bg-white">
+            <div class="flex flex-wrap justify-between items-start gap-4">
+                <div>
+                    <h1 class="text-xl font-black text-slate-800">교수계획서</h1>
+                    <p id="syllabusCourseName" class="text-slate-600 mt-1 font-medium">과정명 : <span class="text-slate-400">로딩 중...</span></p>
+                    <p class="text-slate-500 text-sm mt-2">개설과정 회차 선택 시 해당 회차별 교수계획서로 변경됩니다. 교과목별로 작성할 수 있습니다.</p>
+                </div>
+                <a href="/admin/courses/sessions" class="shrink-0 px-4 py-2.5 bg-slate-100 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-200 transition flex items-center gap-2">
+                    <i class="fas fa-list"></i> 목록
+                </a>
+            </div>
+        </div>
+
+        <div class="border-b border-slate-200 bg-slate-50/80 px-6">
+            <p class="py-3 text-sm text-slate-600">교과목명을 선택하시면 해당 교과목의 교수계획서 작성 폼이 표시됩니다.</p>
+            <div id="syllabusSubjectTabs" class="flex flex-wrap gap-2 pb-3">
+                <span class="text-slate-400 text-sm">교과목 로딩 중...</span>
+            </div>
+        </div>
+
+        <div id="syllabusFormArea" class="p-6 hidden">
+            <div class="flex flex-wrap justify-between items-center gap-4 mb-4">
+                <h2 id="syllabusSubjectTitle" class="text-lg font-bold text-slate-800">선택된 교과목 : <span class="text-emerald-600"></span></h2>
+                <div class="flex gap-2">
+                    <button type="button" id="syllabusLoadNcs" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700">
+                        <i class="fas fa-sync-alt mr-1"></i> NCS에서 학습목표·평가기준 불러오기
+                    </button>
+                </div>
+            </div>
+
+            <div class="border border-slate-200 rounded-xl overflow-hidden bg-white">
+                <table class="w-full text-sm border-collapse">
+                    <tbody>
+                        <tr class="border-b border-slate-100"><td class="bg-slate-50 w-32 font-bold text-slate-600 p-3">과정명</td><td class="p-3" id="syllabusCourseNameCell">-</td></tr>
+                        <tr class="border-b border-slate-100"><td class="bg-slate-50 w-32 font-bold text-slate-600 p-3">훈련수준</td><td class="p-3"><input type="text" id="syllabusTrainingLevel" class="w-full max-w-xs px-3 py-2 border border-slate-200 rounded-lg" placeholder="예: 2수준"></td></tr>
+                        <tr class="border-b border-slate-100"><td class="bg-slate-50 w-32 font-bold text-slate-600 p-3">훈련시간</td><td class="p-3"><input type="text" id="syllabusTrainingHours" class="w-full max-w-xs px-3 py-2 border border-slate-200 rounded-lg" placeholder="예: 33"></td></tr>
+                        <tr class="border-b border-slate-100"><td class="bg-slate-50 w-32 font-bold text-slate-600 p-3">훈련교사</td><td class="p-3"><input type="text" id="syllabusInstructors" class="w-full max-w-md px-3 py-2 border border-slate-200 rounded-lg" placeholder="예: 홍길동, 김철수"></td></tr>
+                        <tr class="border-b border-slate-100"><td class="bg-slate-50 w-32 font-bold text-slate-600 p-3">수업방법</td><td class="p-3"><input type="text" id="syllabusTeachingMethod" class="w-full max-w-md px-3 py-2 border border-slate-200 rounded-lg" placeholder="예: 혼합형"></td></tr>
+                        <tr class="border-b border-slate-100"><td class="bg-slate-50 w-32 font-bold text-slate-600 p-3">훈련생</td><td class="p-3"><input type="text" id="syllabusTrainees" class="w-full max-w-md px-3 py-2 border border-slate-200 rounded-lg"></td></tr>
+                        <tr class="border-b border-slate-100"><td class="bg-slate-50 w-32 font-bold text-slate-600 p-3">저자</td><td class="p-3"><input type="text" id="syllabusAuthor" class="w-full max-w-md px-3 py-2 border border-slate-200 rounded-lg"></td></tr>
+                        <tr class="border-b border-slate-100"><td class="bg-slate-50 w-32 font-bold text-slate-600 p-3">교재명</td><td class="p-3"><input type="text" id="syllabusTextbook" class="w-full max-w-md px-3 py-2 border border-slate-200 rounded-lg"></td></tr>
+                        <tr class="border-b border-slate-100"><td class="bg-slate-50 w-32 font-bold text-slate-600 p-3">출판자</td><td class="p-3"><input type="text" id="syllabusPublisher" class="w-full max-w-md px-3 py-2 border border-slate-200 rounded-lg"></td></tr>
+                        <tr class="border-b border-slate-100"><td class="bg-slate-50 w-32 font-bold text-slate-600 p-3">발행년도</td><td class="p-3"><input type="text" id="syllabusPubYear" class="w-full max-w-xs px-3 py-2 border border-slate-200 rounded-lg" placeholder="예: 2022-01-01"></td></tr>
+                        <tr class="border-b border-slate-100">
+                            <td class="bg-slate-50 w-32 font-bold text-slate-600 p-3 align-top">학습목표</td>
+                            <td class="p-3"><textarea id="syllabusLearningObjectives" rows="5" class="w-full px-3 py-2 border border-slate-200 rounded-lg" placeholder="NCS에서 불러오기 또는 직접 입력"></textarea></td>
+                        </tr>
+                        <tr class="border-b border-slate-100">
+                            <td class="bg-slate-50 w-32 font-bold text-slate-600 p-3 align-top">평가기준</td>
+                            <td class="p-3"><textarea id="syllabusEvaluationCriteria" rows="5" class="w-full px-3 py-2 border border-slate-200 rounded-lg" placeholder="NCS에서 불러오기 또는 직접 입력"></textarea></td>
+                        </tr>
+                        <tr class="border-b border-slate-100">
+                            <td class="bg-slate-50 w-32 font-bold text-slate-600 p-3 align-top">지시사항</td>
+                            <td class="p-3"><textarea id="syllabusInstructions" rows="3" class="w-full px-3 py-2 border border-slate-200 rounded-lg"></textarea></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="mt-4 flex gap-2">
+                <button type="button" id="syllabusSaveDoc" class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700">
+                    <i class="fas fa-save mr-1"></i> 문서저장
+                </button>
+                <a href="/admin/courses/sessions" class="px-5 py-2.5 bg-slate-100 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-200 inline-flex items-center gap-1"><i class="fas fa-list"></i> 목록</a>
+            </div>
+        </div>
+
+        <div id="syllabusEmptyState" class="p-12 text-center text-slate-400">
+            <i class="fas fa-book-open text-4xl mb-3 block"></i>
+            <p class="font-medium">교과목을 선택해주세요</p>
+            <p class="text-sm mt-1">위에서 교과목을 선택하면 해당 과목의 교수계획서 작성 폼이 표시됩니다.</p>
+        </div>
+    </div>
+    <script>
+        window.SYLLABUS_SESSION_ID = ${JSON.stringify(sessionId)};
+    </script>
+    <script src="/static/syllabus.js"></script>
+    `
+    );
+};

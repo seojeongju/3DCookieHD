@@ -27,7 +27,9 @@
         if (!courseId) {
             if (box) box.classList.add('hidden');
             if (nameEl) nameEl.innerHTML = '과정명 : <span class="text-slate-400">승인 과정을 선택하세요</span>';
-            setTabPlanUrls(null, null);
+            var ncsLinkWrap = document.getElementById('sessionsNcsRegisterLinkWrap');
+            if (ncsLinkWrap) ncsLinkWrap.classList.add('hidden');
+            setTabPlanUrls(null, null, editId);
             return Promise.resolve();
         }
         return fetch('/api/approved-courses/' + courseId, { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } })
@@ -35,19 +37,6 @@
             .then(function(json) {
                 if (!json.success || !json.data) return;
                 var c = json.data;
-                function set(id, val) { var el = document.getElementById(id); if (el) el.value = val != null ? String(val) : ''; }
-                function setText(id, val) { var el = document.getElementById(id); if (el) el.textContent = val != null ? String(val) : ''; }
-                set('sessionsDetailCourseName', c.name);
-                set('sessionsDetailCategory', c.category_name || '');
-                set('sessionsDetailHourlyRate', c.hourly_rate != null ? c.hourly_rate : '0');
-                set('sessionsDetailTotalDays', c.total_days != null ? c.total_days : '');
-                set('sessionsDetailTotalCost', c.total_cost != null ? c.total_cost : '0');
-                set('sessionsDetailCapacity', c.capacity != null ? c.capacity : '');
-                set('sessionsDetailTotalHours', c.total_hours != null ? c.total_hours : '');
-                set('sessionsDetailDailyHours', c.daily_hours != null ? c.daily_hours : '');
-                set('sessionsDetailGovSubsidy', c.gov_subsidy != null ? c.gov_subsidy : '0');
-                var planText = document.getElementById('sessionsDetailPlanText');
-                if (planText) planText.innerHTML = c.url_plan ? '<a href="' + (c.url_plan || '').replace(/"/g, '&quot;') + '" target="_blank" class="text-primary-600 hover:underline">등록됨 (클릭하여 열기)</a>' : '등록된 수업계획서가 없습니다.';
                 function toTimeOnly(s) {
                     if (!s) return '';
                     s = String(s).trim();
@@ -57,19 +46,44 @@
                     if (/^\d{1,2}:\d{2}/.test(s)) return s.slice(0, 5);
                     return s;
                 }
-                set('sessionsDetailTrainingStart', toTimeOnly(c.training_time_start));
-                set('sessionsDetailTrainingEnd', toTimeOnly(c.training_time_end));
-                if (box) box.classList.remove('hidden');
+                var nameEl2 = document.getElementById('sessionsDetailCourseName');
+                if (nameEl2) nameEl2.textContent = c.name || '';
+                var parts = [];
+                if (c.category_name) parts.push(c.category_name);
+                if (c.total_hours != null) parts.push('총 ' + c.total_hours + '시간');
+                if (c.capacity != null) parts.push('모집 ' + c.capacity + '명');
+                if (c.total_cost != null && c.total_cost !== 0) parts.push('훈련비 ' + Number(c.total_cost).toLocaleString() + '원');
+                var startT = toTimeOnly(c.training_time_start);
+                var endT = toTimeOnly(c.training_time_end);
+                if (startT && endT) parts.push('훈련 ' + startT + '~' + endT);
+                var summaryEl = document.getElementById('sessionsCourseSummaryLine');
+                if (summaryEl) summaryEl.textContent = parts.length ? parts.join(' · ') : '—';
+                var planText = document.getElementById('sessionsDetailPlanText');
+                if (planText) planText.innerHTML = c.url_plan ? '<a href="' + (c.url_plan || '').replace(/"/g, '&quot;') + '" target="_blank" class="text-emerald-600 hover:underline">등록됨 (클릭하여 열기)</a>' : '등록된 수업계획서가 없습니다.';
+                var approvedLink = document.getElementById('sessionsApprovedCourseLink');
+                if (approvedLink) { approvedLink.href = '/admin/courses/approved/register?id=' + courseId + '&tab=ncs'; }
+                var ncsLinkWrap = document.getElementById('sessionsNcsRegisterLinkWrap');
+                var ncsLink = document.getElementById('sessionsNcsRegisterLink');
+                if (ncsLink) ncsLink.href = '/admin/courses/approved/register?id=' + courseId + '&tab=ncs';
+                if (ncsLinkWrap) ncsLinkWrap.classList.remove('hidden');
                 if (nameEl) nameEl.innerHTML = '과정명 : <span class="font-medium text-slate-800">' + (c.name || '').replace(/</g, '&lt;') + '</span>';
-                setTabPlanUrls(c.url_plan || null, c.url_detail_plan || null);
+                if (box) box.classList.remove('hidden');
+                setTabPlanUrls(c.url_plan || null, c.url_detail_plan || null, editId);
             })
             .catch(function() { if (box) box.classList.add('hidden'); });
     }
 
-    function setTabPlanUrls(urlPlan, urlDetailPlan) {
+    function setTabPlanUrls(urlPlan, urlDetailPlan, sessionId) {
         var aPlan = document.getElementById('sessionsTabUrlPlan');
         var aDetail = document.getElementById('sessionsTabUrlDetailPlan');
-        if (aPlan) { aPlan.href = urlPlan || '#'; aPlan.style.pointerEvents = urlPlan ? 'auto' : 'none'; aPlan.classList.toggle('opacity-50', !urlPlan); }
+        var planHref = (sessionId ? '/admin/courses/sessions/' + sessionId + '/syllabus' : null) || urlPlan || '#';
+        var planActive = !!(sessionId || urlPlan);
+        if (aPlan) {
+            aPlan.href = planHref;
+            aPlan.style.pointerEvents = planActive ? 'auto' : 'none';
+            aPlan.classList.toggle('opacity-50', !planActive);
+            if (sessionId) aPlan.removeAttribute('target'); else aPlan.setAttribute('target', '_blank');
+        }
         if (aDetail) { aDetail.href = urlDetailPlan || '#'; aDetail.style.pointerEvents = urlDetailPlan ? 'auto' : 'none'; aDetail.classList.toggle('opacity-50', !urlDetailPlan); }
     }
 
@@ -220,6 +234,23 @@
                 setSelectedInstructors(d.instructor_name || '');
                 document.getElementById('sessionsFormTrainingStart').value = (d.training_start_date || '').slice(0, 10);
                 document.getElementById('sessionsFormTrainingEnd').value = (d.training_end_date || '').slice(0, 10);
+                function toTimeHHMM(s) {
+                    if (!s) return '';
+                    s = String(s).trim();
+                    if (/^\d{1,2}:\d{2}$/.test(s)) return s;
+                    if (/^\d{1,2}:\d{2}:\d{2}/.test(s)) return s.slice(0, 5);
+                    var idx = s.indexOf(' ');
+                    if (idx >= 0) s = s.slice(idx + 1);
+                    return /^\d{1,2}:\d{2}/.test(s) ? s.slice(0, 5) : '';
+                }
+                var ttStart = document.getElementById('sessionsFormTrainingTimeStart');
+                var ttEnd = document.getElementById('sessionsFormTrainingTimeEnd');
+                var ltStart = document.getElementById('sessionsFormLunchTimeStart');
+                var ltEnd = document.getElementById('sessionsFormLunchTimeEnd');
+                if (ttStart) ttStart.value = toTimeHHMM(d.training_time_start) || '';
+                if (ttEnd) ttEnd.value = toTimeHHMM(d.training_time_end) || '';
+                if (ltStart) ltStart.value = toTimeHHMM(d.lunch_time_start) || '12:00';
+                if (ltEnd) ltEnd.value = toTimeHHMM(d.lunch_time_end) || '13:00';
                 document.getElementById('sessionsFormRegisteredAt').value = (d.registered_at || '').slice(0, 10);
                 var locationEl = document.getElementById('sessionsFormLocation');
                 if (locationEl) locationEl.value = d.location || '';
@@ -275,6 +306,14 @@
         var locationVal = (locationEl && locationEl.value ? locationEl.value : '').trim() || null;
         var trainingStart = (document.getElementById('sessionsFormTrainingStart').value || '').trim() || null;
         var trainingEnd = (document.getElementById('sessionsFormTrainingEnd').value || '').trim() || null;
+        var trainingTimeStartEl = document.getElementById('sessionsFormTrainingTimeStart');
+        var trainingTimeEndEl = document.getElementById('sessionsFormTrainingTimeEnd');
+        var lunchTimeStartEl = document.getElementById('sessionsFormLunchTimeStart');
+        var lunchTimeEndEl = document.getElementById('sessionsFormLunchTimeEnd');
+        var trainingTimeStart = (trainingTimeStartEl && trainingTimeStartEl.value ? trainingTimeStartEl.value : '').trim() || null;
+        var trainingTimeEnd = (trainingTimeEndEl && trainingTimeEndEl.value ? trainingTimeEndEl.value : '').trim() || null;
+        var lunchTimeStart = (lunchTimeStartEl && lunchTimeStartEl.value ? lunchTimeStartEl.value : '').trim() || null;
+        var lunchTimeEnd = (lunchTimeEndEl && lunchTimeEndEl.value ? lunchTimeEndEl.value : '').trim() || null;
         var registeredAt = (document.getElementById('sessionsFormRegisteredAt').value || '').trim() || null;
         var recruitmentStatus = (document.getElementById('sessionsFormRecruitmentStatus') && document.getElementById('sessionsFormRecruitmentStatus').value) || 'normal';
         var repExposeEl = document.querySelector('input[name="sessionsFormRepImageExposure"]:checked');
@@ -299,6 +338,10 @@
                 location: locationVal,
                 training_start_date: trainingStart,
                 training_end_date: trainingEnd,
+                training_time_start: trainingTimeStart,
+                training_time_end: trainingTimeEnd,
+                lunch_time_start: lunchTimeStart,
+                lunch_time_end: lunchTimeEnd,
                 registered_at: registeredAt,
                 recruitment_status: recruitmentStatus,
                 representative_image_exposure: representativeImageExposure,
@@ -321,6 +364,10 @@
                 location: locationVal,
                 training_start_date: trainingStart,
                 training_end_date: trainingEnd,
+                training_time_start: trainingTimeStart,
+                training_time_end: trainingTimeEnd,
+                lunch_time_start: lunchTimeStart,
+                lunch_time_end: lunchTimeEnd,
                 registered_at: registeredAt,
                 recruitment_status: recruitmentStatus,
                 representative_image_exposure: representativeImageExposure,

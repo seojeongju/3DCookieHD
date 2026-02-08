@@ -48,6 +48,7 @@ import {
     adminCoursesSessionsHtml,
     adminCoursesSessionsRegisterHtml,
     adminCoursesCopyHtml,
+    adminSyllabusHtml,
 } from './views/admin_courses_sub';
 import { adminStudentsListHtml } from './views/admin_students';
 import { adminHrdHtml } from './views/admin_hrd';
@@ -116,6 +117,7 @@ import { adminEducationGalleryHtml } from './views/admin_education_gallery';
 import { scheduleHtml } from './views/schedule';
 import { locationsHtml } from './views/locations';
 import { coursesListHtml } from './views/courses';
+import { courseSessionsListHtml, courseSessionDetailHtml } from './views/course_sessions_public';
 import { achievementsHtml } from './views/achievements';
 import { footerHtml } from './views/footer';
 import { navigationHtml } from './views/components/navigation';
@@ -273,6 +275,7 @@ app.get('/admin/courses/approved/register/:id', (c) => c.html(adminCoursesApprov
 app.get('/admin/courses/sessions', (c) => c.html(adminCoursesSessionsHtml()));
 app.get('/admin/courses/sessions/register', (c) => c.html(adminCoursesSessionsRegisterHtml()));
 app.get('/admin/courses/sessions/register/:id', (c) => c.html(adminCoursesSessionsRegisterHtml(c.req.param('id'))));
+app.get('/admin/courses/sessions/:sessionId/syllabus', (c) => c.html(adminSyllabusHtml(c.req.param('sessionId'))));
 app.get('/admin/courses/copy', (c) => c.html(adminCoursesCopyHtml()));
 app.get('/admin/partner-universities', (c) => c.html(adminPartnerUniversitiesHtml));
 app.get('/admin/users', (c) => c.html(adminUsersHtml())); // 회원관리 - 역할 및 권한 관리
@@ -354,6 +357,8 @@ app.get('/register', (c) => c.html(registerHtml));
 app.get('/jobs', (c) => c.html(jobsListHtml));
 app.get('/jobseekers', (c) => c.html(jobseekersListHtml));
 app.get('/courses', (c) => c.html(coursesListHtml));
+app.get('/course-sessions', (c) => c.html(courseSessionsListHtml));
+app.get('/course-sessions/:id', (c) => c.html(courseSessionDetailHtml(c.req.param('id'))));
 app.get('/portfolios', (c) => c.html(portfoliosListHtml));
 app.get('/posts', (c) => c.html(postsListHtml));
 app.get('/prototype-gallery', (c) => c.html(prototypeGalleryHtml));
