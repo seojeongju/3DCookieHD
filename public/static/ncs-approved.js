@@ -2369,6 +2369,8 @@
                 try { abilityUnits = it.ability_units_json ? JSON.parse(it.ability_units_json) : []; } catch (e) { }
                 var codes = abilityUnits.map(function (u) { return typeof u === 'string' ? u : (u.code || u.name || ''); }).filter(Boolean);
                 if (codes.length) nameCell += ' <span class="text-slate-500 font-mono text-xs">(' + codes.map(attrEsc).join(', ') + ')</span>';
+                var elementLines = buildAbilityUnitElementLines(it);
+                if (elementLines.length) nameCell += '<br><span class="text-xs text-slate-500">능력단위요소명: ' + elementLines.join(' · ') + '</span>';
                 var cp = it.classification_path;
                 if (cp) {
                     var ncsLarge = (function (c) { var n = parseInt(c, 10); return isNaN(n) ? 'NCS' + c : 'NCS' + (n < 10 ? '00' : n < 100 ? '0' : '') + n; })(cp.largeCode);
@@ -2412,6 +2414,47 @@
             if (isNaN(n)) return 'NCS' + String(code);
             return 'NCS' + (n < 10 ? '00' : n < 100 ? '0' : '') + n;
         }
+        function buildAbilityUnitElementLines(it) {
+            var abilityUnits = [];
+            try { abilityUnits = it.ability_units_json ? JSON.parse(it.ability_units_json) : []; } catch (e) { }
+            var units = [];
+            try { units = it.units_json ? JSON.parse(it.units_json) : []; } catch (e) { }
+            var objectives = [];
+            try { objectives = it.objectives_json ? JSON.parse(it.objectives_json) : []; } catch (e) { }
+            function toCodeName(entry) {
+                if (entry == null) return { code: '', name: '' };
+                if (typeof entry === 'string') return { code: entry.trim(), name: '' };
+                var c = (entry.code || entry.unit_code || '').toString().trim();
+                var n = (entry.name || entry.unit_name || '').toString().trim();
+                return { code: c, name: n };
+            }
+            var lines = [];
+            if (Array.isArray(abilityUnits) && abilityUnits.length) {
+                abilityUnits.forEach(function (entry) {
+                    if (entry && typeof entry === 'object' && Array.isArray(entry.elements) && entry.elements.length) {
+                        entry.elements.forEach(function (el) {
+                            var cn = toCodeName(el);
+                            if (cn.code || cn.name) lines.push((cn.code ? '[' + attrEsc(cn.code) + '] ' : '') + attrEsc(cn.name || cn.code));
+                        });
+                    }
+                });
+            }
+            if (lines.length === 0 && Array.isArray(units) && units.length) {
+                objectives = Array.isArray(objectives) ? objectives : [];
+                units.forEach(function (u, i) {
+                    var code = typeof u === 'string' ? u : (u && (u.code || u.unit_code));
+                    var name = objectives[i] != null ? objectives[i] : (u && typeof u === 'object' ? (u.name || u.unit_name) : '');
+                    if (code || name) lines.push((code ? '[' + attrEsc(code) + '] ' : '') + attrEsc(name || code || ''));
+                });
+            }
+            if (lines.length === 0 && Array.isArray(abilityUnits) && abilityUnits.length) {
+                abilityUnits.forEach(function (entry) {
+                    var cn = toCodeName(entry);
+                    if (cn.code || cn.name) lines.push((cn.code ? '[' + attrEsc(cn.code) + '] ' : '') + attrEsc(cn.name || cn.code));
+                });
+            }
+            return lines;
+        }
         function cardHtml(it, th, pr) {
             var abilityUnits = [];
             try { abilityUnits = it.ability_units_json ? JSON.parse(it.ability_units_json) : []; } catch (e) { }
@@ -2420,6 +2463,7 @@
                 var code = typeof u === 'string' ? u : (u.code || '');
                 return code ? (attrEsc(name) + ' <span class="text-slate-500 font-mono">(' + attrEsc(code) + ')</span>') : attrEsc(name);
             }).join(', ') : '—';
+            var elementLines = buildAbilityUnitElementLines(it);
             var cp = it.classification_path;
             var midPart = cp ? (attrEsc(cp.midCode || '') + (cp.midName ? ' ' + attrEsc(cp.midName) : '')) : '';
             var smallPart = cp ? (attrEsc(cp.smallCode || '') + (cp.smallName ? ' ' + attrEsc(cp.smallName) : '')) : '';
@@ -2438,6 +2482,7 @@
                 '</h4>' +
                 (fullClassLine ? '<p class="text-xs text-slate-500 mt-1"><span class="font-bold">전체분류:</span> <span class="font-mono">' + fullClassLine + '</span></p>' : '') +
                 '<p class="text-xs text-slate-500 mt-1"><span class="font-bold">능력단위:</span> ' + unitLabel + '</p>' +
+                (elementLines.length ? '<p class="text-xs text-slate-600 mt-1"><span class="font-bold">능력단위요소명:</span> ' + elementLines.join(' · ') + '</p>' : '') +
                 '</div>' +
                 '<div class="flex items-center gap-2">' +
                 '<span class="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded-lg">' + (it.type === 'basic' ? '직업기초' : it.type === 'ncs' ? 'NCS' : '비NCS') + '</span>' +
@@ -2779,6 +2824,8 @@
             try { abilityUnits = item.ability_units_json ? JSON.parse(item.ability_units_json) : []; } catch (e) { }
             var units = [];
             try { units = item.units_json ? JSON.parse(item.units_json) : []; } catch (e) { }
+            var objectives = [];
+            try { objectives = item.objectives_json ? JSON.parse(item.objectives_json) : []; } catch (e) { }
 
             function toCodeName(entry) {
                 if (entry == null) return { code: '', name: '' };
@@ -2788,22 +2835,30 @@
                 return { code: c, name: n };
             }
             var unitCodeNameLines = [];
-            var allEntries = [];
             if (Array.isArray(abilityUnits) && abilityUnits.length) {
                 abilityUnits.forEach(function (entry) {
-                    var cn = toCodeName(entry);
-                    if (cn.code || cn.name) allEntries.push(cn);
+                    if (entry && typeof entry === 'object' && Array.isArray(entry.elements) && entry.elements.length) {
+                        entry.elements.forEach(function (el) {
+                            var cn = toCodeName(el);
+                            if (cn.code || cn.name) unitCodeNameLines.push((cn.code ? '[' + esc(cn.code) + '] ' : '') + esc(cn.name || cn.code));
+                        });
+                    }
                 });
             }
-            if (Array.isArray(units) && units.length && !allEntries.length) {
-                units.forEach(function (entry) {
-                    var cn = toCodeName(entry);
-                    if (cn.code || cn.name) allEntries.push(cn);
+            if (unitCodeNameLines.length === 0 && Array.isArray(units) && units.length) {
+                objectives = Array.isArray(objectives) ? objectives : [];
+                units.forEach(function (u, i) {
+                    var code = typeof u === 'string' ? u : (u && (u.code || u.unit_code));
+                    var name = objectives[i] != null ? objectives[i] : (u && typeof u === 'object' ? (u.name || u.unit_name) : '');
+                    if (code || name) unitCodeNameLines.push((code ? '[' + esc(code) + '] ' : '') + esc(name || code || ''));
                 });
             }
-            allEntries.forEach(function (cn) {
-                unitCodeNameLines.push((cn.code ? '[' + esc(cn.code) + '] ' : '') + esc(cn.name || cn.code));
-            });
+            if (unitCodeNameLines.length === 0 && Array.isArray(abilityUnits) && abilityUnits.length) {
+                abilityUnits.forEach(function (entry) {
+                    var cn = toCodeName(entry);
+                    if (cn.code || cn.name) unitCodeNameLines.push((cn.code ? '[' + esc(cn.code) + '] ' : '') + esc(cn.name || cn.code));
+                });
+            }
             var unitLabel = unitCodeNameLines.length ? unitCodeNameLines.join(', ') : '—';
             var abilityUnitBlock = unitCodeNameLines.length
                 ? '<p class="text-xs font-bold text-slate-400 mt-2 uppercase tracking-widest pl-8">능력단위요소명</p><p class="text-sm text-slate-600 mt-1 pl-8">' + unitCodeNameLines.join(' · ') + '</p>'

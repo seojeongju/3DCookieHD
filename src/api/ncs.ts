@@ -2623,7 +2623,7 @@ app.get('/approved/registrations/:id/training-hours', authMiddleware, requireAdm
             console.error('[NCS_API] Get training-hours error:', e);
         }
         const { results: curriculum } = await c.env.DB.prepare(
-            'SELECT id, type, name, job_name, classification, ability_units_json, sort_order FROM ncs_approved_curriculum WHERE registration_id = ? ORDER BY sort_order ASC, id ASC'
+            'SELECT id, type, name, job_name, classification, ability_units_json, units_json, objectives_json, sort_order FROM ncs_approved_curriculum WHERE registration_id = ? ORDER BY sort_order ASC, id ASC'
         ).bind(id).all() as { results: any[] };
         const curriculumIds = (curriculum || []).map((r: { id: number }) => r.id);
         let hoursMap: Record<number, { theory_hours: number; practice_hours: number }> = {};
@@ -2691,7 +2691,7 @@ app.get('/approved/registrations/:id/training-hours', authMiddleware, requireAdm
             }
         }
 
-        const data = (curriculum || []).map((row: { id: number; type: string; name: string; job_name?: string; classification: string | null; ability_units_json?: string; sort_order: number }) => {
+        const data = (curriculum || []).map((row: { id: number; type: string; name: string; job_name?: string; classification: string | null; ability_units_json?: string; units_json?: string | null; objectives_json?: string | null; sort_order: number }) => {
             const h = hoursMap[row.id] || { theory_hours: 0, practice_hours: 0 };
             let classification_path: { largeCode: string; largeName: string; midCode: string; midName: string; smallCode: string; smallName: string; subCode: string; subName: string; unitCode: string } | null = null;
             if (row.type === 'ncs' && row.ability_units_json) {
@@ -2718,6 +2718,8 @@ app.get('/approved/registrations/:id/training-hours', authMiddleware, requireAdm
                 job_name: row.job_name,
                 classification: row.classification,
                 ability_units_json: row.ability_units_json,
+                units_json: row.units_json ?? undefined,
+                objectives_json: row.objectives_json ?? undefined,
                 sort_order: row.sort_order,
                 theory_hours: h.theory_hours,
                 practice_hours: h.practice_hours,
