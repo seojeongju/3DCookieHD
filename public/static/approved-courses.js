@@ -90,7 +90,7 @@
                         return '<tr class="hover:bg-slate-50/80 transition align-middle">' +
                             '<td class="p-3 text-center text-slate-500 text-xs align-middle">' + no + '</td>' +
                             '<td class="p-3 text-slate-600 text-xs font-medium align-middle whitespace-nowrap">' + (item.category_name || '-') + '</td>' +
-                            '<td class="p-3 align-middle min-w-0">' +
+                            '<td class="p-3 align-middle min-w-0 approved-col-name" title="' + nameEsc + '">' +
                             '<div class="font-bold text-slate-700 text-sm line-clamp-2 leading-tight" title="' + nameEsc + '">' + nameEsc + '</div>' +
                             linksHtml +
                             '</td>' +

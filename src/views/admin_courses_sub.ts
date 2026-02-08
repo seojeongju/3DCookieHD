@@ -342,12 +342,12 @@ export const adminCoursesApprovedHtml = () =>
             .approved-list-table .approved-col-status { white-space: nowrap; min-width: 3.5rem; }
         </style>
         <div class="flex-1 overflow-auto custom-scrollbar relative">
-            <table class="approved-list-table w-full text-left border-collapse table-fixed" style="min-width: 880px;">
+            <table class="approved-list-table w-full text-left border-collapse table-fixed" style="min-width: 990px;">
                 <thead class="bg-slate-100 text-slate-500 text-xs font-bold uppercase sticky top-0 z-10 shadow-sm">
                     <tr>
                         <th class="p-3 w-12 text-center border-b border-slate-200">No.</th>
                         <th class="p-3 w-20 border-b border-slate-200">분류</th>
-                        <th class="p-3 border-b border-slate-200" style="width: 150px;">승인 과정명</th>
+                        <th class="p-3 border-b border-slate-200" style="width: 260px;">승인 과정명</th>
                         <th class="p-3 border-b border-slate-200 approved-col-instructor" style="width: 120px;">교·강사</th>
                         <th class="p-3 w-20 text-center border-b border-slate-200">훈련시간</th>
                         <th class="p-3 text-center border-b border-slate-200">정원</th>
@@ -408,10 +408,13 @@ export const adminCoursesApprovedRegisterHtml = (editId?: string) => {
             <div class="w-5 h-5 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center text-[10px]">2</div>
             NCS 설계
         </button>
-        <button onclick="alert('준비중입니다. 교수계획서는 NCS 설계 완료 후 생성 가능합니다.')" class="tab-btn px-6 py-3 text-sm font-bold text-slate-400 border-b-2 border-transparent hover:text-slate-600 transition-colors whitespace-nowrap flex items-center gap-2">
-             <div class="w-5 h-5 rounded-full bg-slate-50 text-slate-300 flex items-center justify-center text-[10px]">3</div>
-            교수계획서 (예정)
-        </button>
+        ${editId ? `<a id="tab-syllabus-link" href="/admin/courses/sessions/register?approvedCourseId=${encodeURIComponent(editId)}" class="tab-btn px-6 py-3 text-sm font-bold text-slate-500 border-b-2 border-transparent hover:text-slate-700 transition-colors whitespace-nowrap flex items-center gap-2 no-underline">
+            <div class="w-5 h-5 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center text-[10px]">3</div>
+            교수계획서
+        </a>` : `<button type="button" onclick="alert('먼저 과정을 저장한 후 회차 개설 페이지에서 교수계획서를 이용할 수 있습니다.');" class="tab-btn px-6 py-3 text-sm font-bold text-slate-400 border-b-2 border-transparent hover:text-slate-600 transition-colors whitespace-nowrap flex items-center gap-2">
+            <div class="w-5 h-5 rounded-full bg-slate-50 text-slate-300 flex items-center justify-center text-[10px]">3</div>
+            교수계획서
+        </button>`}
     </div>
 
     <!-- Content: Basic Info -->
@@ -606,6 +609,28 @@ export const adminCoursesApprovedRegisterHtml = (editId?: string) => {
         if(urlParams.get('tab') === 'ncs') {
              setTimeout(() => window.switchTab('ncs'), 100);
         }
+        // 교수계획서 탭: 회차가 있으면 해당 회차 교수계획서로 바로 이동, 없으면 회차 개설 페이지로
+        (function(){
+            var link = document.getElementById('tab-syllabus-link');
+            if (!link) return;
+            link.addEventListener('click', function(e) {
+                var approvedId = document.getElementById('approvedFormId') && document.getElementById('approvedFormId').value;
+                if (!approvedId) return;
+                e.preventDefault();
+                var fallbackUrl = link.getAttribute('href');
+                var token = localStorage.getItem('token');
+                fetch('/api/course-sessions?approved_course_id=' + encodeURIComponent(approvedId) + '&limit=1', { headers: token ? { 'Authorization': 'Bearer ' + token } : {} })
+                    .then(function(r) { return r.json(); })
+                    .then(function(json) {
+                        if (json.success && json.data && json.data.length > 0) {
+                            window.location.href = '/admin/courses/sessions/' + json.data[0].id + '/syllabus';
+                        } else {
+                            window.location.href = fallbackUrl;
+                        }
+                    })
+                    .catch(function() { window.location.href = fallbackUrl; });
+            });
+        })();
     </script>
     <script src="/static/approved-register.js"></script>
     ${isEdit ? '<script src="/static/ncs-approved.js"></script>' : ''}
