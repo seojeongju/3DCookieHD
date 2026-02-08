@@ -332,24 +332,30 @@ export const adminCoursesApprovedHtml = () =>
             </div>
         </div>
 
-        <!-- Table -->
+        <!-- Table: 고정 레이아웃으로 열 너비·행 높이 통일, 가독성 개선 -->
+        <style>
+            .approved-list-table { table-layout: fixed; }
+            .approved-list-table tbody td { vertical-align: middle !important; }
+            .approved-list-table .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: keep-all; }
+            .approved-list-table .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        </style>
         <div class="flex-1 overflow-auto custom-scrollbar relative">
-            <table class="w-full text-left border-collapse">
+            <table class="approved-list-table w-full text-left border-collapse table-fixed" style="min-width: 880px;">
                 <thead class="bg-slate-100 text-slate-500 text-xs font-bold uppercase sticky top-0 z-10 shadow-sm">
                     <tr>
-                        <th class="p-3 w-16 text-center border-b border-slate-200">No.</th>
-                        <th class="p-3 w-28 border-b border-slate-200">분류</th>
-                        <th class="p-3 border-b border-slate-200">승인 과정명</th>
-                        <th class="p-3 w-24 border-b border-slate-200">교·강사</th>
-                        <th class="p-3 w-32 text-center border-b border-slate-200">훈련시간</th>
-                        <th class="p-3 w-16 text-center border-b border-slate-200">정원</th>
-                        <th class="p-3 w-24 text-center border-b border-slate-200">승인기관</th>
-                        <th class="p-3 w-16 text-center border-b border-slate-200">상태</th>
-                        <th class="p-3 w-24 text-right border-b border-slate-200">관리</th>
+                        <th class="p-3 w-12 text-center border-b border-slate-200">No.</th>
+                        <th class="p-3 w-20 border-b border-slate-200">분류</th>
+                        <th class="p-3 border-b border-slate-200" style="min-width: 200px;">승인 과정명</th>
+                        <th class="p-3 border-b border-slate-200" style="width: 110px;">교·강사</th>
+                        <th class="p-3 w-20 text-center border-b border-slate-200">훈련시간</th>
+                        <th class="p-3 w-14 text-center border-b border-slate-200">정원</th>
+                        <th class="p-3 w-20 text-center border-b border-slate-200">승인기관</th>
+                        <th class="p-3 w-14 text-center border-b border-slate-200">상태</th>
+                        <th class="p-3 text-right border-b border-slate-200" style="width: 130px;">관리</th>
                     </tr>
                 </thead>
                 <tbody id="approvedListBody" class="text-sm divide-y divide-slate-100">
-                    <tr><td colspan="8" class="p-12 text-center text-slate-400">데이터 로딩 중...</td></tr>
+                    <tr><td colspan="9" class="p-12 text-center text-slate-400">데이터 로딩 중...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -694,11 +700,12 @@ export const adminCoursesSessionsHtml = () =>
                         <th class="p-3 w-24 text-center border-b border-slate-200">상태</th>
                         <th class="p-3 w-32 text-center border-b border-slate-200">훈련시작일</th>
                         <th class="p-3 w-24 text-center border-b border-slate-200">등록일</th>
+                        <th class="p-3 w-24 text-center border-b border-slate-200">홈페이지</th>
                         <th class="p-3 w-28 text-right border-b border-slate-200">관리</th>
                     </tr>
                 </thead>
                 <tbody id="sessionsListBody" class="text-sm divide-y divide-slate-100">
-                    <tr><td colspan="7" class="p-12 text-center text-slate-400">데이터 로딩 중...</td></tr>
+                    <tr><td colspan="8" class="p-12 text-center text-slate-400">데이터 로딩 중...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -916,6 +923,14 @@ export const adminCoursesSessionsRegisterHtml = (editId?: string) => {
                     <h3 class="font-bold text-slate-800 mb-4">연동 홈페이지 설정</h3>
                     <p class="text-xs text-slate-500 mb-4">연동홈페이지에 대표이미지·과정설명이 노출되는 홈페이지에만 해당됩니다.</p>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2">홈페이지 노출</label>
+                            <div class="flex gap-4">
+                                <label class="inline-flex items-center gap-2 cursor-pointer"><input type="radio" name="sessionsFormHomepageExposed" value="1" class="text-emerald-600"> 등록(노출)</label>
+                                <label class="inline-flex items-center gap-2 cursor-pointer"><input type="radio" name="sessionsFormHomepageExposed" value="0" class="text-emerald-600" checked> 미등록(비노출)</label>
+                            </div>
+                            <p class="text-xs text-slate-500 mt-1">등록 시 개설 과정(회차별) 목록에 노출됩니다. 목록에서도 등록/삭제 가능합니다.</p>
+                        </div>
                         <div>
                             <label class="block text-sm font-bold text-slate-700 mb-1">모집상황</label>
                             <select id="sessionsFormRecruitmentStatus" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white">

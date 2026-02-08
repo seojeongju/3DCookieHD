@@ -269,6 +269,9 @@
                 if (graceEl) graceEl.value = d.recruitment_grace_period != null ? d.recruitment_grace_period : '0';
                 var syllExpose = document.querySelector('input[name="sessionsFormSyllabusExposure"][value="' + (d.syllabus_exposure || 'hide') + '"]');
                 if (syllExpose) syllExpose.checked = true;
+                var homepageExposedVal = d.homepage_exposed === 1 || d.homepage_exposed === true ? '1' : '0';
+                var homepageExposedRadio = document.querySelector('input[name="sessionsFormHomepageExposed"][value="' + homepageExposedVal + '"]');
+                if (homepageExposedRadio) homepageExposedRadio.checked = true;
                 var mainUrlEl = document.getElementById('sessionsFormMainSlideImageUrl');
                 if (mainUrlEl) mainUrlEl.value = d.main_slide_image_url || '';
                 var mainInfo = document.getElementById('sessionsFormMainSlideImageInfo');
@@ -322,6 +325,8 @@
         var recruitmentGracePeriod = graceEl ? (parseInt(graceEl.value, 10) || 0) : 0;
         var syllExposeEl = document.querySelector('input[name="sessionsFormSyllabusExposure"]:checked');
         var syllabusExposure = syllExposeEl ? syllExposeEl.value : 'hide';
+        var homepageExposedEl = document.querySelector('input[name="sessionsFormHomepageExposed"]:checked');
+        var homepageExposed = homepageExposedEl && homepageExposedEl.value === '1' ? 1 : 0;
         var mainSlideUrl = (document.getElementById('sessionsFormMainSlideImageUrl') && document.getElementById('sessionsFormMainSlideImageUrl').value) || '';
         var courseListUrl = (document.getElementById('sessionsFormCourseListImageUrl') && document.getElementById('sessionsFormCourseListImageUrl').value) || '';
         var courseDetailDescription = getSessionCourseDetailContent();
@@ -343,6 +348,7 @@
                 lunch_time_start: lunchTimeStart,
                 lunch_time_end: lunchTimeEnd,
                 registered_at: registeredAt,
+                homepage_exposed: homepageExposed,
                 recruitment_status: recruitmentStatus,
                 representative_image_exposure: representativeImageExposure,
                 recruitment_grace_period: recruitmentGracePeriod,
@@ -369,6 +375,7 @@
                 lunch_time_start: lunchTimeStart,
                 lunch_time_end: lunchTimeEnd,
                 registered_at: registeredAt,
+                homepage_exposed: homepageExposed,
                 recruitment_status: recruitmentStatus,
                 representative_image_exposure: representativeImageExposure,
                 recruitment_grace_period: recruitmentGracePeriod,

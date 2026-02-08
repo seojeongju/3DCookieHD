@@ -52,11 +52,11 @@
     }
     function loadApprovedList() {
         var tbody = document.getElementById('approvedListBody');
-        tbody.innerHTML = '<tr><td colspan="11" class="px-4 py-8 text-center text-slate-400"><i class="fas fa-spinner fa-spin mr-2"></i> 로딩 중...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="px-4 py-8 text-center text-slate-400"><i class="fas fa-spinner fa-spin mr-2"></i> 로딩 중...</td></tr>';
         fetch('/api/approved-courses?' + buildQuery(), { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } })
             .then(function (r) { return r.json(); })
             .then(function (json) {
-                if (!json.success) { tbody.innerHTML = '<tr><td colspan="11" class="px-4 py-8 text-center text-red-500">조회 실패</td></tr>'; return; }
+                if (!json.success) { tbody.innerHTML = '<tr><td colspan="9" class="px-4 py-8 text-center text-red-500">조회 실패</td></tr>'; return; }
                 var list = json.data || [];
                 var pagination = json.pagination || {};
                 var reLt = new RegExp('<', 'g');
@@ -68,35 +68,40 @@
                     tbody.innerHTML = list.map(function (item, i) {
                         var no = startNo + i;
                         var nameEsc = (item.name || '').replace(reQuot, '&quot;').replace(reLt, '&lt;');
-                        var timeStr = [item.training_time_start, item.training_time_end].filter(Boolean).join('-') || '-';
+                        var timeStr = [item.training_time_start, item.training_time_end].filter(Boolean).join('~') || '-';
                         var cap = item.capacity != null ? item.capacity + '명' : '-';
+                        var instRaw = (item.instructor_name || '').trim();
+                        var instEsc = instRaw.replace(reQuot, '&quot;').replace(reLt, '&lt;');
+                        var instShort = instRaw ? (instRaw.length > 12 ? instRaw.slice(0, 11) + '…' : instRaw) : '-';
 
-                        // Links
                         var links = [];
-                        if (item.url_ncs) links.push('<a href="' + (item.url_ncs || '').replace(reQuot, '&quot;') + '" target="_blank" class="text-xs text-primary-600 hover:underline mr-2" title="NCS교과"><i class="fas fa-book mr-1"></i>NCS</a>');
-                        if (item.url_plan) links.push('<a href="' + (item.url_plan || '').replace(reQuot, '&quot;') + '" target="_blank" class="text-xs text-primary-600 hover:underline mr-2" title="교수계획서"><i class="fas fa-file-alt mr-1"></i>계획서</a>');
-                        if (item.url_detail_plan) links.push('<a href="' + (item.url_detail_plan || '').replace(reQuot, '&quot;') + '" target="_blank" class="text-xs text-primary-600 hover:underline" title="세부교수계획서"><i class="fas fa-list-alt mr-1"></i>세부</a>');
-                        var linksHtml = links.length ? '<div class="mt-1 flex flex-wrap">' + links.join('') + '</div>' : '';
+                        if (item.url_ncs) links.push('<a href="' + (item.url_ncs || '').replace(reQuot, '&quot;') + '" target="_blank" class="text-[10px] text-primary-600 hover:underline mr-1.5" title="NCS교과"><i class="fas fa-book mr-0.5"></i>NCS</a>');
+                        if (item.url_plan) links.push('<a href="' + (item.url_plan || '').replace(reQuot, '&quot;') + '" target="_blank" class="text-[10px] text-primary-600 hover:underline mr-1.5" title="교수계획서">계획서</a>');
+                        if (item.url_detail_plan) links.push('<a href="' + (item.url_detail_plan || '').replace(reQuot, '&quot;') + '" target="_blank" class="text-[10px] text-primary-600 hover:underline" title="세부교수계획서">세부</a>');
+                        var linksHtml = links.length ? '<div class="mt-1 flex flex-wrap gap-x-1.5">' + links.join('') + '</div>' : '';
 
                         var statusBadge = item.status === 'inactive'
                             ? '<span class="px-2 py-0.5 rounded bg-slate-100 text-slate-500 text-[10px] font-bold">비활성</span>'
                             : '<span class="px-2 py-0.5 rounded bg-green-100 text-green-700 text-[10px] font-bold">활성</span>';
 
-                        return '<tr class="hover:bg-slate-50/80 transition">' +
-                            '<td class="p-3 text-center text-slate-500 text-xs">' + no + '</td>' +
-                            '<td class="p-3 text-slate-600 text-xs font-medium">' + (item.category_name || '-') + '</td>' +
-                            '<td class="p-3">' +
-                            '<div class="font-bold text-slate-700 text-sm mb-0.5">' + nameEsc + '</div>' +
+                        var approvalOrg = (item.approval_org || '').trim();
+                        var approvalDisplay = approvalOrg ? (approvalOrg.length > 8 ? approvalOrg.slice(0, 7) + '…' : approvalOrg) : '-';
+
+                        return '<tr class="hover:bg-slate-50/80 transition align-middle">' +
+                            '<td class="p-3 text-center text-slate-500 text-xs align-middle">' + no + '</td>' +
+                            '<td class="p-3 text-slate-600 text-xs font-medium align-middle whitespace-nowrap">' + (item.category_name || '-') + '</td>' +
+                            '<td class="p-3 align-middle min-w-0">' +
+                            '<div class="font-bold text-slate-700 text-sm line-clamp-2 leading-tight" title="' + nameEsc + '">' + nameEsc + '</div>' +
                             linksHtml +
                             '</td>' +
-                            '<td class="p-3 text-slate-600 text-xs">' + (item.instructor_name || '-') + '</td>' +
-                            '<td class="p-3 text-center text-slate-600 text-xs">' + timeStr + '</td>' +
-                            '<td class="p-3 text-center text-slate-600 text-xs">' + cap + '</td>' +
-                            '<td class="p-3 text-center text-slate-600 text-xs truncate max-w-[100px]" title="' + (item.approval_org || '') + '">' + (item.approval_org || '-') + '</td>' +
-                            '<td class="p-3 text-center">' + statusBadge + '</td>' +
-                            '<td class="p-3 text-right">' +
-                            '<div class="flex items-center justify-end gap-1 flex-wrap">' +
-                            '<a href="/admin/courses/sessions/register?approvedCourseId=' + item.id + '" class="inline-flex items-center gap-1 px-2 py-1 text-xs font-bold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded transition" title="회차 개설"><i class="fas fa-calendar-plus"></i> 회차개설</a>' +
+                            '<td class="p-3 text-slate-600 text-xs align-middle overflow-hidden" style="max-width: 110px;" title="' + instEsc + '"><span class="block truncate">' + (instRaw || '-') + '</span></td>' +
+                            '<td class="p-3 text-center text-slate-600 text-xs align-middle whitespace-nowrap">' + timeStr + '</td>' +
+                            '<td class="p-3 text-center text-slate-600 text-xs align-middle">' + cap + '</td>' +
+                            '<td class="p-3 text-center text-slate-600 text-xs align-middle overflow-hidden" style="max-width: 80px;" title="' + (approvalOrg || '') + '"><span class="block truncate">' + approvalDisplay + '</span></td>' +
+                            '<td class="p-3 text-center align-middle">' + statusBadge + '</td>' +
+                            '<td class="p-3 text-right align-middle">' +
+                            '<div class="flex items-center justify-end gap-0.5 flex-nowrap">' +
+                            '<a href="/admin/courses/sessions/register?approvedCourseId=' + item.id + '" class="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-bold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded transition whitespace-nowrap" title="회차 개설"><i class="fas fa-calendar-plus"></i> 회차</a>' +
                             '<a href="/admin/courses/approved/register/' + item.id + '" class="p-1.5 text-slate-400 hover:text-primary-600 transition" title="수정"><i class="fas fa-pen"></i></a>' +
                             '<button type="button" class="btn-approved-delete p-1.5 text-slate-400 hover:text-red-500 transition" data-id="' + item.id + '" data-name="' + nameEsc + '" title="삭제"><i class="fas fa-trash-alt"></i></button>' +
                             '</div>' +
@@ -109,7 +114,7 @@
                 }
                 renderPagination(pagination);
             })
-            .catch(function () { tbody.innerHTML = '<tr><td colspan="11" class="px-4 py-8 text-center text-red-500">로드 실패</td></tr>'; });
+            .catch(function () { tbody.innerHTML = '<tr><td colspan="9" class="px-4 py-8 text-center text-red-500">로드 실패</td></tr>'; });
     }
     function renderPagination(p) {
         var el = document.getElementById('approvedPagination');

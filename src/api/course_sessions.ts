@@ -83,6 +83,7 @@ app.get('/public', async (c) => {
     const statusFilter = status && status.trim() !== ''
       ? " AND s.status = ?"
       : " AND s.status IN ('recruiting', 'always_open', 'in_progress')";
+    const homepageFilter = " AND (s.homepage_exposed = 1)";
     const params: (string | number)[] = [];
     if (status && status.trim() !== '') params.push(status.trim());
 
@@ -91,7 +92,7 @@ app.get('/public', async (c) => {
     try {
       countRow = await DB.prepare(
         `SELECT COUNT(*) as total FROM course_sessions s
-         INNER JOIN approved_courses a ON a.id = s.approved_course_id WHERE 1=1 ${statusFilter}`
+         INNER JOIN approved_courses a ON a.id = s.approved_course_id WHERE 1=1 ${statusFilter} ${homepageFilter}`
       ).bind(...params).first() as { total: number } | null;
       params.push(limit, offset);
       rows = await DB.prepare(
@@ -103,13 +104,13 @@ app.get('/public', async (c) => {
          FROM course_sessions s
          INNER JOIN approved_courses a ON a.id = s.approved_course_id
          LEFT JOIN course_categories c ON c.id = a.category_id
-         WHERE 1=1 ${statusFilter}
+         WHERE 1=1 ${statusFilter} ${homepageFilter}
          ORDER BY s.training_start_date DESC, s.id DESC
          LIMIT ? OFFSET ?`
       ).bind(...params).all() as { results: Record<string, unknown>[] };
     } catch (e) {
       const msg = String((e as Error)?.message ?? e);
-      if (!/no such column|recruitment_status|representative_image_exposure/i.test(msg)) throw e;
+      if (!/no such column|recruitment_status|representative_image_exposure|homepage_exposed/i.test(msg)) throw e;
       params.length = 0;
       if (status && status.trim() !== '') params.push(status.trim());
       countRow = await DB.prepare(
@@ -243,21 +244,41 @@ app.get('/', authMiddleware, requireAdmin, async (c) => {
     const total = countRow?.total ?? 0;
 
     params.push(limit, offset);
-    const rows = await DB.prepare(
-      `SELECT s.id, s.approved_course_id, s.session_number, s.status,
-              s.training_start_date, s.training_end_date, s.url_ncs, s.url_plan, s.url_detail_plan,
-              s.registered_at, s.created_at,
-              a.name as course_name, a.category_id, a.instructor_name,
-              c.name as category_name
-       FROM course_sessions s
-       INNER JOIN approved_courses a ON a.id = s.approved_course_id
-       LEFT JOIN course_categories c ON c.id = a.category_id
-       WHERE ${whereClause}
-       ORDER BY s.training_start_date DESC, s.id DESC
-       LIMIT ? OFFSET ?`
-    )
-      .bind(...params)
-      .all();
+    let rows: { results: Record<string, unknown>[] };
+    try {
+      rows = await DB.prepare(
+        `SELECT s.id, s.approved_course_id, s.session_number, s.status,
+                s.training_start_date, s.training_end_date, s.url_ncs, s.url_plan, s.url_detail_plan,
+                s.registered_at, s.created_at, s.homepage_exposed,
+                a.name as course_name, a.category_id, a.instructor_name,
+                c.name as category_name
+         FROM course_sessions s
+         INNER JOIN approved_courses a ON a.id = s.approved_course_id
+         LEFT JOIN course_categories c ON c.id = a.category_id
+         WHERE ${whereClause}
+         ORDER BY s.training_start_date DESC, s.id DESC
+         LIMIT ? OFFSET ?`
+      )
+        .bind(...params)
+        .all() as { results: Record<string, unknown>[] };
+    } catch (e) {
+      if (!/homepage_exposed|no such column/i.test(String((e as Error)?.message ?? e))) throw e;
+      rows = await DB.prepare(
+        `SELECT s.id, s.approved_course_id, s.session_number, s.status,
+                s.training_start_date, s.training_end_date, s.url_ncs, s.url_plan, s.url_detail_plan,
+                s.registered_at, s.created_at,
+                a.name as course_name, a.category_id, a.instructor_name,
+                c.name as category_name
+         FROM course_sessions s
+         INNER JOIN approved_courses a ON a.id = s.approved_course_id
+         LEFT JOIN course_categories c ON c.id = a.category_id
+         WHERE ${whereClause}
+         ORDER BY s.training_start_date DESC, s.id DESC
+         LIMIT ? OFFSET ?`
+      )
+        .bind(...params)
+        .all() as { results: Record<string, unknown>[] };
+    }
 
     const list = (rows.results || []) as Record<string, unknown>[];
     return c.json({
@@ -301,6 +322,7 @@ app.post('/', authMiddleware, requireAdmin, async (c) => {
       training_time_end?: string;
       lunch_time_start?: string;
       lunch_time_end?: string;
+      homepage_exposed?: number | boolean;
     }>();
     const approvedCourseId = body.approved_course_id;
     const sessionNumber = body.session_number;
@@ -329,6 +351,7 @@ app.post('/', authMiddleware, requireAdmin, async (c) => {
     const mainSlideImageUrl = (body.main_slide_image_url || '').trim() || null;
     const courseListImageUrl = (body.course_list_image_url || '').trim() || null;
     const courseDetailDescription = (body.course_detail_description || '').trim() || null;
+    const homepageExposed = body.homepage_exposed === true || body.homepage_exposed === 1 ? 1 : 0;
 
     const { DB } = c.env;
     const existing = await DB.prepare(
@@ -345,14 +368,14 @@ app.post('/', authMiddleware, requireAdmin, async (c) => {
           training_start_date, training_end_date, training_time_start, training_time_end, lunch_time_start, lunch_time_end,
           url_ncs, url_plan, url_detail_plan, registered_at,
           recruitment_status, representative_image_exposure, recruitment_grace_period, syllabus_exposure,
-          main_slide_image_url, course_list_image_url, course_detail_description
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          main_slide_image_url, course_list_image_url, course_detail_description, homepage_exposed
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
-        .bind(approvedCourseId, sessionNumber, status, instructorName, targetAudience, daysOfWeek, location, trainingStart, trainingEnd, trainingTimeStart, trainingTimeEnd, lunchTimeStart, lunchTimeEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt, recruitmentStatus, representativeImageExposure, recruitmentGracePeriod, syllabusExposure, mainSlideImageUrl, courseListImageUrl, courseDetailDescription)
+        .bind(approvedCourseId, sessionNumber, status, instructorName, targetAudience, daysOfWeek, location, trainingStart, trainingEnd, trainingTimeStart, trainingTimeEnd, lunchTimeStart, lunchTimeEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt, recruitmentStatus, representativeImageExposure, recruitmentGracePeriod, syllabusExposure, mainSlideImageUrl, courseListImageUrl, courseDetailDescription, homepageExposed)
         .run();
     } catch (err: unknown) {
       const msg = String(err && typeof err === 'object' && 'message' in err ? (err as Error).message : err);
-      if (/training_time_start|training_time_end|lunch_time_start|lunch_time_end|recruitment_status|representative_image_exposure|recruitment_grace_period|syllabus_exposure|main_slide_image_url|course_list_image_url|course_detail_description|no such column/i.test(msg)) {
+      if (/homepage_exposed|training_time_start|training_time_end|lunch_time_start|lunch_time_end|recruitment_status|representative_image_exposure|recruitment_grace_period|syllabus_exposure|main_slide_image_url|course_list_image_url|course_detail_description|no such column/i.test(msg)) {
         try {
           await DB.prepare(
             `INSERT INTO course_sessions (
@@ -428,6 +451,7 @@ app.get('/:id', authMiddleware, requireAdmin, async (c) => {
                 s.registered_at, s.created_at, s.target_audience, s.days_of_week, s.location,
                 s.recruitment_status, s.representative_image_exposure, s.recruitment_grace_period,
                 s.syllabus_exposure, s.main_slide_image_url, s.course_list_image_url, s.course_detail_description,
+                s.homepage_exposed,
                 a.name as course_name, a.instructor_name, c.name as category_name
          FROM course_sessions s
          INNER JOIN approved_courses a ON a.id = s.approved_course_id
@@ -502,6 +526,7 @@ app.put('/:id', authMiddleware, requireAdmin, async (c) => {
       training_time_end?: string;
       lunch_time_start?: string;
       lunch_time_end?: string;
+      homepage_exposed?: number | boolean;
     }>();
 
     const { DB } = c.env;
@@ -519,6 +544,7 @@ app.put('/:id', authMiddleware, requireAdmin, async (c) => {
     const trainingTimeEnd = (body.training_time_end || '').trim() || null;
     const lunchTimeStart = (body.lunch_time_start || '').trim() || null;
     const lunchTimeEnd = (body.lunch_time_end || '').trim() || null;
+    const homepageExposed = body.homepage_exposed === true || body.homepage_exposed === 1 ? 1 : (body.homepage_exposed === false || body.homepage_exposed === 0 ? 0 : null);
     const urlNcs = (body.url_ncs || '').trim() || null;
     const urlPlan = (body.url_plan || '').trim() || null;
     const urlDetailPlan = (body.url_detail_plan || '').trim() || null;
@@ -540,14 +566,15 @@ app.put('/:id', authMiddleware, requireAdmin, async (c) => {
           url_ncs = ?, url_plan = ?, url_detail_plan = ?, registered_at = ?,
           recruitment_status = COALESCE(?, recruitment_status), representative_image_exposure = COALESCE(?, representative_image_exposure),
           recruitment_grace_period = COALESCE(?, recruitment_grace_period), syllabus_exposure = COALESCE(?, syllabus_exposure),
-          main_slide_image_url = ?, course_list_image_url = ?, course_detail_description = ?
+          main_slide_image_url = ?, course_list_image_url = ?, course_detail_description = ?,
+          homepage_exposed = COALESCE(?, homepage_exposed)
          WHERE id = ?`
       )
-        .bind(status ?? null, instructorName, targetAudience, daysOfWeek, location, trainingStart, trainingEnd, trainingTimeStart, trainingTimeEnd, lunchTimeStart, lunchTimeEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt, recruitmentStatus, representativeImageExposure, recruitmentGracePeriod, syllabusExposure, mainSlideImageUrl, courseListImageUrl, courseDetailDescription, id)
+        .bind(status ?? null, instructorName, targetAudience, daysOfWeek, location, trainingStart, trainingEnd, trainingTimeStart, trainingTimeEnd, lunchTimeStart, lunchTimeEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt, recruitmentStatus, representativeImageExposure, recruitmentGracePeriod, syllabusExposure, mainSlideImageUrl, courseListImageUrl, courseDetailDescription, homepageExposed ?? null, id)
         .run();
     } catch (err: unknown) {
       const msg = String(err && typeof err === 'object' && 'message' in err ? (err as Error).message : err);
-      if (/training_time_start|training_time_end|lunch_time_start|lunch_time_end|recruitment_status|representative_image_exposure|recruitment_grace_period|syllabus_exposure|main_slide_image_url|course_list_image_url|course_detail_description|no such column/i.test(msg)) {
+      if (/homepage_exposed|training_time_start|training_time_end|lunch_time_start|lunch_time_end|recruitment_status|representative_image_exposure|recruitment_grace_period|syllabus_exposure|main_slide_image_url|course_list_image_url|course_detail_description|no such column/i.test(msg)) {
         try {
           await DB.prepare(
             `UPDATE course_sessions SET
@@ -591,6 +618,32 @@ app.put('/:id', authMiddleware, requireAdmin, async (c) => {
     return c.json({ success: true, data: row });
   } catch (e) {
     console.error('course-sessions update:', e);
+    return c.json({ success: false, error: '수정 실패' }, 500);
+  }
+});
+
+/**
+ * PATCH /api/course-sessions/:id
+ * 홈페이지 노출 여부만 변경 (목록에서 등록/삭제용)
+ */
+app.patch('/:id', authMiddleware, requireAdmin, async (c) => {
+  try {
+    const id = parseInt(c.req.param('id'), 10);
+    if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
+    const body = await c.req.json<{ homepage_exposed?: number | boolean }>();
+    const val = body.homepage_exposed === true || body.homepage_exposed === 1 ? 1 : 0;
+    const { DB } = c.env;
+    const existing = await DB.prepare('SELECT id FROM course_sessions WHERE id = ?').bind(id).first();
+    if (!existing) return c.json({ success: false, error: '회차를 찾을 수 없습니다' }, 404);
+    try {
+      await DB.prepare('UPDATE course_sessions SET homepage_exposed = ? WHERE id = ?').bind(val, id).run();
+    } catch (e) {
+      if (!/homepage_exposed|no such column/i.test(String((e as Error)?.message ?? e))) throw e;
+      return c.json({ success: false, error: '홈페이지 노출 컬럼이 없습니다. 마이그레이션 0061을 적용하세요.' }, 400);
+    }
+    return c.json({ success: true, data: { homepage_exposed: val } });
+  } catch (e) {
+    console.error('course-sessions patch:', e);
     return c.json({ success: false, error: '수정 실패' }, 500);
   }
 });
