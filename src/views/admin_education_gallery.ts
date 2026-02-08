@@ -189,6 +189,17 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
                             <input type="text" name="title" id="postTitle" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500" placeholder="교육사진 제목">
                         </div>
                         <div>
+                            <label class="block text-gray-700 font-medium mb-2">사진 여러 장 올리기</label>
+                            <div id="multiImageDropZone" class="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center bg-gray-50 hover:bg-amber-50 hover:border-amber-400 transition cursor-pointer">
+                                <input type="file" id="multiImageInput" accept="image/*" multiple class="hidden">
+                                <p class="text-gray-500 text-sm mb-1"><i class="fas fa-cloud-upload-alt text-2xl text-amber-500 mb-2"></i></p>
+                                <p class="text-gray-600 font-medium">클릭하거나 이미지를 여기에 끌어다 놓으세요</p>
+                                <p class="text-gray-400 text-xs mt-1">여러 장 선택 가능 (JPG, PNG 등)</p>
+                                <div id="multiImageProgress" class="hidden mt-3 text-sm text-amber-600"></div>
+                                <div id="multiImageThumbs" class="hidden mt-3 flex flex-wrap gap-2 justify-center"></div>
+                            </div>
+                        </div>
+                        <div>
                             <label class="block text-gray-700 font-medium mb-2">내용 (이미지 첨부 가능)</label>
                             <textarea name="content" id="postContent" rows="15" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500"></textarea>
                         </div>
@@ -214,6 +225,7 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
 
         document.addEventListener('DOMContentLoaded', () => {
             loadPosts(1);
+            setupMultiImageUpload();
             const csvInput = document.getElementById('csvFileInput');
             if (csvInput) {
                 csvInput.addEventListener('change', function() {
@@ -253,8 +265,15 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
             }
         });
 
+        let multiUploadedUrls = [];
         function openModal(post) {
             document.getElementById('postCategory').value = 'education_photo';
+            multiUploadedUrls = [];
+            document.getElementById('multiImageProgress').classList.add('hidden');
+            document.getElementById('multiImageProgress').textContent = '';
+            document.getElementById('multiImageThumbs').classList.add('hidden');
+            document.getElementById('multiImageThumbs').innerHTML = '';
+            document.getElementById('multiImageInput').value = '';
             if (post) {
                 document.getElementById('modalTitle').textContent = '교육사진 수정';
                 document.getElementById('postId').value = post.id;
@@ -279,6 +298,61 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
             } else {
                 initTinyMCE(html);
             }
+        }
+
+        function triggerMultiImageInput() {
+            document.getElementById('multiImageInput').click();
+        }
+        function setupMultiImageUpload() {
+            var dropZone = document.getElementById('multiImageDropZone');
+            var input = document.getElementById('multiImageInput');
+            if (!dropZone || !input) return;
+            dropZone.addEventListener('click', function(e) { if (!e.target.closest('#multiImageThumbs')) triggerMultiImageInput(); });
+            dropZone.addEventListener('dragover', function(e) { e.preventDefault(); e.stopPropagation(); dropZone.classList.add('border-amber-500', 'bg-amber-50'); });
+            dropZone.addEventListener('dragleave', function(e) { e.preventDefault(); dropZone.classList.remove('border-amber-500', 'bg-amber-50'); });
+            dropZone.addEventListener('drop', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.remove('border-amber-500', 'bg-amber-50');
+                var files = e.dataTransfer && e.dataTransfer.files;
+                if (files && files.length) handleMultiImageFiles(Array.from(files));
+            });
+            input.addEventListener('change', function() {
+                var files = this.files;
+                if (files && files.length) handleMultiImageFiles(Array.from(files));
+                this.value = '';
+            });
+        }
+        async function handleMultiImageFiles(files) {
+            var imageFiles = Array.from(files).filter(function(f) { return f.type.indexOf('image/') === 0; });
+            if (imageFiles.length === 0) {
+                alert('이미지 파일만 선택해 주세요.');
+                return;
+            }
+            var total = imageFiles.length;
+            var progressEl = document.getElementById('multiImageProgress');
+            var thumbsEl = document.getElementById('multiImageThumbs');
+            progressEl.classList.remove('hidden');
+            progressEl.textContent = '업로드 중 0 / ' + total + '...';
+            thumbsEl.classList.remove('hidden');
+            var editor = tinymce.get('postContent');
+            for (var i = 0; i < imageFiles.length; i++) {
+                progressEl.textContent = '업로드 중 ' + (i + 1) + ' / ' + total + '...';
+                try {
+                    var blob = imageFiles[i];
+                    var url = await uploadPostImage(blob);
+                    multiUploadedUrls.push(url);
+                    var thumb = document.createElement('span');
+                    thumb.className = 'inline-block w-12 h-12 rounded border border-gray-200 overflow-hidden bg-gray-100';
+                    thumb.innerHTML = '<img src="' + url + '" alt="" class="w-full h-full object-cover">';
+                    thumbsEl.appendChild(thumb);
+                    if (editor) editor.insertContent('<p><img src="' + url.replace(/"/g, '&quot;') + '" style="max-width:100%;height:auto"/></p>');
+                } catch (err) {
+                    console.error(err);
+                    progressEl.textContent = '업로드 중 ' + (i + 1) + '/' + total + ' - 오류: ' + (err.message || '실패');
+                }
+            }
+            progressEl.textContent = total + '장 업로드 완료.';
         }
 
         const IMAGE_MAX = 1200;
@@ -448,6 +522,7 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
                 const imgs = div.getElementsByTagName('img');
                 for (let i = 0; i < imgs.length; i++) data.images.push(imgs[i].src);
             }
+            data.images = [...new Set([].concat(multiUploadedUrls, data.images))];
             try {
                 const token = localStorage.getItem('token');
                 const url = data.id ? '/api/posts/' + data.id : '/api/posts';

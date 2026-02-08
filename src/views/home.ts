@@ -284,10 +284,19 @@ export const homeHtml = `
                 var cards = withImage.slice(0, 8).map(function(p) {
                     var img = getFirstImage(p);
                     var safeTitle = (p.title || '시제품').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                    return '<a href="/prototype-gallery" class="relative block rounded-xl overflow-hidden shadow-md hover:shadow-xl transition aspect-square bg-gray-200 group">' +
+                    var titleEsc = (p.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    var contentPlain = stripHtml(p.content || '').trim().substring(0, 80);
+                    if (stripHtml(p.content || '').trim().length > 80) contentPlain += '\u2026';
+                    var contentEsc = contentPlain.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+                    return '<a href="/prototype-gallery" class="block rounded-xl overflow-hidden shadow-md hover:shadow-xl transition bg-white border border-gray-100">' +
+                        '<div class="relative aspect-square bg-gray-200 group">' +
                         '<img src="' + img + '" alt="' + safeTitle + '" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">' +
                         '<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-3">' +
-                        '<span class="text-white text-sm font-bold truncate w-full">' + (p.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</span>' +
+                        '<span class="text-white text-sm font-bold truncate w-full">' + titleEsc + '</span>' +
+                        '</div></div>' +
+                        '<div class="p-3">' +
+                        '<h3 class="font-bold text-gray-800 text-sm truncate">' + titleEsc + '</h3>' +
+                        (contentEsc ? '<p class="text-xs text-gray-500 mt-0.5 overflow-hidden" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">' + contentEsc + '</p>' : '') +
                         '</div></a>';
                 }).join('');
                 container.innerHTML = cards;
@@ -341,10 +350,19 @@ export const homeHtml = `
                 var cards = withImage.slice(0, 8).map(function(p) {
                     var img = getFirstImage(p);
                     var safeTitle = (p.title || '교육사진').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                    return '<a href="/education-photos" class="relative block rounded-xl overflow-hidden shadow-md hover:shadow-xl transition aspect-square bg-gray-200 group">' +
+                    var titleEsc = (p.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    var contentPlain = stripHtml(p.content || '').trim().substring(0, 80);
+                    if (stripHtml(p.content || '').trim().length > 80) contentPlain += '\u2026';
+                    var contentEsc = contentPlain.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+                    return '<a href="/education-photos" class="block rounded-xl overflow-hidden shadow-md hover:shadow-xl transition bg-white border border-gray-100">' +
+                        '<div class="relative aspect-square bg-gray-200 group">' +
                         '<img src="' + img + '" alt="' + safeTitle + '" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">' +
                         '<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-3">' +
-                        '<span class="text-white text-sm font-bold truncate w-full">' + (p.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</span>' +
+                        '<span class="text-white text-sm font-bold truncate w-full">' + titleEsc + '</span>' +
+                        '</div></div>' +
+                        '<div class="p-3">' +
+                        '<h3 class="font-bold text-gray-800 text-sm truncate">' + titleEsc + '</h3>' +
+                        (contentEsc ? '<p class="text-xs text-gray-500 mt-0.5 overflow-hidden" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">' + contentEsc + '</p>' : '') +
                         '</div></a>';
                 }).join('');
                 container.innerHTML = cards;
