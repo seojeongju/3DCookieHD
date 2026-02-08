@@ -2959,13 +2959,15 @@ app.get('/approved/syllabus/session/:sessionId/subjects', authMiddleware, requir
         const sessionRow = await DB.prepare(sql).bind(sessionId).first() as Record<string, unknown> | null;
         if (!sessionRow) return c.json({ success: false, error: '회차를 찾을 수 없습니다' }, 404);
         const approvedCourseId = sessionRow.approved_course_id as number | null;
-        if (!approvedCourseId) return c.json({ success: true, data: { session: sessionRow, subjects: [] } });
+        if (!approvedCourseId) return c.json({ success: true, data: { session: sessionRow, subjects: [], registration_id: null } });
         const reg = await DB.prepare('SELECT id FROM ncs_approved_registrations WHERE approved_course_id = ?').bind(approvedCourseId).first() as { id: number } | null;
-        if (!reg) return c.json({ success: true, data: { session: sessionRow, subjects: [] } });
+        if (!reg) return c.json({ success: true, data: { session: sessionRow, subjects: [], registration_id: null } });
         const { results: curriculum } = await DB.prepare(
-            'SELECT id, type, name, classification, ability_units_json, units_json, objectives_json FROM ncs_approved_curriculum WHERE registration_id = ? ORDER BY sort_order ASC, id ASC'
+            `SELECT id, type, name, classification, ability_units_json, units_json, objectives_json,
+             facility_ids_json, equipment_ids_json, textbook_ids_json, material_ids_json
+             FROM ncs_approved_curriculum WHERE registration_id = ? ORDER BY sort_order ASC, id ASC`
         ).bind(reg.id).all() as { results: any[] };
-        return c.json({ success: true, data: { session: sessionRow, subjects: curriculum || [] } });
+        return c.json({ success: true, data: { session: sessionRow, subjects: curriculum || [], registration_id: reg.id } });
     } catch (e) {
         console.error('ncs syllabus session subjects:', e);
         return c.json({ success: false, error: '교과목 목록 조회 실패' }, 500);

@@ -338,6 +338,8 @@ export const adminCoursesApprovedHtml = () =>
             .approved-list-table tbody td { vertical-align: middle !important; }
             .approved-list-table .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: keep-all; }
             .approved-list-table .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            .approved-list-table .approved-col-instructor { min-width: 0; white-space: nowrap; }
+            .approved-list-table .approved-col-status { white-space: nowrap; min-width: 3.5rem; }
         </style>
         <div class="flex-1 overflow-auto custom-scrollbar relative">
             <table class="approved-list-table w-full text-left border-collapse table-fixed" style="min-width: 880px;">
@@ -345,12 +347,12 @@ export const adminCoursesApprovedHtml = () =>
                     <tr>
                         <th class="p-3 w-12 text-center border-b border-slate-200">No.</th>
                         <th class="p-3 w-20 border-b border-slate-200">분류</th>
-                        <th class="p-3 border-b border-slate-200" style="min-width: 200px;">승인 과정명</th>
-                        <th class="p-3 border-b border-slate-200" style="width: 110px;">교·강사</th>
+                        <th class="p-3 border-b border-slate-200" style="width: 150px;">승인 과정명</th>
+                        <th class="p-3 border-b border-slate-200 approved-col-instructor" style="width: 120px;">교·강사</th>
                         <th class="p-3 w-20 text-center border-b border-slate-200">훈련시간</th>
-                        <th class="p-3 w-14 text-center border-b border-slate-200">정원</th>
+                        <th class="p-3 text-center border-b border-slate-200">정원</th>
                         <th class="p-3 w-20 text-center border-b border-slate-200">승인기관</th>
-                        <th class="p-3 w-14 text-center border-b border-slate-200">상태</th>
+                        <th class="p-3 text-center border-b border-slate-200 approved-col-status">상태</th>
                         <th class="p-3 text-right border-b border-slate-200" style="width: 130px;">관리</th>
                     </tr>
                 </thead>
@@ -1125,6 +1127,31 @@ export const adminSyllabusHtml = (sessionId: string) => {
                     </tbody>
                 </table>
             </div>
+
+            <div id="syllabusStep6Section" class="mt-6 border border-slate-200 rounded-xl overflow-hidden bg-slate-50/50">
+                <div class="px-4 py-3 border-b border-slate-200 bg-slate-100/80">
+                    <h3 class="text-sm font-bold text-slate-700"><i class="fas fa-building mr-1.5 text-blue-600"></i>시설·장비 (NCS 6단계)</h3>
+                    <p class="text-xs text-slate-500 mt-0.5">NCS 설계 6단계에서 저장한 시설·장비·교재·소모품이 아래에 표시됩니다. 수정 후 저장하면 NCS 6단계 데이터가 반영됩니다.</p>
+                </div>
+                <div id="syllabusStep6List" class="p-4 text-sm text-slate-600">
+                    <span class="text-slate-400">교과목 선택 시 여기에 시설·장비 목록이 표시됩니다.</span>
+                </div>
+                <div id="syllabusStep6Edit" class="hidden p-4 border-t border-slate-200 bg-white">
+                    <p class="text-xs text-slate-500 mb-3">좌측에서 항목을 클릭하면 선택됨(우측)으로 이동, 우측 클릭 시 해제됩니다.</p>
+                    <div id="syllabusStep6EditContent" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                    <div class="mt-3 flex gap-2">
+                        <button type="button" id="syllabusStep6BtnSave" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700">시설·장비 저장</button>
+                        <button type="button" id="syllabusStep6BtnCancel" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg text-sm font-bold hover:bg-slate-300">취소</button>
+                    </div>
+                </div>
+                <div class="px-4 py-2 border-t border-slate-200 bg-white flex gap-2">
+                    <button type="button" id="syllabusStep6BtnToggleEdit" class="px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg text-xs font-bold hover:bg-slate-200">
+                        <i class="fas fa-edit mr-1"></i>수정
+                    </button>
+                    <a id="syllabusStep6LinkNcs" href="#" target="_blank" class="px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-xs font-medium hover:bg-slate-200 inline-flex items-center gap-1">NCS 6단계에서 편집 <i class="fas fa-external-link-alt text-[10px]"></i></a>
+                </div>
+            </div>
+
             <div class="mt-4 flex gap-2">
                 <button type="button" id="syllabusSaveDoc" class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700">
                     <i class="fas fa-save mr-1"></i> 문서저장

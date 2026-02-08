@@ -211,7 +211,7 @@ export const homeHtml = `
             var container = document.getElementById('courseList');
             if (!container) return;
             try {
-                var res = await fetch('/api/courses?limit=6&sort=latest');
+                var res = await fetch('/api/course-sessions/public?limit=6&page=1');
                 var result = await res.json();
                 if (!result.success) {
                     container.innerHTML = '<div class="col-span-3 text-center py-12"><p class="text-gray-500">과정 목록을 불러오지 못했습니다.</p><button onclick="loadCourses()" class="mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">다시 시도</button></div>';
@@ -219,31 +219,32 @@ export const homeHtml = `
                 }
                 var list = result.data || [];
                 if (list.length === 0) {
-                    container.innerHTML = '<div class="col-span-3 text-center py-12 text-gray-500">등록된 교육 과정이 없습니다.</div>';
+                    container.innerHTML = '<div class="col-span-3 text-center py-12 text-gray-500">등록된 교육 과정이 없습니다.<br><span class="text-sm">관리자에서 회차별로 &#8216;홈페이지 등록&#8217;을 한 과정만 여기에 노출됩니다.</span></div>';
                     return;
                 }
-                container.innerHTML = list.map(function(c) {
-                    var desc = stripHtml(c.description) || '과정 설명이 없습니다.';
-                    if (desc.length > 60) desc = desc.substring(0, 60) + '…';
-                    var statusClass = c.status === 'open' ? 'bg-green-500' : c.status === 'closed' ? 'bg-red-500' : 'bg-yellow-500';
-                    var statusText = c.status === 'open' ? '모집중' : c.status === 'closed' ? '마감' : '준비중';
-                    var thumb = c.thumbnail_url || '/static/hero1.jpg';
-                    return '<a href="/courses" class="bg-white rounded-xl shadow-sm hover:shadow-xl transition duration-300 border border-gray-100 overflow-hidden flex flex-col h-full group">' +
+                function statusText(s) {
+                    return { recruiting: '모집중', in_progress: '진행중', completed: '종료', always_open: '상시모집', closed: '폐강' }[s] || s;
+                }
+                container.innerHTML = list.map(function(s) {
+                    var imgUrl = (s.course_list_image_url || s.main_slide_image_url || '').trim() || '/static/hero1.jpg';
+                    var start = (s.training_start_date || '').trim();
+                    var end = (s.training_end_date || '').trim();
+                    var dateStr = start && end ? (new Date(start).toLocaleDateString('ko-KR') + ' ~ ' + new Date(end).toLocaleDateString('ko-KR')) : (start ? new Date(start).toLocaleDateString('ko-KR') + '~' : '일정 미정');
+                    var statusClass = s.status === 'recruiting' ? 'bg-green-500' : s.status === 'in_progress' ? 'bg-blue-500' : s.status === 'always_open' ? 'bg-emerald-500' : 'bg-gray-500';
+                    var nameEsc = (s.course_name || '').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+                    return '<a href="/course-sessions/' + s.id + '" class="bg-white rounded-xl shadow-sm hover:shadow-xl transition duration-300 border border-gray-100 overflow-hidden flex flex-col h-full group">' +
                         '<div class="relative h-48 overflow-hidden bg-gray-200">' +
-                        '<img src="' + thumb + '" alt="" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">' +
-                        '<span class="absolute top-3 right-3 px-2.5 py-1 text-xs font-bold rounded-full ' + statusClass + ' text-white">' + statusText + '</span>' +
+                        '<img src="' + imgUrl.replace(/"/g, '&quot;') + '" alt="" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" onerror="this.src=\\'/static/hero1.jpg\\'">' +
+                        '<span class="absolute top-3 right-3 px-2.5 py-1 text-xs font-bold rounded-full text-white ' + statusClass + '">' + statusText(s.status) + '</span>' +
                         '<div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/60 to-transparent p-4">' +
-                        '<span class="text-white text-xs font-medium bg-primary-600/80 px-2 py-1 rounded">' + (c.category || '일반과정') + '</span>' +
+                        '<span class="text-white text-xs font-medium bg-primary-600/80 px-2 py-1 rounded">' + (s.category_name || '과정') + '</span>' +
                         '</div></div>' +
                         '<div class="p-6 flex-1 flex flex-col">' +
-                        '<h3 class="text-lg font-bold text-gray-800 mb-2 line-clamp-2 group-hover:text-primary-600 transition">' + (c.title || '') + '</h3>' +
-                        '<p class="text-gray-500 text-sm mb-4 line-clamp-2 flex-1">' + desc + '</p>' +
-                        '<div class="mt-auto pt-4 border-t border-gray-100 flex justify-between items-center text-sm">' +
-                        '<span class="text-gray-500">' + (c.start_date ? new Date(c.start_date).toLocaleDateString() : '일정 미정') + '</span>' +
-                        '<span class="font-bold text-primary-600">' + (c.price ? Number(c.price).toLocaleString() + '원' : '무료') + '</span>' +
-                        '</div></div></a>';
+                        '<h3 class="text-lg font-bold text-gray-800 mb-2 line-clamp-2 group-hover:text-primary-600 transition">' + nameEsc + '</h3>' +
+                        '<p class="text-gray-500 text-sm mb-3">' + (s.session_number ? s.session_number + '회차' : '') + (s.instructor_name ? ' · ' + (s.instructor_name || '').replace(/</g, '&lt;') : '') + '</p>' +
+                        '<div class="mt-auto pt-4 border-t border-gray-100 text-sm text-gray-500"><i class="far fa-calendar-alt mr-2"></i>' + dateStr + '</div></div></a>';
                 }).join('') + '<div class="md:col-span-3 flex justify-center mt-4">' +
-                '<a href="/courses" class="inline-flex items-center gap-2 px-8 py-4 bg-primary-600 text-white font-bold rounded-xl hover:bg-primary-700 transition shadow-lg">전체 과정 보기 <i class="fas fa-arrow-right"></i></a></div>';
+                '<a href="/course-sessions" class="inline-flex items-center gap-2 px-8 py-4 bg-primary-600 text-white font-bold rounded-xl hover:bg-primary-700 transition shadow-lg">전체 과정 보기 <i class="fas fa-arrow-right"></i></a></div>';
             } catch (e) {
                 console.error('loadCourses error:', e);
                 container.innerHTML = '<div class="col-span-3 text-center py-12"><p class="text-gray-500">연결에 실패했습니다. 잠시 후 다시 시도해 주세요.</p><button onclick="loadCourses()" class="mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">다시 시도</button></div>';

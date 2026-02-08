@@ -81,8 +81,8 @@
                         var linksHtml = links.length ? '<div class="mt-1 flex flex-wrap gap-x-1.5">' + links.join('') + '</div>' : '';
 
                         var statusBadge = item.status === 'inactive'
-                            ? '<span class="px-2 py-0.5 rounded bg-slate-100 text-slate-500 text-[10px] font-bold">비활성</span>'
-                            : '<span class="px-2 py-0.5 rounded bg-green-100 text-green-700 text-[10px] font-bold">활성</span>';
+                            ? '<span class="inline-block px-2 py-0.5 rounded bg-slate-100 text-slate-500 text-[10px] font-bold whitespace-nowrap">비활성</span>'
+                            : '<span class="inline-block px-2 py-0.5 rounded bg-green-100 text-green-700 text-[10px] font-bold whitespace-nowrap">활성</span>';
 
                         var approvalOrg = (item.approval_org || '').trim();
                         var approvalDisplay = approvalOrg ? (approvalOrg.length > 8 ? approvalOrg.slice(0, 7) + '…' : approvalOrg) : '-';
@@ -94,11 +94,11 @@
                             '<div class="font-bold text-slate-700 text-sm line-clamp-2 leading-tight" title="' + nameEsc + '">' + nameEsc + '</div>' +
                             linksHtml +
                             '</td>' +
-                            '<td class="p-3 text-slate-600 text-xs align-middle overflow-hidden" style="max-width: 110px;" title="' + instEsc + '"><span class="block truncate">' + (instRaw || '-') + '</span></td>' +
+                            '<td class="p-3 text-slate-600 text-xs align-middle min-w-0 approved-col-instructor" title="' + instEsc + '"><span class="block truncate">' + (instRaw || '-') + '</span></td>' +
                             '<td class="p-3 text-center text-slate-600 text-xs align-middle whitespace-nowrap">' + timeStr + '</td>' +
                             '<td class="p-3 text-center text-slate-600 text-xs align-middle">' + cap + '</td>' +
                             '<td class="p-3 text-center text-slate-600 text-xs align-middle overflow-hidden" style="max-width: 80px;" title="' + (approvalOrg || '') + '"><span class="block truncate">' + approvalDisplay + '</span></td>' +
-                            '<td class="p-3 text-center align-middle">' + statusBadge + '</td>' +
+                            '<td class="p-3 text-center align-middle approved-col-status">' + statusBadge + '</td>' +
                             '<td class="p-3 text-right align-middle">' +
                             '<div class="flex items-center justify-end gap-0.5 flex-nowrap">' +
                             '<a href="/admin/courses/sessions/register?approvedCourseId=' + item.id + '" class="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-bold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded transition whitespace-nowrap" title="회차 개설"><i class="fas fa-calendar-plus"></i> 회차</a>' +
