@@ -144,15 +144,35 @@ export const homeHtml = `
                 </div>
             </div>
             <div class="text-center">
-                <a href="/education-photos" class="inline-flex items-center gap-2 px-8 py-4 bg-primary-600 text-white font-bold rounded-xl hover:bg-primary-700 transition shadow-lg">
+                <a href="/education-photos?filter=education_photo" class="inline-flex items-center gap-2 px-8 py-4 bg-primary-600 text-white font-bold rounded-xl hover:bg-primary-700 transition shadow-lg">
                     교육사진 갤러리 보기 <i class="fas fa-arrow-right"></i>
                 </a>
             </div>
         </div>
     </section>
 
-    <!-- 시제품 제작 사진 섹션 -->
-    <section id="prototype-gallery" class="py-16 bg-gray-50 border-t border-gray-100">
+    <!-- 포트폴리오 섹션 (수강생 작품, /api/portfolios → /portfolios) -->
+    <section id="portfolios" class="py-16 bg-gray-50 border-t border-gray-100">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-4xl font-bold text-gray-800 mb-4">포트폴리오</h2>
+                <p class="text-xl text-gray-600">수강생 우수 작품과 프로젝트 결과물을 소개합니다.</p>
+            </div>
+            <div id="portfolioList" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div class="col-span-2 md:col-span-4 flex justify-center py-12">
+                    <div class="inline-block animate-spin rounded-full h-10 w-10 border-2 border-primary-600 border-t-transparent"></div>
+                </div>
+            </div>
+            <div class="text-center">
+                <a href="/portfolios" class="inline-flex items-center gap-2 px-8 py-4 bg-gray-800 text-white font-bold rounded-xl hover:bg-gray-900 transition shadow-lg">
+                    포트폴리오 갤러리 보기 <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- 시제품 제작 사진 섹션 (/api/posts?category=prototype → /prototype-gallery) -->
+    <section id="prototype-gallery" class="py-16 bg-white border-t border-gray-100">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-12">
                 <h2 class="text-4xl font-bold text-gray-800 mb-4">시제품 제작 사진</h2>
@@ -314,6 +334,54 @@ export const homeHtml = `
             return y + '-' + mon + '-' + d;
         }
 
+        async function loadPortfolios() {
+            var container = document.getElementById('portfolioList');
+            if (!container) return;
+            try {
+                var res = await fetch('/api/portfolios');
+                var result = await res.json();
+                if (!result.success) {
+                    container.innerHTML = '<div class="col-span-2 md:col-span-4 text-center py-12 text-gray-500">포트폴리오 목록을 불러오지 못했습니다.</div>';
+                    return;
+                }
+                var list = (result.data || []).slice();
+                list.sort(function(a, b) { return new Date(b.created_at || 0) - new Date(a.created_at || 0); });
+                function getPortfolioImage(p) {
+                    return (p.thumbnail_url || '').trim() || '';
+                }
+                var withImage = list.filter(function(p) { return !!getPortfolioImage(p); });
+                if (withImage.length === 0) {
+                    container.innerHTML = '<div class="col-span-2 md:col-span-4 text-center py-12">' +
+                        '<p class="text-gray-500 mb-6">등록된 포트폴리오가 없습니다.</p>' +
+                        '<a href="/portfolios" class="inline-flex items-center gap-2 px-6 py-3 bg-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-300 transition">포트폴리오 갤러리 보기 <i class="fas fa-arrow-right"></i></a></div>';
+                    return;
+                }
+                var cards = withImage.slice(0, 8).map(function(p) {
+                    var img = getPortfolioImage(p);
+                    var safeTitle = (p.title || '포트폴리오').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    var titleEsc = (p.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    var contentPlain = stripHtml(p.description || '').trim().substring(0, 80);
+                    if (stripHtml(p.description || '').trim().length > 80) contentPlain += '\u2026';
+                    var contentEsc = contentPlain.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+                    var studentEsc = (p.student_name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    return '<a href="/portfolios" class="block rounded-xl overflow-hidden shadow-md hover:shadow-xl transition bg-white border border-gray-100">' +
+                        '<div class="relative aspect-square bg-gray-200 group">' +
+                        '<img src="' + img + '" alt="' + safeTitle + '" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">' +
+                        '<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-3">' +
+                        '<span class="text-white text-sm font-bold truncate w-full">' + titleEsc + '</span>' +
+                        '</div></div>' +
+                        '<div class="p-3">' +
+                        '<h3 class="font-bold text-gray-800 text-sm truncate">' + titleEsc + '</h3>' +
+                        (studentEsc ? '<p class="text-xs text-gray-500 mt-0.5 truncate">' + studentEsc + '</p>' : '') +
+                        (contentEsc ? '<p class="text-xs text-gray-500 mt-0.5 overflow-hidden" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">' + contentEsc + '</p>' : '') +
+                        '</div></a>';
+                }).join('');
+                container.innerHTML = cards;
+            } catch (e) {
+                console.error('loadPortfolios error:', e);
+                container.innerHTML = '<div class="col-span-2 md:col-span-4 text-center py-12 text-gray-500">포트폴리오 목록을 불러오지 못했습니다.</div>';
+            }
+        }
         async function loadEducationPhotos() {
             var container = document.getElementById('educationPhotoList');
             if (!container) return;
@@ -344,7 +412,7 @@ export const homeHtml = `
                 if (withImage.length === 0) {
                     container.innerHTML = '<div class="col-span-2 md:col-span-4 text-center py-12">' +
                         '<p class="text-gray-500 mb-6">등록된 교육사진이 없습니다.</p>' +
-                        '<a href="/education-photos" class="inline-flex items-center gap-2 px-6 py-3 bg-primary-100 text-primary-700 font-bold rounded-xl hover:bg-primary-200 transition">교육사진 갤러리 보기 <i class="fas fa-arrow-right"></i></a></div>';
+                        '<a href="/education-photos?filter=education_photo" class="inline-flex items-center gap-2 px-6 py-3 bg-primary-100 text-primary-700 font-bold rounded-xl hover:bg-primary-200 transition">교육사진 갤러리 보기 <i class="fas fa-arrow-right"></i></a></div>';
                     return;
                 }
                 var cards = withImage.slice(0, 8).map(function(p) {
@@ -354,7 +422,7 @@ export const homeHtml = `
                     var contentPlain = stripHtml(p.content || '').trim().substring(0, 80);
                     if (stripHtml(p.content || '').trim().length > 80) contentPlain += '\u2026';
                     var contentEsc = contentPlain.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-                    return '<a href="/education-photos" class="block rounded-xl overflow-hidden shadow-md hover:shadow-xl transition bg-white border border-gray-100">' +
+                    return '<a href="/education-photos?filter=education_photo" class="block rounded-xl overflow-hidden shadow-md hover:shadow-xl transition bg-white border border-gray-100">' +
                         '<div class="relative aspect-square bg-gray-200 group">' +
                         '<img src="' + img + '" alt="' + safeTitle + '" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">' +
                         '<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-3">' +
@@ -373,8 +441,9 @@ export const homeHtml = `
         }
         document.addEventListener('DOMContentLoaded', function() {
             loadCourses();
-            loadPrototypes();
             loadEducationPhotos();
+            loadPortfolios();
+            loadPrototypes();
         });
     </script>
 `;
