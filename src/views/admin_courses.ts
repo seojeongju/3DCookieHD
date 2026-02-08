@@ -28,6 +28,11 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
         body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; }
         @keyframes skeleton-shimmer { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
         .skeleton-row .skeleton-bar { background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%); background-size: 200% 100%; animation: skeleton-shimmer 1.2s ease-in-out infinite; border-radius: 4px; height: 14px; }
+        .empty-state-cell { min-height: 320px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; }
+        .empty-state-cell .empty-icon { width: 4rem; height: 4rem; border-radius: 1rem; background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 1.75rem; }
+        .empty-state-cell .empty-title { font-size: 0.9375rem; font-weight: 700; color: #475569; }
+        .empty-state-cell .empty-desc { font-size: 0.8125rem; color: #94a3b8; }
+        .empty-state-cell .empty-cta { margin-top: 0.25rem; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 text-sm">
@@ -57,23 +62,23 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
             <!-- Main Content -->
             <main class="flex-1 overflow-auto p-6 custom-scrollbar bg-slate-50">
                 <!-- 0. List type: 등록된 과정 / 일반과정 -->
-                <div class="flex items-center gap-2 mb-4">
+                <div class="flex items-center gap-3 mb-4">
                     <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">리스트 구분</span>
-                    <div class="inline-flex rounded-xl border border-slate-200 bg-white p-0.5 shadow-sm">
-                        <button type="button" id="tabListAll" class="list-type-tab px-4 py-2 rounded-lg text-sm font-bold transition-all bg-primary-600 text-white shadow-sm">
+                    <div class="inline-flex rounded-xl border border-slate-200 bg-slate-50/50 p-0.5">
+                        <button type="button" id="tabListAll" class="list-type-tab px-4 py-2.5 rounded-lg text-sm font-bold transition-all bg-primary-600 text-white shadow-sm">
                             <i class="fas fa-list mr-1.5"></i> 등록된 과정
                         </button>
-                        <button type="button" id="tabListGeneral" class="list-type-tab px-4 py-2 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all">
+                        <button type="button" id="tabListGeneral" class="list-type-tab px-4 py-2.5 rounded-lg text-sm font-bold text-slate-600 hover:bg-white hover:shadow transition-all">
                             <i class="fas fa-graduation-cap mr-1.5"></i> 일반과정
                         </button>
                     </div>
                 </div>
 
                 <!-- 1. Search Filter Panel -->
-                <div class="bg-white border border-slate-200 rounded-lg p-5 mb-6 shadow-sm">
+                <div class="bg-white border border-slate-200 rounded-xl p-5 mb-5 shadow-sm">
                     <div class="flex items-center gap-2 mb-4 border-b border-slate-100 pb-3">
-                        <i class="fas fa-search text-slate-400"></i>
-                        <h2 class="font-bold text-slate-700">통합 과정 검색</h2>
+                        <span class="w-8 h-8 rounded-lg bg-primary-50 flex items-center justify-center text-primary-600"><i class="fas fa-search text-sm"></i></span>
+                        <h2 class="font-bold text-slate-800">통합 과정 검색</h2>
                     </div>
                     
                     <form id="searchForm" onsubmit="event.preventDefault(); loadCourses(1);" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -100,11 +105,10 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
                             <label class="block text-xs font-bold text-slate-500">과정 구분</label>
                             <select id="categoryFilter" class="w-full py-1.5 px-3 border border-slate-200 rounded text-sm focus:ring-1 focus:ring-primary-500 focus:border-primary-500">
                                 <option value="">전체 과정</option>
-                                <option value="국비지원">국가기간 전략산업</option>
-                                <option value="국민내일배움">국민내일배움카드</option>
-                                <option value="일반과정">일반직무 (재직자)</option>
-                                <option value="특강">단기 특강</option>
                             </select>
+                            <div id="categoryDirectWrap" class="hidden mt-1">
+                                <input type="text" id="categoryDirectInput" placeholder="과정 구분 직접 입력" class="w-full py-1.5 px-3 border border-slate-200 rounded text-sm focus:ring-1 focus:ring-primary-500 focus:border-primary-500">
+                            </div>
                         </div>
 
                         <div class="space-y-1">
@@ -130,34 +134,34 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
                 </div>
 
                 <!-- 2. Data Grid -->
-                <div class="bg-white border border-slate-200 rounded-lg shadow-sm flex flex-col h-[calc(100vh-340px)] min-h-[500px]">
+                <div class="bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col h-[calc(100vh-340px)] min-h-[420px] overflow-hidden">
                     <!-- Grid Toolbar -->
-                    <div class="p-4 border-b border-slate-100 flex items-center justify-between shrink-0">
+                    <div class="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between shrink-0 bg-slate-50/50">
                         <div class="flex items-center gap-3">
                             <span class="text-sm font-bold text-slate-700">검색결과 <span id="totalCount" class="text-primary-600">0</span>건 <span id="paginationRange" class="text-slate-400 font-normal text-xs"></span></span>
-                            <button type="button" id="btnRefresh" class="p-1.5 text-slate-500 hover:text-primary-600 hover:bg-primary-50 rounded transition" title="새로고침"><i class="fas fa-sync-alt text-xs"></i></button>
-                            <div class="h-4 w-px bg-slate-300"></div>
-                            <button type="button" class="text-xs text-slate-500 hover:text-red-600 transition flex items-center gap-1" onclick="deleteSelected()">
-                                <i class="far fa-trash-alt"></i> 선택 삭제
+                            <span class="text-slate-300">|</span>
+                            <button type="button" id="btnRefresh" class="p-2 text-slate-500 hover:text-primary-600 hover:bg-white rounded-lg border border-transparent hover:border-slate-200 transition" title="새로고침"><i class="fas fa-sync-alt text-xs"></i></button>
+                            <button type="button" class="text-xs text-slate-500 hover:text-red-600 transition flex items-center gap-1.5 px-2 py-1.5 rounded-lg hover:bg-red-50" onclick="deleteSelected()">
+                                <i class="far fa-trash-alt text-xs"></i> 선택 삭제
                             </button>
                         </div>
                         <div class="flex items-center gap-2">
-                             <a href="/admin/courses/sessions" class="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 border border-slate-300 rounded text-xs font-bold text-slate-600 hover:bg-slate-50 transition">
+                            <a href="/admin/courses/sessions" class="hidden sm:inline-flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg text-xs font-bold text-slate-600 bg-white hover:bg-slate-50 transition">
                                 <i class="fas fa-list-ul"></i> 회차별 관리
                             </a>
-                            <button type="button" id="btnExportExcel" class="inline-flex items-center gap-2 px-3 py-1.5 border border-green-600 text-green-700 bg-green-50 rounded text-xs font-bold hover:bg-green-100 transition">
+                            <button type="button" id="btnExportExcel" class="inline-flex items-center gap-2 px-3 py-2 border border-emerald-200 rounded-lg text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition">
                                 <i class="far fa-file-excel"></i> 엑셀 저장
                             </button>
-                            <button onclick="openCreateModal()" class="inline-flex items-center gap-2 px-4 py-1.5 bg-primary-600 text-white rounded text-xs font-bold hover:bg-primary-700 transition shadow-sm">
+                            <button onclick="openCreateModal()" class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-bold hover:bg-primary-700 transition shadow-sm">
                                 <i class="fas fa-plus"></i> 과정 신규 등록
                             </button>
                         </div>
                     </div>
 
                     <!-- Table -->
-                    <div class="flex-1 overflow-auto custom-scrollbar relative">
+                    <div class="flex-1 overflow-auto custom-scrollbar relative min-h-0">
                         <table class="w-full text-left border-collapse">
-                            <thead class="bg-slate-100 text-slate-500 text-xs font-bold uppercase sticky top-0 z-10 shadow-sm">
+                            <thead class="bg-slate-100/90 text-slate-500 text-xs font-bold uppercase sticky top-0 z-10 border-b border-slate-200">
                                 <tr>
                                     <th class="p-3 w-10 text-center border-b border-slate-200"><input type="checkbox" id="checkAll" class="rounded border-slate-300"></th>
                                     <th class="p-3 w-16 text-center border-b border-slate-200">No.</th>
@@ -182,7 +186,7 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
                     </div>
 
                     <!-- Pagination -->
-                    <div class="p-3 border-t border-slate-200 flex items-center justify-center gap-2 shrink-0 bg-slate-50" id="pagination">
+                    <div class="px-4 py-3 border-t border-slate-200 flex items-center justify-center gap-2 shrink-0 bg-slate-50/80" id="pagination">
                         <!-- Filled by JS -->
                     </div>
                 </div>
@@ -234,12 +238,12 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-bold text-slate-500 mb-1">과정 구분 <span class="text-red-500">*</span></label>
-                        <select name="category" required class="w-full py-2 px-3 border border-slate-200 rounded-lg text-sm">
-                            <option value="일반과정">일반직무 (재직자)</option>
-                            <option value="국비지원">국가기간 전략산업</option>
-                            <option value="국민내일배움">국민내일배움카드</option>
-                            <option value="특강">단기 특강</option>
+                        <select id="directModalCategorySelect" name="category" class="w-full py-2 px-3 border border-slate-200 rounded-lg text-sm">
+                            <option value="">선택 또는 아래 직접 입력</option>
                         </select>
+                        <div id="directModalCategoryDirectWrap" class="hidden mt-1">
+                            <input type="text" id="directModalCategoryInput" placeholder="과정 구분 직접 입력" class="w-full py-2 px-3 border border-slate-200 rounded-lg text-sm">
+                        </div>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-500 mb-1">담당교사</label>
@@ -291,12 +295,25 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
     <script>
         const API_BASE = '/api/courses';
         const STORAGE_KEY = 'admin_courses_filter';
+        const CATEGORY_DIRECT_VALUE = '__direct__';
         let currentPage = 1;
         const ITEMS_PER_PAGE = 20;
         let listType = 'all';
         let lastCourseList = [];
         let lastTotalCount = 0;
+        let courseCategoriesList = [];
 
+        /** 검색/필터에서 사용할 과정 구분 값 (등록 분류 선택 또는 직접 입력) */
+        function getEffectiveCategory() {
+            if (listType === 'general') return '일반과정';
+            var sel = document.getElementById('categoryFilter');
+            if (!sel) return '';
+            if (sel.value === CATEGORY_DIRECT_VALUE) {
+                var inp = document.getElementById('categoryDirectInput');
+                return inp ? inp.value.trim() : '';
+            }
+            return sel.value || '';
+        }
         function saveFilter() {
             try {
                 sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
@@ -304,6 +321,7 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
                     page: currentPage,
                     year: document.getElementById('yearFilter').value,
                     category: document.getElementById('categoryFilter').value,
+                    categoryDirect: document.getElementById('categoryDirectInput').value,
                     status: document.getElementById('statusFilter').value,
                     search: document.getElementById('searchInput').value
                 }));
@@ -318,13 +336,50 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
                 if (s.page) currentPage = parseInt(s.page, 10) || 1;
                 const yearFilter = document.getElementById('yearFilter');
                 const categoryFilter = document.getElementById('categoryFilter');
+                const categoryDirectInput = document.getElementById('categoryDirectInput');
                 const statusFilter = document.getElementById('statusFilter');
                 const searchInput = document.getElementById('searchInput');
                 if (yearFilter && s.year !== undefined) yearFilter.value = s.year;
-                if (categoryFilter && s.category !== undefined) categoryFilter.value = s.category;
+                if (categoryFilter && s.category !== undefined) {
+                    var hasOption = categoryFilter.querySelector('option[value="' + String(s.category).replace(/"/g, '&quot;') + '"]');
+                    if (s.category === CATEGORY_DIRECT_VALUE || !hasOption) {
+                        categoryFilter.value = CATEGORY_DIRECT_VALUE;
+                        if (categoryDirectInput) categoryDirectInput.value = (s.category === CATEGORY_DIRECT_VALUE && s.categoryDirect !== undefined) ? s.categoryDirect : (s.category || '');
+                        var wrap = document.getElementById('categoryDirectWrap');
+                        if (wrap) wrap.classList.remove('hidden');
+                    } else {
+                        categoryFilter.value = s.category;
+                        if (categoryDirectInput && s.categoryDirect !== undefined) categoryDirectInput.value = s.categoryDirect;
+                        var wrap = document.getElementById('categoryDirectWrap');
+                        if (wrap) wrap.classList.add('hidden');
+                    }
+                }
                 if (statusFilter && s.status !== undefined) statusFilter.value = s.status;
                 if (searchInput && s.search !== undefined) searchInput.value = s.search || '';
             } catch (e) {}
+        }
+
+        function loadCourseCategories() {
+            return fetch('/api/course-categories', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } })
+                .then(function(r) { return r.json(); })
+                .then(function(json) {
+                    courseCategoriesList = (json.data || []).map(function(c) { return { id: c.id, name: c.name }; });
+                    var hasGeneral = courseCategoriesList.some(function(c) { return c.name === '일반과정'; });
+                    if (!hasGeneral) courseCategoriesList.push({ id: 0, name: '일반과정' });
+
+                    var optHtml = '<option value="">전체 과정</option>';
+                    courseCategoriesList.forEach(function(c) { optHtml += '<option value="' + (c.name || '').replace(/"/g, '&quot;') + '">' + (c.name || '').replace(/</g, '&lt;') + '</option>'; });
+                    optHtml += '<option value="' + CATEGORY_DIRECT_VALUE + '">직접 입력</option>';
+                    var catFilter = document.getElementById('categoryFilter');
+                    if (catFilter) catFilter.innerHTML = optHtml;
+
+                    var modalOptHtml = '<option value="">선택 또는 아래 직접 입력</option>';
+                    courseCategoriesList.forEach(function(c) { modalOptHtml += '<option value="' + (c.name || '').replace(/"/g, '&quot;') + '">' + (c.name || '').replace(/</g, '&lt;') + '</option>'; });
+                    modalOptHtml += '<option value="' + CATEGORY_DIRECT_VALUE + '">직접 입력</option>';
+                    var modalSel = document.getElementById('directModalCategorySelect');
+                    if (modalSel) modalSel.innerHTML = modalOptHtml;
+                })
+                .catch(function() { courseCategoriesList = []; });
         }
 
         function updateListTypeUI() {
@@ -336,22 +391,28 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
                 tabAll.classList.remove('bg-white', 'text-slate-600');
                 tabGeneral.classList.remove('bg-primary-600', 'text-white', 'shadow-sm');
                 tabGeneral.classList.add('text-slate-600');
-                catFilter.value = catFilter.dataset.savedCategory || '';
+                if (catFilter) catFilter.value = catFilter.dataset.savedCategory || '';
+                var cWrap = document.getElementById('categoryDirectWrap');
+                if (cWrap) cWrap.classList.add('hidden');
             } else {
                 tabGeneral.classList.add('bg-primary-600', 'text-white', 'shadow-sm');
                 tabGeneral.classList.remove('text-slate-600');
                 tabAll.classList.remove('bg-primary-600', 'text-white', 'shadow-sm');
                 tabAll.classList.add('text-slate-600');
-                catFilter.value = '일반과정';
+                if (catFilter) catFilter.value = '일반과정';
+                var cWrap = document.getElementById('categoryDirectWrap');
+                if (cWrap) cWrap.classList.add('hidden');
             }
         }
 
         window.onload = function() {
             const token = localStorage.getItem('token');
             if(!token) window.location.href = '/login';
-            loadFilter();
-            updateListTypeUI();
-            loadCourses(currentPage);
+            loadCourseCategories().then(function() {
+                loadFilter();
+                updateListTypeUI();
+                loadCourses(currentPage);
+            });
 
             document.getElementById('checkAll').addEventListener('change', function(e) {
                 const checkboxes = document.querySelectorAll('.row-checkbox');
@@ -374,6 +435,19 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
 
             document.getElementById('btnExportExcel').addEventListener('click', exportExcel);
             document.getElementById('btnRefresh').addEventListener('click', function() { loadCourses(currentPage); });
+
+            var categoryFilterEl = document.getElementById('categoryFilter');
+            if (categoryFilterEl) {
+                categoryFilterEl.addEventListener('change', function() {
+                    document.getElementById('categoryDirectWrap').classList.toggle('hidden', this.value !== CATEGORY_DIRECT_VALUE);
+                });
+            }
+            var directModalCategorySelectEl = document.getElementById('directModalCategorySelect');
+            if (directModalCategorySelectEl) {
+                directModalCategorySelectEl.addEventListener('change', function() {
+                    document.getElementById('directModalCategoryDirectWrap').classList.toggle('hidden', this.value !== CATEGORY_DIRECT_VALUE);
+                });
+            }
             
             try {
                 const user = JSON.parse(localStorage.getItem('user'));
@@ -401,8 +475,7 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
             const status = document.getElementById('statusFilter').value;
             const search = document.getElementById('searchInput').value;
             
-            // 리스트 구분: 일반과정 탭이면 카테고리 고정
-            const effectiveCategory = listType === 'general' ? '일반과정' : (category || '');
+            const effectiveCategory = getEffectiveCategory();
             
             const params = new URLSearchParams({
                 page: page,
@@ -438,15 +511,14 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
                 }
 
                 if(list.length === 0) {
-                    tbody.innerHTML = \`
-                        <tr>
-                            <td colspan="10" class="p-16 text-center flex flex-col items-center justify-center text-slate-400">
-                                <i class="far fa-folder-open text-3xl mb-3 opacity-30"></i>
-                                <span class="text-sm">조회된 과정 데이터가 없습니다.</span>
-                                \${search ? '<span class="text-xs mt-1">검색조건을 변경해보세요.</span>' : '<button onclick="openCreateModal()" class="mt-4 px-4 py-2 bg-primary-50 text-primary-600 rounded text-xs font-bold hover:bg-primary-100">신규 과정 등록하기</button>'}
-                            </td>
-                        </tr>
-                    \`;
+                    var emptyHtml = '<tr><td colspan="10" class="p-12">' +
+                        '<div class="empty-state-cell">' +
+                        '<div class="empty-icon"><i class="fas fa-book-open"></i></div>' +
+                        '<p class="empty-title">조회된 과정 데이터가 없습니다</p>' +
+                        (search ? '<p class="empty-desc">검색 조건을 바꿔 보시거나, 다른 필터를 적용해 보세요.</p>' : '<p class="empty-desc">승인 과정 불러오기 또는 직접 입력으로 첫 과정을 등록해 보세요.</p>') +
+                        (search ? '' : '<div class="empty-cta"><button type="button" onclick="openCreateModal()" class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-xl text-sm font-bold hover:bg-primary-700 transition shadow-sm"><i class="fas fa-plus"></i> 신규 과정 등록</button></div>') +
+                        '</div></td></tr>';
+                    tbody.innerHTML = emptyHtml;
                     renderPagination(0);
                     return;
                 }
@@ -559,6 +631,9 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
         async function openDirectInputModal() {
             document.getElementById('directInputModal').classList.remove('hidden');
             document.getElementById('directInputForm').reset();
+            document.getElementById('directModalCategorySelect').value = '';
+            document.getElementById('directModalCategoryDirectWrap').classList.add('hidden');
+            document.getElementById('directModalCategoryInput').value = '';
             const teacherSelect = document.querySelector('#directInputForm select[name="teacher_id"]');
             teacherSelect.innerHTML = '<option value="">미배정</option>';
             try {
@@ -581,7 +656,10 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
             const form = document.getElementById('directInputForm');
             const title = form.querySelector('[name="title"]').value.trim();
             if (!title) { alert('과정명을 입력하세요.'); return; }
-            const category = form.querySelector('[name="category"]').value;
+            var catSel = document.getElementById('directModalCategorySelect');
+            var catInp = document.getElementById('directModalCategoryInput');
+            var category = (catSel && catSel.value === CATEGORY_DIRECT_VALUE && catInp) ? catInp.value.trim() : (catSel ? catSel.value : '');
+            if (!category) { alert('과정 구분을 선택하거나 직접 입력하세요.'); return; }
             const body = {
                 title: title,
                 category: category,
@@ -638,7 +716,7 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
             const year = document.getElementById('yearFilter').value;
             const status = document.getElementById('statusFilter').value;
             const search = document.getElementById('searchInput').value;
-            const effectiveCategory = listType === 'general' ? '일반과정' : document.getElementById('categoryFilter').value;
+            const effectiveCategory = getEffectiveCategory();
             const params = new URLSearchParams({ page: '1', limit: '10000', sort: 'latest' });
             if(effectiveCategory) params.append('category', effectiveCategory);
             if(status) params.append('status', status);
