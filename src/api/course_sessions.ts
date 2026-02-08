@@ -323,6 +323,7 @@ app.post('/', authMiddleware, requireAdmin, async (c) => {
       lunch_time_start?: string;
       lunch_time_end?: string;
       homepage_exposed?: number | boolean;
+      session_name?: string;
     }>();
     const approvedCourseId = body.approved_course_id;
     const sessionNumber = body.session_number;
@@ -352,6 +353,7 @@ app.post('/', authMiddleware, requireAdmin, async (c) => {
     const courseListImageUrl = (body.course_list_image_url || '').trim() || null;
     const courseDetailDescription = (body.course_detail_description || '').trim() || null;
     const homepageExposed = body.homepage_exposed === true || body.homepage_exposed === 1 ? 1 : 0;
+    const sessionName = (body.session_name || '').trim() || null;
 
     const { DB } = c.env;
     const existing = await DB.prepare(
@@ -368,10 +370,10 @@ app.post('/', authMiddleware, requireAdmin, async (c) => {
           training_start_date, training_end_date, training_time_start, training_time_end, lunch_time_start, lunch_time_end,
           url_ncs, url_plan, url_detail_plan, registered_at,
           recruitment_status, representative_image_exposure, recruitment_grace_period, syllabus_exposure,
-          main_slide_image_url, course_list_image_url, course_detail_description, homepage_exposed
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          main_slide_image_url, course_list_image_url, course_detail_description, homepage_exposed, session_name
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
-        .bind(approvedCourseId, sessionNumber, status, instructorName, targetAudience, daysOfWeek, location, trainingStart, trainingEnd, trainingTimeStart, trainingTimeEnd, lunchTimeStart, lunchTimeEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt, recruitmentStatus, representativeImageExposure, recruitmentGracePeriod, syllabusExposure, mainSlideImageUrl, courseListImageUrl, courseDetailDescription, homepageExposed)
+        .bind(approvedCourseId, sessionNumber, status, instructorName, targetAudience, daysOfWeek, location, trainingStart, trainingEnd, trainingTimeStart, trainingTimeEnd, lunchTimeStart, lunchTimeEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt, recruitmentStatus, representativeImageExposure, recruitmentGracePeriod, syllabusExposure, mainSlideImageUrl, courseListImageUrl, courseDetailDescription, homepageExposed, sessionName)
         .run();
     } catch (err: unknown) {
       const msg = String(err && typeof err === 'object' && 'message' in err ? (err as Error).message : err);
@@ -382,10 +384,10 @@ app.post('/', authMiddleware, requireAdmin, async (c) => {
               approved_course_id, session_number, status, instructor_name, target_audience, days_of_week, location,
               training_start_date, training_end_date, url_ncs, url_plan, url_detail_plan, registered_at,
               recruitment_status, representative_image_exposure, recruitment_grace_period, syllabus_exposure,
-              main_slide_image_url, course_list_image_url, course_detail_description
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+              main_slide_image_url, course_list_image_url, course_detail_description, session_name
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
           )
-            .bind(approvedCourseId, sessionNumber, status, instructorName, targetAudience, daysOfWeek, location, trainingStart, trainingEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt, recruitmentStatus, representativeImageExposure, recruitmentGracePeriod, syllabusExposure, mainSlideImageUrl, courseListImageUrl, courseDetailDescription)
+            .bind(approvedCourseId, sessionNumber, status, instructorName, targetAudience, daysOfWeek, location, trainingStart, trainingEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt, recruitmentStatus, representativeImageExposure, recruitmentGracePeriod, syllabusExposure, mainSlideImageUrl, courseListImageUrl, courseDetailDescription, sessionName)
             .run();
         } catch (errFallback: unknown) {
           const msgF = String(errFallback && typeof errFallback === 'object' && 'message' in errFallback ? (errFallback as Error).message : errFallback);
@@ -394,14 +396,14 @@ app.post('/', authMiddleware, requireAdmin, async (c) => {
               await DB.prepare(
                 `INSERT INTO course_sessions (
                   approved_course_id, session_number, status, instructor_name, target_audience, days_of_week, location,
-                  training_start_date, training_end_date, url_ncs, url_plan, url_detail_plan, registered_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+                  training_start_date, training_end_date, url_ncs, url_plan, url_detail_plan, registered_at, session_name
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
               )
-                .bind(approvedCourseId, sessionNumber, status, instructorName, targetAudience, daysOfWeek, location, trainingStart, trainingEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt)
+                .bind(approvedCourseId, sessionNumber, status, instructorName, targetAudience, daysOfWeek, location, trainingStart, trainingEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt, sessionName)
                 .run();
             } catch (err2: unknown) {
               const msg2 = String(err2 && typeof err2 === 'object' && 'message' in err2 ? (err2 as Error).message : err2);
-              if (/instructor_name|target_audience|days_of_week|location|no such column/i.test(msg2)) {
+              if (/session_name|instructor_name|target_audience|days_of_week|location|no such column/i.test(msg2)) {
                 await DB.prepare(
                   `INSERT INTO course_sessions (
                     approved_course_id, session_number, status, training_start_date, training_end_date,
@@ -444,7 +446,7 @@ app.get('/:id', authMiddleware, requireAdmin, async (c) => {
     let row: Record<string, unknown> | null = null;
     try {
       row = await DB.prepare(
-        `SELECT s.id, s.approved_course_id, s.session_number, s.status,
+        `SELECT s.id, s.approved_course_id, s.session_number, s.session_name, s.status,
                 s.training_start_date, s.training_end_date,
                 s.training_time_start, s.training_time_end, s.lunch_time_start, s.lunch_time_end,
                 s.url_ncs, s.url_plan, s.url_detail_plan,
@@ -527,6 +529,7 @@ app.put('/:id', authMiddleware, requireAdmin, async (c) => {
       lunch_time_start?: string;
       lunch_time_end?: string;
       homepage_exposed?: number | boolean;
+      session_name?: string;
     }>();
 
     const { DB } = c.env;
@@ -534,6 +537,7 @@ app.put('/:id', authMiddleware, requireAdmin, async (c) => {
     if (!existing) return c.json({ success: false, error: '회차를 찾을 수 없습니다' }, 404);
 
     const status = (body.status && STATUS_VALUES.includes(body.status as any)) ? body.status : undefined;
+    const sessionName = (body.session_name || '').trim() || null;
     const instructorName = (body.instructor_name || '').trim() || null;
     const targetAudience = Array.isArray(body.target_audience) ? body.target_audience.join(',') : (typeof body.target_audience === 'string' ? body.target_audience.trim() : null) || null;
     const daysOfWeek = Array.isArray(body.days_of_week) ? body.days_of_week.join(',') : (typeof body.days_of_week === 'string' ? body.days_of_week.trim() : null) || null;
@@ -567,14 +571,14 @@ app.put('/:id', authMiddleware, requireAdmin, async (c) => {
           recruitment_status = COALESCE(?, recruitment_status), representative_image_exposure = COALESCE(?, representative_image_exposure),
           recruitment_grace_period = COALESCE(?, recruitment_grace_period), syllabus_exposure = COALESCE(?, syllabus_exposure),
           main_slide_image_url = ?, course_list_image_url = ?, course_detail_description = ?,
-          homepage_exposed = COALESCE(?, homepage_exposed)
+          homepage_exposed = COALESCE(?, homepage_exposed), session_name = ?
          WHERE id = ?`
       )
-        .bind(status ?? null, instructorName, targetAudience, daysOfWeek, location, trainingStart, trainingEnd, trainingTimeStart, trainingTimeEnd, lunchTimeStart, lunchTimeEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt, recruitmentStatus, representativeImageExposure, recruitmentGracePeriod, syllabusExposure, mainSlideImageUrl, courseListImageUrl, courseDetailDescription, homepageExposed ?? null, id)
+        .bind(status ?? null, instructorName, targetAudience, daysOfWeek, location, trainingStart, trainingEnd, trainingTimeStart, trainingTimeEnd, lunchTimeStart, lunchTimeEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt, recruitmentStatus, representativeImageExposure, recruitmentGracePeriod, syllabusExposure, mainSlideImageUrl, courseListImageUrl, courseDetailDescription, homepageExposed ?? null, sessionName, id)
         .run();
     } catch (err: unknown) {
       const msg = String(err && typeof err === 'object' && 'message' in err ? (err as Error).message : err);
-      if (/homepage_exposed|training_time_start|training_time_end|lunch_time_start|lunch_time_end|recruitment_status|representative_image_exposure|recruitment_grace_period|syllabus_exposure|main_slide_image_url|course_list_image_url|course_detail_description|no such column/i.test(msg)) {
+      if (/session_name|homepage_exposed|training_time_start|training_time_end|lunch_time_start|lunch_time_end|recruitment_status|representative_image_exposure|recruitment_grace_period|syllabus_exposure|main_slide_image_url|course_list_image_url|course_detail_description|no such column/i.test(msg)) {
         try {
           await DB.prepare(
             `UPDATE course_sessions SET

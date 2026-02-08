@@ -69,8 +69,20 @@
                 if (nameEl) nameEl.innerHTML = '과정명 : <span class="font-medium text-slate-800">' + (c.name || '').replace(/</g, '&lt;') + '</span>';
                 if (box) box.classList.remove('hidden');
                 setTabPlanUrls(c.url_plan || null, c.url_detail_plan || null, editId);
+                updateSessionNamePreview();
             })
             .catch(function() { if (box) box.classList.add('hidden'); });
+    }
+
+    function updateSessionNamePreview() {
+        var courseEl = document.getElementById('sessionsDetailCourseName');
+        var courseName = courseEl ? (courseEl.textContent || '').trim() : '';
+        var sessionNameEl = document.getElementById('sessionsFormSessionName');
+        var sessionPart = (sessionNameEl && sessionNameEl.value) ? sessionNameEl.value.trim() : '';
+        var previewEl = document.getElementById('sessionsFormSessionNamePreview');
+        if (!previewEl) return;
+        var full = (courseName && sessionPart) ? (courseName + ' + ' + sessionPart) : (courseName || sessionPart || '');
+        previewEl.textContent = full ? '미리보기: ' + full : '';
     }
 
     function setTabPlanUrls(urlPlan, urlDetailPlan, sessionId) {
@@ -230,6 +242,8 @@
                 if (approvedSel) approvedSel.value = d.approved_course_id != null ? d.approved_course_id : '';
                 var numEl = document.getElementById('sessionsFormSessionNumber');
                 if (numEl) numEl.value = d.session_number != null ? d.session_number : '';
+                var sessionNameEl = document.getElementById('sessionsFormSessionName');
+                if (sessionNameEl) sessionNameEl.value = (d.session_name || '').trim();
                 document.getElementById('sessionsFormStatus').value = d.status || 'recruiting';
                 setSelectedInstructors(d.instructor_name || '');
                 document.getElementById('sessionsFormTrainingStart').value = (d.training_start_date || '').slice(0, 10);
@@ -284,7 +298,7 @@
                 if (formIdEl) formIdEl.value = id;
                 if (id && approvedSel) approvedSel.disabled = true;
                 if (id && numEl) numEl.readOnly = true;
-                loadApprovedCourseDetail(d.approved_course_id);
+                loadApprovedCourseDetail(d.approved_course_id).then(function() { updateSessionNamePreview(); });
                 setTabPlanUrls(d.url_plan || null, d.url_detail_plan || null, id);
             })
             .catch(function() { alert('조회 실패'); });
@@ -332,6 +346,8 @@
         var mainSlideUrl = (document.getElementById('sessionsFormMainSlideImageUrl') && document.getElementById('sessionsFormMainSlideImageUrl').value) || '';
         var courseListUrl = (document.getElementById('sessionsFormCourseListImageUrl') && document.getElementById('sessionsFormCourseListImageUrl').value) || '';
         var courseDetailDescription = getSessionCourseDetailContent();
+        var sessionNameElForPayload = document.getElementById('sessionsFormSessionName');
+        var sessionNameVal = (sessionNameElForPayload && sessionNameElForPayload.value) ? sessionNameElForPayload.value.trim() : null;
 
         var url, method, payload;
         if (id) {
@@ -357,7 +373,8 @@
                 syllabus_exposure: syllabusExposure,
                 main_slide_image_url: mainSlideUrl || null,
                 course_list_image_url: courseListUrl || null,
-                course_detail_description: courseDetailDescription || null
+                course_detail_description: courseDetailDescription || null,
+                session_name: sessionNameVal || null
             };
         } else {
             url = '/api/course-sessions';
@@ -384,7 +401,8 @@
                 syllabus_exposure: syllabusExposure,
                 main_slide_image_url: mainSlideUrl || null,
                 course_list_image_url: courseListUrl || null,
-                course_detail_description: courseDetailDescription || null
+                course_detail_description: courseDetailDescription || null,
+                session_name: sessionNameVal || null
             };
         }
         var btn = document.getElementById('sessionsFormSubmit');
@@ -423,6 +441,9 @@
 
     var approvedSel = document.getElementById('sessionsFormApprovedCourse');
     if (approvedSel) approvedSel.addEventListener('change', function() { loadApprovedCourseDetail(this.value || ''); });
+    var sessionNameInput = document.getElementById('sessionsFormSessionName');
+    if (sessionNameInput) sessionNameInput.addEventListener('input', updateSessionNamePreview);
+    if (sessionNameInput) sessionNameInput.addEventListener('change', updateSessionNamePreview);
 
     document.querySelectorAll('.session-detail-tab').forEach(function(btn) {
         btn.addEventListener('click', function() {

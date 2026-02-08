@@ -835,10 +835,18 @@ export const adminCoursesSessionsRegisterHtml = (editId?: string) => {
                     </div>
 
                     <div class="space-y-6">
-                        <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-1"><span class="text-red-500">*</span> 회차</label>
-                            <input type="number" id="sessionsFormSessionNumber" min="1" class="w-full max-w-xs px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" placeholder="1">
-                            <p class="text-xs text-slate-500 mt-1">승인받은 과정별 회차는 중복될 수 없습니다.</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-bold text-slate-700 mb-1"><span class="text-red-500">*</span> 회차</label>
+                                <input type="number" id="sessionsFormSessionNumber" min="1" class="w-full max-w-xs px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" placeholder="1">
+                                <p class="text-xs text-slate-500 mt-1">승인받은 과정별 회차는 중복될 수 없습니다.</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-slate-700 mb-1">회차별과정명</label>
+                                <input type="text" id="sessionsFormSessionName" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" placeholder="예: 1기 실무반">
+                                <p class="text-xs text-slate-500 mt-1">승인받은과정명 + 이 입력값이 <strong>회차별과정명</strong>으로 표시됩니다. 비워두면 과정명만 사용됩니다.</p>
+                                <p id="sessionsFormSessionNamePreview" class="text-xs text-emerald-600 mt-1.5 font-medium truncate" aria-live="polite"></p>
+                            </div>
                         </div>
 
                         <div>
