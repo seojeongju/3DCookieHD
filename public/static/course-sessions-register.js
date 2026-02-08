@@ -281,9 +281,11 @@
                 var listInfo = document.getElementById('sessionsFormCourseListImageInfo');
                 if (listInfo) listInfo.textContent = d.course_list_image_url ? '등록됨' : '';
                 setSessionCourseDetailContent(d.course_detail_description || '');
-                if (editId && approvedSel) approvedSel.disabled = true;
-                if (editId && numEl) numEl.readOnly = true;
+                if (formIdEl) formIdEl.value = id;
+                if (id && approvedSel) approvedSel.disabled = true;
+                if (id && numEl) numEl.readOnly = true;
                 loadApprovedCourseDetail(d.approved_course_id);
+                setTabPlanUrls(d.url_plan || null, d.url_detail_plan || null, id);
             })
             .catch(function() { alert('조회 실패'); });
     }
