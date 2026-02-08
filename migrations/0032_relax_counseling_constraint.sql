@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS hrd_counseling_logs_new (
     FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE SET NULL
 );
 
--- 기존 데이터 이전
+-- 기존 데이터 이전 (0008 테이블에는 counseling_type, consultation_id 없음 → 기본값 사용)
 INSERT INTO hrd_counseling_logs_new (
     id, student_id, counselor_id, course_id, counseling_date, 
     category, method, content, result, next_counseling_date, 
@@ -34,7 +34,9 @@ INSERT INTO hrd_counseling_logs_new (
 SELECT 
     id, student_id, counselor_id, course_id, counseling_date, 
     category, method, content, result, next_counseling_date, 
-    counseling_type, consultation_id, created_at, updated_at
+    'academic' AS counseling_type,
+    NULL AS consultation_id,
+    created_at, updated_at
 FROM hrd_counseling_logs;
 
 -- 기존 테이블 삭제 및 교체

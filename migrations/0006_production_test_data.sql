@@ -12,12 +12,12 @@ VALUES
 (102, '언리얼 엔진 게임 개발', '국비지원', '언리얼 엔진을 활용한 게임 개발 실무 과정', NULL, 4, 160, 3200000, 15, 'active', CURRENT_TIMESTAMP),
 (103, 'Unity 게임 프로그래밍', '일반과정', 'Unity를 활용한 모바일 게임 개발', NULL, 3, 140, 2800000, 18, 'active', CURRENT_TIMESTAMP);
 
--- 샘플 학생 데이터
-INSERT OR IGNORE INTO users (id, email, password, name, phone, role, status, created_at)
+-- 샘플 학생 데이터 (users.status는 0009에서 추가되므로 여기서는 제외)
+INSERT OR IGNORE INTO users (id, email, password, name, phone, role, created_at)
 VALUES 
-(201, 'student1@test.com', '$2a$10$TestHash1', '김학생', '010-1111-2222', 'student', 'active', CURRENT_TIMESTAMP),
-(202, 'student2@test.com', '$2a$10$TestHash2', '이학생', '010-2222-3333', 'student', 'active', CURRENT_TIMESTAMP),
-(203, 'student3@test.com', '$2a$10$TestHash3', '박학생', '010-3333-4444', 'student', 'active', CURRENT_TIMESTAMP);
+(201, 'student1@test.com', '$2a$10$TestHash1', '김학생', '010-1111-2222', 'student', CURRENT_TIMESTAMP),
+(202, 'student2@test.com', '$2a$10$TestHash2', '이학생', '010-2222-3333', 'student', CURRENT_TIMESTAMP),
+(203, 'student3@test.com', '$2a$10$TestHash3', '박학생', '010-3333-4444', 'student', CURRENT_TIMESTAMP);
 
 -- 수강 신청 데이터 (enrollments 스키마: enrolled_at)
 INSERT OR IGNORE INTO enrollments (id, user_id, course_id, status, progress, enrolled_at)

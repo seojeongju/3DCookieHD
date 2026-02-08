@@ -377,6 +377,9 @@ app.post('/', authMiddleware, requireAdmin, async (c) => {
         .run();
     } catch (err: unknown) {
       const msg = String(err && typeof err === 'object' && 'message' in err ? (err as Error).message : err);
+      if (/session_name|no such column/i.test(msg) && /session_name/i.test(msg)) {
+        return c.json({ success: false, error: '회차별과정명을 저장하려면 DB 마이그레이션 0062를 적용하세요. (npm run db:migrate:prod)' }, 400);
+      }
       if (/homepage_exposed|training_time_start|training_time_end|lunch_time_start|lunch_time_end|recruitment_status|representative_image_exposure|recruitment_grace_period|syllabus_exposure|main_slide_image_url|course_list_image_url|course_detail_description|no such column/i.test(msg)) {
         try {
           await DB.prepare(
@@ -578,6 +581,9 @@ app.put('/:id', authMiddleware, requireAdmin, async (c) => {
         .run();
     } catch (err: unknown) {
       const msg = String(err && typeof err === 'object' && 'message' in err ? (err as Error).message : err);
+      if (/session_name|no such column/i.test(msg) && /session_name/i.test(msg)) {
+        return c.json({ success: false, error: '회차별과정명을 저장하려면 DB 마이그레이션 0062를 적용하세요. (npm run db:migrate:prod)' }, 400);
+      }
       if (/session_name|homepage_exposed|training_time_start|training_time_end|lunch_time_start|lunch_time_end|recruitment_status|representative_image_exposure|recruitment_grace_period|syllabus_exposure|main_slide_image_url|course_list_image_url|course_detail_description|no such column/i.test(msg)) {
         try {
           await DB.prepare(
