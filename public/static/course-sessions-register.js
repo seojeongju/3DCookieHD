@@ -268,8 +268,17 @@
                 var ltEnd = document.getElementById('sessionsFormLunchTimeEnd');
                 if (ttStart) ttStart.value = toTimeHHMM(d.training_time_start) || '';
                 if (ttEnd) ttEnd.value = toTimeHHMM(d.training_time_end) || '';
-                if (ltStart) ltStart.value = toTimeHHMM(d.lunch_time_start) || '12:00';
-                if (ltEnd) ltEnd.value = toTimeHHMM(d.lunch_time_end) || '13:00';
+                var lunchStartVal = toTimeHHMM(d.lunch_time_start) || '';
+                var lunchEndVal = toTimeHHMM(d.lunch_time_end) || '';
+                if (ltStart) ltStart.value = lunchStartVal || '12:00';
+                if (ltEnd) ltEnd.value = lunchEndVal || '13:00';
+                var lunchNoneEl = document.getElementById('sessionsFormLunchNone');
+                var lunchWrap = document.getElementById('sessionsFormLunchTimeWrap');
+                if (lunchNoneEl && lunchWrap) {
+                    var noLunch = !lunchStartVal && !lunchEndVal;
+                    lunchNoneEl.checked = noLunch;
+                    lunchWrap.classList.toggle('hidden', noLunch);
+                }
                 document.getElementById('sessionsFormRegisteredAt').value = (d.registered_at || '').slice(0, 10);
                 var locationEl = document.getElementById('sessionsFormLocation');
                 if (locationEl) locationEl.value = d.location || '';
@@ -334,10 +343,12 @@
         var trainingTimeEndEl = document.getElementById('sessionsFormTrainingTimeEnd');
         var lunchTimeStartEl = document.getElementById('sessionsFormLunchTimeStart');
         var lunchTimeEndEl = document.getElementById('sessionsFormLunchTimeEnd');
+        var lunchNoneEl = document.getElementById('sessionsFormLunchNone');
         var trainingTimeStart = (trainingTimeStartEl && trainingTimeStartEl.value ? trainingTimeStartEl.value : '').trim() || null;
         var trainingTimeEnd = (trainingTimeEndEl && trainingTimeEndEl.value ? trainingTimeEndEl.value : '').trim() || null;
-        var lunchTimeStart = (lunchTimeStartEl && lunchTimeStartEl.value ? lunchTimeStartEl.value : '').trim() || null;
-        var lunchTimeEnd = (lunchTimeEndEl && lunchTimeEndEl.value ? lunchTimeEndEl.value : '').trim() || null;
+        var noLunch = lunchNoneEl && lunchNoneEl.checked;
+        var lunchTimeStart = noLunch ? null : ((lunchTimeStartEl && lunchTimeStartEl.value ? lunchTimeStartEl.value : '').trim() || null);
+        var lunchTimeEnd = noLunch ? null : ((lunchTimeEndEl && lunchTimeEndEl.value ? lunchTimeEndEl.value : '').trim() || null);
         var registeredAt = (document.getElementById('sessionsFormRegisteredAt').value || '').trim() || null;
         var recruitmentStatus = (document.getElementById('sessionsFormRecruitmentStatus') && document.getElementById('sessionsFormRecruitmentStatus').value) || 'normal';
         var repExposeEl = document.querySelector('input[name="sessionsFormRepImageExposure"]:checked');
@@ -452,6 +463,26 @@
     var sessionNumInput = document.getElementById('sessionsFormSessionNumber');
     if (sessionNumInput) sessionNumInput.addEventListener('input', updateSessionNamePreview);
     if (sessionNumInput) sessionNumInput.addEventListener('change', updateSessionNamePreview);
+
+    var lunchNoneCb = document.getElementById('sessionsFormLunchNone');
+    var lunchTimeWrap = document.getElementById('sessionsFormLunchTimeWrap');
+    if (lunchNoneCb && lunchTimeWrap) {
+        lunchNoneCb.addEventListener('change', function() {
+            var noLunch = lunchNoneCb.checked;
+            lunchTimeWrap.classList.toggle('hidden', noLunch);
+            if (noLunch) {
+                var ltStart = document.getElementById('sessionsFormLunchTimeStart');
+                var ltEnd = document.getElementById('sessionsFormLunchTimeEnd');
+                if (ltStart) ltStart.value = '';
+                if (ltEnd) ltEnd.value = '';
+            } else {
+                var ltStart = document.getElementById('sessionsFormLunchTimeStart');
+                var ltEnd = document.getElementById('sessionsFormLunchTimeEnd');
+                if (ltStart && !ltStart.value) ltStart.value = '12:00';
+                if (ltEnd && !ltEnd.value) ltEnd.value = '13:00';
+            }
+        });
+    }
 
     document.querySelectorAll('.session-detail-tab').forEach(function(btn) {
         btn.addEventListener('click', function() {

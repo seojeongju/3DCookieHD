@@ -919,13 +919,19 @@ export const adminCoursesSessionsRegisterHtml = (editId?: string) => {
                             <div>
                                 <h3 class="text-sm font-bold text-slate-700 mb-3">점심시간</h3>
                                 <div class="flex flex-wrap items-center gap-4">
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-slate-500 text-sm">시작</span>
-                                        <input type="time" id="sessionsFormLunchTimeStart" class="px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 w-28 bg-white" value="12:00">
-                                    </div>
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-slate-500 text-sm">종료</span>
-                                        <input type="time" id="sessionsFormLunchTimeEnd" class="px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 w-28 bg-white" value="13:00">
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        <input type="checkbox" id="sessionsFormLunchNone" class="rounded text-emerald-600 border-slate-300 focus:ring-emerald-500">
+                                        <span class="text-sm text-slate-700">점심시간 없음</span>
+                                    </label>
+                                    <div id="sessionsFormLunchTimeWrap" class="flex flex-wrap items-center gap-4">
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-slate-500 text-sm">시작</span>
+                                            <input type="time" id="sessionsFormLunchTimeStart" class="px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 w-28 bg-white" value="12:00">
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-slate-500 text-sm">종료</span>
+                                            <input type="time" id="sessionsFormLunchTimeEnd" class="px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 w-28 bg-white" value="13:00">
+                                        </div>
                                     </div>
                                 </div>
                             </div>
