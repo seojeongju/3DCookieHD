@@ -1139,9 +1139,16 @@ export const adminCoursesCopyHtml = () =>
             return;
         }
         listEl.innerHTML = sessions.map(function(s) {
-            var name = (s.session_name || '').trim() || (s.course_name || '') + ' ' + (s.session_number != null ? s.session_number + '차' : '');
-            if (!name) name = (s.course_name || '과정') + ' (id:' + s.id + ')';
-            var sub = (s.course_name || '') + ' · ' + formatDate(s.training_start_date) + ' · ' + statusLabel(s.status);
+            var parts = [];
+            if (s.course_name) parts.push(s.course_name);
+            if (s.session_number != null) parts.push(s.session_number + '차');
+            if (s.session_name) parts.push(s.session_name);
+            
+            var name = parts.join(' ');
+            if (!name) name = '과정 (id:' + s.id + ')';
+            
+            var sub = formatDate(s.training_start_date) + ' · ' + statusLabel(s.status);
+            
             var active = selectedSessionId === s.id ? ' ring-2 ring-purple-500 bg-purple-50 border-purple-200' : '';
             return '<li class="copy-session-item px-4 py-3 rounded-xl bg-slate-50 border border-slate-200/60 text-sm cursor-pointer hover:bg-purple-50 hover:border-purple-200 transition' + active + '" data-id="' + s.id + '" data-name="' + (name || '').replace(/"/g, '&quot;') + '" data-course="' + (s.course_name || '').replace(/"/g, '&quot;') + '">' +
                 '<div class="font-bold text-slate-800">' + (name || '-').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>' +
