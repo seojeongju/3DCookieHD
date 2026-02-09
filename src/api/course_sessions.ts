@@ -371,7 +371,7 @@ app.post('/', authMiddleware, requireAdmin, async (c) => {
           url_ncs, url_plan, url_detail_plan, registered_at,
           recruitment_status, representative_image_exposure, recruitment_grace_period, syllabus_exposure,
           main_slide_image_url, course_list_image_url, course_detail_description, homepage_exposed, session_name
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
         .bind(approvedCourseId, sessionNumber, status, instructorName, targetAudience, daysOfWeek, location, trainingStart, trainingEnd, trainingTimeStart, trainingTimeEnd, lunchTimeStart, lunchTimeEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt, recruitmentStatus, representativeImageExposure, recruitmentGracePeriod, syllabusExposure, mainSlideImageUrl, courseListImageUrl, courseDetailDescription, homepageExposed, sessionName)
         .run();
@@ -433,8 +433,9 @@ app.post('/', authMiddleware, requireAdmin, async (c) => {
     ).first();
     return c.json({ success: true, data: row }, 201);
   } catch (e) {
+    const errMsg = e && typeof e === 'object' && 'message' in e ? String((e as Error).message) : String(e);
     console.error('course-sessions create:', e);
-    return c.json({ success: false, error: '등록 실패' }, 500);
+    return c.json({ success: false, error: errMsg ? '등록 실패: ' + errMsg : '등록 실패' }, 500);
   }
 });
 
