@@ -126,58 +126,65 @@ export const homeHtml = `
         </section>
 
         <!-- 2. 우측 퀵 서비스 스택 (1/3) -->
-        <div class="lg:col-span-1 flex flex-col h-auto lg:h-[600px] bg-white">
+        <div class="lg:col-span-1 flex flex-col justify-between gap-3 lg:pl-4 py-4 lg:py-0 h-auto lg:h-[600px]">
+            
             <!-- Zone A: 문제은행 -->
-            <a href="/cbt" class="group relative flex-1 bg-[#1e293b] hover:bg-[#0f172a] transition-colors duration-300 p-8 flex flex-col justify-center overflow-hidden border-b border-gray-700 lg:border-b-0 lg:border-l lg:border-gray-800">
-                <div class="absolute right-[-20px] bottom-[-20px] text-gray-700/20 group-hover:text-gray-600/30 transition-colors duration-500">
-                    <i class="fas fa-edit text-9xl transform -rotate-12"></i>
+            <a href="/cbt" class="group relative flex-1 bg-white rounded-xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden border border-gray-100 flex items-center p-6">
+                <div class="absolute right-0 top-0 w-24 h-24 bg-blue-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-150 duration-500"></div>
+                <div class="relative z-10 w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-500/30 flex items-center justify-center text-white text-2xl mr-5 group-hover:rotate-12 transition-transform duration-300">
+                    <i class="fas fa-pen-nib"></i>
                 </div>
-                <div class="relative z-10">
-                    <div class="w-12 h-12 rounded-lg bg-blue-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
-                        <i class="fas fa-pencil-alt text-2xl text-blue-400"></i>
-                    </div>
-                    <h3 class="text-2xl font-bold text-white mb-2 group-hover:text-blue-300 transition-colors">와우쓰리디 문제은행</h3>
-                    <p class="text-gray-400 text-sm mb-4 leading-relaxed">자격증 합격을 위한 필수 코스,<br>기출문제 완벽 분석 시스템</p>
-                    <span class="inline-flex items-center text-blue-400 font-bold text-sm group-hover:translate-x-2 transition-transform duration-300">
-                        문제 풀러 가기 <i class="fas fa-arrow-right ml-2"></i>
-                    </span>
+                <div class="relative z-10 flex-1">
+                    <h3 class="text-lg font-bold text-gray-800 group-hover:text-blue-600 transition-colors">와우쓰리디 문제은행</h3>
+                    <p class="text-sm text-gray-500 mt-1">자격증 합격을 위한<br>기출문제 완벽 분석</p>
+                </div>
+                <div class="relative z-10 w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                    <i class="fas fa-arrow-right text-sm"></i>
                 </div>
             </a>
 
-            <!-- Zone B: AI 자동 견적 -->
-            <a href="/auto-quote" class="group relative flex-1 bg-gradient-to-br from-indigo-900 to-purple-900 hover:from-indigo-950 hover:to-purple-950 transition-all duration-300 p-8 flex flex-col justify-center overflow-hidden border-b border-gray-700 lg:border-b-0 lg:border-l lg:border-gray-800">
-                <div class="absolute right-[-20px] bottom-[-20px] text-white/5 group-hover:text-white/10 transition-colors duration-500">
-                    <i class="fas fa-robot text-9xl transform rotate-12"></i>
+            <!-- Zone B: 스마트직업훈련 (STEP) - NEW -->
+            <a href="/step" class="group relative flex-1 bg-white rounded-xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden border border-gray-100 flex items-center p-6">
+                <div class="absolute right-0 top-0 w-24 h-24 bg-teal-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-150 duration-500"></div>
+                <div class="relative z-10 w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-400 to-emerald-500 shadow-lg shadow-teal-500/30 flex items-center justify-center text-white text-2xl mr-5 group-hover:rotate-12 transition-transform duration-300">
+                    <i class="fas fa-laptop-code"></i>
                 </div>
-                <div class="absolute top-0 right-0 p-3 opacity-50 animate-pulse">
-                    <i class="fas fa-bolt text-yellow-400 text-xl"></i>
+                <div class="relative z-10 flex-1">
+                    <h3 class="text-lg font-bold text-gray-800 group-hover:text-teal-600 transition-colors">스마트직업훈련 (STEP)</h3>
+                    <p class="text-sm text-gray-500 mt-1">언제 어디서나 학습하는<br>온라인 이러닝 시스템</p>
                 </div>
-                <div class="relative z-10">
-                    <div class="w-12 h-12 rounded-lg bg-indigo-500/30 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300 shadow-[0_0_15px_rgba(99,102,241,0.5)]">
-                        <i class="fas fa-microchip text-2xl text-indigo-300"></i>
-                    </div>
-                    <h3 class="text-2xl font-bold text-white mb-2 group-hover:text-indigo-200 transition-colors">AI 실시간 자동견적</h3>
-                    <p class="text-indigo-200/70 text-sm mb-4 leading-relaxed">도면만 업로드하면 1초 만에,<br>AI가 분석하는 스마트 견적</p>
-                    <span class="inline-flex items-center text-indigo-300 font-bold text-sm group-hover:translate-x-2 transition-transform duration-300">
-                        지금 견적 내기 <i class="fas fa-arrow-right ml-2"></i>
-                    </span>
+                <div class="relative z-10 w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-teal-500 group-hover:text-white transition-all">
+                    <i class="fas fa-arrow-right text-sm"></i>
                 </div>
             </a>
 
-            <!-- Zone C: 3D프린터 구매 -->
-            <a href="/shop" class="group relative flex-1 bg-white hover:bg-gray-50 transition-colors duration-300 p-8 flex flex-col justify-center overflow-hidden border-b border-gray-200 lg:border-b-0 lg:border-l lg:border-gray-200">
-                <div class="absolute right-[-20px] bottom-[-20px] text-gray-100 group-hover:text-gray-200 transition-colors duration-500">
-                    <i class="fas fa-shopping-cart text-9xl transform -rotate-12"></i>
+            <!-- Zone C: AI 자동 견적 -->
+            <a href="/auto-quote" class="group relative flex-1 bg-white rounded-xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden border border-gray-100 flex items-center p-6">
+                <div class="absolute right-0 top-0 w-24 h-24 bg-violet-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-150 duration-500"></div>
+                <div class="relative z-10 w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/30 flex items-center justify-center text-white text-2xl mr-5 group-hover:rotate-12 transition-transform duration-300">
+                    <i class="fas fa-robot"></i>
                 </div>
-                <div class="relative z-10">
-                    <div class="w-12 h-12 rounded-lg bg-orange-100 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
-                        <i class="fas fa-store text-2xl text-orange-500"></i>
-                    </div>
-                    <h3 class="text-2xl font-bold text-gray-900 mb-2 group-hover:text-orange-600 transition-colors">3D프린터 스토어</h3>
-                    <p class="text-gray-500 text-sm mb-4 leading-relaxed">전문가가 엄선한 검증된 장비,<br>공식 스토어에서 만나보세요</p>
-                    <span class="inline-flex items-center text-orange-600 font-bold text-sm group-hover:translate-x-2 transition-transform duration-300">
-                        쇼핑하러 가기 <i class="fas fa-arrow-right ml-2"></i>
-                    </span>
+                <div class="relative z-10 flex-1">
+                    <h3 class="text-lg font-bold text-gray-800 group-hover:text-violet-600 transition-colors">AI 실시간 자동견적</h3>
+                    <p class="text-sm text-gray-500 mt-1">도면 업로드 즉시 산출<br>스마트 1초 견적 시스템</p>
+                </div>
+                <div class="relative z-10 w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-violet-600 group-hover:text-white transition-all">
+                    <i class="fas fa-arrow-right text-sm"></i>
+                </div>
+            </a>
+
+            <!-- Zone D: 3D프린터 마켓 -->
+            <a href="/shop" class="group relative flex-1 bg-white rounded-xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden border border-gray-100 flex items-center p-6">
+                <div class="absolute right-0 top-0 w-24 h-24 bg-orange-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-150 duration-500"></div>
+                <div class="relative z-10 w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-400 to-amber-500 shadow-lg shadow-orange-500/30 flex items-center justify-center text-white text-2xl mr-5 group-hover:rotate-12 transition-transform duration-300">
+                    <i class="fas fa-shopping-cart"></i>
+                </div>
+                <div class="relative z-10 flex-1">
+                    <h3 class="text-lg font-bold text-gray-800 group-hover:text-orange-600 transition-colors">3D프린터 마켓</h3>
+                    <p class="text-sm text-gray-500 mt-1">전문가가 검증한<br>최신 장비 공식 스토어</p>
+                </div>
+                <div class="relative z-10 w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-orange-500 group-hover:text-white transition-all">
+                    <i class="fas fa-arrow-right text-sm"></i>
                 </div>
             </a>
         </div>
