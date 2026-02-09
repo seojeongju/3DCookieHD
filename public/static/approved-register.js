@@ -95,6 +95,17 @@
                         document.getElementById('approvedFormInstructor').value = finalNames.join(', ');
                     }
                 });
+
+                // 수정 페이지: 과정 로드가 먼저 끝나면 체크박스가 아직 없어 체크가 적용되지 않을 수 있음. 인원 목록 렌더 후 배정된 강사명으로 체크 동기화.
+                var instructorInput = document.getElementById('approvedFormInstructor');
+                var instructorStr = (instructorInput && instructorInput.value) ? instructorInput.value.trim() : '';
+                if (instructorStr) {
+                    var names = instructorStr.split(',').map(function (s) { return s.trim(); }).filter(function (s) { return s; });
+                    container.querySelectorAll('.approved-instructor-cb').forEach(function (cb) {
+                        var name = cb.getAttribute('data-name');
+                        if (name && names.indexOf(name) !== -1) cb.checked = true;
+                    });
+                }
             })
             .catch(function () {
                 container.innerHTML = '<span class="text-slate-500 text-sm">교직원 목록을 불러올 수 없습니다.</span>';
