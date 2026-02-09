@@ -783,8 +783,9 @@ app.post('/:id/copy', authMiddleware, requireAdmin, async (c) => {
     const registeredAt = new Date().toISOString().split('T')[0]; // 오늘 날짜
 
     // 4. 삽입 실행
+    let newSessionId: number | null = null;
     try {
-      await DB.prepare(
+      const result = await DB.prepare(
         `INSERT INTO course_sessions (
           approved_course_id, session_number, session_name, status, instructor_name, target_audience, days_of_week, location,
           training_start_date, training_end_date, training_time_start, training_time_end, lunch_time_start, lunch_time_end,
@@ -799,12 +800,13 @@ app.post('/:id/copy', authMiddleware, requireAdmin, async (c) => {
           recruitmentStatus, representativeImageExposure, recruitmentGracePeriod, syllabusExposure,
           mainSlideImageUrl, courseListImageUrl, courseDetailDescription, homepageExposed)
         .run();
+      newSessionId = result.meta.last_row_id;
     } catch (err: unknown) {
       const msg = String(err && typeof err === 'object' && 'message' in err ? (err as Error).message : err);
       // Fallback for missing columns (older schema compatibility)
       if (/homepage_exposed|training_time_start|training_time_end|lunch_time_start|lunch_time_end|recruitment_status|representative_image_exposure|recruitment_grace_period|syllabus_exposure|main_slide_image_url|course_list_image_url|course_detail_description|no such column/i.test(msg)) {
         try {
-          await DB.prepare(
+          const result2 = await DB.prepare(
             `INSERT INTO course_sessions (
               approved_course_id, session_number, session_name, status, instructor_name, target_audience, days_of_week, location,
               training_start_date, training_end_date, url_ncs, url_plan, url_detail_plan, registered_at
@@ -813,10 +815,11 @@ app.post('/:id/copy', authMiddleware, requireAdmin, async (c) => {
             .bind(approvedCourseId, newSessionNumber, new_session_name, status, instructorName, targetAudience, daysOfWeek, location,
               trainingStart, trainingEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt)
             .run();
+          newSessionId = result2.meta.last_row_id;
         } catch (err2: unknown) {
           const msg2 = String(err2 && typeof err2 === 'object' && 'message' in err2 ? (err2 as Error).message : err2);
           if (/instructor_name|target_audience|days_of_week|location|no such column/i.test(msg2)) {
-            await DB.prepare(
+            const result3 = await DB.prepare(
               `INSERT INTO course_sessions (
                     approved_course_id, session_number, status, training_start_date, training_end_date,
                     url_ncs, url_plan, url_detail_plan, registered_at
@@ -824,6 +827,7 @@ app.post('/:id/copy', authMiddleware, requireAdmin, async (c) => {
             )
               .bind(approvedCourseId, newSessionNumber, status, trainingStart, trainingEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt)
               .run();
+            newSessionId = result3.meta.last_row_id;
           } else {
             throw err2;
           }
@@ -833,7 +837,7 @@ app.post('/:id/copy', authMiddleware, requireAdmin, async (c) => {
       }
     }
 
-    return c.json({ success: true, message: '복사되었습니다' });
+    return c.json({ success: true, message: '복사되었습니다', new_session_id: newSessionId });
   } catch (e) {
     const errMsg = e && typeof e === 'object' && 'message' in e ? String((e as Error).message) : String(e);
     console.error('course-sessions copy:', e);

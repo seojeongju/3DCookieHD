@@ -1248,6 +1248,10 @@ export const adminCoursesCopyHtml = () =>
                 
                 var json = await res.json();
                 if (json.success) {
+                    if (json.new_session_id && confirm('과정 복사가 완료되었습니다.\\n복사된 과정의 세부 정보를 수정하시겠습니까?')) {
+                        window.location.href = '/admin/courses/sessions/register/' + json.new_session_id;
+                        return;
+                    }
                     alert('과정 복사가 완료되었습니다.');
                     document.getElementById('copyNewSessionName').value = '';
                     selectedSessionId = null;
