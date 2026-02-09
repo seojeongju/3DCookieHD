@@ -96,7 +96,7 @@ app.get('/public', async (c) => {
       ).bind(...params).first() as { total: number } | null;
       params.push(limit, offset);
       rows = await DB.prepare(
-        `SELECT s.id, s.approved_course_id, s.session_number, s.status,
+        `SELECT s.id, s.approved_course_id, s.session_number, s.session_name, s.status,
           s.training_start_date, s.training_end_date, s.instructor_name,
           ${LINKED_HOMEPAGE_COLS},
           a.name as course_name, a.total_hours, a.daily_hours,
@@ -119,7 +119,7 @@ app.get('/public', async (c) => {
       ).bind(...params).first() as { total: number } | null;
       params.push(limit, offset);
       rows = await DB.prepare(
-        `SELECT s.id, s.approved_course_id, s.session_number, s.status,
+        `SELECT s.id, s.approved_course_id, s.session_number, s.session_name, s.status,
           s.training_start_date, s.training_end_date, s.instructor_name,
           a.name as course_name, a.total_hours, a.daily_hours,
           c.name as category_name

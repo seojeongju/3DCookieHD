@@ -251,10 +251,21 @@ export const homeHtml = `
                     var end = (s.training_end_date || '').trim();
                     var dateStr = start && end ? (new Date(start).toLocaleDateString('ko-KR') + ' ~ ' + new Date(end).toLocaleDateString('ko-KR')) : (start ? new Date(start).toLocaleDateString('ko-KR') + '~' : '일정 미정');
                     var statusClass = s.status === 'recruiting' ? 'bg-green-500' : s.status === 'in_progress' ? 'bg-blue-500' : s.status === 'always_open' ? 'bg-emerald-500' : 'bg-gray-500';
-                    var nameEsc = (s.course_name || '').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+                    // 교육과정명 형식: 승인받은 과정명 + 회차 + 회차별과정명
+                    var courseName = (s.course_name || '').trim();
+                    var sessionNumber = s.session_number ? (s.session_number + '회차') : '';
+                    var sessionName = (s.session_name || '').trim();
+                    var displayName = courseName;
+                    if (sessionNumber) {
+                        displayName += ' + ' + sessionNumber;
+                    }
+                    if (sessionName) {
+                        displayName += ' + ' + sessionName;
+                    }
+                    var nameEsc = displayName.replace(/</g, '&lt;').replace(/"/g, '&quot;');
                     return '<a href="/course-sessions/' + s.id + '" class="bg-white rounded-xl shadow-sm hover:shadow-xl transition duration-300 border border-gray-100 overflow-hidden flex flex-col h-full group">' +
                         '<div class="relative h-48 overflow-hidden bg-gray-200">' +
-                        '<img src="' + imgUrl.replace(/"/g, '&quot;') + '" alt="" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" onerror="this.src=\\'/static/hero1.jpg\\'">' +
+                        '<img src="' + imgUrl.replace(/"/g, '&quot;') + '" alt="" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" onerror="this.src=\\'\/static\/hero1.jpg\\'">' +
                         '<span class="absolute top-3 right-3 px-2.5 py-1 text-xs font-bold rounded-full text-white ' + statusClass + '">' + statusText(s.status) + '</span>' +
                         '<div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/60 to-transparent p-4">' +
                         '<span class="text-white text-xs font-medium bg-primary-600/80 px-2 py-1 rounded">' + (s.category_name || '과정') + '</span>' +

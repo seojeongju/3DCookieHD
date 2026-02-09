@@ -126,7 +126,7 @@ export const courseSessionsListHtml = `
 
 /** 연동 홈페이지용 회차 상세 (id는 클라이언트에서 채움) */
 export function courseSessionDetailHtml(id: string) {
-  return `
+    return `
 <!DOCTYPE html>
 <html lang="ko">
 <head>

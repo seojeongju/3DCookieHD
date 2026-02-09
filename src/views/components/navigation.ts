@@ -27,9 +27,8 @@ export const navigationHtml = (activeMenu = '') => `
                         </button>
                         <div class="absolute left-0 top-full mt-0 w-48 bg-white rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 border border-gray-100 overflow-hidden z-50">
                             <div class="py-1">
-                                <a href="/course-sessions" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">개설 과정 (회차별)</a>
+                                <a href="/course-sessions" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">국비지원과정</a>
                                 <a href="/courses" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">전체 과정 보기</a>
-                                <a href="/courses?category=국비지원" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">국비지원과정</a>
                                 <a href="/courses?category=일반과정" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">일반과정</a>
                                 <a href="/courses?category=학생" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">학생/진학 과정</a>
                                 <a href="/corporate-education" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">기업단체교육</a>
@@ -135,9 +134,8 @@ export const navigationHtml = (activeMenu = '') => `
             </div>
             <div class="py-2 pb-6">
                 <div class="px-2 py-1 text-[11px] font-bold text-gray-400 uppercase tracking-wider">과정안내</div>
-                <a href="/course-sessions" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">개설 과정 (회차별)</a>
+                <a href="/course-sessions" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">국비지원과정</a>
                 <a href="/courses" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">전체 과정 보기</a>
-                <a href="/courses?category=국비지원" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">국비지원과정</a>
                 <a href="/courses?category=일반과정" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">일반과정</a>
                 <a href="/courses?category=학생" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">학생/진학 과정</a>
                 <a href="/corporate-education" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">기업단체교육</a>
