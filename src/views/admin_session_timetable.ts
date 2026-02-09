@@ -31,6 +31,8 @@ export function adminSessionTimetableHtml(sessionId: number): string {
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
         body { font-family: 'Pretendard', 'Malgun Gothic', sans-serif; }
+        .timetable-cell:hover { background-color: #f1f5f9; cursor: pointer; }
+        .timetable-cell.selected { border: 2px solid #0ea5e9; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 text-sm">
@@ -49,8 +51,8 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                     </nav>
                 </div>
                 <div class="flex items-center gap-2">
-                    <button onclick="saveAll()" class="inline-flex items-center gap-2 px-6 py-2 bg-red-500 text-white rounded shadow-lg hover:bg-red-600 transition font-bold text-xs">
-                        진행 상황 한눈에 보기
+                    <button onclick="showStatus()" class="inline-flex items-center gap-2 px-4 py-2 bg-slate-600 text-white rounded shadow hover:bg-slate-700 transition font-bold text-xs">
+                        <i class="fas fa-chart-bar"></i> 진행 상황
                     </button>
                     <button onclick="saveAll()" class="inline-flex items-center gap-2 px-6 py-2 bg-primary-600 text-white rounded shadow-lg hover:bg-primary-700 transition font-bold text-xs ml-2">
                         <i class="fas fa-save"></i> 저장하기
@@ -59,125 +61,95 @@ export function adminSessionTimetableHtml(sessionId: number): string {
             </header>
 
             <main class="flex-1 overflow-auto p-6 bg-slate-50 custom-scrollbar">
-                <!-- Top Info Section -->
                 <div class="max-w-7xl mx-auto space-y-6">
                     
-                    <!-- Title & Tabs -->
+                    <!-- Title & Session Info -->
                     <div class="text-center mb-8">
-                        <div class="inline-flex items-center gap-2 text-slate-500 text-xs mb-1">
-                            <i class="fas fa-cube"></i> NCS 회차별 훈련과정 - 3.시간표 편성
-                        </div>
-                        <h2 class="text-2xl font-bold text-slate-800 mb-4">과정명 : <span id="sessionName" class="text-slate-900"></span></h2>
+                        <h2 class="text-2xl font-bold text-slate-800 mb-2">과정명 : <span id="sessionName" class="text-slate-900">Loading...</span></h2>
                         <div class="flex justify-center gap-2 mb-6">
-                            <button class="px-4 py-2 bg-emerald-500 text-white text-xs font-bold rounded shadow-sm hover:bg-emerald-600 transition">회차별 개설과정 상세보기</button>
-                            <button class="px-4 py-2 bg-emerald-500 text-white text-xs font-bold rounded shadow-sm hover:bg-emerald-600 transition">NCS 훈련과정 개설정보</button>
-                            <button class="px-4 py-2 bg-emerald-500 text-white text-xs font-bold rounded shadow-sm hover:bg-emerald-600 transition">교수계획서 실행</button>
-                            <button class="px-4 py-2 bg-emerald-500 text-white text-xs font-bold rounded shadow-sm hover:bg-emerald-600 transition">세부교수계획서 실행</button>
+                           <!-- Buttons for navigation or action -->
                         </div>
                     </div>
 
                     <div class="grid grid-cols-12 gap-6">
                         <!-- Left Navigation -->
                         <div class="col-span-2 space-y-1">
-                            <div class="bg-white border border-slate-200 rounded-lg overflow-hidden">
+                            <div class="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
                                 <a href="#" class="block px-4 py-3 text-slate-500 text-sm font-medium hover:bg-slate-50 border-b border-slate-100">1. 평가·교수학습 방법</a>
                                 <a href="#" class="block px-4 py-3 text-slate-500 text-sm font-medium hover:bg-slate-50 border-b border-slate-100">2. 시설,장비</a>
-                                <a href="#" class="block px-4 py-3 bg-white text-primary-600 font-bold border-l-4 border-l-primary-500">3. 시간표 편성</a>
+                                <div class="block px-4 py-3 bg-primary-50 text-primary-700 font-bold border-l-4 border-l-primary-500">3. 시간표 편성</div>
                             </div>
                         </div>
 
                         <!-- Main Content Area -->
                         <div class="col-span-10 space-y-6">
                             <!-- Basic Info Box -->
-                            <div class="bg-white rounded-lg border border-slate-200 p-6 text-center">
-                                <h3 class="text-lg font-bold text-slate-700 mb-2">시간표 편성</h3>
-                                <p class="text-xs text-slate-500 mb-6">훈련기간 및 교과목운영로드맵과 훈련교시 내용으로 시간표를 편성합니다.</p>
-                                
-                                <div class="bg-slate-50 rounded-lg p-6 border border-slate-100">
-                                    <h4 class="font-bold text-slate-700 mb-4">훈련과정 운영 기본정보</h4>
-                                    <div class="grid grid-cols-2 gap-x-12 gap-y-3 text-sm text-left max-w-2xl mx-auto">
-                                        <div class="flex justify-between border-b border-slate-200 pb-2">
-                                            <span class="font-bold text-slate-600">총 훈련일수</span>
-                                            <span id="totalDays" class="text-slate-800 font-medium">-일</span>
-                                        </div>
-                                        <div class="flex justify-between border-b border-slate-200 pb-2">
-                                            <span class="font-bold text-slate-600">총 훈련시간</span>
-                                            <span id="sessionTotalHours" class="text-slate-800 font-medium">-시간</span>
-                                        </div>
-                                        <div class="flex justify-between border-b border-slate-200 pb-2">
-                                            <span class="font-bold text-slate-600">훈련기간</span>
-                                            <span id="sessionDateRange" class="text-slate-800 font-medium">-</span>
-                                        </div>
-                                        <div class="flex justify-between border-b border-slate-200 pb-2">
-                                            <span class="font-bold text-slate-600">하루 훈련시간</span>
-                                            <span id="dailyTrainingHours" class="text-slate-800 font-medium">-</span>
-                                        </div>
-                                        <div class="col-span-2 flex justify-between border-b border-slate-200 pb-2">
-                                            <span class="font-bold text-slate-600">요일</span>
-                                            <span class="text-slate-800 font-medium">월요일,화요일,수요일,목요일,금요일</span>
-                                        </div>
+                            <div class="bg-white rounded-lg border border-slate-200 p-6 shadow-sm">
+                                <h3 class="text-lg font-bold text-slate-700 mb-4 border-b pb-2">훈련과정 운영 기본정보</h3>
+                                <div class="grid grid-cols-2 gap-x-8 gap-y-4 text-sm">
+                                    <div class="flex justify-between border-b border-slate-100 pb-1">
+                                        <span class="font-bold text-slate-500">총 훈련일수</span>
+                                        <span id="totalDays" class="font-medium">-일</span>
+                                    </div>
+                                    <div class="flex justify-between border-b border-slate-100 pb-1">
+                                        <span class="font-bold text-slate-500">총 훈련시간</span>
+                                        <span id="sessionTotalHours" class="font-medium">-시간</span>
+                                    </div>
+                                    <div class="flex justify-between border-b border-slate-100 pb-1">
+                                        <span class="font-bold text-slate-500">훈련기간</span>
+                                        <span id="sessionDateRange" class="font-medium">-</span>
+                                    </div>
+                                    <div class="flex justify-between border-b border-slate-100 pb-1">
+                                        <span class="font-bold text-slate-500">하루 훈련시간</span>
+                                        <span id="dailyTrainingHours" class="font-medium">-</span>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Subject Selection & Unit Selection -->
-                            <div class="grid grid-cols-2 gap-6">
+                            <!-- Resource Selection -->
+                            <div class="grid grid-cols-2 gap-6 h-[500px]">
                                 <!-- Subjects -->
-                                <div class="bg-white rounded-lg border border-slate-200 overflow-hidden flex flex-col h-[400px]">
-                                    <div class="bg-slate-50 px-4 py-3 border-b border-slate-200 text-center">
-                                        <h4 class="font-bold text-slate-700">교과목선택</h4>
-                                        <p class="text-[10px] text-slate-500">각 교과목은 선택해주세요.</p>
+                                <div class="bg-white rounded-lg border border-slate-200 overflow-hidden flex flex-col shadow-sm">
+                                    <div class="bg-slate-50 px-4 py-3 border-b border-slate-200 flex justify-between items-center">
+                                        <h4 class="font-bold text-slate-700">교과목 선택</h4>
+                                        <span class="text-[10px] text-slate-400">클릭하여 선택 후 시간표에 배정</span>
                                     </div>
-                                    <div id="subjectList" class="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
-                                        <div class="text-center py-10 text-slate-400">Loading...</div>
+                                    <div id="subjectList" class="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar relative">
+                                        <div class="absolute inset-0 flex items-center justify-center text-slate-400 text-xs">Loading...</div>
                                     </div>
                                 </div>
-                                <!-- Units (Placeholder) -->
-                                <div class="bg-white rounded-lg border border-slate-200 overflow-hidden flex flex-col h-[400px]">
-                                    <div class="bg-slate-50 px-4 py-3 border-b border-slate-200 text-center">
-                                        <h4 class="font-bold text-slate-700">단원 요소 선택</h4>
-                                        <p class="text-[10px] text-slate-500">클릭된 단원 요소를 선택해주세요.</p>
+                                <!-- Instructors -->
+                                <div class="bg-white rounded-lg border border-slate-200 overflow-hidden flex flex-col shadow-sm">
+                                    <div class="bg-slate-50 px-4 py-3 border-b border-slate-200 flex justify-between items-center">
+                                        <h4 class="font-bold text-slate-700">담당 강사/교수 선택</h4>
+                                        <span class="text-[10px] text-slate-400">선택 시 과목과 함께 배정됩니다</span>
                                     </div>
-                                    <div class="flex-1 flex items-center justify-center text-slate-300 text-xs">
-                                        단원목록의 단원을 선택해주세요.
+                                    <div id="instructorList" class="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar relative">
+                                        <div class="absolute inset-0 flex items-center justify-center text-slate-400 text-xs">Loading...</div>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Timetable Grid Section -->
-                            <div class="bg-white rounded-lg border border-slate-200 shadow-sm p-6 overflow-hidden">
-                                <div class="text-center mb-6">
-                                    <div class="text-2xl font-bold text-primary-600 mb-1">
-                                        <span id="currentHours">0</span> / <span id="targetHours">42.0</span> 시간
+                            <!-- Timetable Grid -->
+                            <div class="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
+                                <div class="flex flex-col items-center mb-6 gap-2">
+                                    <div class="text-3xl font-bold text-primary-600">
+                                        <span id="currentHours">0</span> / <span id="targetHours">--</span> <span class="text-lg text-slate-400 font-normal">시간</span>
                                     </div>
-                                    <div class="text-xs text-slate-500">총 훈련시간 / 적용된 훈련시간입니다.</div>
-                                    
-                                    <div class="flex items-center justify-center gap-4 mt-4">
-                                        <button onclick="prevWeek()" class="bg-primary-600 text-white w-8 h-8 rounded hover:bg-primary-700 transition"><i class="fas fa-chevron-left"></i></button>
-                                        <div class="w-48 border border-slate-300 rounded px-4 py-2 text-sm font-bold bg-white flex items-center justify-between">
-                                            <span id="weekText">1주차</span>
-                                            <i class="fas fa-chevron-down text-slate-400"></i>
-                                        </div>
-                                        <button onclick="nextWeek()" class="bg-primary-600 text-white w-8 h-8 rounded hover:bg-primary-700 transition"><i class="fas fa-chevron-right"></i></button>
-                                    </div>
-                                    <div class="mt-2 text-xs text-red-500 font-bold">
-                                        1. 각 교시시간은 시작시간 + 종료시간 + 휴식시간 포함하여 계산됩니다.<br>
-                                        2. 교시는 단계별로 설정해주셔야 합니다. ex) 1교시, 3교시... (2교시 에러 발생)
+                                    <div class="flex items-center gap-4 mt-2">
+                                        <button onclick="prevWeek()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition"><i class="fas fa-chevron-left text-slate-500"></i></button>
+                                        <div class="px-4 py-1 bg-slate-100 rounded text-slate-700 font-bold" id="weekText">1주차</div>
+                                        <button onclick="nextWeek()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition"><i class="fas fa-chevron-right text-slate-500"></i></button>
                                     </div>
                                 </div>
 
-                                <div class="overflow-x-auto">
-                                    <table class="w-full border-collapse min-w-[1000px]">
-                                        <thead id="timetableHeader" class="bg-slate-50 border-y border-slate-200">
-                                            <!-- Rendered via JS -->
-                                        </thead>
-                                        <tbody id="timetableBody" class="divide-y divide-slate-200">
-                                            <!-- Rendered via JS -->
-                                        </tbody>
+                                <div class="overflow-x-auto custom-scrollbar pb-2">
+                                    <table class="w-full min-w-[1000px] border-collapse relative">
+                                        <thead id="timetableHeader" class="bg-slate-50 border-y border-slate-200 sticky top-0 z-10"></thead>
+                                        <tbody id="timetableBody" class="divide-y divide-slate-100"></tbody>
                                     </table>
                                 </div>
                             </div>
-
                         </div>
                     </div>
                 </div>
@@ -185,29 +157,34 @@ export function adminSessionTimetableHtml(sessionId: number): string {
         </div>
     </div>
 
-    <!-- Edit Period Config Modal (Hidden but functional) -->
-    <div id="periodEditModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-        <div class="bg-white rounded-lg p-6 w-96 shadow-xl">
-             <h3 class="font-bold text-lg mb-4">교시 시간 설정</h3>
+    <!-- Edit Period Config Modal -->
+    <div id="periodEditModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center transition-opacity duration-300 opacity-0">
+        <div class="bg-white rounded-xl p-6 w-80 shadow-2xl transform transition-transform duration-300 scale-95">
+             <h3 class="font-bold text-lg mb-4 text-slate-800">교시 시간 설정</h3>
              <div class="space-y-4">
                  <div>
                      <label class="block text-xs font-bold text-slate-500 mb-1">시작 시간</label>
-                     <input type="time" id="editStartTime" class="w-full border rounded px-3 py-2">
+                     <input type="time" id="editStartTime" class="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none">
                  </div>
                  <div>
                      <label class="block text-xs font-bold text-slate-500 mb-1">종료 시간</label>
-                     <input type="time" id="editEndTime" class="w-full border rounded px-3 py-2">
+                     <input type="time" id="editEndTime" class="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none">
                  </div>
                  <div>
                      <label class="block text-xs font-bold text-slate-500 mb-1">휴식 시간 (분)</label>
-                     <input type="number" id="editBreakTime" class="w-full border rounded px-3 py-2">
+                     <input type="number" id="editBreakTime" class="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none">
                  </div>
              </div>
              <div class="mt-6 flex justify-end gap-2">
-                 <button onclick="closePeriodEdit()" class="px-4 py-2 text-slate-500 text-sm font-bold hover:bg-slate-100 rounded">취소</button>
-                 <button onclick="savePeriodEdit()" class="px-4 py-2 bg-primary-600 text-white text-sm font-bold rounded hover:bg-primary-700">저장</button>
+                 <button onclick="closePeriodEdit()" class="px-4 py-2 text-slate-500 text-sm font-bold hover:bg-slate-100 rounded transition">취소</button>
+                 <button onclick="savePeriodEdit()" class="px-4 py-2 bg-primary-600 text-white text-sm font-bold rounded hover:bg-primary-700 shadow transition">저장</button>
              </div>
         </div>
+    </div>
+
+    <!-- Toast/Notification -->
+    <div id="toast" class="fixed bottom-4 right-4 bg-slate-800 text-white px-4 py-3 rounded shadow-lg transform translate-y-20 transition-transform duration-300 z-50 text-sm font-medium">
+        알림 메시지
     </div>
 
     <script>
@@ -216,323 +193,413 @@ export function adminSessionTimetableHtml(sessionId: number): string {
             var token = localStorage.getItem('token');
             var headers = token ? { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
             
-            var sessionInfo = null;
+            var sessionInfo = {};
             var resources = { subjects: [], instructors: [] };
             var periodConfigs = [];
             var timetableData = [];
-            var currentWeekStartDate = null;
+            var currentWeekStartDate = new Date();
             var activeSubjectId = null;
-            var activePeriodConfigIdx = null; // For editing
+            var activeInstructorId = null;
+            var activePeriodConfigIdx = null;
+
+            // Initialize
+            init();
 
             async function init() {
                 try {
-                    // Load Data
-                    var [sRes, rRes, cRes] = await Promise.all([
+                    // Fetch all required data in parallel
+                    const [sRes, rRes, cRes] = await Promise.allSettled([
                         fetch('/api/course-sessions/public/' + sessionId),
                         fetch('/api/course-sessions/' + sessionId + '/timetable/resources', { headers: headers }),
                         fetch('/api/course-sessions/' + sessionId + '/timetable/config', { headers: headers })
                     ]);
-                    
-                    var sj = await sRes.json();
-                    var rj = await rRes.json();
-                    var cj = await cRes.json();
 
-                    sessionInfo = sj.data;
-                    resources = rj.data;
-                    periodConfigs = cj.data;
+                    // Handle Session Info
+                    if (sRes.status === 'fulfilled' && sRes.value.ok) {
+                        const sj = await sRes.value.json();
+                        sessionInfo = sj.data || {};
+                    } else {
+                        showToast('훈련과정 정보를 불러오는데 실패했습니다.', true);
+                    }
 
+                    // Handle Resources
+                    if (rRes.status === 'fulfilled' && rRes.value.ok) {
+                        const rj = await rRes.value.json();
+                        resources = rj.data || { subjects: [], instructors: [] };
+                        // Ensure lists are arrays
+                        if(!Array.isArray(resources.subjects)) resources.subjects = [];
+                        if(!Array.isArray(resources.instructors)) resources.instructors = [];
+                    } else {
+                        console.error('Resources fetch failed', rRes);
+                        resources = { subjects: [], instructors: [] };
+                        showToast('교과목/강사 리스트를 불러오지 못했습니다.', true);
+                    }
+
+                    // Handle Config
+                    if (cRes.status === 'fulfilled' && cRes.value.ok) {
+                        const cj = await cRes.value.json();
+                        periodConfigs = cj.data || [];
+                    } else {
+                         // Default fallback if fetch fails or first time
+                        periodConfigs = [];
+                    }
+
+                    // Default Config Logic (if empty)
                     if (periodConfigs.length === 0) {
-                        // Default to 8 periods (09:00 - 17:50) with lunch break (13:00-14:00)
                         periodConfigs = [
                              { period_number: 1, start_time: '09:00', end_time: '09:50', break_minute: 10 },
                              { period_number: 2, start_time: '10:00', end_time: '10:50', break_minute: 10 },
                              { period_number: 3, start_time: '11:00', end_time: '11:50', break_minute: 10 },
-                             { period_number: 4, start_time: '12:00', end_time: '12:50', break_minute: 0 }, // Lunch start after this
-                             // Lunch 13:00 - 14:00 (Break included in schedule logic or just gap?)
-                             // Typically 12:50 + 10min break = 13:00. 13:00-14:00 Lunch. 
-                             // So Period 5 starts at 14:00.
+                             { period_number: 4, start_time: '12:00', end_time: '12:50', break_minute: 0 },
                              { period_number: 5, start_time: '14:00', end_time: '14:50', break_minute: 10 },
                              { period_number: 6, start_time: '15:00', end_time: '15:50', break_minute: 10 },
                              { period_number: 7, start_time: '16:00', end_time: '16:50', break_minute: 10 },
                              { period_number: 8, start_time: '17:00', end_time: '17:50', break_minute: 0 }
                         ];
-                        // Auto-save default config to DB for persistence
-                        fetch('/api/course-sessions/' + sessionId + '/timetable/config', {
-                            method: 'POST',
-                            headers: headers,
-                            body: JSON.stringify({ configs: periodConfigs })
-                        });
+                        // Save default config
+                        savePeriodConfig(periodConfigs, true);
                     }
 
+                    // Render Initial State
+                    renderSessionInfo();
                     renderResources();
-                    updateSessionDisplay();
                     
+                    // Set Start Date
                     if (sessionInfo.training_start_date) {
                         var d = new Date(sessionInfo.training_start_date);
                         var day = d.getDay();
-                        var diff = d.getDate() - day + (day === 0 ? -6 : 1);
+                        // Adjust to Monday
+                        var diff = d.getDate() - day + (day === 0 ? -6 : 1); 
                         currentWeekStartDate = new Date(d.setDate(diff));
-                    } else {
-                        currentWeekStartDate = new Date();
                     }
 
+                    // Load Timetable Data
                     await loadTimetable();
                     renderTimetableGrid();
+
+                } catch (e) {
+                    console.error('Init error:', e);
+                    showToast('심각한 오류가 발생했습니다. 새로고침해주세요.', true);
+                }
+            }
+
+            // --- Fetch & Save Logic ---
+            
+            async function loadTimetable() {
+                try {
+                    // Load for current view range (or all session for simplicity)
+                    // Currently loading ALL for session
+                    const res = await fetch('/api/course-sessions/' + sessionId + '/timetable', { headers: headers });
+                    if(res.ok) {
+                        const json = await res.json();
+                        timetableData = json.data || [];
+                    }
                 } catch(e) { console.error(e); }
             }
 
-            function updateSessionDisplay() {
-                document.getElementById('sessionName').textContent = sessionInfo.course_name + (sessionInfo.session_number ? \` [\${sessionInfo.session_number}차]\` : '');
-                document.getElementById('sessionDateRange').textContent = sessionInfo.training_start_date + ' ~ ' + sessionInfo.training_end_date;
+            window.saveAll = async function() {
+                try {
+                    // Send entire timetableData for now, or just changes?
+                    // Currently logic handles bulk upsert
+                    const res = await fetch('/api/course-sessions/' + sessionId + '/timetable', {
+                        method: 'POST', 
+                        headers: headers,
+                        body: JSON.stringify({ schedules: timetableData })
+                    });
+                    if(res.ok) {
+                        showToast('시간표가 성공적으로 저장되었습니다.');
+                    } else {
+                        showToast('저장에 실패했습니다.', true);
+                    }
+                } catch(e) {
+                    showToast('저장 중 오류 발생', true);
+                }
+            }
+
+            async function savePeriodConfig(configs, silent) {
+                try {
+                    await fetch('/api/course-sessions/' + sessionId + '/timetable/config', {
+                        method: 'POST',
+                        headers: headers,
+                        body: JSON.stringify({ configs: configs })
+                    });
+                    if(!silent) showToast('교시 설정이 저장되었습니다.');
+                } catch(e) { console.error(e); }
+            }
+
+            // --- Rendering Logic ---
+
+            function renderSessionInfo() {
+                document.getElementById('sessionName').textContent = (sessionInfo.course_name || '미지정 과정') + (sessionInfo.session_number ? \` [\${sessionInfo.session_number}차]\` : '');
+                document.getElementById('sessionDateRange').textContent = (sessionInfo.training_start_date || '-') + ' ~ ' + (sessionInfo.training_end_date || '-');
                 document.getElementById('sessionTotalHours').textContent = (sessionInfo.total_hours || 0) + '시간';
                 document.getElementById('targetHours').textContent = (sessionInfo.total_hours || 42).toFixed(1);
 
-                // Calculate total days
                 if (sessionInfo.training_start_date && sessionInfo.training_end_date) {
-                    var start = new Date(sessionInfo.training_start_date);
-                    var end = new Date(sessionInfo.training_end_date);
-                    var diffTime = Math.abs(end - start);
-                    var diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; 
-                    document.getElementById('totalDays').textContent = diffDays + '일';
+                    var s = new Date(sessionInfo.training_start_date);
+                    var e = new Date(sessionInfo.training_end_date);
+                    var diff = Math.ceil(Math.abs(e - s) / (1000 * 60 * 60 * 24)) + 1;
+                    document.getElementById('totalDays').textContent = diff + '일';
                 }
 
-                // Daily hours estimation (simple)
                 if (periodConfigs.length > 0) {
-                     var start = periodConfigs[0].start_time;
-                     var end = periodConfigs[periodConfigs.length-1].end_time;
-                     document.getElementById('dailyTrainingHours').textContent = \`\${start} ~ \${end}\`;
+                     document.getElementById('dailyTrainingHours').textContent = \`\${periodConfigs[0].start_time} ~ \${periodConfigs[periodConfigs.length-1].end_time}\`;
                 }
             }
 
             function renderResources() {
-                var html = resources.subjects.map(s => {
-                    var isActive = activeSubjectId === s.id;
-                    var cls = isActive 
-                        ? 'border-red-500 ring-1 ring-red-500 bg-red-50' 
-                        : 'border-slate-200 hover:border-primary-400 bg-white';
-                    
-                    return \`<div onclick="selectSubject(\${s.id})" class="p-4 border rounded-lg cursor-pointer transition group \${cls}">
-                        <div class="text-center">
-                            <div class="font-bold text-slate-800 text-sm mb-1">\${s.name}</div>
-                            <div class="text-[10px] \${isActive ? 'text-red-500 font-bold' : 'text-slate-400'}">(교과목 설정 시간: 0 / 적용 시간: 0)</div>
-                        </div>
-                    </div>\`;
-                }).join('');
-                document.getElementById('subjectList').innerHTML = html || '<div class="text-center py-8 text-slate-400 text-xs text-red-500">편성된 교과목이 없습니다.<br>NCS 정보 등록에서 교과목을 편성해주세요.</div>';
-            }
+                // Render Subjects
+                const sList = document.getElementById('subjectList');
+                if (resources.subjects.length === 0) {
+                    sList.innerHTML = '<div class="absolute inset-0 flex flex-col items-center justify-center text-slate-400 text-xs"><i class="fas fa-exclamation-triangle mb-2 text-amber-500"></i><span>등록된 교과목이 없습니다</span></div>';
+                } else {
+                    sList.innerHTML = resources.subjects.map(s => {
+                        const isActive = activeSubjectId === s.id;
+                        const cls = isActive ? 'bg-primary-50 border-primary-500 ring-1 ring-primary-500 shadow-md' : 'bg-white border-slate-200 hover:border-primary-300 hover:shadow-sm';
+                        return \`<div onclick="selectSubject(\${s.id})" class="p-3 border rounded transition cursor-pointer mb-2 \${cls}">
+                            <div class="flex justify-between items-start mb-1">
+                                <div class="font-bold text-slate-800 text-sm line-clamp-1" title="\${s.name}">\${s.name}</div>
+                                \${isActive ? '<i class="fas fa-check-circle text-primary-600 text-xs"></i>' : ''}
+                            </div>
+                            <div class="flex justify-between text-[11px] text-slate-500">
+                                <span>\${s.ncs_classification_code || '분류없음'}</span>
+                                <span class="\${isActive ? 'font-bold text-primary-700' : ''}">\${s.total_time || 0}H</span>
+                            </div>
+                        </div>\`;
+                    }).join('');
+                }
 
-            window.selectSubject = function(id) {
-                activeSubjectId = activeSubjectId === id ? null : id;
-                renderResources();
-            };
-
-            async function loadTimetable() {
-                var start = currentWeekStartDate.toISOString().substring(0, 10);
-                var end = new Date(currentWeekStartDate.getTime() + 6 * 24 * 60 * 60 * 1000).toISOString().substring(0, 10);
-                var res = await fetch('/api/course-sessions/' + sessionId + '/timetable?start_date=' + start + '&end_date=' + end, { headers: headers });
-                var json = await res.json();
-                timetableData = json.data || [];
-                updateProgress();
-            }
-
-            function updateProgress() {
-                // simple calculation based on loaded data (should be global ideally)
-                var current = timetableData.length; // Assume 1 hour per cell roughly for demo
-                document.getElementById('currentHours').textContent = current; 
-            }
-
-            function getDayDate(offset) {
-                var d = new Date(currentWeekStartDate.getTime() + offset * 24 * 60 * 60 * 1000);
-                return d.toISOString().substring(0, 10);
-            }
-
-            function getDayName(dateStr) {
-                var days = ['일', '월', '화', '수', '목', '금', '토'];
-                var d = new Date(dateStr);
-                return days[d.getDay()];
+                // Render Instructors
+                const iList = document.getElementById('instructorList');
+                if (resources.instructors.length === 0) {
+                    iList.innerHTML = '<div class="absolute inset-0 flex flex-col items-center justify-center text-slate-400 text-xs"><span>등록된 강사가 없습니다</span></div>';
+                } else {
+                   iList.innerHTML = resources.instructors.map(i => {
+                        const isActive = activeInstructorId === i.id;
+                        const cls = isActive ? 'bg-primary-50 border-primary-500 ring-1 ring-primary-500 shadow-md' : 'bg-white border-slate-200 hover:border-primary-300 hover:shadow-sm';
+                        return \`<div onclick="selectInstructor(\${i.id})" class="p-3 border rounded transition cursor-pointer mb-2 \${cls}">
+                            <div class="flex justify-between items-center text-sm">
+                                <span class="font-bold text-slate-700">\${i.name}</span>
+                                \${isActive ? '<i class="fas fa-check-circle text-primary-600 text-xs"></i>' : ''}
+                            </div>
+                        </div>\`;
+                   }).join('');
+                }
             }
 
             function renderTimetableGrid() {
-                var weekRange = getDayDate(0) + ' ~ ' + getDayDate(6);
+                const header = document.getElementById('timetableHeader');
+                const body = document.getElementById('timetableBody');
                 
-                // Header
-                var headerHtml = '<tr><th class="p-3 w-40 text-center text-slate-600 text-xs font-bold bg-slate-100 border-r border-slate-200">교시</th>';
-                for(var i=0; i<7; i++) {
-                    var date = getDayDate(i);
-                    var dayName = getDayName(date);
-                    var isToday = date === new Date().toISOString().substring(0, 10);
-                    var style = '';
-                    if (dayName === '토') style = 'text-blue-500';
-                    if (dayName === '일') style = 'text-red-500';
+                // Header (Dates)
+                let headerHtml = '<tr><th class="w-16 bg-slate-50 border-r border-slate-200 text-center sticky left-0 z-20"></th>';
+                const days = ['월', '화', '수', '목', '금', '토', '일'];
+                
+                for(let i=0; i<7; i++) {
+                    const d = new Date(currentWeekStartDate);
+                    d.setDate(d.getDate() + i);
+                    const dateStr = d.toISOString().split('T')[0];
+                    const isToday = dateStr === new Date().toISOString().split('T')[0];
+                    const dayName = days[d.getDay() === 0 ? 6 : d.getDay() - 1]; // Monday based index adjust? No, getDay 0=Sun
                     
-                    headerHtml += \`<th class="p-3 text-center border-l border-slate-200 min-w-[140px] \${isToday ? 'bg-amber-50' : 'bg-white'}">
-                        <div class="flex items-center justify-center gap-1">
-                            <i class="fas fa-check-square text-emerald-500"></i>
-                            <span class="font-bold text-sm \${style}">\${date.substring(5)}(\${dayName})</span>
-                        </div>
+                    headerHtml += \`<th class="min-w-[140px] px-2 py-3 border-l border-b border-slate-200 font-bold text-sm text-center \${isToday ? 'bg-amber-50 text-amber-900' : 'bg-slate-50 text-slate-700'}">
+                        <div>\${d.getMonth()+1}.\${d.getDate()} (\${days[(d.getDay() + 6) % 7]})</div>
                     </th>\`;
                 }
                 headerHtml += '</tr>';
-                document.getElementById('timetableHeader').innerHTML = headerHtml;
+                header.innerHTML = headerHtml;
 
-                // Body
-                var bodyHtml = '';
-                periodConfigs.forEach(function(period, idx) {
-                    bodyHtml += '<tr class="border-b border-slate-200">';
+                // Body (Periods)
+                let bodyHtml = '';
+                periodConfigs.forEach((cfg, idx) => {
+                    bodyHtml += '<tr>';
                     
                     // Period Config Cell
-                    bodyHtml += \`<td class="p-0 align-top border-r border-slate-200 bg-slate-50">
-                        <div class="p-3 border-b border-slate-200 flex items-center justify-between">
-                            <div class="flex items-center gap-2">
-                                <span class="bg-emerald-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">\${period.period_number}교시</span>
-                                <span class="text-xs text-slate-400">미등록</span>
+                    bodyHtml += \`<td class="w-24 p-2 border-r border-b border-slate-200 bg-slate-50 align-top sticky left-0 z-10 shadow-sm">
+                        <div class="flex flex-col gap-1">
+                            <div class="flex justify-between items-center text-xs font-bold text-slate-700">
+                                <span>\${cfg.period_number}교시</span>
+                                <button onclick="editPeriod(\${idx})" class="text-slate-400 hover:text-primary-600 transition"><i class="fas fa-cog"></i></button>
                             </div>
-                            <input type="checkbox" class="w-4 h-4 rounded border-slate-300 text-primary-600 focus:ring-0">
-                        </div>
-                        <div class="p-2 space-y-1">
-                            <button onclick="editPeriod(\${idx})" class="w-full flex items-center justify-between px-2 py-1.5 bg-white border border-slate-200 rounded hover:border-primary-300 text-xs text-slate-600 group transition">
-                                <span class="font-bold"><i class="far fa-clock mr-1 text-slate-400"></i> 시작</span>
-                                <span class="group-hover:text-primary-600">\${period.start_time}</span>
-                            </button>
-                            <button onclick="editPeriod(\${idx})" class="w-full flex items-center justify-between px-2 py-1.5 bg-white border border-slate-200 rounded hover:border-primary-300 text-xs text-slate-600 group transition">
-                                <span class="font-bold"><i class="far fa-clock mr-1 text-slate-400"></i> 종료</span>
-                                <span class="group-hover:text-red-500">\${period.end_time}</span>
-                            </button>
-                            <button onclick="editPeriod(\${idx})" class="w-full flex items-center justify-between px-2 py-1.5 bg-white border border-slate-200 rounded hover:border-primary-300 text-xs text-slate-600 group transition">
-                                <span class="font-bold"><i class="fas fa-couch mr-1 text-slate-400"></i> 휴식</span>
-                                <span class="group-hover:text-amber-500">\${period.break_minute} <span class="text-[9px] font-normal">▼</span></span>
-                            </button>
+                            <div class="text-[10px] text-slate-500 text-center border rounded px-1 py-0.5 bg-white cursor-pointer hover:border-primary-300 transition" onclick="editPeriod(\${idx})">
+                                \${cfg.start_time}<\br>~ \${cfg.end_time}
+                            </div>
+                            <div class="text-[9px] text-amber-600 text-center mt-1">
+                                <i class="fas fa-mug-hot"></i> \${cfg.break_minute}분
+                            </div>
                         </div>
                     </td>\`;
-                    
-                    // Days Cells
-                    for(var i=0; i<7; i++) {
-                        var date = getDayDate(i);
-                        var cellData = timetableData.find(t => t.training_date === date && t.period_number === period.period_number);
-                        var subject = cellData ? resources.subjects.find(s => s.id === cellData.subject_id) : null;
-                        var instructor = cellData ? resources.instructors.find(ins => ins.id === cellData.instructor_id) : null;
-                        var location = cellData && cellData.location ? cellData.location : (sessionInfo.location || '제1 강의실');
-                        
-                        var content = '';
-                        if (cellData && subject) {
-                            var instructorName = instructor ? instructor.name : (sessionInfo.instructor_name || '미배정');
-                            content = \`<div class="h-full flex flex-col items-center justify-center text-center p-2 relative group cursor-pointer hover:bg-slate-50 transition">
-                                <div class="font-bold text-slate-700 text-xs mb-1 line-clamp-2" title="\${subject.name}">\${subject.name}</div>
-                                <div class="text-[10px] text-slate-400 font-medium mb-1">&lt;\${instructorName}&gt;</div>
-                                <div class="text-[10px] text-slate-400">(\${location})</div>
-                                <button onclick="removeCell(event, '\${date}', \${period.period_number})" class="mt-2 text-white bg-red-400 hover:bg-red-500 text-[10px] font-bold px-3 py-1 rounded w-full opacity-80 hover:opacity-100 transition shadow-sm">삭제 -</button>
-                            </div>\`;
-                        } else {
-                            content = \`<div onclick="assignCell('\${date}', \${period.period_number})" class="h-32 flex items-center justify-center cursor-pointer hover:bg-slate-50 transition group">
-                                <!-- Ghost element for hover effect -->
-                            </div>\`;
-                        }
 
-                        bodyHtml += \`<td class="p-0 border-l border-slate-100 align-top relative">\${content}</td>\`;
+                    // Days Cells
+                    for(let i=0; i<7; i++) {
+                        const d = new Date(currentWeekStartDate);
+                        d.setDate(d.getDate() + i);
+                        const dateStr = d.toISOString().split('T')[0];
+                        
+                        // Find data
+                        // Need strict check for undefined
+                        const cellData = timetableData.find(t => t.training_date === dateStr && t.period_number === cfg.period_number) || {
+                             training_date: dateStr, period_number: cfg.period_number, subject_id: null, instructor_id: null
+                        };
+
+                        const subject = resources.subjects.find(s => s.id === cellData.subject_id);
+                        const instructor = resources.instructors.find(ins => ins.id === cellData.instructor_id);
+                        
+                        const hasAssignment = !!subject;
+                        
+                        bodyHtml += \`<td onclick="assignSlot('\${dateStr}', \${cfg.period_number})" class="border-l border-b border-slate-200 p-1 align-top hover:bg-slate-50 cursor-pointer transition h-20 relative group timetable-cell \${hasAssignment ? 'bg-blue-50/30' : ''}">
+                             \${hasAssignment ? \`
+                                <div class="bg-white border \${subject ? 'border-primary-200' : 'border-slate-200'} rounded p-2 h-full shadow-sm flex flex-col justify-between group-hover:shadow-md transition">
+                                    <div class="font-bold text-xs text-slate-800 line-clamp-2 leading-tight">\${subject.name}</div>
+                                    <div class="flex justify-between items-end mt-1">
+                                        <div class="text-[10px] text-slate-500">\${instructor ? instructor.name : '<span class="text-slate-300">강사미정</span>'}</div>
+                                        <button onclick="removeSlot(event, '\${dateStr}', \${cfg.period_number})" class="text-slate-300 hover:text-red-500 w-5 h-5 flex items-center justify-center rounded transition"><i class="fas fa-times"></i></button>
+                                    </div>
+                                </div>
+                             \` : \`
+                                <div class="h-full flex items-center justify-center text-slate-200 group-hover:text-primary-300 transition">
+                                    <i class="fas fa-plus-circle text-lg"></i>
+                                </div>
+                             \`}
+                        </td>\`;
                     }
                     bodyHtml += '</tr>';
                 });
-                document.getElementById('timetableBody').innerHTML = bodyHtml;
+                body.innerHTML = bodyHtml;
             }
 
-            window.assignCell = function(date, periodNum) {
+            // --- Interactions ---
+
+            window.prevWeek = function() {
+                currentWeekStartDate.setDate(currentWeekStartDate.getDate() - 7);
+                renderTimetableGrid();
+                updateWeekText();
+            }
+
+            window.nextWeek = function() {
+                currentWeekStartDate.setDate(currentWeekStartDate.getDate() + 7);
+                renderTimetableGrid();
+                updateWeekText();
+            }
+            
+            function updateWeekText() {
+                 // Simple logic to show start date of week
+                 const m = currentWeekStartDate.getMonth() + 1;
+                 const d = currentWeekStartDate.getDate();
+                 document.getElementById('weekText').textContent = \`\${m}월 \${d}일 주\`;
+            }
+
+            window.selectSubject = function(id) {
+                activeSubjectId = (activeSubjectId === id) ? null : id;
+                renderResources();
+            }
+
+            window.selectInstructor = function(id) {
+                activeInstructorId = (activeInstructorId === id) ? null : id;
+                renderResources();
+            }
+
+            window.assignSlot = function(date, periodNumber) {
                 if (!activeSubjectId) {
-                    alert('좌측 [교과목 선택] 목록에서 배정할 과목을 먼저 선택해주세요.');
+                    // Optional: Show toast "Please select a subject first"
                     return;
                 }
-                var existingIdx = timetableData.findIndex(t => t.training_date === date && t.period_number === periodNum);
-                var newData = {
-                    training_date: date,
-                    period_number: periodNum,
-                    subject_id: activeSubjectId,
-                    instructor_id: sessionInfo.instructor_id || null, 
-                    location: sessionInfo.location || '제1 강의실',
-                    is_excluded: 0
-                };
 
-                if (existingIdx >= 0) timetableData[existingIdx] = newData;
-                else timetableData.push(newData);
+                // Remove existing if any (or update)
+                let existingIdx = timetableData.findIndex(t => t.training_date === date && t.period_number === periodNumber);
+                if (existingIdx > -1) {
+                    timetableData[existingIdx].subject_id = activeSubjectId;
+                    timetableData[existingIdx].instructor_id = activeInstructorId;
+                    // remove delete flag if previously marked
+                    delete timetableData[existingIdx].is_excluded; 
+                } else {
+                    timetableData.push({
+                        training_date: date,
+                        period_number: periodNumber,
+                        subject_id: activeSubjectId,
+                        instructor_id: activeInstructorId,
+                        session_id: sessionId
+                    });
+                }
 
                 renderTimetableGrid();
-                updateProgress();
-            };
+            }
 
-            window.removeCell = function(e, date, periodNum) {
-                e.stopPropagation();
-                if (!confirm('배정된 과목을 삭제하시겠습니까?')) return;
-                timetableData = timetableData.filter(t => !(t.training_date === date && t.period_number === periodNum));
+            window.removeSlot = function(e, date, periodNumber) {
+                e.stopPropagation(); // Stop bubbling to assignSlot
+                let existingIdx = timetableData.findIndex(t => t.training_date === date && t.period_number === periodNumber);
+                if (existingIdx > -1) {
+                    // Mark as deleted effectively by removing from array?
+                    // Or backend logic requires explicit delete?
+                    // Current backend (batch) sends all schedules. If we remove from array, backend won't know to delete unless we send 'deleted' list.
+                    // But our backend (step 3720) does: DELETE FROM ... WHERE ... AND ... -> INSERT.
+                    // So if we just remove from the list, backend sees LESS items, so it DELETEs but doesn't INSERT.
+                    // So yes, removing from array is correct for the backend logic used.
+                    timetableData.splice(existingIdx, 1);
+                }
                 renderTimetableGrid();
-                updateProgress();
-            };
+            }
 
-            window.prevWeek = async function() {
-                currentWeekStartDate.setDate(currentWeekStartDate.getDate() - 7);
-                var weekNum = parseInt(document.getElementById('weekText').textContent) || 1;
-                document.getElementById('weekText').textContent = Math.max(1, weekNum - 1) + '주차';
-                await loadTimetable();
-                renderTimetableGrid();
-            };
-
-            window.nextWeek = async function() {
-                currentWeekStartDate.setDate(currentWeekStartDate.getDate() + 7);
-                var weekNum = parseInt(document.getElementById('weekText').textContent) || 1;
-                document.getElementById('weekText').textContent = (weekNum + 1) + '주차';
-                await loadTimetable();
-                renderTimetableGrid();
-            };
-
-            window.saveAll = async function() {
-                var res = await fetch('/api/course-sessions/' + sessionId + '/timetable', {
-                    method: 'POST',
-                    headers: headers,
-                    body: JSON.stringify({ schedules: timetableData })
-                });
-                var json = await res.json();
-                if (json.success) alert('시간표가 저장되었습니다.');
-                else alert(json.error || '저장 실패');
-            };
-
-            // Period Config Editing
+            // --- Config Editing ---
+            
             window.editPeriod = function(idx) {
                 activePeriodConfigIdx = idx;
-                var p = periodConfigs[idx];
-                document.getElementById('editStartTime').value = p.start_time;
-                document.getElementById('editEndTime').value = p.end_time;
-                document.getElementById('editBreakTime').value = p.break_minute;
+                const cfg = periodConfigs[idx];
+                document.getElementById('editStartTime').value = cfg.start_time;
+                document.getElementById('editEndTime').value = cfg.end_time;
+                document.getElementById('editBreakTime').value = cfg.break_minute;
                 
-                var modal = document.getElementById('periodEditModal');
+                const modal = document.getElementById('periodEditModal');
                 modal.classList.remove('hidden');
-            };
-            
+                setTimeout(() => {
+                    modal.classList.remove('opacity-0');
+                    modal.querySelector('div').classList.remove('scale-95');
+                }, 10);
+            }
+
             window.closePeriodEdit = function() {
-                document.getElementById('periodEditModal').classList.add('hidden');
-                activePeriodConfigIdx = null;
-            };
+                const modal = document.getElementById('periodEditModal');
+                modal.classList.add('opacity-0');
+                modal.querySelector('div').classList.add('scale-95');
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                }, 300);
+            }
 
-            window.savePeriodEdit = async function() {
+            window.savePeriodEdit = function() {
                 if (activePeriodConfigIdx === null) return;
+                const cfg = periodConfigs[activePeriodConfigIdx];
+                cfg.start_time = document.getElementById('editStartTime').value;
+                cfg.end_time = document.getElementById('editEndTime').value;
+                cfg.break_minute = parseInt(document.getElementById('editBreakTime').value) || 0;
                 
-                var p = periodConfigs[activePeriodConfigIdx];
-                p.start_time = document.getElementById('editStartTime').value;
-                p.end_time = document.getElementById('editEndTime').value;
-                p.break_minute = parseInt(document.getElementById('editBreakTime').value) || 0;
-                
-                // Save immediately
-                var res = await fetch('/api/course-sessions/' + sessionId + '/timetable/config', {
-                    method: 'POST',
-                    headers: headers,
-                    body: JSON.stringify({ configs: periodConfigs })
-                });
-                
-                if ((await res.json()).success) {
-                    closePeriodEdit();
-                    renderTimetableGrid();
-                } else {
-                    alert('설정 저장 실패');
-                }
-            };
+                closePeriodEdit();
+                renderTimetableGrid();
+                savePeriodConfig(periodConfigs, true); // Auto save config
+            }
 
-            init();
+            // --- Utils ---
+            
+            function showToast(msg, isError) {
+                const t = document.getElementById('toast');
+                t.textContent = msg;
+                t.className = \`fixed bottom-4 right-4 px-6 py-3 rounded shadow-lg transform transition-transform duration-300 z-50 text-sm font-bold flex items-center gap-2 \${isError ? 'bg-red-500 text-white' : 'bg-slate-800 text-white'}\`;
+                
+                // Show
+                requestAnimationFrame(() => {
+                    t.style.transform = 'translateY(0)';
+                });
+
+                // Hide
+                setTimeout(() => {
+                    t.style.transform = 'translateY(150%)';
+                }, 3000);
+            }
+            
+            window.showStatus = function() {
+                alert('진행 상황 보기 기능은 준비 중입니다.');
+            }
+
         })();
     </script>
 </body>
