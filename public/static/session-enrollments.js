@@ -16,8 +16,8 @@
 
     function loadSessions() {
         var select = document.getElementById('enrollSessionSelect');
-        if (!select) return;
-        fetch('/api/course-sessions?limit=500', { headers: headers() })
+        if (!select) return Promise.resolve();
+        return fetch('/api/course-sessions?limit=500', { headers: headers() })
             .then(function (r) { return r.json(); })
             .then(function (json) {
                 if (!json.success || !json.data) return;
@@ -142,8 +142,23 @@
         loadEnrolled();
     }
 
+    function getSessionIdFromUrl() {
+        var m = /[?&]sessionId=(\d+)/.exec(window.location.search || '');
+        return m ? parseInt(m[1], 10) : null;
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
-        loadSessions();
+        var presetSessionId = getSessionIdFromUrl();
+
+        loadSessions().then(function () {
+            if (presetSessionId) {
+                var select = document.getElementById('enrollSessionSelect');
+                if (select && presetSessionId) {
+                    select.value = String(presetSessionId);
+                    applySession();
+                }
+            }
+        });
 
         var loadBtn = document.getElementById('enrollLoadSession');
         if (loadBtn) loadBtn.addEventListener('click', applySession);

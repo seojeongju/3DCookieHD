@@ -242,9 +242,10 @@ export function adminCoursesMainHtml(): string {
                                         '<div class="text-[10px] text-slate-400 font-medium"><i class="far fa-calendar-alt mr-1"></i> ' + range + '</div>' +
                                     '</div>' +
                                 '</div>' +
-                                '<div class="flex items-center gap-2 shrink-0">' +
+                                '<div class="flex items-center gap-2 shrink-0 flex-wrap justify-end">' +
                                     homepageBtn +
                                     '<div class="h-4 w-[1px] bg-slate-100 mx-1"></div>' +
+                                    '<a href="/admin/courses/sessions/enrollments?sessionId=' + item.id + '" class="px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-bold hover:bg-emerald-600 hover:text-white transition"><i class="fas fa-user-plus mr-1"></i> 수강생 등록</a>' +
                                     '<a href="/admin/courses/sessions/register/' + item.id + '" class="px-3 py-1.5 bg-slate-50 text-slate-600 rounded-lg text-xs font-bold hover:bg-primary-600 hover:text-white transition">수정</a>' +
                                     '<a href="/admin/courses/sessions/' + item.id + '/timetable" class="px-3 py-1.5 bg-slate-50 text-slate-600 rounded-lg text-xs font-bold hover:bg-emerald-600 hover:text-white transition"><i class="far fa-calendar-alt mr-1"></i> 시간표</a>' +
                                     '<a href="/admin/courses/sessions/' + item.id + '/syllabus" class="px-3 py-1.5 bg-slate-50 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-900 hover:text-white transition">교수계획서</a>' +
