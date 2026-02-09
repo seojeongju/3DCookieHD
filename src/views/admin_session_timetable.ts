@@ -242,12 +242,26 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                     periodConfigs = cj.data;
 
                     if (periodConfigs.length === 0) {
+                        // Default to 8 periods (09:00 - 17:50) with lunch break (13:00-14:00)
                         periodConfigs = [
-                             { period_number: 1, start_time: '19:00', end_time: '19:50', break_minute: 10 },
-                             { period_number: 2, start_time: '20:00', end_time: '20:50', break_minute: 10 },
-                             { period_number: 3, start_time: '21:00', end_time: '21:50', break_minute: 10 },
-                             { period_number: 4, start_time: '22:00', end_time: '22:50', break_minute: 0 }
+                             { period_number: 1, start_time: '09:00', end_time: '09:50', break_minute: 10 },
+                             { period_number: 2, start_time: '10:00', end_time: '10:50', break_minute: 10 },
+                             { period_number: 3, start_time: '11:00', end_time: '11:50', break_minute: 10 },
+                             { period_number: 4, start_time: '12:00', end_time: '12:50', break_minute: 0 }, // Lunch start after this
+                             // Lunch 13:00 - 14:00 (Break included in schedule logic or just gap?)
+                             // Typically 12:50 + 10min break = 13:00. 13:00-14:00 Lunch. 
+                             // So Period 5 starts at 14:00.
+                             { period_number: 5, start_time: '14:00', end_time: '14:50', break_minute: 10 },
+                             { period_number: 6, start_time: '15:00', end_time: '15:50', break_minute: 10 },
+                             { period_number: 7, start_time: '16:00', end_time: '16:50', break_minute: 10 },
+                             { period_number: 8, start_time: '17:00', end_time: '17:50', break_minute: 0 }
                         ];
+                        // Auto-save default config to DB for persistence
+                        fetch('/api/course-sessions/' + sessionId + '/timetable/config', {
+                            method: 'POST',
+                            headers: headers,
+                            body: JSON.stringify({ configs: periodConfigs })
+                        });
                     }
 
                     renderResources();
