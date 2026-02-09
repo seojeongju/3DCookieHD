@@ -199,10 +199,8 @@ export const adminHrdStudentJourneyHtml = (studentId: string) => {
             </main>
         </div>
     </div>
+    <script>window.JOURNEY_STUDENT_ID = ${JSON.stringify(safeId)};</script>
     <script src="/static/student-journey.js"></script>
-    <script>
-        window.JOURNEY_STUDENT_ID = ${JSON.stringify(safeId)};
-    </script>
 </body>
 </html>
 `;

@@ -1,5 +1,10 @@
 (function () {
+    // 서버에서 주입한 ID 우선, 없으면 URL 경로에서 추출 (예: /admin/students/23/journey)
     var studentId = window.JOURNEY_STUDENT_ID;
+    if (!studentId && typeof window !== 'undefined' && window.location && window.location.pathname) {
+        var m = window.location.pathname.match(/\/admin\/students\/(\d+)\/journey/);
+        if (m) studentId = m[1];
+    }
     var coursesData = [];
 
     function translateStatus(s) {
