@@ -101,6 +101,9 @@ export function adminCoursesMainHtml(): string {
 
                 <!-- Quick links -->
                 <div class="flex flex-wrap gap-3">
+                    <a href="/admin/courses/sessions/enrollments" class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 font-bold text-sm hover:bg-emerald-100 transition">
+                        <i class="fas fa-user-plus text-emerald-600"></i> 수강생(훈련생) 등록
+                    </a>
                     <a href="/admin/courses/register" class="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-700 font-bold text-sm hover:bg-slate-50 transition">
                         <i class="fas fa-graduation-cap text-slate-500"></i> 일반과정 등록/리스트
                     </a>
