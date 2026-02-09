@@ -586,9 +586,9 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
                         <div class="text-xs font-black text-gray-400 tracking-tight">\${s.last_consult ? s.last_consult.split(' ')[0] : '기록 없음'}</div>
                     </td>
                     <td class="px-8 py-5 text-right">
-                        <button onclick="editStudent(\${s.id})" class="px-4 py-2 bg-white text-blue-600 border border-blue-100 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-blue-600 hover:text-white hover:shadow-lg hover:shadow-blue-500/20 transition-all flex items-center gap-2 ml-auto">
+                        <a href="/admin/students/\${s.id}/journey" class="inline-flex items-center gap-2 px-4 py-2 bg-white text-blue-600 border border-blue-100 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-blue-600 hover:text-white hover:shadow-lg hover:shadow-blue-500/20 transition-all ml-auto">
                             <i class="fas fa-rocket"></i> 여정 관리
-                        </button>
+                        </a>
                     </td>
                 </tr>
             \`;
@@ -973,10 +973,10 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
                     closeNewStudentModal();
                     await loadStudents();
                     
-                    // 등록 완료 후 여정관리 모달 열지 물어보기
+                    // 등록 완료 후 여정관리 페이지로 이동할지 물어보기
                     const newId = result.data?.id;
                     if (newId && confirm('훈련생이 등록되었습니다.\\n\\n상세 정보를 편집하시겠습니까?\\n(여정관리 화면으로 이동)')) {
-                        editStudent(newId);
+                        window.location.href = '/admin/students/' + newId + '/journey';
                     }
                 } else {
                     alert('등록 실패: ' + (result.error || '알 수 없는 오류'));

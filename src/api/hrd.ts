@@ -699,6 +699,41 @@ app.get('/students', async (c) => {
     }
 });
 
+// 훈련생 단건 조회 (여정관리 페이지용)
+app.get('/students/:id', async (c) => {
+    try {
+        const id = c.req.param('id');
+        const query = `
+            SELECT 
+                u.id, u.name, u.phone, u.email, u.created_at,
+                u.address, u.birthdate, u.gender, u.education, u.certifications, u.profile_image,
+                d.course_id, d.status, d.type, d.last_consult,
+                d.package_type, d.payment_method, d.payment_date, d.self_pay_amount,
+                d.has_application, d.has_card, d.is_hrd_net_registered, d.status_memo
+            FROM users u
+            LEFT JOIN hrd_student_details d ON u.id = d.user_id
+            WHERE u.role = 'student' AND u.id = ?
+        `;
+        const row = await c.env.DB.prepare(query).bind(id).first() as any;
+        if (!row) return c.json({ success: false, error: '훈련생을 찾을 수 없습니다.' }, 404);
+        const r = row;
+        const data = {
+            ...r,
+            course_id: r.course_id || null,
+            status: r.status || 'consulting',
+            type: r.type || 'jobseeker',
+            last_consult: r.last_consult || null,
+            has_application: !!r.has_application,
+            has_card: !!r.has_card,
+            is_hrd_net_registered: !!r.is_hrd_net_registered
+        };
+        return c.json({ success: true, data });
+    } catch (e: any) {
+        console.error('Failed to fetch student:', e);
+        return c.json({ success: false, error: e.message }, 500);
+    }
+});
+
 // DB 연결 테스트용 엔드포인트
 app.get('/db-check', async (c) => {
     try {
