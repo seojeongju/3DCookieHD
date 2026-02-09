@@ -28,8 +28,8 @@ export const navigationHtml = (activeMenu = '') => `
                         <div class="absolute left-0 top-full mt-0 w-48 bg-white rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 border border-gray-100 overflow-hidden z-50">
                             <div class="py-1">
                                 <a href="/course-sessions" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">국비지원과정</a>
-                                <a href="/courses?category=일반과정" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">일반과정</a>
-                                <a href="/courses?category=학생" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">학생/진학 과정</a>
+                                <a href="/course-sessions?category=일반과정" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">일반과정</a>
+                                <a href="/course-sessions?category=학생" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">학생/진학 과정</a>
                                 <a href="/corporate-education" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">기업단체교육</a>
                                 <a href="/university-education" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">대학맞춤교육</a>
                             </div>
@@ -134,8 +134,8 @@ export const navigationHtml = (activeMenu = '') => `
             <div class="py-2 pb-6">
                 <a href="/course-sessions" class="block px-2 py-1 text-[11px] font-bold text-gray-400 uppercase tracking-wider hover:text-primary-600 transition-colors">과정안내 <i class="fas fa-chevron-right ml-1 text-[8px]"></i></a>
                 <a href="/course-sessions" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">국비지원과정</a>
-                <a href="/courses?category=일반과정" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">일반과정</a>
-                <a href="/courses?category=학생" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">학생/진학 과정</a>
+                <a href="/course-sessions?category=일반과정" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">일반과정</a>
+                <a href="/course-sessions?category=학생" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">학생/진학 과정</a>
                 <a href="/corporate-education" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">기업단체교육</a>
                 <a href="/university-education" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">대학맞춤교육</a>
                 <div class="px-2 py-1 mt-2 text-[11px] font-bold text-gray-400 uppercase tracking-wider">센터소개</div>

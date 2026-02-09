@@ -8,7 +8,7 @@ export const courseSessionsListHtml = `
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>개설 과정 (회차별) - 와우쓰리디홍대센터</title>
+    <title>교육 과정 안내 - 와우쓰리디홍대센터</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <script>
@@ -28,7 +28,7 @@ export const courseSessionsListHtml = `
 
     <div class="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-16">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h1 class="text-4xl font-bold mb-4">개설 과정 (회차별)</h1>
+            <h1 class="text-4xl font-bold mb-4">교육 과정 안내</h1>
             <p class="text-xl text-blue-100">현재 모집 중이거나 진행 중인 훈련 과정을 확인하세요.</p>
         </div>
     </div>
@@ -56,10 +56,20 @@ export const courseSessionsListHtml = `
     <script>
         var currentPage = 1;
         var currentStatus = '';
+        var currentCategory = new URLSearchParams(window.location.search).get('category') || '';
         var lastRequestId = 0;
 
         function statusText(s) {
             return { recruiting: '모집중', in_progress: '진행중', completed: '종료', always_open: '상시모집', closed: '폐강' }[s] || s;
+        }
+
+        function updatePageHead() {
+            var titleEl = document.querySelector('h1');
+            var subEl = document.querySelector('p.text-xl');
+            if (currentCategory && titleEl) {
+                titleEl.innerText = currentCategory + ' 안내';
+                if (subEl) subEl.innerText = '와우쓰리디홍대센터의 ' + currentCategory + ' 목록입니다.';
+            }
         }
 
         function updateTabStyles() {
@@ -82,6 +92,7 @@ export const courseSessionsListHtml = `
             }
             
             updateTabStyles();
+            updatePageHead();
 
             var requestId = ++lastRequestId;
             var listEl = document.getElementById('sessionsList');
@@ -91,6 +102,7 @@ export const courseSessionsListHtml = `
             
             var url = '/api/course-sessions/public?page=' + currentPage + '&limit=12';
             if (currentStatus) url += '&status=' + encodeURIComponent(currentStatus);
+            if (currentCategory) url += '&category=' + encodeURIComponent(currentCategory);
 
             fetch(url)
                 .then(function(r) { return r.json(); })
@@ -111,14 +123,19 @@ export const courseSessionsListHtml = `
                     }
 
                     listEl.innerHTML = list.map(function(s) {
-                        var imgUrl = (s.course_list_image_url || s.main_slide_image_url || '').trim() || '/static/course_placeholder.jpg';
+                        var imgUrl = (s.image_url || '').trim() || '/static/course_placeholder.jpg';
                         var start = (s.training_start_date || '').trim();
                         var end = (s.training_end_date || '').trim();
                         var dateStr = start && end ? (new Date(start).toLocaleDateString('ko-KR') + ' ~ ' + new Date(end).toLocaleDateString('ko-KR')) : (start ? new Date(start).toLocaleDateString('ko-KR') + '~' : '일정 미정');
                         var statusClass = s.status === 'recruiting' ? 'bg-green-500' : s.status === 'in_progress' ? 'bg-blue-500' : s.status === 'always_open' ? 'bg-emerald-500' : 'bg-gray-500';
-                        return '<a href="/course-sessions/' + s.id + '" class="bg-white rounded-lg shadow-sm hover:shadow-xl transition border border-gray-100 overflow-hidden flex flex-col h-full group">' +
+                        
+                        var detailUrl = s.source === 'session' ? '/course-sessions/' + s.id : '/courses/' + s.id;
+                        var sourceBadge = s.source === 'session' ? '' : '<span class="absolute top-3 left-3 px-2 py-0.5 text-[10px] font-bold rounded bg-black/50 text-white backdrop-blur-sm shadow-sm">일반과정</span>';
+
+                        return '<a href="' + detailUrl + '" class="bg-white rounded-lg shadow-sm hover:shadow-xl transition border border-gray-100 overflow-hidden flex flex-col h-full group">' +
                             '<div class="relative h-48 overflow-hidden bg-gray-200"><img src="' + imgUrl.replace(/"/g, '&quot;') + '" alt="" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" onerror="this.src=\\'/static/course_placeholder.jpg\\'">' +
-                            '<span class="absolute top-3 right-3 px-2.5 py-1 text-xs font-bold rounded-full text-white ' + statusClass + '">' + statusText(s.status) + '</span></div>' +
+                            '<span class="absolute top-3 right-3 px-2.5 py-1 text-xs font-bold rounded-full text-white ' + statusClass + '">' + statusText(s.status) + '</span>' + 
+                            sourceBadge + '</div>' +
                             '<div class="p-5 flex-1 flex flex-col"><span class="text-xs text-primary-600 font-medium mb-1">' + (s.category_name || '과정') + '</span>' +
                             '<h3 class="text-lg font-bold text-gray-800 mb-2 line-clamp-2 group-hover:text-primary-600">' + (s.course_name || '').replace(/</g, '&lt;') + '</h3>' +
                             '<p class="text-sm text-gray-500 mb-3">' + (s.session_number ? s.session_number + '회차' : '') + '</p>' +
@@ -156,8 +173,8 @@ export const courseSessionsListHtml = `
 </html>
 `;
 
-/** 연동 홈페이지용 회차 상세 (id는 클라이언트에서 채움) */
-export function courseSessionDetailHtml(id: string) {
+/** 연동 홈페이지용 과전 상세 (id는 클라이언트에서 채움) */
+export function courseSessionDetailHtml(id: string, source: 'session' | 'general' = 'session') {
     return `
 <!DOCTYPE html>
 <html lang="ko">
@@ -183,7 +200,8 @@ export function courseSessionDetailHtml(id: string) {
 
     <script>
         var sessionId = ${JSON.stringify(id)};
-        fetch('/api/course-sessions/public/' + sessionId)
+        var source = ${JSON.stringify(source)};
+        fetch('/api/course-sessions/public/' + sessionId + '?source=' + source)
             .then(function(r) { return r.json(); })
             .then(function(res) {
                 var wrap = document.getElementById('detailWrap');
@@ -191,9 +209,10 @@ export function courseSessionDetailHtml(id: string) {
                     wrap.innerHTML = '<div class="bg-white rounded-xl shadow-sm p-12 text-center"><p class="text-gray-600">과정을 찾을 수 없습니다.</p><a href="/course-sessions" class="inline-block mt-4 text-primary-600 font-medium">목록으로</a></div>';
                     return;
                 }
+                var detailTitle = source === 'general' ? '과정 상세' : '회차 상세';
                 var s = res.data;
                 var statusLabel = { recruiting: '모집중', in_progress: '진행중', completed: '종료', always_open: '상시모집', closed: '폐강' };
-                var imgUrl = (s.main_slide_image_url || s.course_list_image_url || '').trim() || '/static/course_placeholder.jpg';
+                var imgUrl = (s.image_url || s.main_slide_image_url || s.course_list_image_url || '').trim() || '/static/course_placeholder.jpg';
                 var start = (s.training_start_date || '').trim();
                 var end = (s.training_end_date || '').trim();
                 var dateStr = start && end ? (new Date(start).toLocaleDateString('ko-KR') + ' ~ ' + new Date(end).toLocaleDateString('ko-KR')) : (start ? new Date(start).toLocaleDateString('ko-KR') : '일정 미정');

@@ -74,73 +74,103 @@ const LINKED_HOMEPAGE_COLS = `s.recruitment_status, s.representative_image_expos
  */
 app.get('/public', async (c) => {
   try {
-    const status = c.req.query('status'); // optional: recruiting | in_progress | always_open | completed
+    const status = c.req.query('status');
+    const categoryName = c.req.query('category');
     const page = Math.max(1, parseInt(c.req.query('page') || '1', 10));
     const limit = Math.min(50, Math.max(1, parseInt(c.req.query('limit') || '12', 10)));
     const offset = (page - 1) * limit;
     const { DB } = c.env;
 
-    const statusFilter = status && status.trim() !== ''
-      ? " AND s.status = ?"
-      : " AND s.status IN ('recruiting', 'always_open', 'in_progress')";
-    const homepageFilter = " AND (s.homepage_exposed = 1)";
+    // 1. 공통 필터 구성
     const params: (string | number)[] = [];
-    if (status && status.trim() !== '') params.push(status.trim());
 
-    let countRow: { total: number } | null = null;
-    let rows: { results: Record<string, unknown>[] };
-    try {
-      countRow = await DB.prepare(
-        `SELECT COUNT(*) as total FROM course_sessions s
-         INNER JOIN approved_courses a ON a.id = s.approved_course_id WHERE 1=1 ${statusFilter} ${homepageFilter}`
-      ).bind(...params).first() as { total: number } | null;
-      params.push(limit, offset);
-      rows = await DB.prepare(
-        `SELECT s.id, s.approved_course_id, s.session_number, s.session_name, s.status,
-          s.training_start_date, s.training_end_date, s.instructor_name,
-          ${LINKED_HOMEPAGE_COLS},
-          a.name as course_name, a.total_hours, a.daily_hours,
-          c.name as category_name
-         FROM course_sessions s
-         INNER JOIN approved_courses a ON a.id = s.approved_course_id
-         LEFT JOIN course_categories c ON c.id = a.category_id
-         WHERE 1=1 ${statusFilter} ${homepageFilter}
-         ORDER BY s.training_start_date DESC, s.id DESC
-         LIMIT ? OFFSET ?`
-      ).bind(...params).all() as { results: Record<string, unknown>[] };
-    } catch (e) {
-      const msg = String((e as Error)?.message ?? e);
-      if (!/no such column|recruitment_status|representative_image_exposure|homepage_exposed/i.test(msg)) throw e;
-      params.length = 0;
-      if (status && status.trim() !== '') params.push(status.trim());
-      countRow = await DB.prepare(
-        `SELECT COUNT(*) as total FROM course_sessions s
-         INNER JOIN approved_courses a ON a.id = s.approved_course_id WHERE 1=1 ${statusFilter}`
-      ).bind(...params).first() as { total: number } | null;
-      params.push(limit, offset);
-      rows = await DB.prepare(
-        `SELECT s.id, s.approved_course_id, s.session_number, s.session_name, s.status,
-          s.training_start_date, s.training_end_date, s.instructor_name,
-          a.name as course_name, a.total_hours, a.daily_hours,
-          c.name as category_name
-         FROM course_sessions s
-         INNER JOIN approved_courses a ON a.id = s.approved_course_id
-         LEFT JOIN course_categories c ON c.id = a.category_id
-         WHERE 1=1 ${statusFilter}
-         ORDER BY s.training_start_date DESC, s.id DESC
-         LIMIT ? OFFSET ?`
-      ).bind(...params).all() as { results: Record<string, unknown>[] };
+    // Status Filter
+    let sessionStatusFilter = "";
+    let generalStatusFilter = "";
+    if (status && status.trim() !== '') {
+      sessionStatusFilter = " AND s.status = ?";
+      generalStatusFilter = " AND (CASE WHEN c.status = 'active' THEN 'recruiting' ELSE 'completed' END) = ?";
+      params.push(status.trim());
+    } else {
+      sessionStatusFilter = " AND s.status IN ('recruiting', 'always_open', 'in_progress')";
+      generalStatusFilter = " AND c.status = 'active'";
     }
 
-    const total = countRow?.total ?? 0;
-    const list = (rows.results || []) as Record<string, unknown>[];
+    // Category Filter
+    let sessionCategoryFilter = "";
+    let generalCategoryFilter = "";
+    if (categoryName && categoryName.trim() !== '') {
+      sessionCategoryFilter = " AND cat.name LIKE ?";
+      generalCategoryFilter = " AND c.category LIKE ?";
+      params.push('%' + categoryName.trim() + '%');
+    }
+
+    // Parameters for UNION: we need to repeat params for both parts if they are identical
+    // But D1 prepare doesn't support named parameters easily across UNION, so we duplicate
+    const unionParams = [...params, ...params];
+
+    // 2. 카운트 쿼리
+    const totalRow = await DB.prepare(`
+      SELECT SUM(total) as total FROM (
+        SELECT COUNT(*) as total FROM course_sessions s
+        LEFT JOIN approved_courses a ON a.id = s.approved_course_id
+        LEFT JOIN course_categories cat ON cat.id = a.category_id
+        WHERE (s.homepage_exposed = 1 OR s.homepage_exposed IS NULL) ${sessionStatusFilter} ${sessionCategoryFilter}
+        UNION ALL
+        SELECT COUNT(*) as total FROM courses c
+        WHERE c.status != 'deleted' ${generalStatusFilter} ${generalCategoryFilter}
+      )
+    `).bind(...unionParams).first<{ total: number }>();
+
+    const total = totalRow?.total ?? 0;
+
+    // 3. 목록 데이터 (UNION)
+    unionParams.push(limit, offset);
+    const rows = await DB.prepare(`
+      SELECT * FROM (
+        SELECT 
+          'session' as source,
+          s.id,
+          a.name as course_name,
+          cat.name as category_name,
+          s.status,
+          s.training_start_date,
+          s.training_end_date,
+          s.instructor_name,
+          COALESCE(NULLIF(s.course_list_image_url, ''), NULLIF(s.main_slide_image_url, ''), '/static/course_placeholder.jpg') as image_url,
+          s.session_number
+        FROM course_sessions s
+        INNER JOIN approved_courses a ON a.id = s.approved_course_id
+        LEFT JOIN course_categories cat ON cat.id = a.category_id
+        WHERE (s.homepage_exposed = 1 OR s.homepage_exposed IS NULL) ${sessionStatusFilter} ${sessionCategoryFilter}
+        
+        UNION ALL
+        
+        SELECT 
+          'general' as source,
+          c.id,
+          c.title as course_name,
+          c.category as category_name,
+          CASE WHEN c.status = 'active' THEN 'recruiting' ELSE 'completed' END as status,
+          c.start_date as training_start_date,
+          c.end_date as training_end_date,
+          NULL as instructor_name,
+          COALESCE(NULLIF(c.thumbnail_url, ''), '/static/course_placeholder.jpg') as image_url,
+          NULL as session_number
+        FROM courses c
+        WHERE c.status != 'deleted' ${generalStatusFilter} ${generalCategoryFilter}
+      )
+      ORDER BY training_start_date DESC, id DESC
+      LIMIT ? OFFSET ?
+    `).bind(...unionParams).all();
+
     return c.json({
       success: true,
-      data: list,
+      data: rows.results || [],
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
     });
   } catch (e) {
-    console.error('course-sessions public list:', e);
+    console.error('course-sessions unified public list:', e);
     return c.json({ success: false, error: '목록 조회 실패' }, 500);
   }
 });
@@ -152,36 +182,60 @@ app.get('/public', async (c) => {
 app.get('/public/:id', async (c) => {
   try {
     const id = parseInt(c.req.param('id'), 10);
+    const source = c.req.query('source'); // 'session' | 'general'
     if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
     const { DB } = c.env;
     let row: Record<string, unknown> | null = null;
-    try {
+
+    if (source === 'general') {
       row = await DB.prepare(
-        `SELECT s.id, s.approved_course_id, s.session_number, s.status,
-          s.training_start_date, s.training_end_date, s.instructor_name,
-          s.target_audience, s.days_of_week, s.location,
-          s.url_plan, s.url_detail_plan,
-          ${LINKED_HOMEPAGE_COLS},
-          a.name as course_name, a.total_hours, a.daily_hours, a.instructor_name as course_instructor,
-          c.name as category_name
-         FROM course_sessions s
-         INNER JOIN approved_courses a ON a.id = s.approved_course_id
-         LEFT JOIN course_categories c ON c.id = a.category_id
-         WHERE s.id = ?`
+        `SELECT 
+          c.id, 
+          c.title as course_name, 
+          c.category as category_name, 
+          CASE WHEN c.status = 'active' THEN 'recruiting' ELSE 'completed' END as status,
+          c.start_date as training_start_date, 
+          c.end_date as training_end_date,
+          c.duration_hours as total_hours,
+          c.thumbnail_url as image_url,
+          c.description as course_detail_description,
+          NULL as session_number,
+          NULL as instructor_name,
+          NULL as location,
+          NULL as url_plan,
+          'none' as syllabus_exposure
+        FROM courses c
+        WHERE c.id = ?`
       ).bind(id).first() as Record<string, unknown> | null;
-    } catch {
-      row = await DB.prepare(
-        `SELECT s.id, s.approved_course_id, s.session_number, s.status,
-          s.training_start_date, s.training_end_date, s.instructor_name,
-          s.target_audience, s.days_of_week, s.location,
-          s.url_plan, s.url_detail_plan,
-          a.name as course_name, a.total_hours, a.daily_hours,
-          c.name as category_name
-         FROM course_sessions s
-         INNER JOIN approved_courses a ON a.id = s.approved_course_id
-         LEFT JOIN course_categories c ON c.id = a.category_id
-         WHERE s.id = ?`
-      ).bind(id).first() as Record<string, unknown> | null;
+    } else {
+      try {
+        row = await DB.prepare(
+          `SELECT s.id, s.approved_course_id, s.session_number, s.status,
+            s.training_start_date, s.training_end_date, s.instructor_name,
+            s.target_audience, s.days_of_week, s.location,
+            s.url_plan, s.url_detail_plan,
+            ${LINKED_HOMEPAGE_COLS},
+            a.name as course_name, a.total_hours, a.daily_hours, a.instructor_name as course_instructor,
+            cat.name as category_name
+           FROM course_sessions s
+           INNER JOIN approved_courses a ON a.id = s.approved_course_id
+           LEFT JOIN course_categories cat ON cat.id = a.category_id
+           WHERE s.id = ?`
+        ).bind(id).first() as Record<string, unknown> | null;
+      } catch {
+        row = await DB.prepare(
+          `SELECT s.id, s.approved_course_id, s.session_number, s.status,
+            s.training_start_date, s.training_end_date, s.instructor_name,
+            s.target_audience, s.days_of_week, s.location,
+            s.url_plan, s.url_detail_plan,
+            a.name as course_name, a.total_hours, a.daily_hours,
+            cat.name as category_name
+           FROM course_sessions s
+           INNER JOIN approved_courses a ON a.id = s.approved_course_id
+           LEFT JOIN course_categories cat ON cat.id = a.category_id
+           WHERE s.id = ?`
+        ).bind(id).first() as Record<string, unknown> | null;
+      }
     }
     if (!row) return c.json({ success: false, error: '회차를 찾을 수 없습니다' }, 404);
     return c.json({ success: true, data: row });
