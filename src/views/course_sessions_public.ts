@@ -34,14 +34,14 @@ export const courseSessionsListHtml = `
     </div>
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div class="flex flex-wrap gap-2 mb-6">
-            <button onclick="loadList()" class="filter-session px-4 py-2 rounded-full text-sm font-medium bg-primary-600 text-white" data-status="">전체</button>
-            <button onclick="loadList('recruiting')" class="filter-session px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200" data-status="recruiting">모집중</button>
-            <button onclick="loadList('in_progress')" class="filter-session px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200" data-status="in_progress">진행중</button>
-            <button onclick="loadList('always_open')" class="filter-session px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200" data-status="always_open">상시모집</button>
+        <div class="flex flex-wrap gap-2 mb-8">
+            <button onclick="loadList('')" class="filter-session px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 bg-primary-600 text-white shadow-md active:scale-95" data-status="">전체</button>
+            <button onclick="loadList('recruiting')" class="filter-session px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 bg-white text-gray-600 border border-gray-200 hover:border-primary-400 hover:text-primary-600 active:scale-95" data-status="recruiting">모집중</button>
+            <button onclick="loadList('in_progress')" class="filter-session px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 bg-white text-gray-600 border border-gray-200 hover:border-primary-400 hover:text-primary-600 active:scale-95" data-status="in_progress">진행중</button>
+            <button onclick="loadList('always_open')" class="filter-session px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 bg-white text-gray-600 border border-gray-200 hover:border-primary-400 hover:text-primary-600 active:scale-95" data-status="always_open">상시모집</button>
         </div>
 
-        <div id="sessionsList" class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div id="sessionsList" class="grid md:grid-cols-2 lg:grid-cols-3 gap-8 min-h-[400px] transition-opacity duration-300">
             <div class="col-span-full text-center py-12">
                 <i class="fas fa-spinner fa-spin text-4xl text-primary-500 mb-4"></i>
                 <p class="text-gray-500">과정을 불러오는 중입니다...</p>
@@ -56,31 +56,60 @@ export const courseSessionsListHtml = `
     <script>
         var currentPage = 1;
         var currentStatus = '';
+        var lastRequestId = 0;
 
         function statusText(s) {
             return { recruiting: '모집중', in_progress: '진행중', completed: '종료', always_open: '상시모집', closed: '폐강' }[s] || s;
         }
 
+        function updateTabStyles() {
+            document.querySelectorAll('.filter-session').forEach(function(btn) {
+                var active = (btn.dataset.status || '') === currentStatus;
+                if (active) {
+                    btn.className = 'filter-session px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 bg-primary-600 text-white shadow-md active:scale-95';
+                } else {
+                    btn.className = 'filter-session px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 bg-white text-gray-600 border border-gray-200 hover:border-primary-400 hover:text-primary-600 active:scale-95';
+                }
+            });
+        }
+
         function loadList(status) {
-            if (status !== undefined) { currentStatus = status || ''; currentPage = 1; }
+            if (status !== undefined) { 
+                var newStatus = status || '';
+                if (currentStatus === newStatus && currentPage === 1 && lastRequestId !== 0) return; // 중복 요청 방지
+                currentStatus = newStatus; 
+                currentPage = 1; 
+            }
+            
+            updateTabStyles();
+
+            var requestId = ++lastRequestId;
+            var listEl = document.getElementById('sessionsList');
+            var paginationEl = document.getElementById('sessionsPagination');
+
+            listEl.style.opacity = '0.5';
+            
             var url = '/api/course-sessions/public?page=' + currentPage + '&limit=12';
             if (currentStatus) url += '&status=' + encodeURIComponent(currentStatus);
+
             fetch(url)
                 .then(function(r) { return r.json(); })
                 .then(function(res) {
-                    var listEl = document.getElementById('sessionsList');
-                    var paginationEl = document.getElementById('sessionsPagination');
+                    if (requestId !== lastRequestId) return;
+                    listEl.style.opacity = '1';
                     if (!res.success) {
                         listEl.innerHTML = '<div class="col-span-full text-center py-12 bg-white rounded-lg shadow-sm"><p class="text-gray-600">목록을 불러올 수 없습니다.</p></div>';
                         paginationEl.innerHTML = '';
                         return;
                     }
+
                     var list = res.data || [];
                     if (list.length === 0) {
                         listEl.innerHTML = '<div class="col-span-full text-center py-16 bg-white rounded-lg shadow-sm"><i class="fas fa-calendar-check text-4xl text-gray-300 mb-4"></i><p class="text-gray-600">해당 조건의 개설 과정이 없습니다.</p></div>';
                         paginationEl.innerHTML = '';
                         return;
                     }
+
                     listEl.innerHTML = list.map(function(s) {
                         var imgUrl = (s.course_list_image_url || s.main_slide_image_url || '').trim() || '/static/course_placeholder.jpg';
                         var start = (s.training_start_date || '').trim();
@@ -95,6 +124,7 @@ export const courseSessionsListHtml = `
                             '<p class="text-sm text-gray-500 mb-3">' + (s.session_number ? s.session_number + '회차' : '') + '</p>' +
                             '<div class="mt-auto pt-3 border-t border-gray-100 text-sm text-gray-500"><i class="far fa-calendar-alt mr-2"></i>' + dateStr + '</div></div></a>';
                     }).join('');
+
                     var p = res.pagination || {};
                     var totalPages = p.totalPages || 1;
                     if (totalPages <= 1) paginationEl.innerHTML = '';
@@ -105,18 +135,20 @@ export const courseSessionsListHtml = `
                         if (currentPage < totalPages) html += '<a href="#" onclick="setPage(' + (currentPage + 1) + '); return false;" class="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm">다음</a>';
                         paginationEl.innerHTML = html;
                     }
-                    document.querySelectorAll('.filter-session').forEach(function(btn) {
-                        var active = (btn.dataset.status || '') === currentStatus;
-                        btn.className = 'filter-session px-4 py-2 rounded-full text-sm font-medium ' + (active ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200');
-                    });
                 })
-                .catch(function() {
-                    document.getElementById('sessionsList').innerHTML = '<div class="col-span-full text-center py-12 bg-white rounded-lg shadow-sm"><p class="text-gray-600">연결에 실패했습니다.</p></div>';
-                    document.getElementById('sessionsPagination').innerHTML = '';
+                .catch(function(err) {
+                    if (requestId !== lastRequestId) return;
+                    listEl.style.opacity = '1';
+                    listEl.innerHTML = '<div class="col-span-full text-center py-12 bg-white rounded-lg shadow-sm"><p class="text-gray-600">연결에 실패했습니다.</p></div>';
+                    paginationEl.innerHTML = '';
                 });
         }
 
-        function setPage(p) { currentPage = p; loadList(); }
+        function setPage(p) { 
+            currentPage = p; 
+            window.scrollTo({ top: document.getElementById('sessionsList').offsetTop - 100, behavior: 'smooth' });
+            loadList(); 
+        }
 
         document.addEventListener('DOMContentLoaded', function() { loadList(); });
     </script>
