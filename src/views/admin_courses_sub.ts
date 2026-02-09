@@ -1057,15 +1057,15 @@ export const adminCoursesCopyHtml = () =>
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div class="bg-white rounded-[2.5rem] shadow-sm border border-slate-200/60 overflow-hidden">
             <div class="px-6 py-4 border-b border-slate-200/60 bg-slate-50/80">
-                <h2 class="font-black text-slate-800 tracking-tight">복사할 과정 선택</h2>
+                <h2 class="font-black text-slate-800 tracking-tight">회차별 과정개설 리스트</h2>
             </div>
             <div class="p-6">
                 <div class="relative">
                     <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                    <input type="text" placeholder="과정명 검색..." class="w-full pl-11 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition text-sm">
+                    <input type="text" id="copySessionSearch" placeholder="과정명·회차 검색..." class="w-full pl-11 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition text-sm">
                 </div>
-                <ul class="mt-4 space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
-                    <li class="px-4 py-3 rounded-xl bg-slate-50 border border-slate-200/60 text-sm font-medium text-slate-700 cursor-pointer hover:bg-purple-50 hover:border-purple-200 transition">검색 후 목록에서 선택하세요</li>
+                <ul id="copySessionList" class="mt-4 space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
+                    <li class="px-4 py-3 rounded-xl bg-slate-50 border border-slate-200/60 text-sm font-medium text-slate-500">불러오는 중...</li>
                 </ul>
             </div>
         </div>
@@ -1074,25 +1074,125 @@ export const adminCoursesCopyHtml = () =>
                 <h2 class="font-black text-slate-800 tracking-tight">복사 옵션</h2>
             </div>
             <div class="p-6 space-y-4">
+                <p id="copySelectedInfo" class="text-sm text-slate-500">왼쪽에서 복사할 회차를 선택하세요.</p>
                 <div>
                     <label class="block text-sm font-bold text-slate-700 mb-2">새 회차명</label>
-                    <input type="text" placeholder="예: 2025년 1기" class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition text-sm">
+                    <input type="text" id="copyNewSessionName" placeholder="예: 2025년 1기" class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition text-sm">
                 </div>
                 <div>
                     <label class="block text-sm font-bold text-slate-700 mb-2">복사할 항목</label>
                     <div class="space-y-2">
-                        <label class="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" class="rounded text-purple-600"> 교육일정</label>
-                        <label class="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" class="rounded text-purple-600"> 강의계획</label>
-                        <label class="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" class="rounded text-purple-600"> NCS 능력단위</label>
+                        <label class="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" id="copyOptSchedule" class="rounded text-purple-600" checked> 교육일정</label>
+                        <label class="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" id="copyOptPlan" class="rounded text-purple-600" checked> 강의계획</label>
+                        <label class="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" id="copyOptNcs" class="rounded text-purple-600" checked> NCS 능력단위</label>
                     </div>
                 </div>
-                <button class="w-full py-3 bg-purple-600 text-white rounded-xl font-bold text-sm hover:bg-purple-700 transition flex items-center justify-center gap-2">
+                <button type="button" id="copyExecuteBtn" class="w-full py-3 bg-purple-600 text-white rounded-xl font-bold text-sm hover:bg-purple-700 transition flex items-center justify-center gap-2" disabled>
                     <i class="fas fa-copy"></i> 과정 복사 실행
                 </button>
             </div>
         </div>
     </div>
     <p class="text-sm text-slate-500 text-center">기초 데이터로 복사한 회차는 과정등록 시 바로 사용할 수 있습니다.</p>
+    <script>
+(function() {
+    var listEl = document.getElementById('copySessionList');
+    var searchEl = document.getElementById('copySessionSearch');
+    var selectedInfo = document.getElementById('copySelectedInfo');
+    var executeBtn = document.getElementById('copyExecuteBtn');
+    var allSessions = [];
+    var selectedSessionId = null;
+
+    function formatDate(str) {
+        if (!str) return '-';
+        try { return new Date(str).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }); } catch (e) { return str; }
+    }
+    function statusLabel(s) {
+        var map = { recruiting: '모집중', in_progress: '진행중', completed: '종료', always_open: '상시모집', closed: '폐강' };
+        return map[s] || s;
+    }
+
+    function renderList(sessions) {
+        if (!listEl) return;
+        if (sessions.length === 0) {
+            listEl.innerHTML = '<li class="px-4 py-3 rounded-xl bg-slate-50 border border-slate-200/60 text-sm text-slate-500">등록된 회차가 없습니다.</li>';
+            return;
+        }
+        listEl.innerHTML = sessions.map(function(s) {
+            var name = (s.session_name || '').trim() || (s.course_name || '') + ' ' + (s.session_number != null ? s.session_number + '차' : '');
+            if (!name) name = (s.course_name || '과정') + ' (id:' + s.id + ')';
+            var sub = (s.course_name || '') + ' · ' + formatDate(s.training_start_date) + ' · ' + statusLabel(s.status);
+            var active = selectedSessionId === s.id ? ' ring-2 ring-purple-500 bg-purple-50 border-purple-200' : '';
+            return '<li class="copy-session-item px-4 py-3 rounded-xl bg-slate-50 border border-slate-200/60 text-sm cursor-pointer hover:bg-purple-50 hover:border-purple-200 transition' + active + '" data-id="' + s.id + '" data-name="' + (name || '').replace(/"/g, '&quot;') + '" data-course="' + (s.course_name || '').replace(/"/g, '&quot;') + '">' +
+                '<div class="font-bold text-slate-800">' + (name || '-').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>' +
+                '<div class="text-xs text-slate-500 mt-0.5">' + (sub || '').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>' +
+            '</li>';
+        }).join('');
+        listEl.querySelectorAll('.copy-session-item').forEach(function(li) {
+            li.addEventListener('click', function() {
+                selectedSessionId = parseInt(li.getAttribute('data-id'), 10);
+                var name = li.getAttribute('data-name') || '';
+                if (selectedInfo) selectedInfo.textContent = '선택: ' + name;
+                if (executeBtn) executeBtn.disabled = false;
+                listEl.querySelectorAll('.copy-session-item').forEach(function(el) {
+                    if (parseInt(el.getAttribute('data-id'), 10) === selectedSessionId) {
+                        el.classList.add('ring-2', 'ring-purple-500', 'bg-purple-50', 'border-purple-200');
+                        el.classList.remove('border-slate-200/60');
+                    } else {
+                        el.classList.remove('ring-2', 'ring-purple-500', 'bg-purple-50', 'border-purple-200');
+                        el.classList.add('border-slate-200/60');
+                    }
+                });
+            });
+        });
+    }
+
+    function filterAndRender() {
+        var q = (searchEl && searchEl.value) ? searchEl.value.trim().toLowerCase() : '';
+        var list = allSessions;
+        if (q) {
+            list = allSessions.filter(function(s) {
+                var course = (s.course_name || '').toLowerCase();
+                var sessionName = (s.session_name || '').toLowerCase();
+                var num = String(s.session_number || '');
+                return course.indexOf(q) !== -1 || sessionName.indexOf(q) !== -1 || num.indexOf(q) !== -1;
+            });
+        }
+        renderList(list);
+    }
+
+    function loadSessions() {
+        if (!listEl) return;
+        var token = localStorage.getItem('token');
+        if (!token) {
+            listEl.innerHTML = '<li class="px-4 py-3 rounded-xl bg-amber-50 border border-amber-200 text-sm text-amber-800">로그인이 필요합니다.</li>';
+            return;
+        }
+        listEl.innerHTML = '<li class="px-4 py-3 rounded-xl bg-slate-50 border border-slate-200/60 text-sm text-slate-500"><i class="fas fa-spinner fa-spin mr-2"></i>불러오는 중...</li>';
+        fetch('/api/course-sessions?page=1&limit=500', { headers: { 'Authorization': 'Bearer ' + token } })
+            .then(function(r) { return r.json(); })
+            .then(function(json) {
+                if (json.success && Array.isArray(json.data)) {
+                    allSessions = json.data;
+                    filterAndRender();
+                } else {
+                    listEl.innerHTML = '<li class="px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">목록을 불러오지 못했습니다.</li>';
+                }
+            })
+            .catch(function() {
+                listEl.innerHTML = '<li class="px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">목록을 불러오지 못했습니다.</li>';
+            });
+    }
+
+    if (searchEl) searchEl.addEventListener('input', filterAndRender);
+    if (searchEl) searchEl.addEventListener('keyup', filterAndRender);
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', loadSessions);
+    } else {
+        loadSessions();
+    }
+})();
+    </script>
     `
     );
 
