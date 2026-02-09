@@ -77,118 +77,135 @@ export const homeHtml = `
     </style>
 
     <!-- 히어로 섹션 -->
-    <!-- 히어로 그리드 컨테이너 -->
-    <div class="max-w-[1920px] mx-auto grid lg:grid-cols-3 bg-gray-50">
-        <!-- 1. 좌측 메인 슬라이더 (2/3) -->
-        <section class="hero-slider lg:col-span-2 h-[500px] lg:h-[600px]" aria-label="메인 비주얼">
-            <div class="hero-slide active" style="background-image: url('/static/hero1.jpg'); background-color: #2d5fa3;">
-                <div class="hero-overlay"></div>
-                <div class="hero-content">
-                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <h1 class="text-3xl md:text-5xl lg:text-6xl font-bold mb-4 lg:mb-6 drop-shadow-lg leading-tight">상상을 현실로,<br>미래를 디자인하다!</h1>
-                        <p class="text-lg md:text-xl lg:text-2xl mb-6 lg:mb-8 drop-shadow-lg text-white/90">와우쓰리디홍대센터에서<br class="md:hidden"> 3D모델링과 프린팅을 마스터하세요.</p>
-                        <div class="flex justify-center gap-3 lg:gap-4 flex-wrap">
-                            <button type="button" onclick="scrollToSection('courses')" class="bg-white text-primary-600 px-6 py-3 lg:px-8 lg:py-4 rounded-lg font-bold hover:bg-blue-50 transition text-base lg:text-lg shadow-lg">과정 둘러보기</button>
-                            <button type="button" onclick="scrollToSection('contact')" class="border-2 border-white text-white px-6 py-3 lg:px-8 lg:py-4 rounded-lg font-bold hover:bg-white hover:text-primary-600 transition text-base lg:text-lg">상담 신청</button>
+    <!-- 히어로 섹션 -->
+    <section class="hero-slider relative group" aria-label="메인 비주얼">
+        <!-- 슬라이드 1 -->
+        <div class="hero-slide active" style="background-image: url('/static/hero1.jpg'); background-color: #2d5fa3;">
+            <div class="hero-overlay bg-gradient-to-r from-black/60 via-black/40 to-transparent"></div>
+            <div class="hero-content absolute inset-0 flex items-center">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+                    <div class="max-w-2xl text-left">
+                        <h1 class="text-3xl md:text-5xl lg:text-6xl font-bold mb-4 lg:mb-6 drop-shadow-xl leading-tight text-white animate-fade-in-up">상상을 현실로,<br>미래를 디자인하다!</h1>
+                        <p class="text-lg md:text-xl lg:text-2xl mb-8 drop-shadow-md text-gray-100 animate-fade-in-up delay-100">와우쓰리디홍대센터에서<br>3D모델링과 프린팅을 마스터하세요.</p>
+                        <div class="flex gap-4 animate-fade-in-up delay-200">
+                            <button type="button" onclick="scrollToSection('courses')" class="bg-primary-600 text-white px-8 py-4 rounded-xl font-bold hover:bg-primary-700 transition shadow-lg hover:shadow-primary-500/30">과정 둘러보기</button>
+                            <button type="button" onclick="scrollToSection('contact')" class="bg-white/10 backdrop-blur-sm border border-white/30 text-white px-8 py-4 rounded-xl font-bold hover:bg-white hover:text-primary-600 transition">상담 신청</button>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="hero-slide" style="background-image: url('/static/hero2.jpg'); background-color: #4a90e2;">
-                <div class="hero-overlay"></div>
-                <div class="hero-content">
-                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <h1 class="text-3xl md:text-5xl lg:text-6xl font-bold mb-4 lg:mb-6 drop-shadow-lg leading-tight">실무 중심의<br>전문 교육</h1>
-                        <p class="text-lg md:text-xl lg:text-2xl mb-6 lg:mb-8 drop-shadow-lg text-white/90">현장 경험이 풍부한 전문 강사진과 함께<br class="md:hidden"> 실력을 키우세요.</p>
-                        <div class="flex justify-center gap-3 lg:gap-4 flex-wrap">
-                            <button type="button" onclick="scrollToSection('courses')" class="bg-white text-primary-600 px-6 py-3 lg:px-8 lg:py-4 rounded-lg font-bold hover:bg-blue-50 transition text-base lg:text-lg shadow-lg">수강 신청하기</button>
+        </div>
+        <!-- 슬라이드 2 -->
+        <div class="hero-slide" style="background-image: url('/static/hero2.jpg'); background-color: #4a90e2;">
+            <div class="hero-overlay bg-gradient-to-r from-black/60 via-black/40 to-transparent"></div>
+            <div class="hero-content absolute inset-0 flex items-center">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+                    <div class="max-w-2xl text-left">
+                        <h1 class="text-3xl md:text-5xl lg:text-6xl font-bold mb-4 lg:mb-6 drop-shadow-xl leading-tight text-white animate-fade-in-up">실무 중심의<br>전문 교육 솔루션</h1>
+                        <p class="text-lg md:text-xl lg:text-2xl mb-8 drop-shadow-md text-gray-100 animate-fade-in-up delay-100">현장 경험이 풍부한 전문 강사진과 함께<br>진짜 실력을 키우세요.</p>
+                        <div class="flex gap-4 animate-fade-in-up delay-200">
+                            <button type="button" onclick="scrollToSection('courses')" class="bg-blue-600 text-white px-8 py-4 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg">수강 신청하기</button>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="hero-slide" style="background-image: url('/static/hero3.jpg'); background-color: #5b9bd5;">
-                <div class="hero-overlay"></div>
-                <div class="hero-content">
-                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <h1 class="text-3xl md:text-5xl lg:text-6xl font-bold mb-4 lg:mb-6 drop-shadow-lg leading-tight">취업과 창업의<br>지름길</h1>
-                        <p class="text-lg md:text-xl lg:text-2xl mb-6 lg:mb-8 drop-shadow-lg text-white/90">체계적인 커리큘럼으로<br class="md:hidden"> 여러분의 꿈을 지원합니다.</p>
-                        <div class="flex justify-center gap-3 lg:gap-4 flex-wrap">
-                            <button type="button" onclick="scrollToSection('contact')" class="border-2 border-white text-white px-6 py-3 lg:px-8 lg:py-4 rounded-lg font-bold hover:bg-white hover:text-primary-600 transition text-base lg:text-lg">무료 상담 받기</button>
+        </div>
+        <!-- 슬라이드 3 -->
+        <div class="hero-slide" style="background-image: url('/static/hero3.jpg'); background-color: #5b9bd5;">
+            <div class="hero-overlay bg-gradient-to-r from-black/60 via-black/40 to-transparent"></div>
+            <div class="hero-content absolute inset-0 flex items-center">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+                    <div class="max-w-2xl text-left">
+                        <h1 class="text-3xl md:text-5xl lg:text-6xl font-bold mb-4 lg:mb-6 drop-shadow-xl leading-tight text-white animate-fade-in-up">취업과 창업의<br>가장 빠른 지름길</h1>
+                        <p class="text-lg md:text-xl lg:text-2xl mb-8 drop-shadow-md text-gray-100 animate-fade-in-up delay-100">체계적인 NCS 기반 커리큘럼으로<br>여러분의 꿈을 현실로 만듭니다.</p>
+                        <div class="flex gap-4 animate-fade-in-up delay-200">
+                            <button type="button" onclick="scrollToSection('contact')" class="bg-indigo-600 text-white px-8 py-4 rounded-xl font-bold hover:bg-indigo-700 transition shadow-lg">무료 상담 받기</button>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="hero-dots">
-                <div class="hero-dot active" onclick="setSlide(0)"></div>
-                <div class="hero-dot" onclick="setSlide(1)"></div>
-                <div class="hero-dot" onclick="setSlide(2)"></div>
+        </div>
+
+        <!-- PC 버전 우측 고정 퀵 메뉴 (Overlay) -->
+        <div class="hidden lg:block absolute inset-0 z-20 pointer-events-none">
+            <div class="max-w-7xl mx-auto px-4 h-full flex items-center justify-end">
+                <div class="w-[380px] pointer-events-auto flex flex-col gap-3">
+                    <!-- Card 1 -->
+                    <a href="/cbt" class="group flex items-center p-4 bg-white/90 backdrop-blur-md rounded-xl shadow-lg hover:bg-blue-600 hover:scale-105 transition-all duration-300 border border-white/50">
+                        <div class="w-12 h-12 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center text-xl mr-4 group-hover:bg-white group-hover:text-blue-600 transition-colors">
+                            <i class="fas fa-pen-nib"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-bold text-gray-800 text-lg group-hover:text-white">문제은행</h3>
+                            <p class="text-xs text-gray-500 group-hover:text-blue-100">기출문제 완벽 분석</p>
+                        </div>
+                        <i class="fas fa-chevron-right text-gray-400 group-hover:text-white/80"></i>
+                    </a>
+                    <!-- Card 2 -->
+                    <a href="/step" class="group flex items-center p-4 bg-white/90 backdrop-blur-md rounded-xl shadow-lg hover:bg-teal-600 hover:scale-105 transition-all duration-300 border border-white/50">
+                        <div class="w-12 h-12 rounded-lg bg-teal-100 text-teal-600 flex items-center justify-center text-xl mr-4 group-hover:bg-white group-hover:text-teal-600 transition-colors">
+                            <i class="fas fa-laptop-code"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-bold text-gray-800 text-lg group-hover:text-white">스마트직업훈련 (STEP)</h3>
+                            <p class="text-xs text-gray-500 group-hover:text-teal-100">온라인 이러닝 시스템</p>
+                        </div>
+                        <i class="fas fa-chevron-right text-gray-400 group-hover:text-white/80"></i>
+                    </a>
+                    <!-- Card 3 -->
+                    <a href="/auto-quote" class="group flex items-center p-4 bg-white/90 backdrop-blur-md rounded-xl shadow-lg hover:bg-violet-600 hover:scale-105 transition-all duration-300 border border-white/50">
+                        <div class="w-12 h-12 rounded-lg bg-violet-100 text-violet-600 flex items-center justify-center text-xl mr-4 group-hover:bg-white group-hover:text-violet-600 transition-colors">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-bold text-gray-800 text-lg group-hover:text-white">AI 자동견적</h3>
+                            <p class="text-xs text-gray-500 group-hover:text-violet-100">1초 스마트 견적</p>
+                        </div>
+                        <i class="fas fa-chevron-right text-gray-400 group-hover:text-white/80"></i>
+                    </a>
+                    <!-- Card 4 -->
+                    <a href="/shop" class="group flex items-center p-4 bg-white/90 backdrop-blur-md rounded-xl shadow-lg hover:bg-orange-600 hover:scale-105 transition-all duration-300 border border-white/50">
+                        <div class="w-12 h-12 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center text-xl mr-4 group-hover:bg-white group-hover:text-orange-600 transition-colors">
+                            <i class="fas fa-shopping-cart"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-bold text-gray-800 text-lg group-hover:text-white">3D프린터 마켓</h3>
+                            <p class="text-xs text-gray-500 group-hover:text-orange-100">검증된 장비 스토어</p>
+                        </div>
+                        <i class="fas fa-chevron-right text-gray-400 group-hover:text-white/80"></i>
+                    </a>
+                </div>
             </div>
-        </section>
+        </div>
 
-        <!-- 2. 우측 퀵 서비스 스택 (1/3) -->
-        <div class="lg:col-span-1 flex flex-col justify-between gap-3 lg:pl-4 py-4 lg:py-0 h-auto lg:h-[600px]">
-            
-            <!-- Zone A: 문제은행 -->
-            <a href="/cbt" class="group relative flex-1 bg-white rounded-xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden border border-gray-100 flex items-center p-6">
-                <div class="absolute right-0 top-0 w-24 h-24 bg-blue-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-150 duration-500"></div>
-                <div class="relative z-10 w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-500/30 flex items-center justify-center text-white text-2xl mr-5 group-hover:rotate-12 transition-transform duration-300">
-                    <i class="fas fa-pen-nib"></i>
-                </div>
-                <div class="relative z-10 flex-1">
-                    <h3 class="text-lg font-bold text-gray-800 group-hover:text-blue-600 transition-colors">와우쓰리디 문제은행</h3>
-                    <p class="text-sm text-gray-500 mt-1">자격증 합격을 위한<br>기출문제 완벽 분석</p>
-                </div>
-                <div class="relative z-10 w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-blue-600 group-hover:text-white transition-all">
-                    <i class="fas fa-arrow-right text-sm"></i>
-                </div>
+        <div class="hero-dots">
+            <div class="hero-dot active" onclick="setSlide(0)"></div>
+            <div class="hero-dot" onclick="setSlide(1)"></div>
+            <div class="hero-dot" onclick="setSlide(2)"></div>
+        </div>
+    </section>
+
+    <!-- 모바일 버전 퀵 메뉴 (슬라이더 하단 노출) -->
+    <section class="block lg:hidden bg-gray-50 py-6 px-4 -mt-6 relative z-30">
+        <div class="grid grid-cols-2 gap-3">
+            <a href="/cbt" class="flex flex-col items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mb-2"><i class="fas fa-pen-nib"></i></div>
+                <span class="text-sm font-bold text-gray-800">문제은행</span>
             </a>
-
-            <!-- Zone B: 스마트직업훈련 (STEP) - NEW -->
-            <a href="/step" class="group relative flex-1 bg-white rounded-xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden border border-gray-100 flex items-center p-6">
-                <div class="absolute right-0 top-0 w-24 h-24 bg-teal-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-150 duration-500"></div>
-                <div class="relative z-10 w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-400 to-emerald-500 shadow-lg shadow-teal-500/30 flex items-center justify-center text-white text-2xl mr-5 group-hover:rotate-12 transition-transform duration-300">
-                    <i class="fas fa-laptop-code"></i>
-                </div>
-                <div class="relative z-10 flex-1">
-                    <h3 class="text-lg font-bold text-gray-800 group-hover:text-teal-600 transition-colors">스마트직업훈련 (STEP)</h3>
-                    <p class="text-sm text-gray-500 mt-1">언제 어디서나 학습하는<br>온라인 이러닝 시스템</p>
-                </div>
-                <div class="relative z-10 w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-teal-500 group-hover:text-white transition-all">
-                    <i class="fas fa-arrow-right text-sm"></i>
-                </div>
+            <a href="/step" class="flex flex-col items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                <div class="w-10 h-10 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center mb-2"><i class="fas fa-laptop-code"></i></div>
+                <span class="text-sm font-bold text-gray-800">STEP 훈련</span>
             </a>
-
-            <!-- Zone C: AI 자동 견적 -->
-            <a href="/auto-quote" class="group relative flex-1 bg-white rounded-xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden border border-gray-100 flex items-center p-6">
-                <div class="absolute right-0 top-0 w-24 h-24 bg-violet-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-150 duration-500"></div>
-                <div class="relative z-10 w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/30 flex items-center justify-center text-white text-2xl mr-5 group-hover:rotate-12 transition-transform duration-300">
-                    <i class="fas fa-robot"></i>
-                </div>
-                <div class="relative z-10 flex-1">
-                    <h3 class="text-lg font-bold text-gray-800 group-hover:text-violet-600 transition-colors">AI 실시간 자동견적</h3>
-                    <p class="text-sm text-gray-500 mt-1">도면 업로드 즉시 산출<br>스마트 1초 견적 시스템</p>
-                </div>
-                <div class="relative z-10 w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-violet-600 group-hover:text-white transition-all">
-                    <i class="fas fa-arrow-right text-sm"></i>
-                </div>
+            <a href="/auto-quote" class="flex flex-col items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                <div class="w-10 h-10 rounded-full bg-violet-100 text-violet-600 flex items-center justify-center mb-2"><i class="fas fa-robot"></i></div>
+                <span class="text-sm font-bold text-gray-800">AI 자동견적</span>
             </a>
-
-            <!-- Zone D: 3D프린터 마켓 -->
-            <a href="/shop" class="group relative flex-1 bg-white rounded-xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden border border-gray-100 flex items-center p-6">
-                <div class="absolute right-0 top-0 w-24 h-24 bg-orange-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-150 duration-500"></div>
-                <div class="relative z-10 w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-400 to-amber-500 shadow-lg shadow-orange-500/30 flex items-center justify-center text-white text-2xl mr-5 group-hover:rotate-12 transition-transform duration-300">
-                    <i class="fas fa-shopping-cart"></i>
-                </div>
-                <div class="relative z-10 flex-1">
-                    <h3 class="text-lg font-bold text-gray-800 group-hover:text-orange-600 transition-colors">3D프린터 마켓</h3>
-                    <p class="text-sm text-gray-500 mt-1">전문가가 검증한<br>최신 장비 공식 스토어</p>
-                </div>
-                <div class="relative z-10 w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-orange-500 group-hover:text-white transition-all">
-                    <i class="fas fa-arrow-right text-sm"></i>
-                </div>
+            <a href="/shop" class="flex flex-col items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                <div class="w-10 h-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center mb-2"><i class="fas fa-shopping-cart"></i></div>
+                <span class="text-sm font-bold text-gray-800">장비 마켓</span>
             </a>
         </div>
-    </div>
+    </section>
 
     <!-- 센터 소개 -->
     <section class="py-16 bg-white">
