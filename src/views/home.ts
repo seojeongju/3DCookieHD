@@ -88,8 +88,8 @@ export const homeHtml = `
                         <h1 class="text-3xl md:text-5xl lg:text-6xl font-bold mb-4 lg:mb-6 drop-shadow-xl leading-tight text-white animate-fade-in-up">상상을 현실로,<br>미래를 디자인하다!</h1>
                         <p class="text-lg md:text-xl lg:text-2xl mb-8 drop-shadow-md text-gray-100 animate-fade-in-up delay-100">와우쓰리디홍대센터에서<br>3D모델링과 프린팅을 마스터하세요.</p>
                         <div class="flex gap-4 animate-fade-in-up delay-200">
-                            <button type="button" onclick="scrollToSection('courses')" class="bg-primary-600 text-white px-8 py-4 rounded-xl font-bold hover:bg-primary-700 transition shadow-lg hover:shadow-primary-500/30">과정 둘러보기</button>
-                            <button type="button" onclick="scrollToSection('contact')" class="bg-white/10 backdrop-blur-sm border border-white/30 text-white px-8 py-4 rounded-xl font-bold hover:bg-white hover:text-primary-600 transition">상담 신청</button>
+                            <a href="/course-sessions" class="bg-primary-600 text-white px-8 py-4 rounded-xl font-bold hover:bg-primary-700 transition shadow-lg hover:shadow-primary-500/30 text-center">과정 둘러보기</a>
+                            <a href="/online-consulting" class="bg-white/10 backdrop-blur-sm border border-white/30 text-white px-8 py-4 rounded-xl font-bold hover:bg-white hover:text-primary-600 transition text-center">상담 신청</a>
                         </div>
                     </div>
                 </div>
@@ -104,7 +104,7 @@ export const homeHtml = `
                         <h1 class="text-3xl md:text-5xl lg:text-6xl font-bold mb-4 lg:mb-6 drop-shadow-xl leading-tight text-white animate-fade-in-up">실무 중심의<br>전문 교육 솔루션</h1>
                         <p class="text-lg md:text-xl lg:text-2xl mb-8 drop-shadow-md text-gray-100 animate-fade-in-up delay-100">현장 경험이 풍부한 전문 강사진과 함께<br>진짜 실력을 키우세요.</p>
                         <div class="flex gap-4 animate-fade-in-up delay-200">
-                            <button type="button" onclick="scrollToSection('courses')" class="bg-blue-600 text-white px-8 py-4 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg">수강 신청하기</button>
+                            <a href="/course-sessions" class="bg-blue-600 text-white px-8 py-4 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg text-center">수강 신청하기</a>
                         </div>
                     </div>
                 </div>
@@ -119,7 +119,7 @@ export const homeHtml = `
                         <h1 class="text-3xl md:text-5xl lg:text-6xl font-bold mb-4 lg:mb-6 drop-shadow-xl leading-tight text-white animate-fade-in-up">취업과 창업의<br>가장 빠른 지름길</h1>
                         <p class="text-lg md:text-xl lg:text-2xl mb-8 drop-shadow-md text-gray-100 animate-fade-in-up delay-100">체계적인 NCS 기반 커리큘럼으로<br>여러분의 꿈을 현실로 만듭니다.</p>
                         <div class="flex gap-4 animate-fade-in-up delay-200">
-                            <button type="button" onclick="scrollToSection('contact')" class="bg-indigo-600 text-white px-8 py-4 rounded-xl font-bold hover:bg-indigo-700 transition shadow-lg">무료 상담 받기</button>
+                            <a href="/online-consulting" class="bg-indigo-600 text-white px-8 py-4 rounded-xl font-bold hover:bg-indigo-700 transition shadow-lg text-center">무료 상담 받기</a>
                         </div>
                     </div>
                 </div>
