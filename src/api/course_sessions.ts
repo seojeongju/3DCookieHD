@@ -716,6 +716,132 @@ app.patch('/:id', authMiddleware, requireAdmin, async (c) => {
 });
 
 /**
+ * POST /api/course-sessions/:id/copy
+ * 회차별 과정 복사
+ */
+app.post('/:id/copy', authMiddleware, requireAdmin, async (c) => {
+  try {
+    const id = parseInt(c.req.param('id'), 10);
+    if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
+
+    const body = await c.req.json<{
+      new_session_name: string;
+      copy_options: {
+        schedule: boolean;
+        plan: boolean;
+        ncs: boolean;
+      };
+    }>();
+
+    const { new_session_name, copy_options } = body;
+    if (!new_session_name) return c.json({ success: false, error: '새 회차명을 입력하세요' }, 400);
+
+    const { DB } = c.env;
+
+    // 1. 원본 회차 조회
+    const source = await DB.prepare('SELECT * FROM course_sessions WHERE id = ?').bind(id).first<any>();
+    if (!source) return c.json({ success: false, error: '복사할 회차를 찾을 수 없습니다' }, 404);
+
+    // 2. 새 회차 번호 계산 (같은 승인과정 내 최대 회차 + 1)
+    const maxRow = await DB.prepare('SELECT MAX(session_number) as max_num FROM course_sessions WHERE approved_course_id = ?')
+      .bind(source.approved_course_id).first<{ max_num: number }>();
+    const newSessionNumber = (maxRow?.max_num || 0) + 1;
+
+    // 3. 복사할 데이터 준비
+    const approvedCourseId = source.approved_course_id;
+    const status = 'recruiting';
+    const instructorName = source.instructor_name;
+    const location = source.location;
+    const targetAudience = source.target_audience;
+
+    // 옵션에 따른 복사
+    const daysOfWeek = copy_options.schedule ? source.days_of_week : null;
+    const trainingTimeStart = copy_options.schedule ? source.training_time_start : null;
+    const trainingTimeEnd = copy_options.schedule ? source.training_time_end : null;
+    const lunchTimeStart = copy_options.schedule ? source.lunch_time_start : null;
+    const lunchTimeEnd = copy_options.schedule ? source.lunch_time_end : null;
+
+    // 날짜는 초기화 (새로운 기수이므로)
+    const trainingStart = null;
+    const trainingEnd = null;
+
+    const urlNcs = copy_options.ncs ? source.url_ncs : null;
+    const urlPlan = copy_options.plan ? source.url_plan : null;
+    const urlDetailPlan = copy_options.plan ? source.url_detail_plan : null;
+    const courseDetailDescription = copy_options.plan ? source.course_detail_description : null;
+
+    // 기타 설정 복사
+    const recruitmentStatus = source.recruitment_status || 'normal';
+    const representativeImageExposure = source.representative_image_exposure || 'expose';
+    const recruitmentGracePeriod = source.recruitment_grace_period || 0;
+    const syllabusExposure = source.syllabus_exposure || 'hide';
+    const homepageExposed = source.homepage_exposed; // 홈페이지 노출여부는 그대로 복사할지? 보통은 신규 등록시 노출 안함이 안전하지만, "복사"의 의미상 설정값 유지.
+
+    const mainSlideImageUrl = source.main_slide_image_url;
+    const courseListImageUrl = source.course_list_image_url;
+
+    const registeredAt = new Date().toISOString().split('T')[0]; // 오늘 날짜
+
+    // 4. 삽입 실행
+    try {
+      await DB.prepare(
+        `INSERT INTO course_sessions (
+          approved_course_id, session_number, session_name, status, instructor_name, target_audience, days_of_week, location,
+          training_start_date, training_end_date, training_time_start, training_time_end, lunch_time_start, lunch_time_end,
+          url_ncs, url_plan, url_detail_plan, registered_at,
+          recruitment_status, representative_image_exposure, recruitment_grace_period, syllabus_exposure,
+          main_slide_image_url, course_list_image_url, course_detail_description, homepage_exposed
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+        .bind(approvedCourseId, newSessionNumber, new_session_name, status, instructorName, targetAudience, daysOfWeek, location,
+          trainingStart, trainingEnd, trainingTimeStart, trainingTimeEnd, lunchTimeStart, lunchTimeEnd,
+          urlNcs, urlPlan, urlDetailPlan, registeredAt,
+          recruitmentStatus, representativeImageExposure, recruitmentGracePeriod, syllabusExposure,
+          mainSlideImageUrl, courseListImageUrl, courseDetailDescription, homepageExposed)
+        .run();
+    } catch (err: unknown) {
+      const msg = String(err && typeof err === 'object' && 'message' in err ? (err as Error).message : err);
+      // Fallback for missing columns (older schema compatibility)
+      if (/homepage_exposed|training_time_start|training_time_end|lunch_time_start|lunch_time_end|recruitment_status|representative_image_exposure|recruitment_grace_period|syllabus_exposure|main_slide_image_url|course_list_image_url|course_detail_description|no such column/i.test(msg)) {
+        try {
+          await DB.prepare(
+            `INSERT INTO course_sessions (
+              approved_course_id, session_number, session_name, status, instructor_name, target_audience, days_of_week, location,
+              training_start_date, training_end_date, url_ncs, url_plan, url_detail_plan, registered_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          )
+            .bind(approvedCourseId, newSessionNumber, new_session_name, status, instructorName, targetAudience, daysOfWeek, location,
+              trainingStart, trainingEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt)
+            .run();
+        } catch (err2: unknown) {
+          const msg2 = String(err2 && typeof err2 === 'object' && 'message' in err2 ? (err2 as Error).message : err2);
+          if (/instructor_name|target_audience|days_of_week|location|no such column/i.test(msg2)) {
+            await DB.prepare(
+              `INSERT INTO course_sessions (
+                    approved_course_id, session_number, status, training_start_date, training_end_date,
+                    url_ncs, url_plan, url_detail_plan, registered_at
+                  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+            )
+              .bind(approvedCourseId, newSessionNumber, status, trainingStart, trainingEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt)
+              .run();
+          } else {
+            throw err2;
+          }
+        }
+      } else {
+        throw err;
+      }
+    }
+
+    return c.json({ success: true, message: '복사되었습니다' });
+  } catch (e) {
+    const errMsg = e && typeof e === 'object' && 'message' in e ? String((e as Error).message) : String(e);
+    console.error('course-sessions copy:', e);
+    return c.json({ success: false, error: '복사 실패: ' + errMsg }, 500);
+  }
+});
+
+/**
  * DELETE /api/course-sessions/:id
  */
 app.delete('/:id', authMiddleware, requireAdmin, async (c) => {

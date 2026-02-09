@@ -1206,6 +1206,60 @@ export const adminCoursesCopyHtml = () =>
 
     if (searchEl) searchEl.addEventListener('input', filterAndRender);
     if (searchEl) searchEl.addEventListener('keyup', filterAndRender);
+    if (executeBtn) {
+        executeBtn.addEventListener('click', async function() {
+            if (!selectedSessionId) return alert('복사할 회차를 선택하세요.');
+            var newName = document.getElementById('copyNewSessionName').value.trim();
+            if (!newName) return alert('새 회차명을 입력하세요.');
+            
+            var optSchedule = document.getElementById('copyOptSchedule').checked;
+            var optPlan = document.getElementById('copyOptPlan').checked;
+            var optNcs = document.getElementById('copyOptNcs').checked;
+
+            if (!confirm('선택한 회차를 복사하여 새 회차를 생성하시겠습니까?')) return;
+
+            try {
+                executeBtn.disabled = true;
+                executeBtn.innerHTML = '<i class="fas fa-spinner fa-spin mb-1"></i> 처리 중...';
+                
+                var token = localStorage.getItem('token');
+                var res = await fetch('/api/course-sessions/' + selectedSessionId + '/copy', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({
+                        new_session_name: newName,
+                        copy_options: {
+                            schedule: optSchedule,
+                            plan: optPlan,
+                            ncs: optNcs
+                        }
+                    })
+                });
+                
+                var json = await res.json();
+                if (json.success) {
+                    alert('과정 복사가 완료되었습니다.');
+                    document.getElementById('copyNewSessionName').value = '';
+                    selectedSessionId = null;
+                    if (selectedInfo) selectedInfo.textContent = '왼쪽에서 복사할 회차를 선택하세요.';
+                    executeBtn.disabled = true;
+                    loadSessions();
+                } else {
+                    alert(json.error || '복사 실패');
+                }
+            } catch (e) {
+                alert('오류가 발생했습니다.');
+                console.error(e);
+            } finally {
+                if (selectedSessionId) executeBtn.disabled = false;
+                executeBtn.innerHTML = '<i class="fas fa-copy"></i> 과정 복사 실행';
+            }
+        });
+    }
+
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', loadSessions);
     } else {
