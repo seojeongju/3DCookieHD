@@ -1,0 +1,1 @@
+export type PeriodConfig = { period_number: number; start_time: string; end_time: string; break_minute: number; }; export type TimetableSchedule = { id?: number; session_id: number; training_date: string; period_number: number; subject_id: number; instructor_id?: number | null; location?: string; is_excluded?: number; };

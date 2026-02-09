@@ -1,0 +1,1 @@
+export interface NCSApprovedRegistration { id: number; approved_course_id: number; ncs_classification_code: string; name: string; type: string; total_time: number; lecture_time: number; practice_time: number; }

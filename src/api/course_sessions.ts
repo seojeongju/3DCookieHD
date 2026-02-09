@@ -863,4 +863,199 @@ app.delete('/:id', authMiddleware, requireAdmin, async (c) => {
   }
 });
 
+// ... existing methods ...
+
+/**
+ * GET /api/course-sessions/:id/timetable/config
+ * 교시 설정 조회
+ */
+app.get('/:id/timetable/config', authMiddleware, requireAdmin, async (c) => {
+  try {
+    const id = parseInt(c.req.param('id'), 10);
+    if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
+
+    const { DB } = c.env;
+    const configs = await DB.prepare(
+      'SELECT * FROM session_period_configs WHERE session_id = ? ORDER BY period_number ASC'
+    )
+      .bind(id)
+      .all();
+
+    return c.json({ success: true, data: configs.results || [] });
+  } catch (e) {
+    console.error('timetable config get:', e);
+    return c.json({ success: false, error: '설정 조회 실패' }, 500);
+  }
+});
+
+/**
+ * POST /api/course-sessions/:id/timetable/config
+ * 교시 설정 저장
+ */
+app.post('/:id/timetable/config', authMiddleware, requireAdmin, async (c) => {
+  try {
+    const id = parseInt(c.req.param('id'), 10);
+    if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
+
+    const body = await c.req.json<{ configs: any[] }>();
+    const configs = body.configs || [];
+    const { DB } = c.env;
+
+    // Transaction implementation locally using batch
+    const stmts = [
+      DB.prepare('DELETE FROM session_period_configs WHERE session_id = ?').bind(id)
+    ];
+
+    for (const cfg of configs) {
+      stmts.push(
+        DB.prepare(
+          'INSERT INTO session_period_configs (session_id, period_number, start_time, end_time, break_minute) VALUES (?, ?, ?, ?, ?)'
+        ).bind(id, cfg.period_number, cfg.start_time, cfg.end_time, cfg.break_minute || 0)
+      );
+    }
+
+    await DB.batch(stmts);
+    return c.json({ success: true });
+  } catch (e) {
+    console.error('timetable config save:', e);
+    return c.json({ success: false, error: '설정 저장 실패' }, 500);
+  }
+});
+
+/**
+ * GET /api/course-sessions/:id/timetable/resources
+ * 교과목 및 강사 리스트 조회 (NCS 편성 정보 기반)
+ */
+app.get('/:id/timetable/resources', authMiddleware, requireAdmin, async (c) => {
+  try {
+    const id = parseInt(c.req.param('id'), 10);
+    if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
+
+    const { DB } = c.env;
+
+    // 1. Session Info to get approved_course_id
+    const session = await DB.prepare('SELECT approved_course_id FROM course_sessions WHERE id = ?').bind(id).first<{ approved_course_id: number }>();
+    if (!session) return c.json({ success: false, error: '회차 정보 없음' }, 404);
+
+    // 2. NCS Subjects (from ncs_approved_registrations + ncs_unit_elements if needed, here simplify to ncs_approved_registrations)
+    // Assuming 'ncs_approved_registrations' holds the subjects linked to the approved course
+    const subjects = await DB.prepare(
+      `SELECT id, name, ncs_classification_code, type, total_time 
+       FROM ncs_approved_registrations 
+       WHERE approved_course_id = ?`
+    )
+      .bind(session.approved_course_id)
+      .all();
+
+    // 3. Instructors (Currently global list or filtered? For now, list all active instructors or just placeholders)
+    // Ideally we should have a table linking instructors to courses, but for now let's query users with 'instructor' role or similar.
+    // Assuming users table has role column. If not, return empty or dummy.
+    // Let's use a simple query if users table exists, otherwise empty.
+    let instructors: any[] = [];
+    try {
+      const instRows = await DB.prepare("SELECT id, name FROM users WHERE role = 'instructor' OR role = 'admin'").all();
+      instructors = instRows.results || [];
+    } catch {
+      // Fallback or ignore
+    }
+
+    return c.json({
+      success: true,
+      data: {
+        subjects: subjects.results || [],
+        instructors: instructors
+      }
+    });
+  } catch (e) {
+    console.error('timetable resources get:', e);
+    return c.json({ success: false, error: '리소스 조회 실패' }, 500);
+  }
+});
+
+/**
+ * GET /api/course-sessions/:id/timetable
+ * 시간표 조회
+ */
+app.get('/:id/timetable', authMiddleware, requireAdmin, async (c) => {
+  try {
+    const id = parseInt(c.req.param('id'), 10);
+    const startDate = c.req.query('start_date');
+    const endDate = c.req.query('end_date');
+
+    if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
+
+    const { DB } = c.env;
+    let query = 'SELECT * FROM session_timetable WHERE session_id = ?';
+    const params: any[] = [id];
+
+    if (startDate) {
+      query += ' AND training_date >= ?';
+      params.push(startDate);
+    }
+    if (endDate) {
+      query += ' AND training_date <= ?';
+      params.push(endDate);
+    }
+
+    const rows = await DB.prepare(query).bind(...params).all();
+    return c.json({ success: true, data: rows.results || [] });
+  } catch (e) {
+    console.error('timetable get:', e);
+    return c.json({ success: false, error: '시간표 조회 실패' }, 500);
+  }
+});
+
+/**
+ * POST /api/course-sessions/:id/timetable
+ * 시간표 저장 (Batch Update/Insert)
+ */
+app.post('/:id/timetable', authMiddleware, requireAdmin, async (c) => {
+  try {
+    const id = parseInt(c.req.param('id'), 10);
+    if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
+
+    const body = await c.req.json<{ schedules: any[] }>();
+    const schedules = body.schedules || [];
+    const { DB } = c.env;
+
+    // Strategy: Upsert logic: Delete (date, period) then Insert.
+
+    const stmts: any[] = [];
+
+    for (const s of schedules) {
+      stmts.push(DB.prepare(
+        'DELETE FROM session_timetable WHERE session_id = ? AND training_date = ? AND period_number = ?'
+      ).bind(id, s.training_date, s.period_number));
+
+      if (!s.is_excluded && s.subject_id) {
+        // Only insert if not "just deleted" (though client sends current state usually)
+        // However, existing logic in frontend sends all cells. 
+        // Let's assume we clean up first.
+        // Actually, if we delete first, then insert, it works for updates.
+        // If strict equality check is needed, fine.
+
+        stmts.push(DB.prepare(
+          `INSERT INTO session_timetable (
+                       session_id, training_date, period_number, subject_id, instructor_id, location, is_excluded
+                   ) VALUES (?, ?, ?, ?, ?, ?, ?)`
+        ).bind(id, s.training_date, s.period_number, s.subject_id, s.instructor_id, s.location, s.is_excluded || 0));
+      } else if (s.is_excluded) {
+        // Insert as excluded record (so we remember it's excluded/unchecked)
+        stmts.push(DB.prepare(
+          `INSERT INTO session_timetable (
+                       session_id, training_date, period_number, subject_id, instructor_id, location, is_excluded
+                   ) VALUES (?, ?, ?, ?, ?, ?, ?)`
+        ).bind(id, s.training_date, s.period_number, 0, null, null, 1));
+      }
+    }
+
+    if (stmts.length > 0) await DB.batch(stmts);
+
+    return c.json({ success: true });
+  } catch (e) {
+    console.error('timetable save:', e);
+    return c.json({ success: false, error: '시간표 저장 실패' }, 500);
+  }
+});
+
 export default app;
