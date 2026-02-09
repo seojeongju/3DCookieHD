@@ -508,6 +508,107 @@
         uploadSessionImage('sessionsFormCourseListImage', 'sessionsFormCourseListImageUrl', 'sessionsFormCourseListImageInfo');
     });
 
+    // --- 멀티 이미지 업로드 로직 (교육사진 갤러리와 동일) ---
+    function setupMultiImageUpload() {
+        var dropZone = document.getElementById('multiImageDropZone');
+        var input = document.getElementById('multiImageInput');
+        if (!dropZone || !input) return;
+
+        dropZone.addEventListener('click', function (e) {
+            if (!e.target.closest('#multiImageThumbs')) input.click();
+        });
+        dropZone.addEventListener('dragover', function (e) {
+            e.preventDefault(); e.stopPropagation();
+            dropZone.classList.add('border-emerald-400', 'bg-emerald-50');
+        });
+        dropZone.addEventListener('dragleave', function (e) {
+            e.preventDefault();
+            dropZone.classList.remove('border-emerald-400', 'bg-emerald-50');
+        });
+        dropZone.addEventListener('drop', function (e) {
+            e.preventDefault(); e.stopPropagation();
+            dropZone.classList.remove('border-emerald-400', 'bg-emerald-50');
+            var files = e.dataTransfer && e.dataTransfer.files;
+            if (files && files.length) handleMultiImageFiles(Array.from(files));
+        });
+        input.addEventListener('change', function () {
+            var files = this.files;
+            if (files && files.length) handleMultiImageFiles(Array.from(files));
+            this.value = '';
+        });
+    }
+
+    async function handleMultiImageFiles(files) {
+        var imageFiles = files.filter(function (f) { return f.type.indexOf('image/') === 0; });
+        if (imageFiles.length === 0) { alert('이미지 파일만 선택해 주세요.'); return; }
+
+        var total = imageFiles.length;
+        var progressEl = document.getElementById('multiImageProgress');
+        var thumbsEl = document.getElementById('multiImageThumbs');
+        progressEl.classList.remove('hidden');
+        progressEl.textContent = '업로드 중 0 / ' + total + '...';
+        thumbsEl.classList.remove('hidden');
+
+        var editor = typeof tinymce !== 'undefined' ? tinymce.get('sessionsFormCourseDetailDescription') : null;
+
+        for (var i = 0; i < imageFiles.length; i++) {
+            progressEl.textContent = '업로드 중 ' + (i + 1) + ' / ' + total + '...';
+            try {
+                var url = await uploadResizedBoxImage(imageFiles[i]);
+                var thumb = document.createElement('span');
+                thumb.className = 'inline-block w-12 h-12 rounded border border-slate-200 overflow-hidden bg-slate-100';
+                thumb.innerHTML = '<img src="' + url + '" alt="" class="w-full h-full object-cover">';
+                thumbsEl.appendChild(thumb);
+
+                if (editor) {
+                    editor.insertContent('<p><img src="' + url.replace(/"/g, '&quot;') + '" style="max-width:100%;height:auto"/></p>');
+                }
+            } catch (err) {
+                console.error(err);
+                progressEl.textContent = '업로드 중 ' + (i + 1) + '/' + total + ' - 오류: ' + (err.message || '실패');
+            }
+        }
+        progressEl.textContent = total + '장 업로드 완료.';
+    }
+
+    async function uploadResizedBoxImage(blob) {
+        var IMAGE_MAX = 1200;
+        var IMAGE_QUALITY = 0.82;
+
+        var resizedBlob = await new Promise((resolve, reject) => {
+            var img = new Image();
+            var url = URL.createObjectURL(blob);
+            img.onload = function () {
+                URL.revokeObjectURL(url);
+                var w = img.naturalWidth, h = img.naturalHeight;
+                if (w <= IMAGE_MAX && h <= IMAGE_MAX && blob.size < 200000) { resolve(blob); return; }
+                var r = Math.min(IMAGE_MAX / w, IMAGE_MAX / h, 1);
+                w = Math.round(w * r); h = Math.round(h * r);
+                var canvas = document.createElement('canvas');
+                canvas.width = w; canvas.height = h;
+                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                canvas.toBlob(function (b) { b ? resolve(b) : reject(new Error('Canvas toBlob failed')); }, 'image/jpeg', IMAGE_QUALITY);
+            };
+            img.onerror = function () { URL.revokeObjectURL(url); reject(new Error('Image load failed')); };
+            img.src = url;
+        });
+
+        var file = new File([resizedBlob], 'session_detail_' + Date.now() + '.jpg', { type: 'image/jpeg' });
+        var fd = new FormData();
+        fd.append('file', file);
+        fd.append('category', 'images');
+        fd.append('folder', 'course-sessions/detail');
+
+        var res = await fetch('/api/upload', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+            body: fd
+        });
+        var json = await res.json();
+        if (!json.success) throw new Error(json.error || '업로드 실패');
+        return json.data.url || json.data.publicUrl || '';
+    }
+
     function initSessionTinyMCE() {
         if (typeof tinymce === 'undefined') return;
         var el = document.getElementById('sessionsFormCourseDetailDescription');
@@ -561,6 +662,7 @@
     Promise.all([loadInstructors(), loadFacilities()]).then(function () {
         return loadApprovedCourses();
     }).then(function () {
+        setupMultiImageUpload();
         setTimeout(function () { initSessionTinyMCE(); }, 150);
         if (editId) {
             loadSession(editId);

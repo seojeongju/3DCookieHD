@@ -1037,6 +1037,20 @@ export const adminCoursesSessionsRegisterHtml = (editId?: string) => {
                 <section class="border border-slate-200 rounded-xl p-5 bg-white">
                     <h3 class="font-bold text-slate-800 mb-4">과정 상세 정보(과정설명)</h3>
                     <p class="text-xs text-slate-500 mb-4">상세 정보 등록시 연동홈페이지의 각 과정 수강신청 버튼 하단에 과정 설명이 노출됩니다. <b>에디터에 고해상도 이미지를 직접 끌어다 넣거나 복사해서 붙여넣을 수 있습니다.</b></p>
+                    
+                    <!-- 멀티 이미지 업로드 존 (교육사진 갤러리와 동일 기능) -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-bold text-slate-700 mb-2">사진 여러 장 한꺼번에 올리기</label>
+                        <div id="multiImageDropZone" class="border-2 border-dashed border-slate-200 rounded-xl p-6 text-center bg-slate-50 hover:bg-emerald-50 hover:border-emerald-400 transition cursor-pointer">
+                            <input type="file" id="multiImageInput" accept="image/*" multiple class="hidden">
+                            <p class="text-slate-500 text-sm mb-1"><i class="fas fa-cloud-upload-alt text-2xl text-emerald-500 mb-2"></i></p>
+                            <p class="text-slate-600 font-medium text-sm">클릭하거나 이미지를 여기에 끌어다 놓으세요</p>
+                            <p class="text-slate-400 text-xs mt-1">여러 장 선택 가능 (JPG, PNG 등) - 에디터에 자동 삽입됩니다.</p>
+                            <div id="multiImageProgress" class="hidden mt-3 text-sm text-emerald-600 font-bold"></div>
+                            <div id="multiImageThumbs" class="hidden mt-3 flex flex-wrap gap-2 justify-center"></div>
+                        </div>
+                    </div>
+
                     <textarea id="sessionsFormCourseDetailDescription" class="w-full min-h-[280px] border border-slate-200 rounded-xl text-sm p-4 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" placeholder="과정 설명을 입력하세요 (HTML 지원)"></textarea>
                 </section>
 
