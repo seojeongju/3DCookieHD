@@ -247,14 +247,13 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                         '<div class="font-bold text-slate-700 text-xs leading-tight">' + s.name + '</div>' +
                         '</div>';
                 }).join('');
-                document.getElementById('subjectList').innerHTML = html || \`
-                    <div class="text-center py-8 text-slate-400 text-xs">
-                        편성된 교과목이 없습니다.<br><br>
-                        <a href="/admin/courses/approved/register/\${sessionInfo.approved_course_id}?tab=ncs" class="text-primary-600 font-bold hover:underline">
-                            <i class="fas fa-edit mr-1"></i> 교과목 편성하러 가기
-                        </a>
-                    </div>
-                \`;
+                document.getElementById('subjectList').innerHTML = html || (
+                    '<div class="text-center py-8 text-slate-400 text-xs">' +
+                    '편성된 교과목이 없습니다.<br><br>' +
+                    '<a href="/admin/courses/approved/register/' + (sessionInfo ? sessionInfo.approved_course_id : '') + '?tab=ncs" class="text-primary-600 font-bold hover:underline">' +
+                    '<i class="fas fa-edit mr-1"></i> 교과목 편성하러 가기</a>' +
+                    '</div>'
+                );
             }
 
             window.selectSubject = function(id) {
