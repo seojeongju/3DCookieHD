@@ -39,6 +39,21 @@ app.get('/', async (c) => {
     if (category && category !== 'all') whereClauses.push(' AND p.category = ?');
     if (search) whereClauses.push(' AND (p.title LIKE ? OR p.content LIKE ?)');
     if (status) whereClauses.push(' AND p.status = ?');
+    const authorId = c.req.query('author_id');
+    if (authorId) {
+      whereClauses.push(' AND p.author_id = ?');
+      params.push(authorId);
+    }
+    const subCategory = c.req.query('sub_category');
+    if (subCategory) {
+      whereClauses.push(' AND p.sub_category = ?');
+      params.push(subCategory);
+    }
+    const courseId = c.req.query('course_id');
+    if (courseId) {
+      whereClauses.push(' AND p.course_id = ?');
+      params.push(courseId);
+    }
     const whereSql = whereClauses.join('');
 
     const countQuery = `SELECT COUNT(*) as total ${base}${whereSql}`;
@@ -126,7 +141,7 @@ app.get('/:id', async (c) => {
       FROM posts p
       LEFT JOIN users u ON p.author_id = u.id
       WHERE p.id = ?
-    `).bind(id).first();
+    `).bind(id).first() as any;
 
     if (!post) {
       return c.json({ success: false, error: '게시글을 찾을 수 없습니다' }, 404);
@@ -206,28 +221,70 @@ app.post('/', authMiddleware, async (c) => {
   try {
     const { DB } = c.env;
     const user = c.get('user');
-    
+
     if (!user || !user.userId) {
       console.error('POST /api/posts: user not found or userId missing', { user });
       return c.json({ success: false, error: '인증 정보가 올바르지 않습니다' }, 401);
     }
 
-    const { title, content, category, images, pinned, status } = body;
+    const { title, content, category, images, pinned, status, course_id, enrollment_id, rating } = body;
 
     const tit = title != null ? String(title).trim() : '';
     const cont = content != null ? String(content) : '';
     const cat = category != null ? String(category).trim() : '';
 
-    if (!tit || !cat) {
-      return c.json({ success: false, error: '제목, 카테고리는 필수입니다' }, 400);
+    if (!tit && cat !== 'review') {
+      return c.json({ success: false, error: '제목은 필수입니다' }, 400);
+    }
+    if (!cat) {
+      return c.json({ success: false, error: '카테고리는 필수입니다' }, 400);
     }
     if (!cont) {
       return c.json({ success: false, error: '내용은 필수입니다' }, 400);
     }
 
+    // 리뷰 특정 처리
+    if (cat === 'review') {
+      if (!course_id || !rating) {
+        return c.json({ success: false, error: '과정 ID와 평점은 필수입니다' }, 400);
+      }
+      if (rating < 1 || rating > 5) {
+        return c.json({ success: false, error: '평점은 1-5 사이여야 합니다' }, 400);
+      }
+      // 중복 리뷰 확인
+      const existing = await DB.prepare('SELECT id FROM posts WHERE category = ? AND author_id = ? AND course_id = ?').bind('review', user.userId, course_id).first();
+      if (existing) {
+        return c.json({ success: false, error: '이미 리뷰를 작성하셨습니다' }, 400);
+      }
+    }
+
     // 공지사항, FAQ: 관리자만 작성 가능 / Q&A: 관리자·수강생 작성 가능
     if ((cat === 'notice' || cat === 'faq') && user.role !== 'admin') {
       return c.json({ success: false, error: '공지사항과 FAQ는 관리자만 작성할 수 있습니다' }, 403);
+    }
+
+    let finalAuthorId = user.userId;
+    const { sub_category, content_url, teacher_feedback, author_id: bodyAuthorId } = body;
+
+    // 강사 및 관리자가 학생의 포트폴리오/시제품을 대신 올리는 경우 처리
+    if (bodyAuthorId && Number(bodyAuthorId) !== user.userId) {
+      if (user.role === 'admin') {
+        finalAuthorId = Number(bodyAuthorId);
+      } else if (user.role === 'teacher') {
+        // 강사인 경우, 해당 학생이 본인의 과정을 수강하고 있는지 확인 (단순화된 검증)
+        const enrollment = await DB.prepare(`
+                SELECT e.id FROM enrollments e
+                JOIN courses c ON e.course_id = c.id
+                WHERE e.user_id = ? AND c.teacher_id = ?
+            `).bind(bodyAuthorId, user.userId).first();
+
+        if (!enrollment) {
+          return c.json({ success: false, error: '담당 학생의 게시물만 등록 가능합니다' }, 403);
+        }
+        finalAuthorId = Number(bodyAuthorId);
+      } else {
+        return c.json({ success: false, error: '본인의 게시물만 등록 가능합니다' }, 403);
+      }
     }
 
     const pin = pinned === true || pinned === 1 || pinned === '1';
@@ -327,18 +384,29 @@ app.post('/', authMiddleware, async (c) => {
 
     const result = await DB.prepare(`
       INSERT INTO posts (
-        author_id, title, content, category, images,
-        views, likes, pinned, status, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, 0, 0, ?, ?, datetime('now'), datetime('now'))
+        author_id, title, content, category, sub_category, images,
+        views, likes, pinned, status, course_id, enrollment_id, rating, 
+        content_url, teacher_feedback, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
     `).bind(
-      user.userId,
+      finalAuthorId,
       tit,
       finalContent,
       cat,
+      sub_category || null,
       imagesJson,
       pin ? 1 : 0,
-      st
+      st,
+      course_id || null,
+      enrollment_id || null,
+      rating != null ? Number(rating) : null,
+      content_url || null,
+      teacher_feedback || null
     ).run();
+
+    if (cat === 'review' && course_id) {
+      await updateCourseRating(DB, Number(course_id));
+    }
 
     console.log('POST /api/posts: Insert successful', { id: result.meta.last_row_id });
 
@@ -358,9 +426,9 @@ app.post('/', authMiddleware, async (c) => {
       error: error,
       body: JSON.stringify(body).substring(0, 500)
     });
-    return c.json({ 
-      success: false, 
-      error: `게시글 작성 중 오류가 발생했습니다: ${errorMsg}` 
+    return c.json({
+      success: false,
+      error: `게시글 작성 중 오류가 발생했습니다: ${errorMsg}`
     }, 500);
   }
 });
@@ -494,12 +562,27 @@ app.put('/:id', authMiddleware, async (c) => {
       return c.json({ success: false, error: '게시글을 찾을 수 없습니다' }, 404);
     }
 
-    // 본인 또는 관리자만 수정 가능
-    if (user.role !== 'admin' && post.author_id !== user.userId) {
+    // 권한 확인
+    let hasPermission = false;
+    if (user.role === 'admin') {
+      hasPermission = true;
+    } else if (post.author_id === user.userId) {
+      hasPermission = true;
+    } else if (user.role === 'teacher') {
+      // 강사인 경우, 해당 학생의 게시물(포트폴리오 등) 담당자인지 확인
+      const enrollment = await DB.prepare(`
+            SELECT e.id FROM enrollments e
+            JOIN courses c ON e.course_id = c.id
+            WHERE e.user_id = ? AND c.teacher_id = ?
+        `).bind(post.author_id, user.userId).first();
+      if (enrollment) hasPermission = true;
+    }
+
+    if (!hasPermission) {
       return c.json({ success: false, error: '권한이 없습니다' }, 403);
     }
 
-    const { title, content, images, pinned, status } = body;
+    const { title, content, images, pinned, status, sub_category, content_url, teacher_feedback } = body;
 
     // D1 TEXT 컬럼 크기 제한을 초과하면 R2에 저장
     const CONTENT_SIZE_LIMIT = 50 * 1024; // 50KB
@@ -562,20 +645,32 @@ app.put('/:id', authMiddleware, async (c) => {
       }
     }
 
+    const { title: newTitle, content: newContent, images: newImages, pinned: newPinned, status: newStatus, rating: newRating } = body;
+
     // 게시글 수정
     await DB.prepare(`
       UPDATE posts 
       SET title = ?, content = ?, images = ?,
-          pinned = ?, status = ?, updated_at = datetime('now')
+          pinned = ?, status = ?, rating = ?, 
+          sub_category = ?, content_url = ?, teacher_feedback = ?,
+          updated_at = datetime('now')
       WHERE id = ?
     `).bind(
-      title ?? post.title,
+      newTitle ?? post.title,
       finalContent,
       imagesJsonForUpdate,
-      (pinned !== undefined && user.role === 'admin') ? (pinned ? 1 : 0) : post.pinned,
-      status ?? post.status,
+      (newPinned !== undefined && user.role === 'admin') ? (newPinned ? 1 : 0) : post.pinned,
+      newStatus ?? post.status,
+      newRating ?? post.rating,
+      sub_category !== undefined ? sub_category : post.sub_category,
+      content_url !== undefined ? content_url : post.content_url,
+      teacher_feedback !== undefined ? teacher_feedback : post.teacher_feedback,
       id
     ).run();
+
+    if (post.category === 'review' && post.course_id) {
+      await updateCourseRating(DB, Number(post.course_id));
+    }
 
     return c.json({
       success: true,
@@ -598,19 +693,37 @@ app.delete('/:id', authMiddleware, async (c) => {
     const id = c.req.param('id');
 
     // 게시글 조회
-    const post = await DB.prepare('SELECT * FROM posts WHERE id = ?').bind(id).first();
+    const post = await DB.prepare('SELECT * FROM posts WHERE id = ?').bind(id).first() as any;
 
     if (!post) {
       return c.json({ success: false, error: '게시글을 찾을 수 없습니다' }, 404);
     }
 
-    // 본인 또는 관리자만 삭제 가능
-    if (user.role !== 'admin' && post.author_id !== user.userId) {
+    // 권한 확인
+    let hasPermission = false;
+    if (user.role === 'admin') {
+      hasPermission = true;
+    } else if (post.author_id === user.userId) {
+      hasPermission = true;
+    } else if (user.role === 'teacher') {
+      const enrollment = await DB.prepare(`
+            SELECT e.id FROM enrollments e
+            JOIN courses c ON e.course_id = c.id
+            WHERE e.user_id = ? AND c.teacher_id = ?
+        `).bind(post.author_id, user.userId).first();
+      if (enrollment) hasPermission = true;
+    }
+
+    if (!hasPermission) {
       return c.json({ success: false, error: '권한이 없습니다' }, 403);
     }
 
     // 게시글 삭제 (댓글도 CASCADE로 삭제됨)
     await DB.prepare('DELETE FROM posts WHERE id = ?').bind(id).run();
+
+    if (post.category === 'review' && post.course_id) {
+      await updateCourseRating(DB, Number(post.course_id));
+    }
 
     return c.json({
       success: true,
@@ -641,7 +754,7 @@ app.post('/:id/comments', authMiddleware, async (c) => {
     }
 
     // 게시글 존재 여부 확인
-    const post = await DB.prepare('SELECT * FROM posts WHERE id = ?').bind(post_id).first();
+    const post = await DB.prepare('SELECT * FROM posts WHERE id = ?').bind(post_id).first() as any;
     if (!post) {
       return c.json({ success: false, error: '게시글을 찾을 수 없습니다' }, 404);
     }
@@ -725,5 +838,28 @@ app.post('/:id/like', async (c) => {
     return c.json({ success: false, error: '처리 중 오류가 발생했습니다' }, 500);
   }
 });
+
+// ============================================
+// 헬퍼 함수: 과정 평점 업데이트
+// ============================================
+async function updateCourseRating(DB: D1Database, course_id: number) {
+  const result = await DB.prepare(`
+    SELECT 
+      COUNT(*) as review_count,
+      AVG(rating) as avg_rating
+    FROM posts
+    WHERE course_id = ? AND category = 'review' AND status = 'published'
+  `).bind(course_id).first<{ review_count: number; avg_rating: number }>();
+
+  await DB.prepare(`
+    UPDATE courses 
+    SET rating = ?, review_count = ?
+    WHERE id = ?
+  `).bind(
+    result?.avg_rating ? parseFloat(result.avg_rating.toFixed(1)) : 0,
+    result?.review_count || 0,
+    course_id
+  ).run();
+}
 
 export default app;

@@ -177,7 +177,7 @@ export const reviewsListHtml = `
 
         async function loadReviews() {
             try {
-                const response = await fetch('/api/reviews?approved=1');
+                const response = await fetch('/api/posts?category=review&status=published');
                 const result = await response.json();
                 
                 const reviewsList = document.getElementById('reviewsList');
@@ -211,7 +211,7 @@ export const reviewsListHtml = `
                                     <i class="fas fa-user"></i>
                                 </div>
                                 <div>
-                                    <p class="font-medium text-gray-800">\${maskName(review.user_name)}</p>
+                                    <p class="font-medium text-gray-800">\${maskName(review.author_name)}</p>
                                     <p class="text-xs text-gray-500">\${new Date(review.created_at).toLocaleDateString()}</p>
                                 </div>
                             </div>
@@ -230,7 +230,7 @@ export const reviewsListHtml = `
                         </p>
                         <div class="flex justify-between items-center pt-4 border-t border-gray-100">
                             <button onclick="markHelpful(\${review.id})" class="text-gray-500 hover:text-green-600 text-sm flex items-center transition">
-                                <i class="far fa-thumbs-up mr-1"></i> 도움이 됐어요 (\${review.helpful_count || 0})
+                                <i class="far fa-thumbs-up mr-1"></i> 도움이 됐어요 (\${review.likes || 0})
                             </button>
                         </div>
                     </div>
@@ -305,7 +305,13 @@ export const reviewsListHtml = `
             
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch('/api/reviews', {
+                data.category = 'review';
+                // status는 리뷰의 경우 기본적으로 draft 또는 hidden으로 관리자 승인이 필요할 수 있으나,
+                // API에서 처리하도록 둠. 여기서는 보낼 때 status를 명시하지 않으면 API 기본값인 'published'가 됨.
+                // 하지만 리뷰는 '관리자 승인 후 게시'가 요구사항이므로 'hidden'으로 보내는 것이 안전할 수 있음.
+                data.status = 'hidden'; 
+
+                const response = await fetch('/api/posts', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -332,7 +338,7 @@ export const reviewsListHtml = `
 
         async function markHelpful(id) {
             try {
-                await fetch(\`/api/reviews/\${id}/helpful\`, { method: 'POST' });
+                await fetch(\`/api/posts/\${id}/like\`, { method: 'POST' });
                 loadReviews(); // 카운트 갱신을 위해 목록 다시 로드
             } catch (error) {
                 console.error('Error:', error);

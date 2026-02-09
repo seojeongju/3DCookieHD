@@ -799,7 +799,8 @@ export const studentDashboardHtml = () => `
                 if (enrollData.success) myEnrollments = enrollData.data;
 
                 // 2. 포트폴리오 데이터 로드
-                const res = await fetch('/api/portfolios/my', {
+                const user = JSON.parse(localStorage.getItem('user'));
+                const res = await fetch(\`/api/posts?category=portfolio&author_id=\${user.id}\`, {
                     headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
                 });
                 const result = await res.json();
@@ -812,14 +813,15 @@ export const studentDashboardHtml = () => `
                     </div>
                 \`;
 
-                if (result.success && result.data.length > 0) {
+                if (result.success && result.results && result.results.length > 0) {
                     html += '<div class="grid grid-cols-1 sm:grid-cols-2 gap-6">';
-                    result.data.forEach(p => {
+                    result.results.forEach(p => {
+                        const thumbnail = (Array.isArray(p.images) && p.images.length > 0) ? p.images[0] : (typeof p.images === 'string' && p.images.startsWith('[') ? JSON.parse(p.images)[0] : null);
                         html += \`
                             <div class="bento-card bg-white rounded-[2rem] border border-slate-200/60 shadow-sm overflow-hidden group hover:border-sky-200 transition">
                                 <div class="relative h-40 overflow-hidden">
-                                    <img src="\${p.thumbnail_url || 'https://images.unsplash.com/photo-1587586062323-836091e6006e?auto=format&fit=crop&q=80&w=800'}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
-                                    <div class="absolute top-3 right-3 px-2 py-1 bg-white/95 rounded-xl text-[10px] font-black text-slate-600 uppercase tracking-wider shadow-sm">\${p.category}</div>
+                                    <img src="\${thumbnail || 'https://images.unsplash.com/photo-1587586062323-836091e6006e?auto=format&fit=crop&q=80&w=800'}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                                    <div class="absolute top-3 right-3 px-2 py-1 bg-white/95 rounded-xl text-[10px] font-black text-slate-600 uppercase tracking-wider shadow-sm">\${p.sub_category || '기타'}</div>
                                 </div>
                                 <div class="p-6">
                                     <h4 class="font-black text-slate-800 mb-1 line-clamp-1 tracking-tight">\${p.title}</h4>
@@ -867,10 +869,18 @@ export const studentDashboardHtml = () => `
             };
 
             try {
-                const res = await fetch('/api/portfolios', {
+                const res = await fetch('/api/posts', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
-                    body: JSON.stringify(data)
+                    body: JSON.stringify({
+                        title: data.title,
+                        content: data.description,
+                        category: 'portfolio',
+                        sub_category: data.category,
+                        images: data.thumbnail_url ? [data.thumbnail_url] : [],
+                        content_url: data.content_url,
+                        course_id: data.course_id
+                    })
                 });
                 const result = await res.json();
                 if (result.success) {
@@ -889,7 +899,7 @@ export const studentDashboardHtml = () => `
         async function deletePortfolio(id) {
             if (!confirm('정말 삭제하시겠습니까?')) return;
             try {
-                const res = await fetch(\`/api/portfolios/\${id}\`, {
+                const res = await fetch(\`/api/posts/\${id}\`, {
                     method: 'DELETE',
                     headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
                 });

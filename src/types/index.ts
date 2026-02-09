@@ -126,7 +126,7 @@ export interface Review {
 }
 
 // Post 관련 타입
-export type PostCategory = 'notice' | 'faq' | 'portfolio' | 'qna';
+export type PostCategory = 'notice' | 'faq' | 'portfolio' | 'prototype' | 'qna' | 'review';
 export type PostStatus = 'draft' | 'published' | 'hidden';
 
 export interface Post {
@@ -136,13 +136,20 @@ export interface Post {
   content?: string;
   author_id?: number;
   author_name?: string;
+  sub_category?: string; // 포트폴리오용: 세부 카테고리 (3d_modeling, design 등)
+  course_id?: number; // 포트폴리오/리뷰용: 연관 과정 ID
+  content_url?: string; // 포트폴리오용: 외부 작품 링크
+  teacher_feedback?: string; // 포트폴리오용: 강사 피드백
   images?: string; // JSON
   views: number;
   likes: number;
-  pinned: boolean;
+  pinned: boolean; // 포트폴리오용: 추천 여부 (is_featured)
   status: PostStatus;
   created_at: string;
   updated_at: string;
+  // Review specific
+  enrollment_id?: number;
+  rating?: number;
 }
 
 // Comment 관련 타입

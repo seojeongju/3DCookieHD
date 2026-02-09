@@ -409,7 +409,7 @@ courses.delete('/:id', authMiddleware, requireAdmin, async (c) => {
     await execute(db, 'DELETE FROM employment_status WHERE course_id = ?', [id]);
 
     // 4) 포트폴리오는 course_id만 NULL 처리 (레코드 유지)
-    await execute(db, 'UPDATE student_portfolios SET course_id = NULL WHERE course_id = ?', [id]);
+    await execute(db, "UPDATE posts SET course_id = NULL WHERE course_id = ? AND category = 'portfolio'", [id]);
 
     // 5) 설문은 ON DELETE SET NULL이 있으면 DB가 처리. 없으면 안전을 위해 NULL 처리
     try {

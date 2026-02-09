@@ -138,9 +138,42 @@ export const adminPortfolioGalleryHtml = (sidebar: string) => `
                                 <div id="multiImageThumbs" class="hidden mt-3 flex flex-wrap gap-2 justify-center"></div>
                             </div>
                         </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-gray-700 font-medium mb-2">과정 선택 (선택)</label>
+                                <select name="course_id" id="postCourseId" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500">
+                                    <option value="">과정 선택 없음</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 font-medium mb-2">학생 선택 (선택)</label>
+                                <select name="author_id" id="postAuthorId" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500">
+                                    <option value="">게시자 본인</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                             <div>
+                                <label class="block text-gray-700 font-medium mb-2">분류</label>
+                                <select name="sub_category" id="postSubCategory" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500">
+                                    <option value="other">기타</option>
+                                    <option value="3d_modeling">3D 모델링</option>
+                                    <option value="design">디자인</option>
+                                    <option value="coding">개발/코딩</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 font-medium mb-2">외부 링크 (URL)</label>
+                                <input type="url" name="content_url" id="postContentUrl" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500" placeholder="https://...">
+                            </div>
+                        </div>
                         <div>
                             <label class="block text-gray-700 font-medium mb-2">내용 (이미지 첨부 가능)</label>
                             <textarea name="content" id="postContent" rows="15" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 font-medium mb-2 text-purple-600">강사 피드백 (선택)</label>
+                            <textarea name="teacher_feedback" id="postTeacherFeedback" rows="3" class="w-full px-4 py-2 border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500" placeholder="수강생에게 전달할 피드백..."></textarea>
                         </div>
                     </div>
                     <div class="mt-6 flex justify-end space-x-3">
@@ -163,9 +196,40 @@ export const adminPortfolioGalleryHtml = (sidebar: string) => `
         }
 
         document.addEventListener('DOMContentLoaded', () => {
+            loadInitialData();
             loadPosts(1);
             setupMultiImageUpload();
         });
+
+        async function loadInitialData() {
+            try {
+                const token = localStorage.getItem('token');
+                // 과정 목록 로드
+                const cRes = await fetch('/api/courses?limit=200', { headers: { 'Authorization': 'Bearer ' + token } });
+                const cData = await cRes.json();
+                if (cData.success) {
+                    const sel = document.getElementById('postCourseId');
+                    cData.data.forEach(c => {
+                        const opt = document.createElement('option');
+                        opt.value = c.id;
+                        opt.textContent = c.title;
+                        sel.appendChild(opt);
+                    });
+                }
+                // 학생(회원) 목록 로드
+                const uRes = await fetch('/api/users?limit=500', { headers: { 'Authorization': 'Bearer ' + token } });
+                const uData = await uRes.json();
+                if (uData.success) {
+                    const sel = document.getElementById('postAuthorId');
+                    uData.data.forEach(u => {
+                        const opt = document.createElement('option');
+                        opt.value = u.id;
+                        opt.textContent = u.name + ' (' + u.email + ')';
+                        sel.appendChild(opt);
+                    });
+                }
+            } catch (err) { console.error(err); }
+        }
 
         let multiUploadedUrls = [];
         function openModal(post) {
@@ -181,14 +245,24 @@ export const adminPortfolioGalleryHtml = (sidebar: string) => `
                 document.getElementById('postId').value = post.id;
                 document.getElementById('postTitle').value = post.title || '';
                 document.getElementById('postStatus').value = post.status || 'published';
-                document.getElementById('postPinned').checked = post.pinned === 1;
-                setTinyContent(post.content || '');
+                document.getElementById('postPinned').checked = post.pinned === 1 || post.is_featured;
+                document.getElementById('postCourseId').value = post.course_id || '';
+                document.getElementById('postAuthorId').value = post.author_id || post.student_id || '';
+                document.getElementById('postSubCategory').value = post.sub_category || 'other';
+                document.getElementById('postContentUrl').value = post.content_url || '';
+                document.getElementById('postTeacherFeedback').value = post.teacher_feedback || '';
+                setTinyContent(post.content || post.description || '');
             } else {
                 document.getElementById('modalTitle').textContent = '포트폴리오 등록';
                 document.getElementById('createPostForm').reset();
                 document.getElementById('postId').value = '';
                 document.getElementById('postCategory').value = 'portfolio';
                 document.getElementById('postStatus').value = 'published';
+                document.getElementById('postCourseId').value = '';
+                document.getElementById('postAuthorId').value = '';
+                document.getElementById('postSubCategory').value = 'other';
+                document.getElementById('postContentUrl').value = '';
+                document.getElementById('postTeacherFeedback').value = '';
                 setTinyContent('');
             }
             document.getElementById('createPostModal').classList.remove('hidden');
@@ -316,7 +390,7 @@ export const adminPortfolioGalleryHtml = (sidebar: string) => `
             document.getElementById('searchResultText').textContent = '';
             document.getElementById('paginationRange').textContent = '';
             const search = document.getElementById('searchInput').value;
-            let url = '/api/posts?page=' + page + '&limit=' + itemsPerPage + '&category=portfolio';
+            let url = '/api/portfolios?page=' + page + '&limit=' + itemsPerPage;
             if (search) url += '&search=' + encodeURIComponent(search);
             try {
                 const res = await fetch(url);
@@ -357,9 +431,9 @@ export const adminPortfolioGalleryHtml = (sidebar: string) => `
                         <td class="px-6 py-4">
                             <div class="text-sm font-medium text-gray-900">\${(post.title || '').substring(0, 50)}\${(post.title || '').length > 50 ? '...' : ''}</div>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">\${post.author_name || '-'}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">\${post.student_name || post.author_name || '-'}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">\${post.views || 0}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">\${new Date(post.created_at).toLocaleDateString('ko-KR')}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">\${post.created_at ? new Date(post.created_at).toLocaleDateString('ko-KR') : '-'}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm">
                             <button type="button" onclick="editPostByIndex(\${idx})" class="text-amber-600 hover:text-amber-800 mr-3"><i class="fas fa-edit"></i> 수정</button>
                             <button type="button" onclick="deletePost(\${post.id})" class="text-red-600 hover:text-red-800"><i class="fas fa-trash"></i> 삭제</button>
@@ -427,12 +501,26 @@ export const adminPortfolioGalleryHtml = (sidebar: string) => `
             data.images = [...new Set([].concat(multiUploadedUrls, data.images))];
             try {
                 const token = localStorage.getItem('token');
-                const url = data.id ? '/api/posts/' + data.id : '/api/posts';
+                const url = data.id ? '/api/portfolios/' + data.id : '/api/portfolios';
                 const method = data.id ? 'PUT' : 'POST';
+                
+                // 추가 필드 구성
+                const payload = {
+                    ...data,
+                    course_id: document.getElementById('postCourseId').value || null,
+                    student_id: document.getElementById('postAuthorId').value || null,
+                    category: document.getElementById('postSubCategory').value || 'other',
+                    content_url: document.getElementById('postContentUrl').value || null,
+                    teacher_feedback: document.getElementById('postTeacherFeedback').value || null,
+                    description: data.content,
+                    is_featured: data.pinned,
+                    thumbnail_url: data.images[0] || null
+                };
+
                 const res = await fetch(url, {
                     method: method,
                     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-                    body: JSON.stringify(data)
+                    body: JSON.stringify(payload)
                 });
                 if (res.status === 401) {
                     alert('로그인 세션이 만료되었습니다.');
@@ -457,7 +545,7 @@ export const adminPortfolioGalleryHtml = (sidebar: string) => `
             if (!confirm('이 포트폴리오 게시글을 삭제하시겠습니까?')) return;
             try {
                 const token = localStorage.getItem('token');
-                const res = await fetch('/api/posts/' + id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
+                const res = await fetch('/api/portfolios/' + id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
                 if (res.status === 401) {
                     alert('로그인 세션이 만료되었습니다.');
                     window.location.href = '/login';

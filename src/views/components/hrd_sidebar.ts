@@ -170,10 +170,10 @@ export const hrdSidebar = (activeMenu: string) => `
             <i class="fas fa-user-group w-6 text-lg ${activeMenu === 'users' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
             <span class="font-medium text-[14px]">회원 관리</span>
         </a>
-        <a href="/admin/posts" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'posts' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
-             ${activeMenu === 'posts' ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
-            <i class="fas fa-newspaper w-6 text-lg ${activeMenu === 'posts' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
-            <span class="font-medium text-[14px]">게시판 관리</span>
+        <a href="/admin/posts" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${['posts', 'reviews', 'prototype-gallery', 'education-gallery', 'portfolio-gallery'].includes(activeMenu) ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative overflow-hidden">
+            ${['posts', 'reviews', 'prototype-gallery', 'education-gallery', 'portfolio-gallery'].includes(activeMenu) ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
+            <i class="fas fa-newspaper w-6 text-lg ${['posts', 'reviews', 'prototype-gallery', 'education-gallery', 'portfolio-gallery'].includes(activeMenu) ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
+            <span class="font-medium text-[14px]">통합 게시판 관리</span>
         </a>
         <a href="/admin/partner-universities" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'partner-universities' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
              ${activeMenu === 'partner-universities' ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
@@ -190,22 +190,22 @@ export const hrdSidebar = (activeMenu: string) => `
             <i class="fas fa-address-book w-6 text-lg ${activeMenu === 'jobseekers' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
             <span class="font-medium text-[14px]">인재풀 관리</span>
         </a>
-        <a href="/admin/reviews" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'reviews' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
+        <a href="/admin/posts?category=review" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'reviews' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
              ${activeMenu === 'reviews' ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
             <i class="fas fa-star w-6 text-lg ${activeMenu === 'reviews' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
             <span class="font-medium text-[14px]">수강후기 관리</span>
         </a>
-        <a href="/admin/prototype-gallery" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'prototype-gallery' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
+        <a href="/admin/posts?category=prototype" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'prototype-gallery' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
              ${activeMenu === 'prototype-gallery' ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
             <i class="fas fa-cube w-6 text-lg ${activeMenu === 'prototype-gallery' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
             <span class="font-medium text-[14px]">시제품 제작사진</span>
         </a>
-        <a href="/admin/education-gallery" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'education-gallery' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
+        <a href="/admin/posts?category=education" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'education-gallery' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
              ${activeMenu === 'education-gallery' ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
             <i class="fas fa-images w-6 text-lg ${activeMenu === 'education-gallery' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
             <span class="font-medium text-[14px]">교육사진 갤러리</span>
         </a>
-        <a href="/admin/portfolio-gallery" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'portfolio-gallery' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
+        <a href="/admin/posts?category=portfolio" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'portfolio-gallery' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
              ${activeMenu === 'portfolio-gallery' ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
             <i class="fas fa-briefcase w-6 text-lg ${activeMenu === 'portfolio-gallery' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
             <span class="font-medium text-[14px]">포트폴리오 갤러리</span>

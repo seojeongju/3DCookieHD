@@ -65,4 +65,38 @@ setup.get('/hrd-counseling-init', async (c) => {
     }
 });
 
+setup.get('/db-update', async (c) => {
+    try {
+        const { DB } = c.env;
+
+        // 1. posts 테이블 컬럼 추가
+        const columnsToAdd = [
+            { name: 'sub_category', type: 'TEXT' },
+            { name: 'course_id', type: 'INTEGER' },
+            { name: 'content_url', type: 'TEXT' },
+            { name: 'teacher_feedback', type: 'TEXT' },
+            { name: 'enrollment_id', type: 'INTEGER' },
+            { name: 'rating', type: 'INTEGER' }
+        ];
+
+        for (const col of columnsToAdd) {
+            try {
+                await execute(DB, `ALTER TABLE posts ADD COLUMN ${col.name} ${col.type}`);
+                console.log(`Added column ${col.name} to posts table`);
+            } catch (e: any) {
+                // 이미 존재할 경우 에러 무시
+                if (e.message.includes('duplicate column name')) {
+                    console.log(`Column ${col.name} already exists in posts table`);
+                } else {
+                    console.error(`Error adding column ${col.name}:`, e);
+                }
+            }
+        }
+
+        return c.json({ success: true, message: 'Database schema updated' });
+    } catch (e: any) {
+        return c.json({ success: false, error: e.message });
+    }
+});
+
 export { setup as setupApi };

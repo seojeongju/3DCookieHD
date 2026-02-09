@@ -27,7 +27,7 @@ export const portfoliosListHtml = `
 </head>
 <body class="bg-gray-50 flex flex-col min-h-screen">
     <!-- 네비게이션 -->
-    \${navigationHtml('portfolios')}
+    ${navigationHtml('portfolios')}
 
     <!-- 히어로 섹션 -->
     <div class="bg-gradient-to-br from-gray-900 to-primary-900 text-white py-20 relative overflow-hidden">
@@ -123,7 +123,7 @@ export const portfoliosListHtml = `
     </div>
 
     <!-- 푸터 -->
-    \${footerHtml()}
+    ${footerHtml()}
 
     <script>
         let currentPortfolios = [];
@@ -139,20 +139,15 @@ export const portfoliosListHtml = `
             const grid = document.getElementById('portfolioGrid');
             
             try {
-                const [res1, res2] = await Promise.all([
-                    fetch('/api/portfolios' + (isFeatured ? '?isFeatured=true' : '')),
-                    fetch('/api/posts?category=portfolio&status=published&limit=100')
-                ]);
+                const res = await fetch('/api/portfolios?limit=200' + (isFeatured ? '&isFeatured=true' : ''));
+                const result = await res.json();
                 
-                const result1 = await res1.json();
-                const result2 = await res2.json();
+                if (!result.success) {
+                  throw new Error(result.error);
+                }
                 
-                const list1 = result1.success ? result1.data : [];
-                const list2 = result2.success ? result2.data : [];
-                
-                const normalized1 = list1.map(p => ({
-                    id: 'sp_' + p.id,
-                    source: 'student_portfolio',
+                currentPortfolios = result.data.map(p => ({
+                    id: p.id,
                     title: p.title,
                     thumbnail_url: (p.thumbnail_url || '').trim(),
                     student_name: p.student_name || '수강생',
@@ -161,36 +156,13 @@ export const portfoliosListHtml = `
                     course_title: p.course_title,
                     content_url: p.content_url,
                     is_featured: !!p.is_featured,
-                    created_at: p.created_at
+                    created_at: p.created_at,
+                    source: 'post'
                 }));
                 
-                const normalized2 = list2.map(p => {
-                    let img = '';
-                    if (p.images && p.images.length) img = p.images[0];
-                    else if (p.content) {
-                        const m = p.content.match(/<img[^>]+src=["']([^"']+)["']/i);
-                        if (m && m[1]) img = m[1];
-                    }
-                    return {
-                        id: 'post_' + p.id,
-                        source: 'post',
-                        title: p.title,
-                        thumbnail_url: img,
-                        student_name: p.author_name || '관리자',
-                        description: p.content || '',
-                        category: p.category || 'portfolio',
-                        course_title: '관리자 등록',
-                        content_url: '',
-                        is_featured: !!p.pinned,
-                        created_at: p.created_at
-                    };
-                });
-                
-                currentPortfolios = [...normalized1, ...normalized2];
                 if (activeCategory) {
                     currentPortfolios = currentPortfolios.filter(p => p.category === activeCategory);
                 }
-                currentPortfolios.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
                 
                 renderPortfolios();
             } catch (e) { 
@@ -245,11 +217,7 @@ export const portfoliosListHtml = `
             document.getElementById('modalTitle').textContent = p.title;
             
             const descEl = document.getElementById('modalDescription');
-            if (p.source === 'post') {
-                descEl.innerHTML = p.description;
-            } else {
-                descEl.textContent = p.description || '작품 설명이 아직 등록되지 않았습니다.';
-            }
+            descEl.innerHTML = p.description;
             
             document.getElementById('modalStudentName').textContent = p.student_name;
             document.getElementById('studentInitial').textContent = (p.student_name || 'U')[0];
@@ -279,11 +247,12 @@ export const portfoliosListHtml = `
                 const user = JSON.parse(userStr);
                 const authMenu = document.getElementById('authMenu');
                 if (authMenu) {
-                    authMenu.innerHTML = '<a href="/' + (user.role === 'admin' ? 'admin' : user.role === 'teacher' ? 'teacher' : 'student') + '" class="px-4 py-2 bg-primary-50 text-primary-600 font-bold text-sm rounded-xl hover:bg-primary-100 transition">나의 메뉴</a>';
+                    const dashboardPath = user.role === 'admin' ? 'admin' : (user.role === 'teacher' ? 'teacher' : 'student');
+                    authMenu.innerHTML = '<a href="/' + dashboardPath + '" class="px-4 py-2 bg-primary-50 text-primary-600 font-bold text-sm rounded-xl hover:bg-primary-100 transition">나의 메뉴</a>';
                 }
             }
         }
-    </script>
-</body>
-</html>
-\`;
+</script>
+    </body>
+    </html>
+        `;
