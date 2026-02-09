@@ -131,7 +131,7 @@ export const homeHtml = `
             <div class="w-full max-w-[1800px] mx-auto px-4 lg:px-12 h-full flex items-center justify-end">
                 <div class="w-[360px] pointer-events-auto flex flex-col gap-3">
                     <!-- Card 1 -->
-                    <a href="/cbt" class="group flex items-center p-4 bg-black/40 backdrop-blur-md rounded-xl shadow-lg hover:bg-blue-600 hover:scale-105 transition-all duration-300 border border-white/10 hover:border-transparent">
+                    <a href="https://wow-cbt-webmain.pages.dev/" target="_blank" class="group flex items-center p-4 bg-black/40 backdrop-blur-md rounded-xl shadow-lg hover:bg-blue-600 hover:scale-105 transition-all duration-300 border border-white/10 hover:border-transparent">
                         <div class="w-12 h-12 rounded-lg bg-white/10 text-blue-300 flex items-center justify-center text-xl mr-4 group-hover:bg-white group-hover:text-blue-600 transition-colors">
                             <i class="fas fa-pen-nib"></i>
                         </div>
@@ -188,7 +188,7 @@ export const homeHtml = `
     <!-- 모바일 버전 퀵 메뉴 (슬라이더 하단 노출) -->
     <section class="block lg:hidden bg-gray-50 py-6 px-4 -mt-6 relative z-30">
         <div class="grid grid-cols-2 gap-3">
-            <a href="/cbt" class="flex flex-col items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <a href="https://wow-cbt-webmain.pages.dev/" target="_blank" class="flex flex-col items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
                 <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mb-2"><i class="fas fa-pen-nib"></i></div>
                 <span class="text-sm font-bold text-gray-800 text-center">문제은행(CBT)</span>
             </a>
