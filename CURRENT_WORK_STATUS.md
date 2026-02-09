@@ -3,15 +3,16 @@
 **최종 갱신**: 2026-02-06  
 **브랜치**: `education-platform`  
 **최근 커밋**: add 수강생 등록 button per session card, auto-select from URL (b5e42bc)  
-**백업 태그**: `backup-20260206-session`
+**백업 태그**: `backup-20260206-session-end`
 
 ---
 
 ## 🎯 최근 완료된 작업 (2026-02-06 세션)
 
-### 세션 마무리 백업 ✅
-- **배포**: `npm run deploy:prod` 완료 → https://5feae95e.3dcookiehd.pages.dev
-- **태그**: `backup-20260206-end` 생성 후 원격 푸시 완료
+### 세션 마무리 ✅
+- **각 회차 카드에 수강생 등록 버튼**: 교육과정 관리 메인 개설 리스트에서 회차별로 수강생 등록 링크 → 이동 시 해당 회차 자동 선택
+- **배포**: `npm run deploy:prod` 완료 (109446bd.3dcookiehd.pages.dev)
+- **태그**: `backup-20260206-session-end` 생성 후 원격 푸시
 - **다음 세션**: `.agent/sessions/next_session_context.md` 참고
 
 ### 훈련생 여정 페이지 ID 수정 ✅ (이전 세션)
