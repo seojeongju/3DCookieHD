@@ -6,8 +6,8 @@ const RECENT_LIMIT = 8;
  * 교육과정관리 메인 대시보드: 승인 과정 + 회차별 개설 요약 섹션
  */
 export function adminCoursesMainHtml(): string {
-  const sidebar = hrdSidebar('courses');
-  return `
+    const sidebar = hrdSidebar('courses');
+    return `
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -280,10 +280,16 @@ export function adminCoursesMainHtml(): string {
                             var homepageBtn = isExposed
                                 ? '<button type="button" onclick="window.dashboardSetHomepageExposed(' + item.id + ', 0)" class="px-2 py-1 text-xs font-bold rounded bg-slate-100 text-slate-600 hover:bg-red-100 hover:text-red-600 transition" title="홈페이지에서 삭제">삭제</button>'
                                 : '<button type="button" onclick="window.dashboardSetHomepageExposed(' + item.id + ', 1)" class="px-2 py-1 text-xs font-bold rounded bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition" title="홈페이지에 등록">등록</button>';
+                            var parts = [];
+                            if (item.course_name) parts.push(esc(item.course_name));
+                            if (item.session_number != null) parts.push(item.session_number + '차');
+                            if (item.session_name) parts.push(esc(item.session_name));
+                            var fullName = parts.join(' ');
+
                             return '<tr class="hover:bg-slate-50">' +
                                 '<td class="p-3 text-center text-slate-500">' + (i + 1) + '</td>' +
-                                '<td class="p-3"><span class="font-medium text-slate-800">' + esc(item.course_name) + '</span></td>' +
-                                '<td class="p-3 text-center font-bold text-slate-600 text-xs">' + (item.session_number != null ? item.session_number + '회차' : esc(item.session_name || '-')) + '</td>' +
+                                '<td class="p-3"><span class="font-medium text-slate-800">' + (fullName || '-') + '</span></td>' +
+                                '<td class="p-3 text-center font-bold text-slate-600 text-xs">' + (item.session_number != null ? item.session_number + '회차' : '-') + '</td>' +
                                 '<td class="p-3 text-center"><span class="px-2 py-0.5 rounded text-[11px] font-bold ' + statusCls + '">' + esc(statusText) + '</span></td>' +
                                 '<td class="p-3 text-center text-slate-600 text-xs">' + esc(trainingRange) + '</td>' +
                                 '<td class="p-3 text-center text-slate-500 text-xs">' + esc(regDate) + '</td>' +
