@@ -128,49 +128,49 @@ export const homeHtml = `
 
         <!-- PC 버전 우측 고정 퀵 메뉴 (Overlay) -->
         <div class="hidden lg:block absolute inset-0 z-20 pointer-events-none">
-            <div class="max-w-7xl mx-auto px-4 h-full flex items-center justify-end">
-                <div class="w-[380px] pointer-events-auto flex flex-col gap-3">
+            <div class="w-full max-w-[1800px] mx-auto px-4 lg:px-12 h-full flex items-center justify-end">
+                <div class="w-[360px] pointer-events-auto flex flex-col gap-3">
                     <!-- Card 1 -->
-                    <a href="/cbt" class="group flex items-center p-4 bg-white/90 backdrop-blur-md rounded-xl shadow-lg hover:bg-blue-600 hover:scale-105 transition-all duration-300 border border-white/50">
-                        <div class="w-12 h-12 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center text-xl mr-4 group-hover:bg-white group-hover:text-blue-600 transition-colors">
+                    <a href="/cbt" class="group flex items-center p-4 bg-black/40 backdrop-blur-md rounded-xl shadow-lg hover:bg-blue-600 hover:scale-105 transition-all duration-300 border border-white/10 hover:border-transparent">
+                        <div class="w-12 h-12 rounded-lg bg-white/10 text-blue-300 flex items-center justify-center text-xl mr-4 group-hover:bg-white group-hover:text-blue-600 transition-colors">
                             <i class="fas fa-pen-nib"></i>
                         </div>
                         <div class="flex-1">
-                            <h3 class="font-bold text-gray-800 text-lg group-hover:text-white">문제은행</h3>
-                            <p class="text-xs text-gray-500 group-hover:text-blue-100">기출문제 완벽 분석</p>
+                            <h3 class="font-bold text-white text-lg">문제은행</h3>
+                            <p class="text-xs text-gray-300 group-hover:text-blue-100">기출문제 완벽 분석</p>
                         </div>
                         <i class="fas fa-chevron-right text-gray-400 group-hover:text-white/80"></i>
                     </a>
                     <!-- Card 2 -->
-                    <a href="/step" class="group flex items-center p-4 bg-white/90 backdrop-blur-md rounded-xl shadow-lg hover:bg-teal-600 hover:scale-105 transition-all duration-300 border border-white/50">
-                        <div class="w-12 h-12 rounded-lg bg-teal-100 text-teal-600 flex items-center justify-center text-xl mr-4 group-hover:bg-white group-hover:text-teal-600 transition-colors">
+                    <a href="/step" class="group flex items-center p-4 bg-black/40 backdrop-blur-md rounded-xl shadow-lg hover:bg-teal-600 hover:scale-105 transition-all duration-300 border border-white/10 hover:border-transparent">
+                        <div class="w-12 h-12 rounded-lg bg-white/10 text-teal-300 flex items-center justify-center text-xl mr-4 group-hover:bg-white group-hover:text-teal-600 transition-colors">
                             <i class="fas fa-laptop-code"></i>
                         </div>
                         <div class="flex-1">
-                            <h3 class="font-bold text-gray-800 text-lg group-hover:text-white">스마트직업훈련 (STEP)</h3>
-                            <p class="text-xs text-gray-500 group-hover:text-teal-100">온라인 이러닝 시스템</p>
+                            <h3 class="font-bold text-white text-lg">스마트직업훈련 (STEP)</h3>
+                            <p class="text-xs text-gray-300 group-hover:text-teal-100">온라인 이러닝 시스템</p>
                         </div>
                         <i class="fas fa-chevron-right text-gray-400 group-hover:text-white/80"></i>
                     </a>
                     <!-- Card 3 -->
-                    <a href="/auto-quote" class="group flex items-center p-4 bg-white/90 backdrop-blur-md rounded-xl shadow-lg hover:bg-violet-600 hover:scale-105 transition-all duration-300 border border-white/50">
-                        <div class="w-12 h-12 rounded-lg bg-violet-100 text-violet-600 flex items-center justify-center text-xl mr-4 group-hover:bg-white group-hover:text-violet-600 transition-colors">
+                    <a href="/auto-quote" class="group flex items-center p-4 bg-black/40 backdrop-blur-md rounded-xl shadow-lg hover:bg-violet-600 hover:scale-105 transition-all duration-300 border border-white/10 hover:border-transparent">
+                        <div class="w-12 h-12 rounded-lg bg-white/10 text-violet-300 flex items-center justify-center text-xl mr-4 group-hover:bg-white group-hover:text-violet-600 transition-colors">
                             <i class="fas fa-robot"></i>
                         </div>
                         <div class="flex-1">
-                            <h3 class="font-bold text-gray-800 text-lg group-hover:text-white">AI 자동견적</h3>
-                            <p class="text-xs text-gray-500 group-hover:text-violet-100">1초 스마트 견적</p>
+                            <h3 class="font-bold text-white text-lg">AI 자동견적</h3>
+                            <p class="text-xs text-gray-300 group-hover:text-violet-100">1초 스마트 견적</p>
                         </div>
                         <i class="fas fa-chevron-right text-gray-400 group-hover:text-white/80"></i>
                     </a>
                     <!-- Card 4 -->
-                    <a href="/shop" class="group flex items-center p-4 bg-white/90 backdrop-blur-md rounded-xl shadow-lg hover:bg-orange-600 hover:scale-105 transition-all duration-300 border border-white/50">
-                        <div class="w-12 h-12 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center text-xl mr-4 group-hover:bg-white group-hover:text-orange-600 transition-colors">
+                    <a href="/shop" class="group flex items-center p-4 bg-black/40 backdrop-blur-md rounded-xl shadow-lg hover:bg-orange-600 hover:scale-105 transition-all duration-300 border border-white/10 hover:border-transparent">
+                        <div class="w-12 h-12 rounded-lg bg-white/10 text-orange-300 flex items-center justify-center text-xl mr-4 group-hover:bg-white group-hover:text-orange-600 transition-colors">
                             <i class="fas fa-shopping-cart"></i>
                         </div>
                         <div class="flex-1">
-                            <h3 class="font-bold text-gray-800 text-lg group-hover:text-white">3D프린터 마켓</h3>
-                            <p class="text-xs text-gray-500 group-hover:text-orange-100">검증된 장비 스토어</p>
+                            <h3 class="font-bold text-white text-lg">3D프린터 마켓</h3>
+                            <p class="text-xs text-gray-300 group-hover:text-orange-100">검증된 장비 스토어</p>
                         </div>
                         <i class="fas fa-chevron-right text-gray-400 group-hover:text-white/80"></i>
                     </a>
