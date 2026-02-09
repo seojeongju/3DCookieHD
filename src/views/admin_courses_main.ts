@@ -242,6 +242,7 @@ export function adminCoursesMainHtml(): string {
                                     homepageBtn +
                                     '<div class="h-4 w-[1px] bg-slate-100 mx-1"></div>' +
                                     '<a href="/admin/courses/sessions/register/' + item.id + '" class="px-3 py-1.5 bg-slate-50 text-slate-600 rounded-lg text-xs font-bold hover:bg-primary-600 hover:text-white transition">수정</a>' +
+                                    '<a href="/admin/courses/sessions/' + item.id + '/timetable" class="px-3 py-1.5 bg-slate-50 text-slate-600 rounded-lg text-xs font-bold hover:bg-emerald-600 hover:text-white transition"><i class="far fa-calendar-alt mr-1"></i> 시간표</a>' +
                                     '<a href="/admin/courses/sessions/' + item.id + '/syllabus" class="px-3 py-1.5 bg-slate-50 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-900 hover:text-white transition">상세</a>' +
                                     '<button onclick="event.stopPropagation(); window.dashboardDeleteSession(' + item.id + ')" class="w-8 h-8 flex items-center justify-center text-slate-300 hover:text-red-500 transition"><i class="fas fa-trash-alt text-xs"></i></button>' +
                                 '</div>' +

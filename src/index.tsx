@@ -40,6 +40,7 @@ import { jobsListHtml } from './views/jobs';
 import { jobseekersListHtml } from './views/jobseekers';
 import { adminCoursesListHtml } from './views/admin_courses';
 import { adminCoursesMainHtml } from './views/admin_courses_main';
+import { adminSessionTimetableHtml } from './views/admin_session_timetable';
 import {
     adminCoursesCategoriesHtml,
     adminCoursesApprovedHtml,
@@ -272,6 +273,7 @@ app.get('/admin/courses/approved/register/:id', (c) => c.html(adminCoursesApprov
 app.get('/admin/courses/sessions', (c) => c.html(adminCoursesSessionsHtml()));
 app.get('/admin/courses/sessions/register', (c) => c.html(adminCoursesSessionsRegisterHtml()));
 app.get('/admin/courses/sessions/register/:id', (c) => c.html(adminCoursesSessionsRegisterHtml(c.req.param('id'))));
+app.get('/admin/courses/sessions/:id/timetable', (c) => c.html(adminSessionTimetableHtml(parseInt(c.req.param('id'), 10))));
 app.get('/admin/courses/sessions/:sessionId/syllabus', (c) => c.html(adminSyllabusHtml(c.req.param('sessionId'))));
 app.get('/admin/courses/copy', (c) => c.html(adminCoursesCopyHtml()));
 app.get('/admin/partner-universities', (c) => c.html(adminPartnerUniversitiesHtml));
