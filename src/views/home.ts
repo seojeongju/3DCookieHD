@@ -330,7 +330,7 @@ export const homeHtml = `
                 </a>
             </div>
             <div class="mt-10 text-center text-gray-600">
-                <p class="font-medium">전화 문의 <a href="tel:02-3144-3137 / 054-464-3137" class="text-primary-600 font-bold hover:underline">02-332-9010</a></p>
+                <p class="font-medium">전화 문의 <a href="tel:02-3144-3137" class="text-primary-600 font-bold hover:underline">02-3144-3137</a> / <a href="tel:054-464-3137" class="text-primary-600 font-bold hover:underline">054-464-3137</a></p>
             </div>
         </div>
     </section>

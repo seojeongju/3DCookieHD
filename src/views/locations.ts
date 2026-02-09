@@ -101,11 +101,11 @@ export function locationsHtml(options?: { kakaoMapAppKey?: string }) {
                             <ul class="space-y-4 text-gray-600">
                                 <li class="flex items-start">
                                     <span class="font-bold w-20 flex-shrink-0">주소</span>
-                                    <span>서울 마포구 독막로 93 상수빌딩 8층 와우쓰리디홍대센터</span>
+                                    <span>서울특별시 마포구 독막로 93 4층 (상수동, 상수빌딩)</span>
                                 </li>
                                 <li class="flex items-start">
                                     <span class="font-bold w-20 flex-shrink-0">전화</span>
-                                    <span>02-332-9010</span>
+                                    <span>02-3144-3137</span>
                                 </li>
                                 <li class="flex items-start">
                                     <span class="font-bold w-20 flex-shrink-0">팩스</span>
@@ -113,7 +113,7 @@ export function locationsHtml(options?: { kakaoMapAppKey?: string }) {
                                 </li>
                                 <li class="flex items-start">
                                     <span class="font-bold w-20 flex-shrink-0">이메일</span>
-                                    <span>wow3d@wow3d.co.kr</span>
+                                    <span>wow3d16@naver.com</span>
                                 </li>
                             </ul>
                         </div>
@@ -164,15 +164,15 @@ export function locationsHtml(options?: { kakaoMapAppKey?: string }) {
                             <ul class="space-y-4 text-gray-600">
                                 <li class="flex items-start">
                                     <span class="font-bold w-20 flex-shrink-0">주소</span>
-                                    <span>경북 구미시 산호대로 253 구미첨단의료기술타워 606호</span>
+                                    <span>경상북도 구미시 산호대로 253 606호 (공단동, 구미첨단의료기술타워)</span>
                                 </li>
                                 <li class="flex items-start">
                                     <span class="font-bold w-20 flex-shrink-0">전화</span>
-                                    <span>02-6014-9010</span>
+                                    <span>054-464-3137</span>
                                 </li>
                                 <li class="flex items-start">
                                     <span class="font-bold w-20 flex-shrink-0">이메일</span>
-                                    <span>wow3d@wow3d.co.kr</span>
+                                    <span>wow3d16@naver.com</span>
                                 </li>
                             </ul>
                         </div>
@@ -213,7 +213,7 @@ export function locationsHtml(options?: { kakaoMapAppKey?: string }) {
                             <ul class="space-y-4 text-gray-600">
                                 <li class="flex items-start">
                                     <span class="font-bold w-20 flex-shrink-0">주소</span>
-                                    <span>전북특별자치도 전주시 덕진구 반룡로 109 벤처지원동 207호</span>
+                                    <span>전북 전주시 덕진구 반룡로 109 207호 (팔복동, 테크노빌 A동)</span>
                                 </li>
                                 <li class="flex items-start">
                                     <span class="font-bold w-20 flex-shrink-0">전화</span>
@@ -221,7 +221,7 @@ export function locationsHtml(options?: { kakaoMapAppKey?: string }) {
                                 </li>
                                 <li class="flex items-start">
                                     <span class="font-bold w-20 flex-shrink-0">이메일</span>
-                                    <span>wow3d@wow3d.co.kr</span>
+                                    <span>wow3d16@naver.com</span>
                                 </li>
                             </ul>
                         </div>
@@ -248,9 +248,9 @@ export function locationsHtml(options?: { kakaoMapAppKey?: string }) {
     <script>
         var locationMaps = {}; // centerId -> { map, marker }
         var CENTERS = {
-            hongdae: { lat: 37.5475, lng: 126.9240, name: '와우쓰리디홍대센터', address: '서울 마포구 독막로 93 상수빌딩 8층' },
-            gumi:     { lat: 36.1194, lng: 128.3442, name: '와우쓰리디구미센터', address: '경북 구미시 산호대로 253 구미첨단의료기술타워 606호' },
-            jeonju:   { lat: 35.8242, lng: 127.1480, name: '와우쓰리디전주센터', address: '전북특별자치도 전주시 덕진구 반룡로 109 벤처지원동 207호' }
+            hongdae: { lat: 37.5475, lng: 126.9240, name: '와우쓰리디홍대센터', address: '서울특별시 마포구 독막로 93 4층 (상수동, 상수빌딩)' },
+            gumi:     { lat: 36.1194, lng: 128.3442, name: '와우쓰리디구미센터', address: '경상북도 구미시 산호대로 253 606호 (공단동, 구미첨단의료기술타워)' },
+            jeonju:   { lat: 35.8242, lng: 127.1480, name: '와우쓰리디전주센터', address: '전북 전주시 덕진구 반룡로 109 207호 (팔복동, 테크노빌 A동)' }
         };
 
         function switchTab(center) {

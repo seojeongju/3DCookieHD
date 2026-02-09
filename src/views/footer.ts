@@ -38,15 +38,19 @@ export const footerHtml = () => `
                 <ul class="space-y-2 text-sm">
                     <li class="flex items-start">
                         <i class="fas fa-envelope mt-1 mr-2 text-primary-500"></i>
-                        <span>wow3d@wow3d.co.kr</span>
+                        <span>wow3d16@naver.com</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-envelope mt-1 mr-2 text-primary-500"></i>
+                        <span>3dcookiehd@naver.com</span>
                     </li>
                     <li class="flex items-start">
                         <i class="fas fa-phone mt-1 mr-2 text-primary-500"></i>
-                        <span>홍대: 02-332-9010</span>
+                        <span>홍대: 02-3144-3137</span>
                     </li>
                     <li class="flex items-start">
                         <i class="fas fa-phone mt-1 mr-2 text-primary-500"></i>
-                        <span>구미: 02-6014-9010</span>
+                        <span>구미: 054-464-3137</span>
                     </li>
                     <li class="flex items-start">
                         <i class="fas fa-phone mt-1 mr-2 text-primary-500"></i>
@@ -59,9 +63,9 @@ export const footerHtml = () => `
         <div class="border-t border-gray-800 pt-8 mt-8 text-xs text-gray-500 flex flex-col md:flex-row justify-between items-center">
             <div class="mb-4 md:mb-0 text-center md:text-left w-full">
                 <p class="mb-1">상호명: 와우쓰리디홍대센터 | 대표자: 김순희 | 사업자등록번호: 898-28-00570</p>
-                <p class="mb-1">홍대센터: 서울시 마포구 독막로 93 상수빌딩 8층</p>
-                <p class="mb-1">구미센터: 경북 구미시 산호대로 253 구미첨단의료기술타워 606호</p>
-                <p class="mb-1">전주센터: 전북특별자치도 전주시 덕진구 반룡로 109 벤처지원동 207호</p>
+                <p class="mb-1">홍대센터: 서울특별시 마포구 독막로 93 4층 (상수동, 상수빌딩)</p>
+                <p class="mb-1">구미센터: 경상북도 구미시 산호대로 253 606호 (공단동, 구미첨단의료기술타워)</p>
+                <p class="mb-1">전주센터: 전북 전주시 덕진구 반룡로 109 207호 (팔복동, 테크노빌 A동)</p>
                 <p class="mt-2">&copy; 2025 3D Cookie Hongdae Center. All rights reserved.</p>
             </div>
             <div class="flex space-x-6 whitespace-nowrap">
