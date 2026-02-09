@@ -992,13 +992,24 @@ app.get('/:id/timetable/resources', authMiddleware, requireAdmin, async (c) => {
     if (!session) return c.json({ success: false, error: '회차 없음' }, 404);
 
     // 2. 해당 승인과정의 교과목 리스트 (NCS 등록 정보 기반)
-    const registration = await DB.prepare('SELECT id FROM ncs_approved_registrations WHERE approved_course_id = ?').bind(session.approved_course_id).first<any>();
+    let registration = await DB.prepare('SELECT id FROM ncs_approved_registrations WHERE approved_course_id = ?').bind(session.approved_course_id).first<any>();
+
+    // Fallback: ID로 못찾으면 과정명으로 검색 (레거시 데이터 대응)
+    if (!registration) {
+      const course = await DB.prepare('SELECT name FROM approved_courses WHERE id = ?').bind(session.approved_course_id).first<any>();
+      if (course) {
+        registration = await DB.prepare('SELECT id FROM ncs_approved_registrations WHERE course_name = ? ORDER BY id DESC').bind(course.name).first<any>();
+      }
+    }
+
     let subjects: any[] = [];
     if (registration) {
       const { results } = await DB.prepare('SELECT id, name, type, classification FROM ncs_approved_curriculum WHERE registration_id = ? ORDER BY sort_order ASC')
         .bind(registration.id)
         .all();
       subjects = results || [];
+    } else {
+      console.warn(`No NCS registration found for session ${sessionId} (approved_course_id: ${session.approved_course_id})`);
     }
 
     // 3. 강사 리스트 (강사 또는 관리자 권한)
