@@ -26,8 +26,8 @@ export const portfoliosListHtml = `
     </script>
 </head>
 <body class="bg-gray-50 flex flex-col min-h-screen">
-    <!-- 네비게이션 (courses.ts와 동일한 구조) -->
-    ${navigationHtml('portfolios')}
+    <!-- 네비게이션 -->
+    \${navigationHtml('portfolios')}
 
     <!-- 히어로 섹션 -->
     <div class="bg-gradient-to-br from-gray-900 to-primary-900 text-white py-20 relative overflow-hidden">
@@ -67,7 +67,6 @@ export const portfoliosListHtml = `
     <!-- 메인 컨텐츠 -->
     <main class="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-16">
         <div id="portfolioGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10">
-            <!-- Loading -->
             <div class="col-span-full py-20 text-center">
                 <i class="fas fa-spinner fa-spin text-4xl text-primary-300 mb-4"></i>
                 <p class="text-gray-400 font-bold">포트폴리오를 불러오는 중입니다...</p>
@@ -95,7 +94,7 @@ export const portfoliosListHtml = `
                         <h4 class="text-[11px] font-black text-primary-600 uppercase tracking-[0.3em] mb-6 flex items-center">
                             <span class="w-8 h-px bg-primary-200 mr-4"></span> Project Overview
                         </h4>
-                        <p id="modalDescription" class="text-gray-600 leading-[1.8] text-lg font-medium whitespace-pre-wrap"></p>
+                        <div id="modalDescription" class="text-gray-600 leading-[1.8] text-lg font-medium whitespace-pre-wrap"></div>
                     </div>
                     <div class="w-full lg:w-80 space-y-8">
                         <div class="p-8 bg-gray-50 rounded-[2rem] border border-gray-100 flex flex-col gap-6">
@@ -124,7 +123,7 @@ export const portfoliosListHtml = `
     </div>
 
     <!-- 푸터 -->
-    ${footerHtml()}
+    \${footerHtml()}
 
     <script>
         let currentPortfolios = [];
@@ -140,18 +139,64 @@ export const portfoliosListHtml = `
             const grid = document.getElementById('portfolioGrid');
             
             try {
-                const url = new URL('/api/portfolios', window.location.origin);
-                if (activeCategory) url.searchParams.append('category', activeCategory);
-                if (isFeatured) url.searchParams.append('isFeatured', 'true');
+                const [res1, res2] = await Promise.all([
+                    fetch('/api/portfolios' + (isFeatured ? '?isFeatured=true' : '')),
+                    fetch('/api/posts?category=portfolio&status=published&limit=100')
+                ]);
                 
-                const res = await fetch(url.toString());
-                const result = await res.json();
+                const result1 = await res1.json();
+                const result2 = await res2.json();
                 
-                if (result.success) {
-                    currentPortfolios = result.data;
-                    renderPortfolios();
+                const list1 = result1.success ? result1.data : [];
+                const list2 = result2.success ? result2.data : [];
+                
+                const normalized1 = list1.map(p => ({
+                    id: 'sp_' + p.id,
+                    source: 'student_portfolio',
+                    title: p.title,
+                    thumbnail_url: (p.thumbnail_url || '').trim(),
+                    student_name: p.student_name || '수강생',
+                    description: p.description || '',
+                    category: p.category || 'other',
+                    course_title: p.course_title,
+                    content_url: p.content_url,
+                    is_featured: !!p.is_featured,
+                    created_at: p.created_at
+                }));
+                
+                const normalized2 = list2.map(p => {
+                    let img = '';
+                    if (p.images && p.images.length) img = p.images[0];
+                    else if (p.content) {
+                        const m = p.content.match(/<img[^>]+src=["']([^"']+)["']/i);
+                        if (m && m[1]) img = m[1];
+                    }
+                    return {
+                        id: 'post_' + p.id,
+                        source: 'post',
+                        title: p.title,
+                        thumbnail_url: img,
+                        student_name: p.author_name || '관리자',
+                        description: p.content || '',
+                        category: p.category || 'portfolio',
+                        course_title: '관리자 등록',
+                        content_url: '',
+                        is_featured: !!p.pinned,
+                        created_at: p.created_at
+                    };
+                });
+                
+                currentPortfolios = [...normalized1, ...normalized2];
+                if (activeCategory) {
+                    currentPortfolios = currentPortfolios.filter(p => p.category === activeCategory);
                 }
-            } catch (e) { console.error(e); }
+                currentPortfolios.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+                
+                renderPortfolios();
+            } catch (e) { 
+                console.error(e); 
+                grid.innerHTML = '<div class="col-span-full py-20 text-center text-red-400 font-bold">오류가 발생했습니다.</div>';
+            }
         }
 
         function renderPortfolios() {
@@ -161,27 +206,22 @@ export const portfoliosListHtml = `
                 return;
             }
 
-            grid.innerHTML = currentPortfolios.map(p => \`
-                <div class="group bg-white rounded-[2rem] shadow-sm hover:shadow-2xl border border-gray-100 overflow-hidden transition-all duration-700 cursor-pointer flex flex-col h-full" onclick="openModal(\${p.id})">
-                    <div class="relative overflow-hidden h-72">
-                        <img src="\${p.thumbnail_url || 'https://images.unsplash.com/photo-1587586062323-836091e6006e?auto=format&fit=crop&q=80&w=800'}" 
-                             class="w-full h-full object-cover transition-transform duration-[1.5s] group-hover:scale-110">
-                        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex flex-col justify-end p-8">
-                            <span class="text-white text-xs font-black uppercase tracking-widest mb-2 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500 delay-75">\${p.category}</span>
-                            <h4 class="text-white text-xl font-black mb-4 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500 delay-100">\${p.title}</h4>
-                            <div class="flex items-center gap-2 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500 delay-150">
-                                <span class="w-8 h-8 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white text-[10px] font-bold">\${p.student_name[0]}</span>
-                                <span class="text-white/80 text-xs font-bold">\${p.student_name}</span>
-                            </div>
-                        </div>
-                        \${p.is_featured ? \`
-                            <div class="absolute top-6 left-6 px-3 py-1 bg-yellow-400 text-white text-[10px] font-black rounded-full shadow-lg flex items-center gap-1.5 z-10">
-                                <i class="fas fa-star text-[8px]"></i> RECOMMENDED
-                            </div>
-                        \` : ''}
-                    </div>
-                </div>
-            \`).join('');
+            grid.innerHTML = currentPortfolios.map(p => {
+                return '<div class="group bg-white rounded-[2rem] shadow-sm hover:shadow-2xl border border-gray-100 overflow-hidden transition-all duration-700 cursor-pointer flex flex-col h-full" onclick="openModal(\\'' + p.id + '\\')">' +
+                    '<div class="relative overflow-hidden h-72">' +
+                        '<img src="' + (p.thumbnail_url || 'https://images.unsplash.com/photo-1587586062323-836091e6006e?auto=format&fit=crop&q=80&w=800') + '" class="w-full h-full object-cover transition-transform duration-[1.5s] group-hover:scale-110">' +
+                        '<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex flex-col justify-end p-8">' +
+                            '<span class="text-white text-xs font-black uppercase tracking-widest mb-2 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500 delay-75">' + p.category + '</span>' +
+                            '<h4 class="text-white text-xl font-black mb-4 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500 delay-100">' + p.title + '</h4>' +
+                            '<div class="flex items-center gap-2 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500 delay-150">' +
+                                '<span class="w-8 h-8 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white text-[10px] font-bold">' + (p.student_name || 'U')[0] + '</span>' +
+                                '<span class="text-white/80 text-xs font-bold">' + p.student_name + '</span>' +
+                            '</div>' +
+                        '</div>' +
+                        (p.is_featured ? '<div class="absolute top-6 left-6 px-3 py-1 bg-yellow-400 text-white text-[10px] font-black rounded-full shadow-lg flex items-center gap-1.5 z-10"><i class="fas fa-star text-[8px]"></i> RECOMMENDED</div>' : '') +
+                    '</div>' +
+                '</div>';
+            }).join('');
         }
 
         function filterCategory(cat) {
@@ -203,11 +243,25 @@ export const portfoliosListHtml = `
             document.getElementById('modalThumbnail').src = p.thumbnail_url || 'https://images.unsplash.com/photo-1587586062323-836091e6006e?auto=format&fit=crop&q=80&w=800';
             document.getElementById('modalCategory').textContent = p.category;
             document.getElementById('modalTitle').textContent = p.title;
-            document.getElementById('modalDescription').textContent = p.description || '작품 설명이 아직 등록되지 않았습니다.';
+            
+            const descEl = document.getElementById('modalDescription');
+            if (p.source === 'post') {
+                descEl.innerHTML = p.description;
+            } else {
+                descEl.textContent = p.description || '작품 설명이 아직 등록되지 않았습니다.';
+            }
+            
             document.getElementById('modalStudentName').textContent = p.student_name;
-            document.getElementById('studentInitial').textContent = p.student_name[0];
+            document.getElementById('studentInitial').textContent = (p.student_name || 'U')[0];
             document.getElementById('modalCourseTitle').textContent = p.course_title || '일반 참여';
-            document.getElementById('modalContentLink').href = p.content_url || '#';
+            
+            const linkBtn = document.getElementById('modalContentLink');
+            if (p.content_url) {
+                linkBtn.href = p.content_url;
+                linkBtn.classList.remove('hidden');
+            } else {
+                linkBtn.classList.add('hidden');
+            }
             
             document.getElementById('detailModal').classList.remove('hidden');
             document.body.style.overflow = 'hidden';
@@ -223,14 +277,13 @@ export const portfoliosListHtml = `
             const userStr = localStorage.getItem('user');
             if (token && userStr) {
                 const user = JSON.parse(userStr);
-                document.getElementById('authMenu').innerHTML = \`
-                    <a href="/\${user.role === 'admin' ? 'admin' : user.role === 'teacher' ? 'teacher' : 'student'}" class="px-4 py-2 bg-primary-50 text-primary-600 font-bold text-sm rounded-xl hover:bg-primary-100 transition">
-                        나의 메뉴
-                    </a>
-                \`;
+                const authMenu = document.getElementById('authMenu');
+                if (authMenu) {
+                    authMenu.innerHTML = '<a href="/' + (user.role === 'admin' ? 'admin' : user.role === 'teacher' ? 'teacher' : 'student') + '" class="px-4 py-2 bg-primary-50 text-primary-600 font-bold text-sm rounded-xl hover:bg-primary-100 transition">나의 메뉴</a>';
+                }
             }
         }
     </script>
 </body>
 </html>
-`;
+\`;
