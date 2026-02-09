@@ -142,7 +142,7 @@ export const homeHtml = `
                         <i class="fas fa-chevron-right text-gray-400 group-hover:text-white/80"></i>
                     </a>
                     <!-- Card 2 -->
-                    <a href="/step" class="group flex items-center p-4 bg-black/40 backdrop-blur-md rounded-xl shadow-lg hover:bg-teal-600 hover:scale-105 transition-all duration-300 border border-white/10 hover:border-transparent">
+                    <a href="https://wow3d.step.or.kr/main.do" target="_blank" class="group flex items-center p-4 bg-black/40 backdrop-blur-md rounded-xl shadow-lg hover:bg-teal-600 hover:scale-105 transition-all duration-300 border border-white/10 hover:border-transparent">
                         <div class="w-12 h-12 rounded-lg bg-white/10 text-teal-300 flex items-center justify-center text-xl mr-4 group-hover:bg-white group-hover:text-teal-600 transition-colors">
                             <i class="fas fa-laptop-code"></i>
                         </div>
@@ -153,7 +153,7 @@ export const homeHtml = `
                         <i class="fas fa-chevron-right text-gray-400 group-hover:text-white/80"></i>
                     </a>
                     <!-- Card 3 -->
-                    <a href="/auto-quote" class="group flex items-center p-4 bg-black/40 backdrop-blur-md rounded-xl shadow-lg hover:bg-violet-600 hover:scale-105 transition-all duration-300 border border-white/10 hover:border-transparent">
+                    <a href="https://wow3d-all-print.jayseo36.workers.dev/" target="_blank" class="group flex items-center p-4 bg-black/40 backdrop-blur-md rounded-xl shadow-lg hover:bg-violet-600 hover:scale-105 transition-all duration-300 border border-white/10 hover:border-transparent">
                         <div class="w-12 h-12 rounded-lg bg-white/10 text-violet-300 flex items-center justify-center text-xl mr-4 group-hover:bg-white group-hover:text-violet-600 transition-colors">
                             <i class="fas fa-robot"></i>
                         </div>
@@ -164,7 +164,7 @@ export const homeHtml = `
                         <i class="fas fa-chevron-right text-gray-400 group-hover:text-white/80"></i>
                     </a>
                     <!-- Card 4 -->
-                    <a href="/shop" class="group flex items-center p-4 bg-black/40 backdrop-blur-md rounded-xl shadow-lg hover:bg-orange-600 hover:scale-105 transition-all duration-300 border border-white/10 hover:border-transparent">
+                    <a href="https://wow3dhd.co.kr/" target="_blank" class="group flex items-center p-4 bg-black/40 backdrop-blur-md rounded-xl shadow-lg hover:bg-orange-600 hover:scale-105 transition-all duration-300 border border-white/10 hover:border-transparent">
                         <div class="w-12 h-12 rounded-lg bg-white/10 text-orange-300 flex items-center justify-center text-xl mr-4 group-hover:bg-white group-hover:text-orange-600 transition-colors">
                             <i class="fas fa-shopping-cart"></i>
                         </div>
@@ -192,15 +192,15 @@ export const homeHtml = `
                 <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mb-2"><i class="fas fa-pen-nib"></i></div>
                 <span class="text-sm font-bold text-gray-800 text-center">문제은행(CBT)</span>
             </a>
-            <a href="/step" class="flex flex-col items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <a href="https://wow3d.step.or.kr/main.do" target="_blank" class="flex flex-col items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
                 <div class="w-10 h-10 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center mb-2"><i class="fas fa-laptop-code"></i></div>
                 <span class="text-sm font-bold text-gray-800 text-center">STEP 훈련</span>
             </a>
-            <a href="/auto-quote" class="flex flex-col items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <a href="https://wow3d-all-print.jayseo36.workers.dev/" target="_blank" class="flex flex-col items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
                 <div class="w-10 h-10 rounded-full bg-violet-100 text-violet-600 flex items-center justify-center mb-2"><i class="fas fa-robot"></i></div>
                 <span class="text-sm font-bold text-gray-800 text-center break-keep">3D프린팅 AI실시간자동견적</span>
             </a>
-            <a href="/shop" class="flex flex-col items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <a href="https://wow3dhd.co.kr/" target="_blank" class="flex flex-col items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
                 <div class="w-10 h-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center mb-2"><i class="fas fa-shopping-cart"></i></div>
                 <span class="text-sm font-bold text-gray-800 text-center">와우쓰리디 온라인마켓</span>
             </a>
