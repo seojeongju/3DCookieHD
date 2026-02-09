@@ -14,6 +14,7 @@ import approvedCourses from './api/approved_courses';
 import courseSessions from './api/course_sessions';
 import campuses from './api/campuses';
 import enrollments from './api/enrollments';
+import reviews from './api/reviews';
 import posts from './api/posts';
 
 import schedules from './api/schedules';
@@ -26,6 +27,7 @@ import consultations from './api/consultations';
 import hrd from './api/hrd';
 import ncs from './api/ncs';
 import dashboard from './api/dashboard';
+import portfolios from './api/portfolios';
 import surveys from './api/surveys';
 import assignments from './api/assignments';
 import progress from './api/progress';
@@ -40,7 +42,6 @@ import { jobsListHtml } from './views/jobs';
 import { jobseekersListHtml } from './views/jobseekers';
 import { adminCoursesListHtml } from './views/admin_courses';
 import { adminCoursesMainHtml } from './views/admin_courses_main';
-import { adminSessionTimetableHtml } from './views/admin_session_timetable';
 import {
     adminCoursesCategoriesHtml,
     adminCoursesApprovedHtml,
@@ -178,6 +179,9 @@ app.route('/api/campuses', campuses);
 // 수강 신청 API
 app.route('/api/enrollments', enrollments);
 
+// 리뷰 API
+app.route('/api/reviews', reviews);
+
 // 게시판 API
 app.route('/api/posts', posts);
 
@@ -194,7 +198,8 @@ app.route('/api/jobseekers', jobseekers);
 // 시험 API
 app.route('/api/exams', exams);
 
-
+// 포트폴리오 API
+app.route('/api/portfolios', portfolios);
 
 // 학생 관리 API
 app.route('/api/students', students);
@@ -273,7 +278,6 @@ app.get('/admin/courses/approved/register/:id', (c) => c.html(adminCoursesApprov
 app.get('/admin/courses/sessions', (c) => c.html(adminCoursesSessionsHtml()));
 app.get('/admin/courses/sessions/register', (c) => c.html(adminCoursesSessionsRegisterHtml()));
 app.get('/admin/courses/sessions/register/:id', (c) => c.html(adminCoursesSessionsRegisterHtml(c.req.param('id'))));
-app.get('/admin/courses/sessions/:id/timetable', (c) => c.html(adminSessionTimetableHtml(parseInt(c.req.param('id'), 10))));
 app.get('/admin/courses/sessions/:sessionId/syllabus', (c) => c.html(adminSyllabusHtml(c.req.param('sessionId'))));
 app.get('/admin/courses/copy', (c) => c.html(adminCoursesCopyHtml()));
 app.get('/admin/partner-universities', (c) => c.html(adminPartnerUniversitiesHtml));
@@ -309,21 +313,11 @@ app.get('/admin/grades', (c) => c.html(adminHrdGradesHtml()));
 app.get('/admin/ncs-eval', (c) => c.html(adminHrdNcsEvalHtml()));
 app.get('/admin/surveys', (c) => c.html(adminHrdSurveysHtml()));
 // app.get('/admin/portfolios', (c) => c.html(adminPortfoliosHtml)); // 게시판 관리에서 통합 관리
-app.get('/admin/posts', (c) => {
-    const category = c.req.query('category');
-    let activeMenu = 'posts';
-
-    if (category === 'review') activeMenu = 'reviews';
-    else if (category === 'prototype') activeMenu = 'prototype-gallery';
-    else if (category === 'education') activeMenu = 'education-gallery';
-    else if (category === 'portfolio') activeMenu = 'portfolio-gallery';
-
-    return c.html(adminPostsListHtml(hrdSidebar(activeMenu)));
-});
-app.get('/admin/reviews', (c) => c.redirect('/admin/posts?category=review'));
-app.get('/admin/prototype-gallery', (c) => c.redirect('/admin/posts?category=prototype'));
-app.get('/admin/education-gallery', (c) => c.redirect('/admin/posts?category=education'));
-app.get('/admin/portfolio-gallery', (c) => c.redirect('/admin/posts?category=portfolio'));
+app.get('/admin/reviews', (c) => c.html(adminReviewsListHtml(hrdSidebar('reviews'))));
+app.get('/admin/posts', (c) => c.html(adminPostsListHtml(hrdSidebar('posts'))));
+app.get('/admin/prototype-gallery', (c) => c.html(adminPrototypeGalleryHtml(hrdSidebar('prototype-gallery'))));
+app.get('/admin/education-gallery', (c) => c.html(adminEducationGalleryHtml(hrdSidebar('education-gallery'))));
+app.get('/admin/portfolio-gallery', (c) => c.html(adminPortfolioGalleryHtml(hrdSidebar('portfolio-gallery'))));
 app.get('/admin/inquiries', (c) => c.html(adminInquiriesHtml(hrdSidebar('inquiries'))));
 
 // 과정별 LMS 상세 관리 (LMS Dashboard & Inner Pages)

@@ -77,28 +77,22 @@ export const adminPostsListHtml = (sidebar: string | null = null) => `
         <div class="bg-white rounded-lg shadow-sm mb-6">
             <div class="border-b border-gray-200">
                 <nav class="-mb-px flex" aria-label="Tabs">
-                    <button onclick="filterCategory('')" id="tab-all" class="flex-1 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-center border-b-2 font-medium text-sm">
+                    <button onclick="filterCategory('')" id="tab-all" class="w-1/5 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-center border-b-2 font-medium text-sm">
                         전체
                     </button>
-                    <button onclick="filterCategory('notice')" id="tab-notice" class="flex-1 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-center border-b-2 font-medium text-sm">
+                    <button onclick="filterCategory('notice')" id="tab-notice" class="w-1/5 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-center border-b-2 font-medium text-sm">
                         공지사항
                     </button>
-                    <button onclick="filterCategory('faq')" id="tab-faq" class="flex-1 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-center border-b-2 font-medium text-sm">
+                    <button onclick="filterCategory('faq')" id="tab-faq" class="w-1/5 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-center border-b-2 font-medium text-sm">
                         FAQ
                     </button>
-                    <button onclick="filterCategory('review')" id="tab-review" class="flex-1 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-center border-b-2 font-medium text-sm">
-                        수강후기
-                    </button>
-                    <button onclick="filterCategory('portfolio')" id="tab-portfolio" class="flex-1 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-center border-b-2 font-medium text-sm">
+                    <button onclick="filterCategory('portfolio')" id="tab-portfolio" class="w-1/5 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-center border-b-2 font-medium text-sm">
                         포트폴리오
                     </button>
-                    <button onclick="filterCategory('prototype')" id="tab-prototype" class="flex-1 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-center border-b-2 font-medium text-sm">
+                    <button onclick="filterCategory('prototype')" id="tab-prototype" class="w-1/5 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-center border-b-2 font-medium text-sm">
                         시제품
                     </button>
-                    <button onclick="filterCategory('education')" id="tab-education" class="flex-1 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-center border-b-2 font-medium text-sm">
-                        교육사진
-                    </button>
-                    <button onclick="filterCategory('qna')" id="tab-qna" class="flex-1 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-center border-b-2 font-medium text-sm">
+                    <button onclick="filterCategory('qna')" id="tab-qna" class="w-1/5 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-center border-b-2 font-medium text-sm">
                         Q&A
                     </button>
                 </nav>
@@ -178,10 +172,9 @@ export const adminPostsListHtml = (sidebar: string | null = null) => `
                         <div class="grid grid-cols-3 gap-4">
                             <div>
                                 <label class="block text-gray-700 font-medium mb-2">카테고리</label>
-                                <select name="category" id="postCategory" onchange="toggleReviewFields()" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <select name="category" id="postCategory" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                                     <option value="notice">공지사항</option>
                                     <option value="faq">FAQ</option>
-                                    <option value="review">수강후기</option>
                                     <option value="portfolio">포트폴리오</option>
                                     <option value="prototype">시제품</option>
                                     <option value="qna">Q&A</option>
@@ -198,37 +191,6 @@ export const adminPostsListHtml = (sidebar: string | null = null) => `
                             <div class="flex items-center pt-8">
                                 <input type="checkbox" name="pinned" id="postPinned" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
                                 <label for="postPinned" class="ml-2 block text-gray-700 font-medium">상단 고정</label>
-                            </div>
-                        </div>
-                        <div id="reviewFields" class="hidden grid grid-cols-2 gap-4 border-l-4 border-yellow-400 pl-4 py-2 bg-yellow-50 rounded-r-lg">
-                            <div>
-                                <label class="block text-gray-700 font-medium mb-2">평점</label>
-                                <select name="rating" id="postRating" class="w-full px-4 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                    <option value="5">★★★★★ (5점)</option>
-                                    <option value="4">★★★★☆ (4점)</option>
-                                    <option value="3">★★★☆☆ (3점)</option>
-                                    <option value="2">★★☆☆☆ (2점)</option>
-                                    <option value="1">★☆☆☆☆ (1점)</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-gray-700 font-medium mb-2">과정 ID</label>
-                                <input type="number" name="course_id" id="postCourseId" placeholder="예: 5" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            </div>
-                        </div>
-                        <div id="portfolioFields" class="hidden grid grid-cols-2 gap-4 border-l-4 border-sky-400 pl-4 py-2 bg-sky-50 rounded-r-lg">
-                            <div>
-                                <label class="block text-gray-700 font-medium mb-2">세부 카테고리</label>
-                                <select name="sub_category" id="postSubCategory" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                    <option value="3d_modeling">3D 모델링</option>
-                                    <option value="design">디자인</option>
-                                    <option value="coding">코딩/개발</option>
-                                    <option value="other">기타</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-gray-700 font-medium mb-2">작품 링크 (URL)</label>
-                                <input type="url" name="content_url" id="postContentUrl" placeholder="https://..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                             </div>
                         </div>
                         <div>
@@ -266,7 +228,6 @@ export const adminPostsListHtml = (sidebar: string | null = null) => `
             const category = urlParams.get('category') || '';
             
             filterCategory(category);
-            toggleReviewFields();
 
             const action = urlParams.get('action');
             if (action === 'create') {
@@ -274,10 +235,11 @@ export const adminPostsListHtml = (sidebar: string | null = null) => `
             }
         });
 
+        function filterCategory(category) {
             document.getElementById('currentCategory').value = category;
             
             // 탭 스타일 업데이트
-            const tabs = ['all', 'notice', 'faq', 'review', 'portfolio', 'prototype', 'education', 'qna'];
+            const tabs = ['all', 'notice', 'faq', 'portfolio', 'prototype', 'qna'];
             tabs.forEach(tab => {
                 const element = document.getElementById(\`tab-\${tab}\`);
                 if (!element) return;
@@ -285,9 +247,9 @@ export const adminPostsListHtml = (sidebar: string | null = null) => `
                 const isSelected = (category === '' && tab === 'all') || category === tab;
                 
                 if (isSelected) {
-                    element.className = 'flex-1 border-blue-500 text-blue-600 py-4 px-1 text-center border-b-2 font-medium text-sm';
+                    element.className = 'w-1/5 border-blue-500 text-blue-600 py-4 px-1 text-center border-b-2 font-medium text-sm';
                 } else {
-                    element.className = 'flex-1 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-center border-b-2 font-medium text-sm';
+                    element.className = 'w-1/5 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-center border-b-2 font-medium text-sm';
                 }
             });
             
@@ -307,19 +269,12 @@ export const adminPostsListHtml = (sidebar: string | null = null) => `
                 document.getElementById('postCategory').value = post.category;
                 document.getElementById('postStatus').value = post.status;
                 document.getElementById('postPinned').checked = post.pinned === 1;
-                document.getElementById('postRating').value = post.rating || '5';
-                document.getElementById('postCourseId').value = post.course_id || '';
-                document.getElementById('postSubCategory').value = post.sub_category || 'other';
-                document.getElementById('postContentUrl').value = post.content_url || '';
-                toggleReviewFields();
             } else {
                 // 등록 모드
                 title.textContent = '게시글 작성';
                 form.reset();
                 document.getElementById('postId').value = '';
                 document.getElementById('postStatus').value = 'published';
-                document.getElementById('postRating').value = '5';
-                document.getElementById('postCourseId').value = '';
                 
                 // 현재 필터링된 카테고리가 있다면 기본값으로 설정
                 const currentCategory = document.getElementById('currentCategory').value;
@@ -328,9 +283,8 @@ export const adminPostsListHtml = (sidebar: string | null = null) => `
                 } else {
                     document.getElementById('postCategory').value = 'notice';
                 }
-                toggleReviewFields();
             }
-
+            
             modal.classList.remove('hidden');
 
             // TinyMCE 초기화 또는 내용 설정
@@ -399,23 +353,6 @@ export const adminPostsListHtml = (sidebar: string | null = null) => `
             const json = await res.json();
             if (!json.success) throw new Error(json.error || '업로드 실패');
             return json.data.url || json.data.file_url || '';
-        }
-
-        function toggleReviewFields() {
-            const cat = document.getElementById('postCategory').value;
-            const rFields = document.getElementById('reviewFields');
-            const pFields = document.getElementById('portfolioFields');
-            
-            if (cat === 'review') {
-                rFields.classList.remove('hidden');
-                pFields.classList.add('hidden');
-            } else if (cat === 'portfolio' || cat === 'prototype') {
-                rFields.classList.remove('hidden'); // 과정 ID 등 공통 사용 가능성 고려
-                pFields.classList.remove('hidden');
-            } else {
-                rFields.classList.add('hidden');
-                pFields.classList.add('hidden');
-            }
         }
 
         function initTinyMCE(initialContent) {
@@ -528,10 +465,7 @@ export const adminPostsListHtml = (sidebar: string | null = null) => `
                             \${getCategoryName(post.category)}
                         </td>
                         <td class="px-6 py-4">
-                            <div class="text-sm font-medium text-gray-900">
-                                \${post.category === 'review' ? \`<span class="text-yellow-500 mr-2">\${'★'.repeat(post.rating || 0)}\${'☆'.repeat(5 - (post.rating || 0))}</span>\` : ''}
-                                \${post.title || (post.category === 'review' ? '수강후기' : '')}
-                            </div>
+                            <div class="text-sm font-medium text-gray-900">\${post.title}</div>
                             <div class="text-xs text-gray-500 mt-1 truncate max-w-xs">
                                 \${stripHtml(post.content).substring(0, 50)}...
                             </div>
@@ -596,9 +530,7 @@ export const adminPostsListHtml = (sidebar: string | null = null) => `
                 'faq': 'FAQ',
                 'portfolio': '포트폴리오',
                 'prototype': '시제품',
-                'education': '교육사진',
-                'qna': 'Q&A',
-                'review': '수강후기'
+                'qna': 'Q&A'
             };
             return names[category] || category;
         }
@@ -658,16 +590,15 @@ export const adminPostsListHtml = (sidebar: string | null = null) => `
             } else {
                 data.images = [];
             }
-            data.pinned = formData.get('pinned') === 'on';
-            if (data.rating) data.rating = parseInt(data.rating);
-            if (data.course_id) data.course_id = parseInt(data.course_id);
-            if (data.id === '') delete data.id;
+            const id = data.id;
+            
+            // 체크박스 처리 (pinned)
+            data.pinned = document.getElementById('postPinned').checked;
 
             try {
                 const token = localStorage.getItem('token');
-                const id = document.getElementById('postId').value;
-                const method = id ? 'PUT' : 'POST';
                 const url = id ? '/api/posts/' + id : '/api/posts';
+                const method = id ? 'PUT' : 'POST';
 
                 const response = await fetch(url, {
                     method: method,
