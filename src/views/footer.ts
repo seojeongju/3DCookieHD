@@ -4,9 +4,8 @@ export const footerHtml = () => `
         <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
             <!-- 회사 정보 -->
             <div class="col-span-1 md:col-span-2">
-                <div class="flex items-center mb-4">
-                    <img src="/static/logo.png" alt="WOW 3D" class="h-8 mr-2 brightness-0 invert" onerror="this.style.display='none'">
-                    <span class="text-xl font-bold text-white">3D쿠키홍대센터</span>
+                <div class="flex items-center mb-6">
+                    <img src="/static/logo.png" alt="WOW 3D" class="h-9 mr-2" onerror="this.src='https://placehold.co/150x50/333/FFF?text=WOW3D'">
                 </div>
                 <p class="text-sm leading-relaxed mb-4 text-gray-400">
                     4차 산업혁명의 핵심 기술인 3D프린팅 전문 교육기관입니다.<br>
@@ -39,15 +38,19 @@ export const footerHtml = () => `
                 <ul class="space-y-2 text-sm">
                     <li class="flex items-start">
                         <i class="fas fa-envelope mt-1 mr-2 text-primary-500"></i>
-                        <span>3dcookidhd@naver.com</span>
+                        <span>wow3d@wow3d.co.kr</span>
                     </li>
                     <li class="flex items-start">
                         <i class="fas fa-phone mt-1 mr-2 text-primary-500"></i>
-                        <span>홍대: 02-3144-3137</span>
+                        <span>홍대: 02-332-9010</span>
                     </li>
                     <li class="flex items-start">
                         <i class="fas fa-phone mt-1 mr-2 text-primary-500"></i>
-                        <span>구미: 054-464-3137</span>
+                        <span>구미: 02-6014-9010</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-phone mt-1 mr-2 text-primary-500"></i>
+                        <span>전주: 02-6015-9010</span>
                     </li>
                 </ul>
             </div>
@@ -55,10 +58,10 @@ export const footerHtml = () => `
 
         <div class="border-t border-gray-800 pt-8 mt-8 text-xs text-gray-500 flex flex-col md:flex-row justify-between items-center">
             <div class="mb-4 md:mb-0 text-center md:text-left w-full">
-                <p class="mb-1">상호명: 3D쿠키홍대센터 | 대표자: 김순희 | 사업자등록번호: 898-28-00570</p>
-                <p class="mb-1">홍대센터: 서울시 마포구 독막로 93 상수빌딩 4층</p>
+                <p class="mb-1">상호명: 와우쓰리디홍대센터 | 대표자: 김순희 | 사업자등록번호: 898-28-00570</p>
+                <p class="mb-1">홍대센터: 서울시 마포구 독막로 93 상수빌딩 8층</p>
                 <p class="mb-1">구미센터: 경북 구미시 산호대로 253 구미첨단의료기술타워 606호</p>
-                <p class="mb-1">전주센터: 전북특별자치도 전주시 덕진구 반룡로 109 테크노빌A동 207호</p>
+                <p class="mb-1">전주센터: 전북특별자치도 전주시 덕진구 반룡로 109 벤처지원동 207호</p>
                 <p class="mt-2">&copy; 2025 3D Cookie Hongdae Center. All rights reserved.</p>
             </div>
             <div class="flex space-x-6 whitespace-nowrap">

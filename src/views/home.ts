@@ -7,11 +7,16 @@ export const homeHtml = `
       }
       .hero-slider {
         position: relative;
-        min-height: 600px;
-        height: 600px;
+        position: relative;
         overflow: hidden;
-        border-radius: 0 0 2rem 2rem;
+        border-radius: 0 0 0 2rem;
         background: linear-gradient(135deg, #2d5fa3 0%, #4a90e2 50%, #5b9bd5 100%);
+      }
+      @media (min-width: 1024px) {
+        .hero-slider {
+            height: 600px;
+            border-radius: 0 0 2rem 0;
+        }
       }
       .hero-slide {
         position: absolute;
@@ -72,21 +77,111 @@ export const homeHtml = `
     </style>
 
     <!-- 히어로 섹션 -->
-    <section class="hero-slider" aria-label="메인 비주얼">
-        <div class="hero-slide active" style="background-image: url('/static/hero1.jpg'); background-color: #2d5fa3;">
-            <div class="hero-overlay"></div>
-            <div class="hero-content">
-                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <h1 class="text-4xl md:text-6xl font-bold mb-6 drop-shadow-lg">상상을 현실로, 미래를 디자인하다!</h1>
-                    <p class="text-xl md:text-2xl mb-8 drop-shadow-lg">와우쓰리디홍대센터에서 3D모델링과 프린팅을 마스터하세요.</p>
-                    <div class="flex justify-center gap-4 flex-wrap">
-                        <button type="button" onclick="scrollToSection('courses')" class="bg-white text-primary-600 px-8 py-4 rounded-lg font-semibold hover:bg-blue-50 transition text-lg shadow-lg">과정 둘러보기</button>
-                        <button type="button" onclick="scrollToSection('contact')" class="border-2 border-white text-white px-8 py-4 rounded-lg font-semibold hover:bg-white hover:text-primary-600 transition text-lg">상담 신청</button>
+    <!-- 히어로 그리드 컨테이너 -->
+    <div class="max-w-[1920px] mx-auto grid lg:grid-cols-3 bg-gray-50">
+        <!-- 1. 좌측 메인 슬라이더 (2/3) -->
+        <section class="hero-slider lg:col-span-2 h-[500px] lg:h-[600px]" aria-label="메인 비주얼">
+            <div class="hero-slide active" style="background-image: url('/static/hero1.jpg'); background-color: #2d5fa3;">
+                <div class="hero-overlay"></div>
+                <div class="hero-content">
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <h1 class="text-3xl md:text-5xl lg:text-6xl font-bold mb-4 lg:mb-6 drop-shadow-lg leading-tight">상상을 현실로,<br>미래를 디자인하다!</h1>
+                        <p class="text-lg md:text-xl lg:text-2xl mb-6 lg:mb-8 drop-shadow-lg text-white/90">와우쓰리디홍대센터에서<br class="md:hidden"> 3D모델링과 프린팅을 마스터하세요.</p>
+                        <div class="flex justify-center gap-3 lg:gap-4 flex-wrap">
+                            <button type="button" onclick="scrollToSection('courses')" class="bg-white text-primary-600 px-6 py-3 lg:px-8 lg:py-4 rounded-lg font-bold hover:bg-blue-50 transition text-base lg:text-lg shadow-lg">과정 둘러보기</button>
+                            <button type="button" onclick="scrollToSection('contact')" class="border-2 border-white text-white px-6 py-3 lg:px-8 lg:py-4 rounded-lg font-bold hover:bg-white hover:text-primary-600 transition text-base lg:text-lg">상담 신청</button>
+                        </div>
                     </div>
                 </div>
             </div>
+            <div class="hero-slide" style="background-image: url('/static/hero2.jpg'); background-color: #4a90e2;">
+                <div class="hero-overlay"></div>
+                <div class="hero-content">
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <h1 class="text-3xl md:text-5xl lg:text-6xl font-bold mb-4 lg:mb-6 drop-shadow-lg leading-tight">실무 중심의<br>전문 교육</h1>
+                        <p class="text-lg md:text-xl lg:text-2xl mb-6 lg:mb-8 drop-shadow-lg text-white/90">현장 경험이 풍부한 전문 강사진과 함께<br class="md:hidden"> 실력을 키우세요.</p>
+                        <div class="flex justify-center gap-3 lg:gap-4 flex-wrap">
+                            <button type="button" onclick="scrollToSection('courses')" class="bg-white text-primary-600 px-6 py-3 lg:px-8 lg:py-4 rounded-lg font-bold hover:bg-blue-50 transition text-base lg:text-lg shadow-lg">수강 신청하기</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="hero-slide" style="background-image: url('/static/hero3.jpg'); background-color: #5b9bd5;">
+                <div class="hero-overlay"></div>
+                <div class="hero-content">
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <h1 class="text-3xl md:text-5xl lg:text-6xl font-bold mb-4 lg:mb-6 drop-shadow-lg leading-tight">취업과 창업의<br>지름길</h1>
+                        <p class="text-lg md:text-xl lg:text-2xl mb-6 lg:mb-8 drop-shadow-lg text-white/90">체계적인 커리큘럼으로<br class="md:hidden"> 여러분의 꿈을 지원합니다.</p>
+                        <div class="flex justify-center gap-3 lg:gap-4 flex-wrap">
+                            <button type="button" onclick="scrollToSection('contact')" class="border-2 border-white text-white px-6 py-3 lg:px-8 lg:py-4 rounded-lg font-bold hover:bg-white hover:text-primary-600 transition text-base lg:text-lg">무료 상담 받기</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="hero-dots">
+                <div class="hero-dot active" onclick="setSlide(0)"></div>
+                <div class="hero-dot" onclick="setSlide(1)"></div>
+                <div class="hero-dot" onclick="setSlide(2)"></div>
+            </div>
+        </section>
+
+        <!-- 2. 우측 퀵 서비스 스택 (1/3) -->
+        <div class="lg:col-span-1 flex flex-col h-auto lg:h-[600px] bg-white">
+            <!-- Zone A: 문제은행 -->
+            <a href="/cbt" class="group relative flex-1 bg-[#1e293b] hover:bg-[#0f172a] transition-colors duration-300 p-8 flex flex-col justify-center overflow-hidden border-b border-gray-700 lg:border-b-0 lg:border-l lg:border-gray-800">
+                <div class="absolute right-[-20px] bottom-[-20px] text-gray-700/20 group-hover:text-gray-600/30 transition-colors duration-500">
+                    <i class="fas fa-edit text-9xl transform -rotate-12"></i>
+                </div>
+                <div class="relative z-10">
+                    <div class="w-12 h-12 rounded-lg bg-blue-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                        <i class="fas fa-pencil-alt text-2xl text-blue-400"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-white mb-2 group-hover:text-blue-300 transition-colors">와우쓰리디 문제은행</h3>
+                    <p class="text-gray-400 text-sm mb-4 leading-relaxed">자격증 합격을 위한 필수 코스,<br>기출문제 완벽 분석 시스템</p>
+                    <span class="inline-flex items-center text-blue-400 font-bold text-sm group-hover:translate-x-2 transition-transform duration-300">
+                        문제 풀러 가기 <i class="fas fa-arrow-right ml-2"></i>
+                    </span>
+                </div>
+            </a>
+
+            <!-- Zone B: AI 자동 견적 -->
+            <a href="/auto-quote" class="group relative flex-1 bg-gradient-to-br from-indigo-900 to-purple-900 hover:from-indigo-950 hover:to-purple-950 transition-all duration-300 p-8 flex flex-col justify-center overflow-hidden border-b border-gray-700 lg:border-b-0 lg:border-l lg:border-gray-800">
+                <div class="absolute right-[-20px] bottom-[-20px] text-white/5 group-hover:text-white/10 transition-colors duration-500">
+                    <i class="fas fa-robot text-9xl transform rotate-12"></i>
+                </div>
+                <div class="absolute top-0 right-0 p-3 opacity-50 animate-pulse">
+                    <i class="fas fa-bolt text-yellow-400 text-xl"></i>
+                </div>
+                <div class="relative z-10">
+                    <div class="w-12 h-12 rounded-lg bg-indigo-500/30 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300 shadow-[0_0_15px_rgba(99,102,241,0.5)]">
+                        <i class="fas fa-microchip text-2xl text-indigo-300"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-white mb-2 group-hover:text-indigo-200 transition-colors">AI 실시간 자동견적</h3>
+                    <p class="text-indigo-200/70 text-sm mb-4 leading-relaxed">도면만 업로드하면 1초 만에,<br>AI가 분석하는 스마트 견적</p>
+                    <span class="inline-flex items-center text-indigo-300 font-bold text-sm group-hover:translate-x-2 transition-transform duration-300">
+                        지금 견적 내기 <i class="fas fa-arrow-right ml-2"></i>
+                    </span>
+                </div>
+            </a>
+
+            <!-- Zone C: 3D프린터 구매 -->
+            <a href="/shop" class="group relative flex-1 bg-white hover:bg-gray-50 transition-colors duration-300 p-8 flex flex-col justify-center overflow-hidden border-b border-gray-200 lg:border-b-0 lg:border-l lg:border-gray-200">
+                <div class="absolute right-[-20px] bottom-[-20px] text-gray-100 group-hover:text-gray-200 transition-colors duration-500">
+                    <i class="fas fa-shopping-cart text-9xl transform -rotate-12"></i>
+                </div>
+                <div class="relative z-10">
+                    <div class="w-12 h-12 rounded-lg bg-orange-100 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                        <i class="fas fa-store text-2xl text-orange-500"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-2 group-hover:text-orange-600 transition-colors">3D프린터 스토어</h3>
+                    <p class="text-gray-500 text-sm mb-4 leading-relaxed">전문가가 엄선한 검증된 장비,<br>공식 스토어에서 만나보세요</p>
+                    <span class="inline-flex items-center text-orange-600 font-bold text-sm group-hover:translate-x-2 transition-transform duration-300">
+                        쇼핑하러 가기 <i class="fas fa-arrow-right ml-2"></i>
+                    </span>
+                </div>
+            </a>
         </div>
-    </section>
+    </div>
 
     <!-- 센터 소개 -->
     <section class="py-16 bg-white">
@@ -211,7 +306,7 @@ export const homeHtml = `
                 </a>
             </div>
             <div class="mt-10 text-center text-gray-600">
-                <p class="font-medium">전화 문의 <a href="tel:02-3144-3137" class="text-primary-600 font-bold hover:underline">02-3144-3137</a></p>
+                <p class="font-medium">전화 문의 <a href="tel:02-332-9010" class="text-primary-600 font-bold hover:underline">02-332-9010</a></p>
             </div>
         </div>
     </section>
@@ -227,6 +322,34 @@ export const homeHtml = `
             var el = document.getElementById(id);
             if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
+        var currentSlide = 0;
+        var slideInterval;
+        function setSlide(index) {
+            var slides = document.querySelectorAll('.hero-slide');
+            var dots = document.querySelectorAll('.hero-dot');
+            if (!slides.length) return;
+            
+            // Wrap index
+            if (index >= slides.length) index = 0;
+            if (index < 0) index = slides.length - 1;
+            
+            currentSlide = index;
+            
+            slides.forEach(function(slide, i) {
+                if (i === index) slide.classList.add('active');
+                else slide.classList.remove('active');
+            });
+            
+            dots.forEach(function(dot, i) {
+                if (i === index) dot.classList.add('active');
+                else dot.classList.remove('active');
+            });
+            
+            // Reset interval
+            clearInterval(slideInterval);
+            slideInterval = setInterval(function() { setSlide(currentSlide + 1); }, 5000);
+        }
+        
         async function loadCourses() {
             var container = document.getElementById('courseList');
             if (!container) return;
@@ -246,7 +369,7 @@ export const homeHtml = `
                     return { recruiting: '모집중', in_progress: '진행중', completed: '종료', always_open: '상시모집', closed: '폐강' }[s] || s;
                 }
                 container.innerHTML = list.map(function(s) {
-                    var imgUrl = (s.course_list_image_url || s.main_slide_image_url || '').trim() || '/static/hero1.jpg';
+                    var imgUrl = (s.image_url || '').trim() || '/static/hero1.jpg';
                     var start = (s.training_start_date || '').trim();
                     var end = (s.training_end_date || '').trim();
                     var dateStr = start && end ? (new Date(start).toLocaleDateString('ko-KR') + ' ~ ' + new Date(end).toLocaleDateString('ko-KR')) : (start ? new Date(start).toLocaleDateString('ko-KR') + '~' : '일정 미정');
@@ -264,8 +387,8 @@ export const homeHtml = `
                     }
                     var nameEsc = displayName.replace(/</g, '&lt;').replace(/"/g, '&quot;');
                     return '<a href="/course-sessions/' + s.id + '" class="bg-white rounded-xl shadow-sm hover:shadow-xl transition duration-300 border border-gray-100 overflow-hidden flex flex-col h-full group">' +
-                        '<div class="relative h-48 overflow-hidden bg-gray-200">' +
-                        '<img src="' + imgUrl.replace(/"/g, '&quot;') + '" alt="" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" onerror="this.src=\\'\/static\/hero1.jpg\\'">' +
+                        '<div class="relative h-48 overflow-hidden bg-slate-50 border-b border-gray-50">' +
+                        '<img src="' + imgUrl.replace(/"/g, '&quot;') + '" alt="" class="w-full h-full object-contain group-hover:scale-105 transition duration-500" onerror="this.src=\\'\/static\/hero1.jpg\\'">' +
                         '<span class="absolute top-3 right-3 px-2.5 py-1 text-xs font-bold rounded-full text-white ' + statusClass + '">' + statusText(s.status) + '</span>' +
                         '<div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/60 to-transparent p-4">' +
                         '<span class="text-white text-xs font-medium bg-primary-600/80 px-2 py-1 rounded">' + (s.category_name || '과정') + '</span>' +
@@ -455,6 +578,11 @@ export const homeHtml = `
             loadEducationPhotos();
             loadPortfolios();
             loadPrototypes();
+            
+            // Init Hero Slider
+            if (document.querySelector('.hero-slide')) {
+                setSlide(0);
+            }
         });
     </script>
 `;

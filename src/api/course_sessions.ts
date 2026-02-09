@@ -66,7 +66,7 @@ app.get('/stats', authMiddleware, requireAdmin, async (c) => {
 
 /** 연동 홈페이지 노출용 컬럼 (0059). 없으면 무시 */
 const LINKED_HOMEPAGE_COLS = `s.recruitment_status, s.representative_image_exposure, s.recruitment_grace_period,
-  s.syllabus_exposure, s.main_slide_image_url, s.course_list_image_url, s.course_detail_description`;
+  s.syllabus_exposure, s.main_slide_image_url, s.course_list_image_url, s.course_detail_description, s.session_name`;
 
 /**
  * GET /api/course-sessions/public
@@ -138,7 +138,8 @@ app.get('/public', async (c) => {
           s.training_end_date,
           s.instructor_name,
           COALESCE(NULLIF(s.course_list_image_url, ''), NULLIF(s.main_slide_image_url, ''), '/static/course_placeholder.jpg') as image_url,
-          s.session_number
+          s.session_number,
+          s.session_name
         FROM course_sessions s
         INNER JOIN approved_courses a ON a.id = s.approved_course_id
         LEFT JOIN course_categories cat ON cat.id = a.category_id
@@ -156,7 +157,8 @@ app.get('/public', async (c) => {
           c.end_date as training_end_date,
           NULL as instructor_name,
           COALESCE(NULLIF(c.thumbnail_url, ''), '/static/course_placeholder.jpg') as image_url,
-          NULL as session_number
+          NULL as session_number,
+          NULL as session_name
         FROM courses c
         WHERE c.status != 'deleted' ${generalStatusFilter} ${generalCategoryFilter}
       )
@@ -210,7 +212,7 @@ app.get('/public/:id', async (c) => {
     } else {
       try {
         row = await DB.prepare(
-          `SELECT s.id, s.approved_course_id, s.session_number, s.status,
+          `SELECT s.id, s.approved_course_id, s.session_number, s.session_name, s.status,
             s.training_start_date, s.training_end_date, s.instructor_name,
             s.target_audience, s.days_of_week, s.location,
             s.url_plan, s.url_detail_plan,
@@ -224,7 +226,7 @@ app.get('/public/:id', async (c) => {
         ).bind(id).first() as Record<string, unknown> | null;
       } catch {
         row = await DB.prepare(
-          `SELECT s.id, s.approved_course_id, s.session_number, s.status,
+          `SELECT s.id, s.approved_course_id, s.session_number, s.session_name, s.status,
             s.training_start_date, s.training_end_date, s.instructor_name,
             s.target_audience, s.days_of_week, s.location,
             s.url_plan, s.url_detail_plan,

@@ -1,6 +1,9 @@
 import { footerHtml } from './footer';
 import { navigationHtml } from './components/navigation';
 
+const _navigationHtml = navigationHtml;
+const _footerHtml = footerHtml;
+
 /** 연동 홈페이지용 회차별 과정 목록 */
 export const courseSessionsListHtml = `
 <!DOCTYPE html>
@@ -24,7 +27,7 @@ export const courseSessionsListHtml = `
     </script>
 </head>
 <body class="bg-gray-50">
-    ${navigationHtml('course-sessions')}
+    ` + _navigationHtml('course-sessions') + `
 
     <div class="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-16">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -51,7 +54,7 @@ export const courseSessionsListHtml = `
         <div id="sessionsPagination" class="mt-8 flex justify-center gap-2"></div>
     </div>
 
-    ${footerHtml()}
+    ` + _footerHtml() + `
 
     <script>
         var currentPage = 1;
@@ -122,25 +125,31 @@ export const courseSessionsListHtml = `
                         return;
                     }
 
-                    listEl.innerHTML = list.map(function(s) {
-                        var imgUrl = (s.image_url || '').trim() || '/static/course_placeholder.jpg';
-                        var start = (s.training_start_date || '').trim();
-                        var end = (s.training_end_date || '').trim();
-                        var dateStr = start && end ? (new Date(start).toLocaleDateString('ko-KR') + ' ~ ' + new Date(end).toLocaleDateString('ko-KR')) : (start ? new Date(start).toLocaleDateString('ko-KR') + '~' : '일정 미정');
-                        var statusClass = s.status === 'recruiting' ? 'bg-green-500' : s.status === 'in_progress' ? 'bg-blue-500' : s.status === 'always_open' ? 'bg-emerald-500' : 'bg-gray-500';
-                        
-                        var detailUrl = s.source === 'session' ? '/course-sessions/' + s.id : '/courses/' + s.id;
-                        var sourceBadge = s.source === 'session' ? '' : '<span class="absolute top-3 left-3 px-2 py-0.5 text-[10px] font-bold rounded bg-black/50 text-white backdrop-blur-sm shadow-sm">일반과정</span>';
+                        listEl.innerHTML = list.map(function(s) {
+                            var imgUrl = (s.image_url || '').trim() || '/static/course_placeholder.jpg';
+                            var start = (s.training_start_date || '').trim();
+                            var end = (s.training_end_date || '').trim();
+                            var dateStr = start && end ? (new Date(start).toLocaleDateString('ko-KR') + ' ~ ' + new Date(end).toLocaleDateString('ko-KR')) : (start ? new Date(start).toLocaleDateString('ko-KR') + '~' : '일정 미정');
+                            var statusClass = s.status === 'recruiting' ? 'bg-green-500' : s.status === 'in_progress' ? 'bg-blue-500' : s.status === 'always_open' ? 'bg-emerald-500' : 'bg-gray-500';
+                            
+                            var detailUrl = s.source === 'session' ? '/course-sessions/' + s.id : '/courses/' + s.id;
+                            var sourceBadge = s.source === 'session' ? '' : '<span class="absolute top-3 left-3 px-2 py-0.5 text-[10px] font-bold rounded bg-black/50 text-white backdrop-blur-sm shadow-sm">일반과정</span>';
 
-                        return '<a href="' + detailUrl + '" class="bg-white rounded-lg shadow-sm hover:shadow-xl transition border border-gray-100 overflow-hidden flex flex-col h-full group">' +
-                            '<div class="relative h-48 overflow-hidden bg-gray-200"><img src="' + imgUrl.replace(/"/g, '&quot;') + '" alt="" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" onerror="this.src=\\'/static/course_placeholder.jpg\\'">' +
-                            '<span class="absolute top-3 right-3 px-2.5 py-1 text-xs font-bold rounded-full text-white ' + statusClass + '">' + statusText(s.status) + '</span>' + 
-                            sourceBadge + '</div>' +
-                            '<div class="p-5 flex-1 flex flex-col"><span class="text-xs text-primary-600 font-medium mb-1">' + (s.category_name || '과정') + '</span>' +
-                            '<h3 class="text-lg font-bold text-gray-800 mb-2 line-clamp-2 group-hover:text-primary-600">' + (s.course_name || '').replace(/</g, '&lt;') + '</h3>' +
-                            '<p class="text-sm text-gray-500 mb-3">' + (s.session_number ? s.session_number + '회차' : '') + '</p>' +
-                            '<div class="mt-auto pt-3 border-t border-gray-100 text-sm text-gray-500"><i class="far fa-calendar-alt mr-2"></i>' + dateStr + '</div></div></a>';
-                    }).join('');
+                            var dn = (s.course_name || '').trim();
+                            if (s.session_number) dn += ' + ' + s.session_number + '회차';
+                            if (s.session_name) dn += ' + ' + s.session_name;
+                            var nameEsc = dn.replace(/</g, '&lt;').replace(/"/g, '&quot;');
+
+                            return '<a href="' + detailUrl + '" class="bg-white rounded-lg shadow-sm hover:shadow-xl transition border border-gray-100 overflow-hidden flex flex-col h-full group">' +
+                                '<div class="relative h-48 overflow-hidden bg-white/50 border-b border-gray-50">' +
+                                '<img src="' + imgUrl.replace(/"/g, '&quot;') + '" alt="" class="w-full h-full object-contain group-hover:scale-105 transition duration-300" onerror="this.src=\\'/static/course_placeholder.jpg\\'">' +
+                                '<span class="absolute top-3 right-3 px-2.5 py-1 text-xs font-bold rounded-full text-white ' + statusClass + '">' + statusText(s.status) + '</span>' + 
+                                sourceBadge + '</div>' +
+                                '<div class="p-5 flex-1 flex flex-col"><span class="text-xs text-primary-600 font-medium mb-1">' + (s.category_name || '과정') + '</span>' +
+                                '<h3 class="text-lg font-bold text-gray-800 mb-2 line-clamp-2 group-hover:text-primary-600">' + nameEsc + '</h3>' +
+                                '<p class="text-sm text-gray-500 mb-3">' + (s.session_number ? s.session_number + '회차' : '') + (s.instructor_name ? ' · ' + s.instructor_name : '') + '</p>' +
+                                '<div class="mt-auto pt-3 border-t border-gray-100 text-sm text-gray-500"><i class="far fa-calendar-alt mr-2"></i>' + dateStr + '</div></div></a>';
+                        }).join('');
 
                     var p = res.pagination || {};
                     var totalPages = p.totalPages || 1;
@@ -175,7 +184,7 @@ export const courseSessionsListHtml = `
 
 /** 연동 홈페이지용 과전 상세 (id는 클라이언트에서 채움) */
 export function courseSessionDetailHtml(id: string, source: 'session' | 'general' = 'session') {
-    return `
+    let html = `
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -206,7 +215,7 @@ export function courseSessionDetailHtml(id: string, source: 'session' | 'general
     </style>
 </head>
 <body class="bg-slate-50 font-sans leading-relaxed text-slate-900">
-    ${navigationHtml('course-sessions')}
+    ` + _navigationHtml('course-sessions') + `
 
     <div id="detailContent">
         <!-- 스켈레톤 UI -->
@@ -218,11 +227,11 @@ export function courseSessionDetailHtml(id: string, source: 'session' | 'general
         </div>
     </div>
 
-    ${footerHtml()}
+    ` + _footerHtml() + `
 
     <script>
-        var sessionId = \${JSON.stringify(id)};
-        var source = \${JSON.stringify(source)};
+        var sessionId = ` + JSON.stringify(id) + `;
+        var source = ` + JSON.stringify(source) + `;
         
         function formatDetail() {
             fetch('/api/course-sessions/public/' + sessionId + '?source=' + source)
@@ -235,7 +244,12 @@ export function courseSessionDetailHtml(id: string, source: 'session' | 'general
                     }
                     
                     var s = res.data;
-                    document.title = (s.course_name || '과정 상세') + ' - 와우쓰리디홍대센터';
+                    var dn = (s.course_name || '').trim();
+                    if (s.session_number) dn += ' + ' + s.session_number + '회차';
+                    if (s.session_name) dn += ' + ' + s.session_name;
+                    var nameEsc = dn.replace(/</g, '&lt;').replace(/"/g, '&quot;');
+                    
+                    document.title = dn + ' - 와우쓰리디홍대센터';
                     
                     var statusMap = {
                         recruiting: { label: '모집중', color: 'bg-emerald-500' },
@@ -255,146 +269,59 @@ export function courseSessionDetailHtml(id: string, source: 'session' | 'general
                         '<a href="' + (s.url_plan || s.url_detail_plan || '#').replace(/"/g, '&quot;') + '" target="_blank" class="w-full sm:w-auto inline-flex items-center justify-center px-8 py-4 bg-white border-2 border-primary-600 text-primary-600 font-bold rounded-2xl hover:bg-primary-50 transition shadow-sm">' +
                         '<i class="fas fa-file-pdf mr-2"></i>수업계획서 확인하기</a>' : '';
 
-                    container.innerHTML = \`
-                        <!-- Hero Section -->
-                        <div class="relative h-[250px] sm:h-[400px] overflow-hidden">
-                            <img src="\\\${imgUrl}" alt="" class="w-full h-full object-cover brightness-50 blur-[2px] transition duration-700">
-                            <div class="absolute inset-0 bg-gradient-to-t from-slate-50 via-slate-50/20 to-transparent"></div>
-                            <div class="absolute inset-x-0 bottom-0 max-w-6xl mx-auto px-4 mb-24 sm:mb-32">
-                                <nav class="flex items-center gap-2 text-white/80 text-sm mb-4">
-                                    <a href="/" class="hover:text-white transition">홈</a>
-                                    <i class="fas fa-chevron-right text-[10px]"></i>
-                                    <a href="/course-sessions" class="hover:text-white transition">교육과정</a>
-                                    <i class="fas fa-chevron-right text-[10px]"></i>
-                                    <span class="text-white font-medium italic">\\\${s.category_name || '전체'}</span>
-                                </nav>
-                                <div class="flex flex-wrap items-center gap-3 mb-4">
-                                    <span class="course-badge text-white \\\${status.color}">\\\${status.label}</span>
-                                    <span class="course-badge bg-white/20 backdrop-blur-md text-white border border-white/30">\\\${source === 'general' ? '일반직무' : '국비지원'}</span>
-                                </div>
-                                <h1 class="text-3xl sm:text-5xl font-black text-slate-800 leading-tight drop-shadow-sm">\\\${(s.course_name || '').replace(/</g, '&lt;')}</h1>
-                                <p class="text-slate-600 text-lg mt-2 font-medium">\\\${s.session_number ? s.session_number + '기수(회차) 운영 안내' : ''}</p>
-                            </div>
-                        </div>
-
-                        <!-- Main Content Container -->
-                        <div class="max-w-6xl mx-auto px-4 -mt-16 pb-24 relative z-10">
-                            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                                <!-- Info Summary Card -->
-                                <div class="lg:col-span-2 space-y-8">
-                                    <div class="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 p-6 sm:p-10 border border-slate-100 overflow-hidden">
-                                        <h2 class="text-xl font-black text-slate-800 mb-8 flex items-center gap-2">
-                                            <span class="w-2 h-6 bg-primary-600 rounded-full"></span>
-                                            주요 교육 정보
-                                        </h2>
-                                        
-                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-y-8 gap-x-12">
-                                            <!-- 기간 -->
-                                            <div class="flex items-start gap-4">
-                                                <div class="info-grid-icon"><i class="far fa-calendar-check"></i></div>
-                                                <div>
-                                                    <dt class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">교육기간</dt>
-                                                    <dd class="text-base font-bold text-slate-800">\\\${dateStr}</dd>
-                                                </div>
-                                            </div>
-                                            
-                                            <!-- 시간 -->
-                                            <div class="flex items-start gap-4">
-                                                <div class="info-grid-icon"><i class="far fa-clock"></i></div>
-                                                <div>
-                                                    <dt class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">총 교육시간</dt>
-                                                    <dd class="text-base font-bold text-slate-800 mr-2">\\\${s.total_hours ? s.total_hours + '시간' : '-'}</dd>
-                                                </div>
-                                            </div>
-
-                                            <!-- 장소 -->
-                                            <div class="flex items-start gap-4">
-                                                <div class="info-grid-icon"><i class="fas fa-map-marker-alt"></i></div>
-                                                <div>
-                                                    <dt class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">교육장소</dt>
-                                                    <dd class="text-base font-bold text-slate-800">\\\${(s.location || '와우쓰리디홍대센터').replace(/</g, '&lt;')}</dd>
-                                                </div>
-                                            </div>
-
-                                            <!-- 강사 -->
-                                            <div class="flex items-start gap-4">
-                                                <div class="info-grid-icon"><i class="fas fa-user-tie"></i></div>
-                                                <div>
-                                                    <dt class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">담당강사</dt>
-                                                    <dd class="text-base font-bold text-slate-800">\\\${(s.instructor_name || '전임 강사').replace(/</g, '&lt;')}</dd>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div class="mt-12 flex flex-wrap gap-4 border-t border-slate-50 pt-10">
-                                            <button onclick="window.location.href='/online-consulting'" class="w-full sm:w-auto inline-flex items-center justify-center px-8 py-4 bg-primary-600 text-white font-black rounded-2xl hover:bg-primary-700 transition shadow-lg shadow-primary-500/20 active:scale-95">
-                                                <i class="fas fa-paper-plane mr-2"></i>수강 신청 / 온라인 상담
-                                            </button>
-                                            \\\${syllabusBtn}
-                                        </div>
-                                    </div>
-
-                                    <!-- Description Section -->
-                                    <div class="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 p-6 sm:p-10 border border-slate-100">
-                                        <h2 class="text-xl font-black text-slate-800 mb-8 flex items-center gap-2">
-                                            <span class="w-2 h-6 bg-primary-600 rounded-full"></span>
-                                            과정 상세 커리큘럼
-                                        </h2>
-                                        
-                                        <div class="prose prose-slate max-w-none prose-img:rounded-3xl prose-headings:font-black prose-p:leading-relaxed prose-strong:text-slate-900 prose-a:text-primary-600">
-                                            \\\${s.course_detail_description || '<div class="py-12 text-center text-slate-400 tracking-tight"><i class="fas fa-info-circle text-4xl mb-4 block opacity-20"></i>등록된 상세 설명이 없습니다. 자세한 사항은 상담문의 바랍니다.</div>'}
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="flex justify-start">
-                                        <a href="/course-sessions" class="inline-flex items-center gap-2 px-6 py-3 bg-slate-200 text-slate-600 font-bold rounded-2xl hover:bg-primary-500 hover:text-white transition group">
-                                            <i class="fas fa-arrow-left transition group-hover:-translate-x-1"></i> 목록으로 돌아가기
-                                        </a>
-                                    </div>
-                                </div>
-
-                                <!-- Floating Sidebar / Image Card -->
-                                <div class="lg:col-span-1">
-                                    <div class="sticky top-24 space-y-6">
-                                        <div class="bg-white rounded-3xl shadow-xl shadow-slate-200/50 overflow-hidden border border-slate-100">
-                                            <div class="relative group cursor-zoom-in" onclick="window.open('\\\${imgUrl}', '_blank')">
-                                                <img src="\\\${imgUrl}" alt="" class="w-full aspect-video sm:aspect-square object-cover group-hover:scale-105 transition duration-500">
-                                                <div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition flex items-center justify-center">
-                                                    <i class="fas fa-search-plus text-white text-3xl opacity-0 group-hover:opacity-100 transition duration-300"></i>
-                                                </div>
-                                            </div>
-                                            <div class="p-6">
-                                                <div class="flex items-center justify-between mb-2">
-                                                    <span class="text-xs font-bold text-slate-400 uppercase tracking-tighter">대표이미지</span>
-                                                    <span class="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded">IMAGE VIEW</span>
-                                                </div>
-                                                <h4 class="font-bold text-slate-800 line-clamp-2">\\\${(s.course_name || '').replace(/</g, '&lt;')}</h4>
-                                            </div>
-                                        </div>
-
-                                        <!-- Contact Notice Card -->
-                                        <div class="bg-gradient-to-br from-primary-600 to-blue-700 rounded-3xl shadow-xl shadow-primary-500/20 p-8 text-white relative overflow-hidden">
-                                            <i class="fas fa-phone-alt absolute -right-4 -bottom-4 text-7xl opacity-10"></i>
-                                            <h3 class="text-lg font-black mb-2 tracking-tight">상담이 필요하신가요?</h3>
-                                            <p class="text-white/80 text-sm mb-6 leading-normal">망설이지 말고 문의주세요.<br>전문 상담원이 과정을 안내해드립니다.</p>
-                                            <div class="space-y-3">
-                                                <a href="tel:02-3144-3137" class="flex items-center gap-3 bg-white/10 hover:bg-white/20 transition p-3 rounded-2xl border border-white/20">
-                                                    <div class="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-primary-600"><i class="fas fa-phone-alt"></i></div>
-                                                    <div>
-                                                        <p class="text-[10px] font-bold text-white/60">홍대센터 직통</p>
-                                                        <p class="text-sm font-black tracking-wider">02-3144-3137</p>
-                                                    </div>
-                                                </a>
-                                                 <a href="/online-consulting" class="flex items-center gap-3 bg-white text-primary-600 p-3 rounded-2xl font-black text-sm justify-center hover:bg-slate-100 transition shadow-lg">
-                                                    온라인 신청하기
-                                                </a>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    \`;
+                    var inner = "";
+                    inner += "<!-- Hero Section -->";
+                    inner += "<div class='relative h-[180px] sm:h-[220px] overflow-hidden'>";
+                    inner += "<img src='/static/hero1.jpg' alt='' class='w-full h-full object-cover brightness-50 transition duration-700'>";
+                    inner += "<div class='absolute inset-0 bg-gradient-to-t from-slate-50 via-slate-50/20 to-transparent'></div>";
+                    inner += "<div class='absolute inset-x-0 bottom-0 max-w-6xl mx-auto px-4 mb-8 sm:mb-12'>";
+                    inner += "<div class='mb-2'>"; // 네비게이션 제거 및 여백 축소
+                    inner += "<div class='flex flex-wrap items-center gap-2 mb-2'>";
+                    inner += "<span class='course-badge text-white " + status.color + " font-extrabold text-[10px]'>" + status.label + "</span>";
+                    inner += "<span class='course-badge bg-white/20 backdrop-blur-md text-white border border-white/30 font-extrabold font-black text-[10px]'>" + (source === "general" ? "일반직무" : "국비지원") + "</span>";
+                    inner += "</div>";
+                    inner += "<h1 class='text-xl sm:text-2xl font-black text-slate-800 leading-tight drop-shadow-sm line-clamp-1'>" + nameEsc + "</h1>";
+                    inner += "</div>";
+                    inner += "</div>";
+                    inner += "</div>";
+                    inner += "<!-- Main Content Container -->";
+                    inner += "<div class='max-w-6xl mx-auto px-4 py-12 relative z-10 grid grid-cols-1 lg:grid-cols-3 gap-8'>";
+                    inner += "<!-- 1. Info Summary Card -->";
+                    inner += "<div class='lg:col-span-2'>";
+                    inner += "<div class='bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 p-6 sm:p-8 border border-slate-100 overflow-hidden h-full flex flex-col'>";
+                    inner += "<h2 class='text-xl font-black text-slate-800 mb-8 flex items-center gap-2'>";
+                    inner += "<span class='w-2 h-6 bg-primary-600 rounded-full'></span>주요 교육 정보</h2>";
+                    inner += "<div class='grid grid-cols-1 md:grid-cols-2 gap-y-8 gap-x-12'>";
+                    inner += "<!-- 기간 --><div class='flex items-start gap-4'><div class='info-grid-icon'><i class='far fa-calendar-check'></i></div><div><dt class='text-sm font-bold text-slate-400 uppercase tracking-wider mb-1'>교육기간</dt><dd class='text-base font-bold text-slate-800 font-black font-extrabold font-bold'>" + dateStr + "</dd></div></div>";
+                    inner += "<!-- 시간 --><div class='flex items-start gap-4'><div class='info-grid-icon'><i class='far fa-clock'></i></div><div><dt class='text-sm font-bold text-slate-400 uppercase tracking-wider mb-1'>총 교육시간</dt><dd class='text-base font-bold text-slate-800 mr-2 font-black font-extrabold font-bold font-black'>" + (s.total_hours ? s.total_hours + "시간" : "-") + "</dd></div></div>";
+                    inner += "<!-- 장소 --><div class='flex items-start gap-4'><div class='info-grid-icon'><i class='fas fa-map-marker-alt'></i></div><div><dt class='text-sm font-bold text-slate-400 uppercase tracking-wider mb-1'>교육장소</dt><dd class='text-base font-bold text-slate-800 font-bold italic font-black font-bold'>" + (s.location || "와우쓰리디홍대센터").replace(/</g, "&lt;") + "</dd></div></div>";
+                    inner += "<!-- 강사 --><div class='flex items-start gap-4'><div class='info-grid-icon'><i class='fas fa-user-tie'></i></div><div><dt class='text-sm font-bold text-slate-400 uppercase tracking-wider mb-1'>담당강사</dt><dd class='text-base font-bold text-slate-800 font-black italic font-bold'>" + (s.instructor_name || "전임 강사").replace(/</g, "&lt;") + "</dd></div></div>";
+                    inner += "</div>";
+                    inner += "<div class='mt-auto flex flex-wrap gap-4 border-t border-slate-50 pt-8'>";
+                    inner += "<button onclick=\\"window.location.href='/online-consulting'\\" class='w-full sm:w-auto inline-flex items-center justify-center px-8 py-4 bg-primary-600 text-white font-black rounded-2xl hover:bg-primary-700 transition shadow-lg shadow-primary-500/20 active:scale-95 font-bold font-black'><i class='fas fa-paper-plane mr-2'></i>수강 신청 / 온라인 상담</button>";
+                    inner += syllabusBtn;
+                    inner += "</div></div></div>";
+                    inner += "<!-- 2. Representative Image Card -->";
+                    inner += "<div class='lg:col-span-1'>";
+                    inner += "<div class='bg-white rounded-3xl shadow-xl shadow-slate-200/50 overflow-hidden border border-slate-100 h-full flex flex-col'>";
+                    inner += "<div class='relative group cursor-zoom-in bg-slate-50 flex-1' onclick=\\"window.open('" + imgUrl + "', '_blank')\\"><img src='" + imgUrl + "' alt='' class='w-full h-full object-contain group-hover:scale-105 transition duration-500'><div class='absolute inset-0 bg-black/0 group-hover:bg-black/20 transition flex items-center justify-center'><i class='fas fa-search-plus text-white text-3xl opacity-0 group-hover:opacity-100 transition duration-300'></i></div></div>";
+                    inner += "<div class='p-4'><div class='flex items-center justify-between mb-1'><span class='text-[10px] font-bold text-slate-400 uppercase tracking-tighter'>대표이미지</span><span class='text-[10px] font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded'>VIEW</span></div><h4 class='font-bold text-slate-800 text-xs line-clamp-1'>" + nameEsc + "</h4></div></div></div>";
+                    inner += "<!-- 3. Description Section -->";
+                    inner += "<div class='lg:col-span-2 space-y-8'>";
+                    inner += "<div class='bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 p-6 sm:p-10 border border-slate-100'>";
+                    inner += "<h2 class='text-xl font-black text-slate-800 mb-8 flex items-center gap-2'>";
+                    inner += "<span class='w-2 h-6 bg-primary-600 rounded-full'></span>과정 상세 커리큘럼</h2>";
+                    inner += "<div class='prose prose-slate max-w-none prose-img:rounded-3xl prose-headings:font-black prose-p:leading-relaxed prose-strong:text-slate-900 prose-a:text-primary-600 font-medium'>" + (s.course_detail_description || "<div class='py-12 text-center text-slate-400 tracking-tight'><i class='fas fa-info-circle text-4xl mb-4 block opacity-20'></i>등록된 상세 설명이 없습니다. 자세한 사항은 상담문의 바랍니다.</div>") + "</div>";
+                    inner += "</div><div class='flex justify-start pt-4'><a href='/course-sessions' class='inline-flex items-center gap-2 px-6 py-3 bg-slate-200 text-slate-600 font-bold rounded-2xl hover:bg-primary-500 hover:text-white transition group font-bold'><i class='fas fa-arrow-left transition group-hover:-translate-x-1'></i> 목록으로 돌아가기</a></div></div>";
+                    inner += "<!-- 4. Floating Contact Sidebar -->";
+                    inner += "<div class='lg:col-span-1'>";
+                    inner += "<div class='sticky top-24 space-y-6'>";
+                    inner += "<div class='bg-gradient-to-br from-primary-600 to-blue-700 rounded-3xl shadow-xl shadow-primary-500/20 p-8 text-white relative overflow-hidden'><i class='fas fa-phone-alt absolute -right-4 -bottom-4 text-7xl opacity-10'></i><h3 class='text-lg font-black mb-2 tracking-tight'>상담이 필요하신가요?</h3><p class='text-white/80 text-sm mb-6 leading-normal font-medium font-bold'>망설이지 말고 문의주세요.<br>전문 상담원이 과정을 안내해드립니다.</p><div class='space-y-3'>";
+                    inner += "<a href='tel:02-332-9010' class='flex items-center gap-3 bg-white/10 hover:bg-white/20 transition p-3 rounded-2xl border border-white/20'><div class='w-10 h-10 rounded-xl bg-white flex items-center justify-center text-primary-600'><i class='fas fa-phone-alt'></i></div><div><p class='text-[10px] font-bold text-white/60 font-black'>홍대센터 직통</p><p class='text-sm font-black tracking-wider'>02-332-9010</p></div></a>";
+                    inner += "<a href='/online-consulting' class='flex items-center gap-3 bg-white text-primary-600 p-3 rounded-2xl font-black text-sm justify-center hover:bg-slate-100 transition shadow-lg font-black font-extrabold'>온라인 신청하기</a>";
+                    inner += "</div></div></div></div></div>";
+                    
+                    container.innerHTML = inner;
                 })
                 .catch(function(err) {
                     console.error(err);
@@ -407,4 +334,5 @@ export function courseSessionDetailHtml(id: string, source: 'session' | 'general
 </body>
 </html>
 `;
+    return html;
 }
