@@ -937,32 +937,43 @@ app.get('/:id/timetable/resources', authMiddleware, requireAdmin, async (c) => {
     const session = await DB.prepare('SELECT approved_course_id FROM course_sessions WHERE id = ?').bind(id).first<{ approved_course_id: number }>();
     if (!session) return c.json({ success: false, error: '회차 정보 없음' }, 404);
 
-    // 2. NCS Subjects (from ncs_approved_registrations + ncs_unit_elements if needed, here simplify to ncs_approved_registrations)
-    // Assuming 'ncs_approved_registrations' holds the subjects linked to the approved course
-    const subjects = await DB.prepare(
-      `SELECT id, name, ncs_classification_code, type, total_time 
-       FROM ncs_approved_registrations 
-       WHERE approved_course_id = ?`
-    )
-      .bind(session.approved_course_id)
-      .all();
+    // 2. NCS Registration ID
+    // Check if registration exists for this approved course
+    const registration = await DB.prepare('SELECT id FROM ncs_approved_registrations WHERE approved_course_id = ?').bind(session.approved_course_id).first<{ id: number }>();
 
-    // 3. Instructors (Currently global list or filtered? For now, list all active instructors or just placeholders)
-    // Ideally we should have a table linking instructors to courses, but for now let's query users with 'instructor' role or similar.
-    // Assuming users table has role column. If not, return empty or dummy.
-    // Let's use a simple query if users table exists, otherwise empty.
+    let subjects: any[] = [];
+    if (registration) {
+      // 3. Curriculum + Hours
+      // Join curriculum with training hours table
+      const rows = await DB.prepare(
+        `SELECT 
+             c.id, 
+             c.name, 
+             c.type, 
+             c.classification as ncs_classification_code, 
+             COALESCE(h.theory_hours, 0) + COALESCE(h.practice_hours, 0) as total_time
+           FROM ncs_approved_curriculum c
+           LEFT JOIN ncs_approved_training_hours h ON h.curriculum_id = c.id
+           WHERE c.registration_id = ?`
+      )
+        .bind(registration.id)
+        .all();
+      subjects = rows.results || [];
+    }
+
+    // 3. Instructors
     let instructors: any[] = [];
     try {
-      const instRows = await DB.prepare("SELECT id, name FROM users WHERE role = 'instructor' OR role = 'admin'").all();
+      const instRows = await DB.prepare("SELECT id, name FROM users WHERE role IN ('instructor', 'admin')").all();
       instructors = instRows.results || [];
     } catch {
-      // Fallback or ignore
+      // Ignore
     }
 
     return c.json({
       success: true,
       data: {
-        subjects: subjects.results || [],
+        subjects: subjects,
         instructors: instructors
       }
     });
