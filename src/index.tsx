@@ -2640,7 +2640,7 @@ app.get('/online-consulting', (c) => {
                                                                                                                                                                         <li><i class="fas fa-check text-green-600 mr-2"></i>이메일: 3dcookiehd@naver.com</li>
                                                                                                                                                                         <li><i class="fas fa-check text-green-600 mr-2"></i>홍대: 02-3144-3137</li>
                                                                                                                                                                         <li><i class="fas fa-check text-green-600 mr-2"></i>구미: 054-464-3137</li>
-                                                                                                                                                                        <li><i class="fas fa-check text-green-600 mr-2"></i>전주: 02-6015-9010</li>
+                                                                                                                                                                        <li><i class="fas fa-check text-green-600 mr-2"></i>전주: 02-3144-3137</li>
                                                                                                                                                                     </ul>
                                                                                                                                                                 </div>
                                                                                                                                                             </div>

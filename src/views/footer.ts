@@ -54,7 +54,7 @@ export const footerHtml = () => `
                     </li>
                     <li class="flex items-start">
                         <i class="fas fa-phone mt-1 mr-2 text-primary-500"></i>
-                        <span>전주: 02-6015-9010</span>
+                        <span>전주: 02-3144-3137</span>
                     </li>
                 </ul>
             </div>

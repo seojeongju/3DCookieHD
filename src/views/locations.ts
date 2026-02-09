@@ -217,7 +217,7 @@ export function locationsHtml(options?: { kakaoMapAppKey?: string }) {
                                 </li>
                                 <li class="flex items-start">
                                     <span class="font-bold w-20 flex-shrink-0">전화</span>
-                                    <span>02-6015-9010</span>
+                                    <span>02-3144-3137</span>
                                 </li>
                                 <li class="flex items-start">
                                     <span class="font-bold w-20 flex-shrink-0">이메일</span>
