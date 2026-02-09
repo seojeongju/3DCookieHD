@@ -136,7 +136,7 @@ export const homeHtml = `
                             <i class="fas fa-pen-nib"></i>
                         </div>
                         <div class="flex-1">
-                            <h3 class="font-bold text-white text-lg">문제은행</h3>
+                            <h3 class="font-bold text-white text-lg">문제은행(CBT)</h3>
                             <p class="text-xs text-gray-300 group-hover:text-blue-100">기출문제 완벽 분석</p>
                         </div>
                         <i class="fas fa-chevron-right text-gray-400 group-hover:text-white/80"></i>
@@ -158,7 +158,7 @@ export const homeHtml = `
                             <i class="fas fa-robot"></i>
                         </div>
                         <div class="flex-1">
-                            <h3 class="font-bold text-white text-lg">AI 자동견적</h3>
+                            <h3 class="font-bold text-white text-lg">3D프린팅 AI실시간자동견적</h3>
                             <p class="text-xs text-gray-300 group-hover:text-violet-100">1초 스마트 견적</p>
                         </div>
                         <i class="fas fa-chevron-right text-gray-400 group-hover:text-white/80"></i>
@@ -169,7 +169,7 @@ export const homeHtml = `
                             <i class="fas fa-shopping-cart"></i>
                         </div>
                         <div class="flex-1">
-                            <h3 class="font-bold text-white text-lg">3D프린터 마켓</h3>
+                            <h3 class="font-bold text-white text-lg">와우쓰리디 온라인마켓</h3>
                             <p class="text-xs text-gray-300 group-hover:text-orange-100">검증된 장비 스토어</p>
                         </div>
                         <i class="fas fa-chevron-right text-gray-400 group-hover:text-white/80"></i>
@@ -190,19 +190,19 @@ export const homeHtml = `
         <div class="grid grid-cols-2 gap-3">
             <a href="/cbt" class="flex flex-col items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
                 <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mb-2"><i class="fas fa-pen-nib"></i></div>
-                <span class="text-sm font-bold text-gray-800">문제은행</span>
+                <span class="text-sm font-bold text-gray-800 text-center">문제은행(CBT)</span>
             </a>
             <a href="/step" class="flex flex-col items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
                 <div class="w-10 h-10 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center mb-2"><i class="fas fa-laptop-code"></i></div>
-                <span class="text-sm font-bold text-gray-800">STEP 훈련</span>
+                <span class="text-sm font-bold text-gray-800 text-center">STEP 훈련</span>
             </a>
             <a href="/auto-quote" class="flex flex-col items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
                 <div class="w-10 h-10 rounded-full bg-violet-100 text-violet-600 flex items-center justify-center mb-2"><i class="fas fa-robot"></i></div>
-                <span class="text-sm font-bold text-gray-800">AI 자동견적</span>
+                <span class="text-sm font-bold text-gray-800 text-center break-keep">3D프린팅 AI실시간자동견적</span>
             </a>
             <a href="/shop" class="flex flex-col items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
                 <div class="w-10 h-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center mb-2"><i class="fas fa-shopping-cart"></i></div>
-                <span class="text-sm font-bold text-gray-800">장비 마켓</span>
+                <span class="text-sm font-bold text-gray-800 text-center">와우쓰리디 온라인마켓</span>
             </a>
         </div>
     </section>
