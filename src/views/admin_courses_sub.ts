@@ -1036,7 +1036,7 @@ export const adminCoursesSessionsRegisterHtml = (editId?: string) => {
 
                 <section class="border border-slate-200 rounded-xl p-5 bg-white">
                     <h3 class="font-bold text-slate-800 mb-4">과정 상세 정보(과정설명)</h3>
-                    <p class="text-xs text-slate-500 mb-4">상세 정보 등록시 연동홈페이지의 각 과정 수강신청 버튼 하단에 과정 설명이 노출됩니다.</p>
+                    <p class="text-xs text-slate-500 mb-4">상세 정보 등록시 연동홈페이지의 각 과정 수강신청 버튼 하단에 과정 설명이 노출됩니다. <b>에디터에 고해상도 이미지를 직접 끌어다 넣거나 복사해서 붙여넣을 수 있습니다.</b></p>
                     <textarea id="sessionsFormCourseDetailDescription" class="w-full min-h-[280px] border border-slate-200 rounded-xl text-sm p-4 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" placeholder="과정 설명을 입력하세요 (HTML 지원)"></textarea>
                 </section>
 

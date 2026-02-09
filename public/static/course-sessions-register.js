@@ -1,4 +1,4 @@
-(function() {
+(function () {
     var form = document.getElementById('sessionsRegisterForm');
     if (!form) return;
     var formIdEl = document.getElementById('sessionsFormId');
@@ -6,19 +6,19 @@
 
     function loadApprovedCourses() {
         return fetch('/api/approved-courses?limit=500', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } })
-            .then(function(r) { return r.json(); })
-            .then(function(json) {
+            .then(function (r) { return r.json(); })
+            .then(function (json) {
                 if (!json.success || !json.data) return;
                 var reLt = new RegExp('<', 'g');
                 var sel = document.getElementById('sessionsFormApprovedCourse');
                 if (!sel) return;
                 var list = Array.isArray(json.data) ? json.data : (json.data.list || json.data.items || []);
-                sel.innerHTML = '<option value="">선택</option>' + list.map(function(c) {
+                sel.innerHTML = '<option value="">선택</option>' + list.map(function (c) {
                     var name = (c.name || '').replace(reLt, '&lt;');
                     return '<option value="' + c.id + '">' + name + '</option>';
                 }).join('');
             })
-            .catch(function(e) { console.error(e); });
+            .catch(function (e) { console.error(e); });
     }
 
     function loadApprovedCourseDetail(courseId) {
@@ -33,8 +33,8 @@
             return Promise.resolve();
         }
         return fetch('/api/approved-courses/' + courseId, { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } })
-            .then(function(r) { return r.json(); })
-            .then(function(json) {
+            .then(function (r) { return r.json(); })
+            .then(function (json) {
                 if (!json.success || !json.data) return;
                 var c = json.data;
                 function toTimeOnly(s) {
@@ -71,7 +71,7 @@
                 setTabPlanUrls(c.url_plan || null, c.url_detail_plan || null, editId);
                 updateSessionNamePreview();
             })
-            .catch(function() { if (box) box.classList.add('hidden'); });
+            .catch(function () { if (box) box.classList.add('hidden'); });
     }
 
     function updateSessionNamePreview() {
@@ -110,8 +110,8 @@
         var container = document.getElementById('sessionsFormInstructorList');
         if (!container) return Promise.resolve();
         return fetch('/api/ncs/approved/instructors', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } })
-            .then(function(r) { return r.json(); })
-            .then(function(json) {
+            .then(function (r) { return r.json(); })
+            .then(function (json) {
                 if (!json.success || !json.data) {
                     container.innerHTML = '<span class="text-slate-400">강사 목록을 불러올 수 없습니다. (직접 입력은 아래 없음)</span>';
                     return;
@@ -123,20 +123,20 @@
                     container.innerHTML = '<span class="text-slate-400">등록된 강사가 없습니다.</span>';
                     return;
                 }
-                container.innerHTML = list.map(function(instr) {
+                container.innerHTML = list.map(function (instr) {
                     var name = (instr.name || '').replace(reLt, '&lt;');
                     var idAttr = 'sessions-instructor-' + (instr.id || Math.random().toString(36).slice(2));
                     return '<label class="inline-flex items-center gap-2 cursor-pointer hover:text-emerald-600"><input type="checkbox" class="sessions-instructor-cb rounded text-emerald-600" data-name="' + name.replace(/"/g, '&quot;') + '" id="' + idAttr + '"> ' + name + '</label>';
                 }).join('');
             })
-            .catch(function() {
+            .catch(function () {
                 container.innerHTML = '<span class="text-slate-400">강사 목록을 불러올 수 없습니다.</span>';
             });
     }
 
     function getSelectedInstructorNames() {
         var names = [];
-        document.querySelectorAll('.sessions-instructor-cb:checked').forEach(function(cb) {
+        document.querySelectorAll('.sessions-instructor-cb:checked').forEach(function (cb) {
             var n = cb.getAttribute('data-name');
             if (n) names.push(n);
         });
@@ -145,8 +145,8 @@
 
     function setSelectedInstructors(commaSeparatedNames) {
         var set = {};
-        (commaSeparatedNames || '').split(',').forEach(function(s) { var t = s.trim(); if (t) set[t] = true; });
-        document.querySelectorAll('.sessions-instructor-cb').forEach(function(cb) {
+        (commaSeparatedNames || '').split(',').forEach(function (s) { var t = s.trim(); if (t) set[t] = true; });
+        document.querySelectorAll('.sessions-instructor-cb').forEach(function (cb) {
             cb.checked = !!set[cb.getAttribute('data-name')];
         });
     }
@@ -157,19 +157,19 @@
         var sel = document.getElementById('sessionsFormLocationSelect');
         if (!sel) return Promise.resolve();
         return fetch('/api/hrd/facilities', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } })
-            .then(function(r) { return r.json(); })
-            .then(function(json) {
+            .then(function (r) { return r.json(); })
+            .then(function (json) {
                 if (!json.success || !json.data) return;
                 var list = Array.isArray(json.data) ? json.data : [];
                 facilitiesListCache = list;
                 var reLt = new RegExp('<', 'g');
-                var opts = list.map(function(f) {
+                var opts = list.map(function (f) {
                     var name = (f.name || '').replace(reLt, '&lt;');
                     return '<option value="' + name.replace(/"/g, '&quot;') + '">' + name + '</option>';
                 }).join('');
                 sel.innerHTML = '<option value="">등록된 훈련시설 선택 (또는 아래 직접 입력)</option>' + opts;
             })
-            .catch(function(e) { console.error(e); });
+            .catch(function (e) { console.error(e); });
     }
 
     function setLocationFromSelect() {
@@ -224,8 +224,8 @@
             headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') },
             body: fd
         })
-            .then(function(r) { return r.json(); })
-            .then(function(json) {
+            .then(function (r) { return r.json(); })
+            .then(function (json) {
                 if (json.success && json.data && (json.data.url || json.data.publicUrl)) {
                     var url = json.data.url || json.data.publicUrl;
                     if (urlHidden) urlHidden.value = url;
@@ -234,13 +234,13 @@
                     alert(json.error || '업로드 실패');
                 }
             })
-            .catch(function() { alert('업로드 중 오류'); });
+            .catch(function () { alert('업로드 중 오류'); });
     }
 
     function loadSession(id) {
         return fetch('/api/course-sessions/' + id, { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } })
-            .then(function(r) { return r.json(); })
-            .then(function(json) {
+            .then(function (r) { return r.json(); })
+            .then(function (json) {
                 if (!json.success || !json.data) return;
                 var d = json.data;
                 var approvedSel = document.getElementById('sessionsFormApprovedCourse');
@@ -283,11 +283,11 @@
                 var locationEl = document.getElementById('sessionsFormLocation');
                 if (locationEl) locationEl.value = d.location || '';
                 setLocationSelectFromValue(d.location || '');
-                document.querySelectorAll('input[name="sessionsTargetAudience"]').forEach(function(cb) {
-                    cb.checked = (d.target_audience || '').split(',').map(function(s) { return s.trim(); }).indexOf(cb.value) >= 0;
+                document.querySelectorAll('input[name="sessionsTargetAudience"]').forEach(function (cb) {
+                    cb.checked = (d.target_audience || '').split(',').map(function (s) { return s.trim(); }).indexOf(cb.value) >= 0;
                 });
-                document.querySelectorAll('input[name="sessionsDaysOfWeek"]').forEach(function(cb) {
-                    cb.checked = (d.days_of_week || '').split(',').map(function(s) { return s.trim(); }).indexOf(cb.value) >= 0;
+                document.querySelectorAll('input[name="sessionsDaysOfWeek"]').forEach(function (cb) {
+                    cb.checked = (d.days_of_week || '').split(',').map(function (s) { return s.trim(); }).indexOf(cb.value) >= 0;
                 });
                 var recruitmentSel = document.getElementById('sessionsFormRecruitmentStatus');
                 if (recruitmentSel) recruitmentSel.value = d.recruitment_status || 'normal';
@@ -312,10 +312,10 @@
                 if (formIdEl) formIdEl.value = id;
                 if (id && approvedSel) approvedSel.disabled = true;
                 if (id && numEl) numEl.readOnly = true;
-                loadApprovedCourseDetail(d.approved_course_id).then(function() { updateSessionNamePreview(); });
+                loadApprovedCourseDetail(d.approved_course_id).then(function () { updateSessionNamePreview(); });
                 setTabPlanUrls(d.url_plan || null, d.url_detail_plan || null, id);
             })
-            .catch(function() { alert('조회 실패'); });
+            .catch(function () { alert('조회 실패'); });
     }
 
     function submitForm(e) {
@@ -332,9 +332,9 @@
         var status = document.getElementById('sessionsFormStatus').value || 'recruiting';
         var instructorName = getSelectedInstructorNames();
         var targetAudience = [];
-        document.querySelectorAll('input[name="sessionsTargetAudience"]:checked').forEach(function(cb) { targetAudience.push(cb.value); });
+        document.querySelectorAll('input[name="sessionsTargetAudience"]:checked').forEach(function (cb) { targetAudience.push(cb.value); });
         var daysOfWeek = [];
-        document.querySelectorAll('input[name="sessionsDaysOfWeek"]:checked').forEach(function(cb) { daysOfWeek.push(cb.value); });
+        document.querySelectorAll('input[name="sessionsDaysOfWeek"]:checked').forEach(function (cb) { daysOfWeek.push(cb.value); });
         var locationEl = document.getElementById('sessionsFormLocation');
         var locationVal = (locationEl && locationEl.value ? locationEl.value : '').trim() || null;
         var trainingStart = (document.getElementById('sessionsFormTrainingStart').value || '').trim() || null;
@@ -428,8 +428,8 @@
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
             body: JSON.stringify(payload)
         })
-            .then(function(r) { return r.json(); })
-            .then(function(json) {
+            .then(function (r) { return r.json(); })
+            .then(function (json) {
                 if (btn) btn.disabled = false;
                 if (json.success) {
                     window.location.href = '/admin/courses/sessions';
@@ -437,7 +437,7 @@
                 }
                 alert(json.error || '저장 실패');
             })
-            .catch(function() {
+            .catch(function () {
                 if (btn) btn.disabled = false;
                 alert('저장 중 오류가 발생했습니다.');
             });
@@ -446,7 +446,7 @@
     function getQueryParam(name) {
         var q = typeof window !== 'undefined' && window.location && window.location.search ? window.location.search.slice(1) : '';
         var params = {};
-        q.split('&').forEach(function(pair) {
+        q.split('&').forEach(function (pair) {
             var i = pair.indexOf('=');
             if (i >= 0) params[decodeURIComponent(pair.slice(0, i))] = decodeURIComponent((pair.slice(i + 1) || '').replace(/\+/g, ' '));
         });
@@ -456,7 +456,7 @@
     form.addEventListener('submit', submitForm);
 
     var approvedSel = document.getElementById('sessionsFormApprovedCourse');
-    if (approvedSel) approvedSel.addEventListener('change', function() { loadApprovedCourseDetail(this.value || ''); });
+    if (approvedSel) approvedSel.addEventListener('change', function () { loadApprovedCourseDetail(this.value || ''); });
     var sessionNameInput = document.getElementById('sessionsFormSessionName');
     if (sessionNameInput) sessionNameInput.addEventListener('input', updateSessionNamePreview);
     if (sessionNameInput) sessionNameInput.addEventListener('change', updateSessionNamePreview);
@@ -467,7 +467,7 @@
     var lunchNoneCb = document.getElementById('sessionsFormLunchNone');
     var lunchTimeWrap = document.getElementById('sessionsFormLunchTimeWrap');
     if (lunchNoneCb && lunchTimeWrap) {
-        lunchNoneCb.addEventListener('change', function() {
+        lunchNoneCb.addEventListener('change', function () {
             var noLunch = lunchNoneCb.checked;
             lunchTimeWrap.classList.toggle('hidden', noLunch);
             if (noLunch) {
@@ -484,10 +484,10 @@
         });
     }
 
-    document.querySelectorAll('.session-detail-tab').forEach(function(btn) {
-        btn.addEventListener('click', function() {
+    document.querySelectorAll('.session-detail-tab').forEach(function (btn) {
+        btn.addEventListener('click', function () {
             var tab = btn.getAttribute('data-tab');
-            document.querySelectorAll('.session-detail-tab').forEach(function(b) { b.classList.remove('active', 'border-emerald-600', 'bg-white', 'text-emerald-700'); b.classList.add('border-transparent', 'text-slate-500'); });
+            document.querySelectorAll('.session-detail-tab').forEach(function (b) { b.classList.remove('active', 'border-emerald-600', 'bg-white', 'text-emerald-700'); b.classList.add('border-transparent', 'text-slate-500'); });
             btn.classList.add('active', 'border-emerald-600', 'bg-white', 'text-emerald-700');
             btn.classList.remove('border-transparent', 'text-slate-500');
             var ncsContent = document.getElementById('sessionsTabContentNcs');
@@ -500,11 +500,11 @@
     if (locationSelectEl) locationSelectEl.addEventListener('change', setLocationFromSelect);
 
     var mainSlideInput = document.getElementById('sessionsFormMainSlideImage');
-    if (mainSlideInput) mainSlideInput.addEventListener('change', function() {
+    if (mainSlideInput) mainSlideInput.addEventListener('change', function () {
         uploadSessionImage('sessionsFormMainSlideImage', 'sessionsFormMainSlideImageUrl', 'sessionsFormMainSlideImageInfo');
     });
     var courseListInput = document.getElementById('sessionsFormCourseListImage');
-    if (courseListInput) courseListInput.addEventListener('change', function() {
+    if (courseListInput) courseListInput.addEventListener('change', function () {
         uploadSessionImage('sessionsFormCourseListImage', 'sessionsFormCourseListImageUrl', 'sessionsFormCourseListImageInfo');
     });
 
@@ -515,18 +515,53 @@
         if (tinymce.get('sessionsFormCourseDetailDescription')) return;
         tinymce.init({
             selector: '#sessionsFormCourseDetailDescription',
-            height: 320,
+            height: 480,
             menubar: false,
             plugins: 'advlist autolink lists link image charmap preview anchor searchreplace visualblocks code fullscreen insertdatetime media table help wordcount',
             toolbar: 'undo redo | blocks | bold italic underline | fontfamily fontsize | forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image table code | help',
-            content_style: 'body { font-family: Helvetica, Arial, sans-serif; font-size: 14px; }'
+            content_style: 'body { font-family: Helvetica, Arial, sans-serif; font-size: 14px; }',
+            image_title: true,
+            automatic_uploads: true,
+            file_picker_types: 'image',
+            images_upload_handler: function (blobInfo, progress) {
+                return new Promise(function (resolve, reject) {
+                    var xhr = new XMLHttpRequest();
+                    xhr.withCredentials = false;
+                    xhr.open('POST', '/api/upload');
+                    xhr.setRequestHeader('Authorization', 'Bearer ' + localStorage.getItem('token'));
+                    xhr.upload.onprogress = function (e) {
+                        progress(e.loaded / e.total * 100);
+                    };
+                    xhr.onload = function () {
+                        if (xhr.status < 200 || xhr.status >= 300) {
+                            reject('HTTP Error: ' + xhr.status);
+                            return;
+                        }
+                        var json = JSON.parse(xhr.responseText);
+                        if (!json || !json.success || !json.data || !json.data.url) {
+                            reject('Invalid JSON: ' + xhr.responseText);
+                            return;
+                        }
+                        // 반환된 URL을 resolve하여 에디터에 삽입
+                        resolve(json.data.url);
+                    };
+                    xhr.onerror = function () {
+                        reject('Image upload failed due to a network error.');
+                    };
+                    var formData = new FormData();
+                    formData.append('file', blobInfo.blob(), blobInfo.filename());
+                    formData.append('category', 'images');
+                    formData.append('folder', 'course-sessions/detail');
+                    xhr.send(formData);
+                });
+            }
         });
     }
 
-    Promise.all([loadInstructors(), loadFacilities()]).then(function() {
+    Promise.all([loadInstructors(), loadFacilities()]).then(function () {
         return loadApprovedCourses();
-    }).then(function() {
-        setTimeout(function() { initSessionTinyMCE(); }, 150);
+    }).then(function () {
+        setTimeout(function () { initSessionTinyMCE(); }, 150);
         if (editId) {
             loadSession(editId);
             return;
@@ -538,15 +573,15 @@
             var numEl = document.getElementById('sessionsFormSessionNumber');
             if (numEl) {
                 fetch('/api/course-sessions?approved_course_id=' + encodeURIComponent(approvedCourseIdFromQuery) + '&limit=500', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } })
-                    .then(function(r) { return r.json(); })
-                    .then(function(json) {
+                    .then(function (r) { return r.json(); })
+                    .then(function (json) {
                         if (!json.success || !json.data) return;
                         var list = Array.isArray(json.data) ? json.data : (json.data.list || []);
                         var maxNum = 0;
-                        list.forEach(function(s) { if (s.session_number != null && s.session_number > maxNum) maxNum = s.session_number; });
+                        list.forEach(function (s) { if (s.session_number != null && s.session_number > maxNum) maxNum = s.session_number; });
                         numEl.value = maxNum + 1;
                     })
-                    .catch(function() { numEl.value = numEl.value || '1'; });
+                    .catch(function () { numEl.value = numEl.value || '1'; });
             }
         }
     });
