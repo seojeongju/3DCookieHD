@@ -48,6 +48,7 @@ import {
     adminCoursesApprovedRegisterHtml,
     adminCoursesSessionsHtml,
     adminCoursesSessionsRegisterHtml,
+    adminCoursesSessionEnrollmentsHtml,
     adminCoursesCopyHtml,
     adminSyllabusHtml,
 } from './views/admin_courses_sub';
@@ -278,10 +279,11 @@ app.get('/admin/courses/approved/register', (c) => c.html(adminCoursesApprovedRe
 
 app.get('/admin/courses/approved/register/:id', (c) => c.html(adminCoursesApprovedRegisterHtml(c.req.param('id'))));
 app.get('/admin/courses/sessions', (c) => c.html(adminCoursesSessionsHtml()));
-app.get('/admin/courses/sessions/register', (c) => c.html(adminCoursesSessionsRegisterHtml()));
-app.get('/admin/courses/sessions/register/:id', (c) => c.html(adminCoursesSessionsRegisterHtml(c.req.param('id'))));
-app.get('/admin/courses/sessions/:sessionId/timetable', (c) => c.html(adminSessionTimetableHtml(Number(c.req.param('sessionId')))));
-app.get('/admin/courses/sessions/:sessionId/syllabus', (c) => c.html(adminSyllabusHtml(c.req.param('sessionId'))));
+  app.get('/admin/courses/sessions/register', (c) => c.html(adminCoursesSessionsRegisterHtml()));
+  app.get('/admin/courses/sessions/register/:id', (c) => c.html(adminCoursesSessionsRegisterHtml(c.req.param('id'))));
+  app.get('/admin/courses/sessions/enrollments', (c) => c.html(adminCoursesSessionEnrollmentsHtml()));
+  app.get('/admin/courses/sessions/:sessionId/timetable', (c) => c.html(adminSessionTimetableHtml(Number(c.req.param('sessionId')))));
+  app.get('/admin/courses/sessions/:sessionId/syllabus', (c) => c.html(adminSyllabusHtml(c.req.param('sessionId'))));
 app.get('/admin/courses/copy', (c) => c.html(adminCoursesCopyHtml()));
 app.get('/admin/partner-universities', (c) => c.html(adminPartnerUniversitiesHtml));
 app.get('/admin/users', (c) => c.html(adminUsersHtml())); // 회원관리 - 역할 및 권한 관리

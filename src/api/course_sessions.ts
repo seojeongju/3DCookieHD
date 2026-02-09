@@ -863,7 +863,87 @@ app.delete('/:id', authMiddleware, requireAdmin, async (c) => {
   }
 });
 
-// ... existing methods ...
+/**
+ * GET /api/course-sessions/:id/enrollments
+ * 회차별 등록된 수강생 목록
+ */
+app.get('/:id/enrollments', authMiddleware, requireAdmin, async (c) => {
+  try {
+    const id = parseInt(c.req.param('id'), 10);
+    if (isNaN(id)) return c.json({ success: false, error: '잘못된 회차 ID' }, 400);
+    const { DB } = c.env;
+    const session = await DB.prepare('SELECT id, approved_course_id, session_number, session_name FROM course_sessions WHERE id = ?').bind(id).first();
+    if (!session) return c.json({ success: false, error: '회차를 찾을 수 없습니다' }, 404);
+
+    const { results } = await DB.prepare(
+      `SELECT e.id, e.session_id, e.user_id, e.status, e.enrolled_at,
+              u.name, u.phone, u.email
+       FROM course_session_enrollments e
+       INNER JOIN users u ON u.id = e.user_id
+       WHERE e.session_id = ?
+       ORDER BY e.enrolled_at ASC`
+    ).bind(id).all();
+
+    return c.json({ success: true, data: results || [], session });
+  } catch (e) {
+    console.error('course-sessions enrollments list:', e);
+    return c.json({ success: false, error: '수강생 목록 조회 실패' }, 500);
+  }
+});
+
+/**
+ * POST /api/course-sessions/:id/enrollments
+ * 회차에 수강생 등록 (user_ids 배열)
+ */
+app.post('/:id/enrollments', authMiddleware, requireAdmin, async (c) => {
+  try {
+    const id = parseInt(c.req.param('id'), 10);
+    if (isNaN(id)) return c.json({ success: false, error: '잘못된 회차 ID' }, 400);
+    const body = await c.req.json<{ user_ids: number[] }>();
+    const userIds = Array.isArray(body.user_ids) ? body.user_ids : [];
+    if (userIds.length === 0) return c.json({ success: false, error: '등록할 수강생을 선택하세요' }, 400);
+
+    const { DB } = c.env;
+    const session = await DB.prepare('SELECT id FROM course_sessions WHERE id = ?').bind(id).first();
+    if (!session) return c.json({ success: false, error: '회차를 찾을 수 없습니다' }, 404);
+
+    let added = 0;
+    for (const userId of userIds) {
+      const uid = parseInt(String(userId), 10);
+      if (isNaN(uid)) continue;
+      try {
+        await DB.prepare(
+          'INSERT INTO course_session_enrollments (session_id, user_id, status) VALUES (?, ?, ?)'
+        ).bind(id, uid, 'enrolled').run();
+        added++;
+      } catch (_) {
+        // UNIQUE violation = already enrolled, skip
+      }
+    }
+    return c.json({ success: true, message: `${added}명 등록되었습니다`, added });
+  } catch (e) {
+    console.error('course-sessions enrollments add:', e);
+    return c.json({ success: false, error: '수강생 등록 실패' }, 500);
+  }
+});
+
+/**
+ * DELETE /api/course-sessions/:id/enrollments/:userId
+ * 회차에서 수강생 제거
+ */
+app.delete('/:id/enrollments/:userId', authMiddleware, requireAdmin, async (c) => {
+  try {
+    const id = parseInt(c.req.param('id'), 10);
+    const userId = parseInt(c.req.param('userId'), 10);
+    if (isNaN(id) || isNaN(userId)) return c.json({ success: false, error: '잘못된 ID' }, 400);
+    const { DB } = c.env;
+    await DB.prepare('DELETE FROM course_session_enrollments WHERE session_id = ? AND user_id = ?').bind(id, userId).run();
+    return c.json({ success: true, message: '등록이 해제되었습니다' });
+  } catch (e) {
+    console.error('course-sessions enrollments delete:', e);
+    return c.json({ success: false, error: '등록 해제 실패' }, 500);
+  }
+});
 
 /**
  * GET /api/course-sessions/:id/timetable/config

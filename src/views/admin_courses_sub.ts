@@ -710,6 +710,9 @@ export const adminCoursesSessionsHtml = () =>
                 <span id="sessionsSummary" class="text-[10px] text-slate-400">Loading...</span>
             </div>
             <div class="flex items-center gap-2">
+                <a href="/admin/courses/sessions/enrollments" class="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-600 text-white rounded text-xs font-bold hover:bg-emerald-700 transition">
+                    <i class="fas fa-user-plus"></i> 수강생 등록
+                </a>
                 <a href="/admin/courses/sessions/register" class="inline-flex items-center gap-2 px-3 py-1.5 bg-primary-600 text-white rounded text-xs font-bold hover:bg-primary-700 transition">
                     <i class="fas fa-plus"></i> 회차별 과정 신규 개설
                 </a>
@@ -1394,3 +1397,98 @@ export const adminSyllabusHtml = (sessionId: string) => {
     `
     );
 };
+
+/** 수강생 등록 페이지: 회차 선택 후 훈련생 목록에서 수강생 등록 */
+export const adminCoursesSessionEnrollmentsHtml = () =>
+    courseSubPageLayout(
+        'courses-session-enrollments',
+        '수강생 등록',
+        '회차별 개설과정에 수강생을 등록합니다. 훈련생 목록에서 선택해 등록하세요.',
+        'fa-user-plus',
+        `
+    <div class="space-y-6">
+        <!-- 회차 선택 -->
+        <div class="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
+            <h2 class="font-bold text-slate-700 border-b border-slate-100 pb-3 mb-4 flex items-center gap-2">
+                <i class="fas fa-calendar-alt text-slate-400"></i> 회차 선택
+            </h2>
+            <div class="flex flex-wrap items-end gap-4">
+                <div class="min-w-[280px]">
+                    <label class="block text-xs font-bold text-slate-500 mb-1">개설 회차</label>
+                    <select id="enrollSessionSelect" class="w-full py-2.5 px-3 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        <option value="">회차를 선택하세요</option>
+                    </select>
+                </div>
+                <button type="button" id="enrollLoadSession" class="px-4 py-2.5 bg-slate-800 text-white rounded-lg text-xs font-bold hover:bg-slate-700 transition">
+                    <i class="fas fa-sync-alt mr-1"></i> 조회
+                </button>
+            </div>
+            <p id="enrollSessionSummary" class="mt-2 text-xs text-slate-500 hidden"></p>
+        </div>
+
+        <div id="enrollContent" class="hidden">
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <!-- 등록된 수강생 -->
+                <div class="bg-white border border-slate-200 rounded-lg shadow-sm flex flex-col overflow-hidden">
+                    <div class="p-4 border-b border-slate-100 flex items-center justify-between shrink-0">
+                        <h3 class="font-bold text-slate-700 flex items-center gap-2">
+                            <i class="fas fa-users text-emerald-500"></i> 등록된 수강생
+                            <span id="enrolledCount" class="text-slate-400 text-xs font-normal">0명</span>
+                        </h3>
+                    </div>
+                    <div class="flex-1 overflow-auto custom-scrollbar min-h-[200px] max-h-[400px]">
+                        <table class="w-full text-sm border-collapse">
+                            <thead class="bg-slate-50 text-slate-500 text-xs font-bold uppercase sticky top-0">
+                                <tr>
+                                    <th class="p-2 text-left border-b border-slate-200">이름</th>
+                                    <th class="p-2 text-left border-b border-slate-200">연락처</th>
+                                    <th class="p-2 w-20 text-center border-b border-slate-200">관리</th>
+                                </tr>
+                            </thead>
+                            <tbody id="enrolledListBody" class="divide-y divide-slate-100">
+                                <tr><td colspan="3" class="p-4 text-center text-slate-400 text-xs">회차를 선택한 뒤 조회하세요.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 훈련생 목록에서 등록 -->
+                <div class="bg-white border border-slate-200 rounded-lg shadow-sm flex flex-col overflow-hidden">
+                    <div class="p-4 border-b border-slate-100 flex items-center justify-between shrink-0">
+                        <h3 class="font-bold text-slate-700 flex items-center gap-2">
+                            <i class="fas fa-user-plus text-primary-500"></i> 훈련생 목록에서 등록
+                        </h3>
+                        <div class="flex gap-2">
+                            <input type="text" id="enrollStudentSearch" placeholder="이름·연락처 검색" class="px-2 py-1.5 border border-slate-200 rounded text-xs w-36 focus:ring-1 focus:ring-primary-500">
+                            <button type="button" id="enrollAddSelected" class="px-3 py-1.5 bg-primary-600 text-white rounded text-xs font-bold hover:bg-primary-700 transition">
+                                <i class="fas fa-plus mr-1"></i> 선택 등록
+                            </button>
+                        </div>
+                    </div>
+                    <div class="flex-1 overflow-auto custom-scrollbar min-h-[200px] max-h-[400px]">
+                        <table class="w-full text-sm border-collapse">
+                            <thead class="bg-slate-50 text-slate-500 text-xs font-bold uppercase sticky top-0">
+                                <tr>
+                                    <th class="p-2 w-8 text-center border-b border-slate-200"><input type="checkbox" id="enrollSelectAll" title="전체 선택"></th>
+                                    <th class="p-2 text-left border-b border-slate-200">이름</th>
+                                    <th class="p-2 text-left border-b border-slate-200">연락처</th>
+                                </tr>
+                            </thead>
+                            <tbody id="candidateListBody" class="divide-y divide-slate-100">
+                                <tr><td colspan="3" class="p-4 text-center text-slate-400 text-xs">회차 선택 후 훈련생 목록이 표시됩니다.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="enrollEmptyState" class="bg-white border border-slate-200 rounded-lg p-12 text-center text-slate-500">
+            <i class="fas fa-calendar-check text-4xl mb-3 block text-slate-300"></i>
+            <p class="font-medium">위에서 회차를 선택한 뒤 [조회]를 누르세요.</p>
+        </div>
+    </div>
+
+    <script src="/static/session-enrollments.js"></script>
+    `
+    );

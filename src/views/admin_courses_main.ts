@@ -227,23 +227,24 @@ export function adminCoursesMainHtml(): string {
                                 ? '<button onclick="event.stopPropagation(); window.dashboardSetHomepageExposed(' + courseId + ',' + item.id + ', 0)" class="px-2 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-bold hover:bg-emerald-600 hover:text-white transition flex items-center gap-1"><i class="fas fa-eye"></i> 노출중</button>'
                                 : '<button onclick="event.stopPropagation(); window.dashboardSetHomepageExposed(' + courseId + ',' + item.id + ', 1)" class="px-2 py-1 bg-slate-50 text-slate-400 rounded-lg text-xs font-bold hover:bg-primary-600 hover:text-white transition flex items-center gap-1"><i class="fas fa-eye-slash"></i> 숨김</button>';
 
+                            var fullCourseName = (item.course_name || '과정') + ' ' + (item.session_number != null ? item.session_number + '차' : '') + (item.session_name ? ' ' + item.session_name : '');
                             html += '<div class="flex items-center justify-between bg-white border border-slate-200 rounded-xl p-4 hover:border-primary-200 hover:shadow-sm transition group/card">' +
-                                '<div class="flex items-center gap-4">' +
-                                    '<div class="w-10 h-10 flex items-center justify-center bg-slate-50 rounded-lg font-black text-slate-400 text-xs">' + item.session_number + '차</div>' +
-                                    '<div>' +
-                                        '<div class="flex items-center gap-2 mb-0.5">' +
-                                            '<span class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ' + statusCls + '">' + statusTxt + '</span>' +
-                                            '<span class="font-bold text-slate-800 text-[13px]">' + (item.session_name || '기본 회차 과정') + '</span>' +
+                                '<div class="flex items-center gap-4 min-w-0">' +
+                                    '<div class="w-10 h-10 flex items-center justify-center bg-slate-50 rounded-lg font-black text-slate-400 text-xs shrink-0">' + item.session_number + '차</div>' +
+                                    '<div class="min-w-0">' +
+                                        '<div class="flex items-center gap-2 mb-0.5 flex-wrap">' +
+                                            '<span class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider shrink-0 ' + statusCls + '">' + statusTxt + '</span>' +
+                                            '<span class="font-bold text-slate-800 text-[13px] break-words">' + (fullCourseName.replace(/</g, '&lt;')) + '</span>' +
                                         '</div>' +
                                         '<div class="text-[10px] text-slate-400 font-medium"><i class="far fa-calendar-alt mr-1"></i> ' + range + '</div>' +
                                     '</div>' +
                                 '</div>' +
-                                '<div class="flex items-center gap-2">' +
+                                '<div class="flex items-center gap-2 shrink-0">' +
                                     homepageBtn +
                                     '<div class="h-4 w-[1px] bg-slate-100 mx-1"></div>' +
                                     '<a href="/admin/courses/sessions/register/' + item.id + '" class="px-3 py-1.5 bg-slate-50 text-slate-600 rounded-lg text-xs font-bold hover:bg-primary-600 hover:text-white transition">수정</a>' +
                                     '<a href="/admin/courses/sessions/' + item.id + '/timetable" class="px-3 py-1.5 bg-slate-50 text-slate-600 rounded-lg text-xs font-bold hover:bg-emerald-600 hover:text-white transition"><i class="far fa-calendar-alt mr-1"></i> 시간표</a>' +
-                                    '<a href="/admin/courses/sessions/' + item.id + '/syllabus" class="px-3 py-1.5 bg-slate-50 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-900 hover:text-white transition">상세</a>' +
+                                    '<a href="/admin/courses/sessions/' + item.id + '/syllabus" class="px-3 py-1.5 bg-slate-50 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-900 hover:text-white transition">교수계획서</a>' +
                                     '<button onclick="event.stopPropagation(); window.dashboardDeleteSession(' + item.id + ')" class="w-8 h-8 flex items-center justify-center text-slate-300 hover:text-red-500 transition"><i class="fas fa-trash-alt text-xs"></i></button>' +
                                 '</div>' +
                             '</div>';
