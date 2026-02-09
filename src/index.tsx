@@ -58,6 +58,7 @@ import { adminHrdItemsHtml } from './views/admin_hrd_items';
 import { adminHrdItemsTransactionsHtml } from './views/admin_hrd_items_transactions';
 import { adminHrdStudentsHtml } from './views/admin_hrd_students';
 import { adminUsersHtml } from './views/admin_users';
+import { adminSessionTimetableHtml } from './views/admin_session_timetable';
 import { adminHrdFacilitiesHtml } from './views/admin_hrd_facilities';
 import { adminHrdAttendanceHtml } from './views/admin_hrd_attendance';
 import { adminHrdAttendancePrintHtml } from './views/admin_hrd_attendance_print';
@@ -278,6 +279,7 @@ app.get('/admin/courses/approved/register/:id', (c) => c.html(adminCoursesApprov
 app.get('/admin/courses/sessions', (c) => c.html(adminCoursesSessionsHtml()));
 app.get('/admin/courses/sessions/register', (c) => c.html(adminCoursesSessionsRegisterHtml()));
 app.get('/admin/courses/sessions/register/:id', (c) => c.html(adminCoursesSessionsRegisterHtml(c.req.param('id'))));
+app.get('/admin/courses/sessions/:sessionId/timetable', (c) => c.html(adminSessionTimetableHtml(Number(c.req.param('sessionId')))));
 app.get('/admin/courses/sessions/:sessionId/syllabus', (c) => c.html(adminSyllabusHtml(c.req.param('sessionId'))));
 app.get('/admin/courses/copy', (c) => c.html(adminCoursesCopyHtml()));
 app.get('/admin/partner-universities', (c) => c.html(adminPartnerUniversitiesHtml));
