@@ -2,8 +2,8 @@
 
 **최종 갱신**: 2026-02-06  
 **브랜치**: `education-platform`  
-**최근 커밋**: Finalize timetable feature implementation and UI enhancements (6855623)  
-**백업 태그**: `backup-20260206-end` (세션 마무리 시점)
+**최근 커밋**: add 수강생 등록 button per session card, auto-select from URL (b5e42bc)  
+**백업 태그**: `backup-20260206-session`
 
 ---
 
