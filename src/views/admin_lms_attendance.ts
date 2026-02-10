@@ -282,4 +282,4 @@ export const adminLmsAttendanceHtml = `
     </script>
 </body>
 </html>
-\`;
+`;

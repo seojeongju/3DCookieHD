@@ -1,0 +1,44 @@
+﻿[36mvite v6.4.1 [32mbuilding SSR bundle for production...[36m[39m
+transforming...
+[32m✓[39m 57 modules transformed.
+node.exe : [31m✗[39m Build failed in 211ms
+위치 줄:1 문자:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Users\jayse\AppData\R
+oaming\ ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~
+    + CategoryInfo          : NotSpecified: ([31m✗[39m Build  
+   failed in 211ms:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[31merror during build:
+[31m[vite:esbuild] Transform failed with 1 error:
+D:/Documents/program_DEV/3DCookieHD-education-platform/src/views
+/admin_lms_attendance.ts:286:0: ERROR: Unterminated string liter
+al[31m
+file: [36mD:/Documents/program_DEV/3DCookieHD-education-platfor
+m/src/views/admin_lms_attendance.ts:286:0[31m
+[33m
+[33mUnterminated string literal[33m
+284|  </html>
+285|  \`;
+286|  
+   |  ^
+[31m
+    at failureErrorWithLog (D:\Documents\program_DEV\3DCookieHD-
+education-platform\node_modules\esbuild\lib\main.js:1467:15)
+    at D:\Documents\program_DEV\3DCookieHD-education-platform\no
+de_modules\esbuild\lib\main.js:736:50
+    at responseCallbacks.<computed> (D:\Documents\program_DEV\3D
+CookieHD-education-platform\node_modules\esbuild\lib\main.js:603
+:9)
+    at handleIncomingPacket (D:\Documents\program_DEV\3DCookieHD
+-education-platform\node_modules\esbuild\lib\main.js:658:12)
+    at Socket.readFromStdout (D:\Documents\program_DEV\3DCookieH
+D-education-platform\node_modules\esbuild\lib\main.js:581:7)
+    at Socket.emit (node:events:508:28)
+    at Socket.emit (node:domain:489:12)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/reada
+ble:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)[39m

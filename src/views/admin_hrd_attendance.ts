@@ -253,4 +253,4 @@ export const adminHrdAttendanceHtml = (sidebar = hrdSidebar('attendance')) => `
     </script>
 </body>
 </html>
-\`;
+`;

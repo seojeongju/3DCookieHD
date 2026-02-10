@@ -534,8 +534,6 @@ courses.get('/:id/grades', async (c) => {
   }
 });
 
-export default courses;
-
 /**
  * GET /api/courses/:id/attendance
  * 특정 날짜의 출결 현황 조회
@@ -665,3 +663,5 @@ courses.post('/:id/attendance', async (c) => {
     return errorResponse(c, '출결 저장 중 오류가 발생했습니다', 500);
   }
 });
+
+export default courses;
