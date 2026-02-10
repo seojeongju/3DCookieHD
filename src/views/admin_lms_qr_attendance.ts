@@ -1,4 +1,5 @@
 import { lmsHeaderHtml } from './components/lms_header';
+import { hrdSidebar } from './components/hrd_sidebar';
 
 export const adminLmsQrAttendanceHtml = `
 <!DOCTYPE html>
@@ -10,11 +11,22 @@ export const adminLmsQrAttendanceHtml = `
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
 </head>
-<body class="bg-gray-50">
-    ${lmsHeaderHtml('attendance')}
+<body class="bg-gray-50 overflow-hidden">
+    <div class="flex h-screen overflow-hidden">
+        ${hrdSidebar('courses')}
+        
+        <div class="flex-1 flex flex-col overflow-hidden relative min-w-0">
+            <div class="flex-1 overflow-y-auto custom-scrollbar">
+                ${lmsHeaderHtml('attendance')}
 
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 mt-24">
+                <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div class="bg-white rounded-xl shadow-lg p-8">
             <h2 class="text-2xl font-bold mb-6 text-gray-800">
                 <i class="fas fa-qrcode mr-3 text-blue-600"></i> QR 출석 체크
@@ -190,6 +202,9 @@ export const adminLmsQrAttendanceHtml = `
             }
         }
     </script>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
 `;

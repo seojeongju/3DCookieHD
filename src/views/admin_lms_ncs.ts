@@ -1,4 +1,5 @@
 import { lmsHeaderHtml } from './components/lms_header';
+import { hrdSidebar } from './components/hrd_sidebar';
 
 export const adminLmsNcsHtml = `
 <!DOCTYPE html>
@@ -23,10 +24,20 @@ export const adminLmsNcsHtml = `
         }
       }
     </script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
 </head>
-<body class="bg-gray-50">
-    <!-- LMS Shared Header -->
-    ${lmsHeaderHtml('ncs-eval')}
+<body class="bg-gray-50 overflow-hidden">
+    <div class="flex h-screen overflow-hidden">
+        ${hrdSidebar('courses')}
+        
+        <div class="flex-1 flex flex-col overflow-hidden relative min-w-0">
+            <div class="flex-1 overflow-y-auto custom-scrollbar">
+                ${lmsHeaderHtml('ncs-eval')}
 
     <!-- 헤더 -->
     <div class="bg-white border-b border-gray-200">
@@ -467,6 +478,9 @@ export const adminLmsNcsHtml = `
             </div>
             <div class="p-4 bg-gray-50 border-t text-center">
                 <button onclick="closeEvidenceModal()" class="px-6 py-2 bg-white border rounded-lg text-sm font-bold shadow-sm">닫기</button>
+            </div>
+        </div>
+    </div>
             </div>
         </div>
     </div>

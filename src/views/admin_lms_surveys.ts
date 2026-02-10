@@ -1,4 +1,5 @@
 import { lmsHeaderHtml } from './components/lms_header';
+import { hrdSidebar } from './components/hrd_sidebar';
 
 export const adminLmsSurveysHtml = `
 <!DOCTYPE html>
@@ -24,10 +25,20 @@ export const adminLmsSurveysHtml = `
         }
       }
     </script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
 </head>
-<body class="bg-gray-50 flex flex-col min-h-screen">
-    <!-- LMS Shared Header -->
-    ${lmsHeaderHtml('surveys')}
+<body class="bg-gray-50 overflow-hidden">
+    <div class="flex h-screen overflow-hidden">
+        ${hrdSidebar('courses')}
+        
+        <div class="flex-1 flex flex-col overflow-hidden relative min-w-0">
+            <div class="flex-1 overflow-y-auto custom-scrollbar">
+                ${lmsHeaderHtml('surveys')}
 
     <!-- 서브 헤더 -->
     <div class="bg-white border-b border-gray-200 sticky top-[6.5rem] z-30">
@@ -379,6 +390,9 @@ export const adminLmsSurveysHtml = `
         }
 
     </script>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
 `;

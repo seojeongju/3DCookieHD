@@ -1,4 +1,5 @@
 import { lmsHeaderHtml } from './components/lms_header';
+import { hrdSidebar } from './components/hrd_sidebar';
 
 export const adminLmsStudentsHtml = `
 <!DOCTYPE html>
@@ -31,11 +32,16 @@ export const adminLmsStudentsHtml = `
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
     </style>
 </head>
-<body class="bg-slate-50">
-    ${lmsHeaderHtml('students')}
+<body class="bg-slate-50 overflow-hidden">
+    <div class="flex h-screen overflow-hidden">
+        ${hrdSidebar('courses')}
+        
+        <div class="flex-1 flex flex-col overflow-hidden relative min-w-0">
+            <div class="flex-1 overflow-y-auto custom-scrollbar">
+                ${lmsHeaderHtml('students')}
 
-    <!-- 메인: 인박스 벤토 그리드 -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <!-- 메인: 인박스 벤토 그리드 -->
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- 요약 카드 (Bento Grid) -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <div class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm border-l-4 border-indigo-500">
@@ -272,6 +278,9 @@ export const adminLmsStudentsHtml = `
             }
         })();
     </script>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
-`;
+ `;

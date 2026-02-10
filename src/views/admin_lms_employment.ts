@@ -1,4 +1,5 @@
 import { lmsHeaderHtml } from './components/lms_header';
+import { hrdSidebar } from './components/hrd_sidebar';
 
 export const adminLmsEmploymentHtml = `
 <!DOCTYPE html>
@@ -9,10 +10,20 @@ export const adminLmsEmploymentHtml = `
     <title>취업 현황 관리 - 와우쓰리디홍대센터</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
 </head>
-<body class="bg-gray-50 flex flex-col min-h-screen">
-    <!-- LMS Shared Header -->
-    ${lmsHeaderHtml('employment')}
+<body class="bg-gray-50 overflow-hidden">
+    <div class="flex h-screen overflow-hidden">
+        ${hrdSidebar('courses')}
+        
+        <div class="flex-1 flex flex-col overflow-hidden relative min-w-0">
+            <div class="flex-1 overflow-y-auto custom-scrollbar">
+                ${lmsHeaderHtml('employment')}
 
     <!-- 서브 헤더 (취업 관리 전용) -->
     <header class="bg-white border-b sticky top-[6.5rem] z-30">
@@ -245,6 +256,9 @@ export const adminLmsEmploymentHtml = `
             } catch (e) { console.error(e); }
         }
     </script>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
 `;

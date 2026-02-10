@@ -1,5 +1,6 @@
 
 import { lmsHeaderHtml } from './components/lms_header';
+import { hrdSidebar } from './components/hrd_sidebar';
 
 export const adminLmsAttendanceHtml = `
 <!DOCTYPE html>
@@ -10,10 +11,20 @@ export const adminLmsAttendanceHtml = `
     <title>출결 관리 - 교육행정 시스템</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
 </head>
-<body class="bg-gray-50 font-sans">
-    <div class="min-h-screen flex flex-col">
-        ${lmsHeaderHtml('attendance')}
+<body class="bg-gray-50 font-sans overflow-hidden">
+    <div class="flex h-screen overflow-hidden">
+        ${hrdSidebar('courses')}
+        
+        <div class="flex-1 flex flex-col overflow-hidden relative min-w-0">
+            <div class="flex-1 overflow-y-auto custom-scrollbar">
+                ${lmsHeaderHtml('attendance')}
 
         <!-- Main Content -->
         <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
@@ -87,6 +98,8 @@ export const adminLmsAttendanceHtml = `
                 </div>
             </div>
         </main>
+            </div>
+        </div>
     </div>
 
     <!-- Print Modal -->

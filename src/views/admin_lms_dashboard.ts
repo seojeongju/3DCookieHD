@@ -1,5 +1,7 @@
 
 import { lmsHeaderHtml } from './components/lms_header';
+import { hrdSidebar } from './components/hrd_sidebar';
+
 export const adminLmsDashboardHtml = `
 <!DOCTYPE html>
 <html lang="ko">
@@ -24,13 +26,23 @@ export const adminLmsDashboardHtml = `
         }
       }
     </script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
 </head>
-<body class="bg-gray-50">
-    <!-- LMS Shared Header -->
-    ${lmsHeaderHtml('dashboard')}
+<body class="bg-gray-50 overflow-hidden">
+    <div class="flex h-screen overflow-hidden">
+        ${hrdSidebar('courses')}
+        
+        <div class="flex-1 flex flex-col overflow-hidden relative min-w-0">
+            <div class="flex-1 overflow-y-auto custom-scrollbar">
+                ${lmsHeaderHtml('dashboard')}
 
-    <!-- 메인 컨텐츠 -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <!-- 메인 컨텐츠 -->
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
         <!-- 요약 카드 -->
         <div class="grid md:grid-cols-4 gap-6 mb-8">
@@ -231,6 +243,9 @@ export const adminLmsDashboardHtml = `
             } catch (e) { console.error(e); }
         }
     </script>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
 `;

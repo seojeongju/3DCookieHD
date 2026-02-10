@@ -1,5 +1,5 @@
-
 import { lmsHeaderHtml } from './components/lms_header';
+import { hrdSidebar } from './components/hrd_sidebar';
 
 export const adminLmsCbtHtml = `
 <!DOCTYPE html>
@@ -30,11 +30,19 @@ export const adminLmsCbtHtml = `
             color: #4a90e2;
             font-weight: bold;
         }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
 </head>
-<body class="bg-gray-50">
-    <!-- LMS Shared Header -->
-    ${lmsHeaderHtml('cbt')}
+<body class="bg-gray-50 overflow-hidden">
+    <div class="flex h-screen overflow-hidden">
+        ${hrdSidebar('courses')}
+        
+        <div class="flex-1 flex flex-col overflow-hidden relative min-w-0">
+            <div class="flex-1 overflow-y-auto custom-scrollbar">
+                ${lmsHeaderHtml('cbt')}
 
     <!-- 서브 헤더 (CBT 전용) -->
     <div class="bg-white border-b border-gray-200">
@@ -487,6 +495,9 @@ export const adminLmsCbtHtml = `
             }
         }
     </script>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
 `;
