@@ -54,7 +54,7 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                     <button onclick="showStatus()" class="inline-flex items-center gap-2 px-4 py-2 bg-slate-600 text-white rounded shadow hover:bg-slate-700 transition font-bold text-xs">
                         <i class="fas fa-chart-bar"></i> 진행 상황
                     </button>
-                    <button onclick="window.open('/admin/courses/sessions/'+sessionId+'/timetable/print', '_blank')" class="inline-flex items-center gap-2 px-4 py-2 bg-slate-600 text-white rounded shadow hover:bg-slate-700 transition font-bold text-xs ml-2">
+                    <button onclick="window.open('/admin/courses/sessions/${sessionId}/timetable/print', '_blank')" class="inline-flex items-center gap-2 px-4 py-2 bg-slate-600 text-white rounded shadow hover:bg-slate-700 transition font-bold text-xs ml-2">
                         <i class="fas fa-print"></i> 훈련세부시간표 출력
                     </button>
                     <button onclick="saveAll()" class="inline-flex items-center gap-2 px-6 py-2 bg-primary-600 text-white rounded shadow-lg hover:bg-primary-700 transition font-bold text-xs ml-2">
