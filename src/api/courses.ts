@@ -172,7 +172,8 @@ courses.get('/:id', async (c) => {
       const session = await getOne<any>(
         c.env.DB,
         `SELECT 
-          s.id, (a.name || ' (' || s.session_number || '회차)') as title,
+          s.id, 
+          (a.name || ' (' || s.session_number || '회차)' || CASE WHEN s.session_name IS NOT NULL AND s.session_name != '' THEN ' - ' || s.session_name ELSE '' END) as title,
           s.instructor_name as teacher_name,
           s.training_start_date as start_date,
           s.training_end_date as end_date,
