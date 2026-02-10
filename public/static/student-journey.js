@@ -43,15 +43,17 @@
     }
 
     window.switchTab = function (tab) {
-        var isTimeline = tab === 'timeline';
-        var tabTimeline = document.getElementById('tabTimeline');
-        var tabDetails = document.getElementById('tabDetails');
-        var contentTimeline = document.getElementById('contentTimeline');
-        var contentDetails = document.getElementById('contentDetails');
-        if (tabTimeline) tabTimeline.className = isTimeline ? 'pb-4 text-sm font-black uppercase tab-active transition-all' : 'pb-4 text-sm font-black uppercase tab-inactive transition-all';
-        if (tabDetails) tabDetails.className = isTimeline ? 'pb-4 text-sm font-black uppercase tab-inactive transition-all' : 'pb-4 text-sm font-black uppercase tab-active transition-all';
-        if (contentTimeline) contentTimeline.classList.toggle('hidden', !isTimeline);
-        if (contentDetails) contentDetails.classList.toggle('hidden', isTimeline);
+        var tabs = ['timeline', 'details', 'courses'];
+        tabs.forEach(function (t) {
+            var btn = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1));
+            var content = document.getElementById('content' + t.charAt(0).toUpperCase() + t.slice(1));
+            if (btn) btn.className = (t === tab) ? 'pb-4 text-sm font-black uppercase tab-active transition-all' : 'pb-4 text-sm font-black uppercase tab-inactive transition-all';
+            if (content) content.classList.toggle('hidden', t !== tab);
+        });
+
+        if (tab === 'courses') {
+            loadEnrolledSessions(studentId);
+        }
     };
 
     window.updateStage = function (newStage) {
@@ -60,6 +62,52 @@
         if (stdStatus) stdStatus.value = newStage;
         updateStepper(newStage);
     };
+
+    function loadEnrolledSessions(sid) {
+        var list = document.getElementById('enrolledCoursesList');
+        if (!list) return;
+        var token = localStorage.getItem('token');
+        fetch('/api/hrd/students/' + sid + '/enrollments', { headers: { 'Authorization': 'Bearer ' + token } })
+            .then(function (r) { return r.json(); })
+            .then(function (result) {
+                if (!result.success) {
+                    list.innerHTML = '<div class="text-center text-red-400 py-8 text-sm">수강 이력을 불러오지 못했습니다. (' + (result.error || '오류') + ')</div>';
+                    return;
+                }
+                var data = result.data || [];
+                if (data.length === 0) {
+                    list.innerHTML = '<div class="text-start bg-gray-50 rounded-2xl p-8 text-gray-400 font-medium text-xs">등록된 수강 이력이 없습니다.</div>';
+                    return;
+                }
+                list.innerHTML = data.map(function (item) {
+                    var startDate = (item.training_start_date || '').split('T')[0];
+                    var endDate = (item.training_end_date || '').split('T')[0];
+                    var statusMap = { 'enrolled': '등록됨', 'completed': '수료', 'dropout': '중도탈락', 'cancelled': '취소됨' };
+                    var sessionStatusMap = { 'recruiting': '모집중', 'in_progress': '진행중', 'completed': '종료' };
+
+                    return '<div class="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all">' +
+                        '<div class="flex justify-between items-start mb-4">' +
+                        '<div>' +
+                        '<span class="inline-block px-2 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-black rounded-lg mb-2">' + (sessionStatusMap[item.session_status] || item.session_status) + '</span>' +
+                        '<h5 class="font-bold text-gray-900 text-sm">' + (item.course_name || '과정명 없음').replace(/</g, '&lt;') + '</h5>' +
+                        '<p class="text-xs text-gray-500 mt-1">' + (item.session_name || (item.session_number + '차')).replace(/</g, '&lt;') + '</p>' +
+                        '</div>' +
+                        '<div class="text-right">' +
+                        '<span class="px-3 py-1 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold">' + (statusMap[item.enrollment_status] || item.enrollment_status) + '</span>' +
+                        '</div>' +
+                        '</div>' +
+                        '<div class="grid grid-cols-2 gap-4 text-xs">' +
+                        '<div><span class="block text-gray-400 font-bold mb-1">교육 기간</span>' + startDate + ' ~ ' + endDate + '</div>' +
+                        '<div><span class="block text-gray-400 font-bold mb-1">등록일</span>' + (item.enrolled_at || '').split('T')[0] + '</div>' +
+                        '</div>' +
+                        '<div class="mt-4 pt-4 border-t border-gray-50 flex gap-2 justify-end">' +
+                        '<button onclick="window.location.href=\'/admin/courses/sessions/enrollments?sessionId=' + item.session_id + '\'" class="px-3 py-1.5 bg-gray-900 text-white rounded-lg text-xs font-bold hover:bg-black transition">수강자 관리 이동</button>' +
+                        '</div>' +
+                        '</div>';
+                }).join('');
+            })
+            .catch(function () { list.innerHTML = '<div class="text-center text-red-400 py-8 text-sm">오류가 발생했습니다.</div>'; });
+    }
 
     function loadCourses() {
         return fetch('/api/courses?limit=1000', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } })

@@ -61,6 +61,7 @@ import { adminHrdStudentsHtml } from './views/admin_hrd_students';
 import { adminHrdStudentJourneyHtml } from './views/admin_hrd_student_journey';
 import { adminUsersHtml } from './views/admin_users';
 import { adminSessionTimetableHtml } from './views/admin_session_timetable';
+import { adminSessionTimetablePrintHtml } from './views/admin_session_timetable_print';
 import { adminHrdFacilitiesHtml } from './views/admin_hrd_facilities';
 import { adminHrdAttendanceHtml } from './views/admin_hrd_attendance';
 import { adminHrdAttendancePrintHtml } from './views/admin_hrd_attendance_print';
@@ -92,6 +93,7 @@ import { adminExamsHtml, adminExamCreateHtml, adminExamEditHtml } from './views/
 import { adminExamResultsHtml } from './views/admin_exam_results';
 import { studentExamHtml } from './views/student_exam';
 import { studentDashboardHtml } from './views/student_dashboard';
+import { studentClassroomHtml } from './views/student_classroom';
 import { teacherDashboardHtml } from './views/teacher_dashboard';
 import { teacherPortfoliosHtml } from './views/teacher_portfolios';
 import { teacherProfileHtml } from './views/teacher_profile';
@@ -283,6 +285,7 @@ app.get('/admin/courses/sessions/register', (c) => c.html(adminCoursesSessionsRe
 app.get('/admin/courses/sessions/register/:id', (c) => c.html(adminCoursesSessionsRegisterHtml(c.req.param('id'))));
 app.get('/admin/courses/sessions/enrollments', (c) => c.html(adminCoursesSessionEnrollmentsHtml(c.req.query('sessionId'))));
 app.get('/admin/courses/sessions/:sessionId/timetable', (c) => c.html(adminSessionTimetableHtml(Number(c.req.param('sessionId')))));
+app.get('/admin/courses/sessions/:sessionId/timetable/print', (c) => c.html(adminSessionTimetablePrintHtml(Number(c.req.param('sessionId')))));
 app.get('/admin/courses/sessions/:sessionId/syllabus', (c) => c.html(adminSyllabusHtml(c.req.param('sessionId'))));
 app.get('/admin/courses/copy', (c) => c.html(adminCoursesCopyHtml()));
 app.get('/admin/partner-universities', (c) => c.html(adminPartnerUniversitiesHtml));
@@ -344,6 +347,8 @@ app.get('/admin/courses/:id/lms/qr-attendance', (c) => c.html(adminLmsQrAttendan
 
 // Student Dashboard
 app.get('/student', (c) => c.html(studentDashboardHtml()));
+app.get('/student/classroom/:id', (c) => c.html(studentClassroomHtml(c.req.param('id'))));
+
 
 // Teacher Dashboard
 app.get('/teacher', (c) => c.html(teacherDashboardHtml));

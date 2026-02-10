@@ -416,21 +416,37 @@ export const studentDashboardHtml = () => `
         async function loadLectures() {
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch('/api/enrollments?status=approved', {
-                    headers: { 'Authorization': 'Bearer ' + token }
-                });
-                const result = await response.json();
-                const container = document.getElementById('contentArea');
-                const data = result.success ? (result.data || []) : [];
-                const statEl = document.getElementById('stat-enrollments');
-                if (statEl) statEl.textContent = data.length;
+                // General & HRD Enrollments 병합
+                const [resGeneral, resSession] = await Promise.all([
+                    fetch('/api/enrollments?status=approved', { headers: { 'Authorization': 'Bearer ' + token } }),
+                    fetch('/api/course-sessions/me/enrollments', { headers: { 'Authorization': 'Bearer ' + token } })
+                ]);
+                
+                const jsonGeneral = await resGeneral.json();
+                const jsonSession = await resSession.json();
 
-                if (data.length === 0) {
+                const generalData = jsonGeneral.success ? (jsonGeneral.data || []) : [];
+                const sessionData = jsonSession.success ? (jsonSession.data || []) : [];
+
+                // Format session data to match general structure if needed, or just combine
+                // Session data has session_id, general has course_id.
+                
+                // Combine
+                const allData = [...sessionData, ...generalData];
+                
+                // Sort by enrolled_at desc
+                allData.sort((a, b) => new Date(b.enrolled_at) - new Date(a.enrolled_at));
+
+                const container = document.getElementById('contentArea');
+                const statEl = document.getElementById('stat-enrollments');
+                if (statEl) statEl.textContent = allData.length;
+
+                if (allData.length === 0) {
                     container.innerHTML = \`
                         <div class="bento-card bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200 p-12 text-center">
                             <i class="fas fa-chalkboard text-5xl text-slate-300 mb-4"></i>
                             <p class="font-bold text-slate-500 mb-2">수강 중인 강의가 없습니다.</p>
-                            <a href="/courses" class="inline-flex items-center gap-2 mt-4 px-6 py-3 bg-sky-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition shadow-lg shadow-sky-100">
+                            <a href="/course-sessions" class="inline-flex items-center gap-2 mt-4 px-6 py-3 bg-sky-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition shadow-lg shadow-sky-100">
                                 <i class="fas fa-search"></i> 과정 둘러보기
                             </a>
                         </div>
@@ -438,11 +454,33 @@ export const studentDashboardHtml = () => `
                     return;
                 }
 
-                container.innerHTML = '<div class="space-y-6">' + data.map(item => \`
+                container.innerHTML = '<div class="space-y-6">' + allData.map(item => {
+                    // Determine Link and Button Text
+                    let linkUrl, linkText, linkIcon;
+                    if (item.session_id) {
+                        // It's a Session (HRD)
+                        linkUrl = '/student/classroom/' + item.session_id;
+                        linkText = '강의실 입장';
+                        linkIcon = 'fa-door-open';
+                    } else {
+                        // It's a General Course
+                        linkUrl = '/courses/' + item.course_id; // Or specific LMS for general courses if exists
+                        linkText = '과정 상세';
+                        linkIcon = 'fa-chevron-right';
+                    }
+
+                    // Handle thumbnail
+                    const thumb = item.course_thumbnail || (item.session_id ? item.main_slide_image_url : item.thumbnail_url) || 'https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=400';
+                    
+                    // Handle access lock icon
+                    const lockIcon = (item.has_access_code) ? '<i class="fas fa-lock text-amber-500 ml-2" title="접근 코드 필요"></i>' : '';
+
+                    return \`
                     <div class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm hover:border-sky-200 transition">
                         <div class="flex flex-col md:flex-row gap-6">
-                            <div class="w-full md:w-48 h-32 bg-slate-100 rounded-2xl overflow-hidden flex-shrink-0">
-                                <img src="\${item.course_thumbnail || 'https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=400'}" class="w-full h-full object-cover" alt="\${item.course_title}">
+                            <div class="w-full md:w-48 h-32 bg-slate-100 rounded-2xl overflow-hidden flex-shrink-0 relative">
+                                <img src="\${thumb}" class="w-full h-full object-cover" alt="\${item.course_title}">
+                                \${item.has_access_code ? '<div class="absolute top-2 right-2 w-8 h-8 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white"><i class="fas fa-lock text-xs"></i></div>' : ''}
                             </div>
                             <div class="flex-1 flex flex-col justify-between">
                                 <div>
@@ -450,7 +488,7 @@ export const studentDashboardHtml = () => `
                                         <span class="px-2 py-0.5 bg-sky-50 text-sky-600 text-[10px] font-black rounded-full uppercase tracking-widest">\${item.course_category || '일반'}</span>
                                         <span class="text-[10px] text-slate-400 font-bold"><i class="far fa-calendar-alt mr-1"></i> \${new Date(item.enrolled_at).toLocaleDateString()} 등록</span>
                                     </div>
-                                    <h3 class="text-xl font-black text-slate-800 tracking-tight mb-2">\${item.course_title}</h3>
+                                    <h3 class="text-xl font-black text-slate-800 tracking-tight mb-2">\${item.course_title} \${lockIcon}</h3>
                                     <p class="text-sm text-slate-600 mb-4 line-clamp-2">\${item.course_category === '국비지원' ? '국비지원 과정입니다.' : '일반 과정입니다.'}</p>
                                 </div>
                                 <div class="flex items-center justify-between mt-auto pt-4 border-t border-slate-100">
@@ -458,14 +496,14 @@ export const studentDashboardHtml = () => `
                                         <span><i class="fas fa-check-circle text-emerald-500 mr-1"></i>승인됨</span>
                                         <span><i class="fas fa-school mr-1"></i>\${item.campus_name || '홍대센터'}</span>
                                     </div>
-                                    <a href="/courses/\${item.course_id}" class="text-sky-600 hover:text-slate-900 font-black text-[10px] uppercase tracking-widest flex items-center gap-1">
-                                        과정 상세 <i class="fas fa-chevron-right"></i>
+                                    <a href="\${linkUrl}" class="text-sky-600 hover:text-slate-900 font-black text-[10px] uppercase tracking-widest flex items-center gap-1">
+                                        \${linkText} <i class="fas \${linkIcon}"></i>
                                     </a>
                                 </div>
                             </div>
                         </div>
                     </div>
-                \`).join('') + '</div>';
+                \`}).join('') + '</div>';
             } catch (e) {
                 console.error(e);
                 document.getElementById('contentArea').innerHTML = '<div class="text-center py-12 text-red-500 font-bold">강의 목록을 불러오는데 실패했습니다.</div>';

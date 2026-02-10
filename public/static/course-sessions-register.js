@@ -249,6 +249,8 @@
                 if (numEl) numEl.value = d.session_number != null ? d.session_number : '';
                 var sessionNameEl = document.getElementById('sessionsFormSessionName');
                 if (sessionNameEl) sessionNameEl.value = (d.session_name || '').trim();
+                var accessCodeEl = document.getElementById('sessionsFormAccessCode');
+                if (accessCodeEl) accessCodeEl.value = (d.access_code || '').trim();
                 document.getElementById('sessionsFormStatus').value = d.status || 'recruiting';
                 setSelectedInstructors(d.instructor_name || '');
                 document.getElementById('sessionsFormTrainingStart').value = (d.training_start_date || '').slice(0, 10);
@@ -314,6 +316,7 @@
                 if (id && numEl) numEl.readOnly = true;
                 loadApprovedCourseDetail(d.approved_course_id).then(function () { updateSessionNamePreview(); });
                 setTabPlanUrls(d.url_plan || null, d.url_detail_plan || null, id);
+                calculateDailyHours();
             })
             .catch(function () { alert('조회 실패'); });
     }
@@ -364,6 +367,8 @@
         var courseDetailDescription = getSessionCourseDetailContent();
         var sessionNameElForPayload = document.getElementById('sessionsFormSessionName');
         var sessionNameVal = (sessionNameElForPayload && sessionNameElForPayload.value) ? sessionNameElForPayload.value.trim() : null;
+        var accessCodeEl = document.getElementById('sessionsFormAccessCode');
+        var accessCodeVal = (accessCodeEl && accessCodeEl.value) ? accessCodeEl.value.trim() : null;
 
         var url, method, payload;
         if (id) {
@@ -390,7 +395,8 @@
                 main_slide_image_url: mainSlideUrl || null,
                 course_list_image_url: courseListUrl || null,
                 course_detail_description: courseDetailDescription || null,
-                session_name: sessionNameVal || null
+                session_name: sessionNameVal || null,
+                access_code: accessCodeVal || null
             };
         } else {
             url = '/api/course-sessions';
@@ -418,7 +424,8 @@
                 main_slide_image_url: mainSlideUrl || null,
                 course_list_image_url: courseListUrl || null,
                 course_detail_description: courseDetailDescription || null,
-                session_name: sessionNameVal || null
+                session_name: sessionNameVal || null,
+                access_code: accessCodeVal || null
             };
         }
         var btn = document.getElementById('sessionsFormSubmit');
@@ -483,6 +490,62 @@
             }
         });
     }
+
+    function calculateDailyHours() {
+        var start = document.getElementById('sessionsFormTrainingTimeStart');
+        var end = document.getElementById('sessionsFormTrainingTimeEnd');
+        var lStart = document.getElementById('sessionsFormLunchTimeStart');
+        var lEnd = document.getElementById('sessionsFormLunchTimeEnd');
+        var preview = document.getElementById('sessionsDailyHoursPreview');
+        if (!start || !end || !preview) return;
+
+        var sVal = start.value;
+        var eVal = end.value;
+        if (!sVal || !eVal) {
+            preview.textContent = '';
+            return;
+        }
+
+        function toMinutes(t) {
+            var p = t.split(':').map(Number);
+            return p[0] * 60 + p[1];
+        }
+
+        var sMin = toMinutes(sVal);
+        var eMin = toMinutes(eVal);
+        if (eMin <= sMin) {
+            preview.textContent = '(종료시간 오류)';
+            return;
+        }
+
+        var total = eMin - sMin;
+
+        var noLunch = document.getElementById('sessionsFormLunchNone').checked;
+        if (!noLunch && lStart && lEnd && lStart.value && lEnd.value) {
+            var lsMin = toMinutes(lStart.value);
+            var leMin = toMinutes(lEnd.value);
+            if (leMin > lsMin) {
+                // Determine overlap with working hours
+                var lunchStart = Math.max(sMin, lsMin);
+                var lunchEnd = Math.min(eMin, leMin);
+                if (lunchEnd > lunchStart) {
+                    total -= (lunchEnd - lunchStart);
+                }
+            }
+        }
+
+        var h = Math.floor(total / 60);
+        var m = total % 60;
+        preview.textContent = '(일일 ' + h + '시간' + (m > 0 ? ' ' + m + '분' : '') + ')';
+    }
+
+    ['sessionsFormTrainingTimeStart', 'sessionsFormTrainingTimeEnd', 'sessionsFormLunchTimeStart', 'sessionsFormLunchTimeEnd'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.addEventListener('change', calculateDailyHours);
+    });
+
+    document.getElementById('sessionsFormLunchNone').addEventListener('change', calculateDailyHours);
+
 
     document.querySelectorAll('.session-detail-tab').forEach(function (btn) {
         btn.addEventListener('click', function () {

@@ -853,6 +853,11 @@ export const adminCoursesSessionsRegisterHtml = (editId?: string) => {
                                 <p class="text-xs text-slate-500 mt-1">승인받은 과정명 + 회차 + 이 입력값(회차별과정명)으로 표시됩니다. 비워두면 과정명 + 회차만 사용됩니다.</p>
                                 <p id="sessionsFormSessionNamePreview" class="text-xs text-emerald-600 mt-1.5 font-medium truncate" aria-live="polite"></p>
                             </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-bold text-slate-700 mb-1">접근 인증 코드 (PIN)</label>
+                                <input type="text" id="sessionsFormAccessCode" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" placeholder="예: 1234 (입력 시 수강생 입실/출석 인증용 사용)">
+                                <p class="text-xs text-slate-500 mt-1">이 코드를 설정하면 수강생이 강의실 입장 시 입력해야 합니다. (비워두면 인증 생략)</p>
+                            </div>
                         </div>
 
                         <div>
@@ -911,12 +916,13 @@ export const adminCoursesSessionsRegisterHtml = (editId?: string) => {
                                 <div class="flex flex-wrap items-center gap-4">
                                     <div class="flex items-center gap-2">
                                         <span class="text-slate-500 text-sm">시작</span>
-                                        <input type="time" id="sessionsFormTrainingTimeStart" class="px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 w-28 bg-white">
+                                        <input type="time" id="sessionsFormTrainingTimeStart" class="px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 w-40 bg-white">
                                     </div>
                                     <div class="flex items-center gap-2">
                                         <span class="text-slate-500 text-sm">종료</span>
-                                        <input type="time" id="sessionsFormTrainingTimeEnd" class="px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 w-28 bg-white">
+                                        <input type="time" id="sessionsFormTrainingTimeEnd" class="px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 w-40 bg-white">
                                     </div>
+                                    <span id="sessionsDailyHoursPreview" class="text-xs font-bold text-emerald-600"></span>
                                 </div>
                             </div>
                             <div>
@@ -929,11 +935,11 @@ export const adminCoursesSessionsRegisterHtml = (editId?: string) => {
                                     <div id="sessionsFormLunchTimeWrap" class="flex flex-wrap items-center gap-4">
                                         <div class="flex items-center gap-2">
                                             <span class="text-slate-500 text-sm">시작</span>
-                                            <input type="time" id="sessionsFormLunchTimeStart" class="px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 w-28 bg-white" value="12:00">
+                                            <input type="time" id="sessionsFormLunchTimeStart" class="px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 w-40 bg-white" value="12:00">
                                         </div>
                                         <div class="flex items-center gap-2">
                                             <span class="text-slate-500 text-sm">종료</span>
-                                            <input type="time" id="sessionsFormLunchTimeEnd" class="px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 w-28 bg-white" value="13:00">
+                                            <input type="time" id="sessionsFormLunchTimeEnd" class="px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 w-40 bg-white" value="13:00">
                                         </div>
                                     </div>
                                 </div>

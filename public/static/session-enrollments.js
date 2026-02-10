@@ -51,8 +51,9 @@
                 tbody.innerHTML = enrolledList.map(function (e) {
                     var name = (e.name || '').replace(/</g, '&lt;');
                     var phone = (e.phone || '').replace(/</g, '&lt;');
-                    return '<tr class="hover:bg-slate-50">' +
-                        '<td class="p-2 text-slate-700">' + name + '</td>' +
+                    return '<tr class="hover:bg-slate-50 group">' +
+                        '<td class="p-2 text-slate-700 font-medium cursor-pointer hover:text-blue-600 transition" onclick="window.location.href=\'/admin/students/' + e.user_id + '/journey\'" title="여정 관리로 이동">' +
+                        name + ' <i class="fas fa-external-link-alt text-[10px] ml-1 opacity-0 group-hover:opacity-100 transition"></i></td>' +
                         '<td class="p-2 text-slate-600">' + phone + '</td>' +
                         '<td class="p-2 text-center">' +
                         '<button type="button" class="text-red-500 hover:text-red-700 text-xs font-bold enroll-remove" data-user-id="' + e.user_id + '">삭제</button>' +

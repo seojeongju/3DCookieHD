@@ -962,6 +962,37 @@ app.post('/students/:id/consultations', async (c) => {
     }
 });
 
+// 훈련생 수강 이력 조회 (회차별)
+app.get('/students/:id/enrollments', authMiddleware, async (c) => {
+    try {
+        const id = c.req.param('id');
+        const { DB } = c.env;
+
+        const { results } = await DB.prepare(`
+            SELECT 
+                cs.id as session_id,
+                cs.session_number,
+                cs.session_name,
+                cs.training_start_date,
+                cs.training_end_date,
+                cs.status as session_status,
+                ac.name as course_name,
+                cse.status as enrollment_status,
+                cse.enrolled_at
+            FROM course_session_enrollments cse
+            JOIN course_sessions cs ON cse.session_id = cs.id
+            JOIN approved_courses ac ON cs.approved_course_id = ac.id
+            WHERE cse.user_id = ?
+            ORDER BY cs.training_start_date DESC
+        `).bind(id).all();
+
+        return c.json({ success: true, data: results || [] });
+    } catch (e: any) {
+        console.error('Failed to fetch student enrollments:', e);
+        return c.json({ success: false, error: '수강 이력 조회 실패: ' + e.message }, 500);
+    }
+});
+
 // ============================================
 // 훈련시설 관리 API
 // ============================================

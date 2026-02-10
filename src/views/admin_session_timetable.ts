@@ -54,6 +54,9 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                     <button onclick="showStatus()" class="inline-flex items-center gap-2 px-4 py-2 bg-slate-600 text-white rounded shadow hover:bg-slate-700 transition font-bold text-xs">
                         <i class="fas fa-chart-bar"></i> 진행 상황
                     </button>
+                    <button onclick="window.open('/admin/courses/sessions/'+sessionId+'/timetable/print', '_blank')" class="inline-flex items-center gap-2 px-4 py-2 bg-slate-600 text-white rounded shadow hover:bg-slate-700 transition font-bold text-xs ml-2">
+                        <i class="fas fa-print"></i> 훈련세부시간표 출력
+                    </button>
                     <button onclick="saveAll()" class="inline-flex items-center gap-2 px-6 py-2 bg-primary-600 text-white rounded shadow-lg hover:bg-primary-700 transition font-bold text-xs ml-2">
                         <i class="fas fa-save"></i> 저장하기
                     </button>
@@ -120,9 +123,15 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                                 </div>
                                 <!-- Instructors -->
                                 <div class="bg-white rounded-lg border border-slate-200 overflow-hidden flex flex-col shadow-sm">
-                                    <div class="bg-slate-50 px-4 py-3 border-b border-slate-200 flex justify-between items-center">
-                                        <h4 class="font-bold text-slate-700">담당 강사/교수 선택</h4>
-                                        <span class="text-[10px] text-slate-400">선택 시 과목과 함께 배정됩니다</span>
+                                    <div class="bg-slate-50 px-4 py-3 border-b border-slate-200 flex flex-col gap-2">
+                                        <div class="flex justify-between items-center">
+                                            <h4 class="font-bold text-slate-700">담당 강사/교수 선택</h4>
+                                            <label class="flex items-center gap-1 cursor-pointer">
+                                                <input type="checkbox" onchange="toggleAllInstructors(this.checked)" class="rounded text-primary-600 focus:ring-primary-500 w-3 h-3">
+                                                <span class="text-[10px] text-slate-500">전체 보기</span>
+                                            </label>
+                                        </div>
+                                        <input type="text" placeholder="이름으로 검색..." onkeyup="filterInstructors(this.value)" class="w-full px-2 py-1 text-xs border border-slate-300 rounded focus:outline-none focus:border-primary-500">
                                     </div>
                                     <div id="instructorList" class="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar relative">
                                         <div class="absolute inset-0 flex items-center justify-center text-slate-400 text-xs">Loading...</div>
@@ -201,9 +210,18 @@ export function adminSessionTimetableHtml(sessionId: number): string {
             var activeSubjectId = null;
             var activeInstructorId = null;
             var activePeriodConfigIdx = null;
+            var instructorSearchTerm = '';
+            var showAllInstructors = false;
 
             // Initialize
             init();
+
+            // ... (skip unchanged functions) ...
+            
+            window.toggleAllInstructors = function(checked) {
+                showAllInstructors = checked;
+                renderResources();
+            }
 
             async function init() {
                 try {
@@ -345,6 +363,11 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                 if (periodConfigs.length > 0) {
                      document.getElementById('dailyTrainingHours').textContent = \`\${periodConfigs[0].start_time} ~ \${periodConfigs[periodConfigs.length-1].end_time}\`;
                 }
+
+                // Initial Highlight for instructor search if single instructor assigned
+                if (!instructorSearchTerm && sessionInfo.instructor_name && resources.instructors.length > 0) {
+                    // Optional: Pre-fill search? No, just highlight.
+                }
             }
 
             function renderResources() {
@@ -369,17 +392,55 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                     }).join('');
                 }
 
-                // Render Instructors
+                // Render Instructors (with Filter)
                 const iList = document.getElementById('instructorList');
-                if (resources.instructors.length === 0) {
-                    iList.innerHTML = '<div class="absolute inset-0 flex flex-col items-center justify-center text-slate-400 text-xs"><span>등록된 강사가 없습니다</span></div>';
+                
+                // Logic:
+                // 1. If showAllInstructors is TRUE, show everyone (matching search).
+                // 2. If showAllInstructors is FALSE, show ONLY assigned instructors (matching search).
+                // 3. Exception: If NO instructors are assigned to the session, show everyone (fallback).
+                
+                const assignedRaw = sessionInfo.instructor_name || '';
+                const hasAssigned = assignedRaw.trim().length > 0;
+                
+                // Parse assigned names for checking (handles comma separated)
+                // We'll treat "Assigned" if the instructor's name appears in the sessionInfo.instructor_name string
+                // This mimics the existing check: sessionInfo.instructor_name.includes(i.name)
+                
+                const effectiveShowAll = showAllInstructors || !hasAssigned;
+
+                const filteredInstructors = resources.instructors.filter(i => {
+                    // Search Filter
+                    if (instructorSearchTerm && !i.name.toLowerCase().includes(instructorSearchTerm.toLowerCase())) {
+                        return false;
+                    }
+                    
+                    // Assigned Filter
+                    if (!effectiveShowAll) {
+                        return assignedRaw.includes(i.name); 
+                    }
+                    
+                    return true;
+                });
+
+                if (filteredInstructors.length === 0) {
+                    let msg = '결과가 없습니다';
+                    if (!effectiveShowAll && hasAssigned) msg = '배정된 강사 중 검색 결과가 없습니다.<br>"전체 보기"를 체크해보세요.';
+                    else if (!hasAssigned) msg = '등록된 강사가 없습니다';
+                    
+                    iList.innerHTML = \`<div class="absolute inset-0 flex flex-col items-center justify-center text-slate-400 text-xs text-center p-4"><span>\${msg}</span></div>\`;
                 } else {
-                   iList.innerHTML = resources.instructors.map(i => {
+                   iList.innerHTML = filteredInstructors.map(i => {
                         const isActive = activeInstructorId === i.id;
+                        const isAssigned = hasAssigned && assignedRaw.includes(i.name);
+                        
                         const cls = isActive ? 'bg-primary-50 border-primary-500 ring-1 ring-primary-500 shadow-md' : 'bg-white border-slate-200 hover:border-primary-300 hover:shadow-sm';
                         return \`<div onclick="selectInstructor(\${i.id})" class="p-3 border rounded transition cursor-pointer mb-2 \${cls}">
                             <div class="flex justify-between items-center text-sm">
-                                <span class="font-bold text-slate-700">\${i.name}</span>
+                                <div class="flex items-center gap-2">
+                                    <span class="font-bold text-slate-700">\${i.name}</span>
+                                    \${isAssigned ? '<span class="text-[10px] bg-primary-100 text-primary-700 px-1.5 py-0.5 rounded font-bold">담당</span>' : ''}
+                                </div>
                                 \${isActive ? '<i class="fas fa-check-circle text-primary-600 text-xs"></i>' : ''}
                             </div>
                         </div>\`;
@@ -400,7 +461,6 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                     d.setDate(d.getDate() + i);
                     const dateStr = d.toISOString().split('T')[0];
                     const isToday = dateStr === new Date().toISOString().split('T')[0];
-                    const dayName = days[d.getDay() === 0 ? 6 : d.getDay() - 1]; // Monday based index adjust? No, getDay 0=Sun
                     
                     headerHtml += \`<th class="min-w-[140px] px-2 py-3 border-l border-b border-slate-200 font-bold text-sm text-center \${isToday ? 'bg-amber-50 text-amber-900' : 'bg-slate-50 text-slate-700'}">
                         <div>\${d.getMonth()+1}.\${d.getDate()} (\${days[(d.getDay() + 6) % 7]})</div>
@@ -422,7 +482,7 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                                 <button onclick="editPeriod(\${idx})" class="text-slate-400 hover:text-primary-600 transition"><i class="fas fa-cog"></i></button>
                             </div>
                             <div class="text-[10px] text-slate-500 text-center border rounded px-1 py-0.5 bg-white cursor-pointer hover:border-primary-300 transition" onclick="editPeriod(\${idx})">
-                                \${cfg.start_time}<\br>~ \${cfg.end_time}
+                                \${cfg.start_time}<br>~ \${cfg.end_time}
                             </div>
                             <div class="text-[9px] text-amber-600 text-center mt-1">
                                 <i class="fas fa-mug-hot"></i> \${cfg.break_minute}분
@@ -436,8 +496,6 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                         d.setDate(d.getDate() + i);
                         const dateStr = d.toISOString().split('T')[0];
                         
-                        // Find data
-                        // Need strict check for undefined
                         const cellData = timetableData.find(t => t.training_date === dateStr && t.period_number === cfg.period_number) || {
                              training_date: dateStr, period_number: cfg.period_number, subject_id: null, instructor_id: null
                         };
@@ -483,7 +541,6 @@ export function adminSessionTimetableHtml(sessionId: number): string {
             }
             
             function updateWeekText() {
-                 // Simple logic to show start date of week
                  const m = currentWeekStartDate.getMonth() + 1;
                  const d = currentWeekStartDate.getDate();
                  document.getElementById('weekText').textContent = \`\${m}월 \${d}일 주\`;
@@ -498,19 +555,22 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                 activeInstructorId = (activeInstructorId === id) ? null : id;
                 renderResources();
             }
+            
+            window.filterInstructors = function(val) {
+                instructorSearchTerm = val;
+                renderResources();
+            }
 
             window.assignSlot = function(date, periodNumber) {
                 if (!activeSubjectId) {
-                    // Optional: Show toast "Please select a subject first"
+                    showToast('먼저 교과목을 선택해주세요', true);
                     return;
                 }
 
-                // Remove existing if any (or update)
                 let existingIdx = timetableData.findIndex(t => t.training_date === date && t.period_number === periodNumber);
                 if (existingIdx > -1) {
                     timetableData[existingIdx].subject_id = activeSubjectId;
                     timetableData[existingIdx].instructor_id = activeInstructorId;
-                    // remove delete flag if previously marked
                     delete timetableData[existingIdx].is_excluded; 
                 } else {
                     timetableData.push({
@@ -526,15 +586,9 @@ export function adminSessionTimetableHtml(sessionId: number): string {
             }
 
             window.removeSlot = function(e, date, periodNumber) {
-                e.stopPropagation(); // Stop bubbling to assignSlot
+                e.stopPropagation(); 
                 let existingIdx = timetableData.findIndex(t => t.training_date === date && t.period_number === periodNumber);
                 if (existingIdx > -1) {
-                    // Mark as deleted effectively by removing from array?
-                    // Or backend logic requires explicit delete?
-                    // Current backend (batch) sends all schedules. If we remove from array, backend won't know to delete unless we send 'deleted' list.
-                    // But our backend (step 3720) does: DELETE FROM ... WHERE ... AND ... -> INSERT.
-                    // So if we just remove from the list, backend sees LESS items, so it DELETEs but doesn't INSERT.
-                    // So yes, removing from array is correct for the backend logic used.
                     timetableData.splice(existingIdx, 1);
                 }
                 renderTimetableGrid();
@@ -575,7 +629,7 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                 
                 closePeriodEdit();
                 renderTimetableGrid();
-                savePeriodConfig(periodConfigs, true); // Auto save config
+                savePeriodConfig(periodConfigs, true); 
             }
 
             // --- Utils ---
@@ -585,12 +639,10 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                 t.textContent = msg;
                 t.className = \`fixed bottom-4 right-4 px-6 py-3 rounded shadow-lg transform transition-transform duration-300 z-50 text-sm font-bold flex items-center gap-2 \${isError ? 'bg-red-500 text-white' : 'bg-slate-800 text-white'}\`;
                 
-                // Show
                 requestAnimationFrame(() => {
                     t.style.transform = 'translateY(0)';
                 });
 
-                // Hide
                 setTimeout(() => {
                     t.style.transform = 'translateY(150%)';
                 }, 3000);

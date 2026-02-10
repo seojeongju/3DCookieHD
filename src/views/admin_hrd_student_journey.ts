@@ -140,6 +140,7 @@ export const adminHrdStudentJourneyHtml = (studentId: string) => {
                         <div class="flex items-center gap-8 border-b border-gray-100 mb-8">
                             <button onclick="switchTab('timeline')" id="tabTimeline" class="pb-4 text-sm font-black uppercase tab-active transition-all">상담 타임라인</button>
                             <button onclick="switchTab('details')" id="tabDetails" class="pb-4 text-sm font-black uppercase tab-inactive transition-all">행정 상세 정보</button>
+                            <button onclick="switchTab('courses')" id="tabCourses" class="pb-4 text-sm font-black uppercase tab-inactive transition-all">수강 관리</button>
                         </div>
                         <div id="contentTimeline" class="flex-1 flex flex-col overflow-hidden">
                             <div class="mb-8">
@@ -164,6 +165,15 @@ export const adminHrdStudentJourneyHtml = (studentId: string) => {
                                 </div>
                             </div>
                             <div id="consultationList" class="flex-1 overflow-y-auto pr-6 space-y-6 pb-20"></div>
+                        </div>
+                        <div id="contentCourses" class="hidden flex-1 overflow-y-auto pr-6 space-y-6 pb-20">
+                            <div class="mb-4">
+                                <h4 class="text-sm font-black text-gray-900 uppercase tracking-widest">수강 이력 및 성적 관리</h4>
+                                <p class="text-[10px] text-gray-400 font-medium">등록된 회차별 수강 정보입니다.</p>
+                            </div>
+                            <div id="enrolledCoursesList" class="space-y-4">
+                                <div class="text-center text-gray-300 py-12 text-sm">로딩 중...</div>
+                            </div>
                         </div>
                         <div id="contentDetails" class="hidden flex-1 overflow-y-auto pr-6 space-y-10 pb-20">
                             <div class="bg-white rounded-[2rem] p-8 border border-gray-100 shadow-sm space-y-6">

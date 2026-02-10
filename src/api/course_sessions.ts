@@ -64,6 +64,52 @@ app.get('/stats', authMiddleware, requireAdmin, async (c) => {
   }
 });
 
+/**
+ * GET /api/course-sessions/me/enrollments
+ * 내 수강신청 목록 (HRD 회차) - 인증된 사용자용
+ */
+app.get('/me/enrollments', authMiddleware, async (c) => {
+  try {
+    const user = c.get('user');
+    const { DB } = c.env;
+
+    // course_session_enrollments 테이블에서 조회
+    // student_id = user.userId
+    const rows = await DB.prepare(`
+        SELECT 
+            s.id, s.approved_course_id, s.session_number, s.session_name, s.status,
+            s.training_start_date, s.training_end_date, s.instructor_name,
+            s.course_list_image_url, s.main_slide_image_url,
+            a.name as course_name, c.name as category_name,
+            e.enrolled_at, e.status as enrollment_status,
+            s.access_code
+        FROM course_session_enrollments e
+        JOIN course_sessions s ON e.session_id = s.id
+        JOIN approved_courses a ON s.approved_course_id = a.id
+        LEFT JOIN course_categories c ON a.category_id = c.id
+        WHERE e.student_id = ? AND e.status = 'approved'
+        ORDER BY s.training_start_date DESC
+    `).bind(user.userId).all();
+
+    const data = (rows.results || []).map((r: any) => ({
+      ...r,
+      course_title: (r.course_name || '') + (r.session_number ? ` (${r.session_number}회차)` : ''),
+      course_thumbnail: r.course_list_image_url || r.main_slide_image_url || '/static/course_placeholder.jpg',
+      course_category: r.category_name || '국비지원',
+      enrolled_at: r.enrolled_at,
+      course_id: r.approved_course_id, // Compatible binding
+      session_id: r.id, // Actual Session ID
+      has_access_code: !!(r.access_code && r.access_code.trim().length > 0),
+      access_code: undefined // Hide sensitive data
+    }));
+
+    return c.json({ success: true, data });
+  } catch (e) {
+    console.error('my enrollments error:', e);
+    return c.json({ success: false, error: '수강 목록 조회 실패' }, 500);
+  }
+});
+
 /** 연동 홈페이지 노출용 컬럼 (0059). 없으면 무시 */
 const LINKED_HOMEPAGE_COLS = `s.recruitment_status, s.representative_image_exposure, s.recruitment_grace_period,
   s.syllabus_exposure, s.main_slide_image_url, s.course_list_image_url, s.course_detail_description, s.session_name`;
@@ -216,6 +262,7 @@ app.get('/public/:id', async (c) => {
             s.training_start_date, s.training_end_date, s.instructor_name,
             s.target_audience, s.days_of_week, s.location,
             s.url_plan, s.url_detail_plan,
+            CASE WHEN s.access_code IS NOT NULL AND s.access_code != '' THEN 1 ELSE 0 END as has_access_code,
             ${LINKED_HOMEPAGE_COLS},
             a.name as course_name, a.total_hours, a.daily_hours, a.instructor_name as course_instructor,
             cat.name as category_name
@@ -380,6 +427,7 @@ app.post('/', authMiddleware, requireAdmin, async (c) => {
       lunch_time_end?: string;
       homepage_exposed?: number | boolean;
       session_name?: string;
+      access_code?: string;
     }>();
     const approvedCourseId = body.approved_course_id;
     const sessionNumber = body.session_number;
@@ -410,6 +458,7 @@ app.post('/', authMiddleware, requireAdmin, async (c) => {
     const courseDetailDescription = (body.course_detail_description || '').trim() || null;
     const homepageExposed = body.homepage_exposed === true || body.homepage_exposed === 1 ? 1 : 0;
     const sessionName = (body.session_name || '').trim() || null;
+    const accessCode = (body.access_code || '').trim() || null;
 
     const { DB } = c.env;
     const existing = await DB.prepare(
@@ -426,10 +475,10 @@ app.post('/', authMiddleware, requireAdmin, async (c) => {
           training_start_date, training_end_date, training_time_start, training_time_end, lunch_time_start, lunch_time_end,
           url_ncs, url_plan, url_detail_plan, registered_at,
           recruitment_status, representative_image_exposure, recruitment_grace_period, syllabus_exposure,
-          main_slide_image_url, course_list_image_url, course_detail_description, homepage_exposed, session_name
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          main_slide_image_url, course_list_image_url, course_detail_description, homepage_exposed, session_name, access_code
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
-        .bind(approvedCourseId, sessionNumber, status, instructorName, targetAudience, daysOfWeek, location, trainingStart, trainingEnd, trainingTimeStart, trainingTimeEnd, lunchTimeStart, lunchTimeEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt, recruitmentStatus, representativeImageExposure, recruitmentGracePeriod, syllabusExposure, mainSlideImageUrl, courseListImageUrl, courseDetailDescription, homepageExposed, sessionName)
+        .bind(approvedCourseId, sessionNumber, status, instructorName, targetAudience, daysOfWeek, location, trainingStart, trainingEnd, trainingTimeStart, trainingTimeEnd, lunchTimeStart, lunchTimeEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt, recruitmentStatus, representativeImageExposure, recruitmentGracePeriod, syllabusExposure, mainSlideImageUrl, courseListImageUrl, courseDetailDescription, homepageExposed, sessionName, accessCode)
         .run();
     } catch (err: unknown) {
       const msg = String(err && typeof err === 'object' && 'message' in err ? (err as Error).message : err);
@@ -513,7 +562,7 @@ app.get('/:id', authMiddleware, requireAdmin, async (c) => {
                 s.registered_at, s.created_at, s.target_audience, s.days_of_week, s.location,
                 s.recruitment_status, s.representative_image_exposure, s.recruitment_grace_period,
                 s.syllabus_exposure, s.main_slide_image_url, s.course_list_image_url, s.course_detail_description,
-                s.homepage_exposed,
+                s.homepage_exposed, s.access_code,
                 a.name as course_name, a.instructor_name, c.name as category_name
          FROM course_sessions s
          INNER JOIN approved_courses a ON a.id = s.approved_course_id
@@ -590,6 +639,7 @@ app.put('/:id', authMiddleware, requireAdmin, async (c) => {
       lunch_time_end?: string;
       homepage_exposed?: number | boolean;
       session_name?: string;
+      access_code?: string;
     }>();
 
     const { DB } = c.env;
@@ -620,6 +670,7 @@ app.put('/:id', authMiddleware, requireAdmin, async (c) => {
     const mainSlideImageUrl = (body.main_slide_image_url || '').trim() || null;
     const courseListImageUrl = (body.course_list_image_url || '').trim() || null;
     const courseDetailDescription = (body.course_detail_description || '').trim() || null;
+    const accessCode = (body.access_code || '').trim() || null;
 
     try {
       await DB.prepare(
@@ -631,10 +682,10 @@ app.put('/:id', authMiddleware, requireAdmin, async (c) => {
           recruitment_status = COALESCE(?, recruitment_status), representative_image_exposure = COALESCE(?, representative_image_exposure),
           recruitment_grace_period = COALESCE(?, recruitment_grace_period), syllabus_exposure = COALESCE(?, syllabus_exposure),
           main_slide_image_url = ?, course_list_image_url = ?, course_detail_description = ?,
-          homepage_exposed = COALESCE(?, homepage_exposed), session_name = ?
+          homepage_exposed = COALESCE(?, homepage_exposed), session_name = ?, access_code = ?
          WHERE id = ?`
       )
-        .bind(status ?? null, instructorName, targetAudience, daysOfWeek, location, trainingStart, trainingEnd, trainingTimeStart, trainingTimeEnd, lunchTimeStart, lunchTimeEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt, recruitmentStatus, representativeImageExposure, recruitmentGracePeriod, syllabusExposure, mainSlideImageUrl, courseListImageUrl, courseDetailDescription, homepageExposed ?? null, sessionName, id)
+        .bind(status ?? null, instructorName, targetAudience, daysOfWeek, location, trainingStart, trainingEnd, trainingTimeStart, trainingTimeEnd, lunchTimeStart, lunchTimeEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt, recruitmentStatus, representativeImageExposure, recruitmentGracePeriod, syllabusExposure, mainSlideImageUrl, courseListImageUrl, courseDetailDescription, homepageExposed ?? null, sessionName, accessCode, id)
         .run();
     } catch (err: unknown) {
       const msg = String(err && typeof err === 'object' && 'message' in err ? (err as Error).message : err);
@@ -686,6 +737,43 @@ app.put('/:id', authMiddleware, requireAdmin, async (c) => {
   } catch (e) {
     console.error('course-sessions update:', e);
     return c.json({ success: false, error: '수정 실패' }, 500);
+  }
+});
+
+/**
+ * POST /api/course-sessions/:id/verify-access
+ * 회차 접근 코드(PIN) 검증
+ */
+app.post('/:id/verify-access', authMiddleware, async (c) => {
+  try {
+    const id = parseInt(c.req.param('id'), 10);
+    if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
+
+    const body = await c.req.json<{ code: string }>();
+    const code = body.code || '';
+    if (!code) return c.json({ success: false, error: '코드를 입력하세요' }, 400);
+
+    const { DB } = c.env;
+    const session = await DB.prepare('SELECT access_code FROM course_sessions WHERE id = ?').bind(id).first<{ access_code: string }>();
+
+    if (!session) {
+      return c.json({ success: false, error: '회차를 찾을 수 없습니다' }, 404);
+    }
+
+    if (!session.access_code) {
+      // 코드가 설정되지 않은 경우 누구나 통과 (또는 설정 필요 메시지?)
+      // 여기서는 "설정되지 않음 = 인증 불필요" 로 간주하여 성공 처리
+      return c.json({ success: true, verified: true });
+    }
+
+    if (session.access_code === code.trim()) {
+      return c.json({ success: true, verified: true });
+    } else {
+      return c.json({ success: false, error: '코드가 올바르지 않습니다' }, 401);
+    }
+  } catch (e) {
+    console.error('verify-access error:', e);
+    return c.json({ success: false, error: '인증 중 오류가 발생했습니다' }, 500);
   }
 });
 
@@ -1044,7 +1132,7 @@ app.get('/:id/timetable/resources', authMiddleware, requireAdmin, async (c) => {
     // 3. Instructors
     let instructors: any[] = [];
     try {
-      const instRows = await DB.prepare("SELECT id, name FROM users WHERE role IN ('instructor', 'admin')").all();
+      const instRows = await DB.prepare("SELECT id, name FROM users WHERE role IN ('teacher', 'instructor', 'admin') ORDER BY name ASC").all();
       instructors = instRows.results || [];
     } catch {
       // Ignore
@@ -1111,36 +1199,34 @@ app.post('/:id/timetable', authMiddleware, requireAdmin, async (c) => {
 
     // Strategy: Upsert logic: Delete (date, period) then Insert.
 
-    const stmts: any[] = [];
+    // Process in chunks to avoid D1 batch limits (approx 100 statements limit)
+    const CHUNK_SIZE = 20;
+    for (let i = 0; i < schedules.length; i += CHUNK_SIZE) {
+      const chunk = schedules.slice(i, i + CHUNK_SIZE);
+      const stmts: any[] = [];
 
-    for (const s of schedules) {
-      stmts.push(DB.prepare(
-        'DELETE FROM session_timetable WHERE session_id = ? AND training_date = ? AND period_number = ?'
-      ).bind(id, s.training_date, s.period_number));
-
-      if (!s.is_excluded && s.subject_id) {
-        // Only insert if not "just deleted" (though client sends current state usually)
-        // However, existing logic in frontend sends all cells. 
-        // Let's assume we clean up first.
-        // Actually, if we delete first, then insert, it works for updates.
-        // If strict equality check is needed, fine.
-
+      for (const s of chunk) {
         stmts.push(DB.prepare(
-          `INSERT INTO session_timetable (
-                       session_id, training_date, period_number, subject_id, instructor_id, location, is_excluded
-                   ) VALUES (?, ?, ?, ?, ?, ?, ?)`
-        ).bind(id, s.training_date, s.period_number, s.subject_id, s.instructor_id, s.location, s.is_excluded || 0));
-      } else if (s.is_excluded) {
-        // Insert as excluded record (so we remember it's excluded/unchecked)
-        stmts.push(DB.prepare(
-          `INSERT INTO session_timetable (
-                       session_id, training_date, period_number, subject_id, instructor_id, location, is_excluded
-                   ) VALUES (?, ?, ?, ?, ?, ?, ?)`
-        ).bind(id, s.training_date, s.period_number, 0, null, null, 1));
+          'DELETE FROM session_timetable WHERE session_id = ? AND training_date = ? AND period_number = ?'
+        ).bind(id, s.training_date, s.period_number));
+
+        if (!s.is_excluded && s.subject_id) {
+          stmts.push(DB.prepare(
+            `INSERT INTO session_timetable (
+                         session_id, training_date, period_number, subject_id, instructor_id, location, is_excluded
+                     ) VALUES (?, ?, ?, ?, ?, ?, ?)`
+          ).bind(id, s.training_date, s.period_number, s.subject_id, s.instructor_id || null, s.location || null, s.is_excluded || 0));
+        } else if (s.is_excluded) {
+          stmts.push(DB.prepare(
+            `INSERT INTO session_timetable (
+                         session_id, training_date, period_number, subject_id, instructor_id, location, is_excluded
+                     ) VALUES (?, ?, ?, ?, ?, ?, ?)`
+          ).bind(id, s.training_date, s.period_number, null, null, null, 1));
+        }
       }
-    }
 
-    if (stmts.length > 0) await DB.batch(stmts);
+      if (stmts.length > 0) await DB.batch(stmts);
+    }
 
     return c.json({ success: true });
   } catch (e) {

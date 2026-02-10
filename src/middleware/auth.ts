@@ -10,7 +10,7 @@ import { unauthorizedResponse, forbiddenResponse } from '../utils/response';
 /**
  * JWT 인증 미들웨어
  */
-export async function authMiddleware(c: Context<{ Bindings: Bindings }>, next: Next) {
+export async function authMiddleware(c: Context<{ Bindings: Bindings; Variables: { user: JWTPayload } }>, next: Next) {
   const authHeader = c.req.header('Authorization');
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -40,7 +40,7 @@ export async function authMiddleware(c: Context<{ Bindings: Bindings }>, next: N
  * 역할 기반 인증 미들웨어 팩토리
  */
 export function requireRole(...roles: UserRole[]) {
-  return async (c: Context<{ Bindings: Bindings }>, next: Next) => {
+  return async (c: Context<{ Bindings: Bindings; Variables: { user: JWTPayload } }>, next: Next) => {
     const user = c.get('user') as JWTPayload | undefined;
 
     if (!user) {
@@ -65,7 +65,43 @@ export const requireAdmin = requireRole('admin');
  */
 export const requireTeacher = requireRole('teacher', 'admin');
 
+
 /**
  * 로그인 사용자 미들웨어 (역할 무관)
  */
 export const requireAuth = authMiddleware;
+
+/**
+ * 수강 등록 여부 확인 미들웨어 (강의장 입장 등)
+ * :sessionId 파라미터 또는 쿼리가 필요함
+ */
+export const requireEnrollment = async (c: Context<{ Bindings: Bindings; Variables: { user: JWTPayload } }>, next: Next) => {
+  const user = c.get('user') as JWTPayload;
+  if (!user) return unauthorizedResponse(c, '로그인이 필요합니다');
+
+  // 관리자나 강사는 통과
+  if (['admin', 'teacher'].includes(user.role)) {
+    await next();
+    return;
+  }
+
+  const sessionId = c.req.param('sessionId') || c.req.query('sessionId');
+  if (!sessionId) {
+    return c.json({ success: false, error: '회차 ID가 필요합니다' }, 400);
+  }
+
+  const { DB } = c.env;
+  // 수강 상태 확인 (enrolled or completed)
+  const enrollment = await DB.prepare(`
+        SELECT status FROM course_session_enrollments 
+        WHERE session_id = ? AND user_id = ? 
+        AND status IN ('enrolled', 'completed')
+    `).bind(sessionId, user.userId).first();
+
+  if (!enrollment) {
+    return forbiddenResponse(c, '이 과정에 등록되지 않은 수강생입니다.');
+  }
+
+  await next();
+};
+
