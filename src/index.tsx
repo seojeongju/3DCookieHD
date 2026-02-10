@@ -363,6 +363,7 @@ app.get('/teacher/attendance', (c) => c.redirect('/teacher/courses?tab=attendanc
 app.get('/teacher/exams', (c) => c.redirect('/teacher/courses?tab=exams'));
 app.get('/teacher/surveys', (c) => c.redirect('/teacher/courses?tab=surveys'));
 app.get('/teacher/posts', (c) => c.html(adminPostsListHtml(teacherSidebar('posts'))));
+app.get('/teacher/courses/:id/lms/counseling', (c) => c.html(adminHrdCounselingHtml(c.req.param('id'))));
 
 // ============================================
 // 페이지 라우트
