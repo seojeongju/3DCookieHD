@@ -34,8 +34,8 @@ export const adminHrdAttendanceHtml = (sidebar = hrdSidebar('attendance')) => `
                 <div class="px-8 py-6">
                     <div class="flex justify-between items-center">
                         <div>
-                            <h1 class="text-2xl font-bold text-gray-800">통합 출석 현황</h1>
-                            <p class="text-gray-600 mt-1">모든 교육 과정의 실시간 출결 현황을 한눈에 파악합니다.</p>
+                            <h1 class="text-2xl font-bold text-gray-800">출결 관리</h1>
+                            <p class="text-gray-600 mt-1">각 과정별 출결을 확인하고 관리합니다. 관리할 과정을 선택하세요.</p>
                         </div>
                         <div class="flex space-x-2">
                              <button onclick="location.href='/admin/attendance/print'" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition flex items-center shadow-sm text-sm font-bold">
@@ -57,7 +57,7 @@ export const adminHrdAttendanceHtml = (sidebar = hrdSidebar('attendance')) => `
                                 <i class="fas fa-graduation-cap text-xl"></i>
                             </div>
                             <div>
-                                <div class="text-sm text-gray-400 font-medium">운영 중인 과정</div>
+                                <div class="text-sm text-gray-400 font-medium">관리 대상 과정</div>
                                 <div class="text-2xl font-bold text-gray-800" id="stat-total-courses">0</div>
                             </div>
                         </div>
@@ -207,7 +207,7 @@ export const adminHrdAttendanceHtml = (sidebar = hrdSidebar('attendance')) => `
             }
 
             tbody.innerHTML = data.map(c => \`
-                <tr class="hover:bg-gray-50/80 transition-colors group">
+                <tr class="hover:bg-gray-50/80 transition-colors group cursor-pointer" onclick="location.href='/admin/courses/\${c.id}/lms/attendance?type=\${c.type}'">
                     <td class="px-6 py-5">
                         <div class="font-bold text-gray-800 group-hover:text-blue-600 transition-colors">\${c.title}</div>
                         <div class="flex items-center gap-2 mt-1">
@@ -244,7 +244,7 @@ export const adminHrdAttendanceHtml = (sidebar = hrdSidebar('attendance')) => `
                     </td>
                     <td class="px-6 py-5 text-right">
                         <a href="/admin/courses/\${c.id}/lms/attendance?type=\${c.type}" class="inline-flex items-center px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-700 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all shadow-sm">
-                            상세 관리 <i class="fas fa-chevron-right ml-2 text-[10px]"></i>
+                            출결 관리 <i class="fas fa-chevron-right ml-2 text-[10px]"></i>
                         </a>
                     </td>
                 </tr>

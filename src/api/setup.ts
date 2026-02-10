@@ -1,3 +1,4 @@
+
 import { Hono } from 'hono';
 import { Bindings } from '../types';
 import { execute, getOne } from '../utils/database';
@@ -42,6 +43,8 @@ setup.get('/hrd-counseling-init', async (c) => {
                 content TEXT,
                 result TEXT,
                 next_counseling_date DATETIME,
+                counseling_type TEXT DEFAULT 'academic',
+                consultation_id INTEGER,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE,
@@ -98,5 +101,48 @@ setup.get('/db-update', async (c) => {
         return c.json({ success: false, error: e.message });
     }
 });
+
+setup.get('/timetable-init', async (c) => {
+    try {
+        const { DB } = c.env;
+
+        // 1. session_period_configs
+        // Use execute utility instead of direct DB.prepare().run() for consistency if possible, but execute() is imported from utils/database.
+        // execute(DB, query, params)
+        // I prefer using execute here.
+
+        await execute(DB, `
+             CREATE TABLE IF NOT EXISTS session_period_configs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id INTEGER NOT NULL,
+                period_number INTEGER NOT NULL,
+                start_time TEXT NOT NULL,
+                end_time TEXT NOT NULL,
+                break_minute INTEGER DEFAULT 10,
+                FOREIGN KEY (session_id) REFERENCES course_sessions(id) ON DELETE CASCADE
+            )
+        `);
+
+        // 2. session_timetable
+        await execute(DB, `
+             CREATE TABLE IF NOT EXISTS session_timetable (
+                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                 session_id INTEGER NOT NULL,
+                 training_date TEXT NOT NULL,
+                 period_number INTEGER NOT NULL,
+                 subject_id INTEGER,
+                 instructor_id INTEGER,
+                 location TEXT,
+                 is_excluded INTEGER DEFAULT 0,
+                 FOREIGN KEY (session_id) REFERENCES course_sessions(id) ON DELETE CASCADE
+             )
+        `);
+
+        return c.json({ success: true, message: 'Timetable schema initialized' });
+    } catch (e: any) {
+        return c.json({ success: false, error: e.message });
+    }
+});
+
 
 export { setup as setupApi };

@@ -173,13 +173,17 @@
                             '<td class="p-3 text-center text-slate-500 text-xs">' + regDate + '</td>' +
                             '<td class="p-3 text-center">' + homepageBtn + '</td>' +
                             '<td class="p-3 text-right">' +
-                            '<div class="flex items-center justify-end gap-1">' +
+                            '<div class="flex items-center justify-end gap-1 font-bold">' +
+                            '<button type="button" class="btn-session-timetable px-2 py-1 text-[10px] bg-primary-100 text-primary-700 rounded hover:bg-primary-200 transition" data-id="' + item.id + '" title="시간표 편성"><i class="fas fa-calendar-alt mr-1"></i>시간표</button>' +
                             '<button type="button" class="btn-session-edit p-1.5 text-slate-400 hover:text-primary-600 transition" data-id="' + item.id + '" title="수정"><i class="fas fa-pen"></i></button>' +
                             '<button type="button" class="btn-session-delete p-1.5 text-slate-400 hover:text-red-500 transition" data-id="' + item.id + '" title="삭제"><i class="fas fa-trash-alt"></i></button>' +
                             '</div>' +
                             '</td>' +
                             '</tr>';
                     }).join('');
+                    tbody.querySelectorAll('.btn-session-timetable').forEach(function (btn) {
+                        btn.addEventListener('click', function () { window.location.href = '/admin/courses/sessions/' + btn.getAttribute('data-id') + '/timetable'; });
+                    });
                     tbody.querySelectorAll('.btn-session-edit').forEach(function (btn) {
                         btn.addEventListener('click', function () { window.openSessionEdit(parseInt(btn.getAttribute('data-id'), 10)); });
                     });

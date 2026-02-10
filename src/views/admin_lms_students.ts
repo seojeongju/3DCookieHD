@@ -219,7 +219,8 @@ export const adminLmsStudentsHtml = `
                     const statusClass = (s.status || '').toLowerCase() === 'approved' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : (s.status || '').toLowerCase() === 'pending' ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-slate-50 text-slate-600 border-slate-100';
                     const statusText = (s.status || '').toLowerCase() === 'approved' ? '수강중' : (s.status || '').toLowerCase() === 'pending' ? '대기' : (s.status || '');
                     const date = s.enrolled_at ? s.enrolled_at.split('T')[0] : '-';
-                    return '<tr class="group hover:bg-slate-50/80 transition-all duration-300">' +
+                    const studentId = s.user_id || s.student_id; // ensure we get the ID
+                    return '<tr class="group hover:bg-slate-50/80 transition-all duration-300 cursor-pointer" onclick="location.href=\\'/admin/students/' + studentId + '/journey\\'">' +
                         '<td class="px-8 py-6">' +
                             '<div class="flex items-center gap-4">' +
                                 '<div class="w-12 h-12 rounded-2xl bg-indigo-100 flex items-center justify-center text-indigo-600 font-black text-lg">' + ((s.user_name || 'S')[0]) + '</div>' +
