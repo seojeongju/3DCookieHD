@@ -9,7 +9,7 @@ export const hrdSidebar = (activeMenu: string) => `
 <div id="adminSidebarWrap" class="fixed lg:relative inset-y-0 left-0 z-40 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-out flex-shrink-0">
 <aside class="w-64 h-full bg-[#0f172a] text-slate-300 flex flex-col shadow-2xl border-r border-slate-800">
     <!-- 로고 영역 -->
-    <div class="h-20 flex items-center px-6 bg-[#0f172a] relative overflow-hidden">
+    <div class="h-20 flex items-center px-6 bg-[#0f172a] relative overflow-hidden shrink-0">
         <div class="absolute -right-4 -top-4 w-24 h-24 bg-blue-600/10 rounded-full blur-2xl"></div>
         <div class="flex items-center z-10">
             <div class="w-10 h-10 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20 mr-3">
@@ -18,6 +18,21 @@ export const hrdSidebar = (activeMenu: string) => `
             <div>
                 <span class="font-bold text-white text-base tracking-tight leading-tight block">WOW3D</span>
                 <span class="text-[10px] text-slate-500 font-medium uppercase tracking-[0.2em]">홍대센터 ADMIN</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 운영 과정 퀵 선택기 (Quick Selector) -->
+    <div class="px-3 pb-4 border-b border-slate-800/50 shrink-0">
+        <div class="px-3 mb-2">
+            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest opacity-70">운영 과정 바로가기</span>
+        </div>
+        <div class="relative group/selector">
+            <select id="sidebarActiveCourseSelector" onchange="if(this.value) location.href='/admin/courses/'+this.value+'/lms'" class="w-full bg-slate-800/50 border border-slate-700/50 text-slate-300 text-xs rounded-xl px-4 py-2.5 appearance-none focus:outline-none focus:ring-1 focus:ring-blue-500/50 transition cursor-pointer hover:bg-slate-800">
+                <option value="">진행 중인 과정 선택</option>
+            </select>
+            <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 text-[10px]">
+                <i class="fas fa-chevron-down"></i>
             </div>
         </div>
     </div>
@@ -305,6 +320,33 @@ export const hrdSidebar = (activeMenu: string) => `
             logoutBtn.addEventListener('click', () => {
                 window.logout();
             });
+        }
+
+        // 사이드바 운영 과정 선택기 데이터 로드
+        const courseSelector = document.getElementById('sidebarActiveCourseSelector');
+        const token = localStorage.getItem('token');
+        if (courseSelector && token) {
+            fetch('/api/course-sessions?status=in_progress', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            })
+            .then(r => r.json())
+            .then(res => {
+                if (res.success && res.data) {
+                    res.data.forEach(s => {
+                        const opt = document.createElement('option');
+                        opt.value = s.id;
+                        opt.textContent = \`[\${s.session_number || 1}차] \${s.course_name}\`;
+                        courseSelector.appendChild(opt);
+                    });
+                    
+                    // 현재 URL에서 courseId 추출하여 자동 선택
+                    const match = location.pathname.match(/\\/admin\\/courses\\/(\\d+)\\/lms/);
+                    if (match && match[1]) {
+                        courseSelector.value = match[1];
+                    }
+                }
+            })
+            .catch(err => console.error('Sidebar course load error:', err));
         }
     });
 </script>

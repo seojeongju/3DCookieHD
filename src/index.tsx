@@ -81,7 +81,7 @@ import { adminLmsNcsReportHtml } from './views/admin_lms_ncs_report';
 import { adminLmsNcsStudentReportHtml } from './views/admin_lms_ncs_student_report';
 import { adminLmsEmploymentHtml } from './views/admin_lms_employment';
 import { adminLmsGradesHtml } from './views/admin_lms_grades';
-import { adminLmsCounselingHtml } from './views/admin_lms_counseling';
+// import { adminLmsCounselingHtml } from './views/admin_lms_counseling'; // 기능 통합으로 제거
 import { adminLmsCbtHtml } from './views/admin_lms_cbt';
 import { adminLmsSurveysHtml } from './views/admin_lms_surveys';
 import { adminScheduleHtml } from './views/admin_schedule';
@@ -302,7 +302,7 @@ app.get('/admin/attendance', (c) => c.html(adminHrdAttendanceHtml()));
 app.get('/admin/attendance/print', (c) => c.html(adminHrdAttendancePrintHtml));
 app.get('/admin/training-logs', (c) => c.html(adminHrdTrainingLogsHtml()));
 app.get('/admin/assignments', (c) => c.html(adminHrdAssignmentsHtml()));
-app.get('/admin/counseling', (c) => c.html(adminHrdCounselingHtml));
+app.get('/admin/counseling', (c) => c.html(adminHrdCounselingHtml()));
 app.get('/admin/ncs', (c) => c.html(adminNcsHtml));
 app.get('/admin/ncs/viewer', (c) => c.html(adminNcsViewerHtml()));
 app.get('/admin/ncs/upload', (c) => c.html(adminNcsUploadHtml()));
@@ -340,7 +340,7 @@ app.get('/admin/courses/:id/lms/employment', (c) => c.html(adminLmsEmploymentHtm
 app.get('/admin/courses/:id/lms/training-logs', (c) => c.html(adminLmsTrainingLogsHtml));
 app.get('/admin/courses/:id/lms/cbt', (c) => c.html(adminLmsCbtHtml));
 app.get('/admin/courses/:id/lms/grades', (c) => c.html(adminLmsGradesHtml));
-app.get('/admin/courses/:id/lms/counseling', (c) => c.html(adminLmsCounselingHtml));
+app.get('/admin/courses/:id/lms/counseling', (c) => c.html(adminHrdCounselingHtml(c.req.param('id'))));
 app.get('/admin/courses/:id/lms/surveys', (c) => c.html(adminLmsSurveysHtml));
 app.get('/admin/courses/:id/lms/assignments', (c) => c.html(adminLmsAssignmentsHtml));
 app.get('/admin/courses/:id/lms/qr-attendance', (c) => c.html(adminLmsQrAttendanceHtml));
