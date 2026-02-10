@@ -191,6 +191,56 @@ export function adminSessionTimetableHtml(sessionId: number): string {
         </div>
     </div>
 
+    <!-- Status Modal -->
+    <div id="statusModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center transition-opacity duration-300 opacity-0">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col transform transition-transform duration-300 scale-95">
+            <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                <h3 class="font-bold text-lg text-slate-800"><i class="fas fa-chart-pie mr-2 text-primary-600"></i>시간표 편성 진행 상황</h3>
+                <button onclick="closeStatus()" class="text-slate-400 hover:text-slate-600 transition"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div class="p-6 overflow-y-auto custom-scrollbar space-y-8 flex-1">
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="statusSummary"></div>
+
+                <!-- Subject Progress -->
+                <div>
+                    <h4 class="font-bold text-slate-700 mb-4 border-l-4 border-primary-500 pl-3">교과목별 편성 현황</h4>
+                    <div class="overflow-hidden border border-slate-200 rounded-lg">
+                        <table class="w-full text-sm text-left">
+                            <thead class="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
+                                <tr>
+                                    <th class="px-4 py-3">교과목명 (NCS 능력단위)</th>
+                                    <th class="px-4 py-3 text-center">계획 시수</th>
+                                    <th class="px-4 py-3 text-center">편성 시수</th>
+                                    <th class="px-4 py-3 text-center">진행률</th>
+                                    <th class="px-4 py-3 text-center">상태</th>
+                                </tr>
+                            </thead>
+                            <tbody id="statusSubjectBody" class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- Instructor Stats -->
+                    <div>
+                        <h4 class="font-bold text-slate-700 mb-4 border-l-4 border-purple-500 pl-3">강사별 배정 현황</h4>
+                        <div class="bg-slate-50 rounded-lg p-4 border border-slate-200" id="statusInstructorList"></div>
+                    </div>
+                    
+                    <!-- Validation / Warnings -->
+                    <div>
+                         <h4 class="font-bold text-slate-700 mb-4 border-l-4 border-amber-500 pl-3">알림 및 확인 필요</h4>
+                         <ul id="statusWarnings" class="space-y-2 text-sm text-slate-600"></ul>
+                    </div>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-slate-200 bg-slate-50 flex justify-end shrink-0">
+                <button onclick="closeStatus()" class="px-5 py-2.5 bg-slate-800 text-white font-bold rounded hover:bg-slate-900 transition">닫기</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast/Notification -->
     <div id="toast" class="fixed bottom-4 right-4 bg-slate-800 text-white px-4 py-3 rounded shadow-lg transform translate-y-20 transition-transform duration-300 z-50 text-sm font-medium">
         알림 메시지
@@ -649,12 +699,145 @@ export function adminSessionTimetableHtml(sessionId: number): string {
             }
             
             window.showStatus = function() {
-                alert('진행 상황 보기 기능은 준비 중입니다.');
+                const modal = document.getElementById('statusModal');
+                
+                // Calculation Results
+                const totalPlanned = sessionInfo.total_hours || 0;
+                // Count slots where subject_id is present (and not excluded)
+                // Filter out is_excluded entries (which might have subject_id null anyway, but good to be safe)
+                const totalAssigned = timetableData.filter(t => t.subject_id && !t.is_excluded).length; 
+                const progress = totalPlanned > 0 ? Math.round((totalAssigned / totalPlanned) * 100) : 0;
+                
+                // 1. Summary Cards
+                const summaryHtml = `
+        < div class="bg-blue-50 p-4 rounded-xl border border-blue-100" >
+            <div class="text-blue-500 text-xs font-bold mb-1" > 총 훈련시간 편성률 </div>
+                < div class="flex items-end gap-2" >
+                    <span class="text-3xl font-black text-blue-700" > ${ progress }% </span>
+                        < span class="text-sm text-blue-600 mb-1" > (${ totalAssigned } / ${totalPlanned} 시간)</span >
+                            </div>
+                            < div class="w-full bg-blue-200 h-2 rounded-full mt-3 overflow-hidden" >
+                                <div class="bg-blue-600 h-full rounded-full" style = "width: ${Math.min(progress, 100)}%" > </div>
+                                    </div>
+                                    </div>
+                                    < div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm" >
+                                        <div class="text-slate-500 text-xs font-bold mb-1" > 배정된 강사 수 </div>
+                                            < div class="text-2xl font-bold text-slate-800" >
+                                                ${ new Set(timetableData.filter(t => t.instructor_id && !t.is_excluded).map(t => t.instructor_id)).size } <span class="text-sm font-normal text-slate-500" > 명 </span>
+                                                    </div>
+                                                    </div>
+                                                    < div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm" >
+                                                        <div class="text-slate-500 text-xs font-bold mb-1" > 시스템 진단 </div>
+                                                            < div class="text-lg font-bold text-slate-800 flex items-center gap-2 mt-1" >
+                                                                ${
+                                                                    totalAssigned < totalPlanned ? '<i class="fas fa-exclamation-circle text-amber-500"></i> <span class="text-sm font-medium text-slate-600">시간 부족</span>' :
+                                                                    (totalAssigned > totalPlanned ? '<i class="fas fa-exclamation-triangle text-red-500"></i> <span class="text-sm font-medium text-slate-600">시간 초과</span>' :
+                                                                        '<i class="fas fa-check-circle text-emerald-500"></i> <span class="text-sm font-medium text-slate-600">정상</span>')
+    }
+    </div>
+        </div>
+            `;
+                document.getElementById('statusSummary').innerHTML = summaryHtml;
+
+                // 2. Subject Progress
+                const tbody = document.getElementById('statusSubjectBody');
+                if (resources.subjects.length === 0) {
+                     tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-slate-400">등록된 교과목이 없습니다.</td></tr>';
+                } else {
+                    tbody.innerHTML = resources.subjects.map(s => {
+                        const planned = s.total_time || 0; // Assuming total_time is available in subject resource
+                        // Count assigned slots for this subject
+                        const assigned = timetableData.filter(t => t.subject_id === s.id && !t.is_excluded).length;
+                        const pct = planned > 0 ? Math.round((assigned / planned) * 100) : 0;
+                        let statusBadge = '';
+                        // Status Logic
+                        if (assigned === 0) statusBadge = `< span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-500" > 미배정 </span>`;
+                        else if (assigned < planned) statusBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-600 pointer-cursor" title="${planned - assigned}시간 부족">부족</span>`;
+    else if (assigned === planned) statusBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-600">충족</span>`;
+    else statusBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-600 pointer-cursor" title="${assigned - planned}시간 초과">초과</span>`;
+
+    return `
+                            <tr class="hover:bg-slate-50 transition border-b border-slate-50 last:border-0">
+                                <td class="px-4 py-3">
+                                    <div class="font-bold text-slate-800 text-xs">${s.name}</div>
+                                    <div class="text-[10px] text-slate-400">${s.ncs_classification_code || '-'}</div>
+                                </td>
+                                <td class="px-4 py-3 text-center text-slate-600 text-xs">${planned}</td>
+                                <td class="px-4 py-3 text-center text-xs font-bold ${assigned > planned ? 'text-red-600' : 'text-slate-800'}">${assigned}</td>
+                                <td class="px-4 py-3 align-middle">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-24 bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                                            <div class="h-full rounded-full ${assigned > planned ? 'bg-red-500' : (assigned === planned ? 'bg-emerald-500' : 'bg-blue-500')}" style="width: ${Math.min((assigned / planned) * 100, 100)}%"></div>
+                                        </div>
+                                        <span class="text-[10px] w-8 text-right text-slate-500">${pct}%</span>
+                                    </div>
+                                </td>
+                                <td class="px-4 py-3 text-center">${statusBadge}</td>
+                            </tr>
+                        `;
+}).join('');
+                }
+
+// 3. Instructor Stats
+const instructorCounts = {};
+timetableData.forEach(t => {
+    if (t.instructor_id && !t.is_excluded) {
+        instructorCounts[t.instructor_id] = (instructorCounts[t.instructor_id] || 0) + 1;
+    }
+});
+
+let iHtml = '<div class="space-y-2 max-h-60 overflow-y-auto custom-scrollbar pr-2">';
+// Sort by hours desc
+const sortedInstructors = Object.keys(instructorCounts).sort((a, b) => instructorCounts[b] - instructorCounts[a]);
+
+if (sortedInstructors.length === 0) {
+    iHtml += '<div class="text-center text-slate-400 py-4 text-xs">아직 배정된 강사가 없습니다.</div>';
+} else {
+    sortedInstructors.forEach(id => {
+        const count = instructorCounts[id];
+        // id is string from object key, convert to number for find
+        const info = resources.instructors.find(i => i.id == id);
+        const name = info ? info.name : 'Unknown';
+        iHtml += `
+                            <div class="flex justify-between items-center text-sm p-2 bg-white border border-slate-100 rounded hover:bg-slate-50 transition">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold text-[10px]">${name.charAt(0)}</div>
+                                    <span class="font-medium text-slate-700 text-xs">${name}</span>
+                                </div>
+                                <div class="font-bold text-slate-800 text-xs">${count} <span class="font-normal text-slate-400 text-[10px]">시간</span></div>
+                            </div>
+                        `;
+    });
+}
+iHtml += '</div>';
+document.getElementById('statusInstructorList').innerHTML = iHtml;
+
+// 4. Warnings / Validation
+const warnings = [];
+if (totalAssigned < totalPlanned) warnings.push(`<li class="flex items-start gap-2"><i class="fas fa-exclamation-circle text-amber-500 mt-0.5"></i><span>총 훈련시간이 부족합니다. (${totalPlanned - totalAssigned}시간 미편성)</span></li>`);
+if (totalAssigned > totalPlanned) warnings.push(`<li class="flex items-start gap-2"><i class="fas fa-exclamation-triangle text-red-500 mt-0.5"></i><span>총 훈련시간이 초과되었습니다. (${totalAssigned - totalPlanned}시간 초과)</span></li>`);
+
+document.getElementById('statusWarnings').innerHTML = warnings.length > 0 ? warnings.join('') : `<li class="flex items-center gap-2 text-emerald-600"><i class="fas fa-check-circle"></i><span>현재까지 특이사항이 발견되지 않았습니다.</span></li>`;
+
+modal.classList.remove('hidden');
+setTimeout(() => {
+    modal.classList.remove('opacity-0');
+    modal.querySelector('div').classList.remove('scale-95');
+}, 10);
             }
 
-        })();
-    </script>
-</body>
-</html>
-    `;
+window.closeStatus = function () {
+    const modal = document.getElementById('statusModal');
+    modal.classList.add('opacity-0');
+    modal.querySelector('div').classList.add('scale-95');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 300);
+}
+
+        }) ();
+</script>
+    </body>
+    </html>
+        `;
 }
