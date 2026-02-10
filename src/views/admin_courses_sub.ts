@@ -1423,6 +1423,10 @@ export const adminCoursesSessionEnrollmentsHtml = (sessionId?: string) =>
                     <i class="fas fa-sync-alt mr-1"></i> 조회
                 </button>
             </div>
+            <div id="enrollSessionInfo" class="hidden mt-4 p-4 bg-emerald-50 rounded-lg border border-emerald-100">
+                <h3 id="enrollCourseName" class="font-bold text-lg text-emerald-900 mb-1"></h3>
+                <div id="enrollSessionDetail" class="text-sm text-emerald-700 flex flex-wrap gap-x-4 gap-y-1"></div>
+            </div>
             <p id="enrollSessionSummary" class="mt-2 text-xs text-slate-500 hidden"></p>
         </div>
 
