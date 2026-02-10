@@ -1399,7 +1399,7 @@ export const adminSyllabusHtml = (sessionId: string) => {
 };
 
 /** 수강생 등록 페이지: 회차 선택 후 훈련생 목록에서 수강생 등록 */
-export const adminCoursesSessionEnrollmentsHtml = () =>
+export const adminCoursesSessionEnrollmentsHtml = (sessionId?: string) =>
     courseSubPageLayout(
         'courses-session-enrollments',
         '수강생 등록',
@@ -1489,6 +1489,9 @@ export const adminCoursesSessionEnrollmentsHtml = () =>
         </div>
     </div>
 
+    <script>
+        window.ENROLL_SESSION_ID = ${sessionId ? JSON.stringify(sessionId) : 'null'};
+    </script>
     <script src="/static/session-enrollments.js"></script>
     `
     );

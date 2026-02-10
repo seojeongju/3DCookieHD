@@ -43,44 +43,48 @@
                 if (countEl) countEl.textContent = enrolledList.length + '명';
                 if (!tbody) return;
                 if (enrolledList.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="3" class="p-4 text-center text-slate-400 text-xs">등록된 수강생이 없습니다.</td></tr>';
-                    renderCandidates();
-                    return;
-                }
-                tbody.innerHTML = enrolledList.map(function (e) {
-                    var name = (e.name || '').replace(/</g, '&lt;');
-                    var phone = (e.phone || '').replace(/</g, '&lt;');
-                    return '<tr class="hover:bg-slate-50">' +
-                        '<td class="p-2 text-slate-700">' + name + '</td>' +
-                        '<td class="p-2 text-slate-600">' + phone + '</td>' +
-                        '<td class="p-2 text-center">' +
-                        '<button type="button" class="text-red-500 hover:text-red-700 text-xs font-bold enroll-remove" data-user-id="' + e.user_id + '">삭제</button>' +
-                        '</td></tr>';
-                }).join('');
-                tbody.querySelectorAll('.enroll-remove').forEach(function (btn) {
-                    btn.addEventListener('click', function () {
-                        var uid = btn.getAttribute('data-user-id');
-                        if (!uid || !confirm('이 수강생을 등록에서 제거할까요?')) return;
-                        fetch('/api/course-sessions/' + currentSessionId + '/enrollments/' + uid, {
-                            method: 'DELETE',
-                            headers: headers()
-                        }).then(function (r) { return r.json(); }).then(function (res) {
-                            if (res.success) {
-                                loadEnrolled();
-                                loadCandidates();
-                            } else {
-                                alert(res.error || '삭제 실패');
-                            }
-                        }).catch(function () { alert('오류가 발생했습니다.'); });
+                    if (enrolledList.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="3" class="p-4 text-center text-slate-400 text-xs">등록된 수강생이 없습니다.</td></tr>';
+                        loadCandidates();
+                        return;
+                    }
+                    tbody.innerHTML = enrolledList.map(function (e) {
+                        var name = (e.name || '').replace(/</g, '&lt;');
+                        var phone = (e.phone || '').replace(/</g, '&lt;');
+                        return '<tr class="hover:bg-slate-50">' +
+                            '<td class="p-2 text-slate-700">' + name + '</td>' +
+                            '<td class="p-2 text-slate-600">' + phone + '</td>' +
+                            '<td class="p-2 text-center">' +
+                            '<button type="button" class="text-red-500 hover:text-red-700 text-xs font-bold enroll-remove" data-user-id="' + e.user_id + '">삭제</button>' +
+                            '</td></tr>';
+                    }).join('');
+                    tbody.querySelectorAll('.enroll-remove').forEach(function (btn) {
+                        btn.addEventListener('click', function () {
+                            var uid = btn.getAttribute('data-user-id');
+                            if (!uid || !confirm('이 수강생을 등록에서 제거할까요?')) return;
+                            fetch('/api/course-sessions/' + currentSessionId + '/enrollments/' + uid, {
+                                method: 'DELETE',
+                                headers: headers()
+                            }).then(function (r) { return r.json(); }).then(function (res) {
+                                if (res.success) {
+                                    loadEnrolled();
+                                    // loadEnrolled calls loadCandidates, so no explicit call needed here if we rely on loadEnrolled structure, 
+                                    // but loadEnrolled structure is being changed to call loadCandidates at the end.
+                                    // However, in the delete handler, we call loadEnrolled(), which will refresh enrolled list AND then candidate list.
+                                } else {
+                                    alert(res.error || '삭제 실패');
+                                }
+                            }).catch(function () { alert('오류가 발생했습니다.'); });
+                        });
                     });
-                });
-                renderCandidates();
-            })
+                    loadCandidates();
+                })
             .catch(function (e) { console.error(e); });
     }
 
     function loadCandidates() {
-        fetch('/api/hrd/students', { headers: headers() })
+        if (!currentSessionId) return;
+        fetch('/api/hrd/students', { headers: headers() }) // This API exists mostly for HRD student list.
             .then(function (r) { return r.json(); })
             .then(function (json) {
                 if (!json.success || !json.data) {
@@ -90,6 +94,8 @@
                 }
                 var enrolledIds = {};
                 enrolledList.forEach(function (e) { enrolledIds[e.user_id] = true; });
+
+                // Filter out already enrolled students
                 candidateList = (json.data || []).filter(function (s) { return !enrolledIds[s.id]; });
                 renderCandidates();
             })
@@ -143,6 +149,9 @@
     }
 
     function getSessionIdFromUrl() {
+        if (typeof window.ENROLL_SESSION_ID !== 'undefined' && window.ENROLL_SESSION_ID !== null) {
+            return parseInt(window.ENROLL_SESSION_ID, 10);
+        }
         var m = /[?&]sessionId=(\d+)/.exec(window.location.search || '');
         return m ? parseInt(m[1], 10) : null;
     }
