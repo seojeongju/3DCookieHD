@@ -87,7 +87,7 @@ app.get('/me/enrollments', authMiddleware, async (c) => {
         JOIN course_sessions s ON e.session_id = s.id
         JOIN approved_courses a ON s.approved_course_id = a.id
         LEFT JOIN course_categories c ON a.category_id = c.id
-        WHERE e.student_id = ? AND e.status = 'approved'
+        WHERE e.user_id = ? AND e.status = 'approved'
         ORDER BY s.training_start_date DESC
     `).bind(user.userId).all();
 

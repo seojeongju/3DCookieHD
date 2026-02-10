@@ -1,0 +1,92 @@
+﻿
+ ⛅️ wrangler 4.51.0 (update available 4.63.0)
+─────────────────────────────────────────────
+Resource location: local 
+
+Use --remote if you want to access the remote instance.
+
+🌀 Executing on local database education-platform-db (28fc5bec-bc18-46a9-8aea-fc4a4f6e44db) from .wrangler\state\v3\d1:
+🌀 To execute on your remote database, add a --remote flag to your wrangler command.
+🚣 1 command executed successfully.
+[
+  {
+    "results": [
+      {
+        "cid": 0,
+        "name": "id",
+        "type": "INTEGER",
+        "notnull": 0,
+        "dflt_value": "null",
+        "pk": 1
+      },
+      {
+        "cid": 1,
+        "name": "enrollment_id",
+        "type": "INTEGER",
+        "notnull": 1,
+        "dflt_value": "null",
+        "pk": 0
+      },
+      {
+        "cid": 2,
+        "name": "date",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": "null",
+        "pk": 0
+      },
+      {
+        "cid": 3,
+        "name": "check_in_time",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": "null",
+        "pk": 0
+      },
+      {
+        "cid": 4,
+        "name": "check_out_time",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": "null",
+        "pk": 0
+      },
+      {
+        "cid": 5,
+        "name": "status",
+        "type": "TEXT",
+        "notnull": 1,
+        "dflt_value": "null",
+        "pk": 0
+      },
+      {
+        "cid": 6,
+        "name": "note",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": "null",
+        "pk": 0
+      },
+      {
+        "cid": 7,
+        "name": "created_at",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": "CURRENT_TIMESTAMP",
+        "pk": 0
+      },
+      {
+        "cid": 8,
+        "name": "updated_at",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": "CURRENT_TIMESTAMP",
+        "pk": 0
+      }
+    ],
+    "success": true,
+    "meta": {
+      "duration": 0
+    }
+  }
+]

@@ -556,7 +556,7 @@ courses.get('/:id/attendance', async (c) => {
       students = await getAll<any>(c.env.DB, `
         SELECT u.id, u.name, u.phone, e.id as enrollment_id
         FROM course_session_enrollments e
-        JOIN users u ON e.student_id = u.id
+        JOIN users u ON e.user_id = u.id
         WHERE e.session_id = ? AND e.status = 'approved'
       `, [courseId]);
 
