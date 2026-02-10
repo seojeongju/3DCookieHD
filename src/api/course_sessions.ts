@@ -112,7 +112,8 @@ app.get('/me/enrollments', authMiddleware, async (c) => {
 
 /** 연동 홈페이지 노출용 컬럼 (0059). 없으면 무시 */
 const LINKED_HOMEPAGE_COLS = `s.recruitment_status, s.representative_image_exposure, s.recruitment_grace_period,
-  s.syllabus_exposure, s.main_slide_image_url, s.course_list_image_url, s.course_detail_description, s.session_name`;
+  s.syllabus_exposure, s.main_slide_image_url, s.course_list_image_url, s.course_detail_description, s.session_name,
+  s.training_time_start, s.training_time_end, s.lunch_time_start, s.lunch_time_end`;
 
 /**
  * GET /api/course-sessions/public
@@ -1119,9 +1120,14 @@ app.get('/:id/timetable/resources', authMiddleware, requireAdmin, async (c) => {
              c.name, 
              c.type, 
              c.classification as ncs_classification_code, 
-             COALESCE(h.theory_hours, 0) + COALESCE(h.practice_hours, 0) as total_time
+             COALESCE(h.theory_hours, 0) + COALESCE(h.practice_hours, 0) as total_time,
+             r.main_job_code,
+             r.main_job_name,
+             c.ability_units_json,
+             c.units_json
            FROM ncs_approved_curriculum c
            LEFT JOIN ncs_approved_training_hours h ON h.curriculum_id = c.id
+           LEFT JOIN ncs_approved_registrations r ON r.id = c.registration_id
            WHERE c.registration_id = ?`
       )
         .bind(registration.id)

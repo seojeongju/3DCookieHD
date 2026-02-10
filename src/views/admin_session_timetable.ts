@@ -102,9 +102,12 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                                         <span class="font-bold text-slate-500">훈련기간</span>
                                         <span id="sessionDateRange" class="font-medium">-</span>
                                     </div>
-                                    <div class="flex justify-between border-b border-slate-100 pb-1">
-                                        <span class="font-bold text-slate-500">하루 훈련시간</span>
-                                        <span id="dailyTrainingHours" class="font-medium">-</span>
+                                    <div class="flex justify-between border-b border-slate-100 pb-1 items-center">
+                                        <div class="flex flex-col">
+                                            <span class="font-bold text-slate-500">하루 훈련시간</span>
+                                            <span id="dailyTrainingHours" class="font-medium">-</span>
+                                        </div>
+                                        <button onclick="syncPeriodsWithSession()" class="text-[9px] bg-amber-50 text-amber-600 px-2 py-1 rounded hover:bg-amber-100 transition font-bold border border-amber-200">훈련기준 자동생성</button>
                                     </div>
                                 </div>
                             </div>
@@ -184,9 +187,12 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                      <input type="number" id="editBreakTime" class="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none">
                  </div>
              </div>
-             <div class="mt-6 flex justify-end gap-2">
-                 <button onclick="closePeriodEdit()" class="px-4 py-2 text-slate-500 text-sm font-bold hover:bg-slate-100 rounded transition">취소</button>
-                 <button onclick="savePeriodEdit()" class="px-4 py-2 bg-primary-600 text-white text-sm font-bold rounded hover:bg-primary-700 shadow transition">저장</button>
+             <div class="mt-6 flex justify-between items-center gap-2">
+                 <button onclick="deletePeriod()" class="px-3 py-2 text-red-500 text-xs font-bold hover:bg-red-50 rounded transition border border-transparent hover:border-red-100">삭제</button>
+                 <div class="flex gap-1">
+                    <button onclick="closePeriodEdit()" class="px-4 py-2 text-slate-500 text-sm font-bold hover:bg-slate-100 rounded transition">취소</button>
+                    <button onclick="savePeriodEdit()" class="px-4 py-2 bg-primary-600 text-white text-sm font-bold rounded hover:bg-primary-700 shadow transition">저장</button>
+                 </div>
              </div>
         </div>
     </div>
@@ -410,13 +416,30 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                     document.getElementById('totalDays').textContent = diff + '일';
                 }
 
-                if (periodConfigs.length > 0) {
-                     document.getElementById('dailyTrainingHours').textContent = \`\${periodConfigs[0].start_time} ~ \${periodConfigs[periodConfigs.length-1].end_time}\`;
+                // 하루 훈련시간 표시 (저장된 정보 우선, 없으면 교시 설정 기준)
+                if (sessionInfo.training_time_start && sessionInfo.training_time_end) {
+                    document.getElementById('dailyTrainingHours').textContent = \`\${sessionInfo.training_time_start} ~ \${sessionInfo.training_time_end}\`;
+                } else if (periodConfigs.length > 0) {
+                    document.getElementById('dailyTrainingHours').textContent = \`\${periodConfigs[0].start_time} ~ \${periodConfigs[periodConfigs.length-1].end_time}\`;
                 }
 
                 // Initial Highlight for instructor search if single instructor assigned
                 if (!instructorSearchTerm && sessionInfo.instructor_name && resources.instructors.length > 0) {
                     // Optional: Pre-fill search? No, just highlight.
+                }
+
+                updateHoursCount();
+            }
+
+            function updateHoursCount() {
+                const totalAssigned = timetableData.filter(t => !t.is_excluded).length;
+                const el = document.getElementById('currentHours');
+                if (el) {
+                    el.textContent = totalAssigned.toFixed(1);
+                    // 시각적 피드백: 초과 시 빨간색
+                    const target = parseFloat(document.getElementById('targetHours').textContent || '0');
+                    if (totalAssigned > target) el.classList.add('text-red-500');
+                    else el.classList.remove('text-red-500');
                 }
             }
 
@@ -430,12 +453,34 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                         const isActive = activeSubjectId === s.id;
                         const cls = isActive ? 'bg-primary-50 border-primary-500 ring-1 ring-primary-500 shadow-md' : 'bg-white border-slate-200 hover:border-primary-300 hover:shadow-sm';
                         return \`<div onclick="selectSubject(\${s.id})" class="p-3 border rounded transition cursor-pointer mb-2 \${cls}">
-                            <div class="flex justify-between items-start mb-1">
+                            <div class="flex justify-between items-start">
                                 <div class="font-bold text-slate-800 text-sm line-clamp-1" title="\${s.name}">\${s.name}</div>
                                 \${isActive ? '<i class="fas fa-check-circle text-primary-600 text-xs"></i>' : ''}
                             </div>
-                            <div class="flex justify-between text-[11px] text-slate-500">
-                                <span>\${s.ncs_classification_code || '분류없음'}</span>
+                            <div class="text-[10px] text-primary-600 mb-1 font-medium">
+                                \${s.main_job_name ? \`\${s.main_job_name} (\${s.main_job_code})\` : ''}
+                            </div>
+                            \${(() => {
+                                try {
+                                    const elements = JSON.parse(s.units_json || '[]');
+                                    if (Array.isArray(elements) && elements.length > 0) {
+                                        return \`
+                                            <div class="mt-2 mb-3 space-y-1">
+                                                <div class="flex items-center gap-1 text-[9px] text-slate-400 font-bold tracking-tighter">
+                                                    <i class="fas fa-tag opacity-70"></i> 능력단위: \${s.ncs_classification_code || '-'}
+                                                </div>
+                                                <div class="flex flex-wrap gap-1">
+                                                    \${elements.map(e => \`<span class="text-[8px] font-mono bg-slate-100 text-slate-500 px-1 rounded border border-slate-200/50">\${e}</span>\`).join('')}
+                                                </div>
+                                            </div>\`;
+                                    }
+                                } catch(e) {}
+                                return '';
+                            })()}
+                            <div class="flex justify-between text-[11px] text-slate-500 border-t border-slate-50 pt-2">
+                                <span class="opacity-70 text-[10px]">
+                                    <span class="font-bold text-primary-600">\${timetableData.filter(t => t.subject_id === s.id && !t.is_excluded).length}</span> / \${s.total_time || 0}H
+                                </span>
                                 <span class="\${isActive ? 'font-bold text-primary-700' : ''}">\${s.total_time || 0}H</span>
                             </div>
                         </div>\`;
@@ -573,27 +618,39 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                     }
                     bodyHtml += '</tr>';
                 });
-                body.innerHTML = bodyHtml;
-            }
+                // Add Period Row
+                bodyHtml += \`<tr>
+                    <td class="w-24 p-2 border-r border-b border-slate-200 bg-slate-50 sticky left-0 z-10 shadow-sm text-center">
+                        <button onclick="addPeriod()" class="w-full h-full py-4 text-primary-600 hover:text-primary-700 transition flex flex-col items-center justify-center gap-1 group">
+                            <i class="fas fa-plus-circle text-lg group-hover:scale-110 transform transition"></i>
+                            <span class="text-[9px] font-bold">교시 추가</span>
+                        </button>
+                    </td>
+                    <td colspan="7" class="border-b border-slate-100 bg-slate-50/20"></td>
+                </tr>\`;
 
-            // --- Interactions ---
+    body.innerHTML = bodyHtml;
+    updateHoursCount();
+}
 
-            window.prevWeek = function() {
-                currentWeekStartDate.setDate(currentWeekStartDate.getDate() - 7);
-                renderTimetableGrid();
-                updateWeekText();
-            }
+// --- Interactions ---
 
-            window.nextWeek = function() {
-                currentWeekStartDate.setDate(currentWeekStartDate.getDate() + 7);
-                renderTimetableGrid();
-                updateWeekText();
-            }
-            
-            function updateWeekText() {
-                 const m = currentWeekStartDate.getMonth() + 1;
-                 const d = currentWeekStartDate.getDate();
-                 document.getElementById('weekText').textContent = \`\${m}월 \${d}일 주\`;
+window.prevWeek = function () {
+    currentWeekStartDate.setDate(currentWeekStartDate.getDate() - 7);
+    renderTimetableGrid();
+    updateWeekText();
+}
+
+window.nextWeek = function () {
+    currentWeekStartDate.setDate(currentWeekStartDate.getDate() + 7);
+    renderTimetableGrid();
+    updateWeekText();
+}
+
+function updateWeekText() {
+    const m = currentWeekStartDate.getMonth() + 1;
+    const d = currentWeekStartDate.getDate();
+    document.getElementById('weekText').textContent = \`\${m}월 \${d}일 주\`;
             }
 
             window.selectSubject = function(id) {
@@ -633,6 +690,90 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                 }
 
                 renderTimetableGrid();
+                renderResources(); // 왼쪽 목록의 시간 카운트도 갱신
+            }
+
+            window.addPeriod = function() {
+                const lastCfg = periodConfigs[periodConfigs.length - 1];
+                let nextStartTime = '09:00';
+                let nextEndTime = '09:50';
+                let nextNumber = 1;
+                
+                if (lastCfg) {
+                    nextNumber = (lastCfg.period_number || 0) + 1;
+                    try {
+                        const [h, m] = lastCfg.end_time.split(':').map(Number);
+                        const start = new Date(1970, 0, 1, h, m + (lastCfg.break_minute || 0));
+                        const end = new Date(1970, 0, 1, h, m + (lastCfg.break_minute || 0) + 50);
+                        
+                        nextStartTime = start.toTimeString().substring(0, 5);
+                        nextEndTime = end.toTimeString().substring(0, 5);
+                    } catch(e) { console.error(e); }
+                }
+
+                periodConfigs.push({
+                    period_number: nextNumber,
+                    start_time: nextStartTime,
+                    end_time: nextEndTime,
+                    break_minute: 10
+                });
+                
+                renderTimetableGrid();
+                savePeriodConfig(periodConfigs, true);
+                showToast('새 교시가 추가되었습니다.');
+            }
+
+            window.deletePeriod = function() {
+                if (activePeriodConfigIdx === null) return;
+                if (!confirm('이 교시 설정을 삭제하시겠습니까? 해당 교시에 배정된 시간표 데이터는 유지되지만 그리드에서 보이지 않게 됩니다.')) return;
+                
+                periodConfigs.splice(activePeriodConfigIdx, 1);
+                // 교시 번호 재정렬
+                periodConfigs.forEach((c, i) => c.period_number = i + 1);
+                
+                closePeriodEdit();
+                renderTimetableGrid();
+                savePeriodConfig(periodConfigs, true);
+            }
+
+            window.syncPeriodsWithSession = function() {
+                const dailyHours = parseInt(sessionInfo.daily_training_hours) || 8;
+                const startTime = sessionInfo.training_time_start || '09:00';
+                
+                if (!confirm(\`이 과정의 기본 설정(하루 \${dailyHours}시간, \${startTime} 시작)에 맞춰 교시를 자동 생성하시겠습니까? 현재의 모든 교시 설정이 초기화됩니다.\`)) return;
+
+                const newConfigs = [];
+                let currentStartStr = startTime;
+                
+                for (let i = 1; i <= dailyHours; i++) {
+                    const [h, m] = currentStartStr.split(':').map(Number);
+                    const start = new Date(1970, 0, 1, h, m);
+                    const end = new Date(1970, 0, 1, h, m + 50);
+                    
+                    const startStr = start.toTimeString().substring(0, 5);
+                    const endStr = end.toTimeString().substring(0, 5);
+                    
+                    // 점심시간 고려 (보통 4교시 후 1시간)
+                    let breakTime = 10;
+                    if (i === 4) breakTime = 60;
+                    if (i === dailyHours) breakTime = 0;
+
+                    newConfigs.push({
+                        period_number: i,
+                        start_time: startStr,
+                        end_time: endStr,
+                        break_minute: breakTime
+                    });
+
+                    // 다음 교시 시작 시간 계산
+                    const nextStart = new Date(1970, 0, 1, h, m + 50 + breakTime);
+                    currentStartStr = nextStart.toTimeString().substring(0, 5);
+                }
+
+                periodConfigs = newConfigs;
+                renderTimetableGrid();
+                savePeriodConfig(periodConfigs, false);
+                showToast('과정 설정에 맞춰 교시가 자동 생성되었습니다.');
             }
 
             window.removeSlot = function(e, date, periodNumber) {
@@ -642,6 +783,7 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                     timetableData.splice(existingIdx, 1);
                 }
                 renderTimetableGrid();
+                renderResources(); // 왼쪽 목록의 시간 카운트도 갱신
             }
 
             // --- Config Editing ---
@@ -703,137 +845,140 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                 
                 // Calculation Results
                 const totalPlanned = sessionInfo.total_hours || 0;
-                // Count slots where subject_id is present (and not excluded)
-                // Filter out is_excluded entries (which might have subject_id null anyway, but good to be safe)
                 const totalAssigned = timetableData.filter(t => t.subject_id && !t.is_excluded).length; 
                 const progress = totalPlanned > 0 ? Math.round((totalAssigned / totalPlanned) * 100) : 0;
                 
-                // 1. Summary Cards
-                const summaryHtml = `
-        < div class="bg-blue-50 p-4 rounded-xl border border-blue-100" >
-            <div class="text-blue-500 text-xs font-bold mb-1" > 총 훈련시간 편성률 </div>
-                < div class="flex items-end gap-2" >
-                    <span class="text-3xl font-black text-blue-700" > ${ progress }% </span>
-                        < span class="text-sm text-blue-600 mb-1" > (${ totalAssigned } / ${totalPlanned} 시간)</span >
-                            </div>
-                            < div class="w-full bg-blue-200 h-2 rounded-full mt-3 overflow-hidden" >
-                                <div class="bg-blue-600 h-full rounded-full" style = "width: ${Math.min(progress, 100)}%" > </div>
-                                    </div>
-                                    </div>
-                                    < div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm" >
-                                        <div class="text-slate-500 text-xs font-bold mb-1" > 배정된 강사 수 </div>
-                                            < div class="text-2xl font-bold text-slate-800" >
-                                                ${ new Set(timetableData.filter(t => t.instructor_id && !t.is_excluded).map(t => t.instructor_id)).size } <span class="text-sm font-normal text-slate-500" > 명 </span>
-                                                    </div>
-                                                    </div>
-                                                    < div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm" >
-                                                        <div class="text-slate-500 text-xs font-bold mb-1" > 시스템 진단 </div>
-                                                            < div class="text-lg font-bold text-slate-800 flex items-center gap-2 mt-1" >
-                                                                ${
-                                                                    totalAssigned < totalPlanned ? '<i class="fas fa-exclamation-circle text-amber-500"></i> <span class="text-sm font-medium text-slate-600">시간 부족</span>' :
-                                                                    (totalAssigned > totalPlanned ? '<i class="fas fa-exclamation-triangle text-red-500"></i> <span class="text-sm font-medium text-slate-600">시간 초과</span>' :
-                                                                        '<i class="fas fa-check-circle text-emerald-500"></i> <span class="text-sm font-medium text-slate-600">정상</span>')
-    }
-    </div>
-        </div>
-            `;
+                const summaryHtml = \`
+                    <div class="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                        <div class="text-blue-500 text-xs font-bold mb-1">총 훈련시간 편성률</div>
+                        <div class="flex items-end gap-2">
+                            <span class="text-3xl font-black text-blue-700">\${progress}%</span>
+                            <span class="text-sm text-blue-600 mb-1">(\${totalAssigned} / \${totalPlanned} 시간)</span>
+                        </div>
+                        <div class="w-full bg-blue-200 h-2 rounded-full mt-3 overflow-hidden">
+                            <div class="bg-blue-600 h-full rounded-full" style="width: \${Math.min(progress, 100)}%"></div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                        <div class="text-slate-500 text-xs font-bold mb-1">배정된 강사 수</div>
+                        <div class="text-2xl font-bold text-slate-800">
+                            \${new Set(timetableData.filter(t => t.instructor_id && !t.is_excluded).map(t => t.instructor_id)).size} <span class="text-sm font-normal text-slate-500">명</span>
+                        </div>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                         <div class="text-slate-500 text-xs font-bold mb-1">시스템 진단</div>
+                         <div class="text-lg font-bold text-slate-800 flex items-center gap-2 mt-1">
+                            \${totalAssigned < totalPlanned ? '<i class="fas fa-exclamation-circle text-amber-500"></i> <span class="text-sm font-medium text-slate-600">시간 부족</span>' : 
+                              (totalAssigned > totalPlanned ? '<i class="fas fa-exclamation-triangle text-red-500"></i> <span class="text-sm font-medium text-slate-600">시간 초과</span>' : 
+                              '<i class="fas fa-check-circle text-emerald-500"></i> <span class="text-sm font-medium text-slate-600">정상</span>')}
+                         </div>
+                    </div>
+                \`;
                 document.getElementById('statusSummary').innerHTML = summaryHtml;
 
-                // 2. Subject Progress
                 const tbody = document.getElementById('statusSubjectBody');
                 if (resources.subjects.length === 0) {
                      tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-slate-400">등록된 교과목이 없습니다.</td></tr>';
                 } else {
                     tbody.innerHTML = resources.subjects.map(s => {
-                        const planned = s.total_time || 0; // Assuming total_time is available in subject resource
-                        // Count assigned slots for this subject
+                        const planned = s.total_time || 0;
                         const assigned = timetableData.filter(t => t.subject_id === s.id && !t.is_excluded).length;
                         const pct = planned > 0 ? Math.round((assigned / planned) * 100) : 0;
                         let statusBadge = '';
-                        // Status Logic
-                        if (assigned === 0) statusBadge = `< span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-500" > 미배정 </span>`;
-                        else if (assigned < planned) statusBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-600 pointer-cursor" title="${planned - assigned}시간 부족">부족</span>`;
-    else if (assigned === planned) statusBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-600">충족</span>`;
-    else statusBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-600 pointer-cursor" title="${assigned - planned}시간 초과">초과</span>`;
+                        if (assigned === 0) statusBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-500">미배정</span>';
+                        else if (assigned < planned) statusBadge = \`<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-600 pointer-cursor" title="\${planned - assigned}시간 부족">부족</span>\`;
+                        else if (assigned === planned) statusBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-600">충족</span>';
+                        else statusBadge = \`<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-600 pointer-cursor" title="\${assigned - planned}시간 초과">초과</span>\`;
 
-    return `
+                        return \`
                             <tr class="hover:bg-slate-50 transition border-b border-slate-50 last:border-0">
                                 <td class="px-4 py-3">
-                                    <div class="font-bold text-slate-800 text-xs">${s.name}</div>
-                                    <div class="text-[10px] text-slate-400">${s.ncs_classification_code || '-'}</div>
+                                    <div class="font-bold text-slate-800 text-xs">\${s.name}</div>
+                                    <div class="text-[10px] text-primary-600 font-medium mb-1">\${s.main_job_name ? \`\${s.main_job_name} (\${s.main_job_code})\` : ''}</div>
+                                    <div class="space-y-1">
+                                        <div class="text-[9px] text-slate-500 font-bold flex items-center gap-1">
+                                            <span class="px-1 bg-slate-100 rounded text-slate-400 text-[8px]">UNIT</span> \${s.ncs_classification_code || '-'}
+                                        </div>
+                                        \${(() => {
+                                            try {
+                                                const codes = JSON.parse(s.units_json || '[]');
+                                                if (Array.isArray(codes) && codes.length > 0) {
+                                                    return \`
+                                                        <div class="flex flex-wrap gap-1">
+                                                            \${codes.map(e => \`<span class="text-[8px] font-mono bg-blue-50/50 text-blue-400 px-1 rounded border border-blue-100/50">\${e}</span>\`).join('')}
+                                                        </div>\`;
+                                                }
+                                            } catch(e) {}
+                                            return '';
+                                        })()}
+                                    </div>
                                 </td>
-                                <td class="px-4 py-3 text-center text-slate-600 text-xs">${planned}</td>
-                                <td class="px-4 py-3 text-center text-xs font-bold ${assigned > planned ? 'text-red-600' : 'text-slate-800'}">${assigned}</td>
+                                <td class="px-4 py-3 text-center text-slate-600 text-xs">\${planned}</td>
+                                <td class="px-4 py-3 text-center text-xs font-bold \${assigned > planned ? 'text-red-600' : 'text-slate-800'}">\${assigned}</td>
                                 <td class="px-4 py-3 align-middle">
                                     <div class="flex items-center gap-2">
                                         <div class="w-24 bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                                            <div class="h-full rounded-full ${assigned > planned ? 'bg-red-500' : (assigned === planned ? 'bg-emerald-500' : 'bg-blue-500')}" style="width: ${Math.min((assigned / planned) * 100, 100)}%"></div>
+                                            <div class="h-full rounded-full \${assigned > planned ? 'bg-red-500' : (assigned === planned ? 'bg-emerald-500' : 'bg-blue-500')}" style="width: \${Math.min((assigned/planned)*100, 100)}%"></div>
                                         </div>
-                                        <span class="text-[10px] w-8 text-right text-slate-500">${pct}%</span>
+                                        <span class="text-[10px] w-8 text-right text-slate-500">\${pct}%</span>
                                     </div>
                                 </td>
-                                <td class="px-4 py-3 text-center">${statusBadge}</td>
+                                <td class="px-4 py-3 text-center">\${statusBadge}</td>
                             </tr>
-                        `;
-}).join('');
+                        \`;
+                    }).join('');
                 }
 
-// 3. Instructor Stats
-const instructorCounts = {};
-timetableData.forEach(t => {
-    if (t.instructor_id && !t.is_excluded) {
-        instructorCounts[t.instructor_id] = (instructorCounts[t.instructor_id] || 0) + 1;
-    }
-});
-
-let iHtml = '<div class="space-y-2 max-h-60 overflow-y-auto custom-scrollbar pr-2">';
-// Sort by hours desc
-const sortedInstructors = Object.keys(instructorCounts).sort((a, b) => instructorCounts[b] - instructorCounts[a]);
-
-if (sortedInstructors.length === 0) {
-    iHtml += '<div class="text-center text-slate-400 py-4 text-xs">아직 배정된 강사가 없습니다.</div>';
-} else {
-    sortedInstructors.forEach(id => {
-        const count = instructorCounts[id];
-        // id is string from object key, convert to number for find
-        const info = resources.instructors.find(i => i.id == id);
-        const name = info ? info.name : 'Unknown';
-        iHtml += `
+                const instructorCounts = {};
+                timetableData.forEach(t => {
+                    if(t.instructor_id && !t.is_excluded) {
+                        instructorCounts[t.instructor_id] = (instructorCounts[t.instructor_id] || 0) + 1;
+                    }
+                });
+                
+                let iHtml = '<div class="space-y-2 max-h-60 overflow-y-auto custom-scrollbar pr-2">';
+                const sortedInstructors = Object.keys(instructorCounts).sort((a,b) => instructorCounts[b] - instructorCounts[a]);
+                if (sortedInstructors.length === 0) {
+                     iHtml += '<div class="text-center text-slate-400 py-4 text-xs">아직 배정된 강사가 없습니다.</div>';
+                } else {
+                    sortedInstructors.forEach(id => {
+                        const count = instructorCounts[id];
+                        const info = resources.instructors.find(i => i.id == id);
+                        const name = info ? info.name : 'Unknown';
+                        iHtml += \`
                             <div class="flex justify-between items-center text-sm p-2 bg-white border border-slate-100 rounded hover:bg-slate-50 transition">
                                 <div class="flex items-center gap-2">
-                                    <div class="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold text-[10px]">${name.charAt(0)}</div>
-                                    <span class="font-medium text-slate-700 text-xs">${name}</span>
+                                    <div class="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold text-[10px]">\${name.charAt(0)}</div>
+                                    <span class="font-medium text-slate-700 text-xs">\${name}</span>
                                 </div>
-                                <div class="font-bold text-slate-800 text-xs">${count} <span class="font-normal text-slate-400 text-[10px]">시간</span></div>
+                                <div class="font-bold text-slate-800 text-xs">\${count} <span class="font-normal text-slate-400 text-[10px]">시간</span></div>
                             </div>
-                        `;
-    });
-}
-iHtml += '</div>';
-document.getElementById('statusInstructorList').innerHTML = iHtml;
+                        \`;
+                    });
+                }
+                iHtml += '</div>';
+                document.getElementById('statusInstructorList').innerHTML = iHtml;
 
-// 4. Warnings / Validation
-const warnings = [];
-if (totalAssigned < totalPlanned) warnings.push(`<li class="flex items-start gap-2"><i class="fas fa-exclamation-circle text-amber-500 mt-0.5"></i><span>총 훈련시간이 부족합니다. (${totalPlanned - totalAssigned}시간 미편성)</span></li>`);
-if (totalAssigned > totalPlanned) warnings.push(`<li class="flex items-start gap-2"><i class="fas fa-exclamation-triangle text-red-500 mt-0.5"></i><span>총 훈련시간이 초과되었습니다. (${totalAssigned - totalPlanned}시간 초과)</span></li>`);
+                const warnings = [];
+                if (totalAssigned < totalPlanned) warnings.push(\`<li class="flex items-start gap-2"><i class="fas fa-exclamation-circle text-amber-500 mt-0.5"></i><span>총 훈련시간이 부족합니다. (\${totalPlanned - totalAssigned}시간 미편성)</span></li>\`);
+                if (totalAssigned > totalPlanned) warnings.push(\`<li class="flex items-start gap-2"><i class="fas fa-exclamation-triangle text-red-500 mt-0.5"></i><span>총 훈련시간이 초과되었습니다. (\${totalAssigned - totalPlanned}시간 초과)</span></li>\`);
+                document.getElementById('statusWarnings').innerHTML = warnings.length > 0 ? warnings.join('') : '<li class="flex items-center gap-2 text-emerald-600"><i class="fas fa-check-circle"></i><span>현재까지 특이사항이 발견되지 않았습니다.</span></li>';
 
-document.getElementById('statusWarnings').innerHTML = warnings.length > 0 ? warnings.join('') : `<li class="flex items-center gap-2 text-emerald-600"><i class="fas fa-check-circle"></i><span>현재까지 특이사항이 발견되지 않았습니다.</span></li>`;
-
-modal.classList.remove('hidden');
-setTimeout(() => {
-    modal.classList.remove('opacity-0');
-    modal.querySelector('div').classList.remove('scale-95');
-}, 10);
+                modal.classList.remove('hidden');
+                setTimeout(() => {
+                    modal.classList.remove('opacity-0');
+                    modal.querySelector('div').classList.remove('scale-95');
+                }, 10);
             }
 
-window.closeStatus = function () {
-    const modal = document.getElementById('statusModal');
-    modal.classList.add('opacity-0');
-    modal.querySelector('div').classList.add('scale-95');
-    setTimeout(() => {
-        modal.classList.add('hidden');
-    }, 300);
-}
+            window.closeStatus = function() {
+                const modal = document.getElementById('statusModal');
+                modal.classList.add('opacity-0');
+                modal.querySelector('div').classList.add('scale-95');
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                }, 300);
+            }
 
         }) ();
 </script>
