@@ -121,7 +121,11 @@ export function adminCoursesMainHtml(): string {
     <script>
         (function() {
             var token = localStorage.getItem('token');
-            var headers = token ? { 'Authorization': 'Bearer ' + token } : {};
+            if (!token) {
+                window.location.href = '/login';
+                return;
+            }
+            var headers = { 'Authorization': 'Bearer ' + token };
 
             function esc(s) {
                 if (s == null) return '';
@@ -131,8 +135,17 @@ export function adminCoursesMainHtml(): string {
             function loadApproved() {
                 var tbody = document.getElementById('approvedListBody');
                 fetch('/api/approved-courses?page=1&limit=50', { headers: headers })
-                    .then(function(r) { return r.json(); })
+                    .then(function(r) { 
+                        if (r.status === 401) {
+                            window.location.href = '/login';
+                            throw new Error('Unauthorized');
+                        }
+                        return r.json(); 
+                    })
                     .then(function(json) {
+                        if (!json.success) {
+                            throw new Error(json.error || '데이터 로드 실패');
+                        }
                         var list = json.data || [];
                         var p = json.pagination || {};
                         document.getElementById('approvedCount').textContent = (p.total != null ? p.total : list.length) + '건';
@@ -191,6 +204,11 @@ export function adminCoursesMainHtml(): string {
                                 }
                             });
                         });
+                    })
+                    .catch(function(err) {
+                        if (err.message === 'Unauthorized') return; // Redirected already
+                        console.error(err);
+                        tbody.innerHTML = '<tr><td colspan="9" class="p-12 text-center text-red-500">데이터 로드 중 오류가 발생했습니다: ' + (err.message || '알 수 없는 오류') + '</td></tr>';
                     });
             }
 
@@ -212,8 +230,17 @@ export function adminCoursesMainHtml(): string {
                 icon.style.transform = 'rotate(90deg)';
 
                 fetch('/api/course-sessions?approved_course_id=' + courseId, { headers: headers })
-                    .then(function(r) { return r.json(); })
+                    .then(function(r) { 
+                        if (r.status === 401) {
+                            window.location.href = '/login';
+                            throw new Error('Unauthorized');
+                        }
+                        return r.json(); 
+                    })
                     .then(function(json) {
+                        if (!json.success) {
+                            throw new Error(json.error || '회차 정보 로드 실패');
+                        }
                         var list = json.data || [];
                         if (list.length === 0) {
                             container.innerHTML = '<div class="bg-white border border-dashed border-slate-200 rounded-xl p-8 text-center text-slate-400 text-xs font-bold font-black">개설된 회차가 없습니다. <a href="/admin/courses/sessions/register?approvedCourseId=' + courseId + '" class="text-primary-600 ml-2 underline">새 회차 개설하기</a></div>';
@@ -227,8 +254,8 @@ export function adminCoursesMainHtml(): string {
                             var range = [item.training_start_date, item.training_end_date].filter(Boolean).map(s => s.substring(0, 10)).join(' ~ ') || '-';
                             
                             var homepageBtn = item.homepage_exposed 
-                                ? '<button onclick="event.stopPropagation(); window.dashboardSetHomepageExposed(' + courseId + ',' + item.id + ', 0)" class="px-2 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-bold hover:bg-emerald-600 hover:text-white transition flex items-center gap-1"><i class="fas fa-eye"></i> 노출중</button>'
-                                : '<button onclick="event.stopPropagation(); window.dashboardSetHomepageExposed(' + courseId + ',' + item.id + ', 1)" class="px-2 py-1 bg-slate-50 text-slate-400 rounded-lg text-xs font-bold hover:bg-primary-600 hover:text-white transition flex items-center gap-1"><i class="fas fa-eye-slash"></i> 숨김</button>';
+                                ? ' <button onclick="event.stopPropagation(); window.dashboardSetHomepageExposed(' + courseId + ',' + item.id + ', 0)" class="px-2 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-bold hover:bg-emerald-600 hover:text-white transition flex items-center gap-1"><i class="fas fa-eye"></i> 노출중</button>'
+                                : ' <button onclick="event.stopPropagation(); window.dashboardSetHomepageExposed(' + courseId + ',' + item.id + ', 1)" class="px-2 py-1 bg-slate-50 text-slate-400 rounded-lg text-xs font-bold hover:bg-primary-600 hover:text-white transition flex items-center gap-1"><i class="fas fa-eye-slash"></i> 숨김</button>';
 
                             var fullCourseName = (item.course_name || '과정') + ' ' + (item.session_number != null ? item.session_number + '차' : '') + (item.session_name ? ' ' + item.session_name : '');
                             html += '<div class="flex items-center justify-between bg-white border border-slate-200 rounded-xl p-4 hover:border-primary-200 hover:shadow-sm transition group/card">' +
@@ -255,6 +282,11 @@ export function adminCoursesMainHtml(): string {
                         });
                         html += '</div>';
                         container.innerHTML = html;
+                    })
+                    .catch(function(err) {
+                        if (err.message === 'Unauthorized') return;
+                        console.error(err);
+                        container.innerHTML = '<div class="p-6 text-center text-red-500 text-xs">회차 정보를 불러오지 못했습니다: ' + (err.message || '오류 발생') + '</div>';
                     });
             };
 
