@@ -210,7 +210,10 @@ export const adminHrdAttendanceHtml = (sidebar = hrdSidebar('attendance')) => `
                 <tr class="hover:bg-gray-50/80 transition-colors group">
                     <td class="px-6 py-5">
                         <div class="font-bold text-gray-800 group-hover:text-blue-600 transition-colors">\${c.title}</div>
-                        <div class="text-[10px] text-gray-400 mt-1 uppercase tracking-wider font-semibold">Course ID: \${c.id}</div>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span class="px-1.5 py-0.5 bg-gray-100 text-gray-400 text-[9px] font-bold rounded uppercase tracking-wider">\${c.type}</span>
+                            <span class="text-[10px] text-gray-400 font-semibold">ID: \${c.id}</span>
+                        </div>
                     </td>
                     <td class="px-6 py-5 text-center">
                         <div class="flex items-center justify-center">
@@ -240,7 +243,7 @@ export const adminHrdAttendanceHtml = (sidebar = hrdSidebar('attendance')) => `
                         </div>
                     </td>
                     <td class="px-6 py-5 text-right">
-                        <a href="/admin/courses/\${c.id}/lms/attendance" class="inline-flex items-center px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-700 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all shadow-sm">
+                        <a href="/admin/courses/\${c.id}/lms/attendance?type=\${c.type}" class="inline-flex items-center px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-700 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all shadow-sm">
                             상세 관리 <i class="fas fa-chevron-right ml-2 text-[10px]"></i>
                         </a>
                     </td>
@@ -250,4 +253,4 @@ export const adminHrdAttendanceHtml = (sidebar = hrdSidebar('attendance')) => `
     </script>
 </body>
 </html>
-`;
+\`;

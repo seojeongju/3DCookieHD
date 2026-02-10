@@ -165,6 +165,38 @@ courses.get('/', async (c) => {
 courses.get('/:id', async (c) => {
   try {
     const id = c.req.param('id');
+    const type = c.req.query('type');
+
+    if (type === 'hrd') {
+      // HRD 회차 정보 조회
+      const session = await getOne<any>(
+        c.env.DB,
+        `SELECT 
+          s.id, (a.name || ' (' || s.session_number || '회차)') as title,
+          s.instructor_name as teacher_name,
+          s.training_start_date as start_date,
+          s.training_end_date as end_date,
+          s.session_name,
+          s.session_number,
+          c.name as category_name,
+          a.category_id
+        FROM course_sessions s
+        JOIN approved_courses a ON s.approved_course_id = a.id
+        LEFT JOIN course_categories c ON a.category_id = c.id
+        WHERE s.id = ?`,
+        [id]
+      );
+
+      if (!session) return notFoundResponse(c, '회차 정보를 찾을 수 없습니다');
+
+      return successResponse(c, {
+        ...session,
+        category: session.category_name || '국비지원',
+        price: 0,
+        max_students: 0,
+        status: 'active'
+      });
+    }
 
     // 조회수 증가
     await execute(
@@ -512,29 +544,51 @@ courses.get('/:id/attendance', async (c) => {
   try {
     const courseId = c.req.param('id');
     const date = c.req.query('date'); // YYYY-MM-DD
+    const type = c.req.query('type');
 
     if (!date) {
       return errorResponse(c, '날짜(date) 파라미터가 필요합니다', 400);
     }
 
-    // 1. 해당 과정의 수강생 목록 조회 (승인된 수강생만)
-    const studentsQuery = `
-      SELECT 
-        u.id, u.name, u.phone, e.id as enrollment_id
-      FROM enrollments e
-      JOIN users u ON e.user_id = u.id
-      WHERE e.course_id = ? AND e.status = 'approved'
-    `;
-    const students = await getAll<any>(c.env.DB, studentsQuery, [courseId]);
+    let students: any[] = [];
+    let attendanceLogs: any[] = [];
 
-    // 2. 해당 날짜의 출결 기록 조회
-    const attendanceQuery = `
-      SELECT * FROM attendance_logs 
-      WHERE enrollment_id IN (
-        SELECT id FROM enrollments WHERE course_id = ?
-      ) AND date = ?
-    `;
-    const attendanceLogs = await getAll<any>(c.env.DB, attendanceQuery, [courseId, date]);
+    if (type === 'hrd') {
+      // 1. HRD 회차의 수강생 목록 조회
+      students = await getAll<any>(c.env.DB, `
+        SELECT u.id, u.name, u.phone, e.id as enrollment_id
+        FROM course_session_enrollments e
+        JOIN users u ON e.student_id = u.id
+        WHERE e.session_id = ? AND e.status = 'approved'
+      `, [courseId]);
+
+      // 2. 해당 날짜의 출결 기록 조회 (course_session_enrollments ID 사용)
+      attendanceLogs = await getAll<any>(c.env.DB, `
+        SELECT * FROM attendance_logs 
+        WHERE enrollment_id IN (
+          SELECT id FROM course_session_enrollments WHERE session_id = ?
+        ) AND date = ?
+      `, [courseId, date]);
+    } else {
+      // 1. 일반 과정의 수강생 목록 조회
+      const studentsQuery = `
+        SELECT 
+          u.id, u.name, u.phone, e.id as enrollment_id
+        FROM enrollments e
+        JOIN users u ON e.user_id = u.id
+        WHERE e.course_id = ? AND e.status = 'approved'
+      `;
+      students = await getAll<any>(c.env.DB, studentsQuery, [courseId]);
+
+      // 2. 해당 날짜의 출결 기록 조회
+      const attendanceQuery = `
+        SELECT * FROM attendance_logs 
+        WHERE enrollment_id IN (
+          SELECT id FROM enrollments WHERE course_id = ?
+        ) AND date = ?
+      `;
+      attendanceLogs = await getAll<any>(c.env.DB, attendanceQuery, [courseId, date]);
+    }
 
     // 3. 데이터 병합
     const result = students.map(student => {

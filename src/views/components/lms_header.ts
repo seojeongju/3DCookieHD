@@ -120,16 +120,25 @@ export const lmsHeaderHtml = (activeTab = 'dashboard') => `
                 const isAdminPath = window.location.pathname.startsWith('/admin');
                 const isTeacherPath = window.location.pathname.startsWith('/teacher');
                 
+                const urlParams = new URLSearchParams(window.location.search);
+                const type = urlParams.get('type');
+                
                 const basePath = isAdminPath ? '/admin/courses/' + courseId + '/lms' : 
                                (isTeacherPath ? '/teacher/courses/' + courseId + '/lms' : '/student/courses/' + courseId + '/lms');
 
                 tabs.forEach(link => {
                     const target = link.getAttribute('href'); 
+                    let newHref = '';
                     if (target === 'dashboard') {
-                        link.setAttribute('href', basePath);
+                        newHref = basePath;
                     } else if (!target.startsWith('/')) {
-                        link.setAttribute('href', basePath + '/' + target);
+                        newHref = basePath + '/' + target;
                     }
+
+                    if (newHref && type) {
+                        newHref += (newHref.includes('?') ? '&' : '?') + 'type=' + type;
+                    }
+                    if (newHref) link.setAttribute('href', newHref);
                 });
             }
 
@@ -141,7 +150,12 @@ export const lmsHeaderHtml = (activeTab = 'dashboard') => `
 
                 try {
                     const token = localStorage.getItem('token');
-                    const response = await fetch('/api/courses/' + courseId, {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const type = urlParams.get('type');
+                    let apiUrl = '/api/courses/' + courseId;
+                    if (type) apiUrl += '?type=' + type;
+
+                    const response = await fetch(apiUrl, {
                         headers: { 'Authorization': 'Bearer ' + token }
                     });
                     const result = await response.json();

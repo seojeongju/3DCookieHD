@@ -1396,52 +1396,101 @@ app.get('/attendance/summary', authMiddleware, async (c) => {
     try {
         const date = c.req.query('date') || new Date().toISOString().split('T')[0];
 
-        // 1. 모든 활성 과정 조회
+        // 1. 모든 활성 과정 조회 (일반 과정 + HRD 회차 통합)
         const coursesQuery = `
-            SELECT 
-                c.id, c.title,
-                u.name as teacher_name
-            FROM courses c
-            LEFT JOIN users u ON c.teacher_id = u.id
-            WHERE c.status IN ('active', 'open')
-            ORDER BY c.created_at DESC
+            SELECT id, title, teacher_name, type, created_at
+            FROM (
+                SELECT c.id, c.title, u.name as teacher_name, 'general' as type, c.created_at
+                FROM courses c
+                LEFT JOIN users u ON c.teacher_id = u.id
+                WHERE c.status IN ('active', 'open', 'in_progress')
+                UNION ALL
+                SELECT s.id, (a.name || ' (' || s.session_number || '회차)') as title, s.instructor_name as teacher_name, 'hrd' as type, s.created_at
+                FROM course_sessions s
+                JOIN approved_courses a ON s.approved_course_id = a.id
+                WHERE s.status IN ('active', 'open', 'in_progress', 'recruiting')
+            )
+            ORDER BY created_at DESC
         `;
         const { results: courses } = await c.env.DB.prepare(coursesQuery).all();
 
         // 2. 각 과정별 통계 조회
         const summaryData = await Promise.all((courses as any[]).map(async (course) => {
-            // 해당 과정의 총 학생 수
-            const studentsCount = await c.env.DB.prepare(`
-                SELECT COUNT(*) as count 
-                FROM enrollments 
-                WHERE course_id = ?
-            `).bind(course.id).first<{ count: number }>();
+            let studentsCount = 0;
+            let stats = { present: 0, late: 0, early: 0, absent: 0 };
 
-            // 해당 날짜의 출석 로그 집계
-            const stats = await c.env.DB.prepare(`
-                SELECT 
-                    SUM(CASE WHEN al.status = 'present' THEN 1 ELSE 0 END) as present,
-                    SUM(CASE WHEN al.status = 'late' THEN 1 ELSE 0 END) as late,
-                    SUM(CASE WHEN al.status = 'early_leave' THEN 1 ELSE 0 END) as early,
-                    SUM(CASE WHEN al.status = 'absent' THEN 1 ELSE 0 END) as absent
-                FROM enrollments e
-                LEFT JOIN attendance_logs al ON e.id = al.enrollment_id AND al.date = ?
-                WHERE e.course_id = ?
-            `).bind(date, course.id).first<any>();
+            if (course.type === 'general') {
+                // 일반 과정 통계
+                const countResult = await c.env.DB.prepare(`
+                    SELECT COUNT(*) as count FROM enrollments WHERE course_id = ? AND status = 'approved'
+                `).bind(course.id).first<{ count: number }>();
+                studentsCount = countResult?.count || 0;
 
-            const total = studentsCount?.count || 0;
-            const handled = (Number(stats?.present) || 0) + (Number(stats?.late) || 0) + (Number(stats?.early) || 0) + (Number(stats?.absent) || 0);
+                const statsResult = await c.env.DB.prepare(`
+                    SELECT 
+                        SUM(CASE WHEN al.status = 'present' THEN 1 ELSE 0 END) as present,
+                        SUM(CASE WHEN al.status = 'late' THEN 1 ELSE 0 END) as late,
+                        SUM(CASE WHEN al.status = 'early_leave' THEN 1 ELSE 0 END) as early,
+                        SUM(CASE WHEN al.status = 'absent' THEN 1 ELSE 0 END) as absent
+                    FROM enrollments e
+                    LEFT JOIN attendance_logs al ON e.id = al.enrollment_id AND al.date = ?
+                    WHERE e.course_id = ? AND e.status = 'approved'
+                `).bind(date, course.id).first<any>();
+
+                if (statsResult) {
+                    stats = {
+                        present: Number(statsResult.present) || 0,
+                        late: Number(statsResult.late) || 0,
+                        early: Number(statsResult.early) || 0,
+                        absent: Number(statsResult.absent) || 0
+                    };
+                }
+            } else {
+                // HRD 회차 통계
+                const countResult = await c.env.DB.prepare(`
+                    SELECT COUNT(*) as count FROM course_session_enrollments WHERE session_id = ? AND status = 'approved'
+                `).bind(course.id).first<{ count: number }>();
+                studentsCount = countResult?.count || 0;
+
+                // HRD 회차는 아직 attendance_logs를 직접 쓰지 않을 수 있으므로, 
+                // 향후 확장을 고려하여 hrd_student_details 등을 통한 대체 로직이 필요할 수 있음
+                // 일단은 빈 상태로 유지하거나 통합 attendance_logs가 있다면 그대로 사용
+                // (일단 일반과 동일한 테이블 구조를 사용한다고 가정하거나 0으로 표시)
+                const hrdStatsResult = await c.env.DB.prepare(`
+                    SELECT 
+                        SUM(CASE WHEN al.status = 'present' THEN 1 ELSE 0 END) as present,
+                        SUM(CASE WHEN al.status = 'late' THEN 1 ELSE 0 END) as late,
+                        SUM(CASE WHEN al.status = 'early_leave' THEN 1 ELSE 0 END) as early,
+                        SUM(CASE WHEN al.status = 'absent' THEN 1 ELSE 0 END) as absent
+                    FROM course_session_enrollments e
+                    LEFT JOIN attendance_logs al ON e.id = al.enrollment_id AND al.date = ?
+                    WHERE e.session_id = ? AND e.status = 'approved'
+                `).bind(date, course.id).first<any>();
+
+                if (hrdStatsResult) {
+                    stats = {
+                        present: Number(hrdStatsResult.present) || 0,
+                        late: Number(hrdStatsResult.late) || 0,
+                        early: Number(hrdStatsResult.early) || 0,
+                        absent: Number(hrdStatsResult.absent) || 0
+                    };
+                }
+            }
+
+            const total = studentsCount;
+            const handled = stats.present + stats.late + stats.early + stats.absent;
 
             return {
                 id: course.id,
                 title: course.title,
                 teacher_name: course.teacher_name || '-',
                 total_students: total,
-                present: Number(stats?.present) || 0,
-                late: (Number(stats?.late) || 0) + (Number(stats?.early) || 0),
-                absent: Number(stats?.absent) || 0,
+                present: stats.present,
+                late: stats.late + stats.early,
+                absent: stats.absent,
                 pending: total - handled,
-                rate: total > 0 ? Math.round(((Number(stats?.present) || 0) / total) * 100) : 0
+                rate: total > 0 ? Math.round((stats.present / total) * 100) : 0,
+                type: course.type // 프론트엔드 분기 처우용
             };
         }));
 
@@ -1574,8 +1623,18 @@ app.post('/attendance', authMiddleware, async (c) => {
 app.get('/stats', async (c) => {
     try {
         const studentCountResult = await c.env.DB.prepare("SELECT COUNT(*) as count FROM users WHERE role = 'student'").first();
-        const studentCount = studentCountResult ? studentCountResult.count : 0;
-        const activeCourseCount = await c.env.DB.prepare("SELECT COUNT(*) as count FROM courses WHERE status = 'active'").first('count');
+        const studentCount = studentCountResult ? (studentCountResult as any).count : 0;
+
+        // 운영 중인 과정 수 (일반 과정 + HRD 회차 통합)
+        const coursesCountResult = await c.env.DB.prepare(`
+            SELECT (
+                SELECT COUNT(*) FROM courses WHERE status IN ('active', 'open', 'in_progress')
+            ) + (
+                SELECT COUNT(*) FROM course_sessions WHERE status IN ('active', 'open', 'in_progress', 'recruiting')
+            ) as count
+        `).first();
+        const activeCourseCount = coursesCountResult ? (coursesCountResult as any).count : 0;
+
         const itemCount = await c.env.DB.prepare("SELECT COUNT(*) as count FROM hrd_items").first('count');
         const facilityCount = await c.env.DB.prepare("SELECT COUNT(*) as count FROM hrd_facilities").first('count');
 
