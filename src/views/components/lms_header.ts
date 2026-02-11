@@ -121,7 +121,8 @@ export const lmsHeaderHtml = (activeTab = 'dashboard', defaultType = '') => `
                 const isTeacherPath = window.location.pathname.startsWith('/teacher');
                 
                 const urlParams = new URLSearchParams(window.location.search);
-                const type = urlParams.get('type') || '${defaultType}';
+                let type = urlParams.get('type') || '${defaultType}';
+                if (type && type.startsWith('hrd')) type = 'hrd'; // Normalize type
                 
                 const basePath = isAdminPath ? '/admin/courses/' + courseId + '/lms' : 
                                (isTeacherPath ? '/teacher/courses/' + courseId + '/lms' : '/student/courses/' + courseId + '/lms');
@@ -151,7 +152,8 @@ export const lmsHeaderHtml = (activeTab = 'dashboard', defaultType = '') => `
                 try {
                     const token = localStorage.getItem('token');
                     const urlParams = new URLSearchParams(window.location.search);
-                    const type = urlParams.get('type') || '${defaultType}';
+                    let type = urlParams.get('type') || '${defaultType}';
+                    if (type && type.startsWith('hrd')) type = 'hrd'; // Normalize type
                     let apiUrl = '/api/courses/' + courseId;
                     if (type) apiUrl += '?type=' + type;
 
