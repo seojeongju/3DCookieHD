@@ -90,10 +90,11 @@ export const adminLmsTrainingLogsHtml = `
 
     <!-- 일지 등록 모달 -->
     <!-- 일지 등록 모달 -->
-    <div id="logModal" class="fixed inset-0 bg-black/60 hidden z-[60] flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-6xl my-8 transform transition-all border border-gray-100">
+    <!-- 일지 등록 모달 -->
+    <div id="logModal" class="fixed inset-0 bg-black/60 hidden z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col transform transition-all border border-gray-100">
             <!-- Header -->
-            <div class="p-6 border-b flex justify-between items-center bg-gray-50 rounded-t-xl">
+            <div class="p-6 border-b flex-none flex justify-between items-center bg-gray-50 rounded-t-xl z-10 relative">
                  <div class="flex items-center gap-2">
                     <i class="fas fa-calendar-check text-indigo-600 text-xl"></i>
                     <h3 class="text-xl font-bold text-gray-900" id="modalTitle">훈련일지 작성</h3>
@@ -101,7 +102,7 @@ export const adminLmsTrainingLogsHtml = `
                 <button onclick="closeLogModal()" class="text-gray-400 hover:text-gray-600 transition-colors w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-200"><i class="fas fa-times text-lg"></i></button>
             </div>
 
-            <form id="logForm" onsubmit="handleSaveLog(event)" class="p-8 space-y-8">
+            <form id="logForm" onsubmit="handleSaveLog(event)" class="p-8 space-y-8 overflow-y-auto flex-1 custom-scrollbar">
                 <input type="hidden" id="logId">
 
                 <!-- 결재란 -->
