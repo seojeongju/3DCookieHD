@@ -722,8 +722,8 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                                 }
                             });
                             const pct = planned > 0 ? Math.round((assigned / planned) * 100) : 0;
-                            const sName = (s.name || '').toString().replace(/'/g, "\\'").replace(/\n/g, " ");
-                            const jName = (s.main_job_name || '').toString().replace(/'/g, "\\'").replace(/\n/g, " ");
+                            const sName = (s.name || '').toString().replace(/'/g, "\\\\'").replace(new RegExp('\\\\n', 'g'), ' ');
+                            const jName = (s.main_job_name || '').toString().replace(/'/g, "\\\\'").replace(new RegExp('\\\\n', 'g'), ' ');
 
                             let statusBadge = '';
                             if (assigned === 0) statusBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-500">미배정</span>';

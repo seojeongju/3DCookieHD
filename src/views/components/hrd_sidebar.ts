@@ -340,7 +340,7 @@ export const hrdSidebar = (activeMenu: string) => `
                     });
                     
                     // 현재 URL에서 courseId 추출하여 자동 선택
-                    const match = location.pathname.match(/\\/admin\\/courses\\/(\\d+)\\/lms/);
+                    const match = location.pathname.match(new RegExp('/admin/courses/(\\\\d+)/lms'));
                     if (match && match[1]) {
                         courseSelector.value = match[1];
                     }
