@@ -105,7 +105,7 @@ export const adminLmsNcsHtml = `
                                     <span class="block text-xs text-gray-400 mb-1">통과 기준</span>
                                     <span class="text-lg font-bold text-purple-600" id="selectedTargetScore">0점</span>
                                 </div>
-                                <button onclick="location.href=\`/api/ncs/plans/\${currentPlan.id}/export-csv\`" class="px-3 py-1.5 bg-gray-100 hover:bg-green-100 text-gray-600 hover:text-green-700 rounded-lg text-xs font-bold transition flex items-center shadow-sm">
+                                <button onclick="location.href=\`/api/ncs/plans/\\\${currentPlan.id}/export-csv\`" class="px-3 py-1.5 bg-gray-100 hover:bg-green-100 text-gray-600 hover:text-green-700 rounded-lg text-xs font-bold transition flex items-center shadow-sm">
                                     <i class="fas fa-file-excel mr-1"></i> CSV 다운로드
                                 </button>
                             </div>
