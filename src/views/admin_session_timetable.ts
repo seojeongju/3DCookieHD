@@ -34,9 +34,19 @@ export function adminSessionTimetableHtml(sessionId: number): string {
         .sticky-col { position: sticky; left: 0; background: white; z-index: 10; }
         .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
         /* 시간표 페이지: 사이드바 항상 노출 (덮이지 않도록) */
-        body.timetable-page #adminSidebarWrap { transform: none !important; display: flex !important; flex-shrink: 0 !important; width: 16rem !important; min-width: 16rem !important; }
+        body.timetable-page #adminSidebarWrap { 
+            position: relative !important;
+            transform: translateX(0) !important; 
+            display: block !important; 
+            flex-shrink: 0 !important; 
+            width: 16rem !important; 
+            min-width: 16rem !important;
+            left: 0 !important;
+            inset-y: 0 !important;
+        }
         body.timetable-page #adminSidebarBackdrop { display: none !important; }
         body.timetable-page #adminSidebarToggle { display: none !important; }
+    </style>
 </head>
 <body class="timetable-page bg-slate-50 h-[100dvh] flex overflow-hidden min-h-0">
     ${sidebar}
@@ -271,9 +281,157 @@ export function adminSessionTimetableHtml(sessionId: number): string {
             var instructorSearchTerm = "";
             var activePeriodConfigIdx = null;
 
-            // onclick에서 참조되므로 스크립트 최상단에 스텁 등록 (이후 실제 구현으로 덮어씀)
-            window.showStatus = function() {};
-            window.closeStatus = function() {};
+
+
+            // onclick에서 참조되므로 스크립트 최상단에 정의
+            window.showStatus = function() {
+                const modal = document.getElementById('statusModal');
+                if (!modal) return;
+                
+                // 데이터가 준비되지 않았으면 경고 표시
+                if (typeof sessionInfo === 'undefined' || typeof timetableData === 'undefined' || typeof resources === 'undefined') {
+                    alert('데이터를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
+                    return;
+                }
+                
+                const totalPlanned = sessionInfo.total_hours || 0;
+                let totalAssigned = 0;
+                timetableData.forEach(function(t) {
+                    if (t.subject_id && !t.is_excluded) {
+                        totalAssigned += getPeriodDuration(t.period_number);
+                    }
+                });
+                const progress = totalPlanned > 0 ? Math.round((totalAssigned / totalPlanned) * 100) : 0;
+                
+                let sHtml = '<div class="bg-blue-50 p-4 rounded-xl border border-blue-100">' +
+                    '<div class="text-blue-500 text-xs font-bold mb-1">총 훈련시간 편성률</div>' +
+                    '<div class="flex items-end gap-2">' +
+                        '<span class="text-3xl font-black text-blue-700">' + progress + '%</span>' +
+                        '<span class="text-sm text-blue-600 mb-1">(' + totalAssigned.toFixed(1) + ' / ' + totalPlanned + ' 시간)</span>' +
+                    '</div>' +
+                    '<div class="w-full bg-blue-200 h-2 rounded-full mt-3 overflow-hidden">' +
+                        '<div class="bg-blue-600 h-full rounded-full" style="width: ' + Math.min(progress, 100) + '%"></div>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">' +
+                    '<div class="text-slate-500 text-xs font-bold mb-1">배정된 강사 수</div>' +
+                    '<div class="text-2xl font-bold text-slate-800">' +
+                        new Set(timetableData.filter(function(t) { return t.instructor_id && !t.is_excluded; }).map(function(t) { return t.instructor_id; })).size + 
+                        ' <span class="text-sm font-normal text-slate-500">명</span>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">' +
+                     '<div class="text-slate-500 text-xs font-bold mb-1">시스템 진단</div>' +
+                     '<div class="text-lg font-bold text-slate-800 flex items-center gap-2 mt-1">' +
+                        (totalAssigned < totalPlanned ? '<i class="fas fa-exclamation-circle text-amber-500"></i> <span class="text-sm font-medium text-slate-600">시간 부족</span>' : 
+                          (totalAssigned > totalPlanned ? '<i class="fas fa-exclamation-triangle text-red-500"></i> <span class="text-sm font-medium text-slate-600">시간 초과</span>' : 
+                          '<i class="fas fa-check-circle text-emerald-500"></i> <span class="text-sm font-medium text-slate-600">정상</span>')) +
+                     '</div>' +
+                '</div>';
+                
+                const summaryEl = document.getElementById('statusSummary');
+                if (summaryEl) summaryEl.innerHTML = sHtml;
+
+                const tbody = document.getElementById('statusSubjectBody');
+                if (tbody) {
+                    if (resources.subjects.length === 0) {
+                         tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-slate-400">등록된 교과목이 없습니다.</td></tr>';
+                    } else {
+                        tbody.innerHTML = resources.subjects.map(function(s) {
+                            const planned = s.total_time || 0;
+                            let assigned = 0;
+                            timetableData.forEach(function(t) {
+                                if (t.subject_id == s.id && !t.is_excluded) {
+                                    assigned += getPeriodDuration(t.period_number);
+                                }
+                            });
+                            const pct = planned > 0 ? Math.round((assigned / planned) * 100) : 0;
+                            const sName = (s.name || '').toString().replace(/'/g, "\\\\'").replace(new RegExp('\\\\n', 'g'), ' ');
+                            const jName = (s.main_job_name || '').toString().replace(/'/g, "\\\\'").replace(new RegExp('\\\\n', 'g'), ' ');
+
+                            let statusBadge = '';
+                            if (assigned === 0) statusBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-500">미배정</span>';
+                            else if (assigned < planned) statusBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-600 cursor-pointer" title="' + (planned - assigned).toFixed(1) + '시간 부족">부족</span>';
+                            else if (Math.abs(assigned - planned) < 0.01) statusBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-600">충족</span>';
+                            else statusBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-600 cursor-pointer" title="' + (assigned - planned).toFixed(1) + '시간 초과">초과</span>';
+
+                            return '<tr class="hover:bg-slate-50 transition border-b border-slate-50 last:border-0">' +
+                                    '<td class="px-4 py-3">' +
+                                        '<div class="font-bold text-slate-800 text-xs">' + sName + '</div>' +
+                                        '<div class="text-[10px] text-primary-600 font-medium mb-1">' + (jName ? jName + ' (' + (s.main_job_code || '') + ')' : '') + '</div>' +
+                                        '<div class="space-y-1">' +
+                                            '<div class="text-[9px] text-slate-500 font-bold flex items-center gap-1">' +
+                                                '<span class="px-1 bg-slate-100 rounded text-slate-400 text-[8px]">UNIT</span> ' + (s.ncs_classification_code || '-') +
+                                            '</div>' +
+                                        '</div></td>' +
+                                    '<td class="px-4 py-3 text-center text-slate-600 text-xs">' + planned + '</td>' +
+                                    '<td class="px-4 py-3 text-center text-xs font-bold ' + (assigned > planned ? 'text-red-600' : 'text-slate-800') + '">' + assigned.toFixed(1) + '</td>' +
+                                    '<td class="px-4 py-3 align-middle">' +
+                                        '<div class="flex items-center gap-2">' +
+                                            '<div class="w-24 bg-slate-100 h-1.5 rounded-full overflow-hidden">' +
+                                                '<div class="h-full rounded-full ' + (assigned > planned ? 'bg-red-500' : (Math.abs(assigned - planned) < 0.01 ? 'bg-emerald-500' : 'bg-blue-500')) + '" style="width: ' + Math.min((assigned/planned)*100, 100) + '%"></div>' +
+                                            '</div>' +
+                                            '<span class="text-[10px] w-8 text-right text-slate-500">' + pct + '%</span>' +
+                                        '</div>' +
+                                    '</td>' +
+                                    '<td class="px-4 py-3 text-center">' + statusBadge + '</td>' +
+                                '</tr>';
+                        }).join('');
+                    }
+                }
+
+                const instructorCounts = {};
+                timetableData.forEach(function(t) {
+                    if(t.instructor_id && !t.is_excluded) {
+                        instructorCounts[t.instructor_id] = (instructorCounts[t.instructor_id] || 0) + getPeriodDuration(t.period_number);
+                    }
+                });
+                
+                let iHtmlArr = [];
+                const sortedInstructors = Object.keys(instructorCounts).sort(function(a,b) { return instructorCounts[b] - instructorCounts[a]; });
+                if (sortedInstructors.length === 0) {
+                     iHtmlArr.push('<div class="text-center text-slate-400 py-4 text-xs">아직 배정된 강사가 없습니다.</div>');
+                } else {
+                    sortedInstructors.forEach(function(id) {
+                        const count = instructorCounts[id];
+                        const info = resources.instructors.find(function(ins) { return ins.id == id; });
+                        const name = info ? info.name : 'Unknown';
+                        iHtmlArr.push('<div class="flex justify-between items-center text-sm p-2 bg-white border border-slate-100 rounded hover:bg-slate-50 transition">' +
+                                '<div class="flex items-center gap-2">' +
+                                    '<div class="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold text-[10px]">' + name.charAt(0) + '</div>' +
+                                    '<span class="font-medium text-slate-700 text-xs">' + name + '</span>' +
+                                '</div>' +
+                                '<div class="font-bold text-slate-800 text-xs">' + count.toFixed(1) + ' <span class="font-normal text-slate-400 text-[10px]">시간</span></div>' +
+                            '</div>');
+                    });
+                }
+                const iListEl = document.getElementById('statusInstructorList');
+                if (iListEl) iListEl.innerHTML = '<div class="space-y-2 max-h-60 overflow-y-auto custom-scrollbar pr-2">' + iHtmlArr.join('') + '</div>';
+
+                const warnings = [];
+                if (totalAssigned < totalPlanned) warnings.push('<li class="flex items-start gap-2"><i class="fas fa-exclamation-circle text-amber-500 mt-0.5"></i><span>총 훈련시간이 부족합니다. (' + (totalPlanned - totalAssigned).toFixed(1) + '시간 미편성)</span></li>');
+                if (totalAssigned > totalPlanned) warnings.push('<li class="flex items-start gap-2"><i class="fas fa-exclamation-triangle text-red-500 mt-0.5"></i><span>총 훈련시간이 초과되었습니다. (' + (totalAssigned - totalPlanned).toFixed(1) + '시간 초과)</span></li>');
+                const warnEl = document.getElementById('statusWarnings');
+                if (warnEl) warnEl.innerHTML = warnings.length > 0 ? warnings.join('') : '<li class="flex items-center gap-2 text-emerald-600"><i class="fas fa-check-circle"></i><span>현재까지 특이사항이 발견되지 않았습니다.</span></li>';
+
+                modal.classList.remove('hidden');
+                setTimeout(function() {
+                    modal.classList.remove('opacity-0');
+                    const innerDiv = modal.querySelector('div');
+                    if(innerDiv) innerDiv.classList.remove('scale-95');
+                }, 10);
+            };
+            
+            window.closeStatus = function() {
+                const modal = document.getElementById('statusModal');
+                if (!modal) return;
+                modal.classList.add('opacity-0');
+                const innerDiv = modal.querySelector('div');
+                if(innerDiv) innerDiv.classList.add('scale-95');
+                setTimeout(function() {
+                    modal.classList.add('hidden');
+                }, 300);
+            };
 
             window.openTimetablePrint = function() {
                 window.open('/admin/courses/sessions/' + sessionId + '/timetable/print', '_blank', 'noopener,noreferrer');
@@ -298,13 +456,20 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                         document.getElementById('sessionName').textContent = (sessionInfo.course_name || '미지정 과정') + (sessionInfo.session_number ? ' [' + sessionInfo.session_number + '차]' : '');
                         document.getElementById('targetHours').textContent = (sessionInfo.total_hours || 42).toFixed(1);
                         
-                        // 시작일이 있으면 해당 주로 이동
+                        // 시작일이 있으면 해당 주 월요일로 이동 (로컬 날짜로 파싱 — ISO 문자열이면 UTC로 해석돼 하루 밀릴 수 있음)
                         if (sessionInfo.training_start_date) {
-                             const sd = new Date(sessionInfo.training_start_date);
-                             const sdDay = sd.getDay();
-                             const sdDiff = sd.getDate() - sdDay + (sdDay === 0 ? -6 : 1);
-                             currentWeekStartDate = new Date(sd.setDate(sdDiff));
-                             currentWeekStartDate.setHours(0,0,0,0);
+                             var startStr = String(sessionInfo.training_start_date).trim();
+                             var parts = startStr.split(/[-T]/);
+                             if (parts.length >= 3) {
+                                 var y = parseInt(parts[0], 10), mo = parseInt(parts[1], 10) - 1, da = parseInt(parts[2], 10);
+                                 if (!isNaN(y) && !isNaN(mo) && !isNaN(da)) {
+                                     var sd = new Date(y, mo, da);
+                                     var sdDay = sd.getDay();
+                                     var sdDiff = sd.getDate() - sdDay + (sdDay === 0 ? -6 : 1);
+                                     currentWeekStartDate = new Date(y, mo, sdDiff);
+                                     currentWeekStartDate.setHours(0, 0, 0, 0);
+                                 }
+                             }
                         }
                     }
 
@@ -316,6 +481,19 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                                 period_number: Number(t.period_number)
                             });
                         });
+                        // 데이터는 있는데 표시 중인 주에 없으면, 데이터가 있는 주로 이동
+                        if (timetableData.length > 0 && !sessionInfo.training_start_date) {
+                            var firstDate = timetableData.map(function(t){ return t.training_date; }).sort()[0];
+                            if (firstDate && /^\\d{4}-\\d{2}-\\d{2}$/.test(firstDate)) {
+                                var p = firstDate.split('-');
+                                var y = parseInt(p[0],10), mo = parseInt(p[1],10)-1, da = parseInt(p[2],10);
+                                var fd = new Date(y, mo, da);
+                                var fdDay = fd.getDay();
+                                var fdDiff = fd.getDate() - fdDay + (fdDay === 0 ? -6 : 1);
+                                currentWeekStartDate = new Date(y, mo, fdDiff);
+                                currentWeekStartDate.setHours(0, 0, 0, 0);
+                            }
+                        }
                     }
                     if(pJson.success && pJson.data && pJson.data.length > 0) {
                         periodConfigs = pJson.data;
@@ -531,6 +709,11 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                     d.setDate(d.getDate() + i);
                     dates.push(d);
                 }
+                if (typeof window !== 'undefined' && window.__timetableDebug !== true && timetableData.length > 0) {
+                    window.__timetableDebug = true;
+                    var sample = timetableData[0];
+                    console.log('[시간표] 데이터 수:', timetableData.length, '| 표시 주 시작:', toLocalDateStr(dates[0]), '~', toLocalDateStr(dates[6]), '| 샘플 DB training_date:', sample && sample.training_date, 'period_number:', sample && sample.period_number);
+                }
 
                 // Header
                 const dayNames = ['월', '화', '수', '목', '금', '토', '일'];
@@ -559,19 +742,20 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                         const dateStr = toLocalDateStr(d);
                         const cellData = timetableData.find(t => t.training_date === dateStr && Number(t.period_number) === Number(cfg.period_number));
                         
-                        const subject = cellData ? resources.subjects.find(s => s.id === cellData.subject_id) : null;
-                        const instructor = cellData ? resources.instructors.find(ins => String(ins.id) == String(cellData.instructor_id)) : null;
+                        const subject = cellData && resources.subjects ? resources.subjects.find(function(s){ return String(s.id) === String(cellData.subject_id); }) : null;
+                        const instructor = cellData && resources.instructors ? resources.instructors.find(function(ins){ return String(ins.id) === String(cellData.instructor_id); }) : null;
                         const isExcluded = cellData && cellData.is_excluded;
+                        const hasAssignment = cellData && (cellData.subject_id || cellData.instructor_id || isExcluded);
 
                         let tdCls = 'border-l border-b border-slate-200 p-1 align-top hover:bg-slate-50 cursor-pointer transition h-20 relative';
-                        if (subject) tdCls += ' bg-blue-50/30';
+                        if (subject || hasAssignment) tdCls += ' bg-blue-50/30';
                         if (isExcluded) tdCls += ' bg-slate-100';
 
                         bodyHtml += \`<td onclick="assignSlot('\${dateStr}', \${cfg.period_number})" class="\${tdCls}">\`;
                         if (isExcluded) {
                             bodyHtml += \`<div class="w-full h-full flex items-center justify-center text-slate-300 text-[8px] font-bold italic">공휴일/제외</div>\`;
                         } else if (subject) {
-                            const escapedSubjectName = subject.name.replace(/'/g, "\\\\'");
+                            const escapedSubjectName = (subject.name || '').replace(/'/g, "\\\\'");
                             bodyHtml += \`
                                 <div class="bg-white border border-primary-200 rounded p-2 h-full shadow-sm flex flex-col justify-between hover:shadow-md transition relative group">
                                     <div class="font-bold text-xs text-slate-800 line-clamp-2 leading-tight">\${escapedSubjectName}</div>
@@ -581,6 +765,13 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                                             <i class="fas fa-times"></i>
                                         </button>
                                     </div>
+                                </div>\`;
+                        } else if (hasAssignment) {
+                            bodyHtml += \`
+                                <div class="bg-white border border-primary-200 rounded p-2 h-full shadow-sm flex flex-col justify-between">
+                                    <div class="font-bold text-xs text-slate-600 line-clamp-2">과목\${cellData.subject_id ? ' #' + cellData.subject_id : ''}</div>
+                                    <div class="text-[10px] text-slate-500">\${instructor ? instructor.name : (cellData.instructor_id ? '강사 #' + cellData.instructor_id : '강사미정')}</div>
+                                    <button onclick="removeSlot(event, '\${dateStr}', \${cfg.period_number})" class="text-slate-300 hover:text-red-500 w-5 h-5 flex items-center justify-center rounded transition absolute top-1 right-1"><i class="fas fa-times"></i></button>
                                 </div>\`;
                         } else {
                             bodyHtml += \`<div class="h-full flex items-center justify-center text-slate-200 hover:text-primary-300 transition"><i class="fas fa-plus-circle text-lg"></i></div>\`;
@@ -778,150 +969,8 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                 setTimeout(function() { t.style.transform = 'translateY(150%)'; }, 3000);
             }
 
-            // --- Status Analysis ---
 
-            window.showStatus = function() {
-                const modal = document.getElementById('statusModal');
-                if (!modal) return;
-                
-                const totalPlanned = sessionInfo.total_hours || 0;
-                let totalAssigned = 0;
-                timetableData.forEach(function(t) {
-                    if (t.subject_id && !t.is_excluded) {
-                        totalAssigned += getPeriodDuration(t.period_number);
-                    }
-                });
-                const progress = totalPlanned > 0 ? Math.round((totalAssigned / totalPlanned) * 100) : 0;
-                
-                let sHtml = '<div class="bg-blue-50 p-4 rounded-xl border border-blue-100">' +
-                    '<div class="text-blue-500 text-xs font-bold mb-1">총 훈련시간 편성률</div>' +
-                    '<div class="flex items-end gap-2">' +
-                        '<span class="text-3xl font-black text-blue-700">' + progress + '%</span>' +
-                        '<span class="text-sm text-blue-600 mb-1">(' + totalAssigned.toFixed(1) + ' / ' + totalPlanned + ' 시간)</span>' +
-                    '</div>' +
-                    '<div class="w-full bg-blue-200 h-2 rounded-full mt-3 overflow-hidden">' +
-                        '<div class="bg-blue-600 h-full rounded-full" style="width: ' + Math.min(progress, 100) + '%"></div>' +
-                    '</div>' +
-                '</div>' +
-                '<div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">' +
-                    '<div class="text-slate-500 text-xs font-bold mb-1">배정된 강사 수</div>' +
-                    '<div class="text-2xl font-bold text-slate-800">' +
-                        new Set(timetableData.filter(function(t) { return t.instructor_id && !t.is_excluded; }).map(function(t) { return t.instructor_id; })).size + 
-                        ' <span class="text-sm font-normal text-slate-500">명</span>' +
-                    '</div>' +
-                '</div>' +
-                '<div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">' +
-                     '<div class="text-slate-500 text-xs font-bold mb-1">시스템 진단</div>' +
-                     '<div class="text-lg font-bold text-slate-800 flex items-center gap-2 mt-1">' +
-                        (totalAssigned < totalPlanned ? '<i class="fas fa-exclamation-circle text-amber-500"></i> <span class="text-sm font-medium text-slate-600">시간 부족</span>' : 
-                          (totalAssigned > totalPlanned ? '<i class="fas fa-exclamation-triangle text-red-500"></i> <span class="text-sm font-medium text-slate-600">시간 초과</span>' : 
-                          '<i class="fas fa-check-circle text-emerald-500"></i> <span class="text-sm font-medium text-slate-600">정상</span>')) +
-                     '</div>' +
-                '</div>';
-                
-                const summaryEl = document.getElementById('statusSummary');
-                if (summaryEl) summaryEl.innerHTML = sHtml;
-
-                const tbody = document.getElementById('statusSubjectBody');
-                if (tbody) {
-                    if (resources.subjects.length === 0) {
-                         tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-slate-400">등록된 교과목이 없습니다.</td></tr>';
-                    } else {
-                        tbody.innerHTML = resources.subjects.map(function(s) {
-                            const planned = s.total_time || 0;
-                            let assigned = 0;
-                            timetableData.forEach(function(t) {
-                                if (t.subject_id === s.id && !t.is_excluded) {
-                                    assigned += getPeriodDuration(t.period_number);
-                                }
-                            });
-                            const pct = planned > 0 ? Math.round((assigned / planned) * 100) : 0;
-                            const sName = (s.name || '').toString().replace(/'/g, "\\\\'").replace(new RegExp('\\\\n', 'g'), ' ');
-                            const jName = (s.main_job_name || '').toString().replace(/'/g, "\\\\'").replace(new RegExp('\\\\n', 'g'), ' ');
-
-                            let statusBadge = '';
-                            if (assigned === 0) statusBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-500">미배정</span>';
-                            else if (assigned < planned) statusBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-600 cursor-pointer" title="' + (planned - assigned).toFixed(1) + '시간 부족">부족</span>';
-                            else if (Math.abs(assigned - planned) < 0.01) statusBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-600">충족</span>';
-                            else statusBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-600 cursor-pointer" title="' + (assigned - planned).toFixed(1) + '시간 초과">초과</span>';
-
-                            return '<tr class="hover:bg-slate-50 transition border-b border-slate-50 last:border-0">' +
-                                    '<td class="px-4 py-3">' +
-                                        '<div class="font-bold text-slate-800 text-xs">' + sName + '</div>' +
-                                        '<div class="text-[10px] text-primary-600 font-medium mb-1">' + (jName ? jName + ' (' + (s.main_job_code || '') + ')' : '') + '</div>' +
-                                        '<div class="space-y-1">' +
-                                            '<div class="text-[9px] text-slate-500 font-bold flex items-center gap-1">' +
-                                                '<span class="px-1 bg-slate-100 rounded text-slate-400 text-[8px]">UNIT</span> ' + (s.ncs_classification_code || '-') +
-                                            '</div>' +
-                                        '</div></td>' +
-                                    '<td class="px-4 py-3 text-center text-slate-600 text-xs">' + planned + '</td>' +
-                                    '<td class="px-4 py-3 text-center text-xs font-bold ' + (assigned > planned ? 'text-red-600' : 'text-slate-800') + '">' + assigned.toFixed(1) + '</td>' +
-                                    '<td class="px-4 py-3 align-middle">' +
-                                        '<div class="flex items-center gap-2">' +
-                                            '<div class="w-24 bg-slate-100 h-1.5 rounded-full overflow-hidden">' +
-                                                '<div class="h-full rounded-full ' + (assigned > planned ? 'bg-red-500' : (Math.abs(assigned - planned) < 0.01 ? 'bg-emerald-500' : 'bg-blue-500')) + '" style="width: ' + Math.min((assigned/planned)*100, 100) + '%"></div>' +
-                                            '</div>' +
-                                            '<span class="text-[10px] w-8 text-right text-slate-500">' + pct + '%</span>' +
-                                        '</div>' +
-                                    '</td>' +
-                                    '<td class="px-4 py-3 text-center">' + statusBadge + '</td>' +
-                                '</tr>';
-                        }).join('');
-                    }
-                }
-
-                const instructorCounts = {};
-                timetableData.forEach(function(t) {
-                    if(t.instructor_id && !t.is_excluded) {
-                        instructorCounts[t.instructor_id] = (instructorCounts[t.instructor_id] || 0) + getPeriodDuration(t.period_number);
-                    }
-                });
-                
-                let iHtmlArr = [];
-                const sortedInstructors = Object.keys(instructorCounts).sort(function(a,b) { return instructorCounts[b] - instructorCounts[a]; });
-                if (sortedInstructors.length === 0) {
-                     iHtmlArr.push('<div class="text-center text-slate-400 py-4 text-xs">아직 배정된 강사가 없습니다.</div>');
-                } else {
-                    sortedInstructors.forEach(function(id) {
-                        const count = instructorCounts[id];
-                        const info = resources.instructors.find(function(ins) { return ins.id == id; });
-                        const name = info ? info.name : 'Unknown';
-                        iHtmlArr.push('<div class="flex justify-between items-center text-sm p-2 bg-white border border-slate-100 rounded hover:bg-slate-50 transition">' +
-                                '<div class="flex items-center gap-2">' +
-                                    '<div class="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold text-[10px]">' + name.charAt(0) + '</div>' +
-                                    '<span class="font-medium text-slate-700 text-xs">' + name + '</span>' +
-                                '</div>' +
-                                '<div class="font-bold text-slate-800 text-xs">' + count.toFixed(1) + ' <span class="font-normal text-slate-400 text-[10px]">시간</span></div>' +
-                            '</div>');
-                    });
-                }
-                const iListEl = document.getElementById('statusInstructorList');
-                if (iListEl) iListEl.innerHTML = '<div class="space-y-2 max-h-60 overflow-y-auto custom-scrollbar pr-2">' + iHtmlArr.join('') + '</div>';
-
-                const warnings = [];
-                if (totalAssigned < totalPlanned) warnings.push('<li class="flex items-start gap-2"><i class="fas fa-exclamation-circle text-amber-500 mt-0.5"></i><span>총 훈련시간이 부족합니다. (' + (totalPlanned - totalAssigned).toFixed(1) + '시간 미편성)</span></li>');
-                if (totalAssigned > totalPlanned) warnings.push('<li class="flex items-start gap-2"><i class="fas fa-exclamation-triangle text-red-500 mt-0.5"></i><span>총 훈련시간이 초과되었습니다. (' + (totalAssigned - totalPlanned).toFixed(1) + '시간 초과)</span></li>');
-                const warnEl = document.getElementById('statusWarnings');
-                if (warnEl) warnEl.innerHTML = warnings.length > 0 ? warnings.join('') : '<li class="flex items-center gap-2 text-emerald-600"><i class="fas fa-check-circle"></i><span>현재까지 특이사항이 발견되지 않았습니다.</span></li>';
-
-                modal.classList.remove('hidden');
-                setTimeout(function() {
-                    modal.classList.remove('opacity-0');
-                    const innerDiv = modal.querySelector('div');
-                    if(innerDiv) innerDiv.classList.remove('scale-95');
-                }, 10);
-            }
-
-            window.closeStatus = function() {
-                const modal = document.getElementById('statusModal');
-                if (!modal) return;
-                modal.classList.add('opacity-0');
-                const innerDiv = modal.querySelector('div');
-                if(innerDiv) innerDiv.classList.add('scale-95');
-                setTimeout(function() {
-                    modal.classList.add('hidden');
-                }, 300);
-            }
+            // --- Status Analysis (함수는 스크립트 상단에 정의되어 있음) ---
 
             // 시간표 페이지 메뉴 버튼: 사이드바 열기 (모바일/태블릿)
             (function menuBtnInit() {
