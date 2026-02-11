@@ -1,12 +1,21 @@
-export const hrdSidebar = (activeMenu: string) => `
+export type HrdSidebarOptions = { alwaysVisible?: boolean };
+
+export const hrdSidebar = (activeMenu: string, options?: HrdSidebarOptions) => {
+  const alwaysVisible = options?.alwaysVisible === true;
+  const backdropClass = alwaysVisible ? 'hidden' : 'fixed inset-0 bg-black/50 z-30 lg:hidden hidden transition-opacity';
+  const toggleClass = alwaysVisible ? 'hidden' : 'lg:hidden fixed top-4 left-4 z-50 w-10 h-10 flex items-center justify-center rounded-xl bg-[#0f172a] text-white shadow-lg hover:bg-slate-800 transition';
+  const wrapClass = alwaysVisible
+    ? 'relative inset-y-0 left-0 z-40 flex-shrink-0 w-64 min-w-64'
+    : 'fixed lg:relative inset-y-0 left-0 z-40 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-out flex-shrink-0 w-64 lg:min-w-64';
+  return `
 <!-- 모바일: 사이드바 백드롭 -->
-<div id="adminSidebarBackdrop" class="fixed inset-0 bg-black/50 z-30 lg:hidden hidden transition-opacity" aria-hidden="true"></div>
-<!-- 모바일: 사이드바 열기 버튼 (항상 보이도록 body에 붙이지 않고 레이아웃 내 첫 자리) -->
-<button type="button" id="adminSidebarToggle" aria-label="메뉴 열기" class="lg:hidden fixed top-4 left-4 z-50 w-10 h-10 flex items-center justify-center rounded-xl bg-[#0f172a] text-white shadow-lg hover:bg-slate-800 transition">
+<div id="adminSidebarBackdrop" class="${backdropClass}" aria-hidden="true"></div>
+<!-- 모바일: 사이드바 열기 버튼 -->
+<button type="button" id="adminSidebarToggle" aria-label="메뉴 열기" class="${toggleClass}">
   <i class="fas fa-bars"></i>
 </button>
-<!-- 사이드바 래퍼: 모바일에서 슬라이드, 데스크톱에서 항상 표시 -->
-<div id="adminSidebarWrap" class="fixed lg:relative inset-y-0 left-0 z-40 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-out flex-shrink-0 w-64 lg:min-w-64">
+<!-- 사이드바 래퍼 -->
+<div id="adminSidebarWrap" class="${wrapClass}">
 <aside class="w-64 h-full bg-[#0f172a] text-slate-300 flex flex-col shadow-2xl border-r border-slate-800">
     <!-- 로고 영역 -->
     <div class="h-20 flex items-center px-6 bg-[#0f172a] relative overflow-hidden shrink-0">
@@ -372,3 +381,4 @@ export const hrdSidebar = (activeMenu: string) => `
 }
 </style>
 `;
+};

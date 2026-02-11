@@ -1,7 +1,7 @@
 import { hrdSidebar } from "./components/hrd_sidebar";
 
 export function adminSessionTimetableHtml(sessionId: number): string {
-    const sidebar = hrdSidebar('courses');
+    const sidebar = hrdSidebar('courses', { alwaysVisible: true });
 
     return `
 <!DOCTYPE html>
@@ -79,8 +79,8 @@ export function adminSessionTimetableHtml(sessionId: number): string {
         </header>
 
         <div class="flex-1 flex overflow-hidden min-h-0">
-            <!-- Left Panel: Resources (배정 교과목 | 담당 강사 나란히) -->
-            <div class="w-[420px] border-r border-slate-100 flex flex-col bg-slate-50/50 shrink-0">
+            <!-- Left Panel: Resources (배정 교과목 | 담당 강사) - 넓게 해서 교과목 잘림 방지, 그리드 영역 축소 -->
+            <div class="w-[560px] min-w-[480px] border-r border-slate-100 flex flex-col bg-slate-50/50 shrink-0">
                 <div class="p-6 pb-4">
                     <div class="flex items-center justify-between mb-4">
                         <span class="text-xs font-black text-slate-400 uppercase tracking-widest">배정 교육 리소스</span>
@@ -106,8 +106,8 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                 </div>
             </div>
 
-            <!-- Right Panel: Grid -->
-            <div class="flex-1 overflow-auto relative grid-bg custom-scrollbar p-8">
+            <!-- Right Panel: Grid (좌측 리소스 확대에 따라 영역 축소) -->
+            <div class="flex-1 min-w-0 overflow-auto relative grid-bg custom-scrollbar p-6">
                 <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden inline-block min-w-full">
                     <table class="border-collapse table-fixed w-full">
                         <thead id="timetableHeader">
@@ -344,7 +344,7 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                     html += '<div onclick="selectSubject(' + s.id + ')" class="group cursor-pointer bg-white border ' + (isSelected ? 'border-primary-500 ring-2 ring-primary-500/10' : 'border-slate-100') + ' rounded-2xl p-4 transition-all hover:shadow-md">';
                     // Header with subject name
                     html += '<div class="flex justify-between items-start mb-2">';
-                    html += '<div class="font-bold text-slate-800 text-sm line-clamp-1" title="' + (s.name || '').replace(/"/g, '&quot;') + '">' + (s.name || '') + '</div>';
+                    html += '<div class="font-bold text-slate-800 text-sm line-clamp-3 break-words" title="' + (s.name || '').replace(/"/g, '&quot;') + '">' + (s.name || '') + '</div>';
                     if(isSelected) html += '<i class="fas fa-check-circle text-primary-500"></i>';
           html += '</div>';
                     
@@ -381,7 +381,7 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                                         html += '<div class="text-[8px] text-slate-600 flex items-start gap-1">';
                                         html += '<i class="fas fa-angle-right text-[6px] text-blue-300 mt-0.5"></i>';
                                         if (elemCode) html += '<span class="font-mono text-blue-600/90 shrink-0">' + elemCode + '</span> ';
-                                        html += '<span class="line-clamp-1">' + nameEsc + '</span>';
+                                        html += '<span class="line-clamp-2 break-words">' + nameEsc + '</span>';
                                         html += '</div>';
                                     });
                                     if (unit.elements.length > 3) {
