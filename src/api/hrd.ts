@@ -1885,22 +1885,35 @@ app.get('/training-logs/:id', async (c) => {
 app.post('/training-logs', async (c) => {
     try {
         const body = await c.req.json();
-        const { id, course_id, instructor_id, date, topic, content, teaching_method, ncs_unit_id, training_hours, ncs_elements_json, schedule_details_json, attendance_summary_json } = body;
+        const { id, course_id, instructor_id, date, topic, content, teaching_method, ncs_unit_id, training_hours, ncs_elements_json, schedule_details_json } = body;
+
+        let { attendance_summary_json } = body;
+        if (attendance_summary_json === undefined) attendance_summary_json = null;
 
         if (id) {
             // 수정 (instructor_id 포함 — 배정 해제 시 null 가능)
             const safeNcsUnitId = (ncs_unit_id === '' || ncs_unit_id === 0 || ncs_unit_id === '0') ? null : ncs_unit_id;
+
+            // Update updates array to only include fields that are present in the body or explicit nulls if needed, 
+            // BUT given the error is strict, we probably want to just bind null for undefineds if we are updating all fields.
+            // The previous code was updating ALL fields regardless.
+
             const updates: string[] = ['topic = ?', 'content = ?', 'teaching_method = ?', 'ncs_unit_id = ?', 'training_hours = ?', 'ncs_elements_json = ?', 'schedule_details_json = ?', 'attendance_summary_json = ?', 'updated_at = CURRENT_TIMESTAMP'];
             const bindParams: any[] = [topic, content, teaching_method, safeNcsUnitId, training_hours, ncs_elements_json, schedule_details_json, attendance_summary_json];
+
             if (body.instructor_id !== undefined) {
                 updates.push('instructor_id = ?');
                 const safeUpdateInstructorId = (body.instructor_id === '' || body.instructor_id === null || body.instructor_id === 0 || body.instructor_id === '0') ? null : body.instructor_id;
                 bindParams.push(safeUpdateInstructorId);
             }
-            bindParams.push(id);
+            bindParams.push(id); // Where clause param
+
+            // Execute Update
+            // NOTE: Construct query dynamically based on updates array
             await c.env.DB.prepare(`
                 UPDATE training_logs SET ${updates.join(', ')} WHERE id = ?
             `).bind(...bindParams).run();
+
         } else {
             // 등록
             const safeInstructorId = (instructor_id === '' || instructor_id === 0 || instructor_id === '0') ? null : instructor_id;
