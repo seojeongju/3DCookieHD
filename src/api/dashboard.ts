@@ -30,22 +30,32 @@ app.get('/stats', async (c) => {
             totalStudents = studentsResult?.count || 0;
         } catch (e) { console.error('Error fetching total students:', e); }
 
-        // 2. 과정 현황 (Course Status Breakdown)
-        let courseStatusBreakdown: Record<string, number> = {};
+        // 2. 과정 현황 (회차 기준 — "운영 중인 과정" 목록과 동일하게 course_sessions 사용)
+        let courseStatusBreakdown: Record<string, number> = { active: 0, recruiting: 0, closed: 0 };
         try {
             const statsResult = await DB.prepare(
-                "SELECT status, count(*) as count FROM courses GROUP BY status"
+                `SELECT s.status, count(*) as count FROM course_sessions s
+                 INNER JOIN approved_courses a ON a.id = s.approved_course_id
+                 GROUP BY s.status`
             ).all<{ status: string, count: number }>();
 
             if (statsResult.results) {
                 statsResult.results.forEach(row => {
-                    courseStatusBreakdown[row.status] = row.count;
+                    const status = row.status || '';
+                    const count = row.count || 0;
+                    if (status === 'in_progress') {
+                        courseStatusBreakdown['active'] += count;
+                    } else if (status === 'recruiting' || status === 'always_open') {
+                        courseStatusBreakdown['recruiting'] += count;
+                    } else {
+                        courseStatusBreakdown['closed'] += count;
+                    }
                 });
             }
-            // activeCourses implies 'active' status only, or maybe sum of active+recruiting?
-            // For now, keep it as 'active' status count.
             activeCourses = courseStatusBreakdown['active'] || 0;
-        } catch (e) { console.error('Error fetching course stats:', e); }
+        } catch (e) {
+            console.error('Error fetching course-session stats:', e);
+        }
 
         // 3. 문의 현황 (Consultation Status Breakdown)
         let inquiryStats = { pending: 0, completed: 0 };
