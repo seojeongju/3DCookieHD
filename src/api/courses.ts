@@ -164,11 +164,14 @@ courses.get('/', async (c) => {
  */
 courses.get('/:id', async (c) => {
   try {
-    const id = c.req.param('id');
-    const type = c.req.query('type');
+    const idParam = c.req.param('id');
+    const type = (c.req.query('type') || '').trim().toLowerCase();
 
     if (type === 'hrd') {
-      // HRD 회차 정보 조회
+      const sessionId = parseInt(idParam, 10);
+      if (isNaN(sessionId)) return notFoundResponse(c, '잘못된 회차 ID입니다');
+
+      // HRD 회차 정보 조회 (course_sessions.id = 회차 ID)
       const session = await getOne<any>(
         c.env.DB,
         `SELECT 
@@ -185,7 +188,7 @@ courses.get('/:id', async (c) => {
         JOIN approved_courses a ON s.approved_course_id = a.id
         LEFT JOIN course_categories c ON a.category_id = c.id
         WHERE s.id = ?`,
-        [id]
+        [sessionId]
       );
 
       if (!session) return notFoundResponse(c, '회차 정보를 찾을 수 없습니다');
@@ -199,14 +202,15 @@ courses.get('/:id', async (c) => {
       });
     }
 
-    // 조회수 증가
+    // 조회수 증가 (legacy courses 테이블)
+    const id = idParam;
     await execute(
       c.env.DB,
       'UPDATE courses SET view_count = view_count + 1 WHERE id = ?',
       [id]
     );
 
-    // 과정 상세 정보 조회
+    // 과정 상세 정보 조회 (legacy courses 테이블)
     const course = await getOne<any>(
       c.env.DB,
       `SELECT 
