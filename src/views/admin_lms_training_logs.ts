@@ -89,58 +89,120 @@ export const adminLmsTrainingLogsHtml = `
     </div>
 
     <!-- 일지 등록 모달 -->
-    <div id="logModal" class="fixed inset-0 bg-black/60 hidden z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl transform transition-all overflow-hidden border border-white/20">
-            <div class="p-6 border-b bg-indigo-50/50 flex justify-between items-center">
-                <h3 class="text-xl font-bold text-indigo-900" id="modalTitle">훈련일지 작성</h3>
-                <button onclick="closeLogModal()" class="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-rose-500 hover:bg-rose-50 rounded-full transition-all"><i class="fas fa-times"></i></button>
+    <!-- 일지 등록 모달 -->
+    <div id="logModal" class="fixed inset-0 bg-black/60 hidden z-[60] flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-6xl my-8 transform transition-all border border-gray-100">
+            <!-- Header -->
+            <div class="p-6 border-b flex justify-between items-center bg-gray-50 rounded-t-xl">
+                 <div class="flex items-center gap-2">
+                    <i class="fas fa-calendar-check text-indigo-600 text-xl"></i>
+                    <h3 class="text-xl font-bold text-gray-900" id="modalTitle">훈련일지 작성</h3>
+                 </div>
+                <button onclick="closeLogModal()" class="text-gray-400 hover:text-gray-600 transition-colors w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-200"><i class="fas fa-times text-lg"></i></button>
             </div>
-            <form id="logForm" onsubmit="handleSaveLog(event)" class="p-8 space-y-6">
+
+            <form id="logForm" onsubmit="handleSaveLog(event)" class="p-8 space-y-8">
                 <input type="hidden" id="logId">
-                <div class="grid grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2 whitespace-nowrap">훈련 일자 *</label>
-                        <input type="date" id="logDate" required class="w-full px-4 py-3 bg-gray-50 border-none rounded-2xl focus:ring-4 focus:ring-indigo-100 transition-all font-medium">
+
+                <!-- 결재란 -->
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-2">
+                    <div class="text-sm text-gray-500 font-medium">
+                        <span class="bg-indigo-50 text-indigo-700 px-2 py-1 rounded text-xs font-bold mr-2">Tip</span>
+                        일별 시간표를 불러와 훈련 내용을 상세히 기록하세요.
                     </div>
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2 whitespace-nowrap">훈련 시간 (h) *</label>
-                        <input type="number" id="logHours" value="8" required class="w-full px-4 py-3 bg-gray-50 border-none rounded-2xl focus:ring-4 focus:ring-indigo-100 transition-all font-medium">
+                    <table class="text-center text-xs border-collapse border border-gray-300 bg-white shadow-sm">
+                        <tr>
+                            <td rowspan="2" class="w-8 bg-gray-50 border border-gray-200 font-bold text-gray-600 py-1">결<br>재</td>
+                            <td class="w-20 border border-gray-200 bg-gray-50 font-bold text-gray-600 py-1">담 당</td>
+                            <td class="w-20 border border-gray-200 bg-gray-50 font-bold text-gray-600 py-1">부 장</td>
+                            <td class="w-20 border border-gray-200 bg-gray-50 font-bold text-gray-600 py-1">기 관 장</td>
+                        </tr>
+                        <tr>
+                            <td class="h-16 border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors" onclick="alert('전자결재 기능은 준비중입니다.')"></td>
+                            <td class="h-16 border border-gray-200"></td>
+                            <td class="h-16 border border-gray-200"></td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- 1. 기본 정보 -->
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-6 bg-gray-50/50 p-6 rounded-xl border border-gray-200/50">
+                     <!-- 날짜 선택 -->
+                    <div class="md:col-span-3">
+                        <label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wider">훈련 일자 <span class="text-red-500">*</span></label>
+                        <input type="date" id="logDate" required class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 font-bold text-gray-800 bg-white">
+                    </div>
+                    <!-- 훈련 시간 -->
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wider">훈련 시간 (h) <span class="text-red-500">*</span></label>
+                        <input type="number" id="logHours" value="8" min="0" max="24" required class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 font-bold text-gray-800 bg-white text-center">
+                    </div>
+                     <!-- NCS 능력단위 -->
+                    <div class="md:col-span-7">
+                         <label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wider">주요 NCS 능력단위</label>
+                         <select id="logNcsUnitId" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white font-medium text-gray-700 text-sm">
+                            <option value="">선택 안함</option>
+                         </select>
                     </div>
                 </div>
-                
-                <div class="space-y-4 p-5 bg-indigo-50/50 rounded-2xl border border-indigo-100/50 shadow-inner">
-                    <h4 class="text-xs font-black text-indigo-600 uppercase tracking-widest flex items-center">
-                        <i class="fas fa-link mr-1.5"></i> NCS 연동 설정
-                    </h4>
+
+                 <!-- 2. 주제 및 내용 -->
+                 <div class="grid grid-cols-1 gap-6">
                     <div>
-                        <label class="block text-[11px] font-bold text-indigo-400 mb-1.5 uppercase tracking-wider">능력단위 선택</label>
-                        <select id="logNcsUnitId" class="w-full px-4 py-3 bg-white border-none rounded-xl focus:ring-4 focus:ring-indigo-200 transition-all text-sm font-bold text-indigo-900">
-                            <option value="">해당 사항 없음</option>
-                        </select>
+                        <label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wider">훈련 주제 <span class="text-red-500">*</span></label>
+                        <input type="text" id="logTopic" required placeholder="예: 3D 모델링 기초 및 인터페이스 익히기" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 font-bold text-gray-800 text-lg">
                     </div>
-                    <div id="elementsPicker" class="hidden">
-                        <label class="block text-[11px] font-bold text-indigo-400 mb-1.5 uppercase tracking-wider">수행준거 선택</label>
-                        <div id="elementCheckboxes" class="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto bg-white/80 p-3 rounded-xl border border-indigo-100 shadow-sm scrollbar-hide">
-                            <!-- JS Load -->
+                 </div>
+
+                <!-- 수행준거 선택 -->
+                <div id="elementsPicker" class="hidden p-5 bg-indigo-50/50 rounded-xl border border-indigo-100">
+                    <label class="block text-xs font-bold text-indigo-500 mb-3 uppercase flex items-center gap-2">
+                        <i class="fas fa-check-circle"></i> 수행준거 선택
+                    </label>
+                    <div id="elementCheckboxes" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-40 overflow-y-auto custom-scrollbar pr-2"></div>
+                </div>
+
+                <!-- 3. 상세 시간표 (Training Schedule) -->
+                <div>
+                    <div class="flex justify-between items-end mb-3">
+                        <div>
+                            <label class="block text-lg font-bold text-gray-800 flex items-center gap-2">
+                                <i class="fas fa-list-ol text-gray-400"></i> 훈련 사항 (시간표)
+                            </label>
+                            <p class="text-xs text-gray-500 mt-1 pl-7">일별 세부 시간표를 수정하면 훈련일지에 반영됩니다.</p>
                         </div>
+                        <button type="button" onclick="loadDailySchedule()" id="btnLoadSchedule" class="text-xs px-3 py-2 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 font-bold border border-indigo-200 transition-colors flex items-center gap-1.5">
+                            <i class="fas fa-sync-alt"></i> 시간표 불러오기
+                        </button>
+                    </div>
+                    <div class="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                        <table class="w-full text-sm text-left text-gray-600">
+                            <thead class="text-xs text-gray-700 uppercase bg-gray-50 border-b border-gray-200">
+                                <tr>
+                                    <th scope="col" class="px-4 py-3 w-16 text-center border-r border-gray-200 font-extrabold text-gray-500">교시</th>
+                                    <th scope="col" class="px-4 py-3 w-48 text-center border-r border-gray-200 font-extrabold text-gray-500">훈련 과목</th>
+                                    <th scope="col" class="px-4 py-3 w-32 text-center border-r border-gray-200 font-extrabold text-gray-500">담당 교사</th>
+                                    <th scope="col" class="px-4 py-3 text-center border-r border-gray-200 font-extrabold text-gray-500">훈련 내용</th>
+                                    <th scope="col" class="px-4 py-3 w-40 text-center font-extrabold text-gray-500">비고 (불참자 등)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="scheduleTableBody" class="bg-white divide-y divide-gray-100">
+                                <!-- JS Generated Rows (1~8교시) -->
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 
-                <div class="space-y-5">
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2">훈련 주제 *</label>
-                        <input type="text" id="logTopic" required placeholder="예: HTML 기초 및 시맨틱 태그 활용" class="w-full px-4 py-3 bg-gray-50 border-none rounded-2xl focus:ring-4 focus:ring-indigo-100 transition-all font-medium">
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2">훈련 내용 세부사항</label>
-                        <textarea id="logContent" rows="4" placeholder="오늘 진행된 교육 내용을 간략히 입력하세요..." class="w-full px-4 py-3 bg-gray-50 border-none rounded-2xl focus:ring-4 focus:ring-indigo-100 transition-all font-medium"></textarea>
-                    </div>
+                <!-- 4. 기타/특기사항 -->
+                 <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wider">특기사항 (전달사항, 외출자 등)</label>
+                    <textarea id="logContent" rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="오늘의 특이사항을 입력하세요..."></textarea>
                 </div>
 
-                <div class="flex gap-4 pt-4">
-                    <button type="button" onclick="closeLogModal()" class="flex-1 px-6 py-4 bg-gray-50 text-gray-500 font-bold rounded-2xl hover:bg-gray-100 transition-all">취소</button>
-                    <button type="submit" class="flex-1 px-6 py-4 bg-indigo-600 text-white font-black rounded-2xl hover:bg-indigo-700 shadow-lg shadow-indigo-100 hover:shadow-indigo-200 transition-all hover:-translate-y-0.5 transform active:scale-95">저장하기</button>
+                <!-- Footer Buttons -->
+                <div class="flex justify-end gap-3 pt-6 border-t border-gray-100">
+                    <button type="button" onclick="closeLogModal()" class="px-6 py-3 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-xl font-bold transition-colors shadow-sm">취소</button>
+                    <button type="submit" class="px-8 py-3 bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl font-bold shadow-lg shadow-indigo-200 hover:shadow-indigo-300 transition-all hover:-translate-y-0.5 transform">저장하기</button>
                 </div>
             </form>
         </div>
@@ -154,9 +216,18 @@ export const adminLmsTrainingLogsHtml = `
 
         document.addEventListener('DOMContentLoaded', () => {
             const logDateInput = document.getElementById('logDate');
-            if (logDateInput) logDateInput.valueAsDate = new Date();
+            if (logDateInput) {
+                logDateInput.valueAsDate = new Date();
+                logDateInput.addEventListener('change', () => {
+                    loadDailySchedule();
+                });
+            }
             loadLogs();
             loadAssignedUnits();
+            
+            // 초기 로드시 오늘 날짜 시간표 로드 (신규 작성 시 편의)
+            // 단, loadLogs()가 비동기이므로 시간차 두고 실행하거나, openLogModal() 시점에 실행하는게 나을 수도 있음.
+            // 여기서는 일단 날짜 기본값이 오늘이므로 세팅만 함.
         });
 
         async function loadAssignedUnits() {
@@ -328,6 +399,72 @@ export const adminLmsTrainingLogsHtml = `
             }
         }
 
+
+        // --------------------------------------------------------------------------------------------------------------------------------
+        // Schedule Functions (New)
+        // --------------------------------------------------------------------------------------------------------------------------------
+        // --------------------------------------------------------------------------------------------------------------------------------
+        // Schedule Functions (New)
+        // --------------------------------------------------------------------------------------------------------------------------------
+        async function loadDailySchedule() {
+            const dateInput = document.getElementById('logDate');
+            if (!courseId || !dateInput || !dateInput.value) {
+                // alert('훈련 일자를 선택해주세요.');
+                return;
+            }
+            
+            const tbody = document.getElementById('scheduleTableBody');
+            if(tbody) tbody.innerHTML = '<tr><td colspan="5" class="py-10 text-center text-gray-400 font-bold animate-pulse">시간표 불러오는 중...</td></tr>';
+
+            try {
+                const res = await fetch(\`/api/hrd/training-logs/daily-schedule?courseId=\${courseId}&date=\${dateInput.value}\`, {
+                     headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const result = await res.json();
+                if (result.success) {
+                    const existingData = null; 
+                    renderScheduleTable(result.data, existingData);
+                } else {
+                     if(tbody) tbody.innerHTML = '<tr><td colspan="5" class="py-10 text-center text-rose-400 font-bold">시간표 조회 실패</td></tr>';
+                }
+            } catch (e) {
+                console.error(e);
+                if(tbody) tbody.innerHTML = '<tr><td colspan="5" class="py-10 text-center text-rose-400 font-bold">오류 발생</td></tr>';
+            }
+        }
+
+        function renderScheduleTable(dbSchedules, savedDetails = null) {
+            const tbody = document.getElementById('scheduleTableBody');
+            if (!tbody) return;
+            
+            let html = '';
+            for (let i = 1; i <= 8; i++) {
+                const saved = savedDetails ? savedDetails.find(s => s.period === i) : null;
+                const dbSch = dbSchedules ? dbSchedules.find(s => s.period_number === i) : null;
+
+                const subject = saved ? saved.subject : (dbSch ? dbSch.subject_name : '');
+                const instructor = saved ? saved.instructor : (dbSch ? dbSch.instructor_name : '');
+                const content = saved ? saved.content : '';
+                const note = saved ? saved.note : '';
+                
+                html += \`
+                    <tr class="hover:bg-indigo-50/30 transition-colors group">
+                        <td class="px-2 py-2 text-center border-r font-black text-gray-400 bg-gray-50/50">\${i}교시</td>
+                        <td class="px-2 py-2 border-r"><input type="text" name="sch_subject_\${i}" value="\${subject || ''}" class="w-full px-3 py-2 border border-gray-200 rounded-md text-sm font-bold text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all placeholder-gray-300" placeholder="교과목"></td>
+                        <td class="px-2 py-2 border-r"><input type="text" name="sch_instructor_\${i}" value="\${instructor || ''}" class="w-full px-3 py-2 border border-gray-200 rounded-md text-center text-sm font-medium text-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all placeholder-gray-300" placeholder="담당교사"></td>
+                        <td class="px-2 py-2 border-r"><input type="text" name="sch_content_\${i}" value="\${content || ''}" class="w-full px-3 py-2 border border-gray-200 rounded-md text-sm text-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all placeholder-gray-300" placeholder="훈련내용을 입력하세요"></td>
+                        <td class="px-2 py-2"><input type="text" name="sch_note_\${i}" value="\${note || ''}" class="w-full px-3 py-2 border border-gray-200 rounded-md text-sm text-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all placeholder-gray-300" placeholder="비고"></td>
+                    </tr>
+                \`;
+            }
+            tbody.innerHTML = html;
+        }
+
+
+        // --------------------------------------------------------------------------------------------------------------------------------
+        // Modal & Form Logic
+        // --------------------------------------------------------------------------------------------------------------------------------
+
         function openLogModal() {
             const elId = document.getElementById('logId');
             const elTopic = document.getElementById('logTopic');
@@ -335,7 +472,9 @@ export const adminLmsTrainingLogsHtml = `
             const elHours = document.getElementById('logHours');
             const elUnitId = document.getElementById('logNcsUnitId');
             const elPicker = document.getElementById('elementsPicker');
+            const elDate = document.getElementById('logDate');
 
+            // 초기화
             if (elId) elId.value = '';
             if (elTopic) elTopic.value = '';
             if (elContent) elContent.value = '';
@@ -346,7 +485,15 @@ export const adminLmsTrainingLogsHtml = `
                 elUnitId.dispatchEvent(event);
             }
             if (elPicker) elPicker.classList.add('hidden');
+            if (elDate && !elDate.value) elDate.valueAsDate = new Date();
             
+            // 시간표 초기화
+            if (elDate && elDate.value) {
+                loadDailySchedule(); 
+            } else {
+                renderScheduleTable(null, null); 
+            }
+
             const elTitle = document.getElementById('modalTitle');
             if (elTitle) elTitle.textContent = '훈련일지 작성';
             
@@ -365,7 +512,7 @@ export const adminLmsTrainingLogsHtml = `
             if (elId) elId.value = log.id;
             if (elDate) elDate.value = log.date;
             if (elTopic) elTopic.value = log.topic;
-            if (elContent) elContent.value = log.content || '';
+            if (elContent) elContent.value = log.content || ''; 
             if (elHours) elHours.value = log.training_hours;
             
             if (elUnitId) {
@@ -375,13 +522,27 @@ export const adminLmsTrainingLogsHtml = `
                 
                 setTimeout(() => {
                     if (log.ncs_elements_json) {
-                        const selectedIds = JSON.parse(log.ncs_elements_json);
-                        const checks = document.querySelectorAll('input[name="ncs_element"]');
-                        checks.forEach(c => {
-                            if (selectedIds.includes(parseInt(c.value))) c.checked = true;
-                        });
+                        try {
+                            const selectedIds = JSON.parse(log.ncs_elements_json);
+                            const checks = document.querySelectorAll('input[name="ncs_element"]');
+                            checks.forEach(c => {
+                                if (selectedIds.includes(parseInt(c.value))) c.checked = true;
+                            });
+                        } catch(e) {}
                     }
-                }, 400);
+                }, 500);
+            }
+
+            // 시간표 데이터 복원
+            if (log.schedule_details_json) {
+                try {
+                    const details = JSON.parse(log.schedule_details_json);
+                    renderScheduleTable(null, details); 
+                } catch(e) {
+                    loadDailySchedule();
+                }
+            } else {
+                loadDailySchedule(); 
             }
 
             const elTitle = document.getElementById('modalTitle');
@@ -407,6 +568,25 @@ export const adminLmsTrainingLogsHtml = `
             const unitIdVal = document.getElementById('logNcsUnitId').value;
             const hoursVal = document.getElementById('logHours').value;
 
+            // 시간표 데이터 수집
+            const scheduleDetails = [];
+            for(let i=1; i<=8; i++) {
+                const subj = document.querySelector(\`input[name="sch_subject_\${i}"]\`)?.value || '';
+                const inst = document.querySelector(\`input[name="sch_instructor_\${i}"]\`)?.value || '';
+                const cont = document.querySelector(\`input[name="sch_content_\${i}"]\`)?.value || '';
+                const note = document.querySelector(\`input[name="sch_note_\${i}"]\`)?.value || '';
+                
+                if(subj || inst || cont || note) {
+                    scheduleDetails.push({
+                        period: i,
+                        subject: subj,
+                        instructor: inst,
+                        content: cont,
+                        note: note
+                    });
+                }
+            }
+
             const data = {
                 id: idVal ? parseInt(idVal) : null,
                 course_id: parseInt(courseId),
@@ -417,7 +597,8 @@ export const adminLmsTrainingLogsHtml = `
                 teaching_method: '주입식/실습', 
                 ncs_unit_id: unitIdVal ? parseInt(unitIdVal) : null,
                 training_hours: parseInt(hoursVal),
-                ncs_elements_json: JSON.stringify(elementIds)
+                ncs_elements_json: JSON.stringify(elementIds),
+                schedule_details_json: JSON.stringify(scheduleDetails)
             };
 
             try {
@@ -431,9 +612,9 @@ export const adminLmsTrainingLogsHtml = `
                 });
                 const result = await res.json();
                 if (result.success) {
+                    alert(result.message);
                     closeLogModal();
                     loadLogs();
-                    calculateNcsProgress();
                 } else {
                     alert('저장 실패: ' + result.error);
                 }
