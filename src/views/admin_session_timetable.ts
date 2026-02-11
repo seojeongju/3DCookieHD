@@ -247,7 +247,8 @@ export function adminSessionTimetableHtml(sessionId: number): string {
     </div>
 
     <script>
-        (function() {
+        var __timetableInit = function() {
+            'use strict';
             var sessionId = ${sessionId};
             var token = localStorage.getItem('token');
             var headers = token ? { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
@@ -331,7 +332,13 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                 }
             }
 
-            init();
+            try {
+                init();
+            } catch (err) {
+                console.error('Timetable init error:', err);
+                var loading = document.getElementById('resourcePanel');
+                if (loading) loading.innerHTML = '<div class="text-red-500 text-sm p-4">초기화 중 오류가 발생했습니다. 새로고침 해 주세요.</div>';
+            }
 
             // --- Rendering ---
 
@@ -903,7 +910,8 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                 }
             })();
 
-        })();
+        };
+        if (typeof __timetableInit === 'function') __timetableInit();
     </script>
 </body>
 </html>
