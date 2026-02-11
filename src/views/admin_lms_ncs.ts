@@ -37,7 +37,7 @@ export const adminLmsNcsHtml = `
         
         <div class="flex-1 flex flex-col overflow-hidden relative min-w-0">
             <div class="flex-1 overflow-y-auto custom-scrollbar">
-                ${lmsHeaderHtml('ncs-eval')}
+                ${lmsHeaderHtml('ncs-eval', 'hrd')}
 
     <!-- 헤더 -->
     <div class="bg-white border-b border-gray-200">
@@ -48,7 +48,7 @@ export const adminLmsNcsHtml = `
                     <p class="text-gray-600 mt-1" id="courseTitle">과정명 로딩중...</p>
                 </div>
                 <div class="flex gap-2">
-                    <button onclick="window.open(window.location.href + '-report')" class="px-4 py-2 border border-blue-200 text-blue-700 rounded-lg hover:bg-blue-50 transition flex items-center shadow-sm">
+                    <button onclick="const url = new URL(window.location.href); url.pathname = url.pathname.replace('/ncs-eval', '/ncs-report'); window.open(url.toString());" class="px-4 py-2 border border-blue-200 text-blue-700 rounded-lg hover:bg-blue-50 transition flex items-center shadow-sm">
                         <i class="fas fa-print mr-2"></i> 결과 보고서
                     </button>
                     <button onclick="openPlanModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center shadow-sm">
@@ -124,7 +124,7 @@ export const adminLmsNcsHtml = `
                                 </tr>
                             </thead>
                             <tbody id="resultTableBody" class="divide-y divide-gray-100">
-                                <!-- JS로 주입 -->
+                                <!-- JS 로 주입 -->
                             </tbody>
                         </table>
                     </div>
@@ -306,7 +306,7 @@ export const adminLmsNcsHtml = `
                     document.getElementById('selectedPlanTitle').textContent = currentPlan.unit_name;
                     document.getElementById('selectedUnitCode').textContent = currentPlan.unit_code;
                     document.getElementById('selectedPlanInfo').textContent = \`평가방법: \${currentPlan.method} | 평가일: \${currentPlan.planned_date || '-'}\`;
-                    document.getElementById('selectedTargetScore').textContent = currentPlan.target_score + '점';
+                    document.getElementById('selectedTargetScore').textContent = \`\${currentPlan.target_score}점\`;
                     
                     renderResultTable();
                     loadPlans(); // 활성화 상태 표시 업데이트
@@ -338,7 +338,7 @@ export const adminLmsNcsHtml = `
                             class="w-20 px-2 py-1 text-center border rounded-lg focus:ring-2 focus:ring-blue-500 font-bold">
                     </td>
                     <td class="px-6 py-4 text-center">
-                        <span class="px-2 py-1 \${row.is_passed ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'} rounded text-xs font-bold">
+                        <span class="px-2 py-1 \${row.is_passed ? 'bg-green-101 text-green-700' : 'bg-red-101 text-red-700'} rounded text-xs font-bold">
                             \${row.is_passed ? '이수 (Pass)' : '미이수 (Fail)'}
                         </span>
                     </td>
