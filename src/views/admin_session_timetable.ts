@@ -663,11 +663,14 @@ export function adminSessionTimetableHtml(sessionId: number): string {
             }
 
             function updateHoursCount() {
+                // 배정 완료 현황 = 교과목별 Progress 합계와 동일하게 계산 (리소스에 없는 subject_id 제외)
                 let total = 0;
-                timetableData.forEach(t => {
-                    if (t.subject_id && !t.is_excluded) {
-                        total += getPeriodDuration(t.period_number);
-                    }
+                (resources && resources.subjects || []).forEach(s => {
+                    timetableData.forEach(t => {
+                        if (t.subject_id == s.id && !t.is_excluded) {
+                            total += getPeriodDuration(t.period_number);
+                        }
+                    });
                 });
                 document.getElementById('currentHours').textContent = total.toFixed(1);
                 const target = parseFloat(document.getElementById('targetHours').textContent || '0');
