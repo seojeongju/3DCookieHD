@@ -52,8 +52,14 @@
                 subjects.forEach(function(subj) {
                     var btn = document.createElement('button');
                     btn.type = 'button';
-                    btn.className = 'syllabus-subject-tab px-4 py-2 rounded-lg text-sm font-medium border border-slate-200 bg-white text-slate-700 hover:bg-emerald-50 hover:border-emerald-300 transition';
-                    btn.textContent = subj.name || ('과목 #' + subj.id);
+                    btn.className = 'syllabus-subject-tab px-4 py-2 rounded-lg text-sm font-medium border border-slate-200 bg-white text-slate-700 hover:bg-emerald-50 hover:border-emerald-300 transition text-left';
+                    var jobLine = getSubjectJobLine(subj);
+                    var codeLine = getSubjectCodeLine(subj);
+                    var titleAttr = [subj.name || ('과목 #' + subj.id)].concat(jobLine ? [jobLine] : [], codeLine ? [codeLine] : []).join(' \u203A ');
+                    btn.setAttribute('title', titleAttr);
+                    btn.innerHTML = '<span class="block font-bold">' + escapeHtml(subj.name || ('과목 #' + subj.id)) + '</span>' +
+                        (jobLine ? '<span class="block text-[10px] text-primary-600 mt-0.5">' + escapeHtml(jobLine) + '</span>' : '') +
+                        (codeLine ? '<span class="block text-[9px] text-slate-500 font-mono mt-0.5">' + escapeHtml(codeLine) + '</span>' : '');
                     btn.dataset.curriculumId = String(subj.id);
                     btn.dataset.subjectName = subj.name || '';
                     btn.addEventListener('click', function() { selectSubject(subj.id, subj.name); });
@@ -71,6 +77,30 @@
         var div = document.createElement('div');
         div.textContent = s;
         return div.innerHTML;
+    }
+
+    function getSubjectJobLine(subj) {
+        if (!subj) return '';
+        var name = (subj.main_job_name || '').trim();
+        var code = (subj.main_job_code || '').trim();
+        if (name || code) return name + (code ? ' (' + code + ')' : '');
+        return '';
+    }
+
+    function getSubjectCodeLine(subj) {
+        if (!subj) return '';
+        var parts = [];
+        if (subj.classification) parts.push(subj.classification);
+        try {
+            var aUnits = subj.ability_units_json ? JSON.parse(subj.ability_units_json) : [];
+            if (aUnits.length > 0 && typeof aUnits[0] === 'object' && aUnits[0].code) parts.push(aUnits[0].code);
+            if (aUnits[0] && aUnits[0].elements && aUnits[0].elements.length > 0) {
+                var el = aUnits[0].elements[0];
+                var elCode = typeof el === 'object' && el.code ? String(el.code) : '';
+                if (elCode) parts.push(elCode);
+            }
+        } catch (e) {}
+        return parts.length ? parts.join(' \u203A ') : '';
     }
 
     function getSubjectStep6(subj) {
@@ -276,7 +306,15 @@
         currentCurriculumId = curriculumId;
         currentSubjectName = subjectName || '';
         showForm(true);
-        if (subjectTitleSpan) subjectTitleSpan.textContent = currentSubjectName;
+        var subj = subjects.filter(function(s) { return s.id === curriculumId; })[0];
+        var titleHtml = escapeHtml(currentSubjectName || ('과목 #' + curriculumId));
+        if (subjectTitleSpan) {
+            var jobLine = subj ? getSubjectJobLine(subj) : '';
+            var codeLine = subj ? getSubjectCodeLine(subj) : '';
+            subjectTitleSpan.innerHTML = '<span class="text-emerald-600">' + titleHtml + '</span>' +
+                (jobLine ? '<span class="block text-primary-600 text-sm font-medium mt-1">' + escapeHtml(jobLine) + '</span>' : '') +
+                (codeLine ? '<span class="block text-slate-500 text-xs font-mono mt-0.5">' + escapeHtml(codeLine) + '</span>' : '');
+        }
 
         var courseNameCell = el('syllabusCourseNameCell');
         if (courseNameCell) courseNameCell.textContent = sessionData ? (sessionData.course_name || '-') : '-';
