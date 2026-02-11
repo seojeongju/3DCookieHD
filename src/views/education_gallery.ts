@@ -294,7 +294,7 @@ export const educationGalleryHtml = `
             document.getElementById('modalAuthor').textContent = (item.author_name || item.student_name || '-');
             document.getElementById('modalDate').textContent = new Date(item._date).toLocaleDateString('ko-KR');
             var content = item.content || item.description || '';
-            document.getElementById('modalContent').innerHTML = content ? content.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\\n/g, '<br>') : '<p class="text-gray-500">설명이 없습니다.</p>';
+            document.getElementById('modalContent').innerHTML = content ? content : '<p class="text-gray-500">설명이 없습니다.</p>';
             document.getElementById('detailModal').classList.remove('hidden');
             document.body.style.overflow = 'hidden';
         }
