@@ -249,6 +249,7 @@ export function adminSessionTimetableHtml(sessionId: number): string {
     <script>
         var __timetableInit = function() {
             'use strict';
+            try {
             var sessionId = ${sessionId};
             var token = localStorage.getItem('token');
             var headers = token ? { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
@@ -896,7 +897,7 @@ export function adminSessionTimetableHtml(sessionId: number): string {
             }
 
             // 시간표 페이지 메뉴 버튼: 사이드바 열기 (모바일/태블릿)
-            (function(){
+            (function menuBtnInit() {
                 var btn = document.getElementById('timetableMenuBtn');
                 var wrap = document.getElementById('adminSidebarWrap');
                 var backdrop = document.getElementById('adminSidebarBackdrop');
@@ -908,10 +909,15 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                         document.body.style.overflow = 'hidden';
                     });
                 }
-            })();
+            }());
 
+            } catch (e) {
+                console.error('Timetable script error:', e);
+                var el = document.getElementById('resourcePanel');
+                if (el) el.innerHTML = '<p class="p-4 text-red-600 text-sm">스크립트 오류가 발생했습니다. 새로고침 해 주세요.</p>';
+            }
         };
-        if (typeof __timetableInit === 'function') __timetableInit();
+        if (typeof __timetableInit === 'function') { try { __timetableInit(); } catch (e) { console.error(e); } }
     </script>
 </body>
 </html>
