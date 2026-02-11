@@ -309,7 +309,14 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                     }
 
                     if(rJson.success) resources = rJson.data;
-                    if(tJson.success) timetableData = tJson.data || [];
+                    if(tJson.success) {
+                        timetableData = (tJson.data || []).map(function(t) {
+                            return Object.assign({}, t, {
+                                training_date: normalizeTrainingDate(t.training_date),
+                                period_number: Number(t.period_number)
+                            });
+                        });
+                    }
                     if(pJson.success && pJson.data && pJson.data.length > 0) {
                         periodConfigs = pJson.data;
                     } else {
@@ -492,12 +499,32 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                 }
             }
 
+            function toLocalDateStr(d) {
+                var y = d.getFullYear();
+                var m = String(d.getMonth() + 1).padStart(2, '0');
+                var day = String(d.getDate()).padStart(2, '0');
+                return y + '-' + m + '-' + day;
+            }
+            function normalizeTrainingDate(v) {
+                if (v == null || v === '') return '';
+                var s = String(v).trim();
+                if (/^\\d{4}-\\d{1,2}-\\d{1,2}/.test(s)) {
+                    var parts = s.slice(0, 10).split('-');
+                    if (parts.length === 3)
+                        return parts[0] + '-' + parts[1].padStart(2, '0') + '-' + parts[2].padStart(2, '0');
+                    return s.slice(0, 10);
+                }
+                var d = new Date(s);
+                if (isNaN(d.getTime())) return s;
+                return toLocalDateStr(d);
+            }
+
             function renderTimetableGrid() {
                 const header = document.getElementById('timetableHeader');
                 const body = document.getElementById('timetableBody');
                 if(!header || !body) return;
 
-                // Dates
+                // Dates (로컬 기준 YYYY-MM-DD 사용 — toISOString()은 UTC라 타임존에서 하루 어긋남)
                 const dates = [];
                 for(let i=0; i<7; i++) {
                     const d = new Date(currentWeekStartDate);
@@ -529,8 +556,8 @@ export function adminSessionTimetableHtml(sessionId: number): string {
 
                     for(let i=0; i<7; i++) {
                         const d = dates[i];
-                        const dateStr = d.toISOString().split('T')[0];
-                        const cellData = timetableData.find(t => t.training_date === dateStr && t.period_number === cfg.period_number);
+                        const dateStr = toLocalDateStr(d);
+                        const cellData = timetableData.find(t => t.training_date === dateStr && Number(t.period_number) === Number(cfg.period_number));
                         
                         const subject = cellData ? resources.subjects.find(s => s.id === cellData.subject_id) : null;
                         const instructor = cellData ? resources.instructors.find(ins => String(ins.id) == String(cellData.instructor_id)) : null;
@@ -614,7 +641,7 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                     return;
                 }
 
-                let existingIdx = timetableData.findIndex(t => t.training_date === date && t.period_number === periodNumber);
+                let existingIdx = timetableData.findIndex(t => t.training_date === date && Number(t.period_number) === Number(periodNumber));
                 if (existingIdx > -1) {
                     timetableData[existingIdx].subject_id = activeSubjectId;
                     timetableData[existingIdx].instructor_id = activeInstructorId;
@@ -635,7 +662,7 @@ export function adminSessionTimetableHtml(sessionId: number): string {
 
             window.removeSlot = function(e, date, periodNumber) {
                 e.stopPropagation(); 
-                let existingIdx = timetableData.findIndex(t => t.training_date === date && t.period_number === periodNumber);
+                let existingIdx = timetableData.findIndex(t => t.training_date === date && Number(t.period_number) === Number(periodNumber));
                 if (existingIdx > -1) {
                     timetableData.splice(existingIdx, 1);
                 }

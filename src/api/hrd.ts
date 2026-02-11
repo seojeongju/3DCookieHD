@@ -1906,7 +1906,20 @@ app.get('/training-logs/:id', async (c) => {
 app.post('/training-logs', async (c) => {
     try {
         const body = await c.req.json();
+        console.log('[Training Log Save] Request body:', JSON.stringify(body));
+
         const { id, course_id, instructor_id, date, topic, content, teaching_method, ncs_unit_id, training_hours, ncs_elements_json, schedule_details_json } = body;
+
+        // Validate required fields
+        if (!course_id) {
+            return errorResponse(c, '과정 ID가 필요합니다.', 400);
+        }
+        if (!date) {
+            return errorResponse(c, '훈련 날짜가 필요합니다.', 400);
+        }
+        if (!topic || topic.trim() === '') {
+            return errorResponse(c, '훈련 주제가 필요합니다.', 400);
+        }
 
         let { attendance_summary_json } = body;
         if (attendance_summary_json === undefined) attendance_summary_json = null;
@@ -1915,12 +1928,8 @@ app.post('/training-logs', async (c) => {
             // 수정 (instructor_id 포함 — 배정 해제 시 null 가능)
             const safeNcsUnitId = (ncs_unit_id === '' || ncs_unit_id === 0 || ncs_unit_id === '0') ? null : ncs_unit_id;
 
-            // Update updates array to only include fields that are present in the body or explicit nulls if needed, 
-            // BUT given the error is strict, we probably want to just bind null for undefineds if we are updating all fields.
-            // The previous code was updating ALL fields regardless.
-
             const updates: string[] = ['topic = ?', 'content = ?', 'teaching_method = ?', 'ncs_unit_id = ?', 'training_hours = ?', 'ncs_elements_json = ?', 'schedule_details_json = ?', 'attendance_summary_json = ?', 'updated_at = CURRENT_TIMESTAMP'];
-            const bindParams: any[] = [topic, content, teaching_method, safeNcsUnitId, training_hours, ncs_elements_json, schedule_details_json, attendance_summary_json];
+            const bindParams: any[] = [topic || '', content || '', teaching_method || '주입식/실습', safeNcsUnitId, training_hours || 0, ncs_elements_json || null, schedule_details_json || null, attendance_summary_json];
 
             if (body.instructor_id !== undefined) {
                 updates.push('instructor_id = ?');
@@ -1930,7 +1939,9 @@ app.post('/training-logs', async (c) => {
             bindParams.push(id); // Where clause param
 
             // Execute Update
-            // NOTE: Construct query dynamically based on updates array
+            console.log('[Training Log Update] Query:', `UPDATE training_logs SET ${updates.join(', ')} WHERE id = ?`);
+            console.log('[Training Log Update] Params:', bindParams);
+
             await c.env.DB.prepare(`
                 UPDATE training_logs SET ${updates.join(', ')} WHERE id = ?
             `).bind(...bindParams).run();
@@ -1941,38 +1952,48 @@ app.post('/training-logs', async (c) => {
             if (rawId == null || isNaN(rawId)) {
                 return errorResponse(c, '과정(회차)을 선택해 주세요.', 400);
             }
+
             let resolvedCourseId: number | null = null;
-            const existsInCourses = await c.env.DB.prepare('SELECT id FROM courses WHERE id = ?').bind(rawId).first();
-            if (existsInCourses) {
-                resolvedCourseId = rawId;
-            } else {
-                const session: any = await c.env.DB.prepare(`
-                    SELECT s.id, s.lms_course_id, s.session_number, s.session_name, a.name as course_name
-                    FROM course_sessions s
-                    JOIN approved_courses a ON s.approved_course_id = a.id
-                    WHERE s.id = ?
-                `).bind(rawId).first();
-                if (session) {
-                    if (session.lms_course_id != null) {
-                        resolvedCourseId = session.lms_course_id;
-                    } else {
-                        const title = `${session.course_name || '과정'} (${session.session_number}회차${session.session_name ? ' - ' + session.session_name : ''})`.trim();
-                        const insert = await c.env.DB.prepare(`
-                            INSERT INTO courses (title, category, status) VALUES (?, '국비지원', 'active')
-                        `).bind(title).run();
-                        const newCourseId = insert.meta?.last_row_id;
-                        if (newCourseId == null) {
-                            return errorResponse(c, 'LMS 과정 생성에 실패했습니다.', 500);
-                        }
-                        resolvedCourseId = Number(newCourseId);
-                        try {
-                            await c.env.DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(resolvedCourseId, rawId).run();
-                        } catch (_) {
-                            // lms_course_id 컬럼이 없을 수 있음(마이그레이션 미적용)
+
+            try {
+                const existsInCourses = await c.env.DB.prepare('SELECT id FROM courses WHERE id = ?').bind(rawId).first();
+                if (existsInCourses) {
+                    resolvedCourseId = rawId;
+                } else {
+                    const session: any = await c.env.DB.prepare(`
+                        SELECT s.id, s.lms_course_id, s.session_number, s.session_name, a.name as course_name
+                        FROM course_sessions s
+                        JOIN approved_courses a ON s.approved_course_id = a.id
+                        WHERE s.id = ?
+                    `).bind(rawId).first();
+
+                    if (session) {
+                        if (session.lms_course_id != null) {
+                            resolvedCourseId = session.lms_course_id;
+                        } else {
+                            const title = `${session.course_name || '과정'} (${session.session_number}회차${session.session_name ? ' - ' + session.session_name : ''})`.trim();
+                            const insert = await c.env.DB.prepare(`
+                                INSERT INTO courses (title, category, status) VALUES (?, '국비지원', 'active')
+                            `).bind(title).run();
+                            const newCourseId = insert.meta?.last_row_id;
+                            if (newCourseId == null) {
+                                return errorResponse(c, 'LMS 과정 생성에 실패했습니다.', 500);
+                            }
+                            resolvedCourseId = Number(newCourseId);
+                            try {
+                                await c.env.DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(resolvedCourseId, rawId).run();
+                            } catch (updateErr) {
+                                console.warn('[Training Log] lms_course_id column might not exist:', updateErr);
+                                // lms_course_id 컬럼이 없을 수 있음(마이그레이션 미적용)
+                            }
                         }
                     }
                 }
+            } catch (queryErr) {
+                console.error('[Training Log] Error resolving course ID:', queryErr);
+                return errorResponse(c, '과정 정보 조회 중 오류가 발생했습니다: ' + (queryErr instanceof Error ? queryErr.message : String(queryErr)), 500);
             }
+
             if (resolvedCourseId == null) {
                 return errorResponse(c, '선택한 과정(회차)을 찾을 수 없습니다. 유효한 과정 또는 회차를 선택해 주세요.', 400);
             }
@@ -1980,15 +2001,42 @@ app.post('/training-logs', async (c) => {
             const safeInstructorId = (instructor_id === '' || instructor_id === 0 || instructor_id === '0') ? null : instructor_id;
             const safeNcsUnitId = (ncs_unit_id === '' || ncs_unit_id === 0 || ncs_unit_id === '0') ? null : ncs_unit_id;
 
+            console.log('[Training Log Insert] Resolved Course ID:', resolvedCourseId);
+            console.log('[Training Log Insert] Data:', {
+                resolvedCourseId,
+                safeInstructorId,
+                date,
+                topic,
+                content,
+                teaching_method,
+                safeNcsUnitId,
+                training_hours
+            });
+
             await c.env.DB.prepare(`
                 INSERT INTO training_logs (course_id, instructor_id, date, topic, content, teaching_method, ncs_unit_id, training_hours, ncs_elements_json, schedule_details_json, attendance_summary_json)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `).bind(resolvedCourseId, safeInstructorId, date, topic, content, teaching_method, safeNcsUnitId, training_hours, ncs_elements_json, schedule_details_json, attendance_summary_json).run();
+            `).bind(
+                resolvedCourseId,
+                safeInstructorId,
+                date,
+                topic || '',
+                content || '',
+                teaching_method || '주입식/실습',
+                safeNcsUnitId,
+                training_hours || 0,
+                ncs_elements_json || null,
+                schedule_details_json || null,
+                attendance_summary_json
+            ).run();
         }
 
+        console.log('[Training Log Save] Success');
         return c.json({ success: true, message: id ? '일지가 수정되었습니다.' : '일지가 등록되었습니다.' });
     } catch (e: any) {
-        return errorResponse(c, e.message, 500);
+        console.error('[Training Log Save] Error:', e);
+        console.error('[Training Log Save] Stack:', e.stack);
+        return errorResponse(c, '일지 저장 실패: ' + (e.message || String(e)), 500);
     }
 });
 
