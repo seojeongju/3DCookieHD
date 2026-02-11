@@ -220,7 +220,10 @@ export const adminLmsStudentsHtml = `
                     const statusText = (s.status || '').toLowerCase() === 'approved' ? '수강중' : (s.status || '').toLowerCase() === 'pending' ? '대기' : (s.status || '');
                     const date = s.enrolled_at ? s.enrolled_at.split('T')[0] : '-';
                     const studentId = s.user_id || s.student_id; // ensure we get the ID
-                    return '<tr class="group hover:bg-slate-50/80 transition-all duration-300 cursor-pointer" onclick="location.href=\\'/admin/students/' + studentId + '/journey\\'">' +
+                    const isAdmin = window.location.pathname.startsWith('/admin');
+                    const basePath = isAdmin ? '/admin/students/' : '/teacher/students/';
+                    const href = basePath + studentId + '/journey';
+                    return '<tr class="group hover:bg-slate-50/80 transition-all duration-300 cursor-pointer" data-href="' + href + '">' +
                         '<td class="px-8 py-6">' +
                             '<div class="flex items-center gap-4">' +
                                 '<div class="w-12 h-12 rounded-2xl bg-indigo-100 flex items-center justify-center text-indigo-600 font-black text-lg">' + ((s.user_name || 'S')[0]) + '</div>' +
@@ -267,6 +270,11 @@ export const adminLmsStudentsHtml = `
 
             window.__lmsStudentsPage = function(page) { loadStudents(page); };
             window.__lmsSetRowsPerPage = function(n) { setRowsPerPageLms(n); };
+
+            document.getElementById('studentsTableBody').addEventListener('click', function(e) {
+                const row = e.target.closest('tr[data-href]');
+                if (row) location.href = row.getAttribute('data-href');
+            });
 
             document.getElementById('studentSearch').addEventListener('keyup', function(e) {
                 if (e.key === 'Enter') loadStudents(1);
