@@ -15,13 +15,20 @@ async function run() {
         // Attempt parse
         try {
             const json = JSON.parse(text);
-            const body = json.body?.items || json.response?.body?.items || json.data;
-            if (body && body.length > 0) {
-                console.log("\nFirst item keys:", Object.keys(body[0]));
+            let items = [];
+            if (json.body?.items?.item) items = Array.isArray(json.body.items.item) ? json.body.items.item : [json.body.items.item];
+            else if (json.response?.body?.items?.item) items = Array.isArray(json.response.body.items.item) ? json.response.body.items.item : [json.response.body.items.item];
+            else if (Array.isArray(json.data)) items = json.data;
+            else if (json.data?.item) items = Array.isArray(json.data.item) ? json.data.item : [json.data.item];
+
+            if (items && items.length > 0) {
+                console.log("\nItems found:", items.length);
+                console.log("\nFirst item keys:", Object.keys(items[0]));
                 // Dump the first item completely
-                console.log("\nFirst item full:", JSON.stringify(body[0], null, 2));
+                console.log("\nFirst item full:", JSON.stringify(items[0], null, 2));
             } else {
                 console.log("\nNo items found in response body.");
+                console.log("Full JSON structure:", JSON.stringify(json).substring(0, 1000));
             }
         } catch (e) {
             console.log("JSON Parse error:", e);
