@@ -33,8 +33,12 @@ export function adminSessionTimetableHtml(sessionId: number): string {
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #64748b; }
         .sticky-col { position: sticky; left: 0; background: white; z-index: 10; }
         .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        /* 시간표 페이지: 사이드바 항상 노출 (덮이지 않도록) */
+        body.timetable-page #adminSidebarWrap { transform: none !important; display: flex !important; flex-shrink: 0 !important; width: 16rem !important; min-width: 16rem !important; }
+        body.timetable-page #adminSidebarBackdrop { display: none !important; }
+        body.timetable-page #adminSidebarToggle { display: none !important; }
 </head>
-<body class="bg-slate-50 h-[100dvh] flex overflow-hidden min-h-0">
+<body class="timetable-page bg-slate-50 h-[100dvh] flex overflow-hidden min-h-0">
     ${sidebar}
 
     <main class="flex-1 flex flex-col min-w-0 min-h-0 bg-white shadow-2xl relative z-10 lg:rounded-l-[40px]">
@@ -58,7 +62,7 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                     <button onclick="prevWeek()" class="w-8 h-8 flex items-center justify-center hover:bg-white hover:shadow-sm rounded-lg transition text-slate-500 hover:text-primary-600">
                         <i class="fas fa-chevron-left text-xs"></i>
                     </button>
-                    <div id="weekText" class="px-4 flex items-center font-bold text-slate-700 text-sm min-w-[120px] justify-center">--월 --일 주</div>
+                    <div id="weekText" onclick="typeof openTimetablePrint === 'function' && openTimetablePrint()" class="px-4 flex items-center font-bold text-slate-700 text-sm min-w-[120px] justify-center cursor-pointer hover:text-primary-600 hover:bg-slate-100 rounded-lg transition" title="클릭하면 시간표 출력">--월 --일 주</div>
                     <button onclick="nextWeek()" class="w-8 h-8 flex items-center justify-center hover:bg-white hover:shadow-sm rounded-lg transition text-slate-500 hover:text-primary-600">
                         <i class="fas fa-chevron-right text-xs"></i>
                     </button>
@@ -66,6 +70,9 @@ export function adminSessionTimetableHtml(sessionId: number): string {
 
                 <div class="h-8 w-[1px] bg-slate-200 mx-2"></div>
 
+                <button type="button" onclick="typeof openTimetablePrint === 'function' && openTimetablePrint()" class="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-slate-50 hover:border-primary-300 transition flex-shrink-0">
+                    <i class="fas fa-print"></i> 시간표 출력
+                </button>
                 <button onclick="showStatus()" class="flex items-center gap-2 bg-slate-800 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-slate-900 transition shadow-lg shadow-slate-200">
                     <i class="fas fa-chart-bar"></i> 진행 상황
                 </button>
@@ -261,6 +268,14 @@ export function adminSessionTimetableHtml(sessionId: number): string {
             var activeInstructorId = null;
             var instructorSearchTerm = "";
             var activePeriodConfigIdx = null;
+
+            // onclick에서 참조되므로 스크립트 최상단에 스텁 등록 (이후 실제 구현으로 덮어씀)
+            window.showStatus = function() {};
+            window.closeStatus = function() {};
+
+            window.openTimetablePrint = function() {
+                window.open('/admin/courses/sessions/' + sessionId + '/timetable/print', '_blank', 'noopener,noreferrer');
+            };
 
             async function init() {
                 try {
@@ -888,7 +903,7 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                 }
             })();
 
-        }) ();
+        })();
     </script>
 </body>
 </html>
