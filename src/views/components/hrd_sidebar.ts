@@ -335,7 +335,7 @@ export const hrdSidebar = (activeMenu: string) => `
                     res.data.forEach(s => {
                         const opt = document.createElement('option');
                         opt.value = s.id;
-                        opt.textContent = \`[\${s.session_number || 1}차] \${s.course_name}\`;
+                        opt.textContent = '[' + (s.session_number || 1) + '차] ' + s.course_name;
                         courseSelector.appendChild(opt);
                     });
                     

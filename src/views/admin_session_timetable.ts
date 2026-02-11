@@ -420,25 +420,25 @@ export function adminSessionTimetableHtml(sessionId: number): string {
 
                 // Header
                 const dayNames = ['월', '화', '수', '목', '금', '토', '일'];
-                let headHtml = '<tr><th class="w-24 p-4 border-r border-b border-slate-200 bg-slate-50 sticky left-0 z-20 shadow-sm"><span class="text-[11px] font-black text-slate-400 uppercase tracking-widest">교시 / 일자</span></th>';
+                let headHtml = \`<tr><th class="w-24 p-4 border-r border-b border-slate-200 bg-slate-50 sticky left-0 z-20 shadow-sm"><span class="text-[11px] font-black text-slate-400 uppercase tracking-widest">교시 / 일자</span></th>\`;
                 dates.forEach((d, i) => {
                     const isToday = d.toDateString() === new Date().toDateString();
-                    headHtml += '<th class="p-4 border-b border-slate-200 bg-slate-50 min-w-[140px] ' + (isToday ? 'bg-primary-50/50' : '') + '">';
-                    headHtml += '<div class="text-[10px] font-bold ' + (isToday ? 'text-primary-600' : 'text-slate-400') + ' mb-1">' + dayNames[i] + '요일</div>';
-                    headHtml += '<div class="text-sm font-black ' + (isToday ? 'text-primary-700' : 'text-slate-800') + '">' + (d.getMonth()+1) + '/' + d.getDate() + '</div>';
-                    headHtml += '</th>';
+                    headHtml += \`<th class="p-4 border-b border-slate-200 bg-slate-50 min-w-[140px] \${isToday ? 'bg-primary-50/50' : ''}">\`;
+                    headHtml += \`<div class="text-[10px] font-bold \${isToday ? 'text-primary-600' : 'text-slate-400'} mb-1">\${dayNames[i]}요일</div>\`;
+                    headHtml += \`<div class="text-sm font-black \${isToday ? 'text-primary-700' : 'text-slate-800'}">\${d.getMonth()+1}/\${d.getDate()}</div>\`;
+                    headHtml += \`</th>\`;
                 });
-                headHtml += '</tr>';
+                headHtml += \`</tr>\`;
                 header.innerHTML = headHtml;
 
                 // Body
                 let bodyHtml = '';
                 periodConfigs.sort((a,b) => a.period_number - b.period_number).forEach((cfg, idx) => {
-                    bodyHtml += '<tr><td onclick="editPeriod(' + idx + ')" class="border-r border-b border-slate-100 p-3 bg-white hover:bg-slate-50 cursor-pointer sticky left-0 z-10 shadow-sm text-center group">';
-                    bodyHtml += '<div class="font-black text-slate-800 text-sm group-hover:text-primary-600 transition">' + cfg.period_number + '교시</div>';
-                    bodyHtml += '<div class="text-[9px] text-slate-400 font-bold mt-1">' + cfg.start_time + ' ~ ' + cfg.end_time + '</div>';
-                    bodyHtml += '<div class="text-[8px] text-slate-300 mt-1"><i class="fas fa-cog"></i> 설정</div>';
-                    bodyHtml += '</td>';
+                    bodyHtml += \`<tr><td onclick="editPeriod(\${idx})" class="border-r border-b border-slate-100 p-3 bg-white hover:bg-slate-50 cursor-pointer sticky left-0 z-10 shadow-sm text-center group">\`;
+                    bodyHtml += \`<div class="font-black text-slate-800 text-sm group-hover:text-primary-600 transition">\${cfg.period_number}교시</div>\`;
+                    bodyHtml += \`<div class="text-[9px] text-slate-400 font-bold mt-1">\${cfg.start_time} ~ \${cfg.end_time}</div>\`;
+                    bodyHtml += \`<div class="text-[8px] text-slate-300 mt-1"><i class="fas fa-cog"></i> 설정</div>\`;
+                    bodyHtml += \`</td>\`;
 
                     for(let i=0; i<7; i++) {
                         const d = dates[i];
@@ -453,28 +453,34 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                         if (subject) tdCls += ' bg-blue-50/30';
                         if (isExcluded) tdCls += ' bg-slate-100';
 
-                        bodyHtml += '<td onclick="assignSlot(\'' + dateStr + '\', ' + cfg.period_number + ')" class="' + tdCls + '">';
+                        bodyHtml += \`<td onclick="assignSlot('\${dateStr}', \${cfg.period_number})" class="\${tdCls}">\`;
                         if (isExcluded) {
-                            bodyHtml += '<div class="w-full h-full flex items-center justify-center text-slate-300 text-[8px] font-bold italic">공휴일/제외</div>';
+                            bodyHtml += \`<div class="w-full h-full flex items-center justify-center text-slate-300 text-[8px] font-bold italic">공휴일/제외</div>\`;
                         } else if (subject) {
-                            bodyHtml += '<div class="bg-white border border-primary-200 rounded p-2 h-full shadow-sm flex flex-col justify-between hover:shadow-md transition relative group">';
-                            bodyHtml += '<div class="font-bold text-xs text-slate-800 line-clamp-2 leading-tight">' + subject.name + '</div>';
-                            bodyHtml += '<div class="flex justify-between items-end mt-1">';
-                            bodyHtml += '<div class="text-[10px] text-slate-500">' + (instructor ? instructor.name : '<span class="text-slate-300">강사미정</span>') + '</div>';
-                            bodyHtml += '<button onclick="removeSlot(event, \'' + dateStr + '\', ' + cfg.period_number + ')" class="text-slate-300 hover:text-red-500 w-5 h-5 flex items-center justify-center rounded transition"><i class="fas fa-times"></i></button>';
-                            bodyHtml += '</div></div>';
+                            const escapedSubjectName = subject.name.replace(/'/g, "\\\\'");
+                            bodyHtml += \`
+                                <div class="bg-white border border-primary-200 rounded p-2 h-full shadow-sm flex flex-col justify-between hover:shadow-md transition relative group">
+                                    <div class="font-bold text-xs text-slate-800 line-clamp-2 leading-tight">\${escapedSubjectName}</div>
+                                    <div class="flex justify-between items-end mt-1">
+                                        <div class="text-[10px] text-slate-500">\${instructor ? instructor.name : '<span class="text-slate-300">강사미정</span>'}</div>
+                                        <button onclick="removeSlot(event, '\${dateStr}', \${cfg.period_number})" class="text-slate-300 hover:text-red-500 w-5 h-5 flex items-center justify-center rounded transition">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>\`;
                         } else {
-                            bodyHtml += '<div class="h-full flex items-center justify-center text-slate-200 hover:text-primary-300 transition"><i class="fas fa-plus-circle text-lg"></i></div>';
+                            bodyHtml += \`<div class="h-full flex items-center justify-center text-slate-200 hover:text-primary-300 transition"><i class="fas fa-plus-circle text-lg"></i></div>\`;
                         }
-                        bodyHtml += '</td>';
+                        bodyHtml += \`</td>\`;
                     }
-                    bodyHtml += '</tr>';
+                    bodyHtml += \`</tr>\`;
                 });
 
-                bodyHtml += '<tr><td class="w-24 p-2 border-r border-b border-slate-200 bg-slate-50 sticky left-0 z-10 shadow-sm text-center">';
-                bodyHtml += '<button onclick="addPeriod()" class="w-full h-full py-4 text-primary-600 hover:text-primary-700 transition flex flex-col items-center justify-center gap-1 group">';
-                bodyHtml += '<i class="fas fa-plus-circle text-lg group-hover:scale-110 transform transition"></i><span class="text-[9px] font-bold">교시 추가</span></button></td>';
-                bodyHtml += '<td colspan="7" class="border-b border-slate-100 bg-slate-50/20"></td></tr>';
+                bodyHtml += \`<tr><td class="w-24 p-2 border-r border-b border-slate-200 bg-slate-50 sticky left-0 z-10 shadow-sm text-center">
+                    <button onclick="addPeriod()" class="w-full h-full py-4 text-primary-600 hover:text-primary-700 transition flex flex-col items-center justify-center gap-1 group">
+                        <i class="fas fa-plus-circle text-lg group-hover:scale-110 transform transition"></i><span class="text-[9px] font-bold">교시 추가</span>
+                    </button></td>
+                    <td colspan="7" class="border-b border-slate-100 bg-slate-50/20"></td></tr>\`;
 
                 body.innerHTML = bodyHtml;
                 updateHoursCount();
