@@ -1853,11 +1853,13 @@ app.post('/training-logs', async (c) => {
 
         if (id) {
             // 수정 (instructor_id 포함 — 배정 해제 시 null 가능)
+            const safeNcsUnitId = (ncs_unit_id === '' || ncs_unit_id === 0 || ncs_unit_id === '0') ? null : ncs_unit_id;
             const updates: string[] = ['topic = ?', 'content = ?', 'teaching_method = ?', 'ncs_unit_id = ?', 'training_hours = ?', 'ncs_elements_json = ?', 'updated_at = CURRENT_TIMESTAMP'];
-            const bindParams: any[] = [topic, content, teaching_method, ncs_unit_id, training_hours, ncs_elements_json];
+            const bindParams: any[] = [topic, content, teaching_method, safeNcsUnitId, training_hours, ncs_elements_json];
             if (body.instructor_id !== undefined) {
                 updates.push('instructor_id = ?');
-                bindParams.push(body.instructor_id === '' || body.instructor_id === null ? null : body.instructor_id);
+                const safeUpdateInstructorId = (body.instructor_id === '' || body.instructor_id === null || body.instructor_id === 0 || body.instructor_id === '0') ? null : body.instructor_id;
+                bindParams.push(safeUpdateInstructorId);
             }
             bindParams.push(id);
             await c.env.DB.prepare(`
@@ -1865,10 +1867,13 @@ app.post('/training-logs', async (c) => {
             `).bind(...bindParams).run();
         } else {
             // 등록
+            const safeInstructorId = (instructor_id === '' || instructor_id === 0 || instructor_id === '0') ? null : instructor_id;
+            const safeNcsUnitId = (ncs_unit_id === '' || ncs_unit_id === 0 || ncs_unit_id === '0') ? null : ncs_unit_id;
+
             await c.env.DB.prepare(`
                 INSERT INTO training_logs (course_id, instructor_id, date, topic, content, teaching_method, ncs_unit_id, training_hours, ncs_elements_json)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `).bind(course_id, instructor_id, date, topic, content, teaching_method, ncs_unit_id, training_hours, ncs_elements_json).run();
+            `).bind(course_id, safeInstructorId, date, topic, content, teaching_method, safeNcsUnitId, training_hours, ncs_elements_json).run();
         }
 
         return c.json({ success: true, message: id ? '일지가 수정되었습니다.' : '일지가 등록되었습니다.' });

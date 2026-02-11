@@ -410,7 +410,7 @@ export const adminLmsTrainingLogsHtml = `
             const data = {
                 id: idVal ? parseInt(idVal) : null,
                 course_id: parseInt(courseId),
-                instructor_id: user.id || 0,
+                instructor_id: user.id || null,
                 date: dateVal,
                 topic: topicVal,
                 content: contentVal,
