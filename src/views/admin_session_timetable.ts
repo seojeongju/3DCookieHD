@@ -295,14 +295,25 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                 }
                 
                 const totalPlanned = sessionInfo.total_hours || 0;
+                // 배정 완료 현황·교과목별 편성과 동일: 리소스 교과목에 한해 합산
                 let totalAssigned = 0;
-                timetableData.forEach(function(t) {
-                    if (t.subject_id && !t.is_excluded) {
-                        totalAssigned += getPeriodDuration(t.period_number);
-                    }
+                (resources.subjects || []).forEach(function(s) {
+                    timetableData.forEach(function(t) {
+                        if (t.subject_id == s.id && !t.is_excluded) {
+                            totalAssigned += getPeriodDuration(t.period_number);
+                        }
+                    });
                 });
                 const progress = totalPlanned > 0 ? Math.round((totalAssigned / totalPlanned) * 100) : 0;
-                
+                var statusInstructorIds = {};
+                (resources.subjects || []).forEach(function(s) {
+                    timetableData.forEach(function(t) {
+                        if (t.instructor_id && t.subject_id == s.id && !t.is_excluded) {
+                            statusInstructorIds[t.instructor_id] = true;
+                        }
+                    });
+                });
+                var statusInstructorCount = Object.keys(statusInstructorIds).length;
                 let sHtml = '<div class="bg-blue-50 p-4 rounded-xl border border-blue-100">' +
                     '<div class="text-blue-500 text-xs font-bold mb-1">총 훈련시간 편성률</div>' +
                     '<div class="flex items-end gap-2">' +
@@ -316,8 +327,7 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                 '<div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">' +
                     '<div class="text-slate-500 text-xs font-bold mb-1">배정된 강사 수</div>' +
                     '<div class="text-2xl font-bold text-slate-800">' +
-                        new Set(timetableData.filter(function(t) { return t.instructor_id && !t.is_excluded; }).map(function(t) { return t.instructor_id; })).size + 
-                        ' <span class="text-sm font-normal text-slate-500">명</span>' +
+                        statusInstructorCount + ' <span class="text-sm font-normal text-slate-500">명</span>' +
                     '</div>' +
                 '</div>' +
                 '<div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">' +
@@ -380,9 +390,11 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                     }
                 }
 
+                // 강사별 배정 시간 = 교과목별 편성 합계와 동일 기준(리소스 교과목만)
                 const instructorCounts = {};
+                const hasSubject = function(sid) { return (resources.subjects || []).some(function(s) { return s.id == sid; }); };
                 timetableData.forEach(function(t) {
-                    if(t.instructor_id && !t.is_excluded) {
+                    if (t.instructor_id && !t.is_excluded && hasSubject(t.subject_id)) {
                         instructorCounts[t.instructor_id] = (instructorCounts[t.instructor_id] || 0) + getPeriodDuration(t.period_number);
                     }
                 });
@@ -758,11 +770,29 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                         if (isExcluded) {
                             bodyHtml += \`<div class="w-full h-full flex items-center justify-center text-slate-300 text-[8px] font-bold italic">공휴일/제외</div>\`;
                         } else if (subject) {
-                            const escapedSubjectName = (subject.name || '').replace(/'/g, "\\\\'");
+                            const escapedSubjectName = (subject.name || '').replace(/'/g, "\\\\'").replace(/</g, '&lt;').replace(/"/g, '&quot;');
+                            const jobLine = (subject.main_job_name || subject.main_job_code) ? ((subject.main_job_name || '') + (subject.main_job_code ? ' (' + String(subject.main_job_code).replace(/</g, '&lt;') + ')' : '')) : '';
+                            let codeParts = [];
+                            if (subject.ncs_classification_code) codeParts.push(String(subject.ncs_classification_code).replace(/</g, '&lt;'));
+                            try {
+                                const aUnits = subject.ability_units_json ? JSON.parse(subject.ability_units_json) : [];
+                                if (aUnits.length > 0 && typeof aUnits[0] === 'object' && aUnits[0].code) codeParts.push(String(aUnits[0].code).replace(/</g, '&lt;'));
+                                if (aUnits[0] && aUnits[0].elements && aUnits[0].elements.length > 0) {
+                                    const el = aUnits[0].elements[0];
+                                    const elCode = typeof el === 'object' && el.code ? String(el.code) : '';
+                                    if (elCode) codeParts.push(elCode.replace(/</g, '&lt;'));
+                                }
+                            } catch (e) {}
+                            const codeLine = codeParts.length ? codeParts.join(' \\u203A ') : '';
+                            const esc = function(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); };
                             bodyHtml += \`
                                 <div class="bg-white border border-primary-200 rounded p-2 h-full shadow-sm flex flex-col justify-between hover:shadow-md transition relative group">
-                                    <div class="font-bold text-xs text-slate-800 line-clamp-2 leading-tight">\${escapedSubjectName}</div>
-                                    <div class="flex justify-between items-end mt-1">
+                                    <div class="min-h-0 flex flex-col gap-0.5">
+                                        <div class="font-bold text-xs text-slate-800 line-clamp-2 leading-tight">\${escapedSubjectName}</div>
+                                        \${jobLine ? '<div class="text-[9px] text-primary-600 font-medium line-clamp-1">' + esc(jobLine) + '</div>' : ''}
+                                        \${codeLine ? '<div class="text-[8px] text-slate-500 font-mono line-clamp-1" title="' + esc(codeLine) + '">' + esc(codeLine) + '</div>' : ''}
+                                    </div>
+                                    <div class="flex justify-between items-end mt-1 shrink-0">
                                         <div class="text-[10px] text-slate-500">\${instructor ? instructor.name : '<span class="text-slate-300">강사미정</span>'}</div>
                                         <button onclick="removeSlot(event, '\${dateStr}', \${cfg.period_number})" class="text-slate-300 hover:text-red-500 w-5 h-5 flex items-center justify-center rounded transition">
                                             <i class="fas fa-times"></i>
