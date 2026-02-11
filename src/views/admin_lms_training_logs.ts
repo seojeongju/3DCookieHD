@@ -102,108 +102,144 @@ export const adminLmsTrainingLogsHtml = `
                 <button onclick="closeLogModal()" class="text-gray-400 hover:text-gray-600 transition-colors w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-200"><i class="fas fa-times text-lg"></i></button>
             </div>
 
-            <form id="logForm" onsubmit="handleSaveLog(event)" class="p-8 space-y-8 overflow-y-auto flex-1 custom-scrollbar">
+            <form id="logForm" onsubmit="handleSaveLog(event)" class="p-8 space-y-6 overflow-y-auto flex-1 custom-scrollbar bg-white">
                 <input type="hidden" id="logId">
-
-                <!-- 결재란 -->
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-2">
-                    <div class="text-sm text-gray-500 font-medium">
-                        <span class="bg-indigo-50 text-indigo-700 px-2 py-1 rounded text-xs font-bold mr-2">Tip</span>
-                        일별 시간표를 불러와 훈련 내용을 상세히 기록하세요.
+                
+                <!-- 상단 설정 바 (Administrative Fields) -->
+                <div class="flex flex-wrap gap-4 items-center justify-between bg-indigo-50/50 p-4 rounded-xl border border-indigo-100">
+                    <div class="flex gap-4 items-center flex-1">
+                         <div class="flex flex-col">
+                            <label class="text-[10px] font-bold text-indigo-400 uppercase mb-1">훈련 시간 (H)</label>
+                            <input type="number" id="logHours" value="8" min="0" max="24" class="px-3 py-1.5 border border-indigo-200 rounded-md text-sm w-20 text-center font-bold focus:ring-2 focus:ring-indigo-500 outline-none">
+                         </div>
+                         <div class="flex flex-col flex-1 max-w-md">
+                            <label class="text-[10px] font-bold text-indigo-400 uppercase mb-1">NCS 능력단위</label>
+                            <select id="logNcsUnitId" class="px-3 py-1.5 border border-indigo-200 rounded-md text-sm w-full font-medium focus:ring-2 focus:ring-indigo-500 outline-none bg-white">
+                                <option value="">선택 안함</option>
+                            </select>
+                         </div>
                     </div>
-                    <table class="text-center text-xs border-collapse border border-gray-300 bg-white shadow-sm">
+                    <div class="flex flex-col w-full md:w-auto md:min-w-[400px]">
+                         <label class="text-[10px] font-bold text-indigo-400 uppercase mb-1">훈련 주제 <span class="text-red-400">*</span></label>
+                         <input type="text" id="logTopic" class="px-3 py-1.5 border border-indigo-200 rounded-md text-sm w-full font-bold focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="주제를 입력하세요">
+                    </div>
+                </div>
+            
+                <!-- Paper Form Container (Visual Match to Print) -->
+                <div class="border-2 border-gray-800 p-8 shadow-sm relative">
+                    <div class="absolute top-0 left-0 bg-gray-800 text-white text-[10px] px-2 py-0.5 font-bold uppercase tracking-wider">Print Preview Layout</div>
+                    
+                    <!-- Header Section -->
+                    <div class="flex justify-between items-end mb-6 mt-4">
+                        <h1 class="text-3xl font-black text-center w-full absolute left-0 right-0 pointer-events-none opacity-10 select-none">훈련일지</h1>
+                        
+                        <div class="ml-auto z-10">
+                            <table class="border-collapse border border-gray-800 text-xs bg-white">
+                                <tr>
+                                   <td rowspan="2" class="border border-gray-800 bg-gray-50 font-bold p-1 text-center w-8">결<br>재</td>
+                                   <td class="border border-gray-800 bg-gray-50 font-bold p-1 w-16 text-center">담 당</td>
+                                   <td class="border border-gray-800 bg-gray-50 font-bold p-1 w-16 text-center">원 장</td>
+                                </tr>
+                                <tr>
+                                   <td class="border border-gray-800 h-14 bg-gray-50/10 cursor-not-allowed"></td>
+                                   <td class="border border-gray-800 h-14 bg-gray-50/10 cursor-not-allowed"></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+            
+                    <!-- Info Table -->
+                    <table class="w-full border-collapse border border-gray-800 text-sm mb-4">
                         <tr>
-                            <td rowspan="2" class="w-8 bg-gray-50 border border-gray-200 font-bold text-gray-600 py-1">결<br>재</td>
-                            <td class="w-20 border border-gray-200 bg-gray-50 font-bold text-gray-600 py-1">담 당</td>
-                            <td class="w-20 border border-gray-200 bg-gray-50 font-bold text-gray-600 py-1">부 장</td>
-                            <td class="w-20 border border-gray-200 bg-gray-50 font-bold text-gray-600 py-1">기 관 장</td>
+                            <td class="border border-gray-800 bg-gray-100 font-bold p-2 text-center w-32">훈련기관명</td>
+                            <td class="border border-gray-800 p-2 text-center font-medium">쓰리디쿠키 홍대센터</td>
+                            <td class="border border-gray-800 bg-gray-100 font-bold p-2 text-center w-24">훈련일</td>
+                            <td class="border border-gray-800 p-1 text-center bg-white">
+                                <input type="date" id="logDate" required class="w-full text-center font-bold bg-transparent outline-none cursor-pointer text-gray-800 hover:text-indigo-600">
+                            </td>
                         </tr>
                         <tr>
-                            <td class="h-16 border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors" onclick="alert('전자결재 기능은 준비중입니다.')"></td>
-                            <td class="h-16 border border-gray-200"></td>
-                            <td class="h-16 border border-gray-200"></td>
+                            <td class="border border-gray-800 bg-gray-100 font-bold p-2 text-center">훈련과정명</td>
+                            <td class="border border-gray-800 p-2 text-center text-gray-400 italic font-medium tracking-tight text-xs">[과정명 자동 입력됨]</td>
+                            <td class="border border-gray-800 bg-gray-100 font-bold p-2 text-center">재적</td>
+                            <td class="border border-gray-800 p-2 text-center text-gray-400 italic">- 명</td>
                         </tr>
                     </table>
+            
+                    <!-- Attendance Input Table -->
+                    <table class="w-full border-collapse border border-gray-800 text-sm mb-6">
+                        <tr>
+                            <td class="border border-gray-800 bg-gray-100 font-bold p-2 text-center w-[12.5%]">출석</td>
+                            <td class="border border-gray-800 p-0 w-[12.5%]"><input type="text" id="logAttPresent" class="w-full h-full p-2 text-center font-bold outline-none text-indigo-600 focus:bg-indigo-50 transition-colors" placeholder="0"></td>
+                            <td class="border border-gray-800 bg-gray-100 font-bold p-2 text-center w-[12.5%]">결석</td>
+                            <td class="border border-gray-800 p-0 w-[12.5%]"><input type="text" id="logAttAbsent" class="w-full h-full p-2 text-center font-bold outline-none text-rose-600 focus:bg-rose-50 transition-colors" placeholder="0"></td>
+                            <td class="border border-gray-800 bg-gray-100 font-bold p-2 text-center w-[12.5%]">지각</td>
+                            <td class="border border-gray-800 p-0 w-[12.5%]"><input type="text" id="logAttLate" class="w-full h-full p-2 text-center font-bold outline-none text-amber-600 focus:bg-amber-50 transition-colors" placeholder="0"></td>
+                            <td class="border border-gray-800 bg-gray-100 font-bold p-2 text-center w-[12.5%]">조퇴</td>
+                            <td class="border border-gray-800 p-0 w-[12.5%]"><input type="text" id="logAttEarly" class="w-full h-full p-2 text-center font-bold outline-none text-amber-600 focus:bg-amber-50 transition-colors" placeholder="0"></td>
+                        </tr>
+                    </table>
+            
+                    <!-- Schedule Section -->
+                    <div class="bg-gray-200 border border-gray-800 border-b-0 p-2 text-center font-bold text-sm">훈 련 사 항</div>
+                    <table class="w-full border-collapse border border-gray-800 text-xs mb-0">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="border border-gray-800 p-2 w-12">교시</th>
+                                <th class="border border-gray-800 p-2 w-40">훈련과목</th>
+                                <th class="border border-gray-800 p-2 w-20">담당교사</th>
+                                <th class="border border-gray-800 p-2">훈련 내용</th>
+                                <th class="border border-gray-800 p-2 w-28">비고</th>
+                            </tr>
+                        </thead>
+                        <tbody id="scheduleTableBody">
+                            <!-- JS Generated -->
+                        </tbody>
+                    </table>
+                    <div class="flex justify-end mt-1 mb-2">
+                         <button type="button" onclick="loadDailySchedule()" class="text-xs text-indigo-600 hover:text-indigo-800 underline font-bold px-2 py-1 flex items-center gap-1"><i class="fas fa-sync-alt"></i> 시간표 불러오기</button>
+                    </div>
+            
+                    <!-- Footer Lists -->
+                     <table class="w-full border-collapse border border-gray-800 border-t-0 text-xs mt-1">
+                        <tr>
+                             <td class="bg-gray-200 border-r border-b border-gray-800 p-2 w-32 text-center font-bold" rowspan="2">지시사항</td>
+                             <td class="border-b border-gray-800 p-0 h-16 align-top">
+                                <textarea id="logInstructions" class="w-full h-full resize-none outline-none p-2 focus:bg-gray-50 transition-colors" placeholder="지시사항을 입력하세요"></textarea>
+                             </td>
+                        </tr>
+                     </table>
+                     <table class="w-full border-collapse border border-gray-800 border-t-0 text-xs text-left">
+                        <tr>
+                             <td class="bg-gray-200 border-r border-gray-800 p-2 w-32 text-center font-bold" rowspan="5">특기<br>사항</td>
+                        </tr>
+                        <tr>
+                             <td class="bg-gray-50 border-r border-b border-gray-800 p-2 w-24 text-center font-bold">지각자</td>
+                             <td class="border-b border-gray-800 p-0 h-8"><input type="text" id="logListLate" class="w-full h-full px-2 outline-none focus:bg-gray-50 transition-colors" placeholder="이름 입력 (쉼표로 구분)"></td>
+                        </tr>
+                        <tr>
+                             <td class="bg-gray-50 border-r border-b border-gray-800 p-2 w-24 text-center font-bold">결석자</td>
+                             <td class="border-b border-gray-800 p-0 h-8"><input type="text" id="logListAbsent" class="w-full h-full px-2 outline-none focus:bg-gray-50 transition-colors" placeholder="이름 입력 (쉼표로 구분)"></td>
+                        </tr>
+                        <tr>
+                             <td class="bg-gray-50 border-r border-b border-gray-800 p-2 w-24 text-center font-bold">조퇴자</td>
+                             <td class="border-b border-gray-800 p-0 h-8"><input type="text" id="logListEarly" class="w-full h-full px-2 outline-none focus:bg-gray-50 transition-colors" placeholder="이름 입력 (쉼표로 구분)"></td>
+                        </tr>
+                        <tr>
+                             <td class="bg-gray-50 border-r border-gray-800 p-2 w-24 text-center font-bold">기타사항</td>
+                             <td class="border-gray-800 p-0 h-20 align-top">
+                                <textarea id="logContent" class="w-full h-full resize-none outline-none p-2 leading-relaxed focus:bg-gray-50 transition-colors" placeholder="기타 전달사항 및 특이사항을 입력하세요"></textarea>
+                             </td>
+                        </tr>
+                     </table>
                 </div>
-
-                <!-- 1. 기본 정보 -->
-                <div class="grid grid-cols-1 md:grid-cols-12 gap-6 bg-gray-50/50 p-6 rounded-xl border border-gray-200/50">
-                     <!-- 날짜 선택 -->
-                    <div class="md:col-span-3">
-                        <label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wider">훈련 일자 <span class="text-red-500">*</span></label>
-                        <input type="date" id="logDate" required class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 font-bold text-gray-800 bg-white">
-                    </div>
-                    <!-- 훈련 시간 -->
-                    <div class="md:col-span-2">
-                        <label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wider">훈련 시간 (h) <span class="text-red-500">*</span></label>
-                        <input type="number" id="logHours" value="8" min="0" max="24" required class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 font-bold text-gray-800 bg-white text-center">
-                    </div>
-                     <!-- NCS 능력단위 -->
-                    <div class="md:col-span-7">
-                         <label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wider">주요 NCS 능력단위</label>
-                         <select id="logNcsUnitId" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white font-medium text-gray-700 text-sm">
-                            <option value="">선택 안함</option>
-                         </select>
-                    </div>
-                </div>
-
-                 <!-- 2. 주제 및 내용 -->
-                 <div class="grid grid-cols-1 gap-6">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wider">훈련 주제 <span class="text-red-500">*</span></label>
-                        <input type="text" id="logTopic" required placeholder="예: 3D 모델링 기초 및 인터페이스 익히기" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 font-bold text-gray-800 text-lg">
-                    </div>
-                 </div>
-
-                <!-- 수행준거 선택 -->
-                <div id="elementsPicker" class="hidden p-5 bg-indigo-50/50 rounded-xl border border-indigo-100">
-                    <label class="block text-xs font-bold text-indigo-500 mb-3 uppercase flex items-center gap-2">
-                        <i class="fas fa-check-circle"></i> 수행준거 선택
-                    </label>
-                    <div id="elementCheckboxes" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-40 overflow-y-auto custom-scrollbar pr-2"></div>
-                </div>
-
-                <!-- 3. 상세 시간표 (Training Schedule) -->
-                <div>
-                    <div class="flex justify-between items-end mb-3">
-                        <div>
-                            <label class="block text-lg font-bold text-gray-800 flex items-center gap-2">
-                                <i class="fas fa-list-ol text-gray-400"></i> 훈련 사항 (시간표)
-                            </label>
-                            <p class="text-xs text-gray-500 mt-1 pl-7">일별 세부 시간표를 수정하면 훈련일지에 반영됩니다.</p>
-                        </div>
-                        <button type="button" onclick="loadDailySchedule()" id="btnLoadSchedule" class="text-xs px-3 py-2 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 font-bold border border-indigo-200 transition-colors flex items-center gap-1.5">
-                            <i class="fas fa-sync-alt"></i> 시간표 불러오기
-                        </button>
-                    </div>
-                    <div class="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                        <table class="w-full text-sm text-left text-gray-600">
-                            <thead class="text-xs text-gray-700 uppercase bg-gray-50 border-b border-gray-200">
-                                <tr>
-                                    <th scope="col" class="px-4 py-3 w-16 text-center border-r border-gray-200 font-extrabold text-gray-500">교시</th>
-                                    <th scope="col" class="px-4 py-3 w-48 text-center border-r border-gray-200 font-extrabold text-gray-500">훈련 과목</th>
-                                    <th scope="col" class="px-4 py-3 w-32 text-center border-r border-gray-200 font-extrabold text-gray-500">담당 교사</th>
-                                    <th scope="col" class="px-4 py-3 text-center border-r border-gray-200 font-extrabold text-gray-500">훈련 내용</th>
-                                    <th scope="col" class="px-4 py-3 w-40 text-center font-extrabold text-gray-500">비고 (불참자 등)</th>
-                                </tr>
-                            </thead>
-                            <tbody id="scheduleTableBody" class="bg-white divide-y divide-gray-100">
-                                <!-- JS Generated Rows (1~8교시) -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- 4. 기타/특기사항 -->
-                 <div>
-                    <label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wider">특기사항 (전달사항, 외출자 등)</label>
-                    <textarea id="logContent" rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="오늘의 특이사항을 입력하세요..."></textarea>
-                </div>
-
-                <!-- Footer Buttons -->
-                <div class="flex justify-end gap-3 pt-6 border-t border-gray-100">
-                    <button type="button" onclick="closeLogModal()" class="px-6 py-3 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-xl font-bold transition-colors shadow-sm">취소</button>
-                    <button type="submit" class="px-8 py-3 bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl font-bold shadow-lg shadow-indigo-200 hover:shadow-indigo-300 transition-all hover:-translate-y-0.5 transform">저장하기</button>
+            
+                <!-- Hidden elements picker (Legacy but maybe needed for NCS logic? kept hidden) -->
+                <div id="elementsPicker" class="hidden"></div> 
+            
+                <div class="flex justify-center gap-3 pt-4">
+                    <button type="button" onclick="closeLogModal()" class="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg font-bold hover:bg-gray-50 transition shadow-sm">취소</button>
+                    <button type="submit" class="px-8 py-2.5 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition shadow-lg hover:shadow-indigo-200">저장하기</button>
                 </div>
             </form>
         </div>
@@ -745,6 +781,13 @@ export const adminLmsTrainingLogsHtml = `
             if (elPicker) elPicker.classList.add('hidden');
             if (elDate && !elDate.value) elDate.valueAsDate = new Date();
             
+            // New Fields Reset
+            ['logAttPresent', 'logAttAbsent', 'logAttLate', 'logAttEarly', 
+             'logInstructions', 'logListLate', 'logListAbsent', 'logListEarly'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+            
             // 시간표 초기화
             if (elDate && elDate.value) {
                 loadDailySchedule(); 
@@ -772,6 +815,27 @@ export const adminLmsTrainingLogsHtml = `
             if (elTopic) elTopic.value = log.topic;
             if (elContent) elContent.value = log.content || ''; 
             if (elHours) elHours.value = log.training_hours;
+            
+            // Populate New Attendance Fields
+            const fieldMap = {
+                present: 'logAttPresent', absent: 'logAttAbsent', late: 'logAttLate', early: 'logAttEarly',
+                instructions: 'logInstructions', late_list: 'logListLate', absent_list: 'logListAbsent', early_list: 'logListEarly'
+            };
+            
+            if (log.attendance_summary_json) {
+                try {
+                    const att = JSON.parse(log.attendance_summary_json);
+                    for (const [key, id] of Object.entries(fieldMap)) {
+                        const el = document.getElementById(id);
+                        if (el) el.value = att[key] || '';
+                    }
+                } catch(e) {}
+            } else {
+                 for (const id of Object.values(fieldMap)) {
+                     const el = document.getElementById(id);
+                     if (el) el.value = '';
+                 }
+            }
             
             if (elUnitId) {
                 elUnitId.value = log.ncs_unit_id || '';
@@ -826,6 +890,18 @@ export const adminLmsTrainingLogsHtml = `
             const unitIdVal = document.getElementById('logNcsUnitId').value;
             const hoursVal = document.getElementById('logHours').value;
 
+            // New Fields Collection
+            const attSummary = {
+                present: document.getElementById('logAttPresent')?.value || '',
+                absent: document.getElementById('logAttAbsent')?.value || '',
+                late: document.getElementById('logAttLate')?.value || '',
+                early: document.getElementById('logAttEarly')?.value || '',
+                instructions: document.getElementById('logInstructions')?.value || '',
+                late_list: document.getElementById('logListLate')?.value || '',
+                absent_list: document.getElementById('logListAbsent')?.value || '',
+                early_list: document.getElementById('logListEarly')?.value || ''
+            };
+
             // 시간표 데이터 수집
             const scheduleDetails = [];
             for(let i=1; i<=8; i++) {
@@ -856,7 +932,8 @@ export const adminLmsTrainingLogsHtml = `
                 ncs_unit_id: unitIdVal ? parseInt(unitIdVal) : null,
                 training_hours: parseInt(hoursVal),
                 ncs_elements_json: JSON.stringify(elementIds),
-                schedule_details_json: JSON.stringify(scheduleDetails)
+                schedule_details_json: JSON.stringify(scheduleDetails),
+                attendance_summary_json: JSON.stringify(attSummary)
             };
 
             try {
