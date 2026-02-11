@@ -248,7 +248,8 @@ export function adminNcsViewerHtml(): string {
                         res.data.forEach(d => {
                             if (d.midCode && !seen.has(d.midCode)) {
                                 seen.add(d.midCode);
-                                mids.push({ code: d.midCode, name: d.midName });
+                                var midName = (d.midName && String(d.midName).trim() !== '' && String(d.midName).trim() !== String(d.midCode)) ? d.midName : ('중분류 ' + d.midCode);
+                                mids.push({ code: d.midCode, name: midName });
                             }
                         });
                         _midCache = mids;
@@ -270,7 +271,8 @@ export function adminNcsViewerHtml(): string {
                         res.data.filter(d => d.midCode === id).forEach(d => {
                             if (d.smallCode && !seen.has(d.smallCode)) {
                                 seen.add(d.smallCode);
-                                smalls.push({ code: d.smallCode, name: d.smallName });
+                                var smallName = (d.smallName && String(d.smallName).trim() !== '' && String(d.smallName).trim() !== String(d.smallCode)) ? d.smallName : ('소분류 ' + d.smallCode);
+                                smalls.push({ code: d.smallCode, name: smallName });
                             }
                         });
                         _smallCache = smalls;
@@ -279,7 +281,8 @@ export function adminNcsViewerHtml(): string {
                         res.data.forEach(d => {
                             if (d.midCode && !seen2.has(d.midCode)) {
                                 seen2.add(d.midCode);
-                                mids.push({ code: d.midCode, name: d.midName });
+                                var midName = (d.midName && String(d.midName).trim() !== '' && String(d.midName).trim() !== String(d.midCode)) ? d.midName : ('중분류 ' + d.midCode);
+                                mids.push({ code: d.midCode, name: midName });
                             }
                         });
                         _midCache = mids;
@@ -301,7 +304,8 @@ export function adminNcsViewerHtml(): string {
                         resC.data.filter(d => d.midCode === state.mid).forEach(d => {
                             if (d.smallCode && !seen.has(d.smallCode)) {
                                 seen.add(d.smallCode);
-                                smalls.push({ code: d.smallCode, name: d.smallName });
+                                var smallName = (d.smallName && String(d.smallName).trim() !== '' && String(d.smallName).trim() !== String(d.smallCode)) ? d.smallName : ('소분류 ' + d.smallCode);
+                                smalls.push({ code: d.smallCode, name: smallName });
                             }
                         });
                         _smallCache = smalls;
@@ -382,7 +386,8 @@ export function adminNcsViewerHtml(): string {
                             res.data.forEach(d => {
                                 if (d.midCode && !seen.has(d.midCode)) {
                                     seen.add(d.midCode);
-                                    mids.push({ code: d.midCode, name: d.midName });
+                                    var midName = (d.midName && String(d.midName).trim() !== '' && String(d.midName).trim() !== String(d.midCode)) ? d.midName : ('중분류 ' + d.midCode);
+                                    mids.push({ code: d.midCode, name: midName });
                                 }
                             });
                             _midCache = mids;
@@ -394,7 +399,8 @@ export function adminNcsViewerHtml(): string {
                                 res.data.filter(d => d.midCode === saved.mid).forEach(d => {
                                     if (d.smallCode && !seenS.has(d.smallCode)) {
                                         seenS.add(d.smallCode);
-                                        smalls.push({ code: d.smallCode, name: d.smallName });
+                                        var smallName = (d.smallName && String(d.smallName).trim() !== '' && String(d.smallName).trim() !== String(d.smallCode)) ? d.smallName : ('소분류 ' + d.smallCode);
+                                        smalls.push({ code: d.smallCode, name: smallName });
                                     }
                                 });
                                 _smallCache = smalls;

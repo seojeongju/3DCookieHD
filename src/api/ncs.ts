@@ -171,6 +171,16 @@ function rowVal(row: Record<string, unknown>, ...keys: string[]): string {
         const v = row[k];
         if (v != null && String(v).trim() !== '') return String(v).trim();
     }
+    // 공공 API가 다른 대소문자로 키를 줄 수 있음 (예: ncsMclasCdnm vs NcsMclasCdnm)
+    const rowKeys = Object.keys(row);
+    for (const k of keys) {
+        const lower = k.toLowerCase();
+        const found = rowKeys.find((rk) => rk.toLowerCase() === lower);
+        if (found) {
+            const v = row[found];
+            if (v != null && String(v).trim() !== '') return String(v).trim();
+        }
+    }
     return '';
 }
 
@@ -229,10 +239,11 @@ async function fetchNcsClassificationByLarge(apiKey: string, ncsLclasCd: string,
 
         const mids = midListRaw
             .filter((r) => rowVal(r, 'USG_YN', 'usgYn') === 'Y')
-            .map((r) => ({
-                code: rowVal(r, 'NCS_MCLAS_CD', 'ncsMclasCd', 'mclasCd'),
-                name: rowVal(r, 'NCS_MCLAS_CDNM', 'ncsMclasCdnm', 'mclasCdnm')
-            }))
+            .map((r) => {
+                const code = rowVal(r, 'NCS_MCLAS_CD', 'ncsMclasCd', 'mclasCd');
+                const name = rowVal(r, 'NCS_MCLAS_CDNM', 'ncsMclasCdnm', 'mclasCdnm', 'NCS_MCLAS_NM', 'mclasNm', 'midName', 'mid_name');
+                return { code, name: name || code };
+            })
             .filter((m) => m.code);
 
         // 2) 모든 중분류에 대한 소분류 목록을 한꺼번에 병렬 수집
@@ -240,10 +251,11 @@ async function fetchNcsClassificationByLarge(apiKey: string, ncsLclasCd: string,
             const list = await fetchClassificationAllPages(base, key, 'NCS003', { NCS_LCLAS_CD: ncsLclasCd, NCS_MCLAS_CD: mid.code });
             const smalls = list
                 .filter((r) => rowVal(r, 'USG_YN', 'usgYn') === 'Y')
-                .map((r) => ({
-                    code: rowVal(r, 'NCS_SCLAS_CD', 'ncsSclasCd', 'sclasCd'),
-                    name: rowVal(r, 'NCS_SCLAS_CDNM', 'ncsSclasCdnm', 'sclasCdnm')
-                }))
+                .map((r) => {
+                    const code = rowVal(r, 'NCS_SCLAS_CD', 'ncsSclasCd', 'sclasCd');
+                    const name = rowVal(r, 'NCS_SCLAS_CDNM', 'ncsSclasCdnm', 'sclasCdnm', 'NCS_SCLAS_NM', 'sclasNm', 'smallName', 'small_name');
+                    return { code, name: name || code };
+                })
                 .filter((s) => s.code);
             return { mid, smalls };
         }));
@@ -996,27 +1008,45 @@ app.get('/approved/classification', async (c) => {
         const ncsLclasCd = c.req.query('ncsLclasCd') || '01';
         const rawKey = c.env.NCS_API_KEY?.trim();
 
-        // 1. Local DB Check
+        // 1. Local DB Check (중·소분류 명칭이 있으면 사용)
+        let localResults: any[] = [];
         try {
             const { results } = await c.env.DB.prepare(
                 "SELECT DISTINCT mid_name, substr(job_code, 3, 2) as mid_code, small_name, substr(job_code, 5, 2) as small_code FROM ncs_job_hierarchy WHERE job_code LIKE ? ORDER BY mid_code, small_code"
             ).bind(ncsLclasCd + '%').all();
-
-            if (results && results.length > 0) {
-                const mapped = results.map((r: any) => ({
-                    largeCode: ncsLclasCd,
-                    midCode: r.mid_code,
-                    midName: (r.mid_name != null && String(r.mid_name).trim() !== '') ? r.mid_name : (r.mid_code || ''),
-                    smallCode: r.small_code,
-                    smallName: (r.small_name != null && String(r.small_name).trim() !== '') ? r.small_name : (r.small_code || ''),
-                }));
-                return c.json({ success: true, data: mapped, _meta: { source: 'local_db', count: mapped.length } });
-            }
+            localResults = results || [];
         } catch (dbErr) {
             console.warn('Local NCS classification fetch failed:', dbErr);
         }
 
-        if (!rawKey) return c.json({ success: false, error: 'NCS_API_KEY 미설정 및 로컬 데이터 없음' }, 400);
+        const hasRealNames = localResults.length > 0 && localResults.some((r: any) =>
+            (r.mid_name != null && String(r.mid_name).trim() !== '' && String(r.mid_name).trim() !== String(r.mid_code || '').trim()) ||
+            (r.small_name != null && String(r.small_name).trim() !== '' && String(r.small_name).trim() !== String(r.small_code || '').trim())
+        );
+        if (hasRealNames) {
+            const mapped = localResults.map((r: any) => ({
+                largeCode: ncsLclasCd,
+                midCode: r.mid_code,
+                midName: (r.mid_name != null && String(r.mid_name).trim() !== '') ? r.mid_name : (r.mid_code || ''),
+                smallCode: r.small_code,
+                smallName: (r.small_name != null && String(r.small_name).trim() !== '') ? r.small_name : (r.small_code || ''),
+            }));
+            return c.json({ success: true, data: mapped, _meta: { source: 'local_db', count: mapped.length } });
+        }
+
+        if (!rawKey) {
+            if (localResults.length > 0) {
+                const mapped = localResults.map((r: any) => ({
+                    largeCode: ncsLclasCd,
+                    midCode: r.mid_code,
+                    midName: (r.mid_code || ''),
+                    smallCode: r.small_code,
+                    smallName: (r.small_code || ''),
+                }));
+                return c.json({ success: true, data: mapped, _meta: { source: 'local_db_no_names', count: mapped.length } });
+            }
+            return c.json({ success: false, error: 'NCS_API_KEY 미설정 및 로컬 데이터 없음' }, 400);
+        }
         const classificationBase = (c.env as { NCS_CLASSIFICATION_API_BASE?: string }).NCS_CLASSIFICATION_API_BASE?.trim();
         const base = (classificationBase || NCS_CLASSIFICATION_API_BASE_DEFAULT).replace(/\/$/, '');
         const key = decodeServiceKey(rawKey);
