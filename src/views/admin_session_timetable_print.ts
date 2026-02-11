@@ -84,7 +84,8 @@ export function adminSessionTimetablePrintHtml(sessionId: number): string {
                         <th class="w-12">교시</th>
                         <th class="w-24">시간</th>
                         <th>교과목명</th>
-                        <th class="w-24">능력단위코드</th>
+                        <th class="w-28">직종</th>
+                        <th class="w-40">능력/요소단위 코드</th>
                         <th class="w-20">담당교사</th>
                         <th class="w-20">장소</th>
                         <th class="w-12">비고</th>
@@ -162,7 +163,7 @@ export function adminSessionTimetablePrintHtml(sessionId: number): string {
                 const filtered = timetable.filter(t => !t.is_excluded && t.subject_id);
                 
                 if (filtered.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="10" class="py-8 text-slate-400">등록된 시간표 데이터가 없습니다.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="11" class="py-8 text-slate-400">등록된 시간표 데이터가 없습니다.</td></tr>';
                 } else {
                     let html = '';
                     let count = 1;
@@ -170,10 +171,26 @@ export function adminSessionTimetablePrintHtml(sessionId: number): string {
                     filtered.forEach((t) => {
                         const d = new Date(t.training_date);
                         const dayName = days[d.getDay()];
-                        const subject = resources.subjects.find(s => s.id === t.subject_id) || { name: '-', ncs_classification_code: '-' };
+                        const subject = resources.subjects.find(s => s.id === t.subject_id) || { name: '-', ncs_classification_code: '-', main_job_name: '', main_job_code: '', ability_units_json: '' };
                         const instructor = resources.instructors.find(i => i.id === t.instructor_id) || { name: '미정' };
                         
-                        // Time logic
+                        const jobLine = (subject.main_job_name || subject.main_job_code) 
+                            ? (subject.main_job_name || '') + (subject.main_job_code ? ' (' + subject.main_job_code + ')' : '') 
+                            : '-';
+                        
+                        let codeParts = [];
+                        if (subject.ncs_classification_code) codeParts.push(subject.ncs_classification_code);
+                        try {
+                            const aUnits = subject.ability_units_json ? JSON.parse(subject.ability_units_json) : [];
+                            if (aUnits.length > 0 && typeof aUnits[0] === 'object' && aUnits[0].code) codeParts.push(aUnits[0].code);
+                            if (aUnits[0] && aUnits[0].elements && aUnits[0].elements.length > 0) {
+                                const el = aUnits[0].elements[0];
+                                const elCode = typeof el === 'object' && el.code ? String(el.code) : '';
+                                if (elCode) codeParts.push(elCode);
+                            }
+                        } catch (e) {}
+                        const codeLine = codeParts.length ? codeParts.join(' › ') : '-';
+                        
                         let timeRange = '-';
                         const cfg = configs.find(c => c.period_number === t.period_number);
                         if (cfg) {
@@ -187,8 +204,9 @@ export function adminSessionTimetablePrintHtml(sessionId: number): string {
                                 <td class="\${dayName === '일' ? 'text-red-600 font-bold' : (dayName === '토' ? 'text-blue-600 font-bold' : '')}">\${dayName}</td>
                                 <td>\${t.period_number}교시</td>
                                 <td>\${timeRange}</td>
-                                <td class="text-left px-2">\${subject.name}</td>
-                                <td>\${subject.ncs_classification_code || '-'}</td>
+                                <td class="text-left px-2">\${subject.name || '-'}</td>
+                                <td class="text-left px-2 text-[10px]">\${jobLine}</td>
+                                <td class="text-left px-2 text-[10px] font-mono">\${codeLine}</td>
                                 <td>\${instructor.name}</td>
                                 <td>\${t.location || session.location || '-'}</td>
                                 <td></td>
