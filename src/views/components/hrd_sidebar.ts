@@ -48,6 +48,11 @@ export const hrdSidebar = (activeMenu: string) => `
             <i class="fas fa-chart-pie w-6 text-lg ${activeMenu === 'dashboard' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
             <span class="font-semibold text-[14px]">대시보드</span>
         </a>
+        <a href="/admin/schedule" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'schedule' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
+             ${activeMenu === 'schedule' ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
+            <i class="fas fa-calendar-day w-6 text-lg ${activeMenu === 'schedule' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
+            <span class="font-medium text-[14px]">통합 일정 관리</span>
+        </a>
 
         <!-- 교육·과정 (LMS) -->
         <div class="px-3 pt-6 pb-2">
@@ -84,12 +89,6 @@ export const hrdSidebar = (activeMenu: string) => `
                 <span class="font-medium text-[13px]">회차별 과정복사</span>
             </a>
         </div>
-
-        <a href="/admin/schedule" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'schedule' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
-             ${activeMenu === 'schedule' ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
-            <i class="fas fa-calendar-day w-6 text-lg ${activeMenu === 'schedule' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
-            <span class="font-medium text-[14px]">통합 일정 관리</span>
-        </a>
 
         <a href="/admin/students" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'students' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
              ${activeMenu === 'students' ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
