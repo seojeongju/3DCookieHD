@@ -210,6 +210,7 @@ export const adminLmsStudentsHtml = `
                     ? students.filter(s =>
                         (s.user_name && s.user_name.toLowerCase().includes(searchTerm)) ||
                         (s.user_email && s.user_email.toLowerCase().includes(searchTerm))
+                    )
                     : students;
                 if (filtered.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="4" class="px-8 py-20 text-center text-slate-400 font-black uppercase text-xs tracking-widest">조회된 수강생이 없습니다.</td></tr>';
