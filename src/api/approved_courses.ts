@@ -58,6 +58,13 @@ app.get('/', authMiddleware, requireAdmin, async (c) => {
       params.push(periodTo);
     }
 
+    // session_status filtering
+    const sessionStatus = c.req.query('session_status');
+    if (sessionStatus && sessionStatus !== '') {
+      conditions.push("EXISTS (SELECT 1 FROM course_sessions s WHERE s.approved_course_id = a.id AND s.status = ?)");
+      params.push(sessionStatus);
+    }
+
     const whereClause = conditions.join(' AND ');
     const countRow = await DB.prepare(
       `SELECT COUNT(*) as total FROM approved_courses a WHERE ${whereClause}`

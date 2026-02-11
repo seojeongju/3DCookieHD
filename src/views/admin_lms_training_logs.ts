@@ -324,6 +324,9 @@ export const adminLmsTrainingLogsHtml = `
                     <td class="px-6 py-5 text-center font-black text-slate-700 text-sm shadow-[inset_1px_0_0_0_rgba(248,250,252,1)] shadow-[inset_-1px_0_0_0_rgba(248,250,252,1)]">\${log.training_hours}h</td>
                     <td class="px-6 py-5 text-right">
                         <div class="flex items-center justify-end gap-2.5 opacity-0 group-hover:opacity-100 transition-all transform translate-x-1 group-hover:translate-x-0">
+                            <button onclick="printLog(\${log.id})" class="w-9 h-9 flex items-center justify-center bg-white border border-gray-100 text-slate-400 hover:text-gray-700 hover:border-gray-300 hover:shadow-md transition-all rounded-xl active:scale-90">
+                                <i class="fas fa-print text-xs"></i>
+                            </button>
                             <button onclick='editLog(\${JSON.stringify(log).replace(/'/g, "&#39;")})' class="w-9 h-9 flex items-center justify-center bg-white border border-gray-100 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 hover:shadow-md transition-all rounded-xl active:scale-90">
                                 <i class="fas fa-edit text-xs"></i>
                             </button>
@@ -334,6 +337,257 @@ export const adminLmsTrainingLogsHtml = `
                     </td>
                 </tr>
             \`).join('');
+        }
+
+        async function printLog(id) {
+            try {
+                // Fetch Data: Log, Session, Enrollments, AND All Logs for counting days
+                const [logRes, sessionRes, enrollRes, allLogsRes] = await Promise.all([
+                    fetch('/api/hrd/training-logs/' + id, { headers: { 'Authorization': 'Bearer ' + token } }).then(r => r.json()),
+                    fetch('/api/course-sessions/' + courseId, { headers: { 'Authorization': 'Bearer ' + token } }).then(r => r.json()),
+                    fetch('/api/enrollments?sessionId=' + courseId, { headers: { 'Authorization': 'Bearer ' + token } }).then(r => r.json()),
+                    fetch('/api/hrd/training-logs?courseId=' + courseId, { headers: { 'Authorization': 'Bearer ' + token } }).then(r => r.json())
+                ]);
+                
+                if(!logRes.success) throw new Error(logRes.error || '일지 로드 실패');
+                
+                const log = logRes.data;
+                const session = sessionRes.success ? sessionRes.data : { course_name: '-', session_number: '', total_hours: 0, daily_hours: 0 };
+                const enrollCount = (enrollRes.success && Array.isArray(enrollRes.data)) 
+                    ? enrollRes.data.filter(e => e.status === 'approved').length 
+                    : 0;
+                
+                // Calculate Day Count (Nth day / Total days)
+                let currentDayCount = 1;
+                let totalDays = 0;
+                
+                if (allLogsRes.success && Array.isArray(allLogsRes.data)) {
+                    // Sort logs by date ascending
+                    const sortedLogs = allLogsRes.data.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+                    const index = sortedLogs.findIndex(l => l.id === log.id);
+                    if (index !== -1) currentDayCount = index + 1;
+                }
+                
+                if (session.total_hours && session.daily_hours) {
+                    totalDays = Math.ceil(session.total_hours / session.daily_hours);
+                } else if (session.training_start_date && session.training_end_date) {
+                    // Fallback to date diff if hours are missing (though inaccurate for weekdays)
+                    const start = new Date(session.training_start_date);
+                    const end = new Date(session.training_end_date);
+                    const diffTime = Math.abs(end - start);
+                    totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; 
+                }
+
+                const scheduleDetails = log.schedule_details_json ? JSON.parse(log.schedule_details_json) : [];
+                const attendance = log.attendance_summary_json ? JSON.parse(log.attendance_summary_json) : { present: '', absent: '', late: '', early: '' };
+                const days = ['일', '월', '화', '수', '목', '금', '토'];
+                const dayName = days[new Date(log.date).getDay()];
+
+                // Schedule Rows
+                let scheduleRows = '';
+                for(let i=1; i<=8; i++) {
+                    const sch = scheduleDetails.find(s => s.period === i);
+                    scheduleRows += \`
+                        <tr>
+                            <td class="border border-black p-2 h-10 text-center">\${i}</td>
+                            <td class="border border-black p-2 text-center font-bold text-sm">\${sch ? (sch.subject || '') : ''}</td>
+                            <td class="border border-black p-2 text-center font-bold text-sm">\${sch ? (sch.instructor || '') : ''}</td>
+                            <td class="border border-black p-2 text-left px-3 text-sm">\${sch ? (sch.content || '') : ''}</td>
+                            <td class="border border-black p-2 text-center text-sm">\${sch ? (sch.note || '') : ''}</td>
+                        </tr>
+                    \`;
+                }
+
+                const popup = window.open('', '_blank', 'width=1100,height=1200,scrollbars=yes');
+                if(!popup) { alert('팝업 차단을 해제해주세요.'); return; }
+
+                const htmlContent = \`
+                    <!DOCTYPE html>
+                    <html lang="ko">
+                    <head>
+                        <meta charset="UTF-8">
+                        <title>훈련일지 인쇄</title>
+                        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+                        <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+                        <style>
+                            @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
+                            * { box-sizing: border-box; }
+                            body { font-family: "Noto Sans KR", sans-serif; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; margin: 0; padding: 0; background-color: #f3f4f6; }
+                            table { border-collapse: collapse; width: 100%; border-spacing: 0; table-layout: fixed; }
+                            td, th { border: 1px solid #000; padding: 0; vertical-align: middle; word-break: break-all; }
+                            .container { width: 210mm; background: white; margin: 30px auto; padding: 40px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); position: relative; }
+                            
+                            /* Header Area */
+                            .header-area { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; position: relative; height: 100px; }
+                            .title { position: absolute; left: 0; right: 0; top: 30px; text-align: center; font-size: 32px; font-weight: 900; letter-spacing: 2px; }
+                            
+                            /* Approval Box */
+                            .approval-box { width: 200px; border: 1px solid #000; margin-left: auto; position: relative; z-index: 10; font-size: 12px; }
+                            .approval-box td { text-align: center; }
+                            .approval-label-cell { width: 30px; background-color: #f9fafb; font-weight: bold; }
+                            .approval-role-cell { height: 24px; background-color: #f9fafb; font-weight: bold; }
+                            .approval-sign-cell { height: 60px; }
+                            
+                            /* Info Tables */
+                            .info-table { margin-bottom: 10px; font-size: 13px; }
+                            .info-table .label { background-color: #e5e7eb; font-weight: bold; text-align: center; width: 120px; padding: 8px; }
+                            .info-table .value { padding: 8px 12px; text-align: center; font-weight: bold; }
+                            .info-table .date-value { font-size: 13px; }
+                            
+                            /* Attendance Table */
+                            .att-table { margin-bottom: 15px; font-size: 13px; }
+                            .att-table .label { background-color: #e5e7eb; font-weight: bold; text-align: center; width: 80px; padding: 8px; }
+                            .att-table .value { text-align: center; padding: 8px; font-weight: bold; }
+                            
+                            /* Schedule Table */
+                            .schedule-main-header { background-color: #d1d5db; font-weight: bold; text-align: center; padding: 8px; border-bottom: none; font-size: 14px; }
+                            .schedule-table { margin-bottom: 0; font-size: 12px; }
+                            .schedule-table th { background-color: #e5e7eb; padding: 8px; text-align: center; font-weight: bold; }
+                            .col-period { width: 50px; }
+                            .col-subject { width: 180px; }
+                            .col-instructor { width: 100px; }
+                            .col-content { }
+                            .col-note { width: 120px; }
+                            
+                            /* Footer Tables */
+                            .footer-table { margin-top: -1px; font-size: 12px; }
+                            .footer-label-main { background-color: #d1d5db; font-weight: bold; text-align: center; width: 100px; }
+                            .footer-label-sub { background-color: #e5e7eb; font-weight: bold; text-align: center; width: 100px; }
+                            .footer-content { padding: 5px 10px; text-align: left; }
+                            
+                            /* Print Control */
+                            .print-controls { position: fixed; top: 0; left: 0; right: 0; background: rgba(0,0,0,0.8); padding: 15px; text-align: center; z-index: 9999; display: flex; justify-content: center; gap: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+                            .btn { padding: 8px 16px; border-radius: 4px; font-weight: bold; cursor: pointer; border: none; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; color: white; transition: all 0.2s; }
+                            .btn-blue { background-color: #3b82f6; }
+                            .btn-blue:hover { background-color: #2563eb; }
+                            .btn-orange { background-color: #f97316; }
+                            .btn-orange:hover { background-color: #ea580c; }
+                            .btn-gray { background-color: #6b7280; }
+                            .btn-gray:hover { background-color: #4b5563; }
+                            
+                            @media print {
+                                .print-controls { display: none !important; }
+                                body { background: white; -webkit-print-color-adjust: exact; }
+                                .container { width: 100%; margin: 0; padding: 0; box-shadow: none; border: none; }
+                                @page { margin: 10mm; size: A4 portrait; }
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="print-controls">
+                            <!-- Mimicking the buttons in the screenshot -->
+                            <button class="btn btn-blue" onclick="alert('이미지 삽입 기능은 준비중입니다.')"><i class="fas fa-image"></i> 이미지 삽입</button>
+                            <button class="btn btn-orange" onclick="window.print()"><i class="fas fa-print"></i> 프린트</button>
+                            <button class="btn btn-gray" onclick="window.close()"><i class="fas fa-times"></i> 닫기</button>
+                        </div>
+
+                        <div class="container">
+                            <div class="header-area">
+                                <div class="title">훈 련 일 지</div>
+                                <table class="approval-box">
+                                    <tr>
+                                        <td rowspan="2" class="approval-label-cell">결<br>재</td>
+                                        <td class="approval-role-cell">담 당</td>
+                                        <td class="approval-role-cell">원 장</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="approval-sign-cell">
+                                            <!-- Placeholder for sign/stamp -->
+                                            <i class="fas fa-camera text-gray-200 text-lg"></i>
+                                        </td>
+                                        <td class="approval-sign-cell">
+                                            <i class="fas fa-camera text-gray-200 text-lg"></i>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+
+                            <table class="info-table">
+                                <tr>
+                                    <td class="label">훈련기관명</td>
+                                    <td class="value">쓰리디쿠키 홍대센터(3D쿠키 홍대센터)</td>
+                                    <td class="label">훈련일</td>
+                                    <td class="value date-value">\${log.date} \${dayName}요일<br><span style="font-weight:normal; font-size:12px;">(\${currentDayCount}일 / \${totalDays}일)</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="label">훈련과정명</td>
+                                    <td class="value">\${session.session_number ? session.session_number + '회차 ' : ''}\${session.course_name}</td>
+                                    <td class="label">재적</td>
+                                    <td class="value">\${enrollCount} 명</td>
+                                </tr>
+                            </table>
+
+                            <table class="att-table">
+                                <tr>
+                                    <td class="label">출석</td>
+                                    <td class="value">\${attendance.present || ''}</td>
+                                    <td class="label">결석</td>
+                                    <td class="value">\${attendance.absent || ''}</td>
+                                    <td class="label">지각</td>
+                                    <td class="value">\${attendance.late || ''}</td>
+                                    <td class="label">조퇴</td>
+                                    <td class="value">\${attendance.early || ''}</td>
+                                </tr>
+                            </table>
+
+                            <table class="schedule-table" style="border-bottom:none;">
+                                <tr>
+                                    <td colspan="5" class="schedule-main-header">훈 련 사 항</td>
+                                </tr>
+                                <tr>
+                                    <th class="col-period">교시</th>
+                                    <th class="col-subject">훈련과목</th>
+                                    <th class="col-instructor">담당교사</th>
+                                    <th class="col-content">훈련 내용</th>
+                                    <th class="col-note">비고<br>(불참자 등)</th>
+                                </tr>
+                                \${scheduleRows}
+                            </table>
+                            
+                            <!-- Adding dummy rows if less than 8 periods? No, just sticking to 8 periods fixed loop as implemented -->
+                            
+                            <table class="footer-table">
+                                <tr>
+                                    <td class="footer-label-main">지시사항</td>
+                                    <td colspan="2" class="footer-content" style="height: 60px;"></td>
+                                </tr>
+                                <tr>
+                                    <td rowspan="4" class="footer-label-main">특기<br>사항</td>
+                                    <td class="footer-label-sub">지각자</td>
+                                    <td class="footer-content" style="height: 30px;"></td>
+                                </tr>
+                                <tr>
+                                    <td class="footer-label-sub">결석자</td>
+                                    <td class="footer-content" style="height: 30px;"></td>
+                                </tr>
+                                <tr>
+                                    <td class="footer-label-sub">조퇴자</td>
+                                    <td class="footer-content" style="height: 30px;"></td>
+                                </tr>
+                                <tr>
+                                    <td class="footer-label-sub">기타사항<br><span style="font-weight:normal; font-size:10px;">(전달사항, 외출자 등)</span></td>
+                                    <td class="footer-content" style="height: 60px; vertical-align: top;">
+                                        \${log.content || ''}
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <div style="margin-top: 30px; text-align: center;" class="no-print">
+                                <button class="btn btn-orange" style="margin-right: 10px;">문서수정</button>
+                                <button class="btn" style="background-color: #ef4444;" onclick="window.close()">문서삭제</button>
+                            </div>
+                        </div>
+                    </body>
+                    </html>
+                \`;
+                
+                popup.document.open();
+                popup.document.write(htmlContent);
+                popup.document.close();
+            } catch(e) {
+                console.error(e);
+                alert('인쇄 오류: ' + e.message);
+            }
         }
 
         async function deleteLog(id) {

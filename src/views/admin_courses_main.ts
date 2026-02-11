@@ -57,6 +57,22 @@ export function adminCoursesMainHtml(): string {
             </header>
 
             <main class="flex-1 overflow-auto p-6 custom-scrollbar bg-slate-50 space-y-8">
+                <!-- Status Tabs -->
+                <div class="flex items-center gap-2 mb-6">
+                    <button type="button" onclick="setApprovedStatusFilter('')" id="statusTabAll" class="status-tab px-4 py-2 rounded-full text-xs font-bold bg-slate-800 text-white shadow-sm transition-all border border-transparent">
+                        전체
+                    </button>
+                    <button type="button" onclick="setApprovedStatusFilter('recruiting')" id="statusTabRecruiting" class="status-tab px-4 py-2 rounded-full text-xs font-bold bg-white text-slate-600 border border-slate-200 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all">
+                        <span class="w-2 h-2 rounded-full bg-blue-500 inline-block mr-1.5"></span>모집중
+                    </button>
+                    <button type="button" onclick="setApprovedStatusFilter('in_progress')" id="statusTabInProgress" class="status-tab px-4 py-2 rounded-full text-xs font-bold bg-white text-slate-600 border border-slate-200 hover:bg-green-50 hover:text-green-600 hover:border-green-200 transition-all">
+                        <span class="w-2 h-2 rounded-full bg-green-500 inline-block mr-1.5"></span>훈련중
+                    </button>
+                    <button type="button" onclick="setApprovedStatusFilter('completed')" id="statusTabCompleted" class="status-tab px-4 py-2 rounded-full text-xs font-bold bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 hover:text-slate-800 hover:border-slate-300 transition-all">
+                        <span class="w-2 h-2 rounded-full bg-slate-400 inline-block mr-1.5"></span>종료
+                    </button>
+                </div>
+
                 <!-- Section: 과정 통합 관리 (승인 과정 + 회차) -->
                 <section class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden min-h-[500px]">
                     <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between flex-wrap gap-3">
@@ -126,15 +142,68 @@ export function adminCoursesMainHtml(): string {
                 return;
             }
             var headers = { 'Authorization': 'Bearer ' + token };
+            var currentStatus = '';
 
             function esc(s) {
                 if (s == null) return '';
                 return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
             }
 
+            window.setApprovedStatusFilter = function(status) {
+                currentStatus = status;
+                
+                // Update UI
+                const allTabs = document.querySelectorAll('.status-tab');
+                allTabs.forEach(function(el) {
+                    el.className = 'status-tab px-4 py-2 rounded-full text-xs font-bold bg-white text-slate-600 border border-slate-200 transition-all';
+                    
+                    if(el.id === 'statusTabAll') {
+                        el.className += ' hover:bg-slate-800 hover:text-white';
+                         el.innerHTML = '전체';
+                    } else if(el.id === 'statusTabRecruiting') {
+                        el.className += ' hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200';
+                         el.innerHTML = '<span class="w-2 h-2 rounded-full bg-blue-500 inline-block mr-1.5"></span>모집중';
+                    } else if(el.id === 'statusTabInProgress') {
+                        el.className += ' hover:bg-green-50 hover:text-green-600 hover:border-green-200';
+                         el.innerHTML = '<span class="w-2 h-2 rounded-full bg-green-500 inline-block mr-1.5"></span>훈련중';
+                    } else if(el.id === 'statusTabCompleted') {
+                        el.className += ' hover:bg-slate-50 hover:text-slate-800 hover:border-slate-300';
+                         el.innerHTML = '<span class="w-2 h-2 rounded-full bg-slate-400 inline-block mr-1.5"></span>종료';
+                    }
+                });
+
+                if(!status) {
+                     const el = document.getElementById('statusTabAll');
+                     if(el) el.className = 'status-tab px-4 py-2 rounded-full text-xs font-bold bg-slate-800 text-white shadow-sm transition-all border border-transparent';
+                } else if(status === 'recruiting') {
+                     const el = document.getElementById('statusTabRecruiting');
+                     if(el) {
+                        el.className = 'status-tab px-4 py-2 rounded-full text-xs font-bold bg-blue-600 text-white shadow-sm transition-all border border-transparent';
+                        el.innerHTML = '<i class="fas fa-check mr-1.5"></i>모집중';
+                     }
+                } else if(status === 'in_progress') {
+                     const el = document.getElementById('statusTabInProgress');
+                     if(el) {
+                        el.className = 'status-tab px-4 py-2 rounded-full text-xs font-bold bg-green-600 text-white shadow-sm transition-all border border-transparent';
+                        el.innerHTML = '<i class="fas fa-play mr-1.5"></i>훈련중';
+                     }
+                } else if(status === 'completed') {
+                     const el = document.getElementById('statusTabCompleted');
+                     if(el) {
+                        el.className = 'status-tab px-4 py-2 rounded-full text-xs font-bold bg-slate-600 text-white shadow-sm transition-all border border-transparent';
+                        el.innerHTML = '<i class="fas fa-flag-checkered mr-1.5"></i>종료';
+                     }
+                }
+
+                loadApproved();
+            };
+
             function loadApproved() {
                 var tbody = document.getElementById('approvedListBody');
-                fetch('/api/approved-courses?page=1&limit=50', { headers: headers })
+                let url = '/api/approved-courses?page=1&limit=50';
+                if(currentStatus) url += '&session_status=' + currentStatus;
+
+                fetch(url, { headers: headers })
                     .then(function(r) { 
                         if (r.status === 401) {
                             window.location.href = '/login';
@@ -270,6 +339,7 @@ export function adminCoursesMainHtml(): string {
                                     '</div>' +
                                 '</div>' +
                                 '<div class="flex items-center gap-2 shrink-0 flex-wrap justify-end">' +
+                                    '<a href="/admin/courses/' + item.id + '/lms" class="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 transition flex items-center gap-1 shadow-sm"><i class="fas fa-chalkboard-teacher"></i> LMS 관리</a>' +
                                     homepageBtn +
                                     '<div class="h-4 w-[1px] bg-slate-100 mx-1"></div>' +
                                     '<a href="/admin/courses/sessions/enrollments?sessionId=' + item.id + '" class="px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-bold hover:bg-emerald-600 hover:text-white transition"><i class="fas fa-user-plus mr-1"></i> 수강생 등록</a>' +

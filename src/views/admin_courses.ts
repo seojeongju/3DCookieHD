@@ -61,15 +61,33 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
 
             <!-- Main Content -->
             <main class="flex-1 overflow-auto p-6 custom-scrollbar bg-slate-50">
-                <!-- 0. List type: 등록된 과정 / 일반과정 -->
-                <div class="flex items-center gap-3 mb-4">
-                    <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">리스트 구분</span>
-                    <div class="inline-flex rounded-xl border border-slate-200 bg-slate-50/50 p-0.5">
-                        <button type="button" id="tabListAll" class="list-type-tab px-4 py-2.5 rounded-lg text-sm font-bold transition-all bg-primary-600 text-white shadow-sm">
-                            <i class="fas fa-list mr-1.5"></i> 등록된 과정
+                <!-- 0. List type & Status Tabs -->
+                <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-6">
+                    <div class="flex items-center gap-3">
+                        <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">리스트 구분</span>
+                        <div class="inline-flex rounded-xl border border-slate-200 bg-slate-50/50 p-0.5">
+                            <button type="button" id="tabListAll" class="list-type-tab px-4 py-2.5 rounded-lg text-sm font-bold transition-all bg-primary-600 text-white shadow-sm">
+                                <i class="fas fa-list mr-1.5"></i> 등록된 과정
+                            </button>
+                            <button type="button" id="tabListGeneral" class="list-type-tab px-4 py-2.5 rounded-lg text-sm font-bold text-slate-600 hover:bg-white hover:shadow transition-all">
+                                <i class="fas fa-graduation-cap mr-1.5"></i> 일반과정
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- LMS Status Tabs -->
+                    <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+                        <button type="button" onclick="setCourseStatusFilter('')" id="statusTabAll" class="status-tab px-4 py-2 rounded-full text-xs font-bold bg-slate-800 text-white shadow-sm transition-all border border-transparent">
+                            전체
                         </button>
-                        <button type="button" id="tabListGeneral" class="list-type-tab px-4 py-2.5 rounded-lg text-sm font-bold text-slate-600 hover:bg-white hover:shadow transition-all">
-                            <i class="fas fa-graduation-cap mr-1.5"></i> 일반과정
+                        <button type="button" onclick="setCourseStatusFilter('recruiting')" id="statusTabRecruiting" class="status-tab px-4 py-2 rounded-full text-xs font-bold bg-white text-slate-600 border border-slate-200 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all">
+                            <span class="w-2 h-2 rounded-full bg-blue-500 inline-block mr-1.5"></span>모집중
+                        </button>
+                        <button type="button" onclick="setCourseStatusFilter('in_progress')" id="statusTabInProgress" class="status-tab px-4 py-2 rounded-full text-xs font-bold bg-white text-slate-600 border border-slate-200 hover:bg-green-50 hover:text-green-600 hover:border-green-200 transition-all">
+                            <span class="w-2 h-2 rounded-full bg-green-500 inline-block mr-1.5"></span>훈련중
+                        </button>
+                        <button type="button" onclick="setCourseStatusFilter('completed')" id="statusTabCompleted" class="status-tab px-4 py-2 rounded-full text-xs font-bold bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 hover:text-slate-800 hover:border-slate-300 transition-all">
+                            <span class="w-2 h-2 rounded-full bg-slate-400 inline-block mr-1.5"></span>종료
                         </button>
                     </div>
                 </div>
@@ -483,6 +501,63 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
             tbody.innerHTML = skeletonHtml;
         }
 
+        window.setCourseStatusFilter = function(status) {
+            const sel = document.getElementById('statusFilter');
+            if(sel) {
+                sel.value = status;
+                loadCourses(1);
+            }
+        };
+
+        function updateStatusTabUI(status) {
+             const allTabs = document.querySelectorAll('.status-tab');
+             allTabs.forEach(function(el) {
+                 // Reset to default inactive style
+                 el.className = 'status-tab px-4 py-2 rounded-full text-xs font-bold bg-white text-slate-600 border border-slate-200 transition-all';
+                 
+                 // Restore default content
+                 if(el.id === 'statusTabAll') {
+                     el.className += ' hover:bg-slate-800 hover:text-white';
+                     el.innerHTML = '전체';
+                 } else if(el.id === 'statusTabRecruiting') {
+                     el.className += ' hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200';
+                     el.innerHTML = '<span class="w-2 h-2 rounded-full bg-blue-500 inline-block mr-1.5"></span>모집중';
+                 } else if(el.id === 'statusTabInProgress') {
+                     el.className += ' hover:bg-green-50 hover:text-green-600 hover:border-green-200';
+                     el.innerHTML = '<span class="w-2 h-2 rounded-full bg-green-500 inline-block mr-1.5"></span>훈련중';
+                 } else if(el.id === 'statusTabCompleted') {
+                     el.className += ' hover:bg-slate-50 hover:text-slate-800 hover:border-slate-300';
+                     el.innerHTML = '<span class="w-2 h-2 rounded-full bg-slate-400 inline-block mr-1.5"></span>종료';
+                 }
+             });
+
+             // Apply active style
+             if(!status) {
+                 const el = document.getElementById('statusTabAll');
+                 if(el) {
+                     el.className = 'status-tab px-4 py-2 rounded-full text-xs font-bold bg-slate-800 text-white shadow-sm transition-all border border-transparent';
+                 }
+             } else if(status === 'recruiting') {
+                 const el = document.getElementById('statusTabRecruiting');
+                 if(el) {
+                     el.className = 'status-tab px-4 py-2 rounded-full text-xs font-bold bg-blue-600 text-white shadow-sm transition-all border border-transparent';
+                     el.innerHTML = '<i class="fas fa-check mr-1.5"></i>모집중';
+                 }
+             } else if(status === 'in_progress') {
+                 const el = document.getElementById('statusTabInProgress');
+                 if(el) {
+                     el.className = 'status-tab px-4 py-2 rounded-full text-xs font-bold bg-green-600 text-white shadow-sm transition-all border border-transparent';
+                     el.innerHTML = '<i class="fas fa-play mr-1.5"></i>훈련중';
+                 }
+             } else if(status === 'completed') {
+                 const el = document.getElementById('statusTabCompleted');
+                 if(el) {
+                     el.className = 'status-tab px-4 py-2 rounded-full text-xs font-bold bg-slate-600 text-white shadow-sm transition-all border border-transparent';
+                     el.innerHTML = '<i class="fas fa-flag-checkered mr-1.5"></i>종료';
+                 }
+             }
+        }
+
         async function loadCourses(page) {
             currentPage = page;
             const tbody = document.getElementById('courseTableBody');
@@ -494,6 +569,8 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
             const status = document.getElementById('statusFilter').value;
             const search = document.getElementById('searchInput').value;
             
+            updateStatusTabUI(status);
+
             const effectiveCategory = getEffectiveCategory();
             
             const params = new URLSearchParams({
