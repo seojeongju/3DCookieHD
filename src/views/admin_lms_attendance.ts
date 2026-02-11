@@ -287,8 +287,8 @@ export const adminLmsAttendanceHtml = `
             const [year, month] = monthVal.split('-');
             const courseTitle = document.getElementById('header-courseTitle')?.textContent || '과정';
             
-            const url = \`/admin/attendance/print?courseId=\${courseId}&courseTitle=\${encodeURIComponent(courseTitle)}&year=\${year}&month=\${month}\`;
-            if (courseType) url += \`&type=\${courseType}\`;
+            let url = \`/admin/attendance/print?courseId=\${courseId}&courseTitle=\${encodeURIComponent(courseTitle)}&year=\${year}&month=\${month}\`;
+            if (courseType) url += \`&type=\${encodeURIComponent(courseType)}\`;
             window.open(url, '_blank', 'width=1200,height=800');
             document.getElementById('printModal').classList.add('hidden');
         }
