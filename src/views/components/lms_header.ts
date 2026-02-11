@@ -170,10 +170,11 @@ export const lmsHeaderHtml = (activeTab = 'dashboard', defaultType = '') => `
                     }
 
                     const result = await response.json();
-                    
+                    const titleEl = document.getElementById('header-courseTitle');
+
                     if (result.success) {
                         const course = result.data;
-                        document.getElementById('header-courseTitle').textContent = course.title;
+                        titleEl.textContent = course.title;
                         document.getElementById('header-courseCategory').textContent = course.category || '기타';
                         
                         const statusEl = document.getElementById('header-courseStatus');
@@ -196,8 +197,14 @@ export const lmsHeaderHtml = (activeTab = 'dashboard', defaultType = '') => `
                         
                         const countEl = document.getElementById('header-studentCount');
                         if (countEl) countEl.textContent = course.current_students || course.max_students || 0;
+                    } else {
+                        titleEl.textContent = '회차 정보를 불러올 수 없습니다.';
                     }
-                } catch(e) { console.error('Header info load fail:', e); }
+                } catch(e) {
+                    console.error('Header info load fail:', e);
+                    const titleEl = document.getElementById('header-courseTitle');
+                    if (titleEl) titleEl.textContent = '회차 정보를 불러올 수 없습니다.';
+                }
             }
 
             if (document.readyState === 'loading') {

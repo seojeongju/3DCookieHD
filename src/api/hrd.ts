@@ -1501,42 +1501,65 @@ app.get('/attendance/summary', authMiddleware, async (c) => {
     }
 });
 
-// 월간 출석부 조회 (출력용)
+// 월간 출석부 조회 (출력용). courseId + type=hrd 이면 회차(session) 기준으로 조회
 app.get('/attendance/monthly', async (c) => {
     try {
         const courseId = c.req.query('courseId');
         const year = c.req.query('year');
         const month = c.req.query('month'); // 1-12
+        const type = (c.req.query('type') || '').trim().toLowerCase();
 
         if (!courseId || !year || !month) {
             return c.json({ success: false, error: '필수 정보가 누락되었습니다.' }, 400);
         }
 
         const dateStr = `${year}-${month.toString().padStart(2, '0')}`; // YYYY-MM
+        const isHrd = type === 'hrd';
 
-        // 1. 수강생 목록 조회
-        const studentsQuery = `
-            SELECT u.id, u.name, u.phone, e.id as enrollment_id
-            FROM users u
-            JOIN enrollments e ON u.id = e.user_id
-            WHERE e.course_id = ? AND u.role = 'student'
-            ORDER BY u.name ASC
-        `;
-        const { results: students } = await c.env.DB.prepare(studentsQuery).bind(courseId).all();
+        let students: any[];
+        let logs: any[];
 
-        // 2. 해당 월의 출석 기록 조회
-        // SQLite strftime('%Y-%m', date) uses matching pattern
-        const logsQuery = `
-            SELECT al.enrollment_id, al.date, al.status
-            FROM attendance_logs al
-            JOIN enrollments e ON al.enrollment_id = e.id
-            WHERE e.course_id = ? AND strftime('%Y-%m', al.date) = ?
-        `;
-        const { results: logs } = await c.env.DB.prepare(logsQuery).bind(courseId, dateStr).all();
+        if (isHrd) {
+            // HRD 회차: course_session_enrollments + attendance_logs
+            const studentsRes = await c.env.DB.prepare(`
+                SELECT u.id, u.name, u.phone, e.id as enrollment_id
+                FROM course_session_enrollments e
+                JOIN users u ON e.user_id = u.id
+                WHERE e.session_id = ? AND e.status = 'approved'
+                ORDER BY u.name ASC
+            `).bind(courseId).all();
+            students = studentsRes.results || [];
+
+            const logsRes = await c.env.DB.prepare(`
+                SELECT al.enrollment_id, al.date, al.status
+                FROM attendance_logs al
+                WHERE al.enrollment_id IN (SELECT id FROM course_session_enrollments WHERE session_id = ?)
+                AND strftime('%Y-%m', al.date) = ?
+            `).bind(courseId, dateStr).all();
+            logs = logsRes.results || [];
+        } else {
+            // legacy: enrollments + attendance_logs
+            const studentsRes = await c.env.DB.prepare(`
+                SELECT u.id, u.name, u.phone, e.id as enrollment_id
+                FROM users u
+                JOIN enrollments e ON u.id = e.user_id
+                WHERE e.course_id = ? AND u.role = 'student'
+                ORDER BY u.name ASC
+            `).bind(courseId).all();
+            students = studentsRes.results || [];
+
+            const logsRes = await c.env.DB.prepare(`
+                SELECT al.enrollment_id, al.date, al.status
+                FROM attendance_logs al
+                JOIN enrollments e ON al.enrollment_id = e.id
+                WHERE e.course_id = ? AND strftime('%Y-%m', al.date) = ?
+            `).bind(courseId, dateStr).all();
+            logs = logsRes.results || [];
+        }
 
         // 3. 데이터 병합
         const data = students.map((s: any) => {
-            const studentLogs = (logs as any[]).filter(l => l.enrollment_id === s.enrollment_id);
+            const studentLogs = logs.filter((l: any) => l.enrollment_id === s.enrollment_id);
             // 날짜별 상태 맵 생성
             const attendanceMap: Record<number, string> = {};
             studentLogs.forEach(l => {
