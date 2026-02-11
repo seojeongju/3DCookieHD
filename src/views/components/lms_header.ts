@@ -155,9 +155,18 @@ export const lmsHeaderHtml = (activeTab = 'dashboard') => `
                     let apiUrl = '/api/courses/' + courseId;
                     if (type) apiUrl += '?type=' + type;
 
-                    const response = await fetch(apiUrl, {
+                    let response = await fetch(apiUrl, {
                         headers: { 'Authorization': 'Bearer ' + token }
                     });
+                    
+                    // 404인 경우 HRD 과정일 수 있으므로 type=hrd로 재시도
+                    if (response.status === 404 && !type) {
+                        apiUrl = '/api/courses/' + courseId + '?type=hrd';
+                        response = await fetch(apiUrl, {
+                            headers: { 'Authorization': 'Bearer ' + token }
+                        });
+                    }
+
                     const result = await response.json();
                     
                     if (result.success) {

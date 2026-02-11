@@ -28,7 +28,7 @@ export const hrdSidebar = (activeMenu: string) => `
             <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest opacity-70">운영 과정 바로가기</span>
         </div>
         <div class="relative group/selector">
-            <select id="sidebarActiveCourseSelector" onchange="if(this.value) location.href='/admin/courses/'+this.value+'/lms'" class="w-full bg-slate-800/50 border border-slate-700/50 text-slate-300 text-xs rounded-xl px-4 py-2.5 appearance-none focus:outline-none focus:ring-1 focus:ring-blue-500/50 transition cursor-pointer hover:bg-slate-800">
+            <select id="sidebarActiveCourseSelector" onchange="if(this.value) location.href='/admin/courses/'+this.value+'/lms?type=hrd'" class="w-full bg-slate-800/50 border border-slate-700/50 text-slate-300 text-xs rounded-xl px-4 py-2.5 appearance-none focus:outline-none focus:ring-1 focus:ring-blue-500/50 transition cursor-pointer hover:bg-slate-800">
                 <option value="">진행 중인 과정 선택</option>
             </select>
             <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 text-[10px]">

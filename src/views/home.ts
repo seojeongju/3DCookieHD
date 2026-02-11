@@ -496,53 +496,18 @@ export const homeHtml = `
             var container = document.getElementById('portfolioList');
             if (!container) return;
             try {
-                // 두 소스에서 데이터를 병렬로 가져옴
-                var [res1, res2] = await Promise.all([
-                    fetch('/api/portfolios'),
-                    fetch('/api/posts?category=portfolio&status=published&limit=20')
-                ]);
+                // 통합된 /api/portfolios 엔드포인트 사용 (student_portfolios + posts 통합본)
+                var res = await fetch('/api/portfolios?limit=24');
+                var result = await res.json();
                 
-                var result1 = await res1.json();
-                var result2 = await res2.json();
+                if (!result.success) {
+                    container.innerHTML = '<div class="col-span-2 md:col-span-4 text-center py-12 text-gray-500">포트폴리오 목록을 불러오지 못했습니다.</div>';
+                    return;
+                }
                 
-                var list1 = result1.success ? (result1.data || []) : [];
-                var list2 = result2.success ? (result2.data || []) : [];
+                var list = result.data || [];
                 
-                // 데이터 형식 통일
-                var normalized1 = list1.map(function(p) {
-                    return {
-                        id: p.id,
-                        title: p.title,
-                        thumbnail: (p.thumbnail_url || '').trim(),
-                        author: p.student_name || '수강생',
-                        description: p.description || '',
-                        date: p.created_at,
-                        link: '/portfolios'
-                    };
-                });
-                
-                var normalized2 = list2.map(function(p) {
-                    var img = '';
-                    if (p.images && p.images.length) img = p.images[0];
-                    else if (p.content) {
-                        var m = p.content.match(/<img[^>]+src=["']([^"']+)["']/i);
-                        if (m && m[1]) img = m[1];
-                    }
-                    return {
-                        id: p.id,
-                        title: p.title,
-                        thumbnail: img,
-                        author: p.author_name || '관리자',
-                        description: stripHtml(p.content || '').trim(),
-                        date: p.created_at,
-                        link: '/portfolios'
-                    };
-                });
-                
-                var combined = normalized1.concat(normalized2);
-                combined.sort(function(a, b) { return new Date(b.date || 0) - new Date(a.date || 0); });
-                
-                var withImage = combined.filter(function(p) { return !!p.thumbnail; });
+                var withImage = list.filter(function(p) { return !!p.thumbnail_url; });
                 
                 if (withImage.length === 0) {
                     container.innerHTML = '<div class="col-span-2 md:col-span-4 text-center py-12">' +
@@ -554,14 +519,15 @@ export const homeHtml = `
                 var cards = withImage.slice(0, 8).map(function(p) {
                     var safeTitle = (p.title || '포트폴리오').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                     var titleEsc = safeTitle;
-                    var contentPlain = p.description.substring(0, 80);
-                    if (p.description.length > 80) contentPlain += '\u2026';
+                    var description = p.description || '';
+                    var contentPlain = description.substring(0, 80);
+                    if (description.length > 80) contentPlain += '\u2026';
                     var contentEsc = contentPlain.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-                    var authorEsc = (p.author || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    var authorEsc = (p.student_name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                     
-                    return '<a href="' + p.link + '" class="block rounded-xl overflow-hidden shadow-md hover:shadow-xl transition bg-white border border-gray-100">' +
+                    return '<a href="/portfolios" class="block rounded-xl overflow-hidden shadow-md hover:shadow-xl transition bg-white border border-gray-100">' +
                         '<div class="relative aspect-square bg-gray-200 group">' +
-                        '<img src="' + p.thumbnail + '" alt="' + safeTitle + '" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">' +
+                        '<img src="' + p.thumbnail_url + '" alt="' + safeTitle + '" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">' +
                         '<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-3">' +
                         '<span class="text-white text-sm font-bold truncate w-full">' + titleEsc + '</span>' +
                         '</div></div>' +

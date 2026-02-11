@@ -326,8 +326,12 @@ export function adminHrdCounselingHtml(courseId?: string): string {
 
     <script>
         let currentType = 'academic';
+        let currentFilter = 'all'; // 누락된 변수 선언 추가
         const COURSE_ID = '${courseId || ''}';
         const IS_LMS_MODE = !!COURSE_ID;
+        
+        // 데이터 저장 변수
+        let counselingData = [];
         
         // 페이지네이션 상태
         let filteredData = [];
@@ -451,9 +455,12 @@ export function adminHrdCounselingHtml(courseId?: string): string {
 
         async function loadCourses() {
             try {
-                const response = await fetch('/api/courses');
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/courses', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
                 const result = await response.json();
-                const courses = result.data || result;
+                const courses = result.success ? result.data : (Array.isArray(result) ? result : []);
 
                 const filterSelect = document.getElementById('courseFilter');
                 const modalSelect = document.getElementById('courseSelect');
@@ -462,6 +469,14 @@ export function adminHrdCounselingHtml(courseId?: string): string {
                     filterSelect.add(new Option(c.title, c.id));
                     modalSelect.add(new Option(c.title, c.id));
                 });
+                
+                // LMS 모드일 경우 코스 필터 및 모달 선택 고정
+                if (IS_LMS_MODE) {
+                    filterSelect.value = COURSE_ID;
+                    filterSelect.disabled = true;
+                    modalSelect.value = COURSE_ID;
+                    modalSelect.disabled = true;
+                }
             } catch (e) {
                 console.error('코스 로드 실패', e);
             }
@@ -471,20 +486,26 @@ export function adminHrdCounselingHtml(courseId?: string): string {
             try {
                 let url = '/api/students';
                 if (IS_LMS_MODE) {
-                    // LMS 모드일 때는 해당 과정의 수강생만 로드 (enrollments API 활용 권장)
-                    url = '/api/enrollments?course_id=' + COURSE_ID + '&status=approved';
+                    // LMS 모드일 때는 해당 회차의 수강생만 로드
+                    url = '/api/course-sessions/' + COURSE_ID + '/enrollments';
                 }
                 
-                const response = await fetch(url);
+                const token = localStorage.getItem('token');
+                const response = await fetch(url, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
                 const result = await response.json();
-                const students = result.data || result;
+                const students = result.success ? result.data : (Array.isArray(result) ? result : []);
 
                 const select = document.getElementById('studentSelect');
-                select.innerHTML = '<option value="">수강생 선택</option>'; // 초기화
+                select.innerHTML = '<option value="">수강생 선택</option>';
                 
-                const studentList = IS_LMS_MODE ? students.map(e => e.users) : students;
+                // API 결과 구조에 따라 변환 (enrollments API는 결과를 users로, session enrollments는 user_id/name 등으로 반환)
+                const studentList = IS_LMS_MODE 
+                    ? students.map(s => ({ id: s.user_id, name: s.name, email: s.email }))
+                    : students;
 
-                studentList.filter(s => s).sort((a,b) => (a.name || '').localeCompare(b.name || '')).forEach(s => {
+                studentList.filter(s => s && s.id).sort((a,b) => (a.name || '').localeCompare(b.name || '')).forEach(s => {
                     select.add(new Option(s.name + ' (' + (s.email || '-') + ')', s.id));
                 });
             } catch (e) {
@@ -494,7 +515,10 @@ export function adminHrdCounselingHtml(courseId?: string): string {
 
         async function loadConsultations() {
             try {
-                const response = await fetch('/api/consultations?limit=100');
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/consultations?limit=100', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
                 const result = await response.json();
                 const items = result.data || [];
                 const modalSelect = document.getElementById('leadSelect');
@@ -518,10 +542,14 @@ export function adminHrdCounselingHtml(courseId?: string): string {
             const date = document.getElementById('dateFilter').value;
 
             try {
-                let url = \`/api/hrd/counseling?type=\${currentType}&\`;
-                if (search) url += \`search=\${encodeURIComponent(search)}&\`;
-                if (courseId) url += \`course_id=\${courseId}&\`;
-                if (date) url += \`date=\${date}&\`;
+                let url = "/api/hrd/counseling?type=" + currentType + "&";
+                if (search) url += "search=" + encodeURIComponent(search) + "&";
+                
+                // LMS 모드면 URL의 ID로 필터링, 아니면 셀렉트 박스 필터링
+                const filterCourseId = IS_LMS_MODE ? COURSE_ID : courseId;
+                if (filterCourseId) url += "course_id=" + filterCourseId + "&";
+                
+                if (date) url += "date=" + date + "&";
                 
                 const token = localStorage.getItem('token');
                 const response = await fetch(url, {
