@@ -416,23 +416,51 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                     document.getElementById('totalDays').textContent = diff + '일';
                 }
 
-                // 하루 훈련시간 표시 (저장된 정보 우선, 없으면 교시 설정 기준)
-                if (sessionInfo.training_time_start && sessionInfo.training_time_end) {
-                    document.getElementById('dailyTrainingHours').textContent = \`\${sessionInfo.training_time_start} ~ \${sessionInfo.training_time_end}\`;
-                } else if (periodConfigs.length > 0) {
-                    document.getElementById('dailyTrainingHours').textContent = \`\${periodConfigs[0].start_time} ~ \${periodConfigs[periodConfigs.length-1].end_time}\`;
-                }
-
-                // Initial Highlight for instructor search if single instructor assigned
-                if (!instructorSearchTerm && sessionInfo.instructor_name && resources.instructors.length > 0) {
-                    // Optional: Pre-fill search? No, just highlight.
-                }
-
+                updateDailyHours();
                 updateHoursCount();
             }
 
+            function updateDailyHours() {
+                const el = document.getElementById('dailyTrainingHours');
+                if (!el) return;
+
+                // 하루 훈련시간 표시 (교시 설정 기준 우선)
+                if (periodConfigs && periodConfigs.length > 0) {
+                    const sorted = [...periodConfigs].sort((a, b) => a.period_number - b.period_number);
+                    el.textContent = \`\${sorted[0].start_time} ~ \${sorted[sorted.length - 1].end_time}\`;
+                } else if (sessionInfo.training_time_start && sessionInfo.training_time_end) {
+                    el.textContent = \`\${sessionInfo.training_time_start} ~ \${sessionInfo.training_time_end}\`;
+                } else {
+                    el.textContent = '-';
+                }
+            }
+
+            function getPeriodDuration(periodNumber) {
+                const cfg = periodConfigs.find(c => c.period_number === periodNumber);
+                if (!cfg || !cfg.start_time || !cfg.end_time) return 0;
+                
+                try {
+                    const [sh, sm] = cfg.start_time.split(':').map(Number);
+                    const [eh, em] = cfg.end_time.split(':').map(Number);
+                    const start = new Date(1970, 0, 1, sh, sm);
+                    const end = new Date(1970, 0, 1, eh, em);
+                    const diffMinutes = (end - start) / (1000 * 60);
+                    
+                    if (diffMinutes <= 0) return 0;
+                    
+                    // 60분당 1시간으로 계산
+                    return diffMinutes / 60;
+                } catch(e) { 
+                    return 0; 
+                }
+            }
+
             function updateHoursCount() {
-                const totalAssigned = timetableData.filter(t => !t.is_excluded).length;
+                let totalAssigned = 0;
+                timetableData.filter(t => !t.is_excluded).forEach(slot => {
+                    totalAssigned += getPeriodDuration(slot.period_number);
+                });
+
                 const el = document.getElementById('currentHours');
                 if (el) {
                     el.textContent = totalAssigned.toFixed(1);
@@ -446,120 +474,108 @@ export function adminSessionTimetableHtml(sessionId: number): string {
             function renderResources() {
                 // Render Subjects
                 const sList = document.getElementById('subjectList');
+                if (!sList) return;
+                
                 if (resources.subjects.length === 0) {
                     sList.innerHTML = '<div class="absolute inset-0 flex flex-col items-center justify-center text-slate-400 text-xs"><i class="fas fa-exclamation-triangle mb-2 text-amber-500"></i><span>등록된 교과목이 없습니다</span></div>';
                 } else {
-                    sList.innerHTML = resources.subjects.map(s => {
-                        const isActive = activeSubjectId === s.id;
+                    let sHtml = '';
+                    resources.subjects.forEach(s => {
+                        const isActive = (activeSubjectId === s.id);
                         const cls = isActive ? 'bg-primary-50 border-primary-500 ring-1 ring-primary-500 shadow-md' : 'bg-white border-slate-200 hover:border-primary-300 hover:shadow-sm';
-                        return \`<div onclick="selectSubject(\${s.id})" class="p-3 border rounded transition cursor-pointer mb-2 \${cls}">
-                            <div class="flex justify-between items-start">
-                                <div class="font-bold text-slate-800 text-sm line-clamp-1" title="\${s.name}">\${s.name}</div>
-                                \${isActive ? '<i class="fas fa-check-circle text-primary-600 text-xs"></i>' : ''}
-                            </div>
-                            <div class="text-[10px] text-primary-600 mb-1 font-medium">
-                                \${s.main_job_name ? \`\${s.main_job_name} (\${s.main_job_code})\` : ''}
-                            </div>
-                            \${(() => {
-                                try {
-                                    const elements = JSON.parse(s.units_json || '[]');
-                                    if (Array.isArray(elements) && elements.length > 0) {
-                                        return \`
-                                            <div class="mt-2 mb-3 space-y-1">
-                                                <div class="flex items-center gap-1 text-[9px] text-slate-400 font-bold tracking-tighter">
-                                                    <i class="fas fa-tag opacity-70"></i> 능력단위: \${s.ncs_classification_code || '-'}
-                                                </div>
-                                                <div class="flex flex-wrap gap-1">
-                                                    \${elements.map(e => \`<span class="text-[8px] font-mono bg-slate-100 text-slate-500 px-1 rounded border border-slate-200/50">\${e}</span>\`).join('')}
-                                                </div>
-                                            </div>\`;
-                                    }
-                                } catch(e) {}
-                                return '';
-                            })()}
-                            <div class="flex justify-between text-[11px] text-slate-500 border-t border-slate-50 pt-2">
-                                <span class="opacity-70 text-[10px]">
-                                    <span class="font-bold text-primary-600">\${timetableData.filter(t => t.subject_id === s.id && !t.is_excluded).length}</span> / \${s.total_time || 0}H
-                                </span>
-                                <span class="\${isActive ? 'font-bold text-primary-700' : ''}">\${s.total_time || 0}H</span>
-                            </div>
-                        </div>\`;
-                    }).join('');
+                        
+                        const assignedHours = timetableData
+                            .filter(t => t.subject_id === s.id && !t.is_excluded)
+                            .reduce((sum, t) => sum + getPeriodDuration(t.period_number), 0);
+
+                        let item = '<div onclick="selectSubject(' + s.id + ')" class="p-3 border rounded transition cursor-pointer mb-2 ' + cls + '">';
+                        item += '<div class="flex justify-between items-start">';
+                        item += '<div class="font-bold text-slate-800 text-sm line-clamp-1" title="' + (s.name || '').replace(/"/g, '&quot;') + '">' + (s.name || '') + '</div>';
+                        if (isActive) item += '<i class="fas fa-check-circle text-primary-600 text-xs"></i>';
+                        item += '</div>';
+                        item += '<div class="text-[10px] text-primary-600 mb-1 font-medium">';
+                        if (s.main_job_name) item += s.main_job_name + ' (' + (s.main_job_code || '') + ')';
+                        item += '</div>';
+                        
+                        try {
+                            const elements = JSON.parse(s.units_json || '[]');
+                            if (Array.isArray(elements) && elements.length > 0) {
+                                item += '<div class="mt-2 mb-3 space-y-1">';
+                                item += '<div class="flex items-center gap-1 text-[9px] text-slate-400 font-bold tracking-tighter">';
+                                item += '<i class="fas fa-tag opacity-70"></i> 능력단위: ' + (s.ncs_classification_code || '-');
+                                item += '</div><div class="flex flex-wrap gap-1">';
+                                elements.forEach(e => {
+                                    item += '<span class="text-[8px] font-mono bg-slate-100 text-slate-500 px-1 rounded border border-slate-200/50">' + e + '</span>';
+                                });
+                                item += '</div></div>';
+                            }
+                        } catch(e) {}
+                        
+                        item += '<div class="flex justify-between text-[11px] text-slate-500 border-t border-slate-50 pt-2">';
+                        item += '<span class="opacity-70 text-[10px]"><span class="font-bold text-primary-600">' + assignedHours.toFixed(1) + '</span> / ' + (s.total_time || 0) + 'H</span>';
+                        item += '<span class="' + (isActive ? 'font-bold text-primary-700' : '') + '">' + (s.total_time || 0) + 'H</span>';
+                        item += '</div></div>';
+                        sHtml += item;
+                    });
+                    sList.innerHTML = sHtml;
                 }
 
-                // Render Instructors (with Filter)
+                // Render Instructors
                 const iList = document.getElementById('instructorList');
-                
-                // Logic:
-                // 1. If showAllInstructors is TRUE, show everyone (matching search).
-                // 2. If showAllInstructors is FALSE, show ONLY assigned instructors (matching search).
-                // 3. Exception: If NO instructors are assigned to the session, show everyone (fallback).
-                
+                if (!iList) return;
+
                 const assignedRaw = sessionInfo.instructor_name || '';
                 const hasAssigned = assignedRaw.trim().length > 0;
-                
-                // Parse assigned names for checking (handles comma separated)
-                // We'll treat "Assigned" if the instructor's name appears in the sessionInfo.instructor_name string
-                // This mimics the existing check: sessionInfo.instructor_name.includes(i.name)
-                
                 const effectiveShowAll = showAllInstructors || !hasAssigned;
 
                 const filteredInstructors = resources.instructors.filter(i => {
-                    // Search Filter
-                    if (instructorSearchTerm && !i.name.toLowerCase().includes(instructorSearchTerm.toLowerCase())) {
-                        return false;
-                    }
-                    
-                    // Assigned Filter
-                    if (!effectiveShowAll) {
-                        return assignedRaw.includes(i.name); 
-                    }
-                    
+                    if (instructorSearchTerm && !i.name.toLowerCase().includes(instructorSearchTerm.toLowerCase())) return false;
+                    if (!effectiveShowAll) return assignedRaw.includes(i.name);
                     return true;
                 });
 
                 if (filteredInstructors.length === 0) {
-                    let msg = '결과가 없습니다';
-                    if (!effectiveShowAll && hasAssigned) msg = '배정된 강사 중 검색 결과가 없습니다.<br>"전체 보기"를 체크해보세요.';
-                    else if (!hasAssigned) msg = '등록된 강사가 없습니다';
-                    
-                    iList.innerHTML = \`<div class="absolute inset-0 flex flex-col items-center justify-center text-slate-400 text-xs text-center p-4"><span>\${msg}</span></div>\`;
+                   let msg = '결과가 없습니다';
+                   if (!effectiveShowAll && hasAssigned) msg = '배정된 강사 중 검색 결과가 없습니다. "전체 보기"를 체크해보세요.';
+                   iList.innerHTML = '<div class="absolute inset-0 flex flex-col items-center justify-center text-slate-400 text-xs text-center p-4"><span>' + msg + '</span></div>';
                 } else {
-                   iList.innerHTML = filteredInstructors.map(i => {
-                        const isActive = activeInstructorId === i.id;
+                    let iHtml = '';
+                    filteredInstructors.forEach(i => {
+                        const isActive = (activeInstructorId === i.id);
                         const isAssigned = hasAssigned && assignedRaw.includes(i.name);
-                        
                         const cls = isActive ? 'bg-primary-50 border-primary-500 ring-1 ring-primary-500 shadow-md' : 'bg-white border-slate-200 hover:border-primary-300 hover:shadow-sm';
-                        return \`<div onclick="selectInstructor(\${i.id})" class="p-3 border rounded transition cursor-pointer mb-2 \${cls}">
-                            <div class="flex justify-between items-center text-sm">
-                                <div class="flex items-center gap-2">
-                                    <span class="font-bold text-slate-700">\${i.name}</span>
-                                    \${isAssigned ? '<span class="text-[10px] bg-primary-100 text-primary-700 px-1.5 py-0.5 rounded font-bold">담당</span>' : ''}
-                                </div>
-                                \${isActive ? '<i class="fas fa-check-circle text-primary-600 text-xs"></i>' : ''}
-                            </div>
-                        </div>\`;
-                   }).join('');
+                        
+                        let item = '<div onclick="selectInstructor(' + i.id + ')" class="p-3 border rounded transition cursor-pointer mb-2 ' + cls + '">';
+                        item += '<div class="flex justify-between items-center text-sm">';
+                        item += '<div class="flex items-center gap-2">';
+                        item += '<span class="font-bold text-slate-700">' + i.name + '</span>';
+                        if (isAssigned) item += '<span class="text-[10px] bg-primary-100 text-primary-700 px-1.5 py-0.5 rounded font-bold">담당</span>';
+                        item += '</div>';
+                        if (isActive) item += '<i class="fas fa-check-circle text-primary-600 text-xs"></i>';
+                        item += '</div></div>';
+                        iHtml += item;
+                    });
+                    iList.innerHTML = iHtml;
                 }
             }
 
             function renderTimetableGrid() {
                 const header = document.getElementById('timetableHeader');
                 const body = document.getElementById('timetableBody');
+                if (!header || !body) return;
+
+                const days = ['월', '화', '수', '목', '금', '토', '일'];
                 
                 // Header (Dates)
                 let headerHtml = '<tr><th class="w-16 bg-slate-50 border-r border-slate-200 text-center sticky left-0 z-20"></th>';
-                const days = ['월', '화', '수', '목', '금', '토', '일'];
-                
                 for(let i=0; i<7; i++) {
                     const d = new Date(currentWeekStartDate);
                     d.setDate(d.getDate() + i);
                     const dateStr = d.toISOString().split('T')[0];
                     const isToday = dateStr === new Date().toISOString().split('T')[0];
                     
-                    headerHtml += \`<th class="min-w-[140px] px-2 py-3 border-l border-b border-slate-200 font-bold text-sm text-center \${isToday ? 'bg-amber-50 text-amber-900' : 'bg-slate-50 text-slate-700'}">
-                        <div>\${d.getMonth()+1}.\${d.getDate()} (\${days[(d.getDay() + 6) % 7]})</div>
-                    </th>\`;
+                    headerHtml += '<th class="min-w-[140px] px-2 py-3 border-l border-b border-slate-200 font-bold text-sm text-center ' + (isToday ? 'bg-amber-50 text-amber-900' : 'bg-slate-50 text-slate-700') + '">';
+                    headerHtml += '<div>' + (d.getMonth()+1) + '.' + d.getDate() + ' (' + days[(d.getDay() + 6) % 7] + ')</div></th>';
                 }
                 headerHtml += '</tr>';
                 header.innerHTML = headerHtml;
@@ -568,70 +584,57 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                 let bodyHtml = '';
                 periodConfigs.forEach((cfg, idx) => {
                     bodyHtml += '<tr>';
-                    
-                    // Period Config Cell
-                    bodyHtml += \`<td class="w-24 p-2 border-r border-b border-slate-200 bg-slate-50 align-top sticky left-0 z-10 shadow-sm">
-                        <div class="flex flex-col gap-1">
-                            <div class="flex justify-between items-center text-xs font-bold text-slate-700">
-                                <span>\${cfg.period_number}교시</span>
-                                <button onclick="editPeriod(\${idx})" class="text-slate-400 hover:text-primary-600 transition"><i class="fas fa-cog"></i></button>
-                            </div>
-                            <div class="text-[10px] text-slate-500 text-center border rounded px-1 py-0.5 bg-white cursor-pointer hover:border-primary-300 transition" onclick="editPeriod(\${idx})">
-                                \${cfg.start_time}<br>~ \${cfg.end_time}
-                            </div>
-                            <div class="text-[9px] text-amber-600 text-center mt-1">
-                                <i class="fas fa-mug-hot"></i> \${cfg.break_minute}분
-                            </div>
-                        </div>
-                    </td>\`;
+                    bodyHtml += '<td class="w-24 p-2 border-r border-b border-slate-200 bg-slate-50 align-top sticky left-0 z-10 shadow-sm">';
+                    bodyHtml += '<div class="flex flex-col gap-1">';
+                    bodyHtml += '<div class="flex justify-between items-center text-xs font-bold text-slate-700">';
+                    bodyHtml += '<span>' + cfg.period_number + '교시</span>';
+                    bodyHtml += '<button onclick="editPeriod(' + idx + ')" class="text-slate-400 hover:text-primary-600 transition"><i class="fas fa-cog"></i></button>';
+                    bodyHtml += '</div>';
+                    bodyHtml += '<div class="text-[10px] text-slate-500 text-center border rounded px-1 py-0.5 bg-white cursor-pointer hover:border-primary-300 transition" onclick="editPeriod(' + idx + ')">';
+                    bodyHtml += cfg.start_time + '<br>~ ' + cfg.end_time + '</div>';
+                    bodyHtml += '<div class="text-[9px] text-amber-600 text-center mt-1"><i class="fas fa-mug-hot"></i> ' + cfg.break_minute + '분</div></div></td>';
 
-                    // Days Cells
                     for(let i=0; i<7; i++) {
                         const d = new Date(currentWeekStartDate);
                         d.setDate(d.getDate() + i);
                         const dateStr = d.toISOString().split('T')[0];
+                        const cellData = timetableData.find(t => t.training_date === dateStr && t.period_number === cfg.period_number);
                         
-                        const cellData = timetableData.find(t => t.training_date === dateStr && t.period_number === cfg.period_number) || {
-                             training_date: dateStr, period_number: cfg.period_number, subject_id: null, instructor_id: null
-                        };
+                        const subject = cellData ? resources.subjects.find(s => s.id === cellData.subject_id) : null;
+                        const instructor = cellData ? resources.instructors.find(ins => ins.id === cellData.instructor_id) : null;
+                        const isExcluded = cellData && cellData.is_excluded;
 
-                        const subject = resources.subjects.find(s => s.id === cellData.subject_id);
-                        const instructor = resources.instructors.find(ins => ins.id === cellData.instructor_id);
-                        
-                        const hasAssignment = !!subject;
-                        
-                        bodyHtml += \`<td onclick="assignSlot('\${dateStr}', \${cfg.period_number})" class="border-l border-b border-slate-200 p-1 align-top hover:bg-slate-50 cursor-pointer transition h-20 relative group timetable-cell \${hasAssignment ? 'bg-blue-50/30' : ''}">
-                             \${hasAssignment ? \`
-                                <div class="bg-white border \${subject ? 'border-primary-200' : 'border-slate-200'} rounded p-2 h-full shadow-sm flex flex-col justify-between group-hover:shadow-md transition">
-                                    <div class="font-bold text-xs text-slate-800 line-clamp-2 leading-tight">\${subject.name}</div>
-                                    <div class="flex justify-between items-end mt-1">
-                                        <div class="text-[10px] text-slate-500">\${instructor ? instructor.name : '<span class="text-slate-300">강사미정</span>'}</div>
-                                        <button onclick="removeSlot(event, '\${dateStr}', \${cfg.period_number})" class="text-slate-300 hover:text-red-500 w-5 h-5 flex items-center justify-center rounded transition"><i class="fas fa-times"></i></button>
-                                    </div>
-                                </div>
-                             \` : \`
-                                <div class="h-full flex items-center justify-center text-slate-200 group-hover:text-primary-300 transition">
-                                    <i class="fas fa-plus-circle text-lg"></i>
-                                </div>
-                             \`}
-                        </td>\`;
+                        let tdCls = 'border-l border-b border-slate-200 p-1 align-top hover:bg-slate-50 cursor-pointer transition h-20 relative';
+                        if (subject) tdCls += ' bg-blue-50/30';
+                        if (isExcluded) tdCls += ' bg-slate-100';
+
+                        bodyHtml += '<td onclick="assignSlot(\''+dateStr+'\', '+cfg.period_number+')" class="' + tdCls + '">';
+                        if (isExcluded) {
+                            bodyHtml += '<div class="w-full h-full flex items-center justify-center text-slate-300 text-[8px] font-bold italic">공휴일/제외</div>';
+                        } else if (subject) {
+                            bodyHtml += '<div class="bg-white border border-primary-200 rounded p-2 h-full shadow-sm flex flex-col justify-between hover:shadow-md transition relative group">';
+                            bodyHtml += '<div class="font-bold text-xs text-slate-800 line-clamp-2 leading-tight">' + subject.name + '</div>';
+                            bodyHtml += '<div class="flex justify-between items-end mt-1">';
+                            bodyHtml += '<div class="text-[10px] text-slate-500">' + (instructor ? instructor.name : '<span class="text-slate-300">강사미정</span>') + '</div>';
+                            bodyHtml += '<button onclick="removeSlot(event, \''+dateStr+'\', '+cfg.period_number+')" class="text-slate-300 hover:text-red-500 w-5 h-5 flex items-center justify-center rounded transition"><i class="fas fa-times"></i></button>';
+                            bodyHtml += '</div></div>';
+                        } else {
+                            bodyHtml += '<div class="h-full flex items-center justify-center text-slate-200 hover:text-primary-300 transition"><i class="fas fa-plus-circle text-lg"></i></div>';
+                        }
+                        bodyHtml += '</td>';
                     }
                     bodyHtml += '</tr>';
                 });
-                // Add Period Row
-                bodyHtml += \`<tr>
-                    <td class="w-24 p-2 border-r border-b border-slate-200 bg-slate-50 sticky left-0 z-10 shadow-sm text-center">
-                        <button onclick="addPeriod()" class="w-full h-full py-4 text-primary-600 hover:text-primary-700 transition flex flex-col items-center justify-center gap-1 group">
-                            <i class="fas fa-plus-circle text-lg group-hover:scale-110 transform transition"></i>
-                            <span class="text-[9px] font-bold">교시 추가</span>
-                        </button>
-                    </td>
-                    <td colspan="7" class="border-b border-slate-100 bg-slate-50/20"></td>
-                </tr>\`;
 
-    body.innerHTML = bodyHtml;
-    updateHoursCount();
-}
+                bodyHtml += '<tr><td class="w-24 p-2 border-r border-b border-slate-200 bg-slate-50 sticky left-0 z-10 shadow-sm text-center">';
+                bodyHtml += '<button onclick="addPeriod()" class="w-full h-full py-4 text-primary-600 hover:text-primary-700 transition flex flex-col items-center justify-center gap-1 group">';
+                bodyHtml += '<i class="fas fa-plus-circle text-lg group-hover:scale-110 transform transition"></i><span class="text-[9px] font-bold">교시 추가</span></button></td>';
+                bodyHtml += '<td colspan="7" class="border-b border-slate-100 bg-slate-50/20"></td></tr>';
+
+                body.innerHTML = bodyHtml;
+                updateHoursCount();
+                updateDailyHours();
+            }
 
 // --- Interactions ---
 
@@ -845,7 +848,12 @@ function updateWeekText() {
                 
                 // Calculation Results
                 const totalPlanned = sessionInfo.total_hours || 0;
-                const totalAssigned = timetableData.filter(t => t.subject_id && !t.is_excluded).length; 
+                let totalAssigned = 0;
+                timetableData.forEach(t => {
+                    if (t.subject_id && !t.is_excluded) {
+                        totalAssigned += getPeriodDuration(t.period_number);
+                    }
+                });
                 const progress = totalPlanned > 0 ? Math.round((totalAssigned / totalPlanned) * 100) : 0;
                 
                 const summaryHtml = \`
@@ -853,7 +861,7 @@ function updateWeekText() {
                         <div class="text-blue-500 text-xs font-bold mb-1">총 훈련시간 편성률</div>
                         <div class="flex items-end gap-2">
                             <span class="text-3xl font-black text-blue-700">\${progress}%</span>
-                            <span class="text-sm text-blue-600 mb-1">(\${totalAssigned} / \${totalPlanned} 시간)</span>
+                            <span class="text-sm text-blue-600 mb-1">(\${totalAssigned.toFixed(1)} / \${totalPlanned} 시간)</span>
                         </div>
                         <div class="w-full bg-blue-200 h-2 rounded-full mt-3 overflow-hidden">
                             <div class="bg-blue-600 h-full rounded-full" style="width: \${Math.min(progress, 100)}%"></div>
@@ -882,57 +890,60 @@ function updateWeekText() {
                 } else {
                     tbody.innerHTML = resources.subjects.map(s => {
                         const planned = s.total_time || 0;
-                        const assigned = timetableData.filter(t => t.subject_id === s.id && !t.is_excluded).length;
+                        let assigned = 0;
+                        timetableData.forEach(t => {
+                            if (t.subject_id === s.id && !t.is_excluded) {
+                                assigned += getPeriodDuration(t.period_number);
+                            }
+                        });
                         const pct = planned > 0 ? Math.round((assigned / planned) * 100) : 0;
                         let statusBadge = '';
                         if (assigned === 0) statusBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-500">미배정</span>';
-                        else if (assigned < planned) statusBadge = \`<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-600 pointer-cursor" title="\${planned - assigned}시간 부족">부족</span>\`;
-                        else if (assigned === planned) statusBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-600">충족</span>';
-                        else statusBadge = \`<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-600 pointer-cursor" title="\${assigned - planned}시간 초과">초과</span>\`;
+                        else if (assigned < planned) statusBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-600 pointer-cursor" title="' + (planned - assigned).toFixed(1) + '시간 부족">부족</span>';
+                        else if (Math.abs(assigned - planned) < 0.01) statusBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-600">충족</span>';
+                        else statusBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-600 pointer-cursor" title="' + (assigned - planned).toFixed(1) + '시간 초과">초과</span>';
 
-                        return \`
-                            <tr class="hover:bg-slate-50 transition border-b border-slate-50 last:border-0">
-                                <td class="px-4 py-3">
-                                    <div class="font-bold text-slate-800 text-xs">\${s.name}</div>
-                                    <div class="text-[10px] text-primary-600 font-medium mb-1">\${s.main_job_name ? \`\${s.main_job_name} (\${s.main_job_code})\` : ''}</div>
-                                    <div class="space-y-1">
-                                        <div class="text-[9px] text-slate-500 font-bold flex items-center gap-1">
-                                            <span class="px-1 bg-slate-100 rounded text-slate-400 text-[8px]">UNIT</span> \${s.ncs_classification_code || '-'}
-                                        </div>
-                                        \${(() => {
-                                            try {
-                                                const codes = JSON.parse(s.units_json || '[]');
-                                                if (Array.isArray(codes) && codes.length > 0) {
-                                                    return \`
-                                                        <div class="flex flex-wrap gap-1">
-                                                            \${codes.map(e => \`<span class="text-[8px] font-mono bg-blue-50/50 text-blue-400 px-1 rounded border border-blue-100/50">\${e}</span>\`).join('')}
-                                                        </div>\`;
-                                                }
-                                            } catch(e) {}
-                                            return '';
-                                        })()}
-                                    </div>
-                                </td>
-                                <td class="px-4 py-3 text-center text-slate-600 text-xs">\${planned}</td>
-                                <td class="px-4 py-3 text-center text-xs font-bold \${assigned > planned ? 'text-red-600' : 'text-slate-800'}">\${assigned}</td>
-                                <td class="px-4 py-3 align-middle">
-                                    <div class="flex items-center gap-2">
-                                        <div class="w-24 bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                                            <div class="h-full rounded-full \${assigned > planned ? 'bg-red-500' : (assigned === planned ? 'bg-emerald-500' : 'bg-blue-500')}" style="width: \${Math.min((assigned/planned)*100, 100)}%"></div>
-                                        </div>
-                                        <span class="text-[10px] w-8 text-right text-slate-500">\${pct}%</span>
-                                    </div>
-                                </td>
-                                <td class="px-4 py-3 text-center">\${statusBadge}</td>
-                            </tr>
-                        \`;
+                        let row = '<tr class="hover:bg-slate-50 transition border-b border-slate-50 last:border-0">' +
+                                '<td class="px-4 py-3">' +
+                                    '<div class="font-bold text-slate-800 text-xs">' + s.name + '</div>' +
+                                    '<div class="text-[10px] text-primary-600 font-medium mb-1">' + (s.main_job_name ? s.main_job_name + ' (' + (s.main_job_code || '') + ')' : '') + '</div>' +
+                                    '<div class="space-y-1">' +
+                                        '<div class="text-[9px] text-slate-500 font-bold flex items-center gap-1">' +
+                                            '<span class="px-1 bg-slate-100 rounded text-slate-400 text-[8px]">UNIT</span> ' + (s.ncs_classification_code || '-') +
+                                        '</div>';
+                                        
+                        try {
+                            const codes = JSON.parse(s.units_json || '[]');
+                            if (Array.isArray(codes) && codes.length > 0) {
+                                row += '<div class="flex flex-wrap gap-1">';
+                                codes.forEach(e => {
+                                    row += '<span class="text-[8px] font-mono bg-blue-50/50 text-blue-400 px-1 rounded border border-blue-100/50">' + e + '</span>';
+                                });
+                                row += '</div>';
+                            }
+                        } catch(e) {}
+                        
+                        row += '</div></td>' +
+                                '<td class="px-4 py-3 text-center text-slate-600 text-xs">' + planned + '</td>' +
+                                '<td class="px-4 py-3 text-center text-xs font-bold ' + (assigned > planned ? 'text-red-600' : 'text-slate-800') + '">' + assigned.toFixed(1) + '</td>' +
+                                '<td class="px-4 py-3 align-middle">' +
+                                    '<div class="flex items-center gap-2">' +
+                                        '<div class="w-24 bg-slate-100 h-1.5 rounded-full overflow-hidden">' +
+                                            '<div class="h-full rounded-full ' + (assigned > planned ? 'bg-red-500' : (Math.abs(assigned - planned) < 0.01 ? 'bg-emerald-500' : 'bg-blue-500')) + '" style="width: ' + Math.min((assigned/planned)*100, 100) + '%"></div>' +
+                                        '</div>' +
+                                        '<span class="text-[10px] w-8 text-right text-slate-500">' + pct + '%</span>' +
+                                    '</div>' +
+                                '</td>' +
+                                '<td class="px-4 py-3 text-center">' + statusBadge + '</td>' +
+                            '</tr>';
+                        return row;
                     }).join('');
                 }
 
                 const instructorCounts = {};
                 timetableData.forEach(t => {
                     if(t.instructor_id && !t.is_excluded) {
-                        instructorCounts[t.instructor_id] = (instructorCounts[t.instructor_id] || 0) + 1;
+                        instructorCounts[t.instructor_id] = (instructorCounts[t.instructor_id] || 0) + getPeriodDuration(t.period_number);
                     }
                 });
                 
@@ -945,23 +956,21 @@ function updateWeekText() {
                         const count = instructorCounts[id];
                         const info = resources.instructors.find(i => i.id == id);
                         const name = info ? info.name : 'Unknown';
-                        iHtml += \`
-                            <div class="flex justify-between items-center text-sm p-2 bg-white border border-slate-100 rounded hover:bg-slate-50 transition">
-                                <div class="flex items-center gap-2">
-                                    <div class="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold text-[10px]">\${name.charAt(0)}</div>
-                                    <span class="font-medium text-slate-700 text-xs">\${name}</span>
-                                </div>
-                                <div class="font-bold text-slate-800 text-xs">\${count} <span class="font-normal text-slate-400 text-[10px]">시간</span></div>
-                            </div>
-                        \`;
+                        iHtml += '<div class="flex justify-between items-center text-sm p-2 bg-white border border-slate-100 rounded hover:bg-slate-50 transition">' +
+                                '<div class="flex items-center gap-2">' +
+                                    '<div class="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold text-[10px]">' + name.charAt(0) + '</div>' +
+                                    '<span class="font-medium text-slate-700 text-xs">' + name + '</span>' +
+                                '</div>' +
+                                '<div class="font-bold text-slate-800 text-xs">' + count.toFixed(1) + ' <span class="font-normal text-slate-400 text-[10px]">시간</span></div>' +
+                            '</div>';
                     });
                 }
                 iHtml += '</div>';
                 document.getElementById('statusInstructorList').innerHTML = iHtml;
 
                 const warnings = [];
-                if (totalAssigned < totalPlanned) warnings.push(\`<li class="flex items-start gap-2"><i class="fas fa-exclamation-circle text-amber-500 mt-0.5"></i><span>총 훈련시간이 부족합니다. (\${totalPlanned - totalAssigned}시간 미편성)</span></li>\`);
-                if (totalAssigned > totalPlanned) warnings.push(\`<li class="flex items-start gap-2"><i class="fas fa-exclamation-triangle text-red-500 mt-0.5"></i><span>총 훈련시간이 초과되었습니다. (\${totalAssigned - totalPlanned}시간 초과)</span></li>\`);
+                if (totalAssigned < totalPlanned) warnings.push('<li class="flex items-start gap-2"><i class="fas fa-exclamation-circle text-amber-500 mt-0.5"></i><span>총 훈련시간이 부족합니다. (' + (totalPlanned - totalAssigned).toFixed(1) + '시간 미편성)</span></li>');
+                if (totalAssigned > totalPlanned) warnings.push('<li class="flex items-start gap-2"><i class="fas fa-exclamation-triangle text-red-500 mt-0.5"></i><span>총 훈련시간이 초과되었습니다. (' + (totalAssigned - totalPlanned).toFixed(1) + '시간 초과)</span></li>');
                 document.getElementById('statusWarnings').innerHTML = warnings.length > 0 ? warnings.join('') : '<li class="flex items-center gap-2 text-emerald-600"><i class="fas fa-check-circle"></i><span>현재까지 특이사항이 발견되지 않았습니다.</span></li>';
 
                 modal.classList.remove('hidden');
