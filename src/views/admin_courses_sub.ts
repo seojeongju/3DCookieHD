@@ -946,6 +946,27 @@ export const adminCoursesSessionsRegisterHtml = (editId?: string) => {
                             </div>
                         </div>
 
+                        <!-- 시간설정 (자동계산) -->
+                        <div id="sessionsCalculationResultBox" class="hidden rounded-xl border border-blue-100 bg-blue-50/30 p-5 space-y-4">
+                            <h3 class="text-sm font-extrabold text-blue-800 flex items-center gap-2">
+                                <i class="fas fa-calculator"></i> 시간설정 (자동계산)
+                            </h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">훈련일수</label>
+                                    <div class="flex items-center gap-2">
+                                        <input type="text" id="sessionsCalcTotalDays" readonly class="w-full px-4 py-2.5 bg-white border border-blue-100 rounded-xl text-sm font-black text-blue-600 focus:ring-0 cursor-default" placeholder="0">
+                                        <span class="text-xs font-bold text-slate-500">일</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">수업일 (기간 및 요일)</label>
+                                    <input type="text" id="sessionsCalcClassDays" readonly class="w-full px-4 py-2.5 bg-white border border-blue-100 rounded-xl text-sm font-bold text-slate-700 focus:ring-0 cursor-default" placeholder="시작일, 종료일, 요일을 선택하세요">
+                                </div>
+                            </div>
+                            <p class="text-[10px] text-blue-500 font-medium"><i class="fas fa-info-circle mr-1"></i> 시작일·종료일·요일 선택에 따라 실 수업일수가 자동 계산됩니다. 공휴일은 계산에서 제외되지 않으므로 필요시 종료일을 조정하세요.</p>
+                        </div>
+
                         <div>
                             <label class="block text-sm font-bold text-slate-700 mb-1">장소(교육장소)</label>
                             <select id="sessionsFormLocationSelect" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white mb-2" aria-label="등록된 훈련시설 선택">

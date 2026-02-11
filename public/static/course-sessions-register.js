@@ -317,6 +317,7 @@
                 loadApprovedCourseDetail(d.approved_course_id).then(function () { updateSessionNamePreview(); });
                 setTabPlanUrls(d.url_plan || null, d.url_detail_plan || null, id);
                 calculateDailyHours();
+                calculateTotalTrainingDays();
             })
             .catch(function () { alert('조회 실패'); });
     }
@@ -537,6 +538,9 @@
         var h = Math.floor(total / 60);
         var m = total % 60;
         preview.textContent = '(일일 ' + h + '시간' + (m > 0 ? ' ' + m + '분' : '') + ')';
+
+        // Also update total calculation Box if present
+        calculateTotalTrainingDays();
     }
 
     ['sessionsFormTrainingTimeStart', 'sessionsFormTrainingTimeEnd', 'sessionsFormLunchTimeStart', 'sessionsFormLunchTimeEnd'].forEach(function (id) {
@@ -545,6 +549,90 @@
     });
 
     document.getElementById('sessionsFormLunchNone').addEventListener('change', calculateDailyHours);
+
+    function calculateTotalTrainingDays() {
+        var startInput = document.getElementById('sessionsFormTrainingStart');
+        var endInput = document.getElementById('sessionsFormTrainingEnd');
+        var resultBox = document.getElementById('sessionsCalculationResultBox');
+        var calcDaysInput = document.getElementById('sessionsCalcTotalDays');
+        var calcClassDaysInput = document.getElementById('sessionsCalcClassDays');
+        if (!startInput || !endInput || !resultBox || !calcDaysInput || !calcClassDaysInput) return;
+
+        var startVal = startInput.value;
+        var endVal = endInput.value;
+        var checkedDays = [];
+        document.querySelectorAll('input[name="sessionsDaysOfWeek"]:checked').forEach(function (cb) {
+            checkedDays.push(cb.value);
+        });
+
+        if (!startVal || !endVal || checkedDays.length === 0) {
+            resultBox.classList.add('hidden');
+            return;
+        }
+
+        var start = new Date(startVal);
+        var end = new Date(endVal);
+        if (end < start) {
+            resultBox.classList.remove('hidden');
+            calcDaysInput.value = '0';
+            calcClassDaysInput.value = '종료일 오류';
+            return;
+        }
+
+        var dayMap = { '일': 0, '월': 1, '화': 2, '수': 3, '목': 4, '금': 5, '토': 6 };
+        var targetDayNumbers = checkedDays.map(function (d) { return dayMap[d]; });
+
+        var count = 0;
+        var cur = new Date(start.getTime());
+        var maxDays = 3650;
+        var iterations = 0;
+        while (cur <= end && iterations < maxDays) {
+            if (targetDayNumbers.indexOf(cur.getDay()) >= 0) {
+                count++;
+            }
+            cur.setDate(cur.getDate() + 1);
+            iterations++;
+        }
+
+        calcDaysInput.value = count;
+        calcClassDaysInput.value = startVal + ' ~ ' + endVal + ' (' + checkedDays.join(',') + ')';
+        resultBox.classList.remove('hidden');
+
+        // Update Total Hours if possible
+        updateTotalSessionHours(count);
+    }
+
+    function updateTotalSessionHours(daysCount) {
+        var dailyInfo = document.getElementById('sessionsDailyHoursPreview');
+        if (!dailyInfo) return;
+        var text = dailyInfo.textContent || '';
+        // Extract hours and minutes from "(일일 H시간 M분)"
+        var hMatch = text.match(/(\d+)시간/);
+        var mMatch = text.match(/(\d+)분/);
+        var hours = hMatch ? parseInt(hMatch[1], 10) : 0;
+        var mins = mMatch ? parseInt(mMatch[1], 10) : 0;
+
+        if ((hours > 0 || mins > 0) && daysCount > 0) {
+            var totalMins = (hours * 60 + mins) * daysCount;
+            var th = Math.floor(totalMins / 60);
+            var tm = totalMins % 60;
+            var totalStr = ' (총 ' + th + '시간' + (tm > 0 ? ' ' + tm + '분' : '') + ')';
+
+            // Append to daily info or somewhere else? Let's add it to the daily info for visibility
+            var baseText = text.replace(/ \(총 .*?\)/, '');
+            dailyInfo.textContent = baseText + totalStr;
+        }
+    }
+
+    var dateInputs = ['sessionsFormTrainingStart', 'sessionsFormTrainingEnd'];
+    dateInputs.forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.addEventListener('change', calculateTotalTrainingDays);
+    });
+
+    document.querySelectorAll('input[name="sessionsDaysOfWeek"]').forEach(function (cb) {
+        cb.addEventListener('change', calculateTotalTrainingDays);
+    });
 
 
     document.querySelectorAll('.session-detail-tab').forEach(function (btn) {
