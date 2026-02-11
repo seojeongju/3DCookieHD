@@ -38,7 +38,7 @@ export const adminLmsTrainingLogsHtml = `
         
         <div class="flex-1 flex flex-col overflow-hidden relative min-w-0">
             <div class="flex-1 overflow-y-auto custom-scrollbar">
-                ${lmsHeaderHtml('training-logs')}
+                ${lmsHeaderHtml('training-logs', 'hrd')}
 
     <!-- 서브 헤더 (훈련일지 전용) -->
      <div class="bg-white border-b border-gray-200 sticky top-[6.5rem] z-30">
@@ -242,12 +242,12 @@ export const adminLmsTrainingLogsHtml = `
                         <div class="text-xs text-gray-400 truncate max-w-lg font-medium leading-relaxed italic opacity-80 group-hover:opacity-100 transition-all">\${log.content || '-'}</div>
                     </td>
                     <td class="px-6 py-5">
-                        \${log.ncs_unit_name ? \\\`
+                        \${log.ncs_unit_name ? \`
                             <div class="inline-flex items-center px-2 py-0.5 bg-indigo-50 text-indigo-500 rounded-md text-[9px] font-black border border-indigo-100/50 mb-1 shadow-sm">
                                 \${log.ncs_unit_code}
                             </div>
                             <div class="text-[10px] text-gray-500 font-black truncate leading-none opacity-60 group-hover:opacity-100 transition-all font-sans uppercase tracking-tighter">\${log.ncs_unit_name}</div>
-                        \\\` : '<span class="text-gray-200 text-xs font-black tracking-widest leading-none">-</span>'}
+                        \` : '<span class="text-gray-200 text-xs font-black tracking-widest leading-none">-</span>'}
                     </td>
                     <td class="px-6 py-5 text-center font-black text-slate-700 text-sm shadow-[inset_1px_0_0_0_rgba(248,250,252,1)] shadow-[inset_-1px_0_0_0_rgba(248,250,252,1)]">\${log.training_hours}h</td>
                     <td class="px-6 py-5 text-right">
