@@ -41,7 +41,10 @@ export function adminSessionTimetableHtml(sessionId: number): string {
         <!-- Header -->
         <header class="h-20 border-b border-slate-100 flex items-center justify-between px-8 shrink-0">
             <div class="flex items-center gap-4">
-                <div class="w-10 h-10 bg-primary-50 rounded-xl flex items-center justify-center text-primary-600">
+                <button type="button" id="timetableMenuBtn" aria-label="메뉴 열기" class="lg:hidden w-10 h-10 flex items-center justify-center rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 transition shrink-0">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="w-10 h-10 bg-primary-50 rounded-xl flex items-center justify-center text-primary-600 shrink-0">
                     <i class="fas fa-calendar-alt text-xl"></i>
                 </div>
                 <div>
@@ -76,21 +79,15 @@ export function adminSessionTimetableHtml(sessionId: number): string {
         </header>
 
         <div class="flex-1 flex overflow-hidden min-h-0">
-            <!-- Left Panel: Resources -->
-            <div class="w-80 border-r border-slate-100 flex flex-col bg-slate-50/50 shrink-0">
+            <!-- Left Panel: Resources (배정 교과목 | 담당 강사 나란히) -->
+            <div class="w-[420px] border-r border-slate-100 flex flex-col bg-slate-50/50 shrink-0">
                 <div class="p-6 pb-4">
                     <div class="flex items-center justify-between mb-4">
                         <span class="text-xs font-black text-slate-400 uppercase tracking-widest">배정 교육 리소스</span>
                         <span class="text-[10px] bg-amber-100 text-amber-600 px-2 py-0.5 rounded-full font-bold">항목 선택 후 그리드 클릭</span>
                     </div>
-                    
-                    <div class="relative group mb-4">
-                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-primary-500 transition"></i>
-                        <input type="text" oninput="filterInstructors(this.value)" placeholder="배정된 강사 내 검색..." class="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition shadow-sm">
-                    </div>
-                    
-                    <!-- 배정 완료 현황 (상단으로 이동) -->
-                    <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
+                    <!-- 배정 완료 현황 -->
+                    <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100 mb-4">
                         <div class="flex justify-between items-center mb-2">
                              <span class="text-xs font-bold text-slate-500">배정 완료 현황</span>
                              <span class="text-xs font-black text-primary-600"><span id="currentHours">0</span> / <span id="targetHours">--</span> <span class="text-lg text-slate-400 font-normal">시간</span></span>
@@ -101,14 +98,12 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                     </div>
                 </div>
 
-                <div id="resourcePanel" class="flex-1 overflow-y-auto p-4 pt-0 space-y-6 custom-scrollbar">
-                    <!-- Dynamic Content -->
+                <div id="resourcePanel" class="flex-1 overflow-y-auto p-4 pt-0 custom-scrollbar min-h-0">
+                    <!-- Dynamic: 배정 교과목 | 담당 강사 2열 -->
                     <div class="flex items-center justify-center h-40 text-slate-300">
                         <i class="fas fa-circle-notch fa-spin mr-2"></i> 로딩 중...
                     </div>
                 </div>
-
-
             </div>
 
             <!-- Right Panel: Grid -->
@@ -330,9 +325,10 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                 if(!container) return;
 
                 let html = '';
-                
-                // Subjects
-                html += '<div class="space-y-3"><div><span class="text-[11px] font-black text-slate-400 uppercase tracking-widest">배정 교과목</span></div>';
+                // 2열: 배정 교과목 | 담당 강사 나란히
+                html += '<div class="flex gap-4 min-h-0">';
+                html += '<div class="flex-1 min-w-0 overflow-y-auto space-y-3 custom-scrollbar">';
+                html += '<div><span class="text-[11px] font-black text-slate-400 uppercase tracking-widest">배정 교과목</span></div>';
                 resources.subjects.forEach(s => {
                     let assignedCount = 0;
                     timetableData.forEach(t => {
@@ -374,14 +370,18 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                                 if (unit.code) html += ' <span class="text-blue-400 font-mono text-[8px]">(' + unit.code + ')</span>';
                                 html += '</div>';
                                 
-                                // Elements under this unit
+                                // Elements under this unit (요소단위 코드·코드명 노출)
                                 if (unit.elements && Array.isArray(unit.elements) && unit.elements.length > 0) {
                                     html += '<div class="space-y-0.5 mt-1.5 pl-2 border-l-2 border-blue-200">';
                                     unit.elements.slice(0, 3).forEach(elem => {
-                                        const elemName = typeof elem === 'object' ? (elem.name || elem) : elem;
+                                        const elemObj = typeof elem === 'object' ? elem : null;
+                                        const elemName = (elemObj && (elemObj.name !== undefined ? elemObj.name : elem)) || (typeof elem === 'string' ? elem : '');
+                                        const elemCode = (elemObj && elemObj.code) ? String(elemObj.code).replace(/</g, '&lt;') : '';
+                                        const nameEsc = String(elemName).replace(/</g, '&lt;').replace(/"/g, '&quot;');
                                         html += '<div class="text-[8px] text-slate-600 flex items-start gap-1">';
                                         html += '<i class="fas fa-angle-right text-[6px] text-blue-300 mt-0.5"></i>';
-                                        html += '<span class="line-clamp-1">' + elemName + '</span>';
+                                        if (elemCode) html += '<span class="font-mono text-blue-600/90 shrink-0">' + elemCode + '</span> ';
+                                        html += '<span class="line-clamp-1">' + nameEsc + '</span>';
                                         html += '</div>';
                                     });
                                     if (unit.elements.length > 3) {
@@ -419,19 +419,26 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                 });
                 html += '</div>';
 
-                // Instructors
-                html += '<div class="space-y-3 pt-4 border-t border-slate-100"><div><span class="text-[11px] font-black text-slate-400 uppercase tracking-widest">담당 강사</span></div>';
+                // 담당 강사 (배정 교과목 옆 열)
+                html += '<div class="flex-1 min-w-0 flex flex-col border-l border-slate-200 pl-4">';
+                html += '<div><span class="text-[11px] font-black text-slate-400 uppercase tracking-widest">담당 강사</span></div>';
+                html += '<div class="relative group mt-2 mb-3">';
+                html += '<i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-300 text-xs group-focus-within:text-primary-500 transition"></i>';
+                html += '<input type="text" oninput="filterInstructors(this.value)" placeholder="강사 검색..." class="w-full bg-white border border-slate-200 rounded-lg pl-8 pr-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition">';
+                html += '</div>';
+                html += '<div class="space-y-2 overflow-y-auto custom-scrollbar flex-1 min-h-0">';
                 const filtered = resources.instructors.filter(i => i.name.includes(instructorSearchTerm));
                 filtered.forEach(i => {
                     const isSelected = activeInstructorId === i.id;
-                    html += '<div onclick="selectInstructor(' + i.id + ')" class="flex items-center gap-3 p-3 rounded-xl cursor-pointer transition border ' + (isSelected ? 'bg-white border-primary-500 shadow-sm ring-2 ring-primary-500/10' : 'hover:bg-white border-transparent') + '">';
-                    html += '<div class="w-8 h-8 rounded-lg bg-slate-200 flex items-center justify-center text-slate-500 font-bold text-xs">' + i.name.charAt(0) + '</div>';
-                    html += '<div><div class="text-sm font-bold ' + (isSelected ? 'text-primary-700' : 'text-slate-700') + '">' + i.name + '</div><div class="text-[10px] text-slate-400 font-medium">' + (i.major_field || '전문강사') + '</div></div>';
-                    if(isSelected) html += '<i class="fas fa-check text-primary-500 ml-auto text-xs"></i>';
+                    html += '<div onclick="selectInstructor(' + i.id + ')" class="flex items-center gap-2 p-2.5 rounded-xl cursor-pointer transition border ' + (isSelected ? 'bg-white border-primary-500 shadow-sm ring-2 ring-primary-500/10' : 'hover:bg-white border-transparent') + '">';
+                    html += '<div class="w-7 h-7 rounded-lg bg-slate-200 flex items-center justify-center text-slate-500 font-bold text-[10px] shrink-0">' + (i.name ? i.name.charAt(0) : '') + '</div>';
+                    html += '<div class="min-w-0 flex-1"><div class="text-xs font-bold truncate ' + (isSelected ? 'text-primary-700' : 'text-slate-700') + '">' + (i.name || '') + '</div><div class="text-[9px] text-slate-400 truncate">' + (i.major_field || '전문강사') + '</div></div>';
+                    if(isSelected) html += '<i class="fas fa-check text-primary-500 text-xs shrink-0"></i>';
                     html += '</div>';
                 });
-                html += '</div>';
+                html += '</div></div>';
 
+                html += '</div>';
                 container.innerHTML = html;
                 updateHoursCount();
             }
@@ -865,6 +872,21 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                     modal.classList.add('hidden');
                 }, 300);
             }
+
+            // 시간표 페이지 메뉴 버튼: 사이드바 열기 (모바일/태블릿)
+            (function(){
+                var btn = document.getElementById('timetableMenuBtn');
+                var wrap = document.getElementById('adminSidebarWrap');
+                var backdrop = document.getElementById('adminSidebarBackdrop');
+                if (btn && wrap) {
+                    btn.addEventListener('click', function() {
+                        wrap.classList.remove('-translate-x-full');
+                        wrap.classList.add('translate-x-0');
+                        if (backdrop) { backdrop.classList.remove('hidden'); }
+                        document.body.style.overflow = 'hidden';
+                    });
+                }
+            })();
 
         }) ();
     </script>

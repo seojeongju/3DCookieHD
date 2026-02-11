@@ -478,8 +478,7 @@ app.get('/:id/timetable/resources', authMiddleware, requireAdmin, async (c) => {
 
     let subjects: any[] = [];
     if (registration) {
-      // 3. Curriculum + Hours
-      // Join curriculum with training hours table
+      // 3. Curriculum + Hours — 과정개설 시 설정된 직종명·능력단위·요소단위 반영 (교과목별 job_name 우선)
       const rows = await DB.prepare(
         `SELECT 
              c.id, 
@@ -487,8 +486,8 @@ app.get('/:id/timetable/resources', authMiddleware, requireAdmin, async (c) => {
              c.type, 
              c.classification as ncs_classification_code, 
              COALESCE(h.theory_hours, 0) + COALESCE(h.practice_hours, 0) as total_time,
+             COALESCE(NULLIF(TRIM(c.job_name), ''), r.main_job_name) as main_job_name,
              r.main_job_code,
-             r.main_job_name,
              c.ability_units_json,
              c.units_json
            FROM ncs_approved_curriculum c
