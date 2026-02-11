@@ -21,10 +21,10 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
       }
     </script>
     <style>
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #64748b; }
         body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; }
         @keyframes skeleton-shimmer { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
         .skeleton-row .skeleton-bar { background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%); background-size: 200% 100%; animation: skeleton-shimmer 1.2s ease-in-out infinite; border-radius: 4px; height: 14px; }
@@ -36,9 +36,9 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 text-sm">
-    <div class="flex h-screen overflow-hidden">
+    <div class="flex h-[100dvh] overflow-hidden min-h-0 min-w-0">
         ${sidebar}
-        <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <div class="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
             <!-- Header -->
             <header class="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-6 shrink-0 z-10">
                 <div class="flex items-center gap-4">
@@ -60,7 +60,7 @@ export const adminCoursesListHtml = (sidebar = hrdSidebar('courses-register')) =
             </header>
 
             <!-- Main Content -->
-            <main class="flex-1 overflow-auto p-6 custom-scrollbar bg-slate-50">
+            <main class="flex-1 overflow-auto p-6 custom-scrollbar bg-slate-50 min-h-0">
                 <!-- 0. List type & Status Tabs -->
                 <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-6">
                     <div class="flex items-center gap-3">

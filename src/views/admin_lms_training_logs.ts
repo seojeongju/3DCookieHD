@@ -32,12 +32,12 @@ export const adminLmsTrainingLogsHtml = `
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
 </head>
-<body class="bg-gray-50 overflow-hidden">
-    <div class="flex h-screen overflow-hidden">
+<body class="bg-gray-50 overflow-x-hidden">
+    <div class="flex h-screen min-h-0 overflow-hidden">
         ${hrdSidebar('courses')}
         
-        <div class="flex-1 flex flex-col overflow-hidden relative min-w-0">
-            <div class="flex-1 overflow-y-auto custom-scrollbar">
+        <div class="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden relative">
+            <div class="flex-1 min-h-0 overflow-y-auto overflow-x-auto custom-scrollbar">
                 ${lmsHeaderHtml('training-logs', 'hrd')}
 
     <!-- 서브 헤더 (훈련일지 전용) -->
@@ -67,9 +67,9 @@ export const adminLmsTrainingLogsHtml = `
             </div>
 
             <!-- 오른쪽: 일지 목록 -->
-            <div class="lg:col-span-3">
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                    <table class="w-full text-left border-collapse">
+            <div class="lg:col-span-3 min-w-0">
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden overflow-x-auto">
+                    <table class="w-full text-left border-collapse min-w-[640px]">
                         <thead class="bg-gray-50/50 border-b">
                             <tr>
                                 <th class="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider w-32">일자</th>
@@ -91,10 +91,10 @@ export const adminLmsTrainingLogsHtml = `
     <!-- 일지 등록 모달 -->
     <!-- 일지 등록 모달 -->
     <!-- 일지 등록 모달 -->
-    <div id="logModal" class="fixed inset-0 bg-black/60 hidden z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col transform transition-all border border-gray-100">
+    <div id="logModal" class="fixed inset-0 bg-black/60 hidden z-[60] flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[90vh] min-h-0 flex flex-col my-4 transform transition-all border border-gray-100 shadow-2xl">
             <!-- Header -->
-            <div class="p-6 border-b flex-none flex justify-between items-center bg-gray-50 rounded-t-xl z-10 relative">
+            <div class="p-6 border-b flex-none flex justify-between items-center bg-gray-50 rounded-t-xl z-10 relative shrink-0">
                  <div class="flex items-center gap-2">
                     <i class="fas fa-calendar-check text-indigo-600 text-xl"></i>
                     <h3 class="text-xl font-bold text-gray-900" id="modalTitle">훈련일지 작성</h3>
@@ -102,7 +102,7 @@ export const adminLmsTrainingLogsHtml = `
                 <button onclick="closeLogModal()" class="text-gray-400 hover:text-gray-600 transition-colors w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-200"><i class="fas fa-times text-lg"></i></button>
             </div>
 
-            <form id="logForm" onsubmit="handleSaveLog(event)" class="p-8 space-y-6 overflow-y-auto flex-1 custom-scrollbar bg-white">
+            <form id="logForm" onsubmit="handleSaveLog(event)" class="p-8 space-y-6 overflow-y-auto flex-1 min-h-0 custom-scrollbar bg-white">
                 <input type="hidden" id="logId">
                 
                 <!-- 상단 설정 바 (Administrative Fields) -->
@@ -160,7 +160,7 @@ export const adminLmsTrainingLogsHtml = `
                         </tr>
                         <tr>
                             <td class="border border-gray-800 bg-gray-100 font-bold p-2 text-center">훈련과정명</td>
-                            <td class="border border-gray-800 p-2 text-center text-gray-400 italic font-medium tracking-tight text-xs">[과정명 자동 입력됨]</td>
+                            <td class="border border-gray-800 p-2 text-center font-medium tracking-tight text-xs text-gray-800" id="logCourseName">-</td>
                             <td class="border border-gray-800 bg-gray-100 font-bold p-2 text-center">재적</td>
                             <td class="border border-gray-800 p-2 text-center text-gray-400 italic">- 명</td>
                         </tr>
@@ -798,8 +798,28 @@ export const adminLmsTrainingLogsHtml = `
             const elTitle = document.getElementById('modalTitle');
             if (elTitle) elTitle.textContent = '훈련일지 작성';
             
+            setModalCourseName();
+            
             const elModal = document.getElementById('logModal');
             if (elModal) elModal.classList.remove('hidden');
+        }
+        
+        function setModalCourseName() {
+            const el = document.getElementById('logCourseName');
+            if (!el) return;
+            const headerTitle = document.getElementById('header-courseTitle');
+            const name = (headerTitle && headerTitle.textContent && !headerTitle.textContent.includes('불러오는 중')) 
+                ? headerTitle.textContent.trim() 
+                : '';
+            if (name) {
+                el.textContent = name;
+                el.classList.remove('text-gray-400', 'italic');
+                el.classList.add('text-gray-800');
+            } else {
+                el.textContent = '-';
+                el.classList.add('text-gray-400', 'italic');
+                el.classList.remove('text-gray-800');
+            }
         }
 
         async function editLog(log) {
@@ -869,6 +889,8 @@ export const adminLmsTrainingLogsHtml = `
 
             const elTitle = document.getElementById('modalTitle');
             if (elTitle) elTitle.textContent = '훈련일지 수정';
+            
+            setModalCourseName();
             
             const elModal = document.getElementById('logModal');
             if (elModal) elModal.classList.remove('hidden');

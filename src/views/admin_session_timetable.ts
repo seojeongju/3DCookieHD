@@ -27,18 +27,17 @@ export function adminSessionTimetableHtml(sessionId: number): string {
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
         body { font-family: 'Inter', 'Noto Sans KR', sans-serif; }
         .grid-bg { background-image: radial-gradient(#e2e8f0 1px, transparent 1px); background-size: 20px 20px; }
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #64748b; }
         .sticky-col { position: sticky; left: 0; background: white; z-index: 10; }
         .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-    </style>
 </head>
-<body class="bg-slate-50 min-h-screen flex overflow-hidden">
+<body class="bg-slate-50 h-[100dvh] flex overflow-hidden min-h-0">
     ${sidebar}
 
-    <main class="flex-1 flex flex-col min-w-0 bg-white shadow-2xl relative z-10 lg:rounded-l-[40px]">
+    <main class="flex-1 flex flex-col min-w-0 min-h-0 bg-white shadow-2xl relative z-10 lg:rounded-l-[40px]">
         <!-- Header -->
         <header class="h-20 border-b border-slate-100 flex items-center justify-between px-8 shrink-0">
             <div class="flex items-center gap-4">
@@ -76,30 +75,22 @@ export function adminSessionTimetableHtml(sessionId: number): string {
             </div>
         </header>
 
-        <div class="flex-1 flex overflow-hidden">
+        <div class="flex-1 flex overflow-hidden min-h-0">
             <!-- Left Panel: Resources -->
             <div class="w-80 border-r border-slate-100 flex flex-col bg-slate-50/50 shrink-0">
-                <div class="p-6 pb-2">
+                <div class="p-6 pb-4">
                     <div class="flex items-center justify-between mb-4">
                         <span class="text-xs font-black text-slate-400 uppercase tracking-widest">배정 교육 리소스</span>
                         <span class="text-[10px] bg-amber-100 text-amber-600 px-2 py-0.5 rounded-full font-bold">항목 선택 후 그리드 클릭</span>
                     </div>
                     
-                    <div class="relative group">
+                    <div class="relative group mb-4">
                         <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-primary-500 transition"></i>
-                        <input type="text" oninput="filterInstructors(this.value)" placeholder="강사명으로 검색..." class="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition shadow-sm">
+                        <input type="text" oninput="filterInstructors(this.value)" placeholder="배정된 강사 내 검색..." class="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition shadow-sm">
                     </div>
-                </div>
-
-                <div id="resourcePanel" class="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
-                    <!-- Dynamic Content -->
-                    <div class="flex items-center justify-center h-40 text-slate-300">
-                        <i class="fas fa-circle-notch fa-spin mr-2"></i> 로딩 중...
-                    </div>
-                </div>
-
-                <div class="p-4 bg-white border-t border-slate-100">
-                    <div class="bg-slate-50 rounded-xl p-4">
+                    
+                    <!-- 배정 완료 현황 (상단으로 이동) -->
+                    <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
                         <div class="flex justify-between items-center mb-2">
                              <span class="text-xs font-bold text-slate-500">배정 완료 현황</span>
                              <span class="text-xs font-black text-primary-600"><span id="currentHours">0</span> / <span id="targetHours">--</span> <span class="text-lg text-slate-400 font-normal">시간</span></span>
@@ -109,6 +100,15 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                         </div>
                     </div>
                 </div>
+
+                <div id="resourcePanel" class="flex-1 overflow-y-auto p-4 pt-0 space-y-6 custom-scrollbar">
+                    <!-- Dynamic Content -->
+                    <div class="flex items-center justify-center h-40 text-slate-300">
+                        <i class="fas fa-circle-notch fa-spin mr-2"></i> 로딩 중...
+                    </div>
+                </div>
+
+
             </div>
 
             <!-- Right Panel: Grid -->
@@ -273,7 +273,7 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                         fetch('/api/course-sessions/' + sessionId, { headers }),
                         fetch('/api/course-sessions/' + sessionId + '/timetable/resources', { headers }),
                         fetch('/api/course-sessions/' + sessionId + '/timetable', { headers }),
-                        fetch('/api/course-sessions/' + sessionId + '/timetable/periods', { headers })
+                        fetch('/api/course-sessions/' + sessionId + '/timetable/config', { headers })
                     ]);
 
                     const sJson = await sRes.json();
@@ -340,23 +340,80 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                     });
                     
                     const isSelected = activeSubjectId === s.id;
+                    
+                    // Parse ability units and regular units
+                    const abilityUnits = s.ability_units_json ? JSON.parse(s.ability_units_json) : [];
                     const items = s.units_json ? JSON.parse(s.units_json) : [];
 
                     html += '<div onclick="selectSubject(' + s.id + ')" class="group cursor-pointer bg-white border ' + (isSelected ? 'border-primary-500 ring-2 ring-primary-500/10' : 'border-slate-100') + ' rounded-2xl p-4 transition-all hover:shadow-md">';
+                    // Header with subject name
                     html += '<div class="flex justify-between items-start mb-2">';
                     html += '<div class="font-bold text-slate-800 text-sm line-clamp-1" title="' + (s.name || '').replace(/"/g, '&quot;') + '">' + (s.name || '') + '</div>';
                     if(isSelected) html += '<i class="fas fa-check-circle text-primary-500"></i>';
-                    html += '</div>';
+          html += '</div>';
                     
-                    html += '<div class="flex flex-wrap gap-1 mb-3">';
-                    items.slice(0, 3).forEach(e => {
-                        html += '<span class="text-[8px] font-mono bg-slate-100 text-slate-500 px-1 rounded border border-slate-200/50">' + e + '</span>';
-                    });
-                    if(items.length > 3) html += '<span class="text-[8px] text-slate-300">...</span>';
-                    html += '</div>';
+                    // Job classification info
+                    if (s.main_job_name || s.main_job_code) {
+                        html += '<div class="mb-2 pb-2 border-b border-slate-100">';
+                        html += '<div class="text-[9px] text-primary-600 font-bold flex items-center gap-1">';
+                        html += '<i class="fas fa-briefcase"></i>';
+                        html += '<span>' + (s.main_job_name || '') + (s.main_job_code ? ' (' + s.main_job_code + ')' : '') + '</span>';
+                        html += '</div>';
+                        html += '</div>';
+                    }
+                    
+                    // Ability Units (능력단위) with elements
+                    if (abilityUnits.length > 0) {
+                        html += '<div class="mb-3 space-y-1.5">';
+                        html += '<div class="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1"><i class="fas fa-cube text-[8px] mr-1"></i>능력단위</div>';
+                        
+                        abilityUnits.slice(0, 2).forEach(unit => {
+                            if (typeof unit === 'object' && unit.name) {
+                                html += '<div class="bg-blue-50/50 rounded-lg p-2 border border-blue-100/50">';
+                                html += '<div class="text-[9px] font-bold text-blue-700 mb-1">' + unit.name;
+                                if (unit.code) html += ' <span class="text-blue-400 font-mono text-[8px]">(' + unit.code + ')</span>';
+                                html += '</div>';
+                                
+                                // Elements under this unit
+                                if (unit.elements && Array.isArray(unit.elements) && unit.elements.length > 0) {
+                                    html += '<div class="space-y-0.5 mt-1.5 pl-2 border-l-2 border-blue-200">';
+                                    unit.elements.slice(0, 3).forEach(elem => {
+                                        const elemName = typeof elem === 'object' ? (elem.name || elem) : elem;
+                                        html += '<div class="text-[8px] text-slate-600 flex items-start gap-1">';
+                                        html += '<i class="fas fa-angle-right text-[6px] text-blue-300 mt-0.5"></i>';
+                                        html += '<span class="line-clamp-1">' + elemName + '</span>';
+                                        html += '</div>';
+                                    });
+                                    if (unit.elements.length > 3) {
+                                        html += '<div class="text-[7px] text-slate-400 italic">+' + (unit.elements.length - 3) + ' more...</div>';
+                                    }
+                                    html += '</div>';
+                                }
+                                html += '</div>';
+                            } else {
+                                // Simple string format
+                                html += '<div class="text-[9px] bg-blue-50/50 text-blue-700 px-2 py-1 rounded border border-blue-100/50">' + unit + '</div>';
+                            }
+                        });
+                        
+                        if (abilityUnits.length > 2) {
+                            html += '<div class="text-[8px] text-slate-400 text-center italic">+' + (abilityUnits.length - 2) + ' 개 능력단위 더보기</div>';
+                        }
+                        html += '</div>';
+                    }
+                    
+                    // Additional units display (if different from ability units)
+                    if (items.length > 0 && JSON.stringify(items) !== JSON.stringify(abilityUnits)) {
+                        html += '<div class="flex flex-wrap gap-1 mb-3">';
+                        items.slice(0, 3).forEach(e => {
+                            html += '<span class="text-[8px] font-mono bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200/50">' + e + '</span>';
+                        });
+                        if(items.length > 3) html += '<span class="text-[8px] text-slate-300">+' + (items.length - 3) + '</span>';
+                        html += '</div>';
+                    }
 
                     const pct = Math.min(Math.round((assignedCount / (s.total_time || 1)) * 100), 100);
-                    html += '<div class="flex justify-between items-center text-[10px] mb-1"><span class="text-slate-400 font-bold">Progress</span><span class="' + (pct >= 100 ? 'text-emerald-500' : 'text-primary-600') + ' font-black">' + assignedCount.toFixed(1) + ' / ' + (s.total_time || 0) + 'H</span></div>';
+                    html += '<div class="flex justify-between items-center text-[10px] mb-1 pt-2 border-t border-slate-100"><span class="text-slate-400 font-bold">Progress</span><span class="' + (pct >= 100 ? 'text-emerald-500' : 'text-primary-600') + ' font-black">' + assignedCount.toFixed(1) + ' / ' + (s.total_time || 0) + 'H</span></div>';
                     html += '<div class="w-full bg-slate-100 h-1 rounded-full overflow-hidden leading-none"><div class="' + (pct >= 100 ? 'bg-emerald-500' : 'bg-primary-500') + ' h-full transition-all" style="width: ' + pct + '%"></div></div>';
                     html += '</div>';
                 });
@@ -386,7 +443,7 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                     const [sh, sm] = cfg.start_time.split(':').map(Number);
                     const [eh, em] = cfg.end_time.split(':').map(Number);
                     const diff = (eh * 60 + em) - (sh * 60 + sm);
-                    return diff / 60; // 시간을 실수로 반환 (예: 50분 -> 0.83시간)
+                    return (diff + (cfg.break_minute || 0)) / 60; // 쉬는 시간을 포함하여 계산
                 } catch(e) { return 1; }
             }
 
@@ -446,7 +503,7 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                         const cellData = timetableData.find(t => t.training_date === dateStr && t.period_number === cfg.period_number);
                         
                         const subject = cellData ? resources.subjects.find(s => s.id === cellData.subject_id) : null;
-                        const instructor = cellData ? resources.instructors.find(ins => ins.id === cellData.instructor_id) : null;
+                        const instructor = cellData ? resources.instructors.find(ins => String(ins.id) == String(cellData.instructor_id)) : null;
                         const isExcluded = cellData && cellData.is_excluded;
 
                         let tdCls = 'border-l border-b border-slate-200 p-1 align-top hover:bg-slate-50 cursor-pointer transition h-20 relative';
@@ -632,10 +689,10 @@ export function adminSessionTimetableHtml(sessionId: number): string {
 
             async function savePeriodConfig() {
                 try {
-                    await fetch('/api/course-sessions/' + sessionId + '/timetable/periods', {
+                    await fetch('/api/course-sessions/' + sessionId + '/timetable/config', {
                         method: 'POST',
                         headers,
-                        body: JSON.stringify(periodConfigs)
+                        body: JSON.stringify({ configs: periodConfigs })
                     });
                 } catch(e) { console.error(e); }
             }
@@ -645,7 +702,7 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                     const res = await fetch('/api/course-sessions/' + sessionId + '/timetable', {
                         method: 'POST',
                         headers,
-                        body: JSON.stringify(timetableData)
+                        body: JSON.stringify({ schedules: timetableData })
                     });
                     const json = await res.json();
                     if(json.success) showToast('시간표가 정상적으로 저장되었습니다.');

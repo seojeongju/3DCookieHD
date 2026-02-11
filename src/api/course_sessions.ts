@@ -353,8 +353,8 @@ app.get('/', authMiddleware, requireAdmin, async (c) => {
       rows = await DB.prepare(
         `SELECT s.id, s.approved_course_id, s.session_number, s.session_name, s.status,
                 s.training_start_date, s.training_end_date, s.url_ncs, s.url_plan, s.url_detail_plan,
-                s.registered_at, s.created_at, s.homepage_exposed,
-                a.name as course_name, a.category_id, a.instructor_name,
+                s.registered_at, s.created_at, s.homepage_exposed, s.instructor_name,
+                a.name as course_name, a.category_id, a.instructor_name as approved_instructor_name,
                 c.name as category_name
          FROM course_sessions s
          INNER JOIN approved_courses a ON a.id = s.approved_course_id
@@ -370,8 +370,8 @@ app.get('/', authMiddleware, requireAdmin, async (c) => {
       rows = await DB.prepare(
         `SELECT s.id, s.approved_course_id, s.session_number, s.status,
                 s.training_start_date, s.training_end_date, s.url_ncs, s.url_plan, s.url_detail_plan,
-                s.registered_at, s.created_at, s.homepage_exposed,
-                a.name as course_name, a.category_id, a.instructor_name,
+                s.registered_at, s.created_at, s.homepage_exposed, s.instructor_name,
+                a.name as course_name, a.category_id, a.instructor_name as approved_instructor_name,
                 c.name as category_name
          FROM course_sessions s
          INNER JOIN approved_courses a ON a.id = s.approved_course_id
@@ -393,6 +393,283 @@ app.get('/', authMiddleware, requireAdmin, async (c) => {
   } catch (e) {
     console.error('course-sessions list:', e);
     return c.json({ success: false, error: '목록 조회 실패' }, 500);
+  }
+});
+
+// ============================================
+// 시간표(Timetable) 관련 API
+// ============================================
+
+/**
+ * GET /api/course-sessions/:id/timetable/config
+ * 교시 설정 조회
+ */
+app.get('/:id/timetable/config', authMiddleware, requireAdmin, async (c) => {
+  try {
+    const id = parseInt(c.req.param('id'), 10);
+    if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
+
+    const { DB } = c.env;
+    const configs = await DB.prepare(
+      'SELECT * FROM session_period_configs WHERE session_id = ? ORDER BY period_number ASC'
+    )
+      .bind(id)
+      .all();
+
+    return c.json({ success: true, data: configs.results || [] });
+  } catch (e) {
+    console.error('timetable config get:', e);
+    return c.json({ success: false, error: '설정 조회 실패' }, 500);
+  }
+});
+
+/**
+ * POST /api/course-sessions/:id/timetable/config
+ * 교시 설정 저장
+ */
+app.post('/:id/timetable/config', authMiddleware, requireAdmin, async (c) => {
+  try {
+    const id = parseInt(c.req.param('id'), 10);
+    if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
+
+    const body = await c.req.json<{ configs: any[] }>();
+    const configs = body.configs || [];
+    const { DB } = c.env;
+
+    // Transaction implementation locally using batch
+    const stmts = [
+      DB.prepare('DELETE FROM session_period_configs WHERE session_id = ?').bind(id)
+    ];
+
+    for (const cfg of configs) {
+      stmts.push(
+        DB.prepare(
+          'INSERT INTO session_period_configs (session_id, period_number, start_time, end_time, break_minute) VALUES (?, ?, ?, ?, ?)'
+        ).bind(id, cfg.period_number, cfg.start_time, cfg.end_time, cfg.break_minute || 0)
+      );
+    }
+
+    await DB.batch(stmts);
+    return c.json({ success: true });
+  } catch (e) {
+    console.error('timetable config save:', e);
+    return c.json({ success: false, error: '설정 저장 실패' }, 500);
+  }
+});
+
+/**
+ * GET /api/course-sessions/:id/timetable/resources
+ * 교과목 및 강사 리스트 조회 (NCS 편성 정보 기반)
+ */
+app.get('/:id/timetable/resources', authMiddleware, requireAdmin, async (c) => {
+  try {
+    const id = parseInt(c.req.param('id'), 10);
+    if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
+
+    const { DB } = c.env;
+
+    // 1. Session Info to get approved_course_id and instructor_name
+    const session = await DB.prepare('SELECT approved_course_id, instructor_name FROM course_sessions WHERE id = ?').bind(id).first<{ approved_course_id: number, instructor_name: string }>();
+    if (!session) return c.json({ success: false, error: '회차 정보 없음' }, 404);
+
+    // 2. NCS Registration ID
+    // Check if registration exists for this approved course
+    const registration = await DB.prepare('SELECT id FROM ncs_approved_registrations WHERE approved_course_id = ?').bind(session.approved_course_id).first<{ id: number }>();
+
+    let subjects: any[] = [];
+    if (registration) {
+      // 3. Curriculum + Hours
+      // Join curriculum with training hours table
+      const rows = await DB.prepare(
+        `SELECT 
+             c.id, 
+             c.name, 
+             c.type, 
+             c.classification as ncs_classification_code, 
+             COALESCE(h.theory_hours, 0) + COALESCE(h.practice_hours, 0) as total_time,
+             r.main_job_code,
+             r.main_job_name,
+             c.ability_units_json,
+             c.units_json
+           FROM ncs_approved_curriculum c
+           LEFT JOIN ncs_approved_training_hours h ON h.curriculum_id = c.id
+           LEFT JOIN ncs_approved_registrations r ON r.id = c.registration_id
+           WHERE c.registration_id = ?`
+      )
+        .bind(registration.id)
+        .all();
+      subjects = rows.results || [];
+    }
+
+    // 3. Instructors (Filtered by assignment)
+    let instructors: any[] = [];
+    try {
+      const assignedIds = new Set<string | number>();
+
+      // A. Fetch from curriculum assignments
+      if (registration) {
+        const currRows = await DB.prepare(
+          'SELECT main_instructor_ids_json FROM ncs_approved_curriculum WHERE registration_id = ?'
+        ).bind(registration.id).all();
+
+        (currRows.results || []).forEach((r: any) => {
+          if (r.main_instructor_ids_json) {
+            try {
+              const ids = JSON.parse(r.main_instructor_ids_json);
+              if (Array.isArray(ids)) {
+                ids.forEach(id => {
+                  if (id) assignedIds.add(id);
+                });
+              }
+            } catch (e) { }
+          }
+        });
+      }
+
+      // B. Include instructors already assigned in the current timetable
+      const currentTimetableInstructors = await DB.prepare(
+        'SELECT DISTINCT instructor_id FROM session_timetable WHERE session_id = ? AND instructor_id IS NOT NULL'
+      ).bind(id).all();
+
+      (currentTimetableInstructors.results || []).forEach((r: any) => {
+        if (r.instructor_id) assignedIds.add(r.instructor_id);
+      });
+
+      // C. Build query based on IDs and session instructor name
+      let instQuery = "SELECT id, name FROM users WHERE role IN ('teacher', 'instructor', 'admin')";
+      const params: any[] = [];
+
+      if (assignedIds.size > 0 || (session.instructor_name && session.instructor_name.trim())) {
+        let filterParts: string[] = [];
+
+        if (assignedIds.size > 0) {
+          const idsArray = Array.from(assignedIds);
+          const placeholders = idsArray.map(() => '?').join(',');
+          filterParts.push(`id IN (${placeholders})`);
+          params.push(...idsArray);
+        }
+
+        if (session.instructor_name && session.instructor_name.trim()) {
+          // Splitting by comma if multiple names are listed
+          const names = session.instructor_name.split(/[,/]/).map(n => n.trim()).filter(n => n);
+          if (names.length > 0) {
+            const namePlaceholders = names.map(() => '?').join(',');
+            filterParts.push(`name IN (${namePlaceholders})`);
+            params.push(...names);
+          }
+        }
+
+        if (filterParts.length > 0) {
+          instQuery += ` AND (${filterParts.join(' OR ')})`;
+        }
+      }
+
+      instQuery += " ORDER BY name ASC";
+      const instRows = await DB.prepare(instQuery).bind(...params).all();
+      instructors = instRows.results || [];
+
+      // Note: If no instructors found, we return empty array instead of all instructors
+      // This ensures only assigned instructors appear in the timetable
+    } catch (e) {
+      console.error('instructor filter error:', e);
+      // On error, return empty array to maintain security
+      instructors = [];
+    }
+
+    return c.json({
+      success: true,
+      data: {
+        subjects: subjects,
+        instructors: instructors
+      }
+    });
+  } catch (e) {
+    console.error('timetable resources get:', e);
+    return c.json({ success: false, error: '리소스 조회 실패' }, 500);
+  }
+});
+
+/**
+ * GET /api/course-sessions/:id/timetable
+ * 시간표 조회
+ */
+app.get('/:id/timetable', authMiddleware, requireAdmin, async (c) => {
+  try {
+    const id = parseInt(c.req.param('id'), 10);
+    const startDate = c.req.query('start_date');
+    const endDate = c.req.query('end_date');
+
+    if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
+
+    const { DB } = c.env;
+    let query = 'SELECT * FROM session_timetable WHERE session_id = ?';
+    const params: any[] = [id];
+
+    if (startDate) {
+      query += ' AND training_date >= ?';
+      params.push(startDate);
+    }
+    if (endDate) {
+      query += ' AND training_date <= ?';
+      params.push(endDate);
+    }
+
+    const rows = await DB.prepare(query).bind(...params).all();
+    return c.json({ success: true, data: rows.results || [] });
+  } catch (e) {
+    console.error('timetable get:', e);
+    return c.json({ success: false, error: '시간표 조회 실패' }, 500);
+  }
+});
+
+/**
+ * POST /api/course-sessions/:id/timetable
+ * 시간표 저장 (Batch Update/Insert)
+ */
+app.post('/:id/timetable', authMiddleware, requireAdmin, async (c) => {
+  try {
+    const id = parseInt(c.req.param('id'), 10);
+    if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
+
+    const body = await c.req.json<{ schedules: any[] }>();
+    const schedules = body.schedules || [];
+    const { DB } = c.env;
+
+    // Strategy: Upsert logic: Delete (date, period) then Insert.
+
+    // Process in chunks to avoid D1 batch limits (approx 100 statements limit)
+    const CHUNK_SIZE = 20;
+    for (let i = 0; i < schedules.length; i += CHUNK_SIZE) {
+      const chunk = schedules.slice(i, i + CHUNK_SIZE);
+      const stmts: any[] = [];
+
+      for (const s of chunk) {
+        stmts.push(DB.prepare(
+          'DELETE FROM session_timetable WHERE session_id = ? AND training_date = ? AND period_number = ?'
+        ).bind(id, s.training_date, s.period_number));
+
+        if (!s.is_excluded && s.subject_id) {
+          stmts.push(DB.prepare(
+            `INSERT INTO session_timetable (
+                         session_id, training_date, period_number, subject_id, instructor_id, location, is_excluded
+                     ) VALUES (?, ?, ?, ?, ?, ?, ?)`
+          ).bind(id, s.training_date, s.period_number, s.subject_id, s.instructor_id || null, s.location || null, s.is_excluded || 0));
+        } else if (s.is_excluded) {
+          stmts.push(DB.prepare(
+            `INSERT INTO session_timetable (
+                         session_id, training_date, period_number, subject_id, instructor_id, location, is_excluded
+                     ) VALUES (?, ?, ?, ?, ?, ?, ?)`
+          ).bind(id, s.training_date, s.period_number, null, null, null, 1));
+        }
+      }
+
+      if (stmts.length > 0) await DB.batch(stmts);
+    }
+
+    return c.json({ success: true });
+  } catch (e) {
+    console.error('timetable save:', e);
+    return c.json({ success: false, error: '시간표 저장 실패' }, 500);
   }
 });
 
@@ -563,8 +840,8 @@ app.get('/:id', authMiddleware, requireAdmin, async (c) => {
                 s.registered_at, s.created_at, s.target_audience, s.days_of_week, s.location,
                 s.recruitment_status, s.representative_image_exposure, s.recruitment_grace_period,
                 s.syllabus_exposure, s.main_slide_image_url, s.course_list_image_url, s.course_detail_description,
-                s.homepage_exposed, s.access_code,
-                a.name as course_name, a.instructor_name, c.name as category_name
+                s.homepage_exposed, s.access_code, s.instructor_name,
+                a.name as course_name, a.total_hours, a.instructor_name as approved_instructor_name, c.name as category_name
          FROM course_sessions s
          INNER JOIN approved_courses a ON a.id = s.approved_course_id
          LEFT JOIN course_categories c ON c.id = a.category_id
@@ -577,8 +854,8 @@ app.get('/:id', authMiddleware, requireAdmin, async (c) => {
         row = await DB.prepare(
           `SELECT s.id, s.approved_course_id, s.session_number, s.status,
                   s.training_start_date, s.training_end_date, s.url_ncs, s.url_plan, s.url_detail_plan,
-                  s.registered_at, s.created_at, s.target_audience, s.days_of_week, s.location,
-                  a.name as course_name, a.instructor_name, c.name as category_name
+                  s.registered_at, s.created_at, s.target_audience, s.days_of_week, s.location, s.instructor_name,
+                  a.name as course_name, a.total_hours, a.instructor_name as approved_instructor_name, c.name as category_name
            FROM course_sessions s
            INNER JOIN approved_courses a ON a.id = s.approved_course_id
            LEFT JOIN course_categories c ON c.id = a.category_id
@@ -590,7 +867,8 @@ app.get('/:id', authMiddleware, requireAdmin, async (c) => {
         row = await DB.prepare(
           `SELECT s.id, s.approved_course_id, s.session_number, s.status,
                   s.training_start_date, s.training_end_date, s.url_ncs, s.url_plan, s.url_detail_plan,
-                  s.registered_at, s.created_at, a.name as course_name, a.instructor_name, c.name as category_name
+                  s.registered_at, s.created_at, s.instructor_name, a.name as course_name, a.total_hours,
+                  a.instructor_name as approved_instructor_name, c.name as category_name
            FROM course_sessions s
            INNER JOIN approved_courses a ON a.id = s.approved_course_id
            LEFT JOIN course_categories c ON c.id = a.category_id
@@ -1034,211 +1312,6 @@ app.delete('/:id/enrollments/:userId', authMiddleware, requireAdmin, async (c) =
   }
 });
 
-/**
- * GET /api/course-sessions/:id/timetable/config
- * 교시 설정 조회
- */
-app.get('/:id/timetable/config', authMiddleware, requireAdmin, async (c) => {
-  try {
-    const id = parseInt(c.req.param('id'), 10);
-    if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
 
-    const { DB } = c.env;
-    const configs = await DB.prepare(
-      'SELECT * FROM session_period_configs WHERE session_id = ? ORDER BY period_number ASC'
-    )
-      .bind(id)
-      .all();
-
-    return c.json({ success: true, data: configs.results || [] });
-  } catch (e) {
-    console.error('timetable config get:', e);
-    return c.json({ success: false, error: '설정 조회 실패' }, 500);
-  }
-});
-
-/**
- * POST /api/course-sessions/:id/timetable/config
- * 교시 설정 저장
- */
-app.post('/:id/timetable/config', authMiddleware, requireAdmin, async (c) => {
-  try {
-    const id = parseInt(c.req.param('id'), 10);
-    if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
-
-    const body = await c.req.json<{ configs: any[] }>();
-    const configs = body.configs || [];
-    const { DB } = c.env;
-
-    // Transaction implementation locally using batch
-    const stmts = [
-      DB.prepare('DELETE FROM session_period_configs WHERE session_id = ?').bind(id)
-    ];
-
-    for (const cfg of configs) {
-      stmts.push(
-        DB.prepare(
-          'INSERT INTO session_period_configs (session_id, period_number, start_time, end_time, break_minute) VALUES (?, ?, ?, ?, ?)'
-        ).bind(id, cfg.period_number, cfg.start_time, cfg.end_time, cfg.break_minute || 0)
-      );
-    }
-
-    await DB.batch(stmts);
-    return c.json({ success: true });
-  } catch (e) {
-    console.error('timetable config save:', e);
-    return c.json({ success: false, error: '설정 저장 실패' }, 500);
-  }
-});
-
-/**
- * GET /api/course-sessions/:id/timetable/resources
- * 교과목 및 강사 리스트 조회 (NCS 편성 정보 기반)
- */
-app.get('/:id/timetable/resources', authMiddleware, requireAdmin, async (c) => {
-  try {
-    const id = parseInt(c.req.param('id'), 10);
-    if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
-
-    const { DB } = c.env;
-
-    // 1. Session Info to get approved_course_id
-    const session = await DB.prepare('SELECT approved_course_id FROM course_sessions WHERE id = ?').bind(id).first<{ approved_course_id: number }>();
-    if (!session) return c.json({ success: false, error: '회차 정보 없음' }, 404);
-
-    // 2. NCS Registration ID
-    // Check if registration exists for this approved course
-    const registration = await DB.prepare('SELECT id FROM ncs_approved_registrations WHERE approved_course_id = ?').bind(session.approved_course_id).first<{ id: number }>();
-
-    let subjects: any[] = [];
-    if (registration) {
-      // 3. Curriculum + Hours
-      // Join curriculum with training hours table
-      const rows = await DB.prepare(
-        `SELECT 
-             c.id, 
-             c.name, 
-             c.type, 
-             c.classification as ncs_classification_code, 
-             COALESCE(h.theory_hours, 0) + COALESCE(h.practice_hours, 0) as total_time,
-             r.main_job_code,
-             r.main_job_name,
-             c.ability_units_json,
-             c.units_json
-           FROM ncs_approved_curriculum c
-           LEFT JOIN ncs_approved_training_hours h ON h.curriculum_id = c.id
-           LEFT JOIN ncs_approved_registrations r ON r.id = c.registration_id
-           WHERE c.registration_id = ?`
-      )
-        .bind(registration.id)
-        .all();
-      subjects = rows.results || [];
-    }
-
-    // 3. Instructors
-    let instructors: any[] = [];
-    try {
-      const instRows = await DB.prepare("SELECT id, name FROM users WHERE role IN ('teacher', 'instructor', 'admin') ORDER BY name ASC").all();
-      instructors = instRows.results || [];
-    } catch {
-      // Ignore
-    }
-
-    return c.json({
-      success: true,
-      data: {
-        subjects: subjects,
-        instructors: instructors
-      }
-    });
-  } catch (e) {
-    console.error('timetable resources get:', e);
-    return c.json({ success: false, error: '리소스 조회 실패' }, 500);
-  }
-});
-
-/**
- * GET /api/course-sessions/:id/timetable
- * 시간표 조회
- */
-app.get('/:id/timetable', authMiddleware, requireAdmin, async (c) => {
-  try {
-    const id = parseInt(c.req.param('id'), 10);
-    const startDate = c.req.query('start_date');
-    const endDate = c.req.query('end_date');
-
-    if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
-
-    const { DB } = c.env;
-    let query = 'SELECT * FROM session_timetable WHERE session_id = ?';
-    const params: any[] = [id];
-
-    if (startDate) {
-      query += ' AND training_date >= ?';
-      params.push(startDate);
-    }
-    if (endDate) {
-      query += ' AND training_date <= ?';
-      params.push(endDate);
-    }
-
-    const rows = await DB.prepare(query).bind(...params).all();
-    return c.json({ success: true, data: rows.results || [] });
-  } catch (e) {
-    console.error('timetable get:', e);
-    return c.json({ success: false, error: '시간표 조회 실패' }, 500);
-  }
-});
-
-/**
- * POST /api/course-sessions/:id/timetable
- * 시간표 저장 (Batch Update/Insert)
- */
-app.post('/:id/timetable', authMiddleware, requireAdmin, async (c) => {
-  try {
-    const id = parseInt(c.req.param('id'), 10);
-    if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
-
-    const body = await c.req.json<{ schedules: any[] }>();
-    const schedules = body.schedules || [];
-    const { DB } = c.env;
-
-    // Strategy: Upsert logic: Delete (date, period) then Insert.
-
-    // Process in chunks to avoid D1 batch limits (approx 100 statements limit)
-    const CHUNK_SIZE = 20;
-    for (let i = 0; i < schedules.length; i += CHUNK_SIZE) {
-      const chunk = schedules.slice(i, i + CHUNK_SIZE);
-      const stmts: any[] = [];
-
-      for (const s of chunk) {
-        stmts.push(DB.prepare(
-          'DELETE FROM session_timetable WHERE session_id = ? AND training_date = ? AND period_number = ?'
-        ).bind(id, s.training_date, s.period_number));
-
-        if (!s.is_excluded && s.subject_id) {
-          stmts.push(DB.prepare(
-            `INSERT INTO session_timetable (
-                         session_id, training_date, period_number, subject_id, instructor_id, location, is_excluded
-                     ) VALUES (?, ?, ?, ?, ?, ?, ?)`
-          ).bind(id, s.training_date, s.period_number, s.subject_id, s.instructor_id || null, s.location || null, s.is_excluded || 0));
-        } else if (s.is_excluded) {
-          stmts.push(DB.prepare(
-            `INSERT INTO session_timetable (
-                         session_id, training_date, period_number, subject_id, instructor_id, location, is_excluded
-                     ) VALUES (?, ?, ?, ?, ?, ?, ?)`
-          ).bind(id, s.training_date, s.period_number, null, null, null, 1));
-        }
-      }
-
-      if (stmts.length > 0) await DB.batch(stmts);
-    }
-
-    return c.json({ success: true });
-  } catch (e) {
-    console.error('timetable save:', e);
-    return c.json({ success: false, error: '시간표 저장 실패' }, 500);
-  }
-});
 
 export default app;

@@ -70,6 +70,9 @@
                 if (box) box.classList.remove('hidden');
                 setTabPlanUrls(c.url_plan || null, c.url_detail_plan || null, editId);
                 updateSessionNamePreview();
+                if (!editId && c.instructor_name) {
+                    setSelectedInstructors(c.instructor_name);
+                }
             })
             .catch(function () { if (box) box.classList.add('hidden'); });
     }

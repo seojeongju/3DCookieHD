@@ -1836,12 +1836,33 @@ app.get('/training-logs/daily-schedule', async (c) => {
     }
 });
 
-// 훈련 일지 목록 조회
+// 훈련 일지 목록 조회 (courseId는 courses.id 또는 course_sessions.id 가능)
 app.get('/training-logs', async (c) => {
     try {
-        const courseId = c.req.query('courseId');
+        const courseIdParam = c.req.query('courseId');
         const startDate = c.req.query('startDate');
         const endDate = c.req.query('endDate');
+
+        if (!courseIdParam) {
+            return c.json({ success: true, data: [] });
+        }
+        const rawId = Number(courseIdParam);
+        if (isNaN(rawId)) {
+            return c.json({ success: true, data: [] });
+        }
+
+        let resolvedCourseId: number | null = null;
+        const existsInCourses = await c.env.DB.prepare('SELECT id FROM courses WHERE id = ?').bind(rawId).first();
+        if (existsInCourses) {
+            resolvedCourseId = rawId;
+        } else {
+            const session: any = await c.env.DB.prepare('SELECT id, lms_course_id FROM course_sessions WHERE id = ?').bind(rawId).first();
+            if (session?.lms_course_id != null) resolvedCourseId = session.lms_course_id;
+        }
+
+        if (resolvedCourseId == null) {
+            return c.json({ success: true, data: [] });
+        }
 
         let query = `
             SELECT t.*, u.name as ncs_unit_name, u.code as ncs_unit_code
@@ -1849,7 +1870,7 @@ app.get('/training-logs', async (c) => {
             LEFT JOIN ncs_units u ON t.ncs_unit_id = u.id
             WHERE t.course_id = ?
         `;
-        const params: any[] = [courseId];
+        const params: any[] = [resolvedCourseId];
 
         if (startDate && endDate) {
             query += " AND t.date BETWEEN ? AND ?";
@@ -1915,14 +1936,54 @@ app.post('/training-logs', async (c) => {
             `).bind(...bindParams).run();
 
         } else {
-            // 등록
+            // 등록: course_id가 회차(course_sessions.id)일 수 있으므로 courses.id로 해석
+            const rawId = course_id == null ? null : Number(course_id);
+            if (rawId == null || isNaN(rawId)) {
+                return errorResponse(c, '과정(회차)을 선택해 주세요.', 400);
+            }
+            let resolvedCourseId: number | null = null;
+            const existsInCourses = await c.env.DB.prepare('SELECT id FROM courses WHERE id = ?').bind(rawId).first();
+            if (existsInCourses) {
+                resolvedCourseId = rawId;
+            } else {
+                const session: any = await c.env.DB.prepare(`
+                    SELECT s.id, s.lms_course_id, s.session_number, s.session_name, a.name as course_name
+                    FROM course_sessions s
+                    JOIN approved_courses a ON s.approved_course_id = a.id
+                    WHERE s.id = ?
+                `).bind(rawId).first();
+                if (session) {
+                    if (session.lms_course_id != null) {
+                        resolvedCourseId = session.lms_course_id;
+                    } else {
+                        const title = `${session.course_name || '과정'} (${session.session_number}회차${session.session_name ? ' - ' + session.session_name : ''})`.trim();
+                        const insert = await c.env.DB.prepare(`
+                            INSERT INTO courses (title, category, status) VALUES (?, '국비지원', 'active')
+                        `).bind(title).run();
+                        const newCourseId = insert.meta?.last_row_id;
+                        if (newCourseId == null) {
+                            return errorResponse(c, 'LMS 과정 생성에 실패했습니다.', 500);
+                        }
+                        resolvedCourseId = Number(newCourseId);
+                        try {
+                            await c.env.DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(resolvedCourseId, rawId).run();
+                        } catch (_) {
+                            // lms_course_id 컬럼이 없을 수 있음(마이그레이션 미적용)
+                        }
+                    }
+                }
+            }
+            if (resolvedCourseId == null) {
+                return errorResponse(c, '선택한 과정(회차)을 찾을 수 없습니다. 유효한 과정 또는 회차를 선택해 주세요.', 400);
+            }
+
             const safeInstructorId = (instructor_id === '' || instructor_id === 0 || instructor_id === '0') ? null : instructor_id;
             const safeNcsUnitId = (ncs_unit_id === '' || ncs_unit_id === 0 || ncs_unit_id === '0') ? null : ncs_unit_id;
 
             await c.env.DB.prepare(`
                 INSERT INTO training_logs (course_id, instructor_id, date, topic, content, teaching_method, ncs_unit_id, training_hours, ncs_elements_json, schedule_details_json, attendance_summary_json)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `).bind(course_id, safeInstructorId, date, topic, content, teaching_method, safeNcsUnitId, training_hours, ncs_elements_json, schedule_details_json, attendance_summary_json).run();
+            `).bind(resolvedCourseId, safeInstructorId, date, topic, content, teaching_method, safeNcsUnitId, training_hours, ncs_elements_json, schedule_details_json, attendance_summary_json).run();
         }
 
         return c.json({ success: true, message: id ? '일지가 수정되었습니다.' : '일지가 등록되었습니다.' });

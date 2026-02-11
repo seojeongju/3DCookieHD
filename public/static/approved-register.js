@@ -3,6 +3,15 @@
     if (!form) return;
     var formIdEl = document.getElementById('approvedFormId');
     var editId = (formIdEl && formIdEl.value) ? formIdEl.value.trim() : '';
+    // URL 경로에서 id 복원: /admin/courses/approved/register/1 → 1 (설정된 정보가 비어 보이는 현상 방지)
+    if (!editId && window.location.pathname) {
+        var pathParts = window.location.pathname.split('/').filter(Boolean);
+        var lastSegment = pathParts[pathParts.length - 1];
+        if (lastSegment && lastSegment !== 'register' && /^\d+$/.test(lastSegment)) {
+            editId = lastSegment;
+            if (formIdEl) formIdEl.value = editId;
+        }
+    }
 
     var categoryNames = {};
     var textbookAll = [];
@@ -479,5 +488,8 @@
                 setTimeout(function () { window.switchTab(tab); }, 100);
             }
         });
+    }).catch(function () {
+        // 카테고리 등 로드 실패 시에도 수정 페이지면 과정 데이터만이라도 불러오기
+        if (editId) loadCourse(editId);
     });
 })();

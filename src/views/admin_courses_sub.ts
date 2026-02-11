@@ -28,17 +28,17 @@ const courseSubPageLayout = (
       }
     </script>
     <style>
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #64748b; }
         body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 text-sm">
-    <div class="flex h-screen overflow-hidden">
+    <div class="flex h-[100dvh] overflow-hidden min-h-0 min-w-0">
         ${hrdSidebar(activeMenu)}
-        <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <div class="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
             <!-- Header -->
             <header class="bg-white border-b border-slate-200 h-14 sm:h-16 flex items-center justify-between px-4 sm:px-6 shrink-0 z-10">
                 <div class="flex items-center gap-4">
@@ -57,7 +57,7 @@ const courseSubPageLayout = (
             </header>
 
             <!-- Main Content (모바일 패딩) -->
-            <main class="flex-1 overflow-auto p-4 sm:p-6 custom-scrollbar bg-slate-50">
+            <main class="flex-1 overflow-auto p-4 sm:p-6 custom-scrollbar bg-slate-50 min-h-0">
                 ${contentHtml}
             </main>
         </div>

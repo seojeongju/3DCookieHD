@@ -35,9 +35,10 @@ export const adminDashboardHtml = `
         .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
         .bento-card { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
         .bento-card:hover { transform: translateY(-4px); box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1); }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #64748b; }
         
         /* Category Colors */
         .fc-event-course { background-color: #3b82f6 !important; border-color: #2563eb !important; color: white !important; }
@@ -77,12 +78,12 @@ export const adminDashboardHtml = `
     </style>
 </head>
 <body class="bg-slate-50 font-sans text-slate-900 antialiased overflow-hidden">
-    <div class="flex h-screen overflow-hidden">
+    <div class="flex h-[100dvh] overflow-hidden min-h-0 min-w-0">
         <!-- 사이드바 -->
         ${hrdSidebar('dashboard')}
 
         <!-- 메인 컨텐츠 영역 -->
-        <main class="flex-1 flex flex-col overflow-hidden relative">
+        <main class="flex-1 flex flex-col overflow-hidden relative min-h-0 min-w-0">
             <div class="absolute inset-0 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:32px_32px] opacity-40 pointer-events-none"></div>
             <!-- 헤더 -->
             <header class="bg-white/80 backdrop-blur-md border-b border-slate-200/60 sticky top-0 z-20 px-8 py-5 flex justify-between items-center">

@@ -70,67 +70,91 @@ export function stepContentHtml(step: number, editId?: string, isEmbedded: boole
       <div id="panelNcsOnly" class="ncs-approved-panel space-y-8 animate-in fade-in duration-300">
         <!-- 1. 직종 검색 섹션 -->
         <section>
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-black text-slate-800 tracking-tight">01. NCS 분류 체계 및 능력단위 검색 (NCS001~NCS006)</h2>
-            <div class="flex items-center gap-2 bg-slate-100 p-1 rounded-xl">
-              <span class="text-[10px] font-bold text-slate-500 px-2">심사기준</span>
-              <select id="ncsDevCategory" class="text-xs font-bold bg-white border-none rounded-lg focus:ring-0 py-1 transition-all">
-                <option value="24" selected>24년 NCS기반 훈련기준</option>
-                <option value="23">23년 NCS기반 훈련기준</option>
-                <option value="21">21년 NCS기반 훈련기준</option>
-                <option value="20">20년 NCS기반 훈련기준</option>
-                <option value="19">19년 NCS기반 훈련기준</option>
+          <div class="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+            <h2 class="text-xl font-black text-slate-800 tracking-tight">01. NCS 분류 체계 및 능력단위 검색 (6단계)</h2>
+            <div class="flex items-center gap-3 bg-white border border-slate-200 p-1.5 rounded-2xl shadow-sm">
+              <span class="text-[11px] font-black text-slate-500 px-3 py-1 bg-slate-100 rounded-xl">훈련기준 연도</span>
+              <select id="ncsDevCategory" class="text-sm font-bold bg-transparent border-none focus:ring-0 py-1 transition-all min-w-[140px]">
+                <option value="24" selected>2024년 기준</option>
+                <option value="23">2023년 기준</option>
+                <option value="21">2021년 기준</option>
+                <option value="20">2020년 기준</option>
+                <option value="19">2019년 기준</option>
               </select>
             </div>
           </div>
           
-          <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-            <div class="grid grid-cols-1 md:grid-cols-4 divide-x divide-slate-100">
+          <div class="bg-white rounded-[32px] border border-slate-200 shadow-xl shadow-slate-200/50 overflow-hidden">
+            <div class="grid grid-cols-1 md:grid-cols-6 divide-x divide-slate-100">
               <div class="p-3">
-                <div class="flex items-center justify-between mb-2">
-                  <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">대분류 (001)</label>
-                  <button type="button" id="refreshLargeClass" class="ncs-refresh-btn text-slate-400 hover:text-blue-600 hover:bg-blue-50 p-1.5 rounded-lg transition-all" title="최신 데이터 가져오기">
-                    <i class="fas fa-sync-alt text-xs"></i>
+                <div class="flex items-center justify-between mb-2 px-1">
+                  <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">대분류</label>
+                  <button type="button" id="refreshLargeClass" class="ncs-refresh-btn text-slate-300 hover:text-blue-600 p-1 rounded-lg transition-all">
+                    <i class="fas fa-sync-alt text-[9px]"></i>
                   </button>
                 </div>
-                <select id="ncsLargeClass" size="10" class="ncs-class-select w-full px-2 py-1 border-none bg-transparent text-[13px] focus:ring-0 min-h-[220px] custom-scrollbar"></select>
+                <select id="ncsLargeClass" size="12" class="ncs-class-select w-full px-1 border-none bg-transparent text-[12px] font-medium focus:ring-0 min-h-[300px] custom-scrollbar"></select>
               </div>
               <div class="p-3">
-                <div class="flex items-center justify-between mb-2">
-                  <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">중분류 (002)</label>
-                  <button type="button" id="refreshMidClass" class="ncs-refresh-btn text-slate-400 hover:text-blue-600 hover:bg-blue-50 p-1.5 rounded-lg transition-all" title="최신 데이터 가져오기">
-                    <i class="fas fa-sync-alt text-xs"></i>
+                <div class="flex items-center justify-between mb-2 px-1">
+                  <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">중분류</label>
+                  <button type="button" id="refreshMidClass" class="ncs-refresh-btn text-slate-300 hover:text-blue-600 p-1 rounded-lg transition-all">
+                    <i class="fas fa-sync-alt text-[9px]"></i>
                   </button>
                 </div>
-                <select id="ncsMidClass" size="10" class="ncs-class-select w-full px-2 py-1 border-none bg-transparent text-[13px] focus:ring-0 min-h-[220px] custom-scrollbar"></select>
+                <select id="ncsMidClass" size="12" class="ncs-class-select w-full px-1 border-none bg-transparent text-[12px] font-medium focus:ring-0 min-h-[300px] custom-scrollbar"></select>
               </div>
               <div class="p-3">
-                <div class="flex items-center justify-between mb-2">
-                  <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">소분류 (003)</label>
-                  <button type="button" id="refreshSmallClass" class="ncs-refresh-btn text-slate-400 hover:text-blue-600 hover:bg-blue-50 p-1.5 rounded-lg transition-all" title="최신 데이터 가져오기">
-                    <i class="fas fa-sync-alt text-xs"></i>
+                <div class="flex items-center justify-between mb-2 px-1">
+                  <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">소분류</label>
+                  <button type="button" id="refreshSmallClass" class="ncs-refresh-btn text-slate-300 hover:text-blue-600 p-1 rounded-lg transition-all">
+                    <i class="fas fa-sync-alt text-[9px]"></i>
                   </button>
                 </div>
-                <select id="ncsSmallClass" size="10" class="ncs-class-select w-full px-2 py-1 border-none bg-transparent text-[13px] focus:ring-0 min-h-[220px] custom-scrollbar"></select>
+                <select id="ncsSmallClass" size="12" class="ncs-class-select w-full px-1 border-none bg-transparent text-[12px] font-medium focus:ring-0 min-h-[300px] custom-scrollbar"></select>
               </div>
               <div class="p-3">
-                <div class="flex items-center justify-between mb-2">
-                  <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">세분류/직종 (004)</label>
-                  <button type="button" id="refreshSubClass" class="ncs-refresh-btn text-slate-400 hover:text-blue-600 hover:bg-blue-50 p-1.5 rounded-lg transition-all" title="최신 데이터 가져오기">
-                    <i class="fas fa-sync-alt text-xs"></i>
+                <div class="flex items-center justify-between mb-2 px-1">
+                  <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">세분류/직종</label>
+                  <button type="button" id="refreshSubClass" class="ncs-refresh-btn text-slate-300 hover:text-blue-600 p-1 rounded-lg transition-all">
+                    <i class="fas fa-sync-alt text-[9px]"></i>
                   </button>
                 </div>
-                <select id="ncsSubClass" size="10" class="ncs-class-select w-full px-2 py-1 border-none bg-transparent text-[13px] focus:ring-0 min-h-[220px] custom-scrollbar">
+                <select id="ncsSubClass" size="12" class="ncs-class-select w-full px-1 border-none bg-transparent text-[12px] font-medium focus:ring-0 min-h-[300px] custom-scrollbar">
                   <option value="">소분류 선택</option>
                 </select>
               </div>
+              <div class="p-3 bg-blue-50/20">
+                <div class="flex items-center justify-between mb-2 px-1">
+                  <label class="block text-[10px] font-black text-blue-400 uppercase tracking-widest">능력단위</label>
+                  <button type="button" id="refreshUnit" class="ncs-refresh-btn text-blue-300 hover:text-blue-600 p-1 rounded-lg transition-all">
+                    <i class="fas fa-sync-alt text-[9px]"></i>
+                  </button>
+                </div>
+                <select id="ncsUnit" size="12" class="ncs-class-select w-full px-1 border-none bg-transparent text-[12px] font-medium focus:ring-0 min-h-[300px] custom-scrollbar">
+                  <option value="">직종 선택</option>
+                </select>
+              </div>
+              <div class="p-3 bg-indigo-50/20">
+                <div class="flex items-center justify-between mb-2 px-1">
+                  <label class="block text-[10px] font-black text-indigo-400 uppercase tracking-widest">단위요소</label>
+                  <button type="button" id="refreshElement" class="ncs-refresh-btn text-indigo-300 hover:text-indigo-600 p-1 rounded-lg transition-all">
+                    <i class="fas fa-sync-alt text-[9px]"></i>
+                  </button>
+                </div>
+                <select id="ncsElement" size="12" class="ncs-class-select w-full px-1 border-none bg-transparent text-[12px] font-medium focus:ring-0 min-h-[300px] custom-scrollbar">
+                  <option value="">능력단위 선택</option>
+                </select>
+              </div>
             </div>
-            <div class="px-6 py-3 border-t border-slate-100 bg-blue-50/50 text-blue-700 text-xs flex items-center gap-2">
-              <i class="fas fa-info-circle"></i>
-              능력단위(NCS005)와 단위요소(NCS006)는 <strong>훈련이수체계도</strong>에서 선택합니다.
+            <div class="px-8 py-4 border-t border-slate-100 bg-slate-50 text-slate-500 text-[11px] flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <i class="fas fa-info-circle text-blue-500"></i>
+                <span>NCS 분류체계 6단계 전체 조회가 가능합니다. 각 단계를 선택하여 상세 정보를 확인하세요.</span>
+              </div>
+              <div id="ncsTrainingApiMessage" class="font-bold text-amber-600 hidden"></div>
             </div>
-            <div id="ncsTrainingApiMessage" class="px-6 py-3 border-t border-slate-100 bg-amber-50 text-amber-700 text-xs hidden"></div>
-            <div id="ncsBannerJobSearchLocked" class="hidden px-6 py-3 bg-red-50 text-red-700 text-xs font-bold border-t border-red-100">
+            <div id="ncsBannerJobSearchLocked" class="hidden px-8 py-4 bg-red-50 text-red-700 text-xs font-bold border-t border-red-100">
               <i class="fas fa-lock mr-2"></i> 훈련이수체계도가 확정되어 직종 변경이 제한됩니다.
             </div>
           </div>
@@ -431,6 +455,9 @@ export function stepContentHtml(step: number, editId?: string, isEmbedded: boole
               <p class="text-xs text-slate-500 font-medium">선택한 능력단위를 기반으로 훈련 목표와 교과목을 구성합니다.</p>
             </div>
             <div class="flex gap-2">
+              <button type="button" id="ncsStep3BtnSync" class="h-10 px-4 bg-amber-500 text-white rounded-xl text-sm font-bold hover:bg-amber-600 shadow-sm shadow-amber-200 transition flex items-center gap-2" title="NCS API로부터 최신 정보를 동기화합니다.">
+                <i class="fas fa-sync-alt"></i> NCS 데이터 동기화
+              </button>
               <button type="button" id="ncsCurriculumBtnAdd" class="h-10 px-4 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition flex items-center gap-2">
                 <i class="fas fa-plus"></i> 교과목 추가
               </button>

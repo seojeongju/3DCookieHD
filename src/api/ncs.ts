@@ -2402,6 +2402,53 @@ app.get('/approved/sync/status/:subClassCode', authMiddleware, requireAdmin, asy
     }
 });
 
+/** NCS 동기화 요약 통계 (전체) */
+app.get('/approved/sync/summary', authMiddleware, requireAdmin, async (c) => {
+    try {
+        const { DB } = c.env;
+        const totalJobs = await DB.prepare('SELECT COUNT(*) as count FROM ncs_job_hierarchy').first() as { count: number };
+        const totalUnits = await DB.prepare('SELECT COUNT(*) as count FROM ncs_units').first() as { count: number };
+        const totalElements = await DB.prepare('SELECT COUNT(*) as count FROM ncs_elements').first() as { count: number };
+
+        // 분류별 통계 (대분류 기준)
+        const categoryStats = await DB.prepare(`
+            SELECT 
+                h.large_name as name, 
+                COUNT(*) as job_count,
+                SUM(h.unit_count) as unit_count
+            FROM ncs_job_hierarchy h
+            WHERE h.large_name IS NOT NULL AND h.large_name != ''
+            GROUP BY h.large_name
+            ORDER BY job_count DESC
+        `).all();
+
+        // 최근 동기화
+        const recentSyncs = await DB.prepare(`
+            SELECT job_code, job_name, unit_count, element_count, synced_at 
+            FROM ncs_job_hierarchy 
+            WHERE synced_at IS NOT NULL 
+            ORDER BY synced_at DESC LIMIT 10
+        `).all();
+
+        return c.json({
+            success: true,
+            data: {
+                counts: {
+                    jobs: totalJobs?.count || 0,
+                    units: totalUnits?.count || 0,
+                    elements: totalElements?.count || 0
+                },
+                categories: categoryStats.results || [],
+                recentSyncs: recentSyncs.results || []
+            }
+        });
+    } catch (e) {
+        console.error('sync summary error:', e);
+        return c.json({ success: false, error: '동기화 통계 조회 실패' }, 500);
+    }
+});
+
+
 /**
  * NCS 전체 동기화 현황 요약 API
  */
