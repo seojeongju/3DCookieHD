@@ -1,4 +1,4 @@
-export const lmsHeaderHtml = (activeTab = 'dashboard') => `
+export const lmsHeaderHtml = (activeTab = 'dashboard', defaultType = '') => `
     <!-- Top Navigation -->
     <nav class="bg-white shadow-md sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -121,7 +121,7 @@ export const lmsHeaderHtml = (activeTab = 'dashboard') => `
                 const isTeacherPath = window.location.pathname.startsWith('/teacher');
                 
                 const urlParams = new URLSearchParams(window.location.search);
-                const type = urlParams.get('type');
+                const type = urlParams.get('type') || '${defaultType}';
                 
                 const basePath = isAdminPath ? '/admin/courses/' + courseId + '/lms' : 
                                (isTeacherPath ? '/teacher/courses/' + courseId + '/lms' : '/student/courses/' + courseId + '/lms');
@@ -151,7 +151,7 @@ export const lmsHeaderHtml = (activeTab = 'dashboard') => `
                 try {
                     const token = localStorage.getItem('token');
                     const urlParams = new URLSearchParams(window.location.search);
-                    const type = urlParams.get('type');
+                    const type = urlParams.get('type') || '${defaultType}';
                     let apiUrl = '/api/courses/' + courseId;
                     if (type) apiUrl += '?type=' + type;
 

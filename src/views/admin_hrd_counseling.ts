@@ -29,7 +29,7 @@ export function adminHrdCounselingHtml(courseId?: string): string {
 
         <!-- 메인 컨텐츠 -->
         <main class="flex-1 overflow-y-auto">
-            ${isLmsMode ? lmsHeaderHtml('counseling') : ''}
+            ${isLmsMode ? lmsHeaderHtml('counseling', 'hrd') : ''}
             
             <!-- 고정 헤더 -->
             <header class="sticky top-0 z-30 glass-effect bg-white/80 border-b border-gray-200">
