@@ -921,19 +921,14 @@ app.get('/students/:id/consultations', authMiddleware, async (c) => {
     }
 });
 
-// 상담 이력 추가 (상담일지 통합)
-app.post('/students/:id/consultations', async (c) => {
+// 상담 이력 추가 (상담일지 통합) — 로그인한 사용자를 상담자로 사용
+app.post('/students/:id/consultations', authMiddleware, async (c) => {
     try {
-        const userId = c.req.param('id');
+        const studentId = c.req.param('id');
         const body = await c.req.json();
-        const { content, manager, date, category, method, course_id } = body;
-
-        // 상담자 ID 찾기 (관리자 우선, 없으면 1번)
-        let counselorId = 1;
-        if (manager) {
-            const admin = await c.env.DB.prepare("SELECT id FROM users WHERE name = ? AND role = 'admin'").bind(manager).first();
-            if (admin) counselorId = (admin as any).id;
-        }
+        const { content, date, category, method, course_id } = body;
+        const user = c.get('user') as JWTPayload;
+        const counselorId = user.userId;
 
         // hrd_counseling_logs 에 저장
         await c.env.DB.prepare(`
@@ -943,7 +938,7 @@ app.post('/students/:id/consultations', async (c) => {
             )
             VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         `).bind(
-            userId, counselorId, course_id || null,
+            studentId, counselorId, course_id || null,
             date || new Date().toISOString().split('T')[0],
             category || 'academic', method || 'face_to_face', content
         ).run();
@@ -953,7 +948,7 @@ app.post('/students/:id/consultations', async (c) => {
             UPDATE hrd_student_details 
             SET last_consult = ?
             WHERE user_id = ?
-        `).bind(date || new Date().toISOString().split('T')[0], userId).run();
+        `).bind(date || new Date().toISOString().split('T')[0], studentId).run();
 
         return c.json({ success: true });
     } catch (e: any) {

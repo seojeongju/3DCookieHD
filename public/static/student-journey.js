@@ -202,9 +202,20 @@
                 }
                 var catStyles = { academic: 'bg-blue-50 text-blue-600', attendance: 'bg-yellow-50 text-yellow-600', career: 'bg-emerald-50 text-emerald-600', complaint: 'bg-red-50 text-red-600', other: 'bg-gray-50 text-gray-500' };
                 var catLabels = { academic: '학사지휘', attendance: '출결행정', career: '취업비전', complaint: '고충상담', other: '기타' };
+                function formatConsultDateTime(log) {
+                    var datePart = (log.consult_date && log.consult_date.split('T')[0]) || (log.created_at && (log.created_at.split('T')[0] || log.created_at.split(' ')[0])) || '';
+                    var timePart = '';
+                    if (log.created_at) {
+                        var created = String(log.created_at);
+                        var t = created.indexOf('T') !== -1 ? created.split('T')[1] : (created.indexOf(' ') !== -1 ? created.split(' ')[1] : null);
+                        if (t) timePart = t.substring(0, 5);
+                    }
+                    if (timePart) return datePart + ' ' + timePart;
+                    return datePart;
+                }
                 list.innerHTML = logs.map(function (log) {
                     var isPrincipal = log.counselor_role === 'admin';
-                    var dateStr = (log.consult_date && log.consult_date.split('T')[0]) || (log.created_at && log.created_at.split(' ')[0]) || '';
+                    var dateTimeStr = formatConsultDateTime(log);
                     return '<div class="relative pl-10 timeline-item">' +
                         '<div class="absolute inset-y-0 left-[21px] w-0.5 bg-gray-100 timeline-line"></div>' +
                         '<div class="absolute left-0 top-0 w-11 h-11 bg-white border-2 ' + (isPrincipal ? 'border-blue-500' : 'border-gray-100') + ' rounded-2xl flex items-center justify-center z-10 shadow-sm">' +
@@ -216,7 +227,7 @@
                         '<span class="text-[9px] font-black uppercase px-2 py-0.5 rounded-lg ' + (isPrincipal ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-400') + '">' + (isPrincipal ? 'Principal' : 'Instructor') + '</span>' +
                         '<span class="text-[9px] font-black uppercase px-2 py-0.5 rounded-lg ' + (catStyles[log.category] || catStyles.other) + '">' + (catLabels[log.category] || '일반') + '</span>' +
                         '</div>' +
-                        '<span class="text-[10px] font-bold text-gray-300">' + dateStr + '</span>' +
+                        '<span class="text-[10px] font-bold text-gray-500" title="상담 일시">' + dateTimeStr + '</span>' +
                         '</div>' +
                         '<p class="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">' + (log.message || '').replace(/</g, '&lt;') + '</p>' +
                         '</div></div>';
