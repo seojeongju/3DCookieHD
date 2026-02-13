@@ -1238,7 +1238,7 @@ export function adminHrdCounselingHtml(courseId?: string): string {
             const methodLabels = { face_to_face: '대면', phone: '유선', online: '온라인', other: '기타' };
             
             // 기존 content에 새 내용을 추가하는 형식
-            const newEntry = '\\\\n\\\\n--- [추가 상담: ' + appendDate + '] ---\\n상담자: ' + appendCounselor + ' | 방식: ' + (methodLabels[appendMethod] || appendMethod) + '\\\\n' + appendContent + (appendResult ? '\\\\n→ 조치/계획: ' + appendResult : '');
+            const newEntry = '\\\\n\\\\n--- [추가 상담: ' + appendDate + '] ---\\\\n상담자: ' + appendCounselor + ' | 방식: ' + (methodLabels[appendMethod] || appendMethod) + '\\\\n' + appendContent + (appendResult ? '\\\\n→ 조치/계획: ' + appendResult : '');
             const updatedContent = appendTargetLog.content + newEntry;
             
             // 결과도 업데이트 (최신 결과로 덮어쓰기)
@@ -1322,7 +1322,7 @@ export function adminHrdCounselingHtml(courseId?: string): string {
             
             for (var i = 1; i < entries.length; i++) {
                 var e = entries[i];
-                content += '\\\\n\\\\n--- [추가 상담: ' + (e.date || new Date().toISOString().split('T')[0]) + '] ---\\n';
+                content += '\\\\n\\\\n--- [추가 상담: ' + (e.date || new Date().toISOString().split('T')[0]) + '] ---\\\\n';
                 var methodLabel = methodLabels[e.method] || e.method || '기타';
                 var counselorName = e.counselor || '관리자';
                 
