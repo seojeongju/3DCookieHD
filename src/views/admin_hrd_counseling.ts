@@ -324,6 +324,63 @@ export function adminHrdCounselingHtml(courseId?: string): string {
         </div>
     </div>
 
+    <!-- 개별 항목 수정 모달 -->
+    <div id="entryEditModal" class="fixed inset-0 bg-gray-900/40 backdrop-blur-sm hidden overflow-y-auto h-full w-full z-50 flex items-center justify-center px-4">
+        <div class="relative bg-white w-full max-w-lg shadow-2xl rounded-[2rem] overflow-hidden animate-fade-in">
+            <div class="bg-gradient-to-r from-blue-600 to-indigo-700 px-8 py-6">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h3 class="text-xl font-bold text-white">상담 내용 수정</h3>
+                        <p class="text-xs text-white/80 mt-1">기존에 작성된 상담 기록을 수정합니다.</p>
+                    </div>
+                    <button onclick="closeEntryEditModal()" class="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-white/10 text-white/80 transition">
+                        <i class="fas fa-times text-lg"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="p-8">
+                <div class="mb-6 space-y-1.5">
+                    <label class="block text-sm font-semibold text-gray-700">상담 일시 / 대상자</label>
+                    <div id="entryEditInfo" class="bg-blue-50/50 p-4 rounded-xl text-xs text-blue-800 font-medium border border-blue-100/50">
+                        -
+                    </div>
+                </div>
+
+                <div class="space-y-1.5 mb-8">
+                    <label class="block text-sm font-semibold text-gray-700">상담 내용</label>
+                    <textarea id="entryEditContent" rows="8" class="w-full px-4 py-3 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500/20 text-sm outline-none resize-none" placeholder="수정할 내용을 입력하세요..."></textarea>
+                </div>
+
+                <div class="flex items-center justify-between pt-6 border-t border-gray-100">
+                    <button type="button" onclick="closeEntryEditModal()" class="px-6 py-2.5 text-gray-500 font-medium hover:text-gray-700 transition">취소</button>
+                    <button onclick="handleEntryUpdate()" class="gradient-blue text-white px-8 py-2.5 rounded-xl font-bold shadow-lg shadow-blue-500/30 hover:bg-blue-700 transition transform active:scale-95">
+                        <i class="fas fa-save mr-2"></i>변경 내용 저장
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 삭제 확인 커스텀 모달 -->
+    <div id="deleteConfirmModal" class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm hidden overflow-y-auto h-full w-full z-[100] flex items-center justify-center px-4">
+        <div class="relative bg-white w-full max-w-sm shadow-2xl rounded-[2rem] overflow-hidden animate-bounce-in">
+            <div class="p-8 text-center">
+                <div class="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-trash-alt text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-900 mb-2">항목을 삭제할까요?</h3>
+                <p class="text-sm text-gray-500 mb-8 leading-relaxed">
+                    해당 상담 내역만 삭제되며,<br>다른 상담 기록은 안전하게 보존됩니다.
+                </p>
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="closeDeleteConfirmModal()" class="px-6 py-3 bg-gray-100 text-gray-600 font-bold rounded-2xl hover:bg-gray-200 transition">취소</button>
+                    <button id="confirmDeleteBtn" class="px-6 py-3 bg-red-500 text-white font-bold rounded-2xl hover:bg-red-600 shadow-lg shadow-red-500/30 transition active:scale-95">삭제하기</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         let currentType = 'academic';
         let currentFilter = 'all'; // 누락된 변수 선언 추가
@@ -1267,6 +1324,9 @@ export function adminHrdCounselingHtml(courseId?: string): string {
             }
         }
 
+        // ========== 개별 항목 편집/삭제 UX 고도화 ==========
+        let editTarget = null; // { logId, entryIdx, entries, initialContent }
+
         async function editEntry(logId, entryIdx) {
             var log = counselingData.find(function(d) { return d.id === logId; });
             if (!log) return;
@@ -1275,35 +1335,67 @@ export function adminHrdCounselingHtml(courseId?: string): string {
             if (!entries || !entries[entryIdx]) return;
             
             var entry = entries[entryIdx];
-            var newContent = prompt('상담 내용을 수정하세요 (내용을 비우면 삭제되지 않고 빈 내용으로 저장됩니다):', entry.content);
+            editTarget = { logId: logId, entryIdx: entryIdx, entries: entries, initialContent: entry.content };
             
-            if (newContent === null || newContent === entry.content) return;
+            // 모달 데이터 채우기
+            document.getElementById('entryEditInfo').innerHTML = 
+                '<i class="far fa-user mr-1.5"></i>' + log.student_name + ' | ' +
+                '<i class="far fa-calendar-alt mr-1.5 ml-2"></i>' + (entry.date || '기본 기록');
             
-            entries[entryIdx].content = newContent;
+            document.getElementById('entryEditContent').value = entry.content;
+            document.getElementById('entryEditModal').classList.remove('hidden');
+        }
+
+        function closeEntryEditModal() {
+            document.getElementById('entryEditModal').classList.add('hidden');
+            editTarget = null;
+        }
+
+        async function handleEntryUpdate() {
+            if (!editTarget) return;
             
-            // Re-compose content
-            var updatedContent = recomposeContent(entries);
-            saveUpdatedEntry(logId, updatedContent);
+            var newContent = document.getElementById('entryEditContent').value.trim();
+            if (newContent === editTarget.initialContent) {
+                closeEntryEditModal();
+                return;
+            }
+            
+            editTarget.entries[editTarget.entryIdx].content = newContent;
+            var updatedContent = recomposeContent(editTarget.entries);
+            
+            closeEntryEditModal();
+            saveUpdatedEntry(editTarget.logId, updatedContent);
         }
 
         async function deleteEntry(logId, entryIdx) {
-            if (!confirm('해당 상담 내역만 삭제하시겠습니까? (다른 상담 내역은 보존됩니다)')) return;
+            const modal = document.getElementById('deleteConfirmModal');
+            const confirmBtn = document.getElementById('confirmDeleteBtn');
             
-            var log = counselingData.find(function(d) { return d.id === logId; });
-            if (!log) return;
+            modal.classList.remove('hidden');
             
-            var entries = parseConsultEntries(log.content);
-            
-            if (entries.length <= 1) {
-                if (!confirm('마지막 남은 상담 내역입니다. 삭제하면 이 상담 카드 자체가 삭제될 수 있습니다. 진행하시겠습니까?')) return;
-                // 마지막인 경우 내용을 비우거나 카드 자체 삭제 로직 고려
-                entries[0].content = '(삭제된 상담 내용)';
-            } else {
-                entries.splice(entryIdx, 1);
-            }
-            
-            var updatedContent = recomposeContent(entries);
-            saveUpdatedEntry(logId, updatedContent);
+            // 승인 버튼 클릭 시 동작 설정
+            confirmBtn.onclick = async function() {
+                modal.classList.add('hidden');
+                
+                var log = counselingData.find(function(d) { return d.id === logId; });
+                if (!log) return;
+                
+                var entries = parseConsultEntries(log.content);
+                
+                if (entries.length <= 1) {
+                    // 마지막 남은 상담 내역인 경우, 전체 삭제가 아닌 내용 대체 처리 (기존 로직 유지)
+                    entries[0].content = '(삭제된 상담 내용)';
+                } else {
+                    entries.splice(entryIdx, 1);
+                }
+                
+                var updatedContent = recomposeContent(entries);
+                saveUpdatedEntry(logId, updatedContent);
+            };
+        }
+
+        function closeDeleteConfirmModal() {
+            document.getElementById('deleteConfirmModal').classList.add('hidden');
         }
 
         function recomposeContent(entries) {
