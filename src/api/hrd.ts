@@ -1780,7 +1780,7 @@ app.post('/counseling', async (c) => {
 });
 
 // PUT /api/hrd/counseling/:id - 상담 일지 수정
-app.put('/counseling/:id', async (c) => {
+app.put('/counseling/:id', authMiddleware, async (c) => {
     const id = c.req.param('id');
     try {
         const body = await c.req.json();
@@ -1788,7 +1788,7 @@ app.put('/counseling/:id', async (c) => {
 
         await c.env.DB.prepare(`
             UPDATE hrd_counseling_logs 
-            SET student_id = ?, course_id = ?, counseling_date = ?, category = ?, method = ?, content = ?, 
+            SET student_id = ?, course_id = ?, counseling_date = ?, category = ?, method = ?, content = ?,
                 result = ?, next_counseling_date = ?, counseling_type = ?, consultation_id = ?, updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
         `).bind(
@@ -1804,7 +1804,7 @@ app.put('/counseling/:id', async (c) => {
 });
 
 // DELETE /api/hrd/counseling/:id - 상담 일지 삭제
-app.delete('/counseling/:id', async (c) => {
+app.delete('/counseling/:id', authMiddleware, async (c) => {
     const id = c.req.param('id');
     try {
         await c.env.DB.prepare('DELETE FROM hrd_counseling_logs WHERE id = ?').bind(id).run();

@@ -209,6 +209,46 @@ export const adminHrdStudentJourneyHtml = (studentId: string) => {
             </main>
         </div>
     </div>
+    <!-- 상담 수정 모달 -->
+    <div id="consultEditModal" class="fixed inset-0 z-50 hidden bg-black/50 p-4" role="dialog" aria-modal="true" aria-labelledby="consultEditModalTitle">
+        <div class="h-full flex items-center justify-center" onclick="if (event.target === this) window.closeConsultEditModal && window.closeConsultEditModal()">
+        <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-hidden flex flex-col" onclick="event.stopPropagation()">
+            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+                <h4 id="consultEditModalTitle" class="text-lg font-bold text-gray-900">상담 수정</h4>
+                <button type="button" onclick="window.closeConsultEditModal && window.closeConsultEditModal()" class="text-gray-400 hover:text-gray-600 p-1"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="consultEditForm" class="p-6 space-y-4 overflow-y-auto flex-1" onsubmit="return false;">
+                <input type="hidden" id="consultEditLogId" value="">
+                <div>
+                    <label class="text-[10px] font-bold text-gray-400 ml-1 mb-1 block">상담일</label>
+                    <input type="date" id="consultEditDate" class="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-[10px] font-bold text-gray-400 ml-1 mb-1 block">유형</label>
+                        <select id="consultEditCategory" class="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm outline-none cursor-pointer">
+                            <option value="academic" class="text-gray-900">학사/학습</option><option value="attendance" class="text-gray-900">출결 관리</option><option value="career" class="text-gray-900">취업 지원</option><option value="complaint" class="text-gray-900">고충 건의</option><option value="other" class="text-gray-900">기타</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-gray-400 ml-1 mb-1 block">방식</label>
+                        <select id="consultEditMethod" class="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm outline-none cursor-pointer">
+                            <option value="face_to_face" class="text-gray-900">대면</option><option value="phone" class="text-gray-900">유선</option><option value="online" class="text-gray-900">온라인</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-gray-400 ml-1 mb-1 block">상담 내용</label>
+                    <textarea id="consultEditContent" rows="4" class="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 resize-none" placeholder="상담 내용"></textarea>
+                </div>
+            </form>
+            <div class="px-6 py-4 border-t border-gray-100 flex justify-end gap-2">
+                <button type="button" onclick="window.closeConsultEditModal && window.closeConsultEditModal()" class="px-4 py-2 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 font-medium text-sm">취소</button>
+                <button type="button" id="consultEditSubmitBtn" class="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-medium text-sm">저장</button>
+            </div>
+        </div>
+        </div>
+    </div>
     <script>window.JOURNEY_STUDENT_ID = ${JSON.stringify(safeId)};</script>
     <script src="/static/student-journey.js"></script>
 </body>

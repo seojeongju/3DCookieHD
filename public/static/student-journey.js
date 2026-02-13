@@ -101,13 +101,13 @@
                     var sessionStatusMap = { 'recruiting': '모집중', 'in_progress': '진행중', 'completed': '종료' };
 
                     return '<div class="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all">' +
-                        '<div class="flex justify-between items-start mb-4">' +
-                        '<div>' +
+                        '<div class="flex justify-between items-start gap-4 mb-4">' +
+                        '<div class="min-w-0 flex-1">' +
                         '<span class="inline-block px-2 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-black rounded-lg mb-2">' + (sessionStatusMap[item.session_status] || item.session_status) + '</span>' +
-                        '<h5 class="font-bold text-gray-900 text-sm">' + (item.course_name || '과정명 없음').replace(/</g, '&lt;') + '</h5>' +
-                        '<p class="text-xs text-gray-500 mt-1">' + (item.session_name || (item.session_number + '차')).replace(/</g, '&lt;') + '</p>' +
+                        '<h5 class="font-bold text-gray-900 text-sm break-words whitespace-normal">' + (item.course_name || '과정명 없음').replace(/</g, '&lt;') + '</h5>' +
+                        '<p class="text-xs text-gray-500 mt-1 break-words whitespace-normal">' + (item.session_name || (item.session_number + '차')).replace(/</g, '&lt;') + '</p>' +
                         '</div>' +
-                        '<div class="text-right">' +
+                        '<div class="text-right shrink-0">' +
                         '<span class="px-3 py-1 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold">' + (statusMap[item.enrollment_status] || item.enrollment_status) + '</span>' +
                         '</div>' +
                         '</div>' +
@@ -223,6 +223,7 @@
                     list.innerHTML = '<div class="text-center text-gray-300 py-20 text-sm font-medium">작성된 상담 내역이 없습니다.</div>';
                     return;
                 }
+                window._consultationLogs = logs;
                 var catStyles = { academic: 'bg-blue-50 text-blue-600', attendance: 'bg-yellow-50 text-yellow-600', career: 'bg-emerald-50 text-emerald-600', complaint: 'bg-red-50 text-red-600', other: 'bg-gray-50 text-gray-500' };
                 var catLabels = { academic: '학사지휘', attendance: '출결행정', career: '취업비전', complaint: '고충상담', other: '기타' };
                 function formatConsultDateTime(log) {
@@ -253,7 +254,10 @@
                         '<span class="text-[10px] font-bold text-gray-500" title="상담 일시">' + dateTimeStr + '</span>' +
                         '</div>' +
                         '<p class="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">' + (log.message || '').replace(/</g, '&lt;') + '</p>' +
-                        '</div></div>';
+                        '<div class="mt-4 pt-4 border-t border-gray-100 flex justify-end gap-2">' +
+                        '<button type="button" onclick="window.editConsultation(\'' + sid + '\',' + log.id + ')" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-blue-600 hover:bg-blue-50 rounded-lg transition"><i class="fas fa-pen text-[10px]"></i> 수정</button>' +
+                        '<button type="button" onclick="window.deleteConsultation(\'' + sid + '\',' + log.id + ')" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-50 rounded-lg transition"><i class="fas fa-trash-alt text-[10px]"></i> 삭제</button>' +
+                        '</div></div></div>';
                 }).join('');
             })
             .catch(function (e) { if (e && e.message === 'UNAUTHORIZED') return; list.innerHTML = '<div class="text-center text-red-400 py-8 text-sm">상담 목록을 불러오지 못했습니다.</div>'; });
@@ -286,6 +290,98 @@
             })
             .catch(function (e) { if (e && e.message === 'UNAUTHORIZED') return; alert('상담 등록 중 오류가 발생했습니다.'); });
     };
+
+    window.deleteConsultation = function (sid, logId) {
+        if (!confirm('이 상담을 삭제할까요?')) return;
+        var token = localStorage.getItem('token');
+        if (!token) { alert('로그인이 필요합니다.'); redirectToLogin(); return; }
+        fetch('/api/hrd/counseling/' + logId, {
+            method: 'DELETE',
+            headers: { 'Authorization': 'Bearer ' + token }
+        })
+            .then(handleAuthResponse)
+            .then(function (result) {
+                if (!result) return;
+                if (result.success) {
+                    loadConsultations(sid);
+                } else {
+                    alert(result.error || result.message || '삭제 실패');
+                }
+            })
+            .catch(function (e) { if (e && e.message === 'UNAUTHORIZED') return; alert('삭제 중 오류가 발생했습니다.'); });
+    };
+
+    window.editConsultation = function (sid, logId) {
+        var logs = window._consultationLogs;
+        if (!logs) return;
+        var log = logs.find(function (l) { return l.id == logId; });
+        if (!log) return;
+        var modal = document.getElementById('consultEditModal');
+        var dateInput = document.getElementById('consultEditDate');
+        var categorySelect = document.getElementById('consultEditCategory');
+        var methodSelect = document.getElementById('consultEditMethod');
+        var contentArea = document.getElementById('consultEditContent');
+        var logIdInput = document.getElementById('consultEditLogId');
+        if (!modal || !dateInput) return;
+        var dateStr = (log.consult_date && log.consult_date.split('T')[0]) || (log.created_at && (log.created_at.split('T')[0] || log.created_at.split(' ')[0])) || '';
+        logIdInput.value = logId;
+        dateInput.value = dateStr;
+        categorySelect.value = log.category || 'academic';
+        methodSelect.value = log.method || 'face_to_face';
+        contentArea.value = log.message || '';
+        modal.classList.remove('hidden');
+        modal.classList.add('flex', 'items-center', 'justify-center');
+        window._consultEditStudentId = sid;
+    };
+
+    window.closeConsultEditModal = function () {
+        var modal = document.getElementById('consultEditModal');
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex', 'items-center', 'justify-center');
+        }
+        window._consultEditStudentId = null;
+    };
+
+    (function bindConsultEditSubmit() {
+        var btn = document.getElementById('consultEditSubmitBtn');
+        if (!btn) return;
+        btn.addEventListener('click', function () {
+            var logId = document.getElementById('consultEditLogId') && document.getElementById('consultEditLogId').value;
+            var sid = window._consultEditStudentId;
+            if (!logId || !sid) return;
+            var token = localStorage.getItem('token');
+            if (!token) { alert('로그인이 필요합니다.'); redirectToLogin(); return; }
+            var body = {
+                student_id: sid,
+                course_id: document.getElementById('stdCourseId') && document.getElementById('stdCourseId').value || null,
+                counseling_date: document.getElementById('consultEditDate') && document.getElementById('consultEditDate').value,
+                category: document.getElementById('consultEditCategory') && document.getElementById('consultEditCategory').value,
+                method: document.getElementById('consultEditMethod') && document.getElementById('consultEditMethod').value,
+                content: document.getElementById('consultEditContent') && document.getElementById('consultEditContent').value,
+                result: null,
+                next_counseling_date: null,
+                counseling_type: 'academic',
+                consultation_id: null
+            };
+            fetch('/api/hrd/counseling/' + logId, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                body: JSON.stringify(body)
+            })
+                .then(handleAuthResponse)
+                .then(function (result) {
+                    if (!result) return;
+                    if (result.success) {
+                        window.closeConsultEditModal();
+                        loadConsultations(sid);
+                    } else {
+                        alert(result.error || result.message || '수정 실패');
+                    }
+                })
+                .catch(function (e) { if (e && e.message === 'UNAUTHORIZED') return; alert('수정 중 오류가 발생했습니다.'); });
+        });
+    })();
 
     window.handleSaveStudent = function (e) {
         e.preventDefault();
