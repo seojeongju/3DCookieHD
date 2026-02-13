@@ -825,11 +825,11 @@ export function adminHrdCounselingHtml(courseId?: string): string {
             
             for (var i = 1; i < parts.length; i++) {
                 var part = parts[i];
-                var dateMatch = part.match(/^([^\\]]+)\\]/);
+                var dateMatch = part.match(/^([^\]]+)\]/);
                 var date = dateMatch ? dateMatch[1].trim() : '';
                 
                 var afterDate = dateMatch ? part.substring(dateMatch[0].length) : part;
-                var lines = afterDate.split('\n').filter(function(l) { return l.trim(); });
+                var lines = afterDate.split(String.fromCharCode(10)).filter(function(l) { return l.trim(); });
                 
                 var method = '';
                 var counselor = '';
@@ -838,7 +838,7 @@ export function adminHrdCounselingHtml(courseId?: string): string {
                 for (var j = 0; j < lines.length; j++) {
                     var line = lines[j];
                     if (line.indexOf('상담자:') !== -1 && line.indexOf('방식:') !== -1) {
-                        var methodMatch = line.match(/방식:\s*([^\n]+)/);
+                        var methodMatch = line.match(/방식:\s*([^\\\s]+)/) || line.match(/방식:\s*([^\\\\n]+)/);
                         method = methodMatch ? methodMatch[1].trim() : '';
                         var counselorMatch = line.match(/상담자:\s*([^|]+)/);
                         counselor = counselorMatch ? counselorMatch[1].trim() : '';
@@ -848,7 +848,7 @@ export function adminHrdCounselingHtml(courseId?: string): string {
                 }
                 
                 entries.push({
-                    content: contentLines.join('\n').trim(),
+                    content: contentLines.join(String.fromCharCode(10)).trim(),
                     date: date,
                     method: method,
                     counselor: counselor
@@ -991,12 +991,8 @@ export function adminHrdCounselingHtml(courseId?: string): string {
                 return;
             }
             
-            var today = new Date().toISOString().split('T')[0];
-            var methodLabels = { face_to_face: '대면', phone: '유선', online: '온라인', other: '기타' };
-            var user = JSON.parse(localStorage.getItem('user') || '{}');
-            var counselor = user.name || '관리자';
-            
-            var newEntry = '\\n\\n--- [추가 상담: ' + today + '] ---\\n상담자: ' + counselor + ' | 방식: ' + methodLabels[method] + '\\n' + content;
+            var nl = String.fromCharCode(10);
+            var newEntry = nl + nl + '--- [추가 상담: ' + today + '] ---' + nl + '상담자: ' + counselor + ' | 방식: ' + methodLabels[method] + nl + content;
             var updatedContent = log.content + newEntry;
             
             try {
@@ -1235,10 +1231,8 @@ export function adminHrdCounselingHtml(courseId?: string): string {
                 return;
             }
             
-            const methodLabels = { face_to_face: '대면', phone: '유선', online: '온라인', other: '기타' };
-            
-            // 기존 content에 새 내용을 추가하는 형식
-            const newEntry = '\\\\n\\\\n--- [추가 상담: ' + appendDate + '] ---\\\\n상담자: ' + appendCounselor + ' | 방식: ' + (methodLabels[appendMethod] || appendMethod) + '\\\\n' + appendContent + (appendResult ? '\\\\n→ 조치/계획: ' + appendResult : '');
+            const nl = String.fromCharCode(10);
+            const newEntry = nl + nl + '--- [추가 상담: ' + appendDate + '] ---' + nl + '상담자: ' + appendCounselor + ' | 방식: ' + (methodLabels[appendMethod] || appendMethod) + nl + appendContent + (appendResult ? nl + '→ 조치/계획: ' + appendResult : '');
             const updatedContent = appendTargetLog.content + newEntry;
             
             // 결과도 업데이트 (최신 결과로 덮어쓰기)
@@ -1315,18 +1309,18 @@ export function adminHrdCounselingHtml(courseId?: string): string {
         function recomposeContent(entries) {
             if (!entries || entries.length === 0) return "";
             
-            // index 0: Master entry
+            var nl = String.fromCharCode(10);
             var content = entries[0].content;
             
             var methodLabels = { 'face_to_face': '대면', 'phone': '유선', 'online': '온라인', 'other': '기타', '대면': '대면', '유선': '유선', '온라인': '온라인', '기타': '기타' };
             
             for (var i = 1; i < entries.length; i++) {
                 var e = entries[i];
-                content += '\\\\n\\\\n--- [추가 상담: ' + (e.date || new Date().toISOString().split('T')[0]) + '] ---\\\\n';
+                content += nl + nl + '--- [추가 상담: ' + (e.date || new Date().toISOString().split('T')[0]) + '] ---' + nl;
                 var methodLabel = methodLabels[e.method] || e.method || '기타';
                 var counselorName = e.counselor || '관리자';
                 
-                content += '상담자: ' + counselorName + ' | 방식: ' + methodLabel + '\\\\n';
+                content += '상담자: ' + counselorName + ' | 방식: ' + methodLabel + nl;
                 content += e.content;
             }
             return content;
