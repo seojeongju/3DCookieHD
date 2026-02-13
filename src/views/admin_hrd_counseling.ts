@@ -734,10 +734,20 @@ export function adminHrdCounselingHtml(courseId?: string): string {
                                                 </div>
                                             </div>
                                             
-                                            <div class="bg-gray-50 rounded-2xl p-4 mb-3">
-                                                <div class="flex items-center gap-2 mb-2">
-                                                    <span class="text-[10px] font-black text-gray-500 uppercase">최신 상담</span>
-                                                    \${latestEntry.date ? '<span class="text-[10px] text-gray-400">' + latestEntry.date + '</span>' : ''}
+                                            <div class="bg-gray-50 rounded-2xl p-4 mb-3 relative group/entry">
+                                                <div class="flex items-center justify-between mb-2">
+                                                    <div class="flex items-center gap-2">
+                                                        <span class="text-[10px] font-black text-gray-500 uppercase">최신 상담</span>
+                                                        \${latestEntry.date ? '<span class="text-[10px] text-gray-400">' + latestEntry.date + '</span>' : ''}
+                                                    </div>
+                                                    <div class="flex items-center space-x-1 opacity-0 group-hover/entry:opacity-100 transition">
+                                                        <button onclick="editEntry(\${log.id}, \${entries.length - 1})" class="w-6 h-6 rounded bg-white text-blue-500 shadow-sm border border-blue-100 flex items-center justify-center hover:bg-blue-50 transition" title="이 항목 수정">
+                                                            <i class="fas fa-edit text-[10px]"></i>
+                                                        </button>
+                                                        <button onclick="deleteEntry(\${log.id}, \${entries.length - 1})" class="w-6 h-6 rounded bg-white text-red-500 shadow-sm border border-red-100 flex items-center justify-center hover:bg-red-50 transition" title="이 항목 삭제">
+                                                            <i class="fas fa-trash-alt text-[10px]"></i>
+                                                        </button>
+                                                    </div>
                                                 </div>
                                                 <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-line">\${latestEntry.content}</p>
                                             </div>
@@ -752,11 +762,22 @@ export function adminHrdCounselingHtml(courseId?: string): string {
                                             <div id="history-\${log.id}" class="history-accordion" data-total-entries="\${entries.length - 1}" data-show-count="2">
                                                 <div class="space-y-2 pt-3 border-t border-gray-100" id="history-items-\${log.id}">
                                                     \${entries.slice(0, -1).reverse().slice(0, 2).map(function(entry, idx) {
-                                                        return '<div class="bg-purple-50/50 rounded-xl p-3 border border-purple-100 history-entry-' + log.id + '">' +
-                                                            '<div class="flex items-center gap-2 mb-1">' +
-                                                                '<span class="w-5 h-5 rounded-full bg-purple-200 text-purple-700 text-[10px] font-bold flex items-center justify-center">' + (entries.length - 1 - idx) + '</span>' +
-                                                                '<span class="text-[10px] font-bold text-purple-600">' + (entry.date || '초기 상담') + '</span>' +
-                                                                (entry.method ? '<span class="text-[10px] text-purple-400">' + entry.method + '</span>' : '') +
+                                                        var entryIdx = entries.length - 2 - idx;
+                                                        return '<div class="bg-purple-50/50 rounded-xl p-3 border border-purple-100 relative group/entry history-entry-' + log.id + '">' +
+                                                            '<div class="flex items-center justify-between mb-1">' +
+                                                                '<div class="flex items-center gap-2">' +
+                                                                    '<span class="w-5 h-5 rounded-full bg-purple-200 text-purple-700 text-[10px] font-bold flex items-center justify-center">' + (entries.length - 1 - idx) + '</span>' +
+                                                                    '<span class="text-[10px] font-bold text-purple-600">' + (entry.date || '초기 상담') + '</span>' +
+                                                                    (entry.method ? '<span class="text-[10px] text-purple-400">' + entry.method + '</span>' : '') +
+                                                                '</div>' +
+                                                                '<div class="flex items-center space-x-1 opacity-0 group-hover/entry:opacity-100 transition">' +
+                                                                    '<button onclick="editEntry(' + log.id + ', ' + entryIdx + ')" class="w-5 h-5 rounded bg-white text-blue-500 shadow-sm border border-blue-100 flex items-center justify-center hover:bg-blue-50 transition">' +
+                                                                        '<i class="fas fa-edit text-[8px]"></i>' +
+                                                                    '</button>' +
+                                                                    '<button onclick="deleteEntry(' + log.id + ', ' + entryIdx + ')" class="w-5 h-5 rounded bg-white text-red-500 shadow-sm border border-red-100 flex items-center justify-center hover:bg-red-50 transition">' +
+                                                                        '<i class="fas fa-trash-alt text-[8px]"></i>' +
+                                                                    '</button>' +
+                                                                '</div>' +
                                                             '</div>' +
                                                             '<p class="text-xs text-gray-600 leading-relaxed whitespace-pre-line pl-7">' + entry.content + '</p>' +
                                                         '</div>';
@@ -808,29 +829,33 @@ export function adminHrdCounselingHtml(courseId?: string): string {
                 var date = dateMatch ? dateMatch[1].trim() : '';
                 
                 var afterDate = dateMatch ? part.substring(dateMatch[0].length) : part;
-                var lines = afterDate.split('\\n').filter(function(l) { return l.trim(); });
+                var lines = afterDate.split('\n').filter(function(l) { return l.trim(); });
                 
                 var method = '';
+                var counselor = '';
                 var contentLines = [];
                 
                 for (var j = 0; j < lines.length; j++) {
                     var line = lines[j];
                     if (line.indexOf('상담자:') !== -1 && line.indexOf('방식:') !== -1) {
-                        var methodMatch = line.match(/방식:\\s*([^\\n]+)/);
+                        var methodMatch = line.match(/방식:\s*([^\n]+)/);
                         method = methodMatch ? methodMatch[1].trim() : '';
+                        var counselorMatch = line.match(/상담자:\s*([^|]+)/);
+                        counselor = counselorMatch ? counselorMatch[1].trim() : '';
                     } else if (line.indexOf('---') !== 0) {
                         contentLines.push(line);
                     }
                 }
                 
                 entries.push({
-                    content: contentLines.join('\\n').trim(),
+                    content: contentLines.join('\n').trim(),
                     date: date,
-                    method: method
+                    method: method,
+                    counselor: counselor
                 });
             }
             
-            return entries.length > 0 ? entries : [{ content: content, date: '', method: '' }];
+            return entries.length > 0 ? entries : [{ content: content, date: '', method: '', counselor: '' }];
         }
         
         // 현재 열린 아코디언 ID 추적
@@ -892,11 +917,22 @@ export function adminHrdCounselingHtml(courseId?: string): string {
             var totalEntries = allEntries.length;
             
             entriesToShow.forEach(function(entry, idx) {
-                var entryHtml = '<div class="bg-purple-50/50 rounded-xl p-3 border border-purple-100 history-entry-' + logId + '">' +
-                    '<div class="flex items-center gap-2 mb-1">' +
-                        '<span class="w-5 h-5 rounded-full bg-purple-200 text-purple-700 text-[10px] font-bold flex items-center justify-center">' + (totalEntries - idx) + '</span>' +
-                        '<span class="text-[10px] font-bold text-purple-600">' + (entry.date || '초기 상담') + '</span>' +
-                        (entry.method ? '<span class="text-[10px] text-purple-400">' + entry.method + '</span>' : '') +
+                var entryIdx = totalEntries - 1 - idx;
+                var entryHtml = '<div class="bg-purple-50/50 rounded-xl p-3 border border-purple-100 relative group/entry history-entry-' + logId + '">' +
+                    '<div class="flex items-center justify-between mb-1">' +
+                        '<div class="flex items-center gap-2">' +
+                            '<span class="w-5 h-5 rounded-full bg-purple-200 text-purple-700 text-[10px] font-bold flex items-center justify-center">' + (totalEntries - idx) + '</span>' +
+                            '<span class="text-[10px] font-bold text-purple-600">' + (entry.date || '초기 상담') + '</span>' +
+                            (entry.method ? '<span class="text-[10px] text-purple-400">' + entry.method + '</span>' : '') +
+                        '</div>' +
+                        '<div class="flex items-center space-x-1 opacity-0 group-hover/entry:opacity-100 transition">' +
+                            '<button onclick="editEntry(' + logId + ', ' + entryIdx + ')" class="w-5 h-5 rounded bg-white text-blue-500 shadow-sm border border-blue-100 flex items-center justify-center hover:bg-blue-50 transition">' +
+                                '<i class="fas fa-edit text-[8px]"></i>' +
+                            '</button>' +
+                            '<button onclick="deleteEntry(' + logId + ', ' + entryIdx + ')" class="w-5 h-5 rounded bg-white text-red-500 shadow-sm border border-red-100 flex items-center justify-center hover:bg-red-50 transition">' +
+                                '<i class="fas fa-trash-alt text-[8px]"></i>' +
+                            '</button>' +
+                        '</div>' +
                     '</div>' +
                     '<p class="text-xs text-gray-600 leading-relaxed whitespace-pre-line pl-7">' + entry.content + '</p>' +
                 '</div>';
@@ -1230,6 +1266,101 @@ export function adminHrdCounselingHtml(courseId?: string): string {
                 } else {
                     const err = await response.json();
                     alert('저장 실패: ' + (err.error || '알 수 없는 오류'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('네트워크 오류가 발생했습니다.');
+            }
+        }
+
+        async function editEntry(logId, entryIdx) {
+            var log = counselingData.find(function(d) { return d.id === logId; });
+            if (!log) return;
+            
+            var entries = parseConsultEntries(log.content);
+            if (!entries || !entries[entryIdx]) return;
+            
+            var entry = entries[entryIdx];
+            var newContent = prompt('상담 내용을 수정하세요 (내용을 비우면 삭제되지 않고 빈 내용으로 저장됩니다):', entry.content);
+            
+            if (newContent === null || newContent === entry.content) return;
+            
+            entries[entryIdx].content = newContent;
+            
+            // Re-compose content
+            var updatedContent = recomposeContent(entries);
+            saveUpdatedEntry(logId, updatedContent);
+        }
+
+        async function deleteEntry(logId, entryIdx) {
+            if (!confirm('해당 상담 내역만 삭제하시겠습니까? (다른 상담 내역은 보존됩니다)')) return;
+            
+            var log = counselingData.find(function(d) { return d.id === logId; });
+            if (!log) return;
+            
+            var entries = parseConsultEntries(log.content);
+            
+            if (entries.length <= 1) {
+                if (!confirm('마지막 남은 상담 내역입니다. 삭제하면 이 상담 카드 자체가 삭제될 수 있습니다. 진행하시겠습니까?')) return;
+                // 마지막인 경우 내용을 비우거나 카드 자체 삭제 로직 고려
+                entries[0].content = '(삭제된 상담 내용)';
+            } else {
+                entries.splice(entryIdx, 1);
+            }
+            
+            var updatedContent = recomposeContent(entries);
+            saveUpdatedEntry(logId, updatedContent);
+        }
+
+        function recomposeContent(entries) {
+            if (!entries || entries.length === 0) return "";
+            
+            // index 0: Master entry
+            var content = entries[0].content;
+            
+            var methodLabels = { 'face_to_face': '대면', 'phone': '유선', 'online': '온라인', 'other': '기타', '대면': '대면', '유선': '유선', '온라인': '온라인', '기타': '기타' };
+            
+            for (var i = 1; i < entries.length; i++) {
+                var e = entries[i];
+                content += '\\n\\n--- [추가 상담: ' + (e.date || new Date().toISOString().split('T')[0]) + '] ---\\n';
+                var methodLabel = methodLabels[e.method] || e.method || '기타';
+                var counselorName = e.counselor || '관리자';
+                
+                content += '상담자: ' + counselorName + ' | 방식: ' + methodLabel + '\\n';
+                content += e.content;
+            }
+            return content;
+        }
+
+        async function saveUpdatedEntry(logId, updatedContent) {
+            var log = counselingData.find(function(d) { return d.id === logId; });
+            if (!log) return;
+            
+            try {
+                var token = localStorage.getItem('token');
+                var response = await fetch('/api/hrd/counseling/' + logId, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({
+                        student_id: log.student_id,
+                        course_id: log.course_id,
+                        category: log.category,
+                        method: log.method,
+                        content: updatedContent,
+                        result: log.result,
+                        counseling_date: log.counseling_date,
+                        next_counseling_date: log.next_counseling_date,
+                        counselor_id: log.counselor_id,
+                        counseling_type: log.counseling_type,
+                        consultation_id: log.consultation_id
+                    })
+                });
+                
+                if (response.ok) {
+                    alert('수정되었습니다.');
+                    loadCounselingLogs();
+                } else {
+                    alert('저장에 실패했습니다.');
                 }
             } catch (err) {
                 console.error(err);
