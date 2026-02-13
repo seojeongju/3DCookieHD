@@ -163,8 +163,8 @@
 
                         return '<tr class="hover:bg-slate-50/80 transition border-b border-slate-50">' +
                             '<td class="p-3 text-center text-slate-500 text-xs">' + no + '</td>' +
-                            '<td class="p-3">' +
-                            '<div class="font-bold text-slate-700 text-sm mb-0.5">' + courseNameEsc + '</div>' +
+                            '<td class="p-3 min-w-[180px]">' +
+                            '<div class="font-bold text-slate-700 text-sm mb-0.5 break-words whitespace-normal" title="' + courseNameEsc.replace(/"/g, '&quot;') + '">' + courseNameEsc + '</div>' +
                             linksHtml +
                             '</td>' +
                             '<td class="p-3 text-center font-bold text-slate-600 text-xs">' + (item.session_number != null ? item.session_number + '회차' : '-') + '</td>' +
