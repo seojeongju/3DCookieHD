@@ -19,7 +19,33 @@ export function adminHrdCounselingHtml(courseId?: string): string {
         body { font-family: 'Pretendard', sans-serif; }
         .glass-effect { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); }
         .active-tab { border-bottom: 2px solid #3b82f6; color: #3b82f6; }
-        /* ... (중략 - 동일한 스타일 유지) ... */
+        
+        .gradient-blue { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
+        .gradient-purple { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); }
+        
+        .history-accordion { max-height: 0; overflow: hidden; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); opacity: 0; }
+        .history-accordion.open { max-height: 2000px; opacity: 1; margin-bottom: 1rem; }
+        .history-toggle-icon { transition: transform 0.3s; }
+        .history-toggle-icon.open { transform: rotate(180deg); }
+
+        .inline-add-form { max-height: 0; overflow: hidden; transition: all 0.4s ease-out; opacity: 0; }
+        .inline-add-form.open { max-height: 500px; opacity: 1; margin-top: 1rem; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+
+        @keyframes bounceIn {
+            0% { opacity: 0; transform: scale(0.9) translateY(20px); }
+            50% { transform: scale(1.02); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .animate-bounce-in { animation: bounceIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+        /* 스크롤바 커스텀 */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
     </style>
 </head>
 <body class="bg-[#f8fafc] text-[#1e293b]">
