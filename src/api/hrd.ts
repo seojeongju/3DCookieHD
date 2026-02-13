@@ -632,17 +632,43 @@ app.delete('/items/:id', async (c) => {
 // 훈련생 관리 API
 // ============================================
 
-// 훈련생 목록 조회
+// 훈련생 목록 조회 (페이지네이션 지원)
 app.get('/students', async (c) => {
     try {
         const search = c.req.query('search');
         const status = c.req.query('status');
         const type = c.req.query('type');
+        const page = Math.max(1, parseInt(c.req.query('page') || '1', 10));
+        const limit = Math.min(50, Math.max(10, parseInt(c.req.query('limit') || '15', 10)));
+        const offset = (page - 1) * limit;
 
-        // === [최종 정상 버전] ===
-        // DB 마이그레이션 완료: birthdate, gender, address, education, certifications 컬럼 사용 가능
+        const whereClause: string[] = ["u.role = 'student'"];
+        const params: any[] = [];
 
-        let query = `
+        if (search) {
+            whereClause.push("(u.name LIKE ? OR u.phone LIKE ?)");
+            const searchParam = `%${search}%`;
+            params.push(searchParam, searchParam);
+        }
+        if (status) {
+            whereClause.push("d.status = ?");
+            params.push(status);
+        }
+        if (type) {
+            whereClause.push("d.type = ?");
+            params.push(type);
+        }
+
+        const whereSql = ' WHERE ' + whereClause.join(' AND ');
+
+        // 총 개수 조회
+        const countQuery = `SELECT COUNT(*) as total FROM users u LEFT JOIN hrd_student_details d ON u.id = d.user_id ${whereSql}`;
+        const countRow = await (params.length > 0
+            ? c.env.DB.prepare(countQuery).bind(...params).first()
+            : c.env.DB.prepare(countQuery).first()) as { total: number };
+        const total = countRow?.total ?? 0;
+
+        const dataQuery = `
             SELECT 
                 u.id, u.name, u.phone, u.email, u.created_at,
                 u.address, u.birthdate, u.gender, u.education, u.certifications, u.profile_image,
@@ -651,46 +677,30 @@ app.get('/students', async (c) => {
                 d.has_application, d.has_card, d.is_hrd_net_registered, d.status_memo
             FROM users u
             LEFT JOIN hrd_student_details d ON u.id = d.user_id
-            WHERE u.role = 'student'
+            ${whereSql}
+            ORDER BY u.created_at DESC
+            LIMIT ? OFFSET ?
         `;
-        const params: any[] = [];
+        const dataParams = [...params, limit, offset];
+        const { results } = await c.env.DB.prepare(dataQuery).bind(...dataParams).all();
 
-        if (search) {
-            query += " AND (u.name LIKE ? OR u.phone LIKE ?)";
-            const searchParam = `%${search}%`;
-            params.push(searchParam, searchParam);
-        }
-
-        if (status) {
-            query += " AND d.status = ?";
-            params.push(status);
-        }
-
-        if (type) {
-            query += " AND d.type = ?";
-            params.push(type);
-        }
-
-        query += " ORDER BY u.created_at DESC";
-
-        const stmt = c.env.DB.prepare(query);
-        const { results } = params.length > 0 ? await stmt.bind(...params).all() : await stmt.all();
-
-        // 데이터 매핑
         const safeResults = (results || []).map((r: any) => ({
             ...r,
-            // 상세 정보가 없을 경우를 대비한 기본값 처리
             course_id: r.course_id || null,
             status: r.status || 'consulting',
             type: r.type || 'jobseeker',
             last_consult: r.last_consult || null,
-            // boolean 변환 등 필요한 추가 가공
             has_application: !!r.has_application,
             has_card: !!r.has_card,
             is_hrd_net_registered: !!r.is_hrd_net_registered
         }));
 
-        return c.json({ success: true, data: safeResults });
+        const totalPages = Math.ceil(total / limit);
+        return c.json({
+            success: true,
+            data: safeResults,
+            pagination: { total, page, limit, totalPages }
+        });
 
     } catch (e: any) {
         console.error('Failed to fetch students:', e);
@@ -1750,12 +1760,12 @@ app.get('/counseling', async (c) => {
     }
 });
 
-// POST /api/hrd/counseling - 상담 일지 등록
-app.post('/counseling', async (c) => {
+// POST /api/hrd/counseling - 상담 일지 등록 (로그인한 사용자를 상담자로 저장)
+app.post('/counseling', authMiddleware, async (c) => {
     try {
         const body = await c.req.json();
-        // counselor_id should ideally come from auth token, but for now we accept it or default to 1 (admin)
-        const counselorId = body.counselor_id || 1;
+        const user = c.get('user') as JWTPayload;
+        const counselorId = user.userId;
 
         const studentId = (body.student_id && body.student_id !== 0 && body.student_id !== '0') ? body.student_id : null;
 

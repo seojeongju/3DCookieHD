@@ -62,7 +62,7 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
                             <option value="dropout">중도탈락</option>
                         </select>
                     </div>
-                    <button onclick="loadStudents()" class="px-6 py-3 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition font-bold text-sm">검색 적용</button>
+                    <button onclick="currentPage=1; loadStudents()" class="px-6 py-3 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition font-bold text-sm">검색 적용</button>
                 </div>
 
                 <!-- 수강생 리스트 테이블 -->
@@ -82,8 +82,13 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
                             <!-- 로딩 스켈레톤 또는 데이터 -->
                         </tbody>
                     </table>
-                    <div class="px-8 py-6 bg-gray-50/50 flex justify-between items-center">
+                    <div class="px-8 py-6 bg-gray-50/50 flex flex-wrap justify-between items-center gap-4">
                         <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Total <span id="totalCount" class="text-blue-600 ml-1">0</span> Students</span>
+                        <div id="paginationWrap" class="hidden flex items-center gap-2">
+                            <button type="button" id="paginationPrev" class="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition">이전</button>
+                            <span id="paginationPages" class="flex items-center gap-1"></span>
+                            <button type="button" id="paginationNext" class="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition">다음</button>
+                        </div>
                     </div>
                 </div>
             </main>
@@ -496,6 +501,9 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
         let studentsData = [];
         let coursesData = [];
         let currentStudentId = null;
+        let currentPage = 1;
+        let pageSize = 15;
+        let pagination = { total: 0, page: 1, limit: 15, totalPages: 0 };
 
         document.addEventListener('DOMContentLoaded', async () => { 
             await loadCourses(); 
@@ -533,24 +541,72 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
             const status = document.getElementById('statusFilter').value;
 
             try {
-                let url = '/api/hrd/students?';
+                let url = '/api/hrd/students?page=' + currentPage + '&limit=' + pageSize + '&';
                 if (search) url += 'search=' + encodeURIComponent(search) + '&';
-                if (status) url += 'status=' + status;
+                if (status) url += 'status=' + encodeURIComponent(status) + '&';
 
                 const response = await fetch(url);
                 const result = await response.json();
 
                 if (result.success) {
-                    studentsData = result.data;
-                    if (totalCount) totalCount.textContent = studentsData.length;
+                    studentsData = result.data || [];
+                    pagination = result.pagination || { total: 0, page: 1, limit: pageSize, totalPages: 0 };
+                    if (totalCount) totalCount.textContent = pagination.total;
                     
                     if (studentsData.length === 0) {
                         tbody.innerHTML = \`<tr><td colspan="6" class="px-8 py-20 text-center text-gray-400 font-medium">일치하는 훈련생 데이터가 없습니다.</td></tr>\`;
+                        renderPagination();
                         return;
                     }
                     tbody.innerHTML = studentsData.map(s => getStudentRowHtml(s)).join('');
+                    renderPagination();
                 }
             } catch (e) { console.error(e); }
+        }
+
+        function goToPage(page) {
+            if (page < 1 || page > pagination.totalPages) return;
+            currentPage = page;
+            loadStudents();
+        }
+
+        function renderPagination() {
+            const wrap = document.getElementById('paginationWrap');
+            const prevBtn = document.getElementById('paginationPrev');
+            const nextBtn = document.getElementById('paginationNext');
+            const pagesEl = document.getElementById('paginationPages');
+            if (!wrap || !pagesEl) return;
+
+            if (pagination.totalPages <= 1) {
+                wrap.classList.add('hidden');
+                return;
+            }
+            wrap.classList.remove('hidden');
+            if (prevBtn) {
+                prevBtn.disabled = currentPage <= 1;
+                prevBtn.onclick = () => goToPage(currentPage - 1);
+            }
+            if (nextBtn) {
+                nextBtn.disabled = currentPage >= pagination.totalPages;
+                nextBtn.onclick = () => goToPage(currentPage + 1);
+            }
+
+            const total = pagination.totalPages;
+            let start = Math.max(1, currentPage - 2);
+            let end = Math.min(total, currentPage + 2);
+            if (end - start < 4) {
+                if (start === 1) end = Math.min(total, 5);
+                else end = total; start = Math.max(1, end - 4);
+            }
+            pagesEl.innerHTML = '';
+            for (let p = start; p <= end; p++) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'w-9 h-9 rounded-lg text-sm font-bold transition ' + (p === currentPage ? 'bg-blue-600 text-white' : 'border border-gray-200 text-gray-600 hover:bg-gray-100');
+                btn.textContent = p;
+                btn.onclick = () => goToPage(p);
+                pagesEl.appendChild(btn);
+            }
         }
 
         function getStudentRowHtml(s) {
