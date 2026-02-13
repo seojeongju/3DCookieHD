@@ -740,7 +740,7 @@ export function adminHrdCounselingHtml(courseId?: string): string {
                                                         <span class="text-[10px] font-black text-gray-500 uppercase">최신 상담</span>
                                                         \${latestEntry.date ? '<span class="text-[10px] text-gray-400">' + latestEntry.date + '</span>' : ''}
                                                     </div>
-                                                    <div class="flex items-center space-x-1 opacity-0 group-hover/entry:opacity-100 transition">
+                                                    <div class="flex items-center space-x-1 transition">
                                                         <button onclick="editEntry(\${log.id}, \${entries.length - 1})" class="w-6 h-6 rounded bg-white text-blue-500 shadow-sm border border-blue-100 flex items-center justify-center hover:bg-blue-50 transition" title="이 항목 수정">
                                                             <i class="fas fa-edit text-[10px]"></i>
                                                         </button>
@@ -770,7 +770,7 @@ export function adminHrdCounselingHtml(courseId?: string): string {
                                                                     '<span class="text-[10px] font-bold text-purple-600">' + (entry.date || '초기 상담') + '</span>' +
                                                                     (entry.method ? '<span class="text-[10px] text-purple-400">' + entry.method + '</span>' : '') +
                                                                 '</div>' +
-                                                                '<div class="flex items-center space-x-1 opacity-0 group-hover/entry:opacity-100 transition">' +
+                                                                '<div class="flex items-center space-x-1 transition">' +
                                                                     '<button onclick="editEntry(' + log.id + ', ' + entryIdx + ')" class="w-5 h-5 rounded bg-white text-blue-500 shadow-sm border border-blue-100 flex items-center justify-center hover:bg-blue-50 transition">' +
                                                                         '<i class="fas fa-edit text-[8px]"></i>' +
                                                                     '</button>' +
@@ -925,7 +925,7 @@ export function adminHrdCounselingHtml(courseId?: string): string {
                             '<span class="text-[10px] font-bold text-purple-600">' + (entry.date || '초기 상담') + '</span>' +
                             (entry.method ? '<span class="text-[10px] text-purple-400">' + entry.method + '</span>' : '') +
                         '</div>' +
-                        '<div class="flex items-center space-x-1 opacity-0 group-hover/entry:opacity-100 transition">' +
+                        '<div class="flex items-center space-x-1 transition">' +
                             '<button onclick="editEntry(' + logId + ', ' + entryIdx + ')" class="w-5 h-5 rounded bg-white text-blue-500 shadow-sm border border-blue-100 flex items-center justify-center hover:bg-blue-50 transition">' +
                                 '<i class="fas fa-edit text-[8px]"></i>' +
                             '</button>' +
