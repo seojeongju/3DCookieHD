@@ -4,6 +4,36 @@
     var formIdEl = document.getElementById('sessionsFormId');
     var editId = (formIdEl && formIdEl.value) ? formIdEl.value.trim() : '';
 
+    // --- 공강일(훈련 제외일) 상태 관리 ---
+    var excludedDates = new Set(); // 'YYYY-MM-DD' 형식의 세트
+
+    function renderExcludedDatesPreview() {
+        var container = document.getElementById('sessionsExcludedDatesPreview');
+        var hiddenInput = document.getElementById('sessionsFormExcludedDates');
+        if (!container || !hiddenInput) return;
+
+        var sorted = Array.from(excludedDates).sort();
+        hiddenInput.value = sorted.join(',');
+
+        if (sorted.length === 0) {
+            container.innerHTML = '<span class="italic text-slate-400">중간 공강일이 없습니다.</span>';
+            return;
+        }
+
+        container.innerHTML = sorted.map(function (d) {
+            return '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-rose-50 border border-rose-100 text-rose-600 rounded-lg font-bold">' +
+                d + '<button type="button" class="text-rose-400 hover:text-rose-600 ml-1 btn-remove-excluded" data-date="' + d + '"><i class="fas fa-times"></i></button></span>';
+        }).join('');
+
+        container.querySelectorAll('.btn-remove-excluded').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                excludedDates.delete(btn.getAttribute('data-date'));
+                renderExcludedDatesPreview();
+                calculateTotalTrainingDays();
+            });
+        });
+    }
+
     function loadApprovedCourses() {
         return fetch('/api/approved-courses?limit=500', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } })
             .then(function (r) { return r.json(); })
@@ -313,6 +343,14 @@
                 if (listUrlEl) listUrlEl.value = d.course_list_image_url || '';
                 var listInfo = document.getElementById('sessionsFormCourseListImageInfo');
                 if (listInfo) listInfo.textContent = d.course_list_image_url ? '등록됨' : '';
+
+                // 공강일 로드
+                excludedDates.clear();
+                if (d.excluded_dates) {
+                    d.excluded_dates.split(',').forEach(function (s) { if (s.trim()) excludedDates.add(s.trim()); });
+                    renderExcludedDatesPreview();
+                }
+
                 setSessionCourseDetailContent(d.course_detail_description || '');
                 if (formIdEl) formIdEl.value = id;
                 if (id && approvedSel) approvedSel.disabled = true;
@@ -400,7 +438,8 @@
                 course_list_image_url: courseListUrl || null,
                 course_detail_description: courseDetailDescription || null,
                 session_name: sessionNameVal || null,
-                access_code: accessCodeVal || null
+                access_code: accessCodeVal || null,
+                excluded_dates: document.getElementById('sessionsFormExcludedDates').value || null
             };
         } else {
             url = '/api/course-sessions';
@@ -429,7 +468,8 @@
                 course_list_image_url: courseListUrl || null,
                 course_detail_description: courseDetailDescription || null,
                 session_name: sessionNameVal || null,
-                access_code: accessCodeVal || null
+                access_code: accessCodeVal || null,
+                excluded_dates: document.getElementById('sessionsFormExcludedDates').value || null
             };
         }
         var btn = document.getElementById('sessionsFormSubmit');
@@ -590,8 +630,19 @@
         var maxDays = 3650;
         var iterations = 0;
         while (cur <= end && iterations < maxDays) {
+            var dateStr = cur.toISOString().split('T')[0];
             if (targetDayNumbers.indexOf(cur.getDay()) >= 0) {
-                count++;
+                // 특정 요일에 해당할 때
+                if (!excludedDates.has(dateStr)) {
+                    // 공강일이 아닐 때만 카운트
+                    count++;
+                }
+            } else {
+                // 훈련 요일이 아닌데 공강일로 등록되어 있다면 제거 (정합성 유지)
+                if (excludedDates.has(dateStr)) {
+                    excludedDates.delete(dateStr);
+                    setTimeout(renderExcludedDatesPreview, 0);
+                }
             }
             cur.setDate(cur.getDate() + 1);
             iterations++;
@@ -813,6 +864,138 @@
         });
     }
 
+    // --- 달력 모달 로직 ---
+    var calendarYear, calendarMonth;
+    function openScheduleCalendar() {
+        var startVal = document.getElementById('sessionsFormTrainingStart').value;
+        if (!startVal) { alert('시작일을 먼저 선택하세요.'); return; }
+
+        var date = new Date(startVal);
+        calendarYear = date.getFullYear();
+        calendarMonth = date.getMonth();
+
+        renderCalendar();
+        document.getElementById('scheduleCalendarModal').classList.remove('hidden');
+    }
+
+    function closeScheduleCalendar() {
+        document.getElementById('scheduleCalendarModal').classList.add('hidden');
+    }
+
+    function renderCalendar() {
+        var grid = document.getElementById('scheduleCalendarGrid');
+        var title = document.getElementById('calendarMonthTitle');
+        if (!grid || !title) return;
+
+        title.textContent = calendarYear + '년 ' + (calendarMonth + 1) + '월';
+
+        var firstDay = new Date(calendarYear, calendarMonth, 1).getDay();
+        var daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
+
+        var startInput = document.getElementById('sessionsFormTrainingStart').value;
+        var endInput = document.getElementById('sessionsFormTrainingEnd').value;
+        var start = startInput ? new Date(startInput) : null;
+        var end = endInput ? new Date(endInput) : null;
+
+        var checkedDays = [];
+        document.querySelectorAll('input[name="sessionsDaysOfWeek"]:checked').forEach(function (cb) { checkedDays.push(cb.value); });
+        var dayMap = { '일': 0, '월': 1, '화': 2, '수': 3, '목': 4, '금': 5, '토': 6 };
+        var targetDayNumbers = checkedDays.map(function (d) { return dayMap[d]; });
+
+        var html = '';
+        // Previous month empty spaces
+        for (var i = 0; i < firstDay; i++) {
+            html += '<div class="h-24 bg-slate-50/50 border-r border-b border-slate-100"></div>';
+        }
+
+        for (var d = 1; d <= daysInMonth; d++) {
+            var cur = new Date(calendarYear, calendarMonth, d);
+            var dateStr = cur.getFullYear() + '-' + String(cur.getMonth() + 1).padStart(2, '0') + '-' + String(cur.getDate()).padStart(2, '0');
+            var isWeekend = cur.getDay() === 0 || cur.getDay() === 6;
+            var isTrainingDay = targetDayNumbers.indexOf(cur.getDay()) >= 0;
+            var inRange = start && end && cur >= start && cur <= end;
+            var isExcluded = excludedDates.has(dateStr);
+
+            var cellClass = "h-24 p-2 border-r border-b border-slate-100 transition-all cursor-pointer ";
+            var bgColor = "bg-white hover:bg-slate-50";
+            var textClass = isWeekend ? "text-rose-500" : "text-slate-700";
+
+            if (!inRange) {
+                bgColor = "bg-slate-50/50 opacity-40 cursor-not-allowed";
+                textClass = "text-slate-400";
+            } else if (isExcluded) {
+                bgColor = "bg-rose-50 hover:bg-rose-100";
+                textClass = "text-rose-600 font-bold saturate-150";
+            } else if (isTrainingDay) {
+                bgColor = "bg-emerald-50 hover:bg-emerald-100";
+                textClass = "text-emerald-700 font-bold";
+            }
+
+            html += '<div class="' + cellClass + bgColor + '" onclick="window.toggleCalendarDate(\'' + dateStr + '\', ' + isTrainingDay + ', ' + inRange + ')">' +
+                '<div class="flex justify-between items-start">' +
+                '<span class="text-sm ' + textClass + '">' + d + '</span>' +
+                (inRange ? (isExcluded ? '<span class="text-[9px] bg-rose-200 text-rose-700 px-1 rounded">공강</span>' : (isTrainingDay ? '<span class="text-[9px] bg-emerald-200 text-emerald-700 px-1 rounded">훈련</span>' : '')) : '') +
+                '</div></div>';
+        }
+
+        // Next month empty spaces (to complete grid)
+        var totalCells = firstDay + daysInMonth;
+        var remaining = (7 - (totalCells % 7)) % 7;
+        for (var i = 0; i < remaining; i++) {
+            html += '<div class="h-24 bg-slate-50/50 border-r border-b border-slate-100"></div>';
+        }
+
+        grid.innerHTML = html;
+
+        // Update counts in modal
+        document.getElementById('calendarExcludedCount').textContent = excludedDates.size;
+        // Total count in modal is not strictly needed since we updated calculateTotalTrainingDays, but nice to have
+        var startIn = document.getElementById('sessionsFormTrainingStart').value;
+        var endIn = document.getElementById('sessionsFormTrainingEnd').value;
+        if (startIn && endIn) {
+            var s = new Date(startIn), e = new Date(endIn);
+            var cnt = 0;
+            var it = new Date(s.getTime());
+            while (it <= e) {
+                var ds = it.toISOString().split('T')[0];
+                if (targetDayNumbers.indexOf(it.getDay()) >= 0 && !excludedDates.has(ds)) cnt++;
+                it.setDate(it.getDate() + 1);
+            }
+            document.getElementById('calendarTotalCount').textContent = cnt;
+        }
+    }
+
+    window.toggleCalendarDate = function (dateStr, isTrainingDay, inRange) {
+        if (!inRange) return;
+        if (!isTrainingDay) {
+            alert('이 날은 훈련 요일이 아닙니다. 훈련 요일에 해당할 때만 공강으로 지정 가능합니다.');
+            return;
+        }
+
+        if (excludedDates.has(dateStr)) {
+            excludedDates.delete(dateStr);
+        } else {
+            excludedDates.add(dateStr);
+        }
+        renderCalendar();
+        renderExcludedDatesPreview();
+        calculateTotalTrainingDays();
+    };
+
+    document.getElementById('btnOpenScheduleCalendar').addEventListener('click', openScheduleCalendar);
+    document.getElementById('btnCloseScheduleCalendar').addEventListener('click', closeScheduleCalendar);
+    document.getElementById('btnApplySchedule').addEventListener('click', closeScheduleCalendar);
+    document.getElementById('btnPrevMonth').addEventListener('click', function () {
+        calendarMonth--;
+        if (calendarMonth < 0) { calendarMonth = 11; calendarYear--; }
+        renderCalendar();
+    });
+    document.getElementById('btnNextMonth').addEventListener('click', function () {
+        calendarMonth++;
+        if (calendarMonth > 11) { calendarMonth = 0; calendarYear++; }
+        renderCalendar();
+    });
+
     Promise.all([loadInstructors(), loadFacilities()]).then(function () {
         return loadApprovedCourses();
     }).then(function () {
@@ -840,5 +1023,18 @@
                     .catch(function () { numEl.value = numEl.value || '1'; });
             }
         }
+    });
+
+    // 시작일/종료일 변경 시 공강일 정합성 체크 유도
+    ['sessionsFormTrainingStart', 'sessionsFormTrainingEnd'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.addEventListener('change', function () {
+            calculateTotalTrainingDays(); // 여기서 내부적으로 요일이 안 맞으면 삭제함
+        });
+    });
+    document.querySelectorAll('input[name="sessionsDaysOfWeek"]').forEach(function (cb) {
+        cb.addEventListener('change', function () {
+            calculateTotalTrainingDays(); // 여기서 정합성 체크
+        });
     });
 })();

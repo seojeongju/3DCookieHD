@@ -906,7 +906,12 @@ export const adminCoursesSessionsRegisterHtml = (editId?: string) => {
                             </div>
                             <div>
                                 <label class="block text-sm font-bold text-slate-700 mb-1"><span class="text-red-500">*</span> 종료일</label>
-                                <input type="date" id="sessionsFormTrainingEnd" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
+                                <div class="flex gap-2">
+                                    <input type="date" id="sessionsFormTrainingEnd" class="flex-1 px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
+                                    <button type="button" id="btnOpenScheduleCalendar" class="px-4 py-3 bg-slate-100 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-200 transition flex items-center gap-2 whitespace-nowrap">
+                                        <i class="fas fa-calendar-alt text-emerald-500"></i> 일정관리
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
@@ -951,20 +956,27 @@ export const adminCoursesSessionsRegisterHtml = (editId?: string) => {
                             <h3 class="text-sm font-extrabold text-blue-800 flex items-center gap-2">
                                 <i class="fas fa-calculator"></i> 시간설정 (자동계산)
                             </h3>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div>
-                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">훈련일수</label>
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">최종 훈련일수</label>
                                     <div class="flex items-center gap-2">
                                         <input type="text" id="sessionsCalcTotalDays" readonly class="w-full px-4 py-2.5 bg-white border border-blue-100 rounded-xl text-sm font-black text-blue-600 focus:ring-0 cursor-default" placeholder="0">
                                         <span class="text-xs font-bold text-slate-500">일</span>
                                     </div>
                                 </div>
-                                <div>
-                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">수업일 (기간 및 요일)</label>
+                                <div class="md:col-span-2">
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">수업 기간 및 요일</label>
                                     <input type="text" id="sessionsCalcClassDays" readonly class="w-full px-4 py-2.5 bg-white border border-blue-100 rounded-xl text-sm font-bold text-slate-700 focus:ring-0 cursor-default" placeholder="시작일, 종료일, 요일을 선택하세요">
                                 </div>
+                                <div class="md:col-span-3">
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">공강(제외) 일자</label>
+                                    <div id="sessionsExcludedDatesPreview" class="flex flex-wrap gap-2 min-h-[2.5rem] p-3 bg-white/50 border border-blue-100 rounded-xl text-xs text-slate-500 italic">
+                                        중간 공강일이 없습니다.
+                                    </div>
+                                    <input type="hidden" id="sessionsFormExcludedDates" value="">
+                                </div>
                             </div>
-                            <p class="text-[10px] text-blue-500 font-medium"><i class="fas fa-info-circle mr-1"></i> 시작일·종료일·요일 선택에 따라 실 수업일수가 자동 계산됩니다. 공휴일은 계산에서 제외되지 않으므로 필요시 종료일을 조정하세요.</p>
+                            <p class="text-[10px] text-blue-500 font-medium"><i class="fas fa-info-circle mr-1"></i> [일정관리] 버튼을 눌러 달력에서 특정 날짜를 공강일로 지정할 수 있습니다.</p>
                         </div>
 
                         <div>
@@ -1092,6 +1104,84 @@ export const adminCoursesSessionsRegisterHtml = (editId?: string) => {
         </div>
     </div>
     <script src="https://cdn.tiny.cloud/1/mvw2dv577uz6ru7oboooo1vpsgfgtj25kfa5sci9bblekdy3/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+
+    <!-- 훈련 일정 관리 달력 모달 -->
+    <div id="scheduleCalendarModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden z-[100] flex items-center justify-center p-4">
+        <div class="bg-white rounded-[2rem] shadow-2xl w-full max-w-4xl overflow-hidden animate-bounce-in">
+            <div class="bg-gradient-to-r from-emerald-600 to-teal-600 p-6 sm:p-8 text-white">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h3 class="text-2xl font-black tracking-tight">훈련 일정 및 공강 관리</h3>
+                        <p class="text-emerald-50/80 text-sm mt-1">달력에서 날짜를 클릭하여 훈련일/공강일을 토글하세요.</p>
+                    </div>
+                    <button type="button" id="btnCloseScheduleCalendar" class="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <div class="mt-6 flex flex-wrap gap-4 text-xs font-bold">
+                    <div class="flex items-center gap-2 px-3 py-1.5 bg-white/20 rounded-lg">
+                        <span class="w-3 h-3 rounded-full bg-emerald-400"></span> 훈련일
+                    </div>
+                    <div class="flex items-center gap-2 px-3 py-1.5 bg-white/20 rounded-lg">
+                        <span class="w-3 h-3 rounded-full bg-rose-400"></span> 공강/휴강일 (제외)
+                    </div>
+                    <div class="flex items-center gap-2 px-3 py-1.5 bg-white/20 rounded-lg">
+                        <span class="w-3 h-3 rounded-full bg-slate-400"></span> 비훈련 요일
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-6 sm:p-8">
+                <!-- 달력 컨트롤 -->
+                <div class="flex items-center justify-between mb-6">
+                    <h4 id="calendarMonthTitle" class="text-xl font-black text-slate-800">2026년 2월</h4>
+                    <div class="flex gap-2">
+                        <button type="button" id="btnPrevMonth" class="p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <button type="button" id="btnNextMonth" class="p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 달력 그리드 -->
+                <div class="border border-slate-200 rounded-2xl overflow-hidden">
+                    <div class="grid grid-cols-7 bg-slate-50 border-b border-slate-100">
+                        <div class="py-3 text-center text-[10px] font-black text-rose-500 uppercase">일</div>
+                        <div class="py-3 text-center text-[10px] font-black text-slate-400 uppercase">월</div>
+                        <div class="py-3 text-center text-[10px] font-black text-slate-400 uppercase">화</div>
+                        <div class="py-3 text-center text-[10px] font-black text-slate-400 uppercase">수</div>
+                        <div class="py-3 text-center text-[10px] font-black text-slate-400 uppercase">목</div>
+                        <div class="py-3 text-center text-[10px] font-black text-slate-400 uppercase">금</div>
+                        <div class="py-3 text-center text-[10px] font-black text-slate-600 uppercase">토</div>
+                    </div>
+                    <div id="scheduleCalendarGrid" class="grid grid-cols-7 divide-x divide-y divide-slate-100">
+                        <!-- JS Rendered -->
+                    </div>
+                </div>
+
+                <div class="mt-8 flex flex-wrap justify-between items-center gap-4 border-t border-slate-100 pt-6">
+                    <div class="flex items-center gap-6">
+                        <div>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase mb-0.5">선택된 공강</p>
+                            <p class="text-lg font-black text-rose-600"><span id="calendarExcludedCount">0</span>일</p>
+                        </div>
+                        <div class="w-px h-8 bg-slate-200"></div>
+                        <div>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase mb-0.5">최종 훈련일수</p>
+                            <p class="text-lg font-black text-emerald-600"><span id="calendarTotalCount">0</span>일</p>
+                        </div>
+                    </div>
+                    <button type="button" id="btnApplySchedule" class="px-8 py-3 bg-emerald-600 text-white rounded-2xl font-black text-sm hover:bg-emerald-700 transition shadow-lg shadow-emerald-600/20">
+                        설정 완료 및 적용
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="/static/course-sessions-register.js"></script>
     `
     );

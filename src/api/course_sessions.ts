@@ -705,6 +705,7 @@ app.post('/', authMiddleware, requireAdmin, async (c) => {
       homepage_exposed?: number | boolean;
       session_name?: string;
       access_code?: string;
+      excluded_dates?: string;
     }>();
     const approvedCourseId = body.approved_course_id;
     const sessionNumber = body.session_number;
@@ -752,10 +753,10 @@ app.post('/', authMiddleware, requireAdmin, async (c) => {
           training_start_date, training_end_date, training_time_start, training_time_end, lunch_time_start, lunch_time_end,
           url_ncs, url_plan, url_detail_plan, registered_at,
           recruitment_status, representative_image_exposure, recruitment_grace_period, syllabus_exposure,
-          main_slide_image_url, course_list_image_url, course_detail_description, homepage_exposed, session_name, access_code
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          main_slide_image_url, course_list_image_url, course_detail_description, homepage_exposed, session_name, access_code, excluded_dates
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
-        .bind(approvedCourseId, sessionNumber, status, instructorName, targetAudience, daysOfWeek, location, trainingStart, trainingEnd, trainingTimeStart, trainingTimeEnd, lunchTimeStart, lunchTimeEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt, recruitmentStatus, representativeImageExposure, recruitmentGracePeriod, syllabusExposure, mainSlideImageUrl, courseListImageUrl, courseDetailDescription, homepageExposed, sessionName, accessCode)
+        .bind(approvedCourseId, sessionNumber, status, instructorName, targetAudience, daysOfWeek, location, trainingStart, trainingEnd, trainingTimeStart, trainingTimeEnd, lunchTimeStart, lunchTimeEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt, recruitmentStatus, representativeImageExposure, recruitmentGracePeriod, syllabusExposure, mainSlideImageUrl, courseListImageUrl, courseDetailDescription, homepageExposed, sessionName, accessCode, body.excluded_dates || null)
         .run();
     } catch (err: unknown) {
       const msg = String(err && typeof err === 'object' && 'message' in err ? (err as Error).message : err);
@@ -839,7 +840,7 @@ app.get('/:id', authMiddleware, requireAdmin, async (c) => {
                 s.registered_at, s.created_at, s.target_audience, s.days_of_week, s.location,
                 s.recruitment_status, s.representative_image_exposure, s.recruitment_grace_period,
                 s.syllabus_exposure, s.main_slide_image_url, s.course_list_image_url, s.course_detail_description,
-                s.homepage_exposed, s.access_code, s.instructor_name,
+                s.homepage_exposed, s.access_code, s.instructor_name, s.excluded_dates,
                 a.name as course_name, a.total_hours, a.instructor_name as approved_instructor_name, c.name as category_name
          FROM course_sessions s
          INNER JOIN approved_courses a ON a.id = s.approved_course_id
@@ -918,6 +919,7 @@ app.put('/:id', authMiddleware, requireAdmin, async (c) => {
       homepage_exposed?: number | boolean;
       session_name?: string;
       access_code?: string;
+      excluded_dates?: string;
     }>();
 
     const { DB } = c.env;
@@ -960,10 +962,10 @@ app.put('/:id', authMiddleware, requireAdmin, async (c) => {
           recruitment_status = COALESCE(?, recruitment_status), representative_image_exposure = COALESCE(?, representative_image_exposure),
           recruitment_grace_period = COALESCE(?, recruitment_grace_period), syllabus_exposure = COALESCE(?, syllabus_exposure),
           main_slide_image_url = ?, course_list_image_url = ?, course_detail_description = ?,
-          homepage_exposed = COALESCE(?, homepage_exposed), session_name = ?, access_code = ?
+          homepage_exposed = COALESCE(?, homepage_exposed), session_name = ?, access_code = ?, excluded_dates = ?
          WHERE id = ?`
       )
-        .bind(status ?? null, instructorName, targetAudience, daysOfWeek, location, trainingStart, trainingEnd, trainingTimeStart, trainingTimeEnd, lunchTimeStart, lunchTimeEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt, recruitmentStatus, representativeImageExposure, recruitmentGracePeriod, syllabusExposure, mainSlideImageUrl, courseListImageUrl, courseDetailDescription, homepageExposed ?? null, sessionName, accessCode, id)
+        .bind(status ?? null, instructorName, targetAudience, daysOfWeek, location, trainingStart, trainingEnd, trainingTimeStart, trainingTimeEnd, lunchTimeStart, lunchTimeEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt, recruitmentStatus, representativeImageExposure, recruitmentGracePeriod, syllabusExposure, mainSlideImageUrl, courseListImageUrl, courseDetailDescription, homepageExposed ?? null, sessionName, accessCode, body.excluded_dates || null, id)
         .run();
     } catch (err: unknown) {
       const msg = String(err && typeof err === 'object' && 'message' in err ? (err as Error).message : err);
