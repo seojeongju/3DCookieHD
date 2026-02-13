@@ -7,6 +7,19 @@
     }
     var coursesData = [];
 
+    function redirectToLogin() {
+        var redirect = encodeURIComponent(window.location.pathname + window.location.search);
+        window.location.href = '/login?redirect=' + redirect;
+    }
+    function handleAuthResponse(r) {
+        if (r.status === 401) {
+            alert('로그인이 필요하거나 세션이 만료되었습니다. 다시 로그인해 주세요.');
+            redirectToLogin();
+            return Promise.reject(new Error('UNAUTHORIZED'));
+        }
+        return r.json();
+    }
+
     function translateStatus(s) {
         var m = { consulting: '상담중', registered: '등록완료', learning: '수강중', completed: '수료완료', dropout: '중도탈락' };
         return m[s] || s;
@@ -67,9 +80,11 @@
         var list = document.getElementById('enrolledCoursesList');
         if (!list) return;
         var token = localStorage.getItem('token');
+        if (!token) { redirectToLogin(); return; }
         fetch('/api/hrd/students/' + sid + '/enrollments', { headers: { 'Authorization': 'Bearer ' + token } })
-            .then(function (r) { return r.json(); })
+            .then(handleAuthResponse)
             .then(function (result) {
+                if (!result) return;
                 if (!result.success) {
                     list.innerHTML = '<div class="text-center text-red-400 py-8 text-sm">수강 이력을 불러오지 못했습니다. (' + (result.error || '오류') + ')</div>';
                     return;
@@ -106,13 +121,16 @@
                         '</div>';
                 }).join('');
             })
-            .catch(function () { list.innerHTML = '<div class="text-center text-red-400 py-8 text-sm">오류가 발생했습니다.</div>'; });
+            .catch(function (e) { if (e && e.message === 'UNAUTHORIZED') return; list.innerHTML = '<div class="text-center text-red-400 py-8 text-sm">오류가 발생했습니다.</div>'; });
     }
 
     function loadCourses() {
-        return fetch('/api/courses?limit=1000', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } })
-            .then(function (r) { return r.json(); })
+        var token = localStorage.getItem('token');
+        if (!token) { redirectToLogin(); return Promise.reject(); }
+        return fetch('/api/courses?limit=1000', { headers: { 'Authorization': 'Bearer ' + token } })
+            .then(handleAuthResponse)
             .then(function (result) {
+                if (!result) return;
                 if (result.success && result.data) {
                     coursesData = result.data;
                     var select = document.getElementById('stdCourseId');
@@ -133,9 +151,11 @@
             return;
         }
         var token = localStorage.getItem('token');
+        if (!token) { redirectToLogin(); return; }
         fetch('/api/hrd/students/' + studentId, { headers: { 'Authorization': 'Bearer ' + token } })
-            .then(function (r) { return r.json(); })
+            .then(handleAuthResponse)
             .then(function (json) {
+                if (!json) return;
                 if (!json.success || !json.data) {
                     alert('훈련생을 불러올 수 없습니다.');
                     window.location.href = '/admin/students';
@@ -179,7 +199,8 @@
                 updateStepper(student.status);
                 loadConsultations(studentId);
             })
-            .catch(function () {
+            .catch(function (e) {
+                if (e && e.message === 'UNAUTHORIZED') return;
                 alert('훈련생을 불러오는 중 오류가 발생했습니다.');
                 window.location.href = '/admin/students';
             });
@@ -189,9 +210,11 @@
         var list = document.getElementById('consultationList');
         if (!list) return;
         var token = localStorage.getItem('token');
+        if (!token) { redirectToLogin(); return; }
         fetch('/api/hrd/students/' + sid + '/consultations', { headers: { 'Authorization': 'Bearer ' + token } })
-            .then(function (r) { return r.json(); })
+            .then(handleAuthResponse)
             .then(function (result) {
+                if (!result) return;
                 if (!result.success) return;
                 var logs = result.data || [];
                 var countElem = document.getElementById('consultCount');
@@ -233,7 +256,7 @@
                         '</div></div>';
                 }).join('');
             })
-            .catch(function () { list.innerHTML = '<div class="text-center text-red-400 py-8 text-sm">상담 목록을 불러오지 못했습니다.</div>'; });
+            .catch(function (e) { if (e && e.message === 'UNAUTHORIZED') return; list.innerHTML = '<div class="text-center text-red-400 py-8 text-sm">상담 목록을 불러오지 못했습니다.</div>'; });
     }
 
     window.addConsultationLog = function () {
@@ -241,17 +264,19 @@
         if (!sid) return;
         var content = document.getElementById('consultContent').value;
         if (!content) return;
+        var token = localStorage.getItem('token');
+        if (!token) { alert('로그인이 필요합니다.'); redirectToLogin(); return; }
         var category = document.getElementById('consultCategory').value;
         var method = document.getElementById('consultMethod').value;
         var date = document.getElementById('consultDate').value || new Date().toISOString().split('T')[0];
-        var token = localStorage.getItem('token');
         fetch('/api/hrd/students/' + sid + '/consultations', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-            body: JSON.stringify({ content: content, manager: '자동', date: date, category: category, method: method, course_id: document.getElementById('stdCourseId').value })
+            body: JSON.stringify({ content: content, date: date, category: category, method: method, course_id: document.getElementById('stdCourseId').value })
         })
-            .then(function (r) { return r.json(); })
+            .then(handleAuthResponse)
             .then(function (result) {
+                if (!result) return;
                 if (result.success) {
                     document.getElementById('consultContent').value = '';
                     loadConsultations(sid);
@@ -259,7 +284,7 @@
                     alert(result.error || '상담 등록 실패');
                 }
             })
-            .catch(function () { alert('상담 등록 중 오류가 발생했습니다.'); });
+            .catch(function (e) { if (e && e.message === 'UNAUTHORIZED') return; alert('상담 등록 중 오류가 발생했습니다.'); });
     };
 
     window.handleSaveStudent = function (e) {
@@ -289,13 +314,15 @@
             is_hrd_net_registered: document.getElementById('stdIsRegistered').checked
         };
         var token = localStorage.getItem('token');
+        if (!token) { alert('로그인이 필요합니다.'); redirectToLogin(); return; }
         fetch('/api/hrd/students', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
             body: JSON.stringify(formData)
         })
-            .then(function (r) { return r.json(); })
+            .then(handleAuthResponse)
             .then(function (result) {
+                if (!result) return;
                 if (result.success) {
                     alert('훈련생 정보가 업데이트 되었습니다.');
                     loadStudentIntoPage();
@@ -303,7 +330,7 @@
                     alert('업데이트 실패: ' + (result.error || '알 수 없는 오류'));
                 }
             })
-            .catch(function () { alert('업데이트 중 오류가 발생했습니다.'); });
+            .catch(function (e) { if (e && e.message === 'UNAUTHORIZED') return; alert('업데이트 중 오류가 발생했습니다.'); });
     };
 
     window.handleStdImage = function (input) {
@@ -331,11 +358,15 @@
     };
 
     document.addEventListener('DOMContentLoaded', function () {
+        if (!localStorage.getItem('token')) {
+            redirectToLogin();
+            return;
+        }
         var consultDate = document.getElementById('consultDate');
         if (consultDate) {
             var today = new Date().toISOString().split('T')[0];
             consultDate.value = today;
         }
-        loadCourses().then(function () { loadStudentIntoPage(); });
+        loadCourses().then(function () { loadStudentIntoPage(); }).catch(function (e) { if (e && e.message === 'UNAUTHORIZED') return; });
     });
 })();
