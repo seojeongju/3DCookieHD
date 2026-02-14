@@ -1132,7 +1132,7 @@ export const adminCoursesSessionsRegisterHtml = (editId?: string) => {
                 </div>
             </div>
 
-            <div class="p-6 sm:p-8">
+            <div class="p-6 sm:p-8 max-h-[75vh] overflow-y-auto custom-scrollbar">
                 <!-- 달력 컨트롤 -->
                 <div class="flex items-center justify-between mb-6">
                     <h4 id="calendarMonthTitle" class="text-xl font-black text-slate-800">2026년 2월</h4>

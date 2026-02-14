@@ -74,6 +74,19 @@ export const homeHtml = `
         width: 32px;
         border-radius: 6px;
       }
+      
+      /* 커스텀 스크롤바 (모달 등) */
+      .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
+      .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }
+      .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; border: 2px solid #f1f5f9; }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+      @keyframes bounce-in {
+        0% { opacity: 0; transform: scale(0.95); }
+        70% { opacity: 1; transform: scale(1.02); }
+        100% { transform: scale(1); }
+      }
+      .animate-bounce-in { animation: bounce-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
     </style>
 
     <!-- 히어로 섹션 -->
