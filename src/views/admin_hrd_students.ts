@@ -512,10 +512,19 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
 
         async function loadCourses() {
             try {
-                const response = await fetch('/api/courses?limit=1000');
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/course-sessions/public?limit=1000', {
+                    headers: token ? { 'Authorization': 'Bearer ' + token } : {}
+                });
                 const result = await response.json();
                 if (result.success) {
-                    coursesData = result.data;
+                    coursesData = result.data.map(item => ({
+                        id: item.id,
+                        title: (item.course_name || '과정명 없음') + (item.session_number ? ' (' + item.session_number + '회차)' : ''),
+                        source: item.source,
+                        status: item.status
+                    }));
+                    
                     // 여정관리 모달의 과정 선택
                     const select = document.getElementById('stdCourseId');
                     if (select) {
@@ -1031,7 +1040,7 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
                     
                     // 등록 완료 후 여정관리 페이지로 이동할지 물어보기
                     const newId = result.data?.id;
-                    if (newId && confirm('훈련생이 등록되었습니다.\\n\\n상세 정보를 편집하시겠습니까?\\n(여정관리 화면으로 이동)')) {
+                    if (newId && confirm('훈련생이 등록되었습니다.\\\\n\\\\n상세 정보를 편집하시겠습니까?\\\\n(여정관리 화면으로 이동)')) {
                         window.location.href = '/admin/students/' + newId + '/journey';
                     }
                 } else {

@@ -845,7 +845,7 @@ export const adminHrdPersonnelHtml = () => `
         
         // Delete Function
         async function deletePersonnel(id) {
-            if (!confirm('해당 교강사를 퇴직(삭제) 처리하시겠습니까?\\n(목록에서 사라지거나 퇴직 상태로 변경됩니다)')) return;
+            if (!confirm('해당 교강사를 퇴직(삭제) 처리하시겠습니까?\\\\n(목록에서 사라지거나 퇴직 상태로 변경됩니다)')) return;
              try {
                 const response = await fetch(\`/api/hrd/personnel/\${id}\`, { method: 'DELETE' });
                 const result = await response.json();
@@ -901,7 +901,7 @@ export const adminHrdPersonnelHtml = () => `
                             const errJson = await response.json();
                             if (errJson && errJson.error) { /* fall through to same message */ }
                         } catch (_) { }
-                        alert('파일을 찾을 수 없습니다.\n저장소에 없거나 삭제되었을 수 있습니다.\n해당 첨부파일을 다시 업로드해 주세요.');
+                        alert('파일을 찾을 수 없습니다.\\\\n저장소에 없거나 삭제되었을 수 있습니다.\\\\n해당 첨부파일을 다시 업로드해 주세요.');
                         return;
                     }
                     throw new Error('파일 다운로드 실패: ' + response.status);
@@ -919,11 +919,11 @@ export const adminHrdPersonnelHtml = () => `
                 }, 100);
             } catch (error) {
                 console.error('Download error:', error);
-                alert('파일 다운로드 중 오류가 발생했습니다.\n' + (error.message || error));
+                alert('파일 다운로드 중 오류가 발생했습니다.\\\\n' + (error.message || error));
             }
         }
         window.downloadFile = downloadFile;
-        function escapeJs(s) { return String(s||'').replace(/\\\\/g,'\\\\\\\\').replace(/'/g,"\\\\'").replace(/\\r/g,'').replace(/\\n/g,'\\\\n'); }
+        function escapeJs(s) { return String(s||'').replace(/\\\\/g,'\\\\\\\\').replace(/'/g,"\\\\\\'").replace(/\\r/g,'\\\\r').replace(/\\n/g,'\\\\n'); }
         /** 자격증/파일 URL을 동일 오리진 절대 경로로 정규화 (보기·다운로드 공통) */
         function normalizeFileUrl(url) {
             if (!url || typeof url !== 'string') return '';
@@ -1605,7 +1605,7 @@ export const adminHrdPersonnelHtml = () => `
              // data 인자가 있으면 초기로드로 간주하고 전역 변수 설정. 없으면 전역 변수 리렌더링.
              if (data !== undefined) {
                  if (Array.isArray(data)) certifications = data;
-                 else if (typeof data === 'input' && data) { // JSON string handling
+                 else if (typeof data === 'string' && data) { // JSON string handling
                     try { certifications = JSON.parse(data); } catch { certifications = []; }
                  } else certifications = [];
              }

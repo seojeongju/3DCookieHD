@@ -56,7 +56,7 @@
     }
 
     window.switchTab = function (tab) {
-        var tabs = ['timeline', 'details', 'courses'];
+        var tabs = ['timeline', 'details', 'courses', 'assignment'];
         tabs.forEach(function (t) {
             var btn = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1));
             var content = document.getElementById('content' + t.charAt(0).toUpperCase() + t.slice(1));
@@ -66,6 +66,8 @@
 
         if (tab === 'courses') {
             loadEnrolledSessions(studentId);
+        } else if (tab === 'assignment') {
+            loadAvailableSessions(studentId);
         }
     };
 
@@ -124,15 +126,91 @@
             .catch(function (e) { if (e && e.message === 'UNAUTHORIZED') return; list.innerHTML = '<div class="text-center text-red-400 py-8 text-sm">오류가 발생했습니다.</div>'; });
     }
 
+    function loadAvailableSessions(sid) {
+        var list = document.getElementById('availableSessionsList');
+        if (!list) return;
+        var token = localStorage.getItem('token');
+        if (!token) { redirectToLogin(); return; }
+        list.innerHTML = '<div class="text-center text-gray-300 py-12 text-sm">로딩 중...</div>';
+
+        fetch('/api/course-sessions/public?limit=50&status=recruiting', {
+            headers: { 'Authorization': 'Bearer ' + token }
+        })
+            .then(handleAuthResponse)
+            .then(function (result) {
+                if (!result) return;
+                if (!result.success) {
+                    list.innerHTML = '<div class="text-center text-red-400 py-8 text-sm">데이터를 불러오지 못했습니다.</div>';
+                    return;
+                }
+                var data = result.data || [];
+                if (data.length === 0) {
+                    list.innerHTML = '<div class="text-start bg-gray-50 rounded-2xl p-8 text-gray-400 font-medium text-xs">현재 모집 중인 과정이 없습니다.</div>';
+                    return;
+                }
+                list.innerHTML = data.map(function (item) {
+                    var startDate = (item.training_start_date || '').split('T')[0];
+                    var endDate = (item.training_end_date || '').split('T')[0];
+                    return '<div class="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all flex justify-between items-center">' +
+                        '<div class="min-w-0 flex-1">' +
+                        '<h5 class="font-bold text-gray-900 text-sm">' + (item.course_name || '과정명 없음').replace(/</g, '&lt;') + '</h5>' +
+                        '<p class="text-xs text-gray-500 mt-1">' + (item.session_name || (item.session_number + '차')).replace(/</g, '&lt;') + ' | ' + startDate + ' ~ ' + endDate + '</p>' +
+                        '</div>' +
+                        '<button onclick="window.assignSession(' + item.id + ')" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition shrink-0 ml-4">배정하기</button>' +
+                        '</div>';
+                }).join('');
+            })
+            .catch(function (e) {
+                if (e && e.message === 'UNAUTHORIZED') return;
+                list.innerHTML = '<div class="text-center text-red-400 py-8 text-sm">오류가 발생했습니다.</div>';
+            });
+    }
+
+    window.assignSession = function (sessionId) {
+        if (!confirm('훈련생을 이 과정에 배정하시겠습니까?')) return;
+        var sid = document.getElementById('studentId').value;
+        if (!sid) return;
+        var token = localStorage.getItem('token');
+        if (!token) { alert('로그인이 필요합니다.'); redirectToLogin(); return; }
+
+        fetch('/api/course-sessions/' + sessionId + '/enrollments', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({ user_ids: [sid] })
+        })
+            .then(handleAuthResponse)
+            .then(function (result) {
+                if (!result) return;
+                if (result.success) {
+                    alert('배정이 완료되었습니다.');
+                    window.switchTab('courses');
+                } else {
+                    alert(result.error || '배정 실패');
+                }
+            })
+            .catch(function (e) {
+                if (e && e.message === 'UNAUTHORIZED') return;
+                alert('배정 중 오류가 발생했습니다.');
+            });
+    };
+
     function loadCourses() {
         var token = localStorage.getItem('token');
         if (!token) { redirectToLogin(); return Promise.reject(); }
-        return fetch('/api/courses?limit=1000', { headers: { 'Authorization': 'Bearer ' + token } })
+        return fetch('/api/course-sessions/public?limit=1000', { headers: { 'Authorization': 'Bearer ' + token } })
             .then(handleAuthResponse)
             .then(function (result) {
                 if (!result) return;
                 if (result.success && result.data) {
-                    coursesData = result.data;
+                    coursesData = result.data.map(function (item) {
+                        return {
+                            id: item.id,
+                            title: (item.course_name || '과정명 없음') + (item.session_number ? ' (' + item.session_number + '회차)' : '')
+                        };
+                    });
                     var select = document.getElementById('stdCourseId');
                     if (select) {
                         select.innerHTML = '<option value="">과정 선택</option>' + coursesData.map(function (c) {

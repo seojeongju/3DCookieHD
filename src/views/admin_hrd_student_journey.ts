@@ -141,6 +141,7 @@ export const adminHrdStudentJourneyHtml = (studentId: string) => {
                             <button onclick="switchTab('timeline')" id="tabTimeline" class="pb-4 text-sm font-black uppercase tab-active transition-all">상담 타임라인</button>
                             <button onclick="switchTab('details')" id="tabDetails" class="pb-4 text-sm font-black uppercase tab-inactive transition-all">행정 상세 정보</button>
                             <button onclick="switchTab('courses')" id="tabCourses" class="pb-4 text-sm font-black uppercase tab-inactive transition-all">수강 관리</button>
+                            <button onclick="switchTab('assignment')" id="tabAssignment" class="pb-4 text-sm font-black uppercase tab-inactive transition-all">수강 배정</button>
                         </div>
                         <div id="contentTimeline" class="flex-1 flex flex-col overflow-hidden">
                             <div class="mb-8">
@@ -172,6 +173,15 @@ export const adminHrdStudentJourneyHtml = (studentId: string) => {
                                 <p class="text-[10px] text-gray-400 font-medium">등록된 회차별 수강 정보입니다.</p>
                             </div>
                             <div id="enrolledCoursesList" class="space-y-4">
+                                <div class="text-center text-gray-300 py-12 text-sm">로딩 중...</div>
+                            </div>
+                        </div>
+                        <div id="contentAssignment" class="hidden flex-1 overflow-y-auto pr-6 space-y-6 pb-20">
+                            <div class="mb-4">
+                                <h4 class="text-sm font-black text-gray-900 uppercase tracking-widest">수강 과정 배정</h4>
+                                <p class="text-[10px] text-gray-400 font-medium">모집 중인 과정을 선택하여 훈련생에게 배정합니다.</p>
+                            </div>
+                            <div id="availableSessionsList" class="space-y-4">
                                 <div class="text-center text-gray-300 py-12 text-sm">로딩 중...</div>
                             </div>
                         </div>
