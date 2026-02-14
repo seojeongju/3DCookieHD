@@ -162,6 +162,12 @@ export const lmsHeaderHtml = (activeTab = 'dashboard', defaultType = '') => `
                     const token = localStorage.getItem('token');
                     const urlParams = new URLSearchParams(window.location.search);
                     let type = urlParams.get('type') || '${defaultType}';
+                    
+                    // LMS 페이지인 경우 기본적으로 HRD(회차) 모드로 동작하도록 설정
+                    if (!type && window.location.pathname.includes('/lms')) {
+                        type = 'hrd';
+                    }
+
                     if (type && type.startsWith('hrd')) type = 'hrd'; // Normalize type
                     let apiUrl = '/api/courses/' + courseId;
                     if (type) apiUrl += '?type=' + type;
