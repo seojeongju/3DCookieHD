@@ -345,6 +345,9 @@ app.get('/admin/courses/:id/lms/surveys', (c) => c.html(adminLmsSurveysHtml));
 app.get('/admin/courses/:id/lms/assignments', (c) => c.html(adminLmsAssignmentsHtml));
 app.get('/admin/courses/:id/lms/qr-attendance', (c) => c.html(adminLmsQrAttendanceHtml));
 
+// Legacy or Direct Access Redirects
+app.get('/admin/courses/:id/training-logs', (c) => c.redirect('/admin/courses/' + c.req.param('id') + '/lms/training-logs'));
+
 // Student Dashboard
 app.get('/student', (c) => c.html(studentDashboardHtml()));
 app.get('/student/classroom/:id', (c) => c.html(studentClassroomHtml(c.req.param('id'))));
