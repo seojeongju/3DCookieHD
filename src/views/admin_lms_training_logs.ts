@@ -246,7 +246,8 @@ export const adminLmsTrainingLogsHtml = `
     </div>
 
     <script>
-        const courseId = window.location.pathname.split('/')[3];
+        const rawId = window.location.pathname.split('/')[3];
+        const courseId = rawId ? parseInt(rawId) : rawId;
         const user = JSON.parse(localStorage.getItem('user') || '{}');
         const token = localStorage.getItem('token');
         let assignedUnits = [];

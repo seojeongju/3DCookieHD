@@ -120,7 +120,8 @@ export const lmsHeaderHtml = (activeTab = 'dashboard', defaultType = '') => `
 
                 const pathParts = window.location.pathname.split('/');
                 const courseIdIndex = pathParts.indexOf('courses') + 1;
-                const courseId = pathParts[courseIdIndex];
+                const rawId = pathParts[courseIdIndex];
+                const courseId = rawId ? parseInt(rawId) : rawId;
                 if (!courseId) return;
 
                 const tabs = document.querySelectorAll('#lms-tab-menu a');
@@ -153,7 +154,8 @@ export const lmsHeaderHtml = (activeTab = 'dashboard', defaultType = '') => `
             async function loadLmsHeaderInfo() {
                 const pathParts = window.location.pathname.split('/');
                 const courseIdIndex = pathParts.indexOf('courses') + 1;
-                const courseId = pathParts[courseIdIndex];
+                const rawId = pathParts[courseIdIndex];
+                const courseId = rawId ? parseInt(rawId) : rawId;
                 if (!courseId) return;
 
                 try {
