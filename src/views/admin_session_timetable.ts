@@ -510,12 +510,24 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                     if(pJson.success && pJson.data && pJson.data.length > 0) {
                         periodConfigs = pJson.data;
                     } else {
-                        // 기본 8교시 설정
+                        // 기본 8교시 설정 (과정 시작 시간 반영)
+                        let startHour = 9;
+                        if (sessionInfo && sessionInfo.training_time_start) {
+                            try {
+                                const parts = String(sessionInfo.training_time_start).split(':');
+                                if (parts.length >= 1) {
+                                    const h = parseInt(parts[0], 10);
+                                    if (!isNaN(h) && h >= 0 && h <= 23) startHour = h;
+                                }
+                            } catch(e) {}
+                        }
+
                         for(let i=1; i<=8; i++) {
+                            const currentHour = startHour + (i - 1);
                             periodConfigs.push({
                                 period_number: i,
-                                start_time: (9 + (i-1)).toString().padStart(2, '0') + ':00',
-                                end_time: (9 + (i-1)).toString().padStart(2, '0') + ':50',
+                                start_time: currentHour.toString().padStart(2, '0') + ':00',
+                                end_time: currentHour.toString().padStart(2, '0') + ':50',
                                 break_minute: 10
                             });
                         }
