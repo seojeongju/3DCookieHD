@@ -344,36 +344,36 @@ export const adminLmsTrainingLogsHtml = `
             }
 
             tbody.innerHTML = logs.map(log => \`
-                <tr class="hover:bg-indigo-50/30 transition-all duration-200 group border-b border-gray-50 last:border-0 shadow-[inset_0_1px_0_0_rgba(255,255,255,1)]">
-                    <td class="px-6 py-5 whitespace-nowrap text-[11px] font-black text-indigo-300 uppercase tracking-widest">\${log.date}</td>
-                    <td class="px-6 py-5">
-                        <div class="font-black text-gray-800 mb-1 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">\${log.topic}</div>
-                        <div class="text-xs text-gray-400 truncate max-w-lg font-medium leading-relaxed italic opacity-80 group-hover:opacity-100 transition-all">\${log.content || '-'}</div>
-                    </td>
-                    <td class="px-6 py-5">
-                        ${log.ncs_unit_name ? `
-                            <div class="inline-flex items-center px-2 py-0.5 bg-indigo-50 text-indigo-500 rounded-md text-[9px] font-black border border-indigo-100/50 mb-1 shadow-sm">
-                                ${log.ncs_unit_code}
+                    <tr class="hover:bg-indigo-50/30 transition-all duration-200 group border-b border-gray-50 last:border-0 shadow-[inset_0_1px_0_0_rgba(255,255,255,1)]">
+                        <td class="px-6 py-5 whitespace-nowrap text-[11px] font-black text-indigo-300 uppercase tracking-widest">\${log.date}</td>
+                        <td class="px-6 py-5">
+                            <div class="font-black text-gray-800 mb-1 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">\${log.topic}</div>
+                            <div class="text-xs text-gray-400 truncate max-w-lg font-medium leading-relaxed italic opacity-80 group-hover:opacity-100 transition-all">\${log.content || '-'}</div>
+                        </td>
+                        <td class="px-6 py-5">
+                            \${log.ncs_unit_name ? \`
+                                <div class="inline-flex items-center px-2 py-0.5 bg-indigo-50 text-indigo-500 rounded-md text-[9px] font-black border border-indigo-100/50 mb-1 shadow-sm">
+                                    \${log.ncs_unit_code}
+                                </div>
+                                <div class="text-[10px] text-gray-500 font-black truncate leading-none opacity-60 group-hover:opacity-100 transition-all font-sans uppercase tracking-tighter">\${log.ncs_unit_name}</div>
+                            \` : '<span class="text-gray-200 text-xs font-black tracking-widest leading-none">-</span>'}
+                        </td>
+                        <td class="px-6 py-5 text-center font-black text-slate-700 text-sm shadow-[inset_1px_0_0_0_rgba(248,250,252,1)] shadow-[inset_-1px_0_0_0_rgba(248,250,252,1)]">\${log.training_hours}h</td>
+                        <td class="px-6 py-5 text-right">
+                            <div class="flex items-center justify-end gap-2.5 transition-all">
+                                <button onclick="printLog(\${log.id})" class="w-9 h-9 flex items-center justify-center bg-white border border-gray-100 text-slate-400 hover:text-gray-700 hover:border-gray-300 hover:shadow-md transition-all rounded-xl active:scale-90">
+                                    <i class="fas fa-print text-xs"></i>
+                                </button>
+                                <button onclick="editLog(\${JSON.stringify(log).replace(/"/g, '&quot;')})" class="w-9 h-9 flex items-center justify-center bg-white border border-gray-100 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 hover:shadow-md transition-all rounded-xl active:scale-90">
+                                    <i class="fas fa-edit text-xs"></i>
+                                </button>
+                                <button onclick="deleteLog(\${log.id})" class="w-9 h-9 flex items-center justify-center bg-white border border-gray-100 text-slate-400 hover:text-rose-500 hover:border-rose-100 hover:shadow-md transition-all rounded-xl active:scale-90">
+                                    <i class="fas fa-trash-alt text-xs"></i>
+                                </button>
                             </div>
-                            <div class="text-[10px] text-gray-500 font-black truncate leading-none opacity-60 group-hover:opacity-100 transition-all font-sans uppercase tracking-tighter">${log.ncs_unit_name}</div>
-                        ` : '<span class="text-gray-200 text-xs font-black tracking-widest leading-none">-</span>'}
-                    </td>
-                    <td class="px-6 py-5 text-center font-black text-slate-700 text-sm shadow-[inset_1px_0_0_0_rgba(248,250,252,1)] shadow-[inset_-1px_0_0_0_rgba(248,250,252,1)]">${log.training_hours}h</td>
-                    <td class="px-6 py-5 text-right">
-                        <div class="flex items-center justify-end gap-2.5 transition-all">
-                            <button onclick="printLog(${log.id})" class="w-9 h-9 flex items-center justify-center bg-white border border-gray-100 text-slate-400 hover:text-gray-700 hover:border-gray-300 hover:shadow-md transition-all rounded-xl active:scale-90">
-                                <i class="fas fa-print text-xs"></i>
-                            </button>
-                            <button onclick="editLog(${JSON.stringify(log).replace(/"/g, '&quot;')})" class="w-9 h-9 flex items-center justify-center bg-white border border-gray-100 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 hover:shadow-md transition-all rounded-xl active:scale-90">
-                                <i class="fas fa-edit text-xs"></i>
-                            </button>
-                            <button onclick="deleteLog(${log.id})" class="w-9 h-9 flex items-center justify-center bg-white border border-gray-100 text-slate-400 hover:text-rose-500 hover:border-rose-100 hover:shadow-md transition-all rounded-xl active:scale-90">
-                                <i class="fas fa-trash-alt text-xs"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `).join('');
+                        </td>
+                    </tr>
+                \`).join('');
         }
 
 async function printLog(id) {
