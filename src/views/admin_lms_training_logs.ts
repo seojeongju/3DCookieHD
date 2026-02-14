@@ -364,7 +364,7 @@ export const adminLmsTrainingLogsHtml = `
                             <button onclick="printLog(${log.id})" class="w-9 h-9 flex items-center justify-center bg-white border border-gray-100 text-slate-400 hover:text-gray-700 hover:border-gray-300 hover:shadow-md transition-all rounded-xl active:scale-90">
                                 <i class="fas fa-print text-xs"></i>
                             </button>
-                            <button onclick='editLog(${JSON.stringify(log).replace(/'/g, "&#39;")})' class="w-9 h-9 flex items-center justify-center bg-white border border-gray-100 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 hover:shadow-md transition-all rounded-xl active:scale-90">
+                            <button onclick="editLog(${JSON.stringify(log).replace(/"/g, '&quot;')})" class="w-9 h-9 flex items-center justify-center bg-white border border-gray-100 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 hover:shadow-md transition-all rounded-xl active:scale-90">
                                 <i class="fas fa-edit text-xs"></i>
                             </button>
                             <button onclick="deleteLog(${log.id})" class="w-9 h-9 flex items-center justify-center bg-white border border-gray-100 text-slate-400 hover:text-rose-500 hover:border-rose-100 hover:shadow-md transition-all rounded-xl active:scale-90">
