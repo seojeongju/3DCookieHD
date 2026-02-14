@@ -351,82 +351,80 @@ export const adminLmsTrainingLogsHtml = `
                         <div class="text-xs text-gray-400 truncate max-w-lg font-medium leading-relaxed italic opacity-80 group-hover:opacity-100 transition-all">\${log.content || '-'}</div>
                     </td>
                     <td class="px-6 py-5">
-                        \${log.ncs_unit_name ? \`
+                        ${log.ncs_unit_name ? `
                             <div class="inline-flex items-center px-2 py-0.5 bg-indigo-50 text-indigo-500 rounded-md text-[9px] font-black border border-indigo-100/50 mb-1 shadow-sm">
-                                \${log.ncs_unit_code}
-                            </div>
                                 ${log.ncs_unit_code}
                             </div>
                             <div class="text-[10px] text-gray-500 font-black truncate leading-none opacity-60 group-hover:opacity-100 transition-all font-sans uppercase tracking-tighter">${log.ncs_unit_name}</div>
                         ` : '<span class="text-gray-200 text-xs font-black tracking-widest leading-none">-</span>'}
-</td>
-    < td class="px-6 py-5 text-center font-black text-slate-700 text-sm shadow-[inset_1px_0_0_0_rgba(248,250,252,1)] shadow-[inset_-1px_0_0_0_rgba(248,250,252,1)]" > ${ log.training_hours } h </td>
-        < td class="px-6 py-5 text-right" >
-            <div class="flex items-center justify-end gap-2.5 transition-all" >
-                <button onclick="printLog(${log.id})" class="w-9 h-9 flex items-center justify-center bg-white border border-gray-100 text-slate-400 hover:text-gray-700 hover:border-gray-300 hover:shadow-md transition-all rounded-xl active:scale-90" >
-                    <i class="fas fa-print text-xs" > </i>
-                        </button>
-                        < button onclick = 'editLog(${JSON.stringify(log).replace(/' / g, "&#39;")}) ' class="w-9 h-9 flex items-center justify-center bg-white border border-gray-100 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 hover:shadow-md transition-all rounded-xl active:scale-90">
-                            < i class="fas fa-edit text-xs" > </i>
-                                </button>
-                                < button onclick = "deleteLog(${log.id})" class="w-9 h-9 flex items-center justify-center bg-white border border-gray-100 text-slate-400 hover:text-rose-500 hover:border-rose-100 hover:shadow-md transition-all rounded-xl active:scale-90" >
-                                    <i class="fas fa-trash-alt text-xs" > </i>
-                                        </button>
-                                        </div>
-                                        </td>
-                                        </tr>
-\`).join('');
+                    </td>
+                    <td class="px-6 py-5 text-center font-black text-slate-700 text-sm shadow-[inset_1px_0_0_0_rgba(248,250,252,1)] shadow-[inset_-1px_0_0_0_rgba(248,250,252,1)]">${log.training_hours}h</td>
+                    <td class="px-6 py-5 text-right">
+                        <div class="flex items-center justify-end gap-2.5 transition-all">
+                            <button onclick="printLog(${log.id})" class="w-9 h-9 flex items-center justify-center bg-white border border-gray-100 text-slate-400 hover:text-gray-700 hover:border-gray-300 hover:shadow-md transition-all rounded-xl active:scale-90">
+                                <i class="fas fa-print text-xs"></i>
+                            </button>
+                            <button onclick='editLog(${JSON.stringify(log).replace(/'/g, "&#39;")})' class="w-9 h-9 flex items-center justify-center bg-white border border-gray-100 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 hover:shadow-md transition-all rounded-xl active:scale-90">
+                                <i class="fas fa-edit text-xs"></i>
+                            </button>
+                            <button onclick="deleteLog(${log.id})" class="w-9 h-9 flex items-center justify-center bg-white border border-gray-100 text-slate-400 hover:text-rose-500 hover:border-rose-100 hover:shadow-md transition-all rounded-xl active:scale-90">
+                                <i class="fas fa-trash-alt text-xs"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
         }
 
-        async function printLog(id) {
-            try {
-                // Fetch Data: Log, Session, Enrollments, AND All Logs for counting days
-                const [logRes, sessionRes, enrollRes, allLogsRes] = await Promise.all([
-                    fetch('/api/hrd/training-logs/' + id, { headers: { 'Authorization': 'Bearer ' + token } }).then(r => r.json()),
-                    fetch('/api/course-sessions/' + courseId, { headers: { 'Authorization': 'Bearer ' + token } }).then(r => r.json()),
-                    fetch('/api/enrollments?sessionId=' + courseId, { headers: { 'Authorization': 'Bearer ' + token } }).then(r => r.json()),
-                    fetch('/api/hrd/training-logs?courseId=' + courseId, { headers: { 'Authorization': 'Bearer ' + token } }).then(r => r.json())
-                ]);
-                
-                if(!logRes.success) throw new Error(logRes.error || '일지 로드 실패');
-                
-                const log = logRes.data;
-                const session = sessionRes.success ? sessionRes.data : { course_name: '-', session_number: '', total_hours: 0, daily_hours: 0 };
-                const enrollCount = (enrollRes.success && Array.isArray(enrollRes.data)) 
-                    ? enrollRes.data.filter(e => e.status === 'approved').length 
-                    : 0;
-                
-                // Calculate Day Count (Nth day / Total days)
-                let currentDayCount = 1;
-                let totalDays = 0;
-                
-                if (allLogsRes.success && Array.isArray(allLogsRes.data)) {
-                    // Sort logs by date ascending
-                    const sortedLogs = allLogsRes.data.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-                    const index = sortedLogs.findIndex(l => l.id === log.id);
-                    if (index !== -1) currentDayCount = index + 1;
-                }
-                
-                if (session.total_hours && session.daily_hours) {
-                    totalDays = Math.ceil(session.total_hours / session.daily_hours);
-                } else if (session.training_start_date && session.training_end_date) {
-                    // Fallback to date diff if hours are missing (though inaccurate for weekdays)
-                    const start = new Date(session.training_start_date);
-                    const end = new Date(session.training_end_date);
-                    const diffTime = Math.abs(end - start);
-                    totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; 
-                }
+async function printLog(id) {
+    try {
+        // Fetch Data: Log, Session, Enrollments, AND All Logs for counting days
+        const [logRes, sessionRes, enrollRes, allLogsRes] = await Promise.all([
+            fetch('/api/hrd/training-logs/' + id, { headers: { 'Authorization': 'Bearer ' + token } }).then(r => r.json()),
+            fetch('/api/course-sessions/' + courseId, { headers: { 'Authorization': 'Bearer ' + token } }).then(r => r.json()),
+            fetch('/api/enrollments?sessionId=' + courseId, { headers: { 'Authorization': 'Bearer ' + token } }).then(r => r.json()),
+            fetch('/api/hrd/training-logs?courseId=' + courseId, { headers: { 'Authorization': 'Bearer ' + token } }).then(r => r.json())
+        ]);
 
-                const scheduleDetails = log.schedule_details_json ? JSON.parse(log.schedule_details_json) : [];
-                const attendance = log.attendance_summary_json ? JSON.parse(log.attendance_summary_json) : { present: '', absent: '', late: '', early: '' };
-                const days = ['일', '월', '화', '수', '목', '금', '토'];
-                const dayName = days[new Date(log.date).getDay()];
+        if (!logRes.success) throw new Error(logRes.error || '일지 로드 실패');
 
-                // Schedule Rows
-                let scheduleRows = '';
-                for(let i=1; i<=8; i++) {
-                    const sch = scheduleDetails.find(s => s.period === i);
-                    scheduleRows += \`
+        const log = logRes.data;
+        const session = sessionRes.success ? sessionRes.data : { course_name: '-', session_number: '', total_hours: 0, daily_hours: 0 };
+        const enrollCount = (enrollRes.success && Array.isArray(enrollRes.data))
+            ? enrollRes.data.filter(e => e.status === 'approved').length
+            : 0;
+
+        // Calculate Day Count (Nth day / Total days)
+        let currentDayCount = 1;
+        let totalDays = 0;
+
+        if (allLogsRes.success && Array.isArray(allLogsRes.data)) {
+            // Sort logs by date ascending
+            const sortedLogs = allLogsRes.data.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+            const index = sortedLogs.findIndex(l => l.id === log.id);
+            if (index !== -1) currentDayCount = index + 1;
+        }
+
+        if (session.total_hours && session.daily_hours) {
+            totalDays = Math.ceil(session.total_hours / session.daily_hours);
+        } else if (session.training_start_date && session.training_end_date) {
+            // Fallback to date diff if hours are missing (though inaccurate for weekdays)
+            const start = new Date(session.training_start_date);
+            const end = new Date(session.training_end_date);
+            const diffTime = Math.abs(end - start);
+            totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        }
+
+        const scheduleDetails = log.schedule_details_json ? JSON.parse(log.schedule_details_json) : [];
+        const attendance = log.attendance_summary_json ? JSON.parse(log.attendance_summary_json) : { present: '', absent: '', late: '', early: '' };
+        const days = ['일', '월', '화', '수', '목', '금', '토'];
+        const dayName = days[new Date(log.date).getDay()];
+
+        // Schedule Rows
+        let scheduleRows = '';
+        for (let i = 1; i <= 8; i++) {
+            const sch = scheduleDetails.find(s => s.period === i);
+            scheduleRows += \`
                         <tr>
                             <td class="border border-black p-2 h-10 text-center">\${i}</td>
                             <td class="border border-black p-2 text-center font-bold text-sm">\${sch ? (sch.subject || '') : ''}</td>
