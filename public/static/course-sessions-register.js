@@ -593,6 +593,13 @@
 
     document.getElementById('sessionsFormLunchNone').addEventListener('change', calculateDailyHours);
 
+    function parseLocalDate(s) {
+        if (!s) return null;
+        var p = s.split('-');
+        if (p.length !== 3) return null;
+        return new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
+    }
+
     function calculateTotalTrainingDays() {
         var startInput = document.getElementById('sessionsFormTrainingStart');
         var endInput = document.getElementById('sessionsFormTrainingEnd');
@@ -613,8 +620,9 @@
             return;
         }
 
-        var start = new Date(startVal);
-        var end = new Date(endVal);
+        var start = parseLocalDate(startVal);
+        var end = parseLocalDate(endVal);
+
         if (end < start) {
             resultBox.classList.remove('hidden');
             calcDaysInput.value = '0';
@@ -630,7 +638,7 @@
         var maxDays = 3650;
         var iterations = 0;
         while (cur <= end && iterations < maxDays) {
-            var dateStr = cur.toISOString().split('T')[0];
+            var dateStr = cur.getFullYear() + '-' + String(cur.getMonth() + 1).padStart(2, '0') + '-' + String(cur.getDate()).padStart(2, '0');
             if (targetDayNumbers.indexOf(cur.getDay()) >= 0) {
                 // 특정 요일에 해당할 때
                 if (!excludedDates.has(dateStr)) {
@@ -870,7 +878,7 @@
         var startVal = document.getElementById('sessionsFormTrainingStart').value;
         if (!startVal) { alert('시작일을 먼저 선택하세요.'); return; }
 
-        var date = new Date(startVal);
+        var date = parseLocalDate(startVal);
         calendarYear = date.getFullYear();
         calendarMonth = date.getMonth();
 
@@ -894,8 +902,8 @@
 
         var startInput = document.getElementById('sessionsFormTrainingStart').value;
         var endInput = document.getElementById('sessionsFormTrainingEnd').value;
-        var start = startInput ? new Date(startInput) : null;
-        var end = endInput ? new Date(endInput) : null;
+        var start = parseLocalDate(startInput);
+        var end = parseLocalDate(endInput);
 
         var checkedDays = [];
         document.querySelectorAll('input[name="sessionsDaysOfWeek"]:checked').forEach(function (cb) { checkedDays.push(cb.value); });
@@ -949,15 +957,15 @@
 
         // Update counts in modal
         document.getElementById('calendarExcludedCount').textContent = excludedDates.size;
-        // Total count in modal is not strictly needed since we updated calculateTotalTrainingDays, but nice to have
+        // Total count in modal
         var startIn = document.getElementById('sessionsFormTrainingStart').value;
         var endIn = document.getElementById('sessionsFormTrainingEnd').value;
         if (startIn && endIn) {
-            var s = new Date(startIn), e = new Date(endIn);
+            var s = parseLocalDate(startIn), e = parseLocalDate(endIn);
             var cnt = 0;
             var it = new Date(s.getTime());
             while (it <= e) {
-                var ds = it.toISOString().split('T')[0];
+                var ds = it.getFullYear() + '-' + String(it.getMonth() + 1).padStart(2, '0') + '-' + String(it.getDate()).padStart(2, '0');
                 if (targetDayNumbers.indexOf(it.getDay()) >= 0 && !excludedDates.has(ds)) cnt++;
                 it.setDate(it.getDate() + 1);
             }
