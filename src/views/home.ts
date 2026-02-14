@@ -241,9 +241,9 @@ export const homeHtml = `
                 <h2 class="text-4xl font-bold text-gray-800 mb-4">교육 과정</h2>
                 <p class="text-xl text-gray-600">다양한 분야의 전문 교육 프로그램</p>
             </div>
-            <div id="courseList" class="grid md:grid-cols-3 gap-8">
+            <div id="courseList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                 <!-- 로딩 표시 -->
-                <div class="col-span-3 text-center py-12">
+                <div class="col-span-1 sm:col-span-2 lg:col-span-4 text-center py-12">
                     <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
                 </div>
             </div>
@@ -378,15 +378,15 @@ export const homeHtml = `
             var container = document.getElementById('courseList');
             if (!container) return;
             try {
-                var res = await fetch('/api/course-sessions/public?limit=6&page=1');
+                var res = await fetch('/api/course-sessions/public?limit=8&page=1');
                 var result = await res.json();
                 if (!result.success) {
-                    container.innerHTML = '<div class="col-span-3 text-center py-12"><p class="text-gray-500">과정 목록을 불러오지 못했습니다.</p><button onclick="loadCourses()" class="mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">다시 시도</button></div>';
+                    container.innerHTML = '<div class="col-span-1 sm:col-span-2 lg:col-span-4 text-center py-12"><p class="text-gray-500">과정 목록을 불러오지 못했습니다.</p><button onclick="loadCourses()" class="mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">다시 시도</button></div>';
                     return;
                 }
                 var list = result.data || [];
                 if (list.length === 0) {
-                    container.innerHTML = '<div class="col-span-3 text-center py-12 text-gray-500">등록된 교육 과정이 없습니다.<br><span class="text-sm">관리자에서 회차별로 &#8216;홈페이지 등록&#8217;을 한 과정만 여기에 노출됩니다.</span></div>';
+                    container.innerHTML = '<div class="col-span-1 sm:col-span-2 lg:col-span-4 text-center py-12 text-gray-500">등록된 교육 과정이 없습니다.<br><span class="text-sm">관리자에서 회차별로 &#8216;홈페이지 등록&#8217;을 한 과정만 여기에 노출됩니다.</span></div>';
                     return;
                 }
                 function statusText(s) {
@@ -421,11 +421,11 @@ export const homeHtml = `
                         '<h3 class="text-lg font-bold text-gray-800 mb-2 line-clamp-2 group-hover:text-primary-600 transition">' + nameEsc + '</h3>' +
                         '<p class="text-gray-500 text-sm mb-3">' + (s.session_number ? s.session_number + '회차' : '') + (s.instructor_name ? ' · ' + (s.instructor_name || '').replace(/</g, '&lt;') : '') + '</p>' +
                         '<div class="mt-auto pt-4 border-t border-gray-100 text-sm text-gray-500"><i class="far fa-calendar-alt mr-2"></i>' + dateStr + '</div></div></a>';
-                }).join('') + '<div class="md:col-span-3 flex justify-center mt-4">' +
+                }).join('') + '<div class="col-span-1 sm:col-span-2 lg:col-span-4 flex justify-center mt-4">' +
                 '<a href="/course-sessions" class="inline-flex items-center gap-2 px-8 py-4 bg-primary-600 text-white font-bold rounded-xl hover:bg-primary-700 transition shadow-lg">전체 과정 보기 <i class="fas fa-arrow-right"></i></a></div>';
             } catch (e) {
                 console.error('loadCourses error:', e);
-                container.innerHTML = '<div class="col-span-3 text-center py-12"><p class="text-gray-500">연결에 실패했습니다. 잠시 후 다시 시도해 주세요.</p><button onclick="loadCourses()" class="mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">다시 시도</button></div>';
+                container.innerHTML = '<div class="col-span-1 sm:col-span-2 lg:col-span-4 text-center py-12"><p class="text-gray-500">연결에 실패했습니다. 잠시 후 다시 시도해 주세요.</p><button onclick="loadCourses()" class="mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">다시 시도</button></div>';
             }
         }
         async function loadPrototypes() {
