@@ -178,6 +178,27 @@ export function adminSessionTimetableHtml(sessionId: number): string {
         </div>
     </div>
 
+    <!-- Reset Confirmation Modal -->
+    <div id="resetConfirmModal" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-[24px] w-full max-w-sm shadow-xl overflow-hidden transform scale-95 transition-transform duration-300">
+            <div class="p-6 text-center">
+                <div class="w-16 h-16 bg-amber-50 text-amber-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
+                    <i class="fas fa-clock-rotate-left text-3xl"></i>
+                </div>
+                <h3 class="text-lg font-black text-slate-800 mb-2">시간표 재설정</h3>
+                <p class="text-sm text-slate-500 leading-relaxed mb-6 font-medium">
+                    현재 설정된 교시 시간(시작/종료)을 모두 초기화하고,<br>
+                    과정 <b class="text-slate-800">시작 시간 기준</b>으로 재설정하시겠습니까?<br>
+                    <span class="text-xs text-amber-600 mt-2 block bg-amber-50 py-2 px-3 rounded-lg font-bold border border-amber-100/50"><i class="fas fa-exclamation-circle mr-1"></i> 저장 전에는 DB에 반영되지 않습니다.</span>
+                </p>
+                <div class="flex gap-3">
+                    <button onclick="closeResetModal()" class="flex-1 px-4 py-3 border border-slate-200 text-slate-600 text-sm font-bold rounded-xl hover:bg-slate-50 transition">취소</button>
+                    <button onclick="confirmReset()" class="flex-1 px-4 py-3 bg-primary-600 text-white text-sm font-bold rounded-xl hover:bg-primary-700 transition shadow-lg shadow-primary-200">확인</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Status Modal -->
     <div id="statusModal" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden opacity-0 transition-opacity duration-300">
         <div class="bg-slate-50 rounded-[32px] w-full max-w-4xl max-h-[90vh] shadow-2xl overflow-hidden flex flex-col transform scale-95 transition-transform duration-300">
@@ -453,7 +474,29 @@ export function adminSessionTimetableHtml(sessionId: number): string {
             };
 
             window.resetPeriods = function() {
-                if(!confirm('현재 설정된 교시 시간(시작/종료)을 모두 초기화하고, 과정 시작 시간 기준으로 재설정하시겠습니까?\\n(저장하기 전에는 DB에 반영되지 않습니다.)')) return;
+                const modal = document.getElementById('resetConfirmModal');
+                if (!modal) return;
+                modal.classList.remove('hidden');
+                setTimeout(function() {
+                    modal.classList.remove('opacity-0');
+                    const innerDiv = modal.querySelector('div');
+                    if(innerDiv) innerDiv.classList.remove('scale-95');
+                }, 10);
+            };
+
+            window.closeResetModal = function() {
+                const modal = document.getElementById('resetConfirmModal');
+                if (!modal) return;
+                modal.classList.add('opacity-0');
+                const innerDiv = modal.querySelector('div');
+                if(innerDiv) innerDiv.classList.add('scale-95');
+                setTimeout(function() {
+                    modal.classList.add('hidden');
+                }, 300);
+            };
+
+            window.confirmReset = function() {
+                closeResetModal();
                 
                 let startHour = 9;
                 if (sessionInfo && sessionInfo.training_time_start) {
