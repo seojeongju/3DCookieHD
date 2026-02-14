@@ -45,7 +45,7 @@ export const lmsHeaderHtml = (activeTab = 'dashboard', defaultType = '') => `
         
         <!-- Tab Menu Container with Horizontal Scroll Support -->
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative group">
-            <div class="flex space-x-1 overflow-x-auto scrollbar-hide py-1" id="lms-tab-menu" style="scroll-behavior: smooth;">
+            <div class="flex space-x-1 overflow-x-auto scrollbar-hide py-1 pr-12" id="lms-tab-menu" style="scroll-behavior: smooth;">
                 <a href="dashboard" class="px-6 py-4 rounded-t-xl transition whitespace-nowrap flex items-center gap-2 ${activeTab === 'dashboard' ? 'bg-white text-indigo-700 font-bold' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
                     <i class="fas fa-tachometer-alt"></i> 대시보드
                 </a>
@@ -82,8 +82,8 @@ export const lmsHeaderHtml = (activeTab = 'dashboard', defaultType = '') => `
             </div>
             
             <!-- Gradient Overlays for scroll indication -->
-            <div class="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-indigo-800 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity sm:hidden"></div>
-            <div class="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-indigo-800 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <div class="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-indigo-800 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <div class="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-indigo-800 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity"></div>
         </div>
     </div>
     
