@@ -193,11 +193,19 @@ courses.get('/:id', async (c) => {
 
       if (!session) return notFoundResponse(c, '회차 정보를 찾을 수 없습니다');
 
+      // 수강생 수 카운트
+      const studentCount = await getOne<any>(
+        c.env.DB,
+        `SELECT COUNT(*) as count FROM hrd_student_details WHERE course_id = ?`,
+        [sessionId]
+      );
+
       return successResponse(c, {
         ...session,
         category: session.category_name || '국비지원',
         price: 0,
         max_students: 0,
+        current_students: studentCount?.count || 0,
         status: 'active'
       });
     }

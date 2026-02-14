@@ -79,6 +79,8 @@ export const lmsHeaderHtml = (activeTab = 'dashboard', defaultType = '') => `
                 <a href="employment" class="px-6 py-4 rounded-t-xl transition whitespace-nowrap flex items-center gap-2 ${activeTab === 'employment' ? 'bg-white text-indigo-700 font-bold' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
                     <i class="fas fa-user-tie"></i> 취업관리
                 </a>
+                <!-- Spacer for scroll end visibility -->
+                <div class="flex-shrink-0 w-16 h-1"></div>
             </div>
             
             <!-- Gradient Overlays for scroll indication -->
