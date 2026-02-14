@@ -83,6 +83,9 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                 <button type="button" onclick="typeof openTimetablePrint === 'function' && openTimetablePrint()" class="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-slate-50 hover:border-primary-300 transition flex-shrink-0">
                     <i class="fas fa-print"></i> 시간표 출력
                 </button>
+                <button onclick="resetPeriods()" class="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-slate-50 hover:border-primary-300 transition flex-shrink-0" title="교시 시간을 과정 시작 시간에 맞춰 초기화">
+                    <i class="fas fa-clock-rotate-left"></i> 시간 재설정
+                </button>
                 <button onclick="showStatus()" class="flex items-center gap-2 bg-slate-800 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-slate-900 transition shadow-lg shadow-slate-200">
                     <i class="fas fa-chart-bar"></i> 진행 상황
                 </button>
@@ -447,6 +450,34 @@ export function adminSessionTimetableHtml(sessionId: number): string {
 
             window.openTimetablePrint = function() {
                 window.open('/admin/courses/sessions/' + sessionId + '/timetable/print', '_blank', 'noopener,noreferrer');
+            };
+
+            window.resetPeriods = function() {
+                if(!confirm('현재 설정된 교시 시간(시작/종료)을 모두 초기화하고, 과정 시작 시간 기준으로 재설정하시겠습니까?\\n(저장하기 전에는 DB에 반영되지 않습니다.)')) return;
+                
+                let startHour = 9;
+                if (sessionInfo && sessionInfo.training_time_start) {
+                    try {
+                        const parts = String(sessionInfo.training_time_start).split(':');
+                        if (parts.length >= 1) {
+                            const h = parseInt(parts[0], 10);
+                            if (!isNaN(h) && h >= 0 && h <= 23) startHour = h;
+                        }
+                    } catch(e) {}
+                }
+
+                periodConfigs = [];
+                for(let i=1; i<=8; i++) {
+                    const currentHour = startHour + (i - 1);
+                    periodConfigs.push({
+                        period_number: i,
+                        start_time: currentHour.toString().padStart(2, '0') + ':00',
+                        end_time: currentHour.toString().padStart(2, '0') + ':50',
+                        break_minute: 10
+                    });
+                }
+                renderTimetableGrid();
+                showToast('교시 시간이 재설정되었습니다. [저장하기]를 눌러 확정하세요.');
             };
 
             async function init() {
