@@ -21,6 +21,7 @@ import schedules from './api/schedules';
 import jobs from './api/jobs';
 import jobseekers from './api/jobseekers';
 import exams from './api/exams';
+import cbt from './api/cbt';
 import students from './api/students';
 import users from './api/users';
 import consultations from './api/consultations';
@@ -203,6 +204,9 @@ app.route('/api/jobseekers', jobseekers);
 
 // 시험 API
 app.route('/api/exams', exams);
+
+// CBT (시험/문제은행) API - LMS CBT 페이지용
+app.route('/api/cbt', cbt);
 
 // 포트폴리오 API
 app.route('/api/portfolios', portfolios);
