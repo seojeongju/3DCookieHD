@@ -1575,6 +1575,147 @@ app.get('/attendance/summary', authMiddleware, async (c) => {
     }
 });
 
+// 훈련생 출결사항 출력용: 회차 정보 + 훈련일정 + 수강생 + 출결 데이터
+app.get('/attendance/print-form', async (c) => {
+    try {
+        const sessionId = c.req.query('sessionId');
+        if (!sessionId) {
+            return c.json({ success: false, error: 'sessionId가 필요합니다.' }, 400);
+        }
+
+        const DB = c.env.DB;
+
+        // 1. 회차 정보 (과정명, 기간, 강사, 시간, 강의실)
+        const sessionRow = await DB.prepare(`
+            SELECT s.id, s.session_number, s.session_name, s.training_start_date, s.training_end_date,
+                   s.instructor_name, s.training_time_start, s.training_time_end, s.location as session_location,
+                   a.name as course_name
+            FROM course_sessions s
+            JOIN approved_courses a ON s.approved_course_id = a.id
+            WHERE s.id = ?
+        `).bind(sessionId).first() as any;
+
+        if (!sessionRow) {
+            return c.json({ success: false, error: '회차를 찾을 수 없습니다.' }, 404);
+        }
+
+        const courseTitle = (sessionRow.course_name || '') + (sessionRow.session_number != null ? ` + ${sessionRow.session_number}차` : '') + (sessionRow.session_name ? ' ' + sessionRow.session_name : '');
+        const trainingPeriod = [sessionRow.training_start_date, sessionRow.training_end_date].filter(Boolean).map((d: string) => d.replace(/-/g, '.')).join('~');
+        const trainingTime = [sessionRow.training_time_start, sessionRow.training_time_end].filter(Boolean).join('~').replace(/:00$/, '');
+
+        // 강의실: session_timetable 첫 행의 location 또는 회차 location
+        let classroom = sessionRow.session_location || '';
+        if (!classroom) {
+            const locRow = await DB.prepare('SELECT location FROM session_timetable WHERE session_id = ? AND location IS NOT NULL AND TRIM(location) != "" LIMIT 1').bind(sessionId).first() as any;
+            classroom = locRow?.location || '제1강의실';
+        }
+
+        const instructors = (sessionRow.instructor_name || '').split(/[,/]/).map((n: string) => n.trim()).filter(Boolean).join('/') || '-';
+
+        const info = {
+            institution: '와우쓰리디(WOW3D) 홍대센터',
+            courseTitle,
+            classroom,
+            trainingTime: trainingTime || '-',
+            instructors,
+            trainingPeriod: trainingPeriod || '-',
+        };
+
+        // 2. 훈련일(일차) 목록: session_timetable의 distinct training_date, 없으면 start~end 평일
+        let trainingDays: { dayNumber: number; date: string; dateShort: string; dayOfWeek: string }[] = [];
+        const dayRows = await DB.prepare(`
+            SELECT DISTINCT training_date FROM session_timetable WHERE session_id = ? AND (is_excluded IS NULL OR is_excluded = 0) ORDER BY training_date
+        `).bind(sessionId).all();
+
+        const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+        if (dayRows.results && (dayRows.results as any[]).length > 0) {
+            trainingDays = (dayRows.results as any[]).map((r: any, i: number) => {
+                const d = r.training_date;
+                const [y, m, day] = d.split('-');
+                const dateObj = new Date(parseInt(y), parseInt(m) - 1, parseInt(day));
+                return {
+                    dayNumber: i + 1,
+                    date: d,
+                    dateShort: `${parseInt(m)}/${parseInt(day)}`,
+                    dayOfWeek: dayNames[dateObj.getDay()],
+                };
+            });
+        } else {
+            const start = sessionRow.training_start_date ? new Date(sessionRow.training_start_date) : null;
+            const end = sessionRow.training_end_date ? new Date(sessionRow.training_end_date) : null;
+            if (start && end) {
+                let n = 0;
+                for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                    const day = d.getDay();
+                    if (day !== 0 && day !== 6) {
+                        n++;
+                        const y = d.getFullYear(), m = d.getMonth() + 1, dayNum = d.getDate();
+                        const dateStr = `${y}-${String(m).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+                        trainingDays.push({
+                            dayNumber: n,
+                            date: dateStr,
+                            dateShort: `${m}/${dayNum}`,
+                            dayOfWeek: dayNames[day],
+                        });
+                    }
+                }
+            }
+        }
+
+        // 3. 수강생 (배정된 학생)
+        const studentsRows = await DB.prepare(`
+            SELECT e.id as enrollment_id, u.id as user_id, u.name, u.phone
+            FROM course_session_enrollments e
+            JOIN users u ON e.user_id = u.id
+            WHERE e.session_id = ? AND e.status IN ('approved', 'enrolled')
+            ORDER BY u.name ASC
+        `).bind(sessionId).all();
+
+        const students = (studentsRows.results || []).map((s: any, i: number) => ({
+            no: i + 1,
+            enrollment_id: s.enrollment_id,
+            name: s.name || '-',
+            phone: (s.phone || '').replace(/-/g, '-') || '-',
+            classification: '훈련생', // 구분: DB에 없으면 기본값
+        }));
+
+        const enrollmentIds = students.map((s: any) => s.enrollment_id);
+        const dates = trainingDays.map(t => t.date);
+        let attendance: any[] = [];
+
+        if (enrollmentIds.length > 0 && dates.length > 0) {
+            const placeholders = enrollmentIds.map(() => '?').join(',');
+            const datePlaceholders = dates.map(() => '?').join(',');
+
+            const logsRows = await DB.prepare(`
+                SELECT enrollment_id, date, status, check_in_time
+                FROM attendance_logs
+                WHERE enrollment_id IN (${placeholders}) AND date IN (${datePlaceholders})
+            `).bind(...enrollmentIds, ...dates).all();
+
+            attendance = (logsRows.results || []).map((l: any) => ({
+                enrollment_id: l.enrollment_id,
+                date: l.date,
+                status: l.status,
+                check_in_time: l.check_in_time,
+            }));
+        }
+
+        return c.json({
+            success: true,
+            data: {
+                info,
+                trainingDays,
+                students,
+                attendance,
+            },
+        });
+    } catch (e) {
+        console.error('Print-form attendance error:', e);
+        return c.json({ success: false, error: '출결사항 출력 데이터 조회 실패' }, 500);
+    }
+});
+
 // 월간 출석부 조회 (출력용). courseId + type=hrd 이면 회차(session) 기준으로 조회
 app.get('/attendance/monthly', async (c) => {
     try {
@@ -1594,12 +1735,12 @@ app.get('/attendance/monthly', async (c) => {
         let logs: any[];
 
         if (isHrd) {
-            // HRD 회차: course_session_enrollments + attendance_logs
+            // HRD 회차: course_session_enrollments + attendance_logs (배정된 학생 포함: approved, enrolled)
             const studentsRes = await c.env.DB.prepare(`
                 SELECT u.id, u.name, u.phone, e.id as enrollment_id
                 FROM course_session_enrollments e
                 JOIN users u ON e.user_id = u.id
-                WHERE e.session_id = ? AND e.status = 'approved'
+                WHERE e.session_id = ? AND e.status IN ('approved', 'enrolled')
                 ORDER BY u.name ASC
             `).bind(courseId).all();
             students = studentsRes.results || [];

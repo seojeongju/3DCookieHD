@@ -201,13 +201,17 @@ export const studentDashboardHtml = () => `
             try {
                 const token = localStorage.getItem('token');
                 if (!token) return;
-                const [enrRes, examRes] = await Promise.all([
+                const [enrRes, sessionEnrRes, examRes] = await Promise.all([
                     fetch('/api/enrollments?status=approved&limit=1', { headers: { 'Authorization': 'Bearer ' + token } }),
+                    fetch('/api/course-sessions/me/enrollments', { headers: { 'Authorization': 'Bearer ' + token } }),
                     fetch('/api/exams', { headers: { 'Authorization': 'Bearer ' + token } })
                 ]);
                 const enrJson = await enrRes.json();
+                const sessionEnrJson = await sessionEnrRes.json().catch(() => ({ success: false, data: [] }));
                 const examJson = await examRes.json();
-                const enrollments = (enrJson.success && enrJson.pagination && typeof enrJson.pagination.total === 'number') ? enrJson.pagination.total : (Array.isArray(enrJson.data) ? enrJson.data.length : 0);
+                const legacyCount = (enrJson.success && enrJson.pagination && typeof enrJson.pagination.total === 'number') ? enrJson.pagination.total : (Array.isArray(enrJson.data) ? enrJson.data.length : 0);
+                const hrdCount = (sessionEnrJson.success && Array.isArray(sessionEnrJson.data)) ? sessionEnrJson.data.length : 0;
+                const enrollments = legacyCount + hrdCount;
                 const examList = Array.isArray(examJson) ? examJson : (examJson.data || []);
                 const activeExams = examList.filter(e => e.is_active).length;
                 const statEn = document.getElementById('stat-enrollments');

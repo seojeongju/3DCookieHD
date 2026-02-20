@@ -41,7 +41,7 @@ export const adminLmsAttendanceHtml = `
                         </div>
                     </div>
                     <div class="flex items-center space-x-2">
-                        <button onclick="openPrintModal()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition flex items-center text-sm font-bold">
+                        <button onclick="openPrintModalOrTrainee()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition flex items-center text-sm font-bold">
                             <i class="fas fa-print mr-2"></i> 출석부 출력
                         </button>
                         <button onclick="saveAttendance()" class="px-6 py-2 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition flex items-center shadow-lg shadow-purple-200 text-sm font-bold">
@@ -270,6 +270,14 @@ export const adminLmsAttendanceHtml = `
                 console.error('Error:', error);
                 alert('저장 중 오류가 발생했습니다.');
             }
+        }
+
+        function openPrintModalOrTrainee() {
+            if (courseType === 'hrd') {
+                window.open('/admin/attendance/print/trainee?sessionId=' + encodeURIComponent(courseId), '_blank', 'width=1200,height=800');
+                return;
+            }
+            openPrintModal();
         }
 
         function openPrintModal() {

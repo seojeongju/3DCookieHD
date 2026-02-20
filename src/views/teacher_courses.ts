@@ -233,13 +233,13 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
             container.innerHTML = courses.map(course => {
                 const enrolledCount = course.current_students || 0;
                 const maxStudents = course.max_students || 0;
-                const progressPercent = maxStudents > 0 ? Math.round((enrolledCount / maxStudents) * 100) : 0;
+                const progressPercent = maxStudents > 0 ? Math.round((enrolledCount / maxStudents) * 100) : (enrolledCount > 0 ? 100 : 0);
                 
                 let statusInfo = { badge: '미정', class: 'bg-gray-100 text-gray-600' };
                 switch(course.status) {
-                    case 'active': statusInfo = { badge: '운영중', class: 'bg-green-100 text-green-700' }; break;
-                    case 'upcoming': statusInfo = { badge: '모집중', class: 'bg-blue-100 text-blue-700' }; break;
-                    case 'completed': statusInfo = { badge: '종료', class: 'bg-gray-900 text-gray-400' }; break;
+                    case 'active': case 'open': statusInfo = { badge: '운영중', class: 'bg-green-100 text-green-700' }; break;
+                    case 'upcoming': case 'recruiting': statusInfo = { badge: '모집중', class: 'bg-blue-100 text-blue-700' }; break;
+                    case 'completed': case 'closed': statusInfo = { badge: '종료', class: 'bg-gray-900 text-gray-400' }; break;
                     case 'cancelled': statusInfo = { badge: '취소', class: 'bg-red-100 text-red-700' }; break;
                 }
 
@@ -270,13 +270,14 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
 
                 const titleSection = '<h3 class="text-xl font-black text-gray-900 tracking-tight line-clamp-2 leading-tight group-hover:text-blue-600 transition-colors">' + safeTitle + '</h3>';
                 
-                const studentsSection = '<span class="text-xl font-black text-gray-900">' + enrolledCount + '</span>' +
-                                        '<span class="text-[10px] font-bold text-gray-400">/ ' + maxStudents + '</span>';
+                const studentsSection = maxStudents > 0
+                    ? '<span class="text-xl font-black text-gray-900">' + enrolledCount + '</span><span class="text-[10px] font-bold text-gray-400">/ ' + maxStudents + '</span>'
+                    : '<span class="text-xl font-black text-gray-900">' + enrolledCount + '</span><span class="text-[10px] font-bold text-gray-400">명</span>';
                                         
                 const dateSection = '<span class="text-[11px] font-black text-gray-700">' + (course.start_date ? course.start_date.split('T')[0] : '미정') + '</span>';
 
-                // Use JSON.stringify for ID to be safe regardless of type (number/string)
                 const courseIdSafe = JSON.stringify(course.id);
+                const isHrd = course.is_hrd ? 'true' : 'false';
 
                 return '<div class="bg-white rounded-[2.5rem] border border-gray-200 overflow-hidden hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.1)] transition-all duration-500 group">' +
                         '<div class="relative aspect-[16/10] overflow-hidden">' +
@@ -306,10 +307,10 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
                                 '</div>' +
                             '</div>' +
                             '<div class="flex gap-3 pt-4 border-t border-gray-50">' +
-                                '<button onclick=\\'viewCourseDetail(' + courseIdSafe + ')\\' class="flex-1 px-4 py-4 bg-gray-50 text-gray-900 rounded-2xl hover:bg-blue-600 hover:text-white transition-all font-black text-[10px] tracking-widest uppercase flex items-center justify-center gap-2 group-hover:bg-blue-50">' +
+                                '<button onclick=\\'viewCourseDetail(' + courseIdSafe + ',' + isHrd + ')\\' class="flex-1 px-4 py-4 bg-gray-50 text-gray-900 rounded-2xl hover:bg-blue-600 hover:text-white transition-all font-black text-[10px] tracking-widest uppercase flex items-center justify-center gap-2 group-hover:bg-blue-50">' +
                                      '<i class="fas fa-door-open text-xs"></i> 강의실 입장' +
                                 '</button>' +
-                                '<button onclick=\\'manageCourse(' + courseIdSafe + ')\\' class="w-14 h-14 bg-gray-900 text-white rounded-2xl hover:bg-black flex items-center justify-center transition-all shadow-xl shadow-gray-200">' +
+                                '<button onclick=\\'manageCourse(' + courseIdSafe + ',' + isHrd + ')\\' class="w-14 h-14 bg-gray-900 text-white rounded-2xl hover:bg-black flex items-center justify-center transition-all shadow-xl shadow-gray-200">' +
                                     '<i class="fas fa-cog"></i>' +
                                 '</button>' +
                             '</div>' +
@@ -355,16 +356,18 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
             return '';
         }
 
-        function viewCourseDetail(courseId) {
+        function viewCourseDetail(courseId, isHrd) {
             const lmsTab = getLmsTab();
-            const base = '/admin/courses/' + courseId + '/lms';
-            window.location.href = lmsTab ? base + '/' + lmsTab : base;
+            let url = '/admin/courses/' + courseId + '/lms' + (lmsTab ? '/' + lmsTab : '');
+            if (isHrd) url += (url.indexOf('?') >= 0 ? '&' : '?') + 'type=hrd';
+            window.location.href = url;
         }
 
-        function manageCourse(courseId) {
+        function manageCourse(courseId, isHrd) {
             const lmsTab = getLmsTab();
-            const base = '/admin/courses/' + courseId + '/lms';
-            window.location.href = lmsTab ? base + '/' + lmsTab : base;
+            let url = '/admin/courses/' + courseId + '/lms' + (lmsTab ? '/' + lmsTab : '');
+            if (isHrd) url += (url.indexOf('?') >= 0 ? '&' : '?') + 'type=hrd';
+            window.location.href = url;
         }
     </script>
     <style>

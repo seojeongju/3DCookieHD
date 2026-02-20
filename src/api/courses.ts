@@ -40,6 +40,9 @@ courses.get('/', async (c) => {
     const conditions: string[] = [];
     const params: any[] = [];
 
+    let isTeacher = false;
+    let teacherId: number | null = null;
+
     // 역할 기반 필터링 (강사는 본인 과정만)
     const authHeader = c.req.header('Authorization');
     if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -47,6 +50,8 @@ courses.get('/', async (c) => {
       try {
         const payload = await verifyToken(token);
         if (payload && payload.role === 'teacher') {
+          isTeacher = true;
+          teacherId = payload.userId;
           conditions.push('c.teacher_id = ?');
           params.push(payload.userId);
         }
@@ -64,7 +69,6 @@ courses.get('/', async (c) => {
       conditions.push('c.status = ?');
       params.push(filter.status);
     }
-    // 기본값으로 status 필터링을 하지 않음 (모든 상태 조회)
 
     if (filter.campus_id) {
       conditions.push('c.campus_id = ?');
@@ -102,7 +106,7 @@ courses.get('/', async (c) => {
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     // 정렬 조건
-    let orderBy = 'c.created_at DESC'; // 기본: 최신순
+    let orderBy = 'c.created_at DESC';
     switch (filter.sort) {
       case 'popular':
         orderBy = 'c.current_students DESC, c.view_count DESC';
@@ -118,18 +122,98 @@ courses.get('/', async (c) => {
         break;
     }
 
-    // 총 개수 조회
+    // 강사: legacy courses + HRD 배정 회차를 합쳐서 반환
+    if (isTeacher && teacherId != null) {
+      const legacyQuery = `
+        SELECT c.*, camp.name as campus_name, camp.region as campus_region, u.name as teacher_name
+        FROM courses c
+        LEFT JOIN campuses camp ON c.campus_id = camp.id
+        LEFT JOIN users u ON c.teacher_id = u.id
+        ${whereClause}
+        ORDER BY ${orderBy}
+      `;
+      const legacyList = await getAll<any>(c.env.DB, legacyQuery, params);
+      const legacyCount = legacyList.length;
+
+      const hrdRows = await c.env.DB.prepare(`
+        SELECT DISTINCT s.id, s.session_number, s.session_name, s.status as session_status,
+               s.training_start_date, s.training_end_date, a.name as course_name,
+               cc.name as category_name
+        FROM session_timetable st
+        INNER JOIN course_sessions s ON st.session_id = s.id
+        INNER JOIN approved_courses a ON s.approved_course_id = a.id
+        LEFT JOIN course_categories cc ON a.category_id = cc.id
+        WHERE st.instructor_id = ?
+      `).bind(teacherId).all();
+
+      const enrollmentCounts = new Map<number, number>();
+      if (hrdRows.results && hrdRows.results.length > 0) {
+        const sessionIds = [...new Set((hrdRows.results as any[]).map((r: any) => r.id))];
+        for (const sid of sessionIds) {
+          const r = await c.env.DB.prepare(
+            'SELECT COUNT(*) as cnt FROM course_session_enrollments WHERE session_id = ?'
+          ).bind(sid).first<{ cnt: number }>();
+          enrollmentCounts.set(sid, r?.cnt ?? 0);
+        }
+      }
+
+      const statusMap: Record<string, string> = {
+        recruiting: 'upcoming',
+        in_progress: 'active',
+        always_open: 'active',
+        completed: 'completed',
+        closed: 'completed'
+      };
+      const hrdList = (hrdRows.results || []).map((r: any) => {
+        const normStatus = statusMap[r.session_status] || r.session_status || 'active';
+        const title = (r.course_name || '') + (r.session_number != null ? ' (' + r.session_number + '회차)' : '') + (r.session_name ? ' - ' + r.session_name : '');
+        return {
+          id: r.id,
+          title,
+          category: r.category_name || '국비지원',
+          status: normStatus,
+          start_date: r.training_start_date || null,
+          thumbnail_url: null,
+          current_students: enrollmentCounts.get(r.id) ?? 0,
+          max_students: 0,
+          teacher_name: null,
+          campus_name: null,
+          campus_region: null,
+          is_hrd: true
+        };
+      });
+
+      let merged = [...legacyList.map((c: any) => ({ ...c, is_hrd: false })), ...hrdList];
+      if (filter.category) {
+        merged = merged.filter((c: any) => (c.category || '') === filter.category);
+      }
+      if (filter.status) {
+        merged = merged.filter((c: any) => (c.status || '') === filter.status);
+      }
+      if (filter.search) {
+        const term = (filter.search || '').toLowerCase();
+        merged = merged.filter((c: any) => (c.title || '').toLowerCase().includes(term));
+      }
+      merged.sort((a: any, b: any) => {
+        const da = a.created_at || a.start_date || '';
+        const db = b.created_at || b.start_date || '';
+        return db.localeCompare(da);
+      });
+      const total = merged.length;
+      const courseList = merged.slice(offset, offset + limit);
+      return paginatedResponse(c, courseList, filter.page!, filter.limit!, total);
+    }
+
+    // 총 개수 조회 (비강사 또는 일반)
     const countQuery = `
       SELECT COUNT(*) as total
       FROM courses c
       LEFT JOIN campuses camp ON c.campus_id = camp.id
       ${whereClause}
     `;
-
     const countResult = await getOne<{ total: number }>(c.env.DB, countQuery, params);
     const total = countResult?.total || 0;
 
-    // 과정 목록 조회
     const coursesQuery = `
       SELECT 
         c.*,
@@ -143,7 +227,6 @@ courses.get('/', async (c) => {
       ORDER BY ${orderBy}
       LIMIT ? OFFSET ?
     `;
-
     const courseList = await getAll<Course>(
       c.env.DB,
       coursesQuery,
@@ -565,12 +648,12 @@ courses.get('/:id/attendance', async (c) => {
     let attendanceLogs: any[] = [];
 
     if (type === 'hrd') {
-      // 1. HRD 회차의 수강생 목록 조회
+      // 1. HRD 회차의 수강생 목록 조회 (배정된 학생 포함: approved, enrolled)
       students = await getAll<any>(c.env.DB, `
         SELECT u.id, u.name, u.phone, e.id as enrollment_id
         FROM course_session_enrollments e
         JOIN users u ON e.user_id = u.id
-        WHERE e.session_id = ? AND e.status = 'approved'
+        WHERE e.session_id = ? AND e.status IN ('approved', 'enrolled')
       `, [courseId]);
 
       // 2. 해당 날짜의 출결 기록 조회 (course_session_enrollments ID 사용)

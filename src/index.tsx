@@ -65,6 +65,7 @@ import { adminSessionTimetablePrintHtml } from './views/admin_session_timetable_
 import { adminHrdFacilitiesHtml } from './views/admin_hrd_facilities';
 import { adminHrdAttendanceHtml } from './views/admin_hrd_attendance';
 import { adminHrdAttendancePrintHtml } from './views/admin_hrd_attendance_print';
+import { adminHrdAttendanceTraineePrintHtml } from './views/admin_hrd_attendance_trainee_print';
 import { adminHrdCounselingHtml } from './views/admin_hrd_counseling';
 import { adminNcsHtml } from './views/admin_ncs';
 import { adminNcsViewerHtml } from './views/admin_ncs_viewer';
@@ -300,6 +301,7 @@ app.get('/admin/facilities', (c) => c.html(adminHrdFacilitiesHtml()));
 app.get('/admin/schedule', (c) => c.html(adminScheduleHtml));
 app.get('/admin/attendance', (c) => c.html(adminHrdAttendanceHtml()));
 app.get('/admin/attendance/print', (c) => c.html(adminHrdAttendancePrintHtml));
+app.get('/admin/attendance/print/trainee', (c) => c.html(adminHrdAttendanceTraineePrintHtml));
 app.get('/admin/training-logs', (c) => c.html(adminHrdTrainingLogsHtml()));
 app.get('/admin/assignments', (c) => c.html(adminHrdAssignmentsHtml()));
 app.get('/admin/counseling', (c) => c.html(adminHrdCounselingHtml()));
