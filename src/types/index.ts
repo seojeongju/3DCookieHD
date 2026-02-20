@@ -18,7 +18,7 @@ export type Variables = {
 };
 
 // User 관련 타입
-export type UserRole = 'student' | 'teacher' | 'admin';
+export type UserRole = 'student' | 'teacher' | 'admin' | 'instructor';
 export type SocialProvider = 'naver' | 'kakao' | 'google' | null;
 
 export interface User {

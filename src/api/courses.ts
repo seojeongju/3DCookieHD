@@ -264,6 +264,9 @@ courses.get('/:id', async (c) => {
           s.instructor_name as teacher_name,
           s.training_start_date as start_date,
           s.training_end_date as end_date,
+          s.training_time_start as start_time,
+          s.training_time_end as end_time,
+          s.status,
           s.session_name,
           s.session_number,
           c.name as category_name,
@@ -686,8 +689,17 @@ courses.get('/:id/attendance', async (c) => {
 
     let students: any[] = [];
     let attendanceLogs: any[] = [];
+    let defaultStartTime = '09:00';
+    let defaultEndTime = '18:00';
 
     if (type === 'hrd') {
+      // 0. 회차 정보 조회 (기본 시간 설정을 위해)
+      const session = await getOne<any>(c.env.DB, 'SELECT training_time_start, training_time_end FROM course_sessions WHERE id = ?', [courseId]);
+      if (session) {
+        if (session.training_time_start) defaultStartTime = session.training_time_start;
+        if (session.training_time_end) defaultEndTime = session.training_time_end;
+      }
+
       // 1. HRD 회차의 수강생 목록 조회 (배정된 학생 포함: approved, enrolled)
       students = await getAll<any>(c.env.DB, `
         SELECT u.id, u.name, u.phone, e.id as enrollment_id
@@ -734,12 +746,18 @@ courses.get('/:id/attendance', async (c) => {
         phone: student.phone,
         check_in: log ? log.check_in_time : null,
         check_out: log ? log.check_out_time : null,
-        status: log ? log.status : 'absent', // 기본값은 결석(또는 미처리)
-        note: log ? log.note : null
+        status: log ? log.status : null, // 기록 없으면 null (프론트에서 처리)
+        note: log ? log.note : null,
+        has_log: !!log
       };
     });
 
-    return successResponse(c, { date, students: result });
+    return successResponse(c, {
+      date,
+      students: result,
+      default_start_time: defaultStartTime,
+      default_end_time: defaultEndTime
+    });
 
   } catch (error) {
     console.error('Get attendance error:', error);

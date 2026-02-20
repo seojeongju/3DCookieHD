@@ -154,7 +154,19 @@ export const adminLmsAttendanceHtml = `
                 const result = await response.json();
                 
                 if (result.success) {
-                    students = result.data.students;
+                    const defStart = result.data.default_start_time || '09:00';
+                    const defEnd = result.data.default_end_time || '18:00';
+                    
+                    students = result.data.students.map(s => {
+                        // 기록이 없으면 기본값 설정 (출석, 입실/퇴실 시간 자동 채움)
+                        if (s.status === null) {
+                            s.status = 'present';
+                            s.check_in = defStart;
+                            s.check_out = defEnd;
+                        }
+                        return s;
+                    });
+                    
                     renderTable();
                     updateStats();
                 } else {

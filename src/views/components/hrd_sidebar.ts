@@ -1,13 +1,13 @@
 export type HrdSidebarOptions = { alwaysVisible?: boolean };
 
 export const hrdSidebar = (activeMenu: string, options?: HrdSidebarOptions) => {
-  const alwaysVisible = options?.alwaysVisible === true;
-  const backdropClass = alwaysVisible ? 'hidden' : 'fixed inset-0 bg-black/50 z-30 lg:hidden hidden transition-opacity';
-  const toggleClass = alwaysVisible ? 'hidden' : 'lg:hidden fixed top-4 left-4 z-50 w-10 h-10 flex items-center justify-center rounded-xl bg-[#0f172a] text-white shadow-lg hover:bg-slate-800 transition';
-  const wrapClass = alwaysVisible
-    ? 'relative inset-y-0 left-0 z-40 flex-shrink-0 w-64 min-w-64'
-    : 'fixed lg:relative inset-y-0 left-0 z-40 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-out flex-shrink-0 w-64 lg:min-w-64';
-  return `
+    const alwaysVisible = options?.alwaysVisible === true;
+    const backdropClass = alwaysVisible ? 'hidden' : 'fixed inset-0 bg-black/50 z-30 lg:hidden hidden transition-opacity';
+    const toggleClass = alwaysVisible ? 'hidden' : 'lg:hidden fixed top-4 left-4 z-50 w-10 h-10 flex items-center justify-center rounded-xl bg-[#0f172a] text-white shadow-lg hover:bg-slate-800 transition';
+    const wrapClass = alwaysVisible
+        ? 'relative inset-y-0 left-0 z-40 flex-shrink-0 w-64 min-w-64'
+        : 'fixed lg:relative inset-y-0 left-0 z-40 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-out flex-shrink-0 w-64 lg:min-w-64';
+    return `
 <!-- 모바일: 사이드바 백드롭 -->
 <div id="adminSidebarBackdrop" class="${backdropClass}" aria-hidden="true"></div>
 <!-- 모바일: 사이드바 열기 버튼 -->
@@ -305,6 +305,36 @@ export const hrdSidebar = (activeMenu: string, options?: HrdSidebarOptions) => {
             location.href = '/login';
         }
     };
+
+    // 관리자 페이지 접근 권한 체크 (Role-based Access Control)
+    (function(){
+        // /admin 경로로 시작하는 페이지에 대해서만 검사
+        if (window.location.pathname.startsWith('/admin')) {
+            const userStr = localStorage.getItem('user');
+            if (!userStr) {
+                // 로그인 정보가 없으면 로그인 페이지로 이동
+                window.location.href = '/login';
+                return;
+            }
+            try {
+                const user = JSON.parse(userStr);
+                // 관리자가 아닌 경우 (teacher, student 등) 리디렉션
+                if (user.role !== 'admin') {
+                    console.warn('Unauthorized access to admin page. Redirecting...');
+                    if (user.role === 'teacher') {
+                        window.location.href = '/teacher';
+                    } else if (user.role === 'student') {
+                        window.location.href = '/student'; // 학생 대시보드로 이동
+                    } else {
+                        window.location.href = '/'; // 그 외(알 수 없는 역할)는 메인으로
+                    }
+                }
+            } catch(e) {
+                console.error('Auth check error:', e);
+                window.location.href = '/login';
+            }
+        }
+    })();
 
     document.addEventListener('DOMContentLoaded', () => {
         const sidebarNav = document.querySelector('aside nav');

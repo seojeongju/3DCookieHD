@@ -196,8 +196,9 @@ export const lmsHeaderHtml = (activeTab = 'dashboard', defaultType = '') => `
                         document.getElementById('header-courseCategory').textContent = course.category || '기타';
                         
                         const statusEl = document.getElementById('header-courseStatus');
-                        statusEl.textContent = course.status === 'open' ? '진행중' : '마감';
-                        statusEl.className = course.status === 'open' ? 
+                        const isOpen = ['open', 'recruiting', 'active'].includes(course.status);
+                        statusEl.textContent = isOpen ? '진행중' : '마감';
+                        statusEl.className = isOpen ? 
                             'px-2 py-1 bg-green-500 rounded text-xs font-semibold' : 
                             'px-2 py-1 bg-red-500 rounded text-xs font-semibold';
 
@@ -208,6 +209,8 @@ export const lmsHeaderHtml = (activeTab = 'dashboard', defaultType = '') => `
                         let schedule = '-';
                         if (course.days && course.days.length > 0) {
                             schedule = course.days.join(',') + ' ' + (course.start_time||'') + '~' + (course.end_time||'');
+                        } else if (course.start_time || course.end_time) {
+                            schedule = (course.start_time||'') + ' ~ ' + (course.end_time||'');
                         } else if (course.schedule) {
                             schedule = course.schedule;
                         }
