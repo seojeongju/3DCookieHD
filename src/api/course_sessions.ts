@@ -1284,6 +1284,10 @@ app.post('/:id/enrollments', authMiddleware, requireAdmin, async (c) => {
           'INSERT INTO course_session_enrollments (session_id, user_id, status) VALUES (?, ?, ?)'
         ).bind(id, uid, 'enrolled').run();
         added++;
+        // 여정 자동화: 과정 배정 완료 시 집중 훈련으로 전환
+        await DB.prepare(
+          `UPDATE hrd_student_details SET status = 'learning' WHERE user_id = ? AND (status IS NULL OR status IN ('consulting', 'registered'))`
+        ).bind(uid).run();
       } catch (_) {
         // UNIQUE violation = already enrolled, skip
       }

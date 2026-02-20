@@ -395,6 +395,27 @@
             .catch(function (e) { if (e && e.message === 'UNAUTHORIZED') return; alert('삭제 중 오류가 발생했습니다.'); });
     };
 
+    function loadCounselorsIntoSelect(callback) {
+        var select = document.getElementById('consultEditCounselorId');
+        if (!select) { if (callback) callback(); return; }
+        if (window._counselorsList && window._counselorsList.length >= 0) {
+            select.innerHTML = '<option value="">선택하세요</option>' + (window._counselorsList.map(function (c) { return '<option value="' + c.id + '" class="text-gray-900">' + (c.name || '이름 없음') + '</option>'; }).join(''));
+            if (callback) callback();
+            return;
+        }
+        var token = localStorage.getItem('token');
+        if (!token) { if (callback) callback(); return; }
+        fetch('/api/hrd/counselors', { headers: { 'Authorization': 'Bearer ' + token } })
+            .then(handleAuthResponse)
+            .then(function (res) {
+                if (!res || !res.success) return;
+                window._counselorsList = res.data || [];
+                select.innerHTML = '<option value="">선택하세요</option>' + (window._counselorsList.map(function (c) { return '<option value="' + c.id + '" class="text-gray-900">' + (c.name || '이름 없음') + '</option>'; }).join(''));
+                if (callback) callback();
+            })
+            .catch(function () { if (callback) callback(); });
+    }
+
     window.editConsultation = function (sid, logId) {
         var logs = window._consultationLogs;
         if (!logs) return;
@@ -406,6 +427,7 @@
         var methodSelect = document.getElementById('consultEditMethod');
         var contentArea = document.getElementById('consultEditContent');
         var logIdInput = document.getElementById('consultEditLogId');
+        var counselorSelect = document.getElementById('consultEditCounselorId');
         if (!modal || !dateInput) return;
         var dateStr = (log.consult_date && log.consult_date.split('T')[0]) || (log.created_at && (log.created_at.split('T')[0] || log.created_at.split(' ')[0])) || '';
         logIdInput.value = logId;
@@ -413,6 +435,9 @@
         categorySelect.value = log.category || 'academic';
         methodSelect.value = log.method || 'face_to_face';
         contentArea.value = log.message || '';
+        loadCounselorsIntoSelect(function () {
+            if (counselorSelect) counselorSelect.value = (log.counselor_id != null && log.counselor_id !== '') ? String(log.counselor_id) : '';
+        });
         modal.classList.remove('hidden');
         modal.classList.add('flex', 'items-center', 'justify-center');
         window._consultEditStudentId = sid;
@@ -436,8 +461,10 @@
             if (!logId || !sid) return;
             var token = localStorage.getItem('token');
             if (!token) { alert('로그인이 필요합니다.'); redirectToLogin(); return; }
+            var counselorEl = document.getElementById('consultEditCounselorId');
             var body = {
                 student_id: sid,
+                counselor_id: counselorEl && counselorEl.value ? counselorEl.value : null,
                 course_id: document.getElementById('stdCourseId') && document.getElementById('stdCourseId').value || null,
                 counseling_date: document.getElementById('consultEditDate') && document.getElementById('consultEditDate').value,
                 category: document.getElementById('consultEditCategory') && document.getElementById('consultEditCategory').value,

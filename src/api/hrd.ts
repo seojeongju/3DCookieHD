@@ -737,7 +737,27 @@ app.get('/students/:id', async (c) => {
         `;
         const row = await c.env.DB.prepare(query).bind(id).first() as any;
         if (!row) return c.json({ success: false, error: '훈련생을 찾을 수 없습니다.' }, 404);
-        const r = row;
+        let r = row;
+
+        // 여정 자동화: 수강 중인 회차의 종료일이 지났으면 수료 완료로 전환
+        const journeyStatus = r.status || 'consulting';
+        if (journeyStatus === 'learning') {
+            const latestSession = await c.env.DB.prepare(`
+                SELECT cs.training_end_date
+                FROM course_session_enrollments cse
+                JOIN course_sessions cs ON cse.session_id = cs.id
+                WHERE cse.user_id = ?
+                ORDER BY cs.training_end_date DESC LIMIT 1
+            `).bind(id).first() as { training_end_date: string | null } | undefined;
+            const endDate = latestSession?.training_end_date;
+            const today = new Date().toISOString().split('T')[0];
+            if (endDate && endDate <= today) {
+                await c.env.DB.prepare(
+                    `UPDATE hrd_student_details SET status = 'completed' WHERE user_id = ?`
+                ).bind(id).run();
+                r = { ...r, status: 'completed' };
+            }
+        }
 
         // 상담 횟수 (hrd_counseling_logs에서 student_id = user_id)
         const consultRow = await c.env.DB.prepare(
@@ -926,6 +946,19 @@ app.put('/students', async (c) => {
     }
 });
 
+// 상담자 목록 (관리자·강사 — 상담 수정 시 지정용)
+app.get('/counselors', authMiddleware, async (c) => {
+    try {
+        const { results } = await c.env.DB.prepare(
+            `SELECT id, name FROM users WHERE role IN ('admin', 'teacher', 'instructor') AND status = 'active' ORDER BY name ASC`
+        ).all();
+        return c.json({ success: true, data: results || [] });
+    } catch (e: any) {
+        console.error('Failed to fetch counselors:', e);
+        return c.json({ success: false, error: e.message }, 500);
+    }
+});
+
 // 상담 이력 조회 (상담일지 통합 및 권한 필터링)
 app.get('/students/:id/consultations', authMiddleware, async (c) => {
     try {
@@ -935,6 +968,7 @@ app.get('/students/:id/consultations', authMiddleware, async (c) => {
         let query = `
             SELECT 
                 cl.id,
+                cl.counselor_id,
                 cl.content as message,
                 cl.counseling_date as consult_date,
                 u.name as memo,
@@ -1830,14 +1864,15 @@ app.put('/counseling/:id', authMiddleware, async (c) => {
     try {
         const body = await c.req.json();
         const studentId = (body.student_id && body.student_id !== 0 && body.student_id !== '0') ? body.student_id : null;
+        const counselorId = (body.counselor_id != null && body.counselor_id !== '' && body.counselor_id !== '0') ? body.counselor_id : null;
 
         await c.env.DB.prepare(`
             UPDATE hrd_counseling_logs 
-            SET student_id = ?, course_id = ?, counseling_date = ?, category = ?, method = ?, content = ?,
+            SET student_id = ?, counselor_id = ?, course_id = ?, counseling_date = ?, category = ?, method = ?, content = ?,
                 result = ?, next_counseling_date = ?, counseling_type = ?, consultation_id = ?, updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
         `).bind(
-            studentId, body.course_id, body.counseling_date, body.category, body.method,
+            studentId, counselorId, body.course_id, body.counseling_date, body.category, body.method,
             body.content, body.result, body.next_counseling_date,
             body.counseling_type, body.consultation_id, id
         ).run();

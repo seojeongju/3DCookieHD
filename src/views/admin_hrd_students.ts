@@ -75,6 +75,7 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
                                 <th class="px-8 py-5 text-xs font-black text-gray-400 uppercase tracking-widest">연락처 및 이메일</th>
                                 <th class="px-8 py-5 text-xs font-black text-gray-400 uppercase tracking-widest">현재 수강 과정</th>
                                 <th class="px-8 py-5 text-xs font-black text-gray-400 uppercase tracking-widest">여정 상태</th>
+                                <th class="px-8 py-5 text-xs font-black text-gray-400 uppercase tracking-widest">가입일</th>
                                 <th class="px-8 py-5 text-xs font-black text-gray-400 uppercase tracking-widest text-center">최근 기록</th>
                                 <th class="px-8 py-5 text-right"></th>
                             </tr>
@@ -276,6 +277,7 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
                             
                             <h4 class="text-lg font-bold text-gray-900" id="sidebarStdName">-</h4>
                             <p class="text-xs text-gray-400 font-medium" id="sidebarStdCourse">-</p>
+                            <p class="text-[10px] text-gray-400 font-medium mt-1" id="sidebarStdCreatedAt">가입일: -</p>
                             
                             <div class="flex gap-2 mt-4">
                                 <span class="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-wider" id="sidebarStdStatus">상담중</span>
@@ -619,6 +621,14 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
             }
         }
 
+        function formatCreatedAt(v) {
+            if (!v) return '-';
+            var s = String(v);
+            var datePart = s.indexOf('T') !== -1 ? s.split('T')[0] : s.split(' ')[0];
+            if (!datePart) return '-';
+            return datePart;
+        }
+
         function getStudentRowHtml(s) {
             const courseTitle = (s.current_course_name || coursesData.find(c => c.id == s.course_id)?.title || '과정 미지정');
             // 여정 상태: 여정관리 페이지 스테퍼와 동일한 단계명 사용
@@ -650,6 +660,9 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
                     </td>
                     <td class="px-8 py-5">
                         <span class="px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider \${statusColor} border border-transparent shadow-sm">\${statusLabel}</span>
+                    </td>
+                    <td class="px-8 py-5">
+                        <div class="text-sm font-medium text-gray-600">\${formatCreatedAt(s.created_at)}</div>
                     </td>
                     <td class="px-8 py-5 text-center">
                         <div class="text-[10px] font-bold text-gray-400 tracking-tighter uppercase mb-0.5">최근 상담</div>
@@ -740,7 +753,9 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
             document.getElementById('modalStdName').textContent = student.name + ' 훈련생';
             document.getElementById('modalStdIdDisplay').textContent = 'STUDENT ID: #' + student.id;
             document.getElementById('sidebarStdName').textContent = student.name;
-            document.getElementById('sidebarStdCourse').textContent = coursesData.find(c => c.id == student.course_id)?.title || '과정 미지정';
+            document.getElementById('sidebarStdCourse').textContent = (student.current_course_name || coursesData.find(c => c.id == student.course_id)?.title) || '과정 미지정';
+            var createdAtEl = document.getElementById('sidebarStdCreatedAt');
+            if (createdAtEl) createdAtEl.textContent = '가입일: ' + formatCreatedAt(student.created_at);
             document.getElementById('studentId').value = student.id;
             document.getElementById('stdName').value = student.name;
             document.getElementById('stdBirthdate').value = student.birthdate || '';

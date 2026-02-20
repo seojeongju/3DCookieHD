@@ -7,6 +7,7 @@ const app = new Hono<{ Bindings: Bindings; Variables: { user: JWTPayload } }>();
 // ============================================
 // 수강 신청 목록 조회
 // GET /api/enrollments
+// type=hrd & course_id=approved_course_id 이면 HRD 회차 수강생(course_session_enrollments) 반환
 // ============================================
 app.get('/', authMiddleware, async (c) => {
   try {
@@ -17,10 +18,56 @@ app.get('/', authMiddleware, async (c) => {
     const page = parseInt(c.req.query('page') || '1');
     const limit = parseInt(c.req.query('limit') || '10');
     const status = c.req.query('status'); // pending, approved, rejected, completed, cancelled
-    const courseId = c.req.query('course_id'); // 과정별 필터링
+    const courseId = c.req.query('course_id'); // 과정별 필터링 (legacy: courses.id / HRD: approved_courses.id)
+    const typeHrd = c.req.query('type') === 'hrd';
     const offset = (page - 1) * limit;
 
-    // WHERE 조건 구성
+    // HRD 운영 과정: approved_course_id 기준으로 course_session_enrollments 수강생 반환
+    if (typeHrd && courseId && (user.role === 'admin' || user.role === 'teacher')) {
+      const search = (c.req.query('search') || '').trim();
+      let countQuery = `
+        SELECT COUNT(DISTINCT cse.user_id) as total
+        FROM course_session_enrollments cse
+        INNER JOIN course_sessions cs ON cse.session_id = cs.id
+        INNER JOIN users u ON cse.user_id = u.id
+        WHERE cs.approved_course_id = ?
+      `;
+      const countParams: any[] = [courseId];
+      if (search) {
+        countQuery += ` AND (u.name LIKE ? OR u.email LIKE ?)`;
+        const q = '%' + search + '%';
+        countParams.push(q, q);
+      }
+      const countRow = await DB.prepare(countQuery).bind(...countParams).first<{ total: number }>();
+      const total = countRow?.total ?? 0;
+
+      let listQuery = `
+        SELECT u.id as user_id, u.name as user_name, u.email as user_email, u.phone as user_phone,
+               MAX(cse.enrolled_at) as enrolled_at,
+               'approved' as status
+        FROM course_session_enrollments cse
+        INNER JOIN course_sessions cs ON cse.session_id = cs.id
+        INNER JOIN users u ON cse.user_id = u.id
+        WHERE cs.approved_course_id = ?
+      `;
+      const listParams: any[] = [courseId];
+      if (search) {
+        listQuery += ` AND (u.name LIKE ? OR u.email LIKE ?)`;
+        const q = '%' + search + '%';
+        listParams.push(q, q);
+      }
+      listQuery += ` GROUP BY u.id ORDER BY enrolled_at DESC LIMIT ? OFFSET ?`;
+      listParams.push(limit, offset);
+
+      const { results } = await DB.prepare(listQuery).bind(...listParams).all();
+      return c.json({
+        success: true,
+        data: results || [],
+        pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
+      });
+    }
+
+    // WHERE 조건 구성 (legacy enrollments)
     let whereClause = '';
     const params: any[] = [];
 

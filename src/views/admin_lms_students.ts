@@ -152,6 +152,12 @@ export const adminLmsStudentsHtml = `
                 loadStudents(1);
             }
 
+            function getUrlTypeHrd() {
+                try {
+                    return (new URLSearchParams(window.location.search)).get('type') === 'hrd';
+                } catch (_) { return false; }
+            }
+
             async function loadStudents(page = 1) {
                 if (!courseId) return;
                 currentPage = page;
@@ -162,6 +168,7 @@ export const adminLmsStudentsHtml = `
                 try {
                     const search = document.getElementById('studentSearch').value.trim();
                     let url = '/api/enrollments?course_id=' + courseId + '&page=' + page + '&limit=' + limit;
+                    if (getUrlTypeHrd()) url += '&type=hrd';
                     if (search) url += '&search=' + encodeURIComponent(search);
                     const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + getToken() } });
                     const result = await res.json();

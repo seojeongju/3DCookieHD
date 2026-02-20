@@ -233,6 +233,12 @@ export const adminHrdStudentJourneyHtml = (studentId: string) => {
                     <label class="text-[10px] font-bold text-gray-400 ml-1 mb-1 block">상담일</label>
                     <input type="date" id="consultEditDate" class="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
+                <div>
+                    <label class="text-[10px] font-bold text-gray-400 ml-1 mb-1 block">상담자</label>
+                    <select id="consultEditCounselorId" class="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+                        <option value="">선택하세요</option>
+                    </select>
+                </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="text-[10px] font-bold text-gray-400 ml-1 mb-1 block">유형</label>
