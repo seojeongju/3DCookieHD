@@ -349,10 +349,10 @@ export const teacherDashboardHtml = `
 
                         <section class="bg-white rounded-[2.5rem] border border-slate-200/60 shadow-sm p-8">
                             <div class="flex justify-between items-center mb-8">
-                                <h3 class="font-black text-slate-800 tracking-tight">진행 중인 강의</h3>
-                                <button class="text-[10px] font-black text-blue-600 uppercase tracking-widest hover:underline">전체 보기</button>
+                                <h3 class="font-black text-slate-800 tracking-tight">배정된 과정</h3>
+                                <a href="/teacher/courses" class="text-[10px] font-black text-blue-600 uppercase tracking-widest hover:underline">전체 보기</a>
                             </div>
-                            <div id="recent-courses-list" class="space-y-6">
+                            <div id="recent-courses-list" class="space-y-6 max-h-[420px] overflow-y-auto custom-scrollbar">
                                 <div class="animate-pulse space-y-4">
                                     <div class="h-12 bg-slate-100 rounded-2xl"></div>
                                     <div class="h-12 bg-slate-100 rounded-2xl"></div>
@@ -431,7 +431,7 @@ export const teacherDashboardHtml = `
                 const totalStudents = d.totalStudents != null ? d.totalStudents : noData;
                 const pendingGrading = d.pendingGrading != null ? d.pendingGrading : noData;
                 const avgAttendance = d.avgAttendance != null ? d.avgAttendance : null;
-                const recentCourses = d.recentCourses || [];
+                const recentCourses = d.assignedCourses || d.recentCourses || [];
                 const pendingGradingList = d.pendingGradingList || [];
 
                 document.getElementById('stat-my-courses').textContent = myCourses;
@@ -449,25 +449,31 @@ export const teacherDashboardHtml = `
 
                 const listContainer = document.getElementById('recent-courses-list');
                 if (!recentCourses.length) {
-                    listContainer.innerHTML = '<p class="text-sm text-slate-400 text-center py-4">데이터가 없습니다.</p>';
+                    listContainer.innerHTML = '<p class="text-sm text-slate-400 text-center py-4">배정된 과정이 없습니다.</p>';
                 } else {
+                    const statusLabels = { active: '진행중', open: '운영중', recruiting: '모집중', in_progress: '진행중', completed: '종료', closed: '종료', always_open: '상시모집' };
+                    const statusClasses = { active: 'bg-emerald-50 text-emerald-600 border-emerald-100', open: 'bg-blue-50 text-blue-600 border-blue-100', recruiting: 'bg-amber-50 text-amber-600 border-amber-100', in_progress: 'bg-emerald-50 text-emerald-600 border-emerald-100', completed: 'bg-slate-100 text-slate-600 border-slate-200', closed: 'bg-slate-100 text-slate-600 border-slate-200', always_open: 'bg-purple-50 text-purple-600 border-purple-100' };
                     const enrolledKey = recentCourses[0].enrolled_count != null ? 'enrolled_count' : 'student_count';
-                    listContainer.innerHTML = recentCourses.slice(0, 3).map(course => {
+                    listContainer.innerHTML = recentCourses.map(course => {
                         const idStr = String(course.id).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
                         const lmsUrl = "/admin/courses/" + idStr + "/lms";
+                        const st = (course.status || '').toLowerCase();
+                        const statusLabel = statusLabels[st] || st || '-';
+                        const statusClass = statusClasses[st] || 'bg-slate-50 text-slate-600 border-slate-100';
                         return '<div class="flex items-center gap-4 group">' +
                             '<div class="w-14 h-14 rounded-2xl bg-slate-100 overflow-hidden flex-shrink-0 border border-slate-200/50 group-hover:scale-105 transition-transform">' +
                                 '<img src="' + (course.thumbnail || '/static/logo.png') + '" class="w-full h-full object-cover" alt="Course">' +
                             '</div>' +
                             '<div class="flex-1 min-w-0">' +
                                 '<h4 class="text-sm font-black text-slate-800 truncate tracking-tight group-hover:text-blue-600 transition-colors">' + emptyStr(course.title) + '</h4>' +
-                                '<div class="flex items-center gap-2 mt-1">' +
+                                '<div class="flex items-center gap-2 mt-1 flex-wrap">' +
+                                    '<span class="px-2 py-0.5 text-[9px] font-black rounded-lg border ' + statusClass + '">' + statusLabel + '</span>' +
                                     '<span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">' + (course.category || '-') + '</span>' +
                                     '<span class="w-1 h-1 rounded-full bg-slate-300"></span>' +
                                     '<span class="text-[10px] font-bold text-blue-500">' + (course[enrolledKey] != null ? course[enrolledKey] : 0) + '명</span>' +
                                 '</div>' +
                             '</div>' +
-                            '<button onclick="location.href=\'' + lmsUrl + '\'" class="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:bg-blue-600 hover:text-white transition-all">' +
+                            '<button onclick="location.href=\'' + lmsUrl + '\'" class="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:bg-blue-600 hover:text-white transition-all flex-shrink-0" title="LMS">' +
                                 '<i class="fas fa-cog text-xs"></i>' +
                             '</button>' +
                         '</div>';

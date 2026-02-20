@@ -227,9 +227,9 @@ app.get('/teacher-stats', authMiddleware, async (c) => {
 
         const teacherId = payload.userId;
 
-        // 1. 담당 과정 수
+        // 1. 담당 과정 수 (모집중·진행중·종료 등 전체)
         const coursesResult = await DB.prepare(
-            "SELECT count(*) as count FROM courses WHERE teacher_id = ? AND status = 'active'"
+            "SELECT count(*) as count FROM courses WHERE teacher_id = ?"
         ).bind(teacherId).first<{ count: number }>();
         const myCourses = coursesResult?.count || 0;
 
@@ -284,14 +284,13 @@ app.get('/teacher-stats', authMiddleware, async (c) => {
             console.error('Failed to fetch attendance:', e);
         }
 
-        // 5. 담당 과정 목록 (최근 3개)
-        const recentCourses = await DB.prepare(`
-            SELECT id, title, category, max_students,
+        // 5. 배정된 과정 전체 목록 (모집중·진행중·종료 등 상태 무관)
+        const assignedCourses = await DB.prepare(`
+            SELECT id, title, category, status, max_students,
             (SELECT COUNT(*) FROM enrollments WHERE course_id = courses.id AND status = 'approved') as enrolled_count
             FROM courses
-            WHERE teacher_id = ? AND (status = 'active' OR status = 'open')
-            ORDER BY created_at DESC
-            LIMIT 3
+            WHERE teacher_id = ?
+            ORDER BY CASE WHEN status IN ('active', 'open') THEN 0 WHEN status = 'recruiting' THEN 1 ELSE 2 END, created_at DESC
         `).bind(teacherId).all();
 
         return c.json({
@@ -301,7 +300,8 @@ app.get('/teacher-stats', authMiddleware, async (c) => {
                 totalStudents,
                 pendingGrading,
                 avgAttendance,
-                recentCourses: recentCourses.results || [],
+                recentCourses: assignedCourses.results || [],
+                assignedCourses: assignedCourses.results || [],
                 pendingGradingList: pendingGradingList.results || []
             }
         });

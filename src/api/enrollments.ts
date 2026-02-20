@@ -22,8 +22,26 @@ app.get('/', authMiddleware, async (c) => {
     const typeHrd = c.req.query('type') === 'hrd';
     const offset = (page - 1) * limit;
 
-    // HRD 운영 과정: approved_course_id 기준으로 course_session_enrollments 수강생 반환
+    // HRD 운영 과정: URL의 course_id는 회차(course_sessions.id) 또는 승인과정(approved_courses.id)
+    // 회차 ID이면 해당 회차의 approved_course_id로 조회해 동일 과정의 모든 회차 수강생 반환
     if (typeHrd && courseId && (user.role === 'admin' || user.role === 'teacher')) {
+      const courseIdNum = parseInt(String(courseId), 10);
+      let approvedCourseId: number | null = null;
+      const asSession = await DB.prepare('SELECT approved_course_id FROM course_sessions WHERE id = ?').bind(courseIdNum).first<{ approved_course_id: number }>();
+      if (asSession?.approved_course_id != null) {
+        approvedCourseId = asSession.approved_course_id;
+      } else {
+        const asApproved = await DB.prepare('SELECT id FROM approved_courses WHERE id = ?').bind(courseIdNum).first<{ id: number }>();
+        if (asApproved?.id != null) approvedCourseId = asApproved.id;
+      }
+      if (approvedCourseId == null) {
+        return c.json({
+          success: true,
+          data: [],
+          pagination: { page, limit, total: 0, totalPages: 0 }
+        });
+      }
+
       const search = (c.req.query('search') || '').trim();
       let countQuery = `
         SELECT COUNT(DISTINCT cse.user_id) as total
@@ -32,7 +50,7 @@ app.get('/', authMiddleware, async (c) => {
         INNER JOIN users u ON cse.user_id = u.id
         WHERE cs.approved_course_id = ?
       `;
-      const countParams: any[] = [courseId];
+      const countParams: any[] = [approvedCourseId];
       if (search) {
         countQuery += ` AND (u.name LIKE ? OR u.email LIKE ?)`;
         const q = '%' + search + '%';
@@ -50,13 +68,13 @@ app.get('/', authMiddleware, async (c) => {
         INNER JOIN users u ON cse.user_id = u.id
         WHERE cs.approved_course_id = ?
       `;
-      const listParams: any[] = [courseId];
+      const listParams: any[] = [approvedCourseId];
       if (search) {
         listQuery += ` AND (u.name LIKE ? OR u.email LIKE ?)`;
         const q = '%' + search + '%';
         listParams.push(q, q);
       }
-      listQuery += ` GROUP BY u.id ORDER BY enrolled_at DESC LIMIT ? OFFSET ?`;
+      listQuery += ` GROUP BY u.id, u.name, u.email, u.phone ORDER BY enrolled_at DESC LIMIT ? OFFSET ?`;
       listParams.push(limit, offset);
 
       const { results } = await DB.prepare(listQuery).bind(...listParams).all();
