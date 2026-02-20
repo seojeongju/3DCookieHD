@@ -674,7 +674,12 @@ app.get('/students', async (c) => {
                 u.address, u.birthdate, u.gender, u.education, u.certifications, u.profile_image,
                 d.course_id, d.status, d.type, d.last_consult,
                 d.package_type, d.payment_method, d.payment_date, d.self_pay_amount,
-                d.has_application, d.has_card, d.is_hrd_net_registered, d.status_memo
+                d.has_application, d.has_card, d.is_hrd_net_registered, d.status_memo,
+                (SELECT a.name FROM course_session_enrollments cse
+                 JOIN course_sessions cs ON cse.session_id = cs.id
+                 JOIN approved_courses a ON cs.approved_course_id = a.id
+                 WHERE cse.user_id = u.id
+                 ORDER BY cs.training_start_date DESC LIMIT 1) as current_course_name
             FROM users u
             LEFT JOIN hrd_student_details d ON u.id = d.user_id
             ${whereSql}
@@ -687,6 +692,7 @@ app.get('/students', async (c) => {
         const safeResults = (results || []).map((r: any) => ({
             ...r,
             course_id: r.course_id || null,
+            current_course_name: r.current_course_name || null,
             status: r.status || 'consulting',
             type: r.type || 'jobseeker',
             last_consult: r.last_consult || null,
@@ -709,7 +715,7 @@ app.get('/students', async (c) => {
     }
 });
 
-// 훈련생 단건 조회 (여정관리 페이지용)
+// 훈련생 단건 조회 (여정관리 페이지용) — 배정 과정명·상담횟수·출석률 포함
 app.get('/students/:id', async (c) => {
     try {
         const id = c.req.param('id');
@@ -719,7 +725,12 @@ app.get('/students/:id', async (c) => {
                 u.address, u.birthdate, u.gender, u.education, u.certifications, u.profile_image,
                 d.course_id, d.status, d.type, d.last_consult,
                 d.package_type, d.payment_method, d.payment_date, d.self_pay_amount,
-                d.has_application, d.has_card, d.is_hrd_net_registered, d.status_memo
+                d.has_application, d.has_card, d.is_hrd_net_registered, d.status_memo,
+                (SELECT a.name FROM course_session_enrollments cse
+                 JOIN course_sessions cs ON cse.session_id = cs.id
+                 JOIN approved_courses a ON cs.approved_course_id = a.id
+                 WHERE cse.user_id = u.id
+                 ORDER BY cs.training_start_date DESC LIMIT 1) as current_course_name
             FROM users u
             LEFT JOIN hrd_student_details d ON u.id = d.user_id
             WHERE u.role = 'student' AND u.id = ?
@@ -727,15 +738,39 @@ app.get('/students/:id', async (c) => {
         const row = await c.env.DB.prepare(query).bind(id).first() as any;
         if (!row) return c.json({ success: false, error: '훈련생을 찾을 수 없습니다.' }, 404);
         const r = row;
+
+        // 상담 횟수 (hrd_counseling_logs에서 student_id = user_id)
+        const consultRow = await c.env.DB.prepare(
+            'SELECT COUNT(*) as cnt FROM hrd_counseling_logs WHERE student_id = ?'
+        ).bind(id).first() as { cnt: number };
+        const consultation_count = consultRow?.cnt ?? 0;
+
+        // 출석률: 해당 훈련생의 course_session_enrollments 기준 attendance_logs 중 present+late 비율
+        const attRow = await c.env.DB.prepare(`
+            SELECT 
+                (SELECT COUNT(*) FROM attendance_logs al
+                 JOIN course_session_enrollments cse ON al.enrollment_id = cse.id
+                 WHERE cse.user_id = ? AND al.status IN ('present','late')) as attended,
+                (SELECT COUNT(*) FROM attendance_logs al
+                 JOIN course_session_enrollments cse ON al.enrollment_id = cse.id
+                 WHERE cse.user_id = ?) as total
+        `).bind(id, id).first() as { attended: number; total: number };
+        const totalLogs = attRow?.total ?? 0;
+        const attended = attRow?.attended ?? 0;
+        const attendance_rate = totalLogs > 0 ? Math.round((attended / totalLogs) * 100) : 0;
+
         const data = {
             ...r,
             course_id: r.course_id || null,
+            current_course_name: r.current_course_name || null,
             status: r.status || 'consulting',
             type: r.type || 'jobseeker',
             last_consult: r.last_consult || null,
             has_application: !!r.has_application,
             has_card: !!r.has_card,
-            is_hrd_net_registered: !!r.is_hrd_net_registered
+            is_hrd_net_registered: !!r.is_hrd_net_registered,
+            consultation_count,
+            attendance_rate
         };
         return c.json({ success: true, data });
     } catch (e: any) {

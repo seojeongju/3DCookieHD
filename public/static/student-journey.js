@@ -241,12 +241,13 @@
                 }
                 var student = json.data;
                 var courseTitle = coursesData.find(function (c) { return c.id == student.course_id; });
-                courseTitle = courseTitle ? courseTitle.title : '과정 미지정';
+                courseTitle = courseTitle ? courseTitle.title : null;
+                var displayCourse = (student.current_course_name || courseTitle) || '과정 미지정';
 
                 document.getElementById('modalStdName').textContent = (student.name || '') + ' 훈련생';
                 document.getElementById('modalStdIdDisplay').textContent = 'STUDENT ID: #' + student.id;
                 document.getElementById('sidebarStdName').textContent = student.name || '-';
-                document.getElementById('sidebarStdCourse').textContent = courseTitle;
+                document.getElementById('sidebarStdCourse').textContent = displayCourse;
                 document.getElementById('studentId').value = student.id;
                 document.getElementById('stdName').value = student.name || '';
                 document.getElementById('stdBirthdate').value = student.birthdate || '';
@@ -273,6 +274,11 @@
 
                 document.getElementById('sidebarStdStatus').textContent = translateStatus(student.status);
                 document.getElementById('sidebarStdType').textContent = translateType(student.type);
+
+                var attEl = document.getElementById('sidebarAttendanceRate');
+                if (attEl) attEl.textContent = (student.attendance_rate != null) ? (student.attendance_rate + '%') : '-';
+                var consultEl = document.getElementById('consultCount');
+                if (consultEl) consultEl.textContent = (student.consultation_count != null) ? String(student.consultation_count) : '0';
 
                 updateStepper(student.status);
                 loadConsultations(studentId);

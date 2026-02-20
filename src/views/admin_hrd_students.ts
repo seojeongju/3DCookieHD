@@ -619,7 +619,7 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
         }
 
         function getStudentRowHtml(s) {
-            const courseTitle = coursesData.find(c => c.id == s.course_id)?.title || '과정 미지정';
+            const courseTitle = (s.current_course_name || coursesData.find(c => c.id == s.course_id)?.title || '과정 미지정');
             const statusLabels = { consulting: '상담중', registered: '등록완료', learning: '수강중', completed: '수료완료', dropout: '중도탈락' };
             const statusColors = { consulting: 'bg-yellow-50 text-yellow-600', registered: 'bg-blue-50 text-blue-600', learning: 'bg-green-50 text-green-600', completed: 'bg-indigo-50 text-indigo-600', dropout: 'bg-red-50 text-red-600' };
 

@@ -98,7 +98,7 @@ export const adminHrdStudentJourneyHtml = (studentId: string) => {
                                     <span class="px-3 py-1 bg-purple-50 text-purple-600 rounded-full text-[10px] font-black uppercase" id="sidebarStdType">구직자</span>
                                 </div>
                                 <div class="mt-8 grid grid-cols-2 gap-3 border-t border-gray-50 pt-6 w-full">
-                                    <div class="bg-gray-50 p-3 rounded-2xl text-center"><span class="block text-[10px] font-black text-gray-400 uppercase mb-1">출석률</span><span class="text-lg font-black text-blue-600">92%</span></div>
+                                    <div class="bg-gray-50 p-3 rounded-2xl text-center"><span class="block text-[10px] font-black text-gray-400 uppercase mb-1">출석률</span><span id="sidebarAttendanceRate" class="text-lg font-black text-blue-600">-</span></div>
                                     <div class="bg-gray-50 p-3 rounded-2xl text-center"><span class="block text-[10px] font-black text-gray-400 uppercase mb-1">상담횟수</span><span class="text-lg font-black text-gray-800" id="consultCount">0</span></div>
                                 </div>
                             </div>

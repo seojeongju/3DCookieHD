@@ -3,7 +3,8 @@ export const studentDashboardHtml = () => `
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#0f172a">
     <title>나의 강의실 - 와우쓰리디홍대센터</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
@@ -29,146 +30,151 @@ export const studentDashboardHtml = () => `
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        @media (max-width: 768px) {
+            .touch-target { min-height: 44px; min-width: 44px; }
+        }
     </style>
 </head>
 <body class="bg-slate-50 font-sans text-slate-900 antialiased overflow-hidden">
     <div class="flex h-screen overflow-hidden flex-col">
-        <!-- 상단 헤더 (강사 대시보드와 동일 스타일) -->
-        <header class="sticky top-0 z-20 px-8 py-6 bg-white/80 backdrop-blur-md border-b border-slate-200/60 flex justify-between items-center shrink-0">
-            <div class="flex items-center gap-4">
-                <a href="/" class="flex items-center gap-2">
-                    <img src="/static/logo.png" alt="WOW 3D" class="h-8 w-auto">
+        <!-- 상단 헤더 (반응형) -->
+        <header class="sticky top-0 z-20 px-4 sm:px-6 md:px-8 py-4 sm:py-5 md:py-6 bg-white/95 backdrop-blur-md border-b border-slate-200/60 flex flex-wrap justify-between items-center gap-3 shrink-0">
+            <div class="flex items-center gap-3 min-w-0 flex-1">
+                <a href="/" class="flex-shrink-0">
+                    <img src="/static/logo.png" alt="WOW 3D" class="h-7 sm:h-8 w-auto">
                 </a>
-                <div class="flex flex-col">
-                    <h1 class="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-                        나의 강의실
-                        <span class="text-[10px] bg-sky-600 text-white px-2 py-0.5 rounded-full uppercase tracking-widest font-black">학생</span>
+                <div class="min-w-0 flex-1">
+                    <h1 class="text-lg sm:text-xl md:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2 flex-wrap">
+                        <span class="truncate">나의 강의실</span>
+                        <span class="text-[9px] sm:text-[10px] bg-sky-600 text-white px-1.5 sm:px-2 py-0.5 rounded-full uppercase tracking-widest font-black flex-shrink-0">학생</span>
                     </h1>
-                    <p class="text-xs font-medium text-slate-500 mt-0.5 tracking-tight uppercase">지능형 학습 관리 시스템 (학생 모드)</p>
+                    <p class="text-[10px] sm:text-xs font-medium text-slate-500 mt-0.5 tracking-tight uppercase truncate">지능형 학습 관리 시스템 (학생 모드)</p>
                 </div>
             </div>
-            <div class="flex items-center gap-4">
-                <div class="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-2xl border border-slate-200/60">
-                    <i class="fas fa-clock text-sky-500 text-xs"></i>
-                    <span id="current-time" class="text-xs font-black text-slate-700 tracking-tighter">00:00:00</span>
+            <div class="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+                <div class="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-2 bg-slate-100 rounded-xl sm:rounded-2xl border border-slate-200/60">
+                    <i class="fas fa-clock text-sky-500 text-[10px] sm:text-xs"></i>
+                    <span id="current-time" class="text-[10px] sm:text-xs font-black text-slate-700 tracking-tighter">00:00:00</span>
                 </div>
-                <button onclick="location.href='/'" class="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white border border-slate-200/60 text-slate-500 hover:text-sky-600 hover:border-sky-200 transition-all shadow-sm font-bold text-xs">
+                <button onclick="location.href='/'" class="touch-target flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl bg-white border border-slate-200/60 text-slate-500 hover:text-sky-600 hover:border-sky-200 transition-all shadow-sm font-bold text-[10px] sm:text-xs" title="홈페이지로 이동">
                     <i class="fas fa-home text-sm"></i>
-                    <span>홈페이지로 이동</span>
+                    <span class="hidden sm:inline">홈페이지로 이동</span>
                 </button>
-                <div class="h-8 w-px bg-slate-200 mx-2"></div>
-                <div class="flex items-center gap-3 px-4 py-2 bg-white rounded-2xl border border-slate-200/60 shadow-sm">
-                    <div class="text-right flex flex-col">
-                        <span id="userName" class="text-sm font-black text-slate-900">-</span>
-                        <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Student</span>
+                <div class="hidden sm:block h-6 md:h-8 w-px bg-slate-200"></div>
+                <div class="flex items-center gap-2 sm:gap-3 px-2 sm:px-4 py-1.5 sm:py-2 bg-white rounded-xl sm:rounded-2xl border border-slate-200/60 shadow-sm">
+                    <div class="hidden sm:block text-right flex flex-col min-w-0 max-w-[100px] md:max-w-none">
+                        <span id="userName" class="text-xs sm:text-sm font-black text-slate-900 truncate">-</span>
+                        <span class="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest">Student</span>
                     </div>
-                    <div class="w-10 h-10 rounded-2xl bg-sky-600 flex items-center justify-center text-white shadow-lg shadow-sky-200 border border-white/20">
-                        <i class="fas fa-user-graduate text-sm"></i>
+                    <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-sky-600 flex items-center justify-center text-white shadow-lg shadow-sky-200 border border-white/20 flex-shrink-0">
+                        <i class="fas fa-user-graduate text-xs sm:text-sm"></i>
                     </div>
-                    <button onclick="logout()" class="w-10 h-10 flex items-center justify-center rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all">
+                    <button onclick="logout()" class="touch-target w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all flex-shrink-0" title="로그아웃">
                         <i class="fas fa-sign-out-alt text-sm"></i>
                     </button>
                 </div>
             </div>
         </header>
 
-        <main class="flex-1 overflow-y-auto custom-scrollbar relative">
+        <main class="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar relative">
             <div class="absolute inset-0 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:32px_32px] opacity-40 pointer-events-none"></div>
-            <div class="relative z-10 p-8 max-w-[1600px] mx-auto">
-                <!-- 환영 섹션 (인박스 벤토 스타일) -->
-                <section class="animate-fade-in mb-8" style="animation-delay: 0.1s">
-                    <div class="bg-sky-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-2xl shadow-sky-900/20">
-                        <div class="absolute top-0 right-0 w-[40%] h-full bg-gradient-to-l from-white/10 to-transparent pointer-events-none"></div>
-                        <div class="absolute -right-20 -top-20 w-80 h-80 bg-sky-600/20 rounded-full blur-[100px]"></div>
-                        <div class="relative z-10 flex flex-col md:flex-row justify-between items-center gap-8">
-                            <div>
-                                <h2 class="text-3xl font-black tracking-tight mb-2">반갑습니다, <span id="welcome-name">-</span>님.</h2>
-                                <p class="text-sky-200 text-sm font-medium max-w-lg leading-relaxed">나의 강의실에서 수강 중인 과정, 시험, 성적, NCS·설문·포트폴리오를 한곳에서 확인하세요.</p>
-                                <div class="mt-6 flex gap-3">
-                                    <div class="px-4 py-2 bg-white/10 border border-white/10 rounded-2xl flex items-center gap-2">
-                                        <div class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
-                                        <span class="text-xs font-black uppercase tracking-widest text-sky-100">시스템 정상</span>
+            <div class="relative z-10 p-4 sm:p-6 md:p-8 max-w-[1600px] mx-auto">
+                <!-- 환영 섹션 (반응형) -->
+                <section class="animate-fade-in mb-6 sm:mb-8" style="animation-delay: 0.1s">
+                    <div class="bg-sky-900 rounded-2xl sm:rounded-[2rem] md:rounded-[2.5rem] p-4 sm:p-6 md:p-8 text-white relative overflow-hidden shadow-2xl shadow-sky-900/20">
+                        <div class="absolute top-0 right-0 w-[50%] sm:w-[40%] h-full bg-gradient-to-l from-white/10 to-transparent pointer-events-none"></div>
+                        <div class="absolute -right-10 -top-10 sm:-right-20 sm:-top-20 w-40 h-40 sm:w-80 sm:h-80 bg-sky-600/20 rounded-full blur-[60px] sm:blur-[100px]"></div>
+                        <div class="relative z-10 flex flex-col gap-6 sm:gap-8">
+                            <div class="min-w-0">
+                                <h2 class="text-xl sm:text-2xl md:text-3xl font-black tracking-tight mb-1 sm:mb-2 break-keep">반갑습니다, <span id="welcome-name">-</span>님.</h2>
+                                <p class="text-sky-200 text-xs sm:text-sm font-medium max-w-lg leading-relaxed">나의 강의실에서 수강 중인 과정, 시험, 성적, NCS·설문·포트폴리오를 한곳에서 확인하세요.</p>
+                                <div class="mt-4 sm:mt-6 flex flex-wrap gap-2 sm:gap-3">
+                                    <div class="px-3 sm:px-4 py-1.5 sm:py-2 bg-white/10 border border-white/10 rounded-xl sm:rounded-2xl flex items-center gap-2">
+                                        <div class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-400 animate-pulse"></div>
+                                        <span class="text-[10px] sm:text-xs font-black uppercase tracking-widest text-sky-100">시스템 정상</span>
                                     </div>
-                                    <div class="px-4 py-2 bg-sky-500/30 border border-white/10 rounded-2xl flex items-center gap-2">
-                                        <i class="fas fa-calendar-alt text-xs text-sky-300"></i>
-                                        <span id="welcome-date" class="text-xs font-black uppercase tracking-widest text-sky-100">-</span>
+                                    <div class="px-3 sm:px-4 py-1.5 sm:py-2 bg-sky-500/30 border border-white/10 rounded-xl sm:rounded-2xl flex items-center gap-2">
+                                        <i class="fas fa-calendar-alt text-[10px] sm:text-xs text-sky-300"></i>
+                                        <span id="welcome-date" class="text-[10px] sm:text-xs font-black uppercase tracking-widest text-sky-100">-</span>
                                     </div>
                                 </div>
                             </div>
-                            <div class="flex gap-8 px-8 py-6 bg-white/5 border border-white/10 rounded-[2rem] backdrop-blur-sm">
-                                <div class="text-center">
-                                    <span class="block text-[10px] font-black uppercase text-sky-300 tracking-[0.2em] mb-1">수강 과정</span>
-                                    <span class="text-3xl font-black" id="stat-enrollments">0</span>
-                                    <span class="block text-[10px] font-black text-sky-300 uppercase mt-1">개</span>
-                                </div>
-                                <div class="w-px h-12 bg-white/10 self-center"></div>
-                                <div class="text-center">
-                                    <span class="block text-[10px] font-black uppercase text-sky-300 tracking-[0.2em] mb-1">진행 중 시험</span>
-                                    <span class="text-3xl font-black" id="stat-active-exams">0</span>
-                                    <span class="block text-[10px] font-black text-sky-300 uppercase mt-1">건</span>
+                            <div class="flex flex-col sm:flex-row gap-4 sm:gap-6 md:gap-8 px-4 sm:px-6 md:px-8 py-4 sm:py-5 md:py-6 bg-white/5 border border-white/10 rounded-xl sm:rounded-[2rem] backdrop-blur-sm">
+                                <div class="flex flex-1 items-center justify-around sm:justify-center gap-4 sm:gap-8">
+                                    <div class="text-center">
+                                        <span class="block text-[9px] sm:text-[10px] font-black uppercase text-sky-300 tracking-[0.15em] sm:tracking-[0.2em] mb-1">수강 과정</span>
+                                        <span class="text-2xl sm:text-3xl font-black" id="stat-enrollments">0</span>
+                                        <span class="block text-[9px] sm:text-[10px] font-black text-sky-300 uppercase mt-1">개</span>
+                                    </div>
+                                    <div class="w-px h-10 sm:h-12 bg-white/10 self-center hidden sm:block"></div>
+                                    <div class="text-center">
+                                        <span class="block text-[9px] sm:text-[10px] font-black uppercase text-sky-300 tracking-[0.15em] sm:tracking-[0.2em] mb-1">진행 중 시험</span>
+                                        <span class="text-2xl sm:text-3xl font-black" id="stat-active-exams">0</span>
+                                        <span class="block text-[9px] sm:text-[10px] font-black text-sky-300 uppercase mt-1">건</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </section>
 
-                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-fade-in" style="animation-delay: 0.2s">
-                    <!-- 왼쪽: 인박스 벤토 그리드 (In-box Bento Grid) - 메뉴 카드 -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 animate-fade-in" style="animation-delay: 0.2s">
+                    <!-- 왼쪽: 인박스 벤토 그리드 - 메뉴 카드 (반응형) -->
                     <div class="lg:col-span-4 xl:col-span-3">
-                        <div class="bento-card bg-white rounded-[2.5rem] p-8 border border-slate-200/60 shadow-sm mb-6">
-                            <div class="flex items-center gap-4 mb-8">
-                                <div class="w-14 h-14 rounded-2xl bg-sky-50 flex items-center justify-center text-sky-600 border border-sky-100">
-                                    <i class="fas fa-user-graduate text-xl"></i>
+                        <div class="bento-card bg-white rounded-2xl sm:rounded-[2.5rem] p-4 sm:p-6 md:p-8 border border-slate-200/60 shadow-sm mb-4 sm:mb-6">
+                            <div class="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
+                                <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-sky-50 flex items-center justify-center text-sky-600 border border-sky-100 flex-shrink-0">
+                                    <i class="fas fa-user-graduate text-lg sm:text-xl"></i>
                                 </div>
-                                <div>
-                                    <h3 class="font-black text-slate-900 tracking-tight">내 정보</h3>
-                                    <p id="profileName" class="text-sm font-bold text-slate-600 truncate max-w-[180px]">-</p>
-                                    <p id="profileEmail" class="text-[10px] font-black text-slate-400 uppercase tracking-widest truncate max-w-[180px]">-</p>
+                                <div class="min-w-0 flex-1">
+                                    <h3 class="font-black text-slate-900 tracking-tight text-sm sm:text-base">내 정보</h3>
+                                    <p id="profileName" class="text-xs sm:text-sm font-bold text-slate-600 truncate">-</p>
+                                    <p id="profileEmail" class="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest truncate">-</p>
                                 </div>
                             </div>
-                            <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">인박스 메뉴 (In-box Menu)</span>
-                            <div class="space-y-2">
-                                <button onclick="switchTab('exams')" id="btn-exams" class="w-full text-left px-5 py-3.5 bg-sky-50 text-sky-700 rounded-2xl font-black text-sm transition border border-sky-100 hover:border-sky-200 flex items-center gap-3">
+                            <span class="block text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 sm:mb-4">인박스 메뉴</span>
+                            <div class="space-y-1.5 sm:space-y-2">
+                                <button onclick="switchTab('exams')" id="btn-exams" class="touch-target w-full text-left px-4 sm:px-5 py-3 sm:py-3.5 bg-sky-50 text-sky-700 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm transition border border-sky-100 hover:border-sky-200 flex items-center gap-3">
                                     <i class="fas fa-book-open text-sky-600 w-5"></i> 나의 시험
                                 </button>
-                                <button onclick="switchTab('lectures')" id="btn-lectures" class="w-full text-left px-5 py-3.5 text-slate-600 hover:bg-slate-50 rounded-2xl font-bold text-sm transition border border-transparent hover:border-slate-200 flex items-center gap-3">
-                                    <i class="fas fa-video text-slate-400 w-5"></i> 수강 중인 강의
+                                <button onclick="switchTab('lectures')" id="btn-lectures" class="touch-target w-full text-left px-4 sm:px-5 py-3 sm:py-3.5 text-slate-600 hover:bg-slate-50 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm transition border border-transparent hover:border-slate-200 flex items-center gap-3">
+                                    <i class="fas fa-video text-slate-400 w-5 flex-shrink-0"></i> <span>수강 중인 강의</span>
                                 </button>
-                                <button onclick="switchTab('grades')" id="btn-grades" class="w-full text-left px-5 py-3.5 text-slate-600 hover:bg-slate-50 rounded-2xl font-bold text-sm transition border border-transparent hover:border-slate-200 flex items-center gap-3">
-                                    <i class="fas fa-history text-slate-400 w-5"></i> 성적/결과
+                                <button onclick="switchTab('grades')" id="btn-grades" class="touch-target w-full text-left px-4 sm:px-5 py-3 sm:py-3.5 text-slate-600 hover:bg-slate-50 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm transition border border-transparent hover:border-slate-200 flex items-center gap-3">
+                                    <i class="fas fa-history text-slate-400 w-5 flex-shrink-0"></i> <span>성적/결과</span>
                                 </button>
-                                <button onclick="switchTab('ncs')" id="btn-ncs" class="w-full text-left px-5 py-3.5 text-slate-600 hover:bg-slate-50 rounded-2xl font-bold text-sm transition border border-transparent hover:border-slate-200 flex items-center gap-3">
-                                    <i class="fas fa-certificate text-slate-400 w-5"></i> NCS 평가
+                                <button onclick="switchTab('ncs')" id="btn-ncs" class="touch-target w-full text-left px-4 sm:px-5 py-3 sm:py-3.5 text-slate-600 hover:bg-slate-50 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm transition border border-transparent hover:border-slate-200 flex items-center gap-3">
+                                    <i class="fas fa-certificate text-slate-400 w-5 flex-shrink-0"></i> <span>NCS 평가</span>
                                 </button>
-                                <button onclick="switchTab('surveys')" id="btn-surveys" class="w-full text-left px-5 py-3.5 text-slate-600 hover:bg-slate-50 rounded-2xl font-bold text-sm transition border border-transparent hover:border-slate-200 flex items-center gap-3">
-                                    <i class="fas fa-poll text-slate-400 w-5"></i> 설문/평가
+                                <button onclick="switchTab('surveys')" id="btn-surveys" class="touch-target w-full text-left px-4 sm:px-5 py-3 sm:py-3.5 text-slate-600 hover:bg-slate-50 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm transition border border-transparent hover:border-slate-200 flex items-center gap-3">
+                                    <i class="fas fa-poll text-slate-400 w-5 flex-shrink-0"></i> <span>설문/평가</span>
                                 </button>
-                                <button onclick="switchTab('portfolio')" id="btn-portfolio" class="w-full text-left px-5 py-3.5 text-slate-600 hover:bg-slate-50 rounded-2xl font-bold text-sm transition border border-transparent hover:border-slate-200 flex items-center gap-3">
-                                    <i class="fas fa-image text-slate-400 w-5"></i> 포트폴리오
+                                <button onclick="switchTab('portfolio')" id="btn-portfolio" class="touch-target w-full text-left px-4 sm:px-5 py-3 sm:py-3.5 text-slate-600 hover:bg-slate-50 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm transition border border-transparent hover:border-slate-200 flex items-center gap-3">
+                                    <i class="fas fa-image text-slate-400 w-5 flex-shrink-0"></i> <span>포트폴리오</span>
                                 </button>
-                                <button onclick="switchTab('employment')" id="btn-employment" class="w-full text-left px-5 py-3.5 text-slate-600 hover:bg-slate-50 rounded-2xl font-bold text-sm transition border border-transparent hover:border-slate-200 flex items-center gap-3">
-                                    <i class="fas fa-user-tie text-slate-400 w-5"></i> 취업 성과
+                                <button onclick="switchTab('employment')" id="btn-employment" class="touch-target w-full text-left px-4 sm:px-5 py-3 sm:py-3.5 text-slate-600 hover:bg-slate-50 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm transition border border-transparent hover:border-slate-200 flex items-center gap-3">
+                                    <i class="fas fa-user-tie text-slate-400 w-5 flex-shrink-0"></i> <span>취업 성과</span>
                                 </button>
-                                <button onclick="switchTab('profile')" id="btn-profile" class="w-full text-left px-5 py-3.5 text-slate-600 hover:bg-slate-50 rounded-2xl font-bold text-sm transition border border-transparent hover:border-slate-200 flex items-center gap-3">
-                                    <i class="fas fa-user-edit text-slate-400 w-5"></i> 수강생 정보수정
+                                <button onclick="switchTab('profile')" id="btn-profile" class="touch-target w-full text-left px-4 sm:px-5 py-3 sm:py-3.5 text-slate-600 hover:bg-slate-50 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm transition border border-transparent hover:border-slate-200 flex items-center gap-3">
+                                    <i class="fas fa-user-edit text-slate-400 w-5 flex-shrink-0"></i> <span>수강생 정보수정</span>
                                 </button>
                             </div>
                         </div>
                     </div>
 
-                    <!-- 오른쪽: 메인 컨텐츠 (벤토 그리드 스타일) -->
-                    <div class="lg:col-span-8 xl:col-span-9">
-                        <div class="bg-white rounded-[2.5rem] border border-slate-200/60 shadow-sm overflow-hidden mb-6">
-                            <div class="px-8 py-6 border-b border-slate-100 flex items-center gap-4 bg-slate-50/50">
-                                <div id="contentTitleIcon" class="w-10 h-10 rounded-xl bg-sky-600 text-white flex items-center justify-center shadow-lg shadow-sky-100">
-                                    <i class="fas fa-edit text-sm"></i>
+                    <!-- 오른쪽: 메인 컨텐츠 (반응형) -->
+                    <div class="lg:col-span-8 xl:col-span-9 min-w-0">
+                        <div class="bg-white rounded-2xl sm:rounded-[2.5rem] border border-slate-200/60 shadow-sm overflow-hidden mb-4 sm:mb-6">
+                            <div class="px-4 sm:px-6 md:px-8 py-4 sm:py-5 md:py-6 border-b border-slate-100 flex items-center gap-3 sm:gap-4 bg-slate-50/50">
+                                <div id="contentTitleIcon" class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-sky-600 text-white flex items-center justify-center shadow-lg shadow-sky-100 flex-shrink-0">
+                                    <i class="fas fa-edit text-xs sm:text-sm"></i>
                                 </div>
-                                <div>
-                                    <h2 id="contentTitle" class="text-xl font-black text-slate-900 tracking-tight">진행 중인 시험</h2>
-                                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">인박스 컨텐츠 (In-box Content)</p>
+                                <div class="min-w-0 flex-1">
+                                    <h2 id="contentTitle" class="text-base sm:text-lg md:text-xl font-black text-slate-900 tracking-tight truncate">진행 중인 시험</h2>
+                                    <p class="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">인박스 컨텐츠</p>
                                 </div>
                             </div>
-                            <div id="contentArea" class="p-8 min-h-[320px]">
+                            <div id="contentArea" class="p-4 sm:p-6 md:p-8 min-h-[280px] sm:min-h-[320px] overflow-x-auto">
                                 <div class="text-center py-12">
                                     <i class="fas fa-spinner fa-spin text-3xl text-sky-500"></i>
                                     <p class="text-slate-400 font-bold text-sm mt-4 uppercase tracking-widest">로딩 중...</p>
