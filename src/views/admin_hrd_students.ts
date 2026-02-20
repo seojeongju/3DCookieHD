@@ -52,13 +52,14 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
                         <input type="text" id="searchInput" placeholder="이름, 연락처, 또는 수강 과정을 입력하세요" class="w-full pl-11 pr-4 py-3 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500/20 transition-all outline-none text-sm">
                         <i class="fas fa-search absolute left-4 top-3.5 text-gray-400"></i>
                     </div>
-                    <div class="min-w-[150px]">
+                    <div class="min-w-[180px]">
                         <select id="statusFilter" class="w-full px-4 py-3 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500/20 transition-all outline-none text-sm cursor-pointer">
-                            <option value="">전체 상태</option>
-                            <option value="consulting">상담중</option>
-                            <option value="registered">등록완료</option>
-                            <option value="learning">수강중</option>
-                            <option value="completed">수료</option>
+                            <option value="">전체 여정 상태</option>
+                            <option value="consulting">초기 상담</option>
+                            <option value="registered">등록·발급</option>
+                            <option value="learning">집중 훈련</option>
+                            <option value="completed">수료 완료</option>
+                            <option value="employed">취업·성공</option>
                             <option value="dropout">중도탈락</option>
                         </select>
                     </div>
@@ -620,8 +621,12 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
 
         function getStudentRowHtml(s) {
             const courseTitle = (s.current_course_name || coursesData.find(c => c.id == s.course_id)?.title || '과정 미지정');
-            const statusLabels = { consulting: '상담중', registered: '등록완료', learning: '수강중', completed: '수료완료', dropout: '중도탈락' };
-            const statusColors = { consulting: 'bg-yellow-50 text-yellow-600', registered: 'bg-blue-50 text-blue-600', learning: 'bg-green-50 text-green-600', completed: 'bg-indigo-50 text-indigo-600', dropout: 'bg-red-50 text-red-600' };
+            // 여정 상태: 여정관리 페이지 스테퍼와 동일한 단계명 사용
+            const statusLabels = { consulting: '초기 상담', registered: '등록·발급', learning: '집중 훈련', completed: '수료 완료', employed: '취업·성공', dropout: '중도탈락' };
+            const statusColors = { consulting: 'bg-amber-50 text-amber-600', registered: 'bg-blue-50 text-blue-600', learning: 'bg-emerald-50 text-emerald-600', completed: 'bg-indigo-50 text-indigo-600', employed: 'bg-violet-50 text-violet-600', dropout: 'bg-red-50 text-red-600' };
+            const journeyStatus = s.status || 'consulting';
+            const statusLabel = statusLabels[journeyStatus] || journeyStatus;
+            const statusColor = statusColors[journeyStatus] || 'bg-gray-50 text-gray-600';
 
             return \`
                 <tr class="hover:bg-gray-50/50 transition-all group border-b border-gray-50 last:border-0">
@@ -644,7 +649,7 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
                         <div class="text-sm font-bold text-gray-500 max-w-[200px] truncate">\${courseTitle}</div>
                     </td>
                     <td class="px-8 py-5">
-                        <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider \${statusColors[s.status] || 'bg-gray-50'} border border-transparent shadow-sm">\${statusLabels[s.status] || s.status}</span>
+                        <span class="px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider \${statusColor} border border-transparent shadow-sm">\${statusLabel}</span>
                     </td>
                     <td class="px-8 py-5 text-center">
                         <div class="text-[10px] font-bold text-gray-400 tracking-tighter uppercase mb-0.5">최근 상담</div>
@@ -768,7 +773,7 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
             loadConsultations(id);
         }
 
-        function translateStatus(s) { const m = { consulting: '상담중', registered: '등록완료', learning: '수강중', completed: '수료완료', dropout: '중도탈락' }; return m[s] || s; }
+        function translateStatus(s) { const m = { consulting: '초기 상담', registered: '등록·발급', learning: '집중 훈련', completed: '수료 완료', employed: '취업·성공', dropout: '중도탈락' }; return m[s] || s; }
         function translateType(t) { const m = { jobseeker: '구직자', worker: '재직자', general: '일반', student: '학생' }; return m[t] || t; }
 
         function updateStepper(activeStage) {
