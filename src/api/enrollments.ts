@@ -22,15 +22,53 @@ app.get('/', authMiddleware, async (c) => {
     const typeHrd = c.req.query('type') === 'hrd';
     const offset = (page - 1) * limit;
 
-    // HRD 운영 과정: URL의 course_id는 회차(course_sessions.id) 또는 승인과정(approved_courses.id)
-    // 회차 ID이면 해당 회차의 approved_course_id로 조회해 동일 과정의 모든 회차 수강생 반환
+    // HRD: course_id가 회차(session) ID이면 해당 회차 수강생만, 아니면 승인과정 기준 전체 회차 수강생
     if (typeHrd && courseId && (user.role === 'admin' || user.role === 'teacher')) {
       const courseIdNum = parseInt(String(courseId), 10);
-      let approvedCourseId: number | null = null;
-      const asSession = await DB.prepare('SELECT approved_course_id FROM course_sessions WHERE id = ?').bind(courseIdNum).first<{ approved_course_id: number }>();
-      if (asSession?.approved_course_id != null) {
-        approvedCourseId = asSession.approved_course_id;
-      } else {
+      const asSession = await DB.prepare('SELECT id, approved_course_id FROM course_sessions WHERE id = ?').bind(courseIdNum).first<{ id: number; approved_course_id: number }>();
+      const search = (c.req.query('search') || '').trim();
+      const sessionOnly = true; // LMS 과정별 수강생 페이지는 해당 회차만 표시
+
+      if (asSession?.id != null && sessionOnly) {
+        // 해당 회차(session_id) 수강생만 조회 (approved, enrolled)
+        let countQuery = `
+          SELECT COUNT(*) as total FROM course_session_enrollments cse
+          INNER JOIN users u ON cse.user_id = u.id
+          WHERE cse.session_id = ? AND cse.status IN ('approved', 'enrolled')
+        `;
+        const countParams: any[] = [asSession.id];
+        if (search) {
+          countQuery += ` AND (u.name LIKE ? OR u.email LIKE ?)`;
+          countParams.push('%' + search + '%', '%' + search + '%');
+        }
+        const countRow = await DB.prepare(countQuery).bind(...countParams).first<{ total: number }>();
+        const total = countRow?.total ?? 0;
+
+        let listQuery = `
+          SELECT u.id as user_id, u.name as user_name, u.email as user_email, u.phone as user_phone,
+                 cse.enrolled_at as enrolled_at, cse.status as status
+          FROM course_session_enrollments cse
+          INNER JOIN users u ON cse.user_id = u.id
+          WHERE cse.session_id = ? AND cse.status IN ('approved', 'enrolled')
+        `;
+        const listParams: any[] = [asSession.id];
+        if (search) {
+          listQuery += ` AND (u.name LIKE ? OR u.email LIKE ?)`;
+          listParams.push('%' + search + '%', '%' + search + '%');
+        }
+        listQuery += ` ORDER BY u.name ASC, cse.enrolled_at ASC LIMIT ? OFFSET ?`;
+        listParams.push(limit, offset);
+
+        const { results } = await DB.prepare(listQuery).bind(...listParams).all();
+        return c.json({
+          success: true,
+          data: results || [],
+          pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
+        });
+      }
+
+      let approvedCourseId: number | null = asSession?.approved_course_id ?? null;
+      if (approvedCourseId == null) {
         const asApproved = await DB.prepare('SELECT id FROM approved_courses WHERE id = ?').bind(courseIdNum).first<{ id: number }>();
         if (asApproved?.id != null) approvedCourseId = asApproved.id;
       }
@@ -42,7 +80,6 @@ app.get('/', authMiddleware, async (c) => {
         });
       }
 
-      const search = (c.req.query('search') || '').trim();
       let countQuery = `
         SELECT COUNT(DISTINCT cse.user_id) as total
         FROM course_session_enrollments cse
@@ -53,16 +90,14 @@ app.get('/', authMiddleware, async (c) => {
       const countParams: any[] = [approvedCourseId];
       if (search) {
         countQuery += ` AND (u.name LIKE ? OR u.email LIKE ?)`;
-        const q = '%' + search + '%';
-        countParams.push(q, q);
+        countParams.push('%' + search + '%', '%' + search + '%');
       }
       const countRow = await DB.prepare(countQuery).bind(...countParams).first<{ total: number }>();
       const total = countRow?.total ?? 0;
 
       let listQuery = `
         SELECT u.id as user_id, u.name as user_name, u.email as user_email, u.phone as user_phone,
-               MAX(cse.enrolled_at) as enrolled_at,
-               'approved' as status
+               MAX(cse.enrolled_at) as enrolled_at, 'approved' as status
         FROM course_session_enrollments cse
         INNER JOIN course_sessions cs ON cse.session_id = cs.id
         INNER JOIN users u ON cse.user_id = u.id
@@ -71,8 +106,7 @@ app.get('/', authMiddleware, async (c) => {
       const listParams: any[] = [approvedCourseId];
       if (search) {
         listQuery += ` AND (u.name LIKE ? OR u.email LIKE ?)`;
-        const q = '%' + search + '%';
-        listParams.push(q, q);
+        listParams.push('%' + search + '%', '%' + search + '%');
       }
       listQuery += ` GROUP BY u.id, u.name, u.email, u.phone ORDER BY enrolled_at DESC LIMIT ? OFFSET ?`;
       listParams.push(limit, offset);

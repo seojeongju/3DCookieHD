@@ -129,8 +129,9 @@ export const lmsHeaderHtml = (activeTab = 'dashboard', defaultType = '') => `
                 const isTeacherPath = window.location.pathname.startsWith('/teacher');
                 
                 const urlParams = new URLSearchParams(window.location.search);
-                let type = urlParams.get('type') || '${defaultType}';
-                if (type && type.startsWith('hrd')) type = 'hrd'; // Normalize type
+                let type = urlParams.get('type') || '';
+                if (type && type.startsWith('hrd')) type = 'hrd';
+                if (type === 'undefined' || !type) type = window.location.pathname.includes('/lms') ? 'hrd' : '';
                 
                 const basePath = isAdminPath ? '/admin/courses/' + courseId + '/lms' : 
                                (isTeacherPath ? '/teacher/courses/' + courseId + '/lms' : '/student/courses/' + courseId + '/lms');
@@ -161,23 +162,25 @@ export const lmsHeaderHtml = (activeTab = 'dashboard', defaultType = '') => `
                 try {
                     const token = localStorage.getItem('token');
                     const urlParams = new URLSearchParams(window.location.search);
-                    let type = urlParams.get('type') || '${defaultType}';
+                    let type = urlParams.get('type') || '';
+                    if (typeof type !== 'string') type = '';
                     
-                    // LMS 페이지인 경우 기본적으로 HRD(회차) 모드로 동작하도록 설정
+                    // LMS 페이지인 경우 기본적으로 HRD(회차) 모드로 동작
                     if (!type && window.location.pathname.includes('/lms')) {
                         type = 'hrd';
                     }
+                    if (type && type.startsWith('hrd')) type = 'hrd';
+                    if (type === 'undefined') type = 'hrd';
 
-                    if (type && type.startsWith('hrd')) type = 'hrd'; // Normalize type
                     let apiUrl = '/api/courses/' + courseId;
-                    if (type) apiUrl += '?type=' + type;
+                    if (type) apiUrl += '?type=' + encodeURIComponent(type);
 
                     let response = await fetch(apiUrl, {
                         headers: { 'Authorization': 'Bearer ' + token }
                     });
                     
-                    // 404인 경우 HRD 과정일 수 있으므로 type=hrd로 재시도
-                    if (response.status === 404 && !type) {
+                    // 404인 경우 HRD 회차일 수 있으므로 type=hrd로 재시도
+                    if (response.status === 404) {
                         apiUrl = '/api/courses/' + courseId + '?type=hrd';
                         response = await fetch(apiUrl, {
                             headers: { 'Authorization': 'Bearer ' + token }

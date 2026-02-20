@@ -248,7 +248,8 @@ courses.get('/', async (c) => {
 courses.get('/:id', async (c) => {
   try {
     const idParam = c.req.param('id');
-    const type = (c.req.query('type') || '').trim().toLowerCase();
+    let type = (c.req.query('type') || c.req.query('/type') || '').trim().toLowerCase();
+    if (type === 'undefined' || type === '') type = '';
 
     if (type === 'hrd') {
       const sessionId = parseInt(idParam, 10);
@@ -276,10 +277,10 @@ courses.get('/:id', async (c) => {
 
       if (!session) return notFoundResponse(c, '회차 정보를 찾을 수 없습니다');
 
-      // 수강생 수 카운트
+      // 수강생 수: 회차 배정(approved/enrolled) 기준
       const studentCount = await getOne<any>(
         c.env.DB,
-        `SELECT COUNT(*) as count FROM hrd_student_details WHERE course_id = ?`,
+        `SELECT COUNT(*) as count FROM course_session_enrollments WHERE session_id = ? AND status IN ('approved', 'enrolled')`,
         [sessionId]
       );
 
