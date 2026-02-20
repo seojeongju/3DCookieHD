@@ -537,29 +537,33 @@ export function adminHrdCounselingHtml(courseId?: string): string {
         }
 
         async function loadCourses() {
+            const filterSelect = document.getElementById('courseFilter');
+            const modalSelect = document.getElementById('courseSelect');
+            const token = localStorage.getItem('token');
+
+            if (IS_LMS_MODE && COURSE_ID) {
+                filterSelect.innerHTML = '';
+                modalSelect.innerHTML = '';
+                filterSelect.add(new Option('현재 회차 (이 과정)', COURSE_ID));
+                modalSelect.add(new Option('현재 회차 (이 과정)', COURSE_ID));
+                filterSelect.value = COURSE_ID;
+                filterSelect.disabled = true;
+                modalSelect.value = COURSE_ID;
+                modalSelect.disabled = true;
+                return;
+            }
+
             try {
-                const token = localStorage.getItem('token');
                 const response = await fetch('/api/courses', {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
                 const result = await response.json();
                 const courses = result.success ? result.data : (Array.isArray(result) ? result : []);
 
-                const filterSelect = document.getElementById('courseFilter');
-                const modalSelect = document.getElementById('courseSelect');
-
                 courses.forEach(c => {
                     filterSelect.add(new Option(c.title, c.id));
                     modalSelect.add(new Option(c.title, c.id));
                 });
-                
-                // LMS 모드일 경우 코스 필터 및 모달 선택 고정
-                if (IS_LMS_MODE) {
-                    filterSelect.value = COURSE_ID;
-                    filterSelect.disabled = true;
-                    modalSelect.value = COURSE_ID;
-                    modalSelect.disabled = true;
-                }
             } catch (e) {
                 console.error('코스 로드 실패', e);
             }
@@ -585,14 +589,24 @@ export function adminHrdCounselingHtml(courseId?: string): string {
                 
                 // API 결과 구조에 따라 변환 (enrollments API는 결과를 users로, session enrollments는 user_id/name 등으로 반환)
                 const studentList = IS_LMS_MODE 
-                    ? students.map(s => ({ id: s.user_id, name: s.name, email: s.email }))
-                    : students;
+                    ? (students || []).map(s => ({ id: s.user_id, name: s.name, email: s.email || s.phone || '-' }))
+                    : (students || []);
 
-                studentList.filter(s => s && s.id).sort((a,b) => (a.name || '').localeCompare(b.name || '')).forEach(s => {
-                    select.add(new Option(s.name + ' (' + (s.email || '-') + ')', s.id));
-                });
+                const sorted = studentList.filter(s => s && (s.id != null || s.user_id != null)).map(s => ({ id: s.id || s.user_id, name: s.name || '-', email: s.email || '-' })).sort((a,b) => (a.name || '').localeCompare(b.name || ''));
+
+                if (sorted.length === 0 && IS_LMS_MODE) {
+                    select.add(new Option('배정된 수강생이 없습니다', ''));
+                } else {
+                    sorted.forEach(s => {
+                        select.add(new Option(s.name + ' (' + (s.email || '-') + ')', String(s.id)));
+                    });
+                }
             } catch (e) {
                 console.error('학생 로드 실패', e);
+                if (IS_LMS_MODE) {
+                    const select = document.getElementById('studentSelect');
+                    if (select) select.innerHTML = '<option value="">수강생 로드 실패 (다시 시도해 주세요)</option>';
+                }
             }
         }
 

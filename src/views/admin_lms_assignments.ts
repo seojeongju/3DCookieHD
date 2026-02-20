@@ -220,23 +220,25 @@ export const adminLmsAssignmentsHtml = `
 
     <script>
         let courseId = null;
+        let courseType = '';
         let currentAssignmentId = null;
 
         document.addEventListener('DOMContentLoaded', () => {
-            // Extract courseId from URL
             const pathParts = window.location.pathname.split('/');
             const courseIndex = pathParts.indexOf('courses');
             if (courseIndex !== -1 && pathParts[courseIndex + 1]) {
                 courseId = pathParts[courseIndex + 1];
-                loadAssignments();
             }
+            courseType = (new URLSearchParams(window.location.search).get('type') || '').toLowerCase();
+            if (courseId) loadAssignments();
         });
 
         async function loadAssignments() {
             if (!courseId) return;
 
             try {
-                const response = await fetch(\`/api/assignments/courses/\${courseId}\`);
+                const url = \`/api/assignments/courses/\${courseId}\${courseType === 'hrd' ? '?type=hrd' : ''}\`;
+                const response = await fetch(url, { headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('token') || '') } });
                 const result = await response.json();
 
                 if (!result.success) throw new Error(result.error);
@@ -347,14 +349,17 @@ export const adminLmsAssignmentsHtml = `
             e.preventDefault();
 
             const id = document.getElementById('assignmentId').value;
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
             const data = {
-                course_id: parseInt(courseId),
-                teacher_id: JSON.parse(localStorage.getItem('user') || '{}').id,
+                course_id: courseType === 'hrd' ? null : parseInt(courseId),
+                session_id: courseType === 'hrd' ? parseInt(courseId) : null,
+                type: courseType === 'hrd' ? 'hrd' : undefined,
+                teacher_id: user.id || null,
                 title: document.getElementById('title').value,
                 description: document.getElementById('description').value,
                 due_date: document.getElementById('dueDate').value.replace('T', ' '),
-                max_score: parseInt(document.getElementById('maxScore').value),
-                attachment_url: document.getElementById('attachmentUrl').value
+                max_score: parseInt(document.getElementById('maxScore').value) || 100,
+                attachment_url: document.getElementById('attachmentUrl').value || null
             };
 
             try {
@@ -363,7 +368,7 @@ export const adminLmsAssignmentsHtml = `
 
                 const response = await fetch(url, {
                     method,
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (localStorage.getItem('token') || '') },
                     body: JSON.stringify(data)
                 });
 

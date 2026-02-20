@@ -259,7 +259,7 @@ courses.get('/:id', async (c) => {
         c.env.DB,
         `SELECT 
           s.id, 
-          (a.name || ' (' || s.session_number || '회차)' || CASE WHEN s.session_name IS NOT NULL AND s.session_name != '' THEN ' - ' || s.session_name ELSE '' END) as title,
+          (COALESCE(a.name, '미지정 과정') || ' (' || s.session_number || '회차)' || CASE WHEN s.session_name IS NOT NULL AND s.session_name != '' THEN ' - ' || s.session_name ELSE '' END) as title,
           s.instructor_name as teacher_name,
           s.training_start_date as start_date,
           s.training_end_date as end_date,
@@ -268,7 +268,7 @@ courses.get('/:id', async (c) => {
           c.name as category_name,
           a.category_id
         FROM course_sessions s
-        JOIN approved_courses a ON s.approved_course_id = a.id
+        LEFT JOIN approved_courses a ON s.approved_course_id = a.id
         LEFT JOIN course_categories c ON a.category_id = c.id
         WHERE s.id = ?`,
         [sessionId]
@@ -557,54 +557,95 @@ courses.delete('/:id', authMiddleware, requireAdmin, async (c) => {
   }
 });
 
-// GET /api/courses/:id/grades - Get course gradebook (matrix)
+// GET /api/courses/:id/grades - Get course gradebook (matrix). type=hrd 시 회차 기준(과제 성적)
 courses.get('/:id/grades', async (c) => {
   const courseId = c.req.param('id');
+  const type = (c.req.query('type') || '').toLowerCase();
+  const isHrd = type === 'hrd';
+
   try {
-    // 1. 과정의 모든 시험 목록 조회
-    const { results: exams } = await c.env.DB.prepare(`
+    let exams: any[];
+    let students: any[];
+    let submissions: any[];
+
+    if (isHrd) {
+      // HRD 회차: 수강생 = course_session_enrollments, 컬럼 = 해당 회차 과제, 점수 = assignment_submissions
+      const { results: studentsRows } = await c.env.DB.prepare(`
+            SELECT u.id, u.name, u.email, u.phone
+            FROM course_session_enrollments e
+            JOIN users u ON e.user_id = u.id
+            WHERE e.session_id = ? AND e.status IN ('approved', 'enrolled')
+            ORDER BY u.name ASC
+      `).bind(courseId).all();
+      students = studentsRows || [];
+
+      const { results: assignmentsRows } = await c.env.DB.prepare(`
+            SELECT id, title, max_score as total_points
+            FROM assignments
+            WHERE session_id = ?
+            ORDER BY due_date ASC, id ASC
+      `).bind(courseId).all();
+      exams = (assignmentsRows || []).map((a: any) => ({
+        id: a.id,
+        title: a.title,
+        total_points: a.total_points ?? 100,
+        time_limit_minutes: null,
+        is_active: true
+      }));
+
+      const { results: subRows } = await c.env.DB.prepare(`
+            SELECT s.assignment_id as exam_id, s.student_id, s.score as total_score, s.status
+            FROM assignment_submissions s
+            JOIN assignments a ON s.assignment_id = a.id
+            WHERE a.session_id = ?
+      `).bind(courseId).all();
+      submissions = subRows || [];
+    } else {
+      // Legacy: 시험 기준 성적표
+      const { results: examsRows } = await c.env.DB.prepare(`
             SELECT id, title, time_limit_minutes, is_active,
             (SELECT SUM(points) FROM exam_questions WHERE exam_id = exams.id) as total_points
-            FROM exams 
-            WHERE course_id = ? 
+            FROM exams
+            WHERE course_id = ?
             ORDER BY created_at ASC
-        `).bind(courseId).all();
+      `).bind(courseId).all();
+      exams = examsRows || [];
 
-    // 2. 과정의 모든 수강생(Approved) 조회
-    const { results: students } = await c.env.DB.prepare(`
+      const { results: studentsRows } = await c.env.DB.prepare(`
             SELECT u.id, u.name, u.email, u.phone
             FROM enrollments e
             JOIN users u ON e.user_id = u.id
             WHERE e.course_id = ? AND e.status = 'approved'
             ORDER BY u.name ASC
-        `).bind(courseId).all();
+      `).bind(courseId).all();
+      students = studentsRows || [];
 
-    // 3. 해당 수강생들의 모든 시험 제출 내역 조회
-    const { results: submissions } = await c.env.DB.prepare(`
+      const { results: subRows } = await c.env.DB.prepare(`
             SELECT s.exam_id, s.student_id, s.total_score, s.status
             FROM exam_submissions s
             JOIN exams e ON s.exam_id = e.id
             WHERE e.course_id = ?
-        `).bind(courseId).all();
+      `).bind(courseId).all();
+      submissions = subRows || [];
+    }
 
-    // 4. 데이터 매핑 (Matrix 구조 생성)
     const studentGrades = students.map((std: any) => {
       const scores: any = {};
       let totalScore = 0;
-      let examCount = 0;
+      let itemCount = 0;
 
       exams.forEach((exam: any) => {
         const sub = submissions.find((s: any) => s.exam_id === exam.id && s.student_id === std.id) as any;
-        if (sub) {
+        if (sub && sub.total_score != null) {
           scores[exam.id] = sub.total_score;
           totalScore += sub.total_score;
-          examCount++;
+          itemCount++;
         } else {
-          scores[exam.id] = null; // 미응시
+          scores[exam.id] = null;
         }
       });
 
-      const average = examCount > 0 ? (totalScore / examCount) : 0;
+      const average = itemCount > 0 ? totalScore / itemCount : 0;
 
       return {
         ...std,
@@ -614,7 +655,6 @@ courses.get('/:id/grades', async (c) => {
       };
     });
 
-    // 5. 등수 계산 (총점 기준)
     studentGrades.sort((a: any, b: any) => b.totalScore - a.totalScore);
     studentGrades.forEach((std: any, index: number) => {
       std.rank = index + 1;
@@ -624,7 +664,6 @@ courses.get('/:id/grades', async (c) => {
       exams,
       students: studentGrades
     });
-
   } catch (e: any) {
     return errorResponse(c, e.message, 500);
   }

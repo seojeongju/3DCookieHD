@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import type { Bindings } from '../types';
-import { authMiddleware, requireAdmin } from '../middleware/auth';
+import { authMiddleware, requireAdmin, requireRole } from '../middleware/auth';
 
 const STATUS_VALUES = ['recruiting', 'in_progress', 'completed', 'always_open', 'closed'] as const;
 
@@ -135,9 +135,16 @@ app.get('/public', async (c) => {
     let sessionStatusFilter = "";
     let generalStatusFilter = "";
     if (status && status.trim() !== '') {
+      const s = status.trim();
       sessionStatusFilter = " AND s.status = ?";
       generalStatusFilter = " AND (CASE WHEN c.status = 'active' THEN 'recruiting' ELSE 'completed' END) = ?";
-      params.push(status.trim());
+      params.push(s);
+
+      // 모집중인 경우, 훈련 시작일이 지나지 않은(오늘 포함 미래) 과정만 필터링
+      if (s === 'recruiting') {
+        sessionStatusFilter += " AND s.training_start_date >= DATE('now')";
+        generalStatusFilter += " AND c.start_date >= DATE('now')";
+      }
     } else {
       sessionStatusFilter = " AND s.status IN ('recruiting', 'always_open', 'in_progress')";
       generalStatusFilter = " AND c.status = 'active'";
@@ -299,7 +306,7 @@ app.get('/public/:id', async (c) => {
  * GET /api/course-sessions
  * 회차별 과정 목록 (필터·페이지네이션)
  */
-app.get('/', authMiddleware, requireAdmin, async (c) => {
+app.get('/', authMiddleware, requireRole('admin', 'teacher', 'instructor'), async (c) => {
   try {
     const categoryId = c.req.query('category_id');
     const approvedCourseId = c.req.query('approved_course_id');
@@ -1235,7 +1242,7 @@ app.delete('/:id', authMiddleware, requireAdmin, async (c) => {
  * GET /api/course-sessions/:id/enrollments
  * 회차별 등록된 수강생 목록
  */
-app.get('/:id/enrollments', authMiddleware, requireAdmin, async (c) => {
+app.get('/:id/enrollments', authMiddleware, requireRole('admin', 'teacher', 'instructor'), async (c) => {
   try {
     const id = parseInt(c.req.param('id'), 10);
     if (isNaN(id)) return c.json({ success: false, error: '잘못된 회차 ID' }, 400);
@@ -1248,8 +1255,8 @@ app.get('/:id/enrollments', authMiddleware, requireAdmin, async (c) => {
               u.name, u.phone, u.email
        FROM course_session_enrollments e
        INNER JOIN users u ON u.id = e.user_id
-       WHERE e.session_id = ?
-       ORDER BY e.enrolled_at ASC`
+       WHERE e.session_id = ? AND e.status IN ('approved', 'enrolled')
+       ORDER BY u.name ASC, e.enrolled_at ASC`
     ).bind(id).all();
 
     return c.json({ success: true, data: results || [], session });
@@ -1263,7 +1270,7 @@ app.get('/:id/enrollments', authMiddleware, requireAdmin, async (c) => {
  * POST /api/course-sessions/:id/enrollments
  * 회차에 수강생 등록 (user_ids 배열)
  */
-app.post('/:id/enrollments', authMiddleware, requireAdmin, async (c) => {
+app.post('/:id/enrollments', authMiddleware, requireRole('admin', 'teacher', 'instructor'), async (c) => {
   try {
     const id = parseInt(c.req.param('id'), 10);
     if (isNaN(id)) return c.json({ success: false, error: '잘못된 회차 ID' }, 400);
@@ -1303,7 +1310,7 @@ app.post('/:id/enrollments', authMiddleware, requireAdmin, async (c) => {
  * DELETE /api/course-sessions/:id/enrollments/:userId
  * 회차에서 수강생 제거
  */
-app.delete('/:id/enrollments/:userId', authMiddleware, requireAdmin, async (c) => {
+app.delete('/:id/enrollments/:userId', authMiddleware, requireRole('admin', 'teacher', 'instructor'), async (c) => {
   try {
     const id = parseInt(c.req.param('id'), 10);
     const userId = parseInt(c.req.param('userId'), 10);

@@ -68,7 +68,9 @@ export const adminLmsGradesHtml = `
     </main>
 
     <script>
-        const courseId = window.location.pathname.split('/')[3];
+        const pathParts = window.location.pathname.split('/');
+        const courseId = pathParts[pathParts.indexOf('courses') + 1];
+        const courseType = (new URLSearchParams(window.location.search).get('type') || '').toLowerCase();
         let currentData = null;
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -78,8 +80,9 @@ export const adminLmsGradesHtml = `
         async function loadGrades() {
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch('/api/courses/' + courseId + '/grades', {
-                    headers: { 'Authorization': 'Bearer ' + token }
+                const url = '/api/courses/' + courseId + '/grades' + (courseType === 'hrd' ? '?type=hrd' : '');
+                const response = await fetch(url, {
+                    headers: { 'Authorization': 'Bearer ' + (token || '') }
                 });
                 const result = await response.json();
                 
@@ -186,7 +189,7 @@ export const adminLmsGradesHtml = `
             const encodedUri = encodeURI(csvContent);
             const link = document.createElement("a");
             link.setAttribute("href", encodedUri);
-            link.setAttribute("download", "성적표_과정" + courseId + ".csv");
+            link.setAttribute("download", "성적표_" + (courseType === 'hrd' ? '회차' : '과정') + courseId + ".csv");
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);

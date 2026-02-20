@@ -3,10 +3,13 @@ import { Bindings, Variables } from '../types';
 
 const app = new Hono<{ Bindings: Bindings, Variables: Variables }>();
 
-// 과제 목록 조회 (과정별)
+// 과제 목록 조회 (과정별 또는 HRD 회차별)
 app.get('/courses/:courseId', async (c) => {
     try {
         const courseId = c.req.param('courseId');
+        const type = (c.req.query('type') || '').toLowerCase();
+        const isHrd = type === 'hrd';
+
         const { results } = await c.env.DB.prepare(`
             SELECT a.*, u.name as teacher_name,
                    COUNT(DISTINCT s.id) as submission_count,
@@ -14,7 +17,7 @@ app.get('/courses/:courseId', async (c) => {
             FROM assignments a
             LEFT JOIN users u ON a.teacher_id = u.id
             LEFT JOIN assignment_submissions s ON a.id = s.assignment_id
-            WHERE a.course_id = ?
+            WHERE ${isHrd ? 'a.session_id = ?' : 'a.course_id = ?'}
             GROUP BY a.id
             ORDER BY a.due_date DESC
         `).bind(courseId).all();
@@ -48,16 +51,38 @@ app.get('/student/:studentId', async (c) => {
     }
 });
 
-// 과제 등록
+// 과제 등록 (일반 과정 course_id / HRD 회차 session_id)
 app.post('/', async (c) => {
     try {
         const body = await c.req.json();
-        const { course_id, teacher_id, title, description, due_date, max_score, attachment_url } = body;
+        const { course_id, session_id, teacher_id, title, description, due_date, max_score, attachment_url } = body;
+        const type = (body.type || '').toLowerCase();
+        const isHrd = type === 'hrd';
+
+        let courseId: number | null;
+        let sessionId: number | null = null;
+
+        if (isHrd) {
+            sessionId = session_id != null ? Number(session_id) : (course_id != null ? Number(course_id) : null);
+            if (sessionId == null || isNaN(sessionId)) {
+                return c.json({ success: false, error: 'HRD 과제 등록 시 회차(session_id)가 필요합니다.' }, 400);
+            }
+            const placeholder = await c.env.DB.prepare('SELECT id FROM courses LIMIT 1').first() as { id: number } | null;
+            if (!placeholder) {
+                return c.json({ success: false, error: 'HRD 과제 등록을 위해 시스템에 과정이 하나 이상 등록되어 있어야 합니다.' }, 400);
+            }
+            courseId = placeholder.id;
+        } else {
+            courseId = course_id != null ? Number(course_id) : null;
+            if (courseId == null || isNaN(courseId)) {
+                return c.json({ success: false, error: '과정(course_id)이 필요합니다.' }, 400);
+            }
+        }
 
         const result = await c.env.DB.prepare(`
-            INSERT INTO assignments (course_id, teacher_id, title, description, due_date, max_score, attachment_url)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        `).bind(course_id, teacher_id, title, description, due_date, max_score || 100, attachment_url).run();
+            INSERT INTO assignments (course_id, session_id, teacher_id, title, description, due_date, max_score, attachment_url)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `).bind(courseId, sessionId, teacher_id ?? null, title, description || null, due_date, max_score ?? 100, attachment_url || null).run();
 
         return c.json({ success: true, data: { id: result.meta.last_row_id } });
     } catch (e) {
