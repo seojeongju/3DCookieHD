@@ -88,13 +88,8 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
             <form id="logForm" onsubmit="handleSaveLog(event)" class="p-8 space-y-6 overflow-y-auto flex-1 min-h-0 custom-scrollbar bg-white">
                 <input type="hidden" id="logId">
                 
-                <!-- 상단 설정 바 (Administrative Fields) -->
-                <div class="flex items-center justify-center bg-indigo-50/50 p-4 rounded-xl border border-indigo-100 mb-6 w-fit mx-auto">
-                     <div class="flex flex-col items-center">
-                        <label class="text-[10px] font-bold text-indigo-400 uppercase mb-1">총 훈련 시간 (H)</label>
-                        <input type="number" id="logHours" value="8" min="0" max="24" class="px-4 py-1.5 border border-indigo-200 rounded-md text-sm w-24 text-center font-bold focus:ring-2 focus:ring-indigo-500 outline-none">
-                     </div>
-                </div>
+                <input type="hidden" id="logHours" value="8">
+
             
                 <!-- Paper Form Container (Visual Match to Print) -->
                 <div class="border-2 border-gray-800 p-8 shadow-sm relative">
