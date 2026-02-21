@@ -374,23 +374,23 @@ app.get('/teacher/attendance', (c) => c.redirect('/teacher/courses?tab=attendanc
 app.get('/teacher/exams', (c) => c.redirect('/teacher/courses?tab=exams'));
 app.get('/teacher/surveys', (c) => c.redirect('/teacher/courses?tab=surveys'));
 app.get('/teacher/posts', (c) => c.html(adminPostsListHtml(teacherSidebar('posts'))));
-app.get('/teacher/courses/:id/lms/counseling', (c) => c.html(adminHrdCounselingHtml(c.req.param('id'), teacherSidebar('students'))));
+app.get('/teacher/courses/:id/lms/counseling', (c) => c.html(adminHrdCounselingHtml(c.req.param('id'), teacherSidebar('courses', 'counseling'))));
 
 // 강사용 LMS 페이지 라우트 (강의실 입장 후 이동하는 경로들)
 app.get('/teacher/courses/:id/lms', (c) => c.html(adminLmsDashboardHtml(teacherSidebar('courses'))));
-app.get('/teacher/courses/:id/lms/students', (c) => c.html(adminLmsStudentsHtml(teacherSidebar('students'))));
+app.get('/teacher/courses/:id/lms/students', (c) => c.html(adminLmsStudentsHtml(teacherSidebar('courses', 'students'))));
 app.get('/teacher/courses/:courseId/lms/students/:studentId/consultation', (c) => c.html(teacherStudentConsultationHtml(c.req.param('courseId'), c.req.param('studentId'))));
-app.get('/teacher/courses/:id/lms/attendance', (c) => c.html(adminLmsAttendanceHtml(teacherSidebar('attendance'))));
-app.get('/teacher/courses/:id/lms/ncs-eval', (c) => c.html(adminLmsNcsHtml(teacherSidebar('exams'))));
+app.get('/teacher/courses/:id/lms/attendance', (c) => c.html(adminLmsAttendanceHtml(teacherSidebar('courses', 'attendance'))));
+app.get('/teacher/courses/:id/lms/ncs-eval', (c) => c.html(adminLmsNcsHtml(teacherSidebar('courses', 'ncs'))));
 app.get('/teacher/courses/:id/lms/ncs-report', (c) => c.html(adminLmsNcsReportHtml));
 app.get('/teacher/courses/:id/lms/ncs-report/:studentId', (c) => c.html(adminLmsNcsStudentReportHtml));
-app.get('/teacher/courses/:id/lms/employment', (c) => c.html(adminLmsEmploymentHtml(teacherSidebar('courses'))));
-app.get('/teacher/courses/:id/lms/training-logs', (c) => c.html(adminLmsTrainingLogsHtml(teacherSidebar('courses'))));
-app.get('/teacher/courses/:id/lms/cbt', (c) => c.html(adminLmsCbtHtml(teacherSidebar('exams'))));
-app.get('/teacher/courses/:id/lms/grades', (c) => c.html(adminLmsGradesHtml(teacherSidebar('exams'))));
-app.get('/teacher/courses/:id/lms/surveys', (c) => c.html(adminLmsSurveysHtml(teacherSidebar('surveys'))));
-app.get('/teacher/courses/:id/lms/assignments', (c) => c.html(adminLmsAssignmentsHtml(teacherSidebar('exams'))));
-app.get('/teacher/courses/:id/lms/qr-attendance', (c) => c.html(adminLmsQrAttendanceHtml(teacherSidebar('attendance'))));
+app.get('/teacher/courses/:id/lms/employment', (c) => c.html(adminLmsEmploymentHtml(teacherSidebar('courses', 'employment'))));
+app.get('/teacher/courses/:id/lms/training-logs', (c) => c.html(adminLmsTrainingLogsHtml(teacherSidebar('courses', 'training-logs'))));
+app.get('/teacher/courses/:id/lms/cbt', (c) => c.html(adminLmsCbtHtml(teacherSidebar('courses', 'exams'))));
+app.get('/teacher/courses/:id/lms/grades', (c) => c.html(adminLmsGradesHtml(teacherSidebar('courses', 'grades'))));
+app.get('/teacher/courses/:id/lms/surveys', (c) => c.html(adminLmsSurveysHtml(teacherSidebar('courses', 'surveys'))));
+app.get('/teacher/courses/:id/lms/assignments', (c) => c.html(adminLmsAssignmentsHtml(teacherSidebar('courses', 'assignments'))));
+app.get('/teacher/courses/:id/lms/qr-attendance', (c) => c.html(adminLmsQrAttendanceHtml(teacherSidebar('courses', 'attendance'))));
 
 // ============================================
 // 페이지 라우트

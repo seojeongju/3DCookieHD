@@ -1,4 +1,19 @@
-export const lmsHeaderHtml = (activeTab = 'dashboard', defaultType = '') => `
+import { getLmsTabItems } from './lms_menu_config';
+
+export const lmsHeaderHtml = (activeTab = 'dashboard', defaultType = '') => {
+    const tabItems = getLmsTabItems();
+    const tabsHtml = tabItems
+        .map(
+            (item) => {
+                const href = item.path === '' ? 'dashboard' : item.path;
+                const isActive = (item.path === '' && activeTab === 'dashboard') || (item.path !== '' && activeTab === item.path);
+                return `<a href="${href}" class="px-4 md:px-6 py-4 transition whitespace-nowrap flex items-center gap-2 text-[13px] md:text-sm ${isActive ? 'bg-white text-indigo-700 font-bold rounded-t-xl' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
+                            <i class="fas ${item.icon}"></i> ${item.label}
+                        </a>`;
+            }
+        )
+        .join('\n                        ');
+    return `
     <!-- Top Navigation -->
     <nav class="bg-white shadow-md sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -56,39 +71,7 @@ export const lmsHeaderHtml = (activeTab = 'dashboard', defaultType = '') => `
                     <div class="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-indigo-800 to-transparent pointer-events-none z-[5] opacity-0 transition-opacity" id="lms-fade-right"></div>
                     <div class="overflow-x-auto scrollbar-hide px-2" id="lms-tab-menu" style="scroll-behavior: smooth; -webkit-overflow-scrolling: touch;">
                     <div class="flex flex-nowrap py-0 min-w-max">
-                        <a href="dashboard" class="px-4 md:px-6 py-4 transition whitespace-nowrap flex items-center gap-2 text-[13px] md:text-sm ${activeTab === 'dashboard' ? 'bg-white text-indigo-700 font-bold rounded-t-xl' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
-                            <i class="fas fa-tachometer-alt"></i> 대시보드
-                        </a>
-                        <a href="students" class="px-4 md:px-6 py-4 transition whitespace-nowrap flex items-center gap-2 text-[13px] md:text-sm ${activeTab === 'students' ? 'bg-white text-indigo-700 font-bold rounded-t-xl' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
-                            <i class="fas fa-user-graduate"></i> 수강생 관리
-                        </a>
-                        <a href="attendance" class="px-4 md:px-6 py-4 transition whitespace-nowrap flex items-center gap-2 text-[13px] md:text-sm ${activeTab === 'attendance' ? 'bg-white text-indigo-700 font-bold rounded-t-xl' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
-                            <i class="fas fa-user-clock"></i> 출석 관리
-                        </a>
-                        <a href="training-logs" class="px-4 md:px-6 py-4 transition whitespace-nowrap flex items-center gap-2 text-[13px] md:text-sm ${activeTab === 'training-logs' ? 'bg-white text-indigo-700 font-bold rounded-t-xl' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
-                            <i class="fas fa-book-open"></i> 훈련일지
-                        </a>
-                        <a href="assignments" class="px-4 md:px-6 py-4 transition whitespace-nowrap flex items-center gap-2 text-[13px] md:text-sm ${activeTab === 'assignments' ? 'bg-white text-indigo-700 font-bold rounded-t-xl' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
-                            <i class="fas fa-tasks"></i> 과제관리
-                        </a>
-                        <a href="cbt" class="px-4 md:px-6 py-4 transition whitespace-nowrap flex items-center gap-2 text-[13px] md:text-sm ${activeTab === 'cbt' ? 'bg-white text-indigo-700 font-bold rounded-t-xl' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
-                            <i class="fas fa-laptop-code"></i> 평가 및 채점
-                        </a>
-                        <a href="grades" class="px-4 md:px-6 py-4 transition whitespace-nowrap flex items-center gap-2 text-[13px] md:text-sm ${activeTab === 'grades' ? 'bg-white text-indigo-700 font-bold rounded-t-xl' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
-                            <i class="fas fa-chart-bar"></i> 성적관리
-                        </a>
-                        <a href="counseling" class="px-4 md:px-6 py-4 transition whitespace-nowrap flex items-center gap-2 text-[13px] md:text-sm ${activeTab === 'counseling' ? 'bg-white text-indigo-700 font-bold rounded-t-xl' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
-                            <i class="fas fa-comments"></i> 상담일지
-                        </a>
-                        <a href="ncs-eval" class="px-4 md:px-6 py-4 transition whitespace-nowrap flex items-center gap-2 text-[13px] md:text-sm ${activeTab === 'ncs-eval' ? 'bg-white text-indigo-700 font-bold rounded-t-xl' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
-                            <i class="fas fa-check-double"></i> NCS평가
-                        </a>
-                        <a href="surveys" class="px-4 md:px-6 py-4 transition whitespace-nowrap flex items-center gap-2 text-[13px] md:text-sm ${activeTab === 'surveys' ? 'bg-white text-indigo-700 font-bold rounded-t-xl' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
-                            <i class="fas fa-poll"></i> 설문 및 역량진단
-                        </a>
-                        <a href="employment" class="px-4 md:px-6 py-4 transition whitespace-nowrap flex items-center gap-2 text-[13px] md:text-sm ${activeTab === 'employment' ? 'bg-white text-indigo-700 font-bold rounded-t-xl' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
-                            <i class="fas fa-user-tie"></i> 취업관리
-                        </a>
+                        ${tabsHtml}
                         <!-- Crucial Spacer -->
                         <div class="w-12 flex-shrink-0"></div>
                     </div>
@@ -362,3 +345,4 @@ export const lmsHeaderHtml = (activeTab = 'dashboard', defaultType = '') => `
         })();
     </script>
 `;
+};

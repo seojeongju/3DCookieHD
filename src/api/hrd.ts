@@ -2099,14 +2099,16 @@ app.get('/stats', async (c) => {
 // 훈련생 상담 관리 API
 // ==========================================
 
-// GET /api/hrd/counseling - 상담 일지 목록 조회
+// GET /api/hrd/counseling - 상담 일지 목록 조회 (session_id: 회차별 담당학생 상담이력 연동)
 app.get('/counseling', async (c) => {
     try {
         const studentId = c.req.query('student_id');
         const courseId = c.req.query('course_id');
+        const sessionId = c.req.query('session_id'); // 회차 ID - 해당 회차 수강생 상담만 조회
         const search = c.req.query('search');
         const type = c.req.query('type'); // 'admission' or 'academic'
         const consultationId = c.req.query('consultation_id');
+        const date = c.req.query('date'); // YYYY-MM-DD
 
         let query = `
             SELECT 
@@ -2136,6 +2138,11 @@ app.get('/counseling', async (c) => {
             params.push(courseId);
         }
 
+        if (sessionId) {
+            query += ` AND cl.student_id IN (SELECT user_id FROM course_session_enrollments WHERE session_id = ? AND status IN ('approved', 'enrolled'))`;
+            params.push(sessionId);
+        }
+
         if (search) {
             query += ' AND (u_student.name LIKE ? OR cl.content LIKE ? OR cons.name LIKE ?)';
             params.push(`%${search}%`, `%${search}%`, `%${search}%`);
@@ -2149,6 +2156,11 @@ app.get('/counseling', async (c) => {
         if (consultationId) {
             query += ' AND cl.consultation_id = ?';
             params.push(consultationId);
+        }
+
+        if (date) {
+            query += ' AND date(cl.counseling_date) = ?';
+            params.push(date);
         }
 
         query += ' ORDER BY cl.counseling_date DESC';

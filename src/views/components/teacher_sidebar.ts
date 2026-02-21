@@ -1,4 +1,7 @@
+import { getSidebarPerformanceItems } from './lms_menu_config';
+
 export const teacherSidebar = (activeMenu: string, activeSubMenu?: string) => {
+    const performanceItems = getSidebarPerformanceItems();
     return `
 <!-- 모바일: 사이드바 백드롭 -->
 <div id="teacherSidebarBackdrop" class="fixed inset-0 bg-black/60 z-30 lg:hidden hidden transition-opacity backdrop-blur-sm" aria-hidden="true"></div>
@@ -78,42 +81,19 @@ export const teacherSidebar = (activeMenu: string, activeSubMenu?: string) => {
                 </button>
                 
                 <div id="performance-analysis" class="hidden overflow-hidden transition-all duration-500 space-y-1 mt-1 pl-4">
-                    <a href="/teacher/courses?tab=students" class="flex items-center px-5 py-3 rounded-xl transition-all duration-300 group ${activeSubMenu === 'students' ? 'text-blue-400 bg-white/5' : 'text-gray-400 hover:text-white hover:bg-white/5'}">
-                        <i class="fas fa-user-graduate w-6 text-xs transition-colors"></i>
-                        <span class="font-bold text-[13px]">수강생 관리</span>
-                    </a>
-                    <a href="/teacher/courses?tab=attendance" class="flex items-center px-5 py-3 rounded-xl transition-all duration-300 group ${activeSubMenu === 'attendance' ? 'text-blue-400 bg-white/5' : 'text-gray-400 hover:text-white hover:bg-white/5'}">
-                        <i class="fas fa-calendar-check w-6 text-xs transition-colors"></i>
-                        <span class="font-bold text-[13px]">출석 관리</span>
-                    </a>
-                    <a href="/teacher/courses?tab=assignments" class="flex items-center px-5 py-3 rounded-xl transition-all duration-300 group ${activeSubMenu === 'assignments' ? 'text-blue-400 bg-white/5' : 'text-gray-400 hover:text-white hover:bg-white/5'}">
-                        <i class="fas fa-tasks w-6 text-xs transition-colors"></i>
-                        <span class="font-bold text-[13px]">과제 관리</span>
-                    </a>
-                    <a href="/teacher/courses?tab=exams" class="flex items-center px-5 py-3 rounded-xl transition-all duration-300 group ${activeSubMenu === 'exams' ? 'text-blue-400 bg-white/5' : 'text-gray-400 hover:text-white hover:bg-white/5'}">
-                        <i class="fas fa-file-contract w-6 text-xs transition-colors"></i>
-                        <span class="font-bold text-[13px]">시험/문제 관리</span>
-                    </a>
-                    <a href="/teacher/courses?tab=grades" class="flex items-center px-5 py-3 rounded-xl transition-all duration-300 group ${activeSubMenu === 'grades' ? 'text-blue-400 bg-white/5' : 'text-gray-400 hover:text-white hover:bg-white/5'}">
-                        <i class="fas fa-chart-line w-6 text-xs transition-colors"></i>
-                        <span class="font-bold text-[13px]">성적/채점 관리</span>
-                    </a>
-                    <a href="/teacher/courses?tab=surveys" class="flex items-center px-5 py-3 rounded-xl transition-all duration-300 group ${activeSubMenu === 'surveys' ? 'text-blue-400 bg-white/5' : 'text-gray-400 hover:text-white hover:bg-white/5'}">
-                        <i class="fas fa-poll-h w-6 text-xs transition-colors"></i>
-                        <span class="font-bold text-[13px]">설문/진단 관리</span>
-                    </a>
-                    <a href="/teacher/courses?tab=ncs" class="flex items-center px-5 py-3 rounded-xl transition-all duration-300 group ${activeSubMenu === 'ncs' ? 'text-blue-400 bg-white/5' : 'text-gray-400 hover:text-white hover:bg-white/5'}">
-                        <i class="fas fa-certificate w-6 text-xs transition-colors"></i>
-                        <span class="font-bold text-[13px]">NCS 평가 관리</span>
-                    </a>
-                    <a href="/teacher/portfolios" class="flex items-center px-5 py-3 rounded-xl transition-all duration-300 group ${activeMenu === 'portfolios' ? 'text-blue-400 bg-white/5' : 'text-gray-400 hover:text-white hover:bg-white/5'}">
-                        <i class="fas fa-briefcase w-6 text-xs transition-colors"></i>
-                        <span class="font-bold text-[13px]">포트폴리오 관리</span>
-                    </a>
-                    <a href="/teacher/courses?tab=employment" class="flex items-center px-5 py-3 rounded-xl transition-all duration-300 group ${activeSubMenu === 'employment' ? 'text-blue-400 bg-white/5' : 'text-gray-400 hover:text-white hover:bg-white/5'}">
-                        <i class="fas fa-user-tie w-6 text-xs transition-colors"></i>
-                        <span class="font-bold text-[13px]">취업 성과 관리</span>
-                    </a>
+                    ${performanceItems
+                        .map(
+                            (item) => {
+                                const isPortfolios = item.onlySidebar === true;
+                                const href = isPortfolios ? '/teacher/portfolios' : `/teacher/courses?tab=${item.tab}`;
+                                const active = isPortfolios ? activeMenu === 'portfolios' : activeSubMenu === item.tab;
+                                return `<a href="${href}" class="flex items-center px-5 py-3 rounded-xl transition-all duration-300 group ${active ? 'text-blue-400 bg-white/5' : 'text-gray-400 hover:text-white hover:bg-white/5'}">
+                        <i class="fas ${item.icon} w-6 text-xs transition-colors"></i>
+                        <span class="font-bold text-[13px]">${item.label}</span>
+                    </a>`;
+                            }
+                        )
+                        .join('\n                    ')}
                 </div>
             </div>
         </div>
@@ -219,7 +199,7 @@ export const teacherSidebar = (activeMenu: string, activeSubMenu?: string) => {
     (function() {
         const activeSub = '${activeSubMenu || ''}';
         const activeMain = '${activeMenu || ''}';
-        const performanceMenus = ['students', 'attendance', 'assignments', 'exams', 'grades', 'surveys', 'ncs', 'employment'];
+        const performanceMenus = ${JSON.stringify(performanceItems.map((i) => i.tab))};
         const isPerformanceActive = performanceMenus.includes(activeSub) || activeMain === 'portfolios';
         
         if (isPerformanceActive) {

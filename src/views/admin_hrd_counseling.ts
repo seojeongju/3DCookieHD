@@ -103,6 +103,17 @@ export function adminHrdCounselingHtml(courseId?: string, sidebar: string = hrdS
                         </div>
                     </div>
 
+                    ${isLmsMode ? `
+                    <!-- 이 회차 담당학생 (회차별 상담이력 연동) -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 overflow-hidden relative">
+                        <h4 class="text-sm font-semibold text-gray-900 mb-1">이 회차 담당학생</h4>
+                        <p class="text-xs text-gray-500 mb-3">회차별 수강생과 상담 이력을 확인하세요.</p>
+                        <div id="sessionStudentsList" class="space-y-2 max-h-[280px] overflow-y-auto pr-1">
+                            <p class="text-gray-400 text-sm">로딩 중...</p>
+                        </div>
+                    </div>
+                    ` : ''}
+
                     <!-- 검색 필터 박스 -->
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
                         <h4 class="text-sm font-semibold text-gray-900 mb-2">데이터 정교화 검색</h4>
@@ -414,6 +425,7 @@ export function adminHrdCounselingHtml(courseId?: string, sidebar: string = hrdS
         
         // 데이터 저장 변수
         let counselingData = [];
+        let sessionStudentsList = []; // LMS 모드 시 이 회차 수강생 목록 (회차별 표시용)
         
         // 페이지네이션 상태
         let filteredData = [];
@@ -593,6 +605,8 @@ export function adminHrdCounselingHtml(courseId?: string, sidebar: string = hrdS
 
                 const sorted = studentList.filter(s => s && (s.id != null || s.user_id != null)).map(s => ({ id: s.id || s.user_id, name: s.name || '-', email: s.email || '-' })).sort((a,b) => (a.name || '').localeCompare(b.name || ''));
 
+                if (IS_LMS_MODE) sessionStudentsList = sorted;
+
                 if (sorted.length === 0 && IS_LMS_MODE) {
                     select.add(new Option('배정된 수강생이 없습니다', ''));
                 } else {
@@ -600,11 +614,13 @@ export function adminHrdCounselingHtml(courseId?: string, sidebar: string = hrdS
                         select.add(new Option(s.name + ' (' + (s.email || '-') + ')', String(s.id)));
                     });
                 }
+                if (IS_LMS_MODE) updateSessionStudentsPanel();
             } catch (e) {
                 console.error('학생 로드 실패', e);
                 if (IS_LMS_MODE) {
                     const select = document.getElementById('studentSelect');
                     if (select) select.innerHTML = '<option value="">수강생 로드 실패 (다시 시도해 주세요)</option>';
+                    updateSessionStudentsPanel();
                 }
             }
         }
@@ -641,9 +657,12 @@ export function adminHrdCounselingHtml(courseId?: string, sidebar: string = hrdS
                 let url = "/api/hrd/counseling?type=" + currentType + "&";
                 if (search) url += "search=" + encodeURIComponent(search) + "&";
                 
-                // LMS 모드면 URL의 ID로 필터링, 아니면 셀렉트 박스 필터링
-                const filterCourseId = IS_LMS_MODE ? COURSE_ID : courseId;
-                if (filterCourseId) url += "course_id=" + filterCourseId + "&";
+                // LMS 모드: 회차(session) 기준 담당학생 상담이력 연동 — session_id로 필터
+                if (IS_LMS_MODE && COURSE_ID) {
+                    url += "session_id=" + encodeURIComponent(COURSE_ID) + "&";
+                } else if (courseId) {
+                    url += "course_id=" + encodeURIComponent(courseId) + "&";
+                }
                 
                 if (date) url += "date=" + date + "&";
                 
@@ -663,10 +682,34 @@ export function adminHrdCounselingHtml(courseId?: string, sidebar: string = hrdS
                 renderLogsWithPagination();
                 updateStats(counselingData);
                 updatePaginationUI();
+                if (IS_LMS_MODE) updateSessionStudentsPanel();
             } catch (e) {
                 console.error('로그 로드 실패', e);
                 listContainer.innerHTML = \`<div class="p-10 text-red-500 text-center font-medium">데이터 로드 중 오류가 발생했습니다.</div>\`;
             }
+        }
+
+        function updateSessionStudentsPanel() {
+            const el = document.getElementById('sessionStudentsList');
+            if (!el) return;
+            if (sessionStudentsList.length === 0) {
+                el.innerHTML = '<p class="text-gray-400 text-sm">이 회차 수강생이 없습니다.</p>';
+                return;
+            }
+            const countByStudent = {};
+            (counselingData || []).forEach(log => {
+                const sid = log.student_id;
+                if (sid != null) { countByStudent[sid] = (countByStudent[sid] || 0) + 1; }
+            });
+            const basePath = '/teacher/courses/' + COURSE_ID + '/lms/students/';
+            const linkSuffix = 'consultation?type=hrd';
+            el.innerHTML = sessionStudentsList.map(s => {
+                const cnt = countByStudent[s.id] || 0;
+                return \`<a href="\${basePath}\${s.id}/\${linkSuffix}" class="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-gray-50 hover:bg-blue-50 border border-transparent hover:border-blue-100 transition text-left">
+                    <span class="text-sm font-medium text-gray-800 truncate">\${s.name || '-'}</span>
+                    <span class="flex-shrink-0 px-2 py-0.5 rounded-lg text-[10px] font-bold \${cnt ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}">상담 \${cnt}건</span>
+                </a>\`;
+            }).join('');
         }
 
         function updateStats(data) {
