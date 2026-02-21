@@ -70,7 +70,7 @@ export const teacherSidebar = (activeMenu: string, activeSubMenu?: string) => {
                     <div class="w-8 flex justify-center">
                         <i class="fas fa-user-graduate text-sm ${(activeMenu === 'students' || activeSubMenu === 'students') ? 'text-white' : 'text-gray-400 group-hover:text-blue-400 transition-colors'}"></i>
                     </div>
-                    <span class="font-black text-sm tracking-tight">수강생 분석</span>
+                    <span class="font-black text-sm tracking-tight">수강생 관리</span>
                 </a>
                 <a href="/teacher/courses?tab=attendance" class="flex items-center px-5 py-4 rounded-2xl transition-all duration-500 group ${(activeMenu === 'attendance' || activeSubMenu === 'attendance') ? 'bg-blue-600 text-white shadow-xl shadow-blue-900/40 border border-white/10' : 'text-gray-400 hover:bg-white/5 hover:text-white'}">
                     <div class="w-8 flex justify-center">

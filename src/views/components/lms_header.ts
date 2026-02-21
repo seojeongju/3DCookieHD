@@ -50,7 +50,7 @@ export const lmsHeaderHtml = (activeTab = 'dashboard', defaultType = '') => `
                     <i class="fas fa-tachometer-alt"></i> 대시보드
                 </a>
                 <a href="students" class="px-3 md:px-4 py-3 rounded-t-xl transition whitespace-nowrap flex items-center gap-1.5 md:gap-2 text-[13px] md:text-sm ${activeTab === 'students' ? 'bg-white text-indigo-700 font-bold' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
-                    <i class="fas fa-user-graduate"></i> 수강생 분석
+                    <i class="fas fa-user-graduate"></i> 수강생 관리
                 </a>
                 <a href="attendance" class="px-3 md:px-4 py-3 rounded-t-xl transition whitespace-nowrap flex items-center gap-1.5 md:gap-2 text-[13px] md:text-sm ${activeTab === 'attendance' ? 'bg-white text-indigo-700 font-bold' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
                     <i class="fas fa-user-clock"></i> 출석 관리
