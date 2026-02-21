@@ -328,7 +328,7 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
                                 <button onclick="printLog(\${log.id})" class="w-9 h-9 flex items-center justify-center bg-white border border-gray-100 text-slate-400 hover:text-gray-700 hover:border-gray-300 hover:shadow-md transition-all rounded-xl active:scale-90">
                                     <i class="fas fa-print text-xs"></i>
                                 </button>
-                                <button onclick="editLog(\${JSON.stringify(log).replace(/"/g, '&quot;')})" class="w-9 h-9 flex items-center justify-center bg-white border border-gray-100 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 hover:shadow-md transition-all rounded-xl active:scale-90">
+                                <button onclick="editLog(\${log.id})" class="w-9 h-9 flex items-center justify-center bg-white border border-gray-100 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 hover:shadow-md transition-all rounded-xl active:scale-90">
                                     <i class="fas fa-edit text-xs"></i>
                                 </button>
                                 <button onclick="deleteLog(\${log.id})" class="w-9 h-9 flex items-center justify-center bg-white border border-gray-100 text-slate-400 hover:text-rose-500 hover:border-rose-100 hover:shadow-md transition-all rounded-xl active:scale-90">
@@ -614,6 +614,10 @@ async function printLog(id) {
         
         window.printLog = printLog;
         window.deleteLog = deleteLog;
+        window.openLogModal = openLogModal;
+        window.closeLogModal = closeLogModal;
+        window.editLog = editLog;
+        window.handleSaveLog = handleSaveLog;
 
         async function calculateNcsProgress() {
             try {
@@ -862,7 +866,11 @@ async function printLog(id) {
             }
         }
 
-        async function editLog(log) {
+        async function editLog(idOrLog) {
+            const log = typeof idOrLog === 'object' && idOrLog !== null
+                ? idOrLog
+                : await fetch('/api/hrd/training-logs/' + idOrLog, { headers: { 'Authorization': 'Bearer ' + token } }).then(r => r.json()).then(j => j.data || j);
+            if (!log || !log.id) { alert('일지 정보를 불러올 수 없습니다.'); return; }
             const elId = document.getElementById('logId');
             const elDate = document.getElementById('logDate');
             const elContent = document.getElementById('logContent');

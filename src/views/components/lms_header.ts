@@ -43,10 +43,18 @@ export const lmsHeaderHtml = (activeTab = 'dashboard', defaultType = '') => `
             </div>
         </div>
         
-        <!-- Tab Menu Container with Horizontal Scroll & More Button -->
+        <!-- Tab Menu Container with Horizontal Scroll, Arrows & More -->
         <div class="mt-4 border-t border-white/10 w-full relative group/menu">
             <div class="flex items-center">
-                <div class="flex-1 overflow-x-auto scrollbar-hide px-4 sm:px-6 lg:px-8" id="lms-tab-menu" style="scroll-behavior: smooth; -webkit-overflow-scrolling: touch;">
+                <!-- Left arrow: scroll left -->
+                <button type="button" id="lms-tab-scroll-left" aria-label="메뉴 왼쪽으로" class="hidden flex-shrink-0 h-12 w-10 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all z-10">
+                    <i class="fas fa-chevron-left text-sm"></i>
+                </button>
+                <!-- Scroll area with edge gradients -->
+                <div class="flex-1 min-w-0 relative">
+                    <div class="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-indigo-800 to-transparent pointer-events-none z-[5] opacity-0 transition-opacity" id="lms-fade-left"></div>
+                    <div class="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-indigo-800 to-transparent pointer-events-none z-[5] opacity-0 transition-opacity" id="lms-fade-right"></div>
+                    <div class="overflow-x-auto scrollbar-hide px-2" id="lms-tab-menu" style="scroll-behavior: smooth; -webkit-overflow-scrolling: touch;">
                     <div class="flex flex-nowrap py-0 min-w-max">
                         <a href="dashboard" class="px-4 md:px-6 py-4 transition whitespace-nowrap flex items-center gap-2 text-[13px] md:text-sm ${activeTab === 'dashboard' ? 'bg-white text-indigo-700 font-bold rounded-t-xl' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
                             <i class="fas fa-tachometer-alt"></i> 대시보드
@@ -84,7 +92,13 @@ export const lmsHeaderHtml = (activeTab = 'dashboard', defaultType = '') => `
                         <!-- Crucial Spacer -->
                         <div class="w-12 flex-shrink-0"></div>
                     </div>
+                    </div>
                 </div>
+
+                <!-- Right arrow: scroll right -->
+                <button type="button" id="lms-tab-scroll-right" aria-label="메뉴 오른쪽으로" class="hidden flex-shrink-0 h-12 w-10 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all z-10">
+                    <i class="fas fa-chevron-right text-sm"></i>
+                </button>
 
                 <!-- More Button -->
                 <div class="relative px-2 sm:px-4 bg-indigo-800/80 backdrop-blur shadow-[-10px_0_15px_-5px_rgba(0,0,0,0.3)] z-10 block">
@@ -109,6 +123,34 @@ export const lmsHeaderHtml = (activeTab = 'dashboard', defaultType = '') => `
     </style>
 
     <script>
+        var LMS_TAB_SCROLL_STEP = 240;
+
+        function updateLmsTabArrows() {
+            var menu = document.getElementById('lms-tab-menu');
+            var btnLeft = document.getElementById('lms-tab-scroll-left');
+            var btnRight = document.getElementById('lms-tab-scroll-right');
+            var fadeLeft = document.getElementById('lms-fade-left');
+            var fadeRight = document.getElementById('lms-fade-right');
+            if (!menu) return;
+            var canScrollLeft = menu.scrollLeft > 0;
+            var canScrollRight = menu.scrollLeft + menu.clientWidth < menu.scrollWidth - 1;
+            if (btnLeft) {
+                if (canScrollLeft) { btnLeft.classList.remove('hidden'); btnLeft.style.display = 'flex'; } else { btnLeft.classList.add('hidden'); btnLeft.style.display = 'none'; }
+            }
+            if (btnRight) {
+                if (canScrollRight) { btnRight.classList.remove('hidden'); btnRight.style.display = 'flex'; } else { btnRight.classList.add('hidden'); btnRight.style.display = 'none'; }
+            }
+            if (fadeLeft) fadeLeft.style.opacity = canScrollLeft ? '1' : '0';
+            if (fadeRight) fadeRight.style.opacity = canScrollRight ? '1' : '0';
+        }
+
+        function scrollLmsTabs(direction) {
+            var menu = document.getElementById('lms-tab-menu');
+            if (!menu) return;
+            var step = typeof LMS_TAB_SCROLL_STEP === 'number' ? LMS_TAB_SCROLL_STEP : 240;
+            menu.scrollBy({ left: direction === 'left' ? -step : step, behavior: 'smooth' });
+        }
+
         window.toggleMoreMenu = function(e) {
             e.stopPropagation();
             const dropdown = document.getElementById('lms-more-dropdown');
@@ -156,13 +198,25 @@ export const lmsHeaderHtml = (activeTab = 'dashboard', defaultType = '') => `
         });
 
         (function() {
-            setTimeout(() => {
-                const container = document.getElementById('lms-tab-menu');
+            var menu = document.getElementById('lms-tab-menu');
+            var btnLeft = document.getElementById('lms-tab-scroll-left');
+            var btnRight = document.getElementById('lms-tab-scroll-right');
+            if (btnLeft) btnLeft.addEventListener('click', function() { scrollLmsTabs('left'); });
+            if (btnRight) btnRight.addEventListener('click', function() { scrollLmsTabs('right'); });
+            if (menu) {
+                menu.addEventListener('scroll', updateLmsTabArrows);
+                window.addEventListener('resize', updateLmsTabArrows);
+                updateLmsTabArrows();
+            }
+
+            setTimeout(function() {
+                var container = document.getElementById('lms-tab-menu');
                 if (container) {
-                    const activeTab = container.querySelector('.bg-white');
+                    var activeTab = container.querySelector('.bg-white');
                     if (activeTab) {
                         activeTab.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'center' });
                     }
+                    updateLmsTabArrows();
                 }
             }, 300);
             function updateLmsLinks() {
