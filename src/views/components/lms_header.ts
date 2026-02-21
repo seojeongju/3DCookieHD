@@ -43,11 +43,11 @@ export const lmsHeaderHtml = (activeTab = 'dashboard', defaultType = '') => `
             </div>
         </div>
         
-        <!-- Tab Menu Container with Horizontal Scroll Support -->
-        <div class="border-t border-white/10 mt-4">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="flex overflow-x-auto scrollbar-hide py-0" id="lms-tab-menu" style="scroll-behavior: smooth; -webkit-overflow-scrolling: touch;">
-                    <div class="flex flex-nowrap min-w-max">
+        <!-- Tab Menu Container with Horizontal Scroll & More Button -->
+        <div class="mt-4 border-t border-white/10 w-full relative group/menu">
+            <div class="flex items-center">
+                <div class="flex-1 overflow-x-auto scrollbar-hide px-4 sm:px-6 lg:px-8" id="lms-tab-menu" style="scroll-behavior: smooth; -webkit-overflow-scrolling: touch;">
+                    <div class="flex flex-nowrap py-0 min-w-max">
                         <a href="dashboard" class="px-4 md:px-6 py-4 transition whitespace-nowrap flex items-center gap-2 text-[13px] md:text-sm ${activeTab === 'dashboard' ? 'bg-white text-indigo-700 font-bold rounded-t-xl' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
                             <i class="fas fa-tachometer-alt"></i> 대시보드
                         </a>
@@ -81,8 +81,22 @@ export const lmsHeaderHtml = (activeTab = 'dashboard', defaultType = '') => `
                         <a href="employment" class="px-4 md:px-6 py-4 transition whitespace-nowrap flex items-center gap-2 text-[13px] md:text-sm ${activeTab === 'employment' ? 'bg-white text-indigo-700 font-bold rounded-t-xl' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
                             <i class="fas fa-user-tie"></i> 취업관리
                         </a>
-                        <!-- Padding for end of scroll -->
-                        <div class="w-12 h-1 flex-shrink-0"></div>
+                        <!-- Crucial Spacer -->
+                        <div class="w-12 flex-shrink-0"></div>
+                    </div>
+                </div>
+
+                <!-- More Button -->
+                <div class="relative px-2 sm:px-4 bg-indigo-800/80 backdrop-blur shadow-[-10px_0_15px_-5px_rgba(0,0,0,0.3)] z-10 block">
+                    <button id="lms-more-menu-btn" onclick="toggleMoreMenu(event)" class="h-12 w-12 flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all">
+                        <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                    <!-- More Dropdown -->
+                    <div id="lms-more-dropdown" class="hidden absolute right-4 top-14 w-56 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-[60] py-2">
+                        <div class="px-4 py-2 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-50 mb-1">전체 메뉴</div>
+                        <div id="lms-dropdown-items" class="max-h-[60vh] overflow-y-auto custom-scrollbar">
+                            <!-- Items will be mirrored here by script -->
+                        </div>
                     </div>
                 </div>
             </div>
@@ -95,14 +109,47 @@ export const lmsHeaderHtml = (activeTab = 'dashboard', defaultType = '') => `
     </style>
 
     <script>
+        window.toggleMoreMenu = function(e) {
+            e.stopPropagation();
+            const dropdown = document.getElementById('lms-more-dropdown');
+            if (dropdown) {
+                dropdown.classList.toggle('hidden');
+                if (!dropdown.classList.contains('hidden')) {
+                    mirrorTabsToDropdown();
+                }
+            }
+        };
+
+        function mirrorTabsToDropdown() {
+            const tabMenu = document.getElementById('lms-tab-menu');
+            const dropdownContainer = document.getElementById('lms-dropdown-items');
+            if (!tabMenu || !dropdownContainer) return;
+
+            const tabs = tabMenu.querySelectorAll('a');
+            let html = '';
+            tabs.forEach(tab => {
+                const isActive = tab.classList.contains('bg-white');
+                const href = tab.getAttribute('href');
+                const content = tab.innerHTML;
+                html += '<a href="' + href + '" class="flex items-center gap-3 px-5 py-3 text-sm transition-colors ' + (isActive ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-gray-600 hover:bg-gray-50') + '">' +
+                        content +
+                        '</a>';
+            });
+            dropdownContainer.innerHTML = html;
+        }
+
+        document.addEventListener('click', () => {
+            const dropdown = document.getElementById('lms-more-dropdown');
+            if (dropdown) dropdown.classList.add('hidden');
+        });
+
         (function() {
             setTimeout(() => {
                 const container = document.getElementById('lms-tab-menu');
                 if (container) {
-                    // 현재 활성화된 탭으로 스크롤 이동
                     const activeTab = container.querySelector('.bg-white');
                     if (activeTab) {
-                        activeTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                        activeTab.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'center' });
                     }
                 }
             }, 300);

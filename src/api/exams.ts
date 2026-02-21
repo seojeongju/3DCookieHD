@@ -9,25 +9,27 @@ const exams = new Hono<{ Bindings: Bindings }>();
 // Auth middleware for all exam routes (or specific ones if preferred)
 // exams.use('*', authMiddleware);
 
-// GET /api/exams - List all exams (with teacher filtering)
+// GET /api/exams - List all exams (with teacher/student filtering)
 exams.get('/', async (c) => {
     try {
         const authHeader = c.req.header('Authorization');
-        let teacherId: number | null = null;
-        
+        let userId: number | null = null;
+        let userRole: string | null = null;
+
         if (authHeader && authHeader.startsWith('Bearer ')) {
             try {
                 const { verifyToken } = await import('../utils/jwt');
                 const token = authHeader.substring(7);
                 const payload = await verifyToken(token);
-                if (payload && payload.role === 'teacher') {
-                    teacherId = payload.userId;
+                if (payload) {
+                    userId = payload.userId;
+                    userRole = payload.role;
                 }
             } catch (e) {
-                // Token invalid or missing, continue without teacher filter
+                // Token invalid or missing
             }
         }
-        
+
         let query = `
             SELECT e.*, c.title as course_title, c.teacher_id
             FROM exams e 
@@ -35,14 +37,25 @@ exams.get('/', async (c) => {
             WHERE 1=1
         `;
         const params: any[] = [];
-        
-        if (teacherId) {
+
+        if (userRole === 'teacher' && userId) {
             query += ' AND c.teacher_id = ?';
-            params.push(teacherId);
+            params.push(userId);
+        } else if (userRole === 'student' && userId) {
+            // 학생은 본인이 수강 승인된 과정의 시험만 볼 수 있음
+            query += ` AND e.course_id IN (
+                SELECT course_id FROM enrollments WHERE user_id = ? AND status = 'approved'
+                UNION
+                SELECT cs.course_id 
+                FROM course_session_enrollments cse
+                JOIN course_sessions cs ON cse.session_id = cs.id
+                WHERE cse.user_id = ? AND cse.status = 'approved'
+            )`;
+            params.push(userId, userId);
         }
-        
+
         query += ' ORDER BY e.created_at DESC';
-        
+
         const { results } = await c.env.DB.prepare(query).bind(...params).all();
         return successResponse(c, results || []);
     } catch (e: any) {
@@ -163,7 +176,7 @@ exams.get('/:id', authMiddleware, async (c) => {
             WHERE e.id = ?
         `).bind(id).first();
         if (!exam) return notFoundResponse(c, 'Exam not found');
-        
+
         // 강사는 본인이 담당하는 과정의 시험만 조회 가능
         if (user.role === 'teacher' && exam.teacher_id !== user.userId) {
             return errorResponse(c, '본인이 담당하는 과정의 시험만 조회할 수 있습니다', 403);
@@ -189,7 +202,7 @@ exams.get('/:id/status', authMiddleware, async (c) => {
     const examId = c.req.param('id');
     try {
         const user = c.get('user');
-        
+
         // 1. 시험 정보 및 과정 ID 조회
         const exam: any = await c.env.DB.prepare(`
             SELECT e.*, c.teacher_id 
@@ -198,7 +211,7 @@ exams.get('/:id/status', authMiddleware, async (c) => {
             WHERE e.id = ?
         `).bind(examId).first();
         if (!exam) return notFoundResponse(c, 'Exam not found');
-        
+
         // 강사는 본인이 담당하는 과정의 시험만 조회 가능
         if (user.role === 'teacher' && exam.teacher_id !== user.userId) {
             return errorResponse(c, '본인이 담당하는 과정의 시험만 조회할 수 있습니다', 403);
@@ -303,7 +316,7 @@ exams.delete('/:id', authMiddleware, async (c) => {
     const id = c.req.param('id');
     try {
         const user = c.get('user');
-        
+
         // 강사는 본인이 담당하는 과정의 시험만 삭제 가능
         if (user.role === 'teacher') {
             const exam: any = await c.env.DB.prepare(`
@@ -316,7 +329,7 @@ exams.delete('/:id', authMiddleware, async (c) => {
                 return errorResponse(c, '본인이 담당하는 과정의 시험만 삭제할 수 있습니다', 403);
             }
         }
-        
+
         await c.env.DB.batch([
             c.env.DB.prepare('DELETE FROM exam_questions WHERE exam_id = ?').bind(id),
             c.env.DB.prepare('DELETE FROM exams WHERE id = ?').bind(id)
@@ -539,21 +552,21 @@ exams.post('/:id/grade', authMiddleware, async (c) => {
         const updatePromises = Object.entries(question_scores || {}).map(async ([questionId, score]: [string, any]) => {
             const qId = parseInt(questionId);
             const points = parseFloat(score) || 0;
-            
+
             // 문제 정보 조회
             const question: any = await c.env.DB.prepare('SELECT points FROM exam_questions WHERE id = ? AND exam_id = ?').bind(qId, examId).first();
             if (!question) return;
-            
+
             const maxPoints = question.points || 0;
             const awardedPoints = Math.min(Math.max(0, points), maxPoints); // 0 ~ maxPoints 사이로 제한
-            
+
             // exam_answers 업데이트
             await c.env.DB.prepare(`
                 UPDATE exam_answers 
                 SET score_awarded = ?, is_correct = ?
                 WHERE submission_id = ? AND question_id = ?
             `).bind(awardedPoints, awardedPoints === maxPoints ? 1 : 0, submission_id, qId).run();
-            
+
             newTotalScore += awardedPoints;
         });
 
@@ -565,7 +578,7 @@ exams.post('/:id/grade', authMiddleware, async (c) => {
             FROM exam_answers ea
             WHERE ea.submission_id = ?
         `).bind(submission_id).all();
-        
+
         const recalculatedTotal = allAnswers.reduce((sum: number, a: any) => sum + (a.score_awarded || 0), 0);
 
         // exam_submissions 총점 업데이트
@@ -575,9 +588,9 @@ exams.post('/:id/grade', authMiddleware, async (c) => {
             WHERE id = ?
         `).bind(recalculatedTotal, submission_id).run();
 
-        return successResponse(c, { 
-            submission_id, 
-            total_score: recalculatedTotal 
+        return successResponse(c, {
+            submission_id,
+            total_score: recalculatedTotal
         }, '채점이 완료되었습니다');
     } catch (e: any) {
         console.error('Grade exam error:', e);
@@ -620,7 +633,7 @@ exams.get('/:id/submissions/:submission_id', authMiddleware, async (c) => {
     const submissionId = c.req.param('submission_id');
     try {
         const user = c.get('user');
-        
+
         // 시험 및 과정 확인
         const exam: any = await c.env.DB.prepare(`
             SELECT e.*, c.teacher_id 

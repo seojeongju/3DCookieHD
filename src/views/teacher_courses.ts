@@ -1,7 +1,7 @@
 import { teacherSidebar } from './components/teacher_sidebar';
 
 function teacherCoursesHtmlInner(activeSubMenu?: string) {
-    const tab = activeSubMenu && ['students', 'attendance', 'exams', 'surveys'].includes(activeSubMenu) ? activeSubMenu : undefined;
+    const tab = activeSubMenu && ['students', 'attendance', 'assignments', 'exams', 'grades', 'surveys', 'ncs', 'employment'].includes(activeSubMenu) ? activeSubMenu : undefined;
     return `
 <!DOCTYPE html>
 <html lang="ko">

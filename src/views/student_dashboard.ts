@@ -704,58 +704,80 @@ export const studentDashboardHtml = () => `
 
                 if (dataPlans.success && dataPlans.data.length > 0) {
                     html += dataPlans.data.map(p => \`
-                        <tr>
-                            <td class="px-6 py-4">
-                                <div class="text-xs text-gray-400 mb-0.5">\${p.course_title}</div>
-                                <div class="text-sm font-bold text-gray-800">[\${p.unit_code}] \${p.unit_name}</div>
-                                <div class="text-[10px] text-gray-500 mt-1"><i class="far fa-calendar-alt mr-1"></i> 예정일: \${p.planned_date || '미정'} / 방법: \${p.method}</div>
+                        <tr class="hover:bg-slate-50/50 transition-colors">
+                            <td class="px-6 py-5">
+                                <div class="text-[10px] text-sky-600 font-black uppercase tracking-widest mb-1">\${p.course_title}</div>
+                                <div class="text-sm font-bold text-slate-800">[\${p.unit_code}] \${p.unit_name}</div>
+                                <div class="flex flex-wrap gap-3 mt-2">
+                                    <span class="text-[10px] text-slate-400 font-bold flex items-center gap-1"><i class="far fa-calendar-alt"></i> 예정: \${p.planned_date || '미정'}</span>
+                                    <span class="text-[10px] text-slate-400 font-bold flex items-center gap-1"><i class="fas fa-vial"></i> 방법: \${p.method}</span>
+                                </div>
                             </td>
-                            <td class="px-6 py-4">
-                                <span id="status-plan-\${p.id}" class="text-[10px] font-bold text-gray-400">확인 중...</span>
+                            <td class="px-6 py-5">
+                                <div id="status-plan-\${p.id}" class="inline-flex items-center px-2.5 py-1 rounded-full bg-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                    확인 중...
+                                </div>
                             </td>
-                            <td class="px-6 py-4 text-right">
-                                <button onclick="openUploadModal(\${p.id}, '\${p.unit_name}')" class="px-4 py-2 bg-purple-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-900 transition shadow-lg shadow-purple-100">
-                                    자료제출
+                            <td class="px-6 py-5 text-right">
+                                <button onclick="openUploadModal(\${p.id}, '\${p.unit_name}', '\${p.course_title} - \${p.unit_name}')" class="px-4 py-2 bg-sky-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-900 transition shadow-lg shadow-sky-100 whitespace-nowrap">
+                                    <i class="fas fa-upload mr-1"></i> 자료제출
                                 </button>
                             </td>
                         </tr>
                     \`).join('');
                 } else {
-                    html += '<tr><td colspan="3" class="px-6 py-10 text-center text-gray-400 text-sm">진행 중인 평가 계획이 없습니다.</td></tr>';
+                    html += '<tr><td colspan="3" class="px-6 py-12 text-center text-slate-400 text-sm font-bold">진행 중인 평가 계획이 없습니다.</td></tr>';
                 }
 
                 html += \`
                                     </tbody>
                                 </table>
                             </div>
+                            <p class="mt-4 text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-relaxed">
+                                <i class="fas fa-info-circle mr-1 text-sky-500"></i> 실기 및 프로젝트 과제물은 클라우드 링크(Google Drive 등)를 통해 제출해 주세요. 제출 후 담당 강사가 확인 및 채점을 진행합니다.
+                            </p>
                         </section>
                     </div>
 
                     <!-- 업로드 모달 (벤토 스타일) -->
                     <div id="uploadModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm hidden z-[70] flex items-center justify-center p-4">
                         <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md border border-slate-200/60 overflow-hidden">
-                            <div class="px-8 py-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
-                                <h3 class="font-black text-slate-900 tracking-tight uppercase text-sm">실기/과제 증빙 제출</h3>
+                            <div class="px-8 py-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center text-slate-900">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-xl bg-sky-600 text-white flex items-center justify-center shadow-lg shadow-sky-100">
+                                        <i class="fas fa-cloud-upload-alt"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-black tracking-tight uppercase text-sm">증빙 자료 제출</h3>
+                                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">NCS 실기/과제 평가</p>
+                                    </div>
+                                </div>
                                 <button onclick="closeUploadModal()" class="w-10 h-10 flex items-center justify-center rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 transition"><i class="fas fa-times"></i></button>
                             </div>
                             <div class="p-8 space-y-6">
                                 <input type="hidden" id="uploadPlanId">
-                                <div>
-                                    <label class="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">대상 능력단위</label>
-                                    <div id="uploadUnitName" class="text-lg font-bold text-gray-800"></div>
+                                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">대상 능력단위</label>
+                                    <div id="uploadUnitName" class="text-sm font-black text-slate-800 tracking-tight leading-tight"></div>
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">파일 URL</label>
-                                    <input type="text" id="uploadFileUrl" placeholder="첨부파일 링크 또는 구글드라이브 URL" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 outline-none transition">
-                                    <p class="text-[10px] text-gray-400 mt-2">* 현재 파일 업로드는 준비 중이며, 클라우드 링크 제출만 가능합니다.</p>
+                                    <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-2">제출물 제목 *</label>
+                                    <input type="text" id="uploadFileName" placeholder="예: [과제1] 캐릭터 모델링 결과물" class="w-full px-5 py-3.5 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none font-medium text-slate-900 transition">
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">학생 의견/설명</label>
-                                    <textarea id="uploadComment" rows="3" placeholder="제출물에 대한 설명을 적어주세요..." class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 outline-none transition"></textarea>
+                                    <label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-2">파일/링크 URL *</label>
+                                    <input type="text" id="uploadFileUrl" placeholder="구글 드라이브, Notion 링크 등" class="w-full px-5 py-3.5 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none font-medium text-slate-900 transition">
+                                      <p class="text-[9px] text-slate-400 mt-2 font-bold leading-relaxed">자료가 여러 개인 경우 공유 폴더 링크를 제출해 주세요. 권한 설정(링크가 있는 모든 사용자가 보기 가능)을 반드시 확인해 주세요.</p>
                                 </div>
-                                <button onclick="submitEvidence()" class="w-full py-4 bg-purple-600 text-white font-bold rounded-xl hover:bg-purple-700 transition shadow-lg shadow-purple-100">
-                                    제출 완료하기
-                                </button>
+                                <div>
+                                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">학생 의견/설명</label>
+                                    <textarea id="uploadComment" rows="3" placeholder="제출물에 대한 설명을 적어주세요..." class="w-full px-5 py-3.5 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none font-medium text-slate-900 transition"></textarea>
+                                </div>
+                                <div class="pt-2">
+                                    <button onclick="submitEvidence()" class="w-full py-4 bg-sky-600 text-white font-black rounded-2xl hover:bg-slate-900 transition shadow-xl shadow-sky-100 uppercase text-xs tracking-widest">
+                                        <i class="fas fa-check-circle mr-2"></i> 제출 완료하기
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -781,39 +803,33 @@ export const studentDashboardHtml = () => `
                 const result = await res.json();
                 const statusSpan = document.getElementById('status-plan-' + planId);
                 if (result.success && result.data.length > 0) {
-                    statusSpan.innerHTML = '<span class="text-green-600"><i class="fas fa-check-circle mr-1"></i>제출함</span>';
+                    statusSpan.innerHTML = '<i class="fas fa-check-circle mr-1 text-emerald-500"></i> 제출완료';
+                    statusSpan.className = 'inline-flex items-center px-2.5 py-1 rounded-full bg-emerald-50 text-[10px] font-black text-emerald-600 uppercase tracking-widest';
                 } else {
                     statusSpan.textContent = '미제출';
+                    statusSpan.className = 'inline-flex items-center px-2.5 py-1 rounded-full bg-rose-50 text-[10px] font-black text-rose-500 uppercase tracking-widest';
                 }
             } catch (e) { console.error(e); }
         }
 
-        function openUploadModal(planId, unitName) {
-            document.getElementById('uploadPlanId').value = planId;
-            document.getElementById('uploadUnitName').textContent = unitName;
-            document.getElementById('uploadFileUrl').value = '';
-            document.getElementById('uploadComment').value = '';
-            document.getElementById('uploadModal').classList.remove('hidden');
-        }
-
-        function closeUploadModal() { document.getElementById('uploadModal').classList.add('hidden'); }
-
         async function submitEvidence() {
-            const planId = document.getElementById('uploadPlanId').value;
-            const fileUrl = document.getElementById('uploadFileUrl').value;
-            const comment = document.getElementById('uploadComment').value;
+            const planId = (document.getElementById('uploadPlanId') as HTMLInputElement).value;
+            const fileName = (document.getElementById('uploadFileName') as HTMLInputElement).value;
+            const fileUrl = (document.getElementById('uploadFileUrl') as HTMLInputElement).value;
+            const comment = (document.getElementById('uploadComment') as HTMLTextAreaElement).value;
             const user = JSON.parse(localStorage.getItem('user'));
 
-            if (!fileUrl) return alert('파일 URL을 입력해주세요.');
+            if (!fileName) return alert('제출물 제목을 입력해주세요.');
+            if (!fileUrl) return alert('파일 URL 또는 링크를 입력해주세요.');
 
             try {
                 const res = await fetch('/api/ncs/evidence', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
                     body: JSON.stringify({
                         plan_id: parseInt(planId),
                         student_id: user.id,
-                        file_name: '증빙자료',
+                        file_name: fileName,
                         file_url: fileUrl,
                         file_type: 'link',
                         comment: comment
@@ -821,15 +837,28 @@ export const studentDashboardHtml = () => `
                 });
                 const result = await res.json();
                 if (result.success) {
-                    alert('제출되었습니다.');
+                    alert('성공적으로 제출되었습니다.');
                     closeUploadModal();
                     loadNcsStatus();
+                } else {
+                    alert(result.error || '제출에 실패했습니다.');
                 }
             } catch (e) {
                 console.error(e);
-                alert('자료 제출에 실패했습니다.');
+                alert('자료 제출 중 오류가 발생했습니다.');
             }
         }
+
+        function openUploadModal(planId, unitName, defaultFileName = '') {
+            (document.getElementById('uploadPlanId') as HTMLInputElement).value = planId;
+            document.getElementById('uploadUnitName').textContent = unitName;
+            (document.getElementById('uploadFileName') as HTMLInputElement).value = defaultFileName;
+            (document.getElementById('uploadFileUrl') as HTMLInputElement).value = '';
+            (document.getElementById('uploadComment') as HTMLTextAreaElement).value = '';
+            document.getElementById('uploadModal').classList.remove('hidden');
+        }
+
+        function closeUploadModal() { document.getElementById('uploadModal').classList.add('hidden'); }
 
         // --- 포트폴리오 기능 ---
         let myEnrollments = [];

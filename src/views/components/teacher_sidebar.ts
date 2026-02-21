@@ -59,45 +59,70 @@ export const teacherSidebar = (activeMenu: string, activeSubMenu?: string) => {
             </div>
         </div>
 
-        <!-- 학생 성과 -->
+        <!-- 학생 성과 분석 (Accordion) -->
         <div class="space-y-3">
             <div class="px-5 flex items-center gap-3">
                 <span class="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]"></span>
                 <span class="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">학생 성과 분석</span>
             </div>
-            <div class="space-y-1.5">
-                <a href="/teacher/courses?tab=students" class="flex items-center px-5 py-4 rounded-2xl transition-all duration-500 group ${(activeMenu === 'students' || activeSubMenu === 'students') ? 'bg-blue-600 text-white shadow-xl shadow-blue-900/40 border border-white/10' : 'text-gray-400 hover:bg-white/5 hover:text-white'}">
-                    <div class="w-8 flex justify-center">
-                        <i class="fas fa-user-graduate text-sm ${(activeMenu === 'students' || activeSubMenu === 'students') ? 'text-white' : 'text-gray-400 group-hover:text-blue-400 transition-colors'}"></i>
+            
+            <div class="space-y-1">
+                <button onclick="toggleSidebarAccordion('performance-analysis')" class="w-full flex items-center px-5 py-4 rounded-2xl transition-all duration-500 group text-gray-400 hover:bg-white/5 hover:text-white justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 flex justify-center">
+                            <i class="fas fa-chart-pie text-sm text-gray-400 group-hover:text-blue-400 transition-colors"></i>
+                        </div>
+                        <span class="font-black text-sm tracking-tight text-gray-300">통합 성과 관리</span>
                     </div>
-                    <span class="font-black text-sm tracking-tight">수강생 관리</span>
-                </a>
-                <a href="/teacher/courses?tab=attendance" class="flex items-center px-5 py-4 rounded-2xl transition-all duration-500 group ${(activeMenu === 'attendance' || activeSubMenu === 'attendance') ? 'bg-blue-600 text-white shadow-xl shadow-blue-900/40 border border-white/10' : 'text-gray-400 hover:bg-white/5 hover:text-white'}">
-                    <div class="w-8 flex justify-center">
-                        <i class="fas fa-calendar-check text-sm ${(activeMenu === 'attendance' || activeSubMenu === 'attendance') ? 'text-white' : 'text-gray-400 group-hover:text-blue-400 transition-colors'}"></i>
-                    </div>
-                    <span class="font-black text-sm tracking-tight">출석 관리</span>
-                </a>
-                <a href="/teacher/courses?tab=exams" class="flex items-center px-5 py-4 rounded-2xl transition-all duration-500 group ${(activeMenu === 'exams' || activeSubMenu === 'exams') ? 'bg-blue-600 text-white shadow-xl shadow-blue-900/40 border border-white/10' : 'text-gray-400 hover:bg-white/5 hover:text-white'}">
-                    <div class="w-8 flex justify-center">
-                        <i class="fas fa-clipboard-check text-sm ${(activeMenu === 'exams' || activeSubMenu === 'exams') ? 'text-white' : 'text-gray-400 group-hover:text-blue-400 transition-colors'}"></i>
-                    </div>
-                    <span class="font-black text-sm tracking-tight">평가 및 채점</span>
-                </a>
-                <a href="/teacher/courses?tab=surveys" class="flex items-center px-5 py-4 rounded-2xl transition-all duration-500 group ${(activeMenu === 'surveys' || activeSubMenu === 'surveys') ? 'bg-blue-600 text-white shadow-xl shadow-blue-900/40 border border-white/10' : 'text-gray-400 hover:bg-white/5 hover:text-white'}">
-                    <div class="w-8 flex justify-center">
-                        <i class="fas fa-poll-h text-sm ${(activeMenu === 'surveys' || activeSubMenu === 'surveys') ? 'text-white' : 'text-gray-400 group-hover:text-blue-400 transition-colors'}"></i>
-                    </div>
-                    <span class="font-black text-sm tracking-tight">설문 및 역량진단</span>
-                </a>
+                    <i id="arrow-performance-analysis" class="fas fa-chevron-down text-[10px] transition-transform duration-300"></i>
+                </button>
+                
+                <div id="performance-analysis" class="hidden overflow-hidden transition-all duration-500 space-y-1 mt-1 pl-4">
+                    <a href="/teacher/courses?tab=students" class="flex items-center px-5 py-3 rounded-xl transition-all duration-300 group ${activeSubMenu === 'students' ? 'text-blue-400 bg-white/5' : 'text-gray-400 hover:text-white hover:bg-white/5'}">
+                        <i class="fas fa-user-graduate w-6 text-xs transition-colors"></i>
+                        <span class="font-bold text-[13px]">수강생 관리</span>
+                    </a>
+                    <a href="/teacher/courses?tab=attendance" class="flex items-center px-5 py-3 rounded-xl transition-all duration-300 group ${activeSubMenu === 'attendance' ? 'text-blue-400 bg-white/5' : 'text-gray-400 hover:text-white hover:bg-white/5'}">
+                        <i class="fas fa-calendar-check w-6 text-xs transition-colors"></i>
+                        <span class="font-bold text-[13px]">출석 관리</span>
+                    </a>
+                    <a href="/teacher/courses?tab=assignments" class="flex items-center px-5 py-3 rounded-xl transition-all duration-300 group ${activeSubMenu === 'assignments' ? 'text-blue-400 bg-white/5' : 'text-gray-400 hover:text-white hover:bg-white/5'}">
+                        <i class="fas fa-tasks w-6 text-xs transition-colors"></i>
+                        <span class="font-bold text-[13px]">과제 관리</span>
+                    </a>
+                    <a href="/teacher/courses?tab=exams" class="flex items-center px-5 py-3 rounded-xl transition-all duration-300 group ${activeSubMenu === 'exams' ? 'text-blue-400 bg-white/5' : 'text-gray-400 hover:text-white hover:bg-white/5'}">
+                        <i class="fas fa-file-contract w-6 text-xs transition-colors"></i>
+                        <span class="font-bold text-[13px]">시험/문제 관리</span>
+                    </a>
+                    <a href="/teacher/courses?tab=grades" class="flex items-center px-5 py-3 rounded-xl transition-all duration-300 group ${activeSubMenu === 'grades' ? 'text-blue-400 bg-white/5' : 'text-gray-400 hover:text-white hover:bg-white/5'}">
+                        <i class="fas fa-chart-line w-6 text-xs transition-colors"></i>
+                        <span class="font-bold text-[13px]">성적/채점 관리</span>
+                    </a>
+                    <a href="/teacher/courses?tab=surveys" class="flex items-center px-5 py-3 rounded-xl transition-all duration-300 group ${activeSubMenu === 'surveys' ? 'text-blue-400 bg-white/5' : 'text-gray-400 hover:text-white hover:bg-white/5'}">
+                        <i class="fas fa-poll-h w-6 text-xs transition-colors"></i>
+                        <span class="font-bold text-[13px]">설문/진단 관리</span>
+                    </a>
+                    <a href="/teacher/courses?tab=ncs" class="flex items-center px-5 py-3 rounded-xl transition-all duration-300 group ${activeSubMenu === 'ncs' ? 'text-blue-400 bg-white/5' : 'text-gray-400 hover:text-white hover:bg-white/5'}">
+                        <i class="fas fa-certificate w-6 text-xs transition-colors"></i>
+                        <span class="font-bold text-[13px]">NCS 평가 관리</span>
+                    </a>
+                    <a href="/teacher/portfolios" class="flex items-center px-5 py-3 rounded-xl transition-all duration-300 group ${activeMenu === 'portfolios' ? 'text-blue-400 bg-white/5' : 'text-gray-400 hover:text-white hover:bg-white/5'}">
+                        <i class="fas fa-briefcase w-6 text-xs transition-colors"></i>
+                        <span class="font-bold text-[13px]">포트폴리오 관리</span>
+                    </a>
+                    <a href="/teacher/courses?tab=employment" class="flex items-center px-5 py-3 rounded-xl transition-all duration-300 group ${activeSubMenu === 'employment' ? 'text-blue-400 bg-white/5' : 'text-gray-400 hover:text-white hover:bg-white/5'}">
+                        <i class="fas fa-user-tie w-6 text-xs transition-colors"></i>
+                        <span class="font-bold text-[13px]">취업 성과 관리</span>
+                    </a>
+                </div>
             </div>
         </div>
 
-        <!-- 지식 공유 -->
+        <!-- 커뮤니티 및 기타 -->
         <div class="space-y-3">
             <div class="px-5 flex items-center gap-3">
                 <span class="w-1.5 h-1.5 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]"></span>
-                <span class="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">지식 공유 및 소통</span>
+                <span class="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">기타 관리</span>
             </div>
             <div class="space-y-1.5">
                 <a href="/teacher/posts" class="flex items-center px-5 py-4 rounded-2xl transition-all duration-500 group ${activeMenu === 'posts' ? 'bg-blue-600 text-white shadow-xl shadow-blue-900/40 border border-white/10' : 'text-gray-400 hover:bg-white/5 hover:text-white'}">
@@ -105,12 +130,6 @@ export const teacherSidebar = (activeMenu: string, activeSubMenu?: string) => {
                         <i class="fas fa-comments text-sm ${activeMenu === 'posts' ? 'text-white' : 'text-gray-400 group-hover:text-blue-400 transition-colors'}"></i>
                     </div>
                     <span class="font-black text-sm tracking-tight">커뮤니티 관리</span>
-                </a>
-                <a href="/teacher/portfolios" class="flex items-center px-5 py-4 rounded-2xl transition-all duration-500 group ${activeMenu === 'portfolios' ? 'bg-blue-600 text-white shadow-xl shadow-blue-900/40 border border-white/10' : 'text-gray-400 hover:bg-white/5 hover:text-white'}">
-                    <div class="w-8 flex justify-center">
-                        <i class="fas fa-briefcase text-sm ${activeMenu === 'portfolios' ? 'text-white' : 'text-gray-400 group-hover:text-blue-400 transition-colors'}"></i>
-                    </div>
-                    <span class="font-black text-sm tracking-tight">포트폴리오 관리</span>
                 </a>
             </div>
         </div>
@@ -180,6 +199,37 @@ export const teacherSidebar = (activeMenu: string, activeSubMenu?: string) => {
 </style>
 
 <script>
+    // 아코디언 토글 기능
+    window.toggleSidebarAccordion = function(id) {
+        const el = document.getElementById(id);
+        const arrow = document.getElementById('arrow-' + id);
+        if (el) {
+            const isHidden = el.classList.contains('hidden');
+            if (isHidden) {
+                el.classList.remove('hidden');
+                if (arrow) arrow.style.transform = 'rotate(180deg)';
+            } else {
+                el.classList.add('hidden');
+                if (arrow) arrow.style.transform = 'rotate(0deg)';
+            }
+        }
+    };
+
+    // 현재 활성 메뉴 확인 및 아코디언 자동 열기
+    (function() {
+        const activeSub = '${activeSubMenu || ''}';
+        const activeMain = '${activeMenu || ''}';
+        const performanceMenus = ['students', 'attendance', 'assignments', 'exams', 'grades', 'surveys', 'ncs', 'employment'];
+        const isPerformanceActive = performanceMenus.includes(activeSub) || activeMain === 'portfolios';
+        
+        if (isPerformanceActive) {
+            const el = document.getElementById('performance-analysis');
+            const arrow = document.getElementById('arrow-performance-analysis');
+            if (el) el.classList.remove('hidden');
+            if (arrow) arrow.style.transform = 'rotate(180deg)';
+        }
+    })();
+
     // 모바일 사이드바 토글
     (function(){
         var wrap = document.getElementById('teacherSidebarWrap');
