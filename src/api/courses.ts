@@ -256,78 +256,76 @@ courses.get('/:id', async (c) => {
         const sessionId = parseInt(idParam, 10);
         if (isNaN(sessionId)) return notFoundResponse(c, '잘못된 회차 ID입니다');
 
-        // 1. Direct Session Lookup
-        let session = await getOne<any>(
-          c.env.DB,
-          `SELECT 
+        const { DB } = c.env;
+
+        // 1. 회차 정보 직접 조회
+        let session = await DB.prepare(`
+          SELECT 
             s.*,
             a.name as approved_course_name,
-            a.course_code,
-            a.total_hours,
-            a.category_id,
+            a.instructor_name as approved_instructor_name,
             cat.name as category_name
           FROM course_sessions s
           LEFT JOIN approved_courses a ON s.approved_course_id = a.id
           LEFT JOIN course_categories cat ON a.category_id = cat.id
-          WHERE s.id = ?`,
-          [sessionId]
-        );
+          WHERE s.id = ?
+        `).bind(sessionId).first<any>();
 
-        // 2. Fallback to Latest Session by Approved Course ID
+        // 2. 실패 시 과정 ID(approved_course_id)로 최신 회차 조회
         if (!session) {
-          session = await getOne<any>(
-            c.env.DB,
-            `SELECT 
+          session = await DB.prepare(`
+            SELECT 
               s.*,
               a.name as approved_course_name,
-              a.course_code,
-              a.total_hours,
-              a.category_id,
+              a.instructor_name as approved_instructor_name,
               cat.name as category_name
             FROM course_sessions s
             LEFT JOIN approved_courses a ON s.approved_course_id = a.id
             LEFT JOIN course_categories cat ON a.category_id = cat.id
             WHERE s.approved_course_id = ?
             ORDER BY s.session_number DESC, s.id DESC
-            LIMIT 1`,
-            [sessionId]
-          );
+            LIMIT 1
+          `).bind(sessionId).first<any>();
         }
 
-        if (!session) return notFoundResponse(c, '회차 정보를 찾을 수 없습니다');
+        if (!session) return notFoundResponse(c, '개설된 회차 정보를 찾을 수 없습니다');
 
-        // 3. Construct Title (Frontend Expects this)
-        const sessionNum = session.session_number || '1';
+        // 3. 프론트엔드 호환 필드 구성
+        const realSessionId = session.id;
         const courseName = session.approved_course_name || '미지정 과정';
-        const sessionNamePart = session.session_name ? ` - ${session.session_name}` : '';
-        const constructedTitle = `${courseName} (${sessionNum}회차)${sessionNamePart}`;
+        const sessionNum = session.session_number || '1';
+        const sessionNameSuffix = session.session_name ? ` - ${session.session_name}` : '';
+        const fullTitle = `${courseName} (${sessionNum}회차)${sessionNameSuffix}`;
 
-        // 4. Enrollment Count (using the resolved session ID)
-        const studentCountResult = await getOne<any>(
-          c.env.DB,
-          `SELECT COUNT(*) as count FROM course_session_enrollments WHERE session_id = ? AND status IN ('approved', 'enrolled')`,
-          [session.id]
-        );
+        // 4. 수강생 수 조회
+        const studentCountResult = await DB.prepare(
+          'SELECT COUNT(*) as count FROM course_session_enrollments WHERE session_id = ? AND status IN ("approved", "enrolled")'
+        ).bind(realSessionId).first<{ count: number }>();
 
-        // 5. Final Response Object
+        // 5. 최종 데이터 반환
         return successResponse(c, {
           ...session,
-          id: session.id, // Explicitly set to session ID
-          title: constructedTitle,
-          teacher_name: session.instructor_name,
+          id: realSessionId, // 매우 중요: 이후 모든 LMS API는 이 ID를 사용함
+          course_id: session.approved_course_id,
+          title: fullTitle,
+          name: fullTitle,
+          teacher_name: session.instructor_name || session.approved_instructor_name,
           start_date: session.training_start_date,
           end_date: session.training_end_date,
           start_time: session.training_time_start,
           end_time: session.training_time_end,
           category: session.category_name || '국비지원',
           price: 0,
-          max_students: 0,
           current_students: studentCountResult?.count || 0,
+          max_students: 0,
           status: session.status || 'active'
         });
       } catch (err: any) {
-        console.error('HRD Course Detail Error:', err);
-        return errorResponse(c, '과정 정보를 불러오는 중 오류가 발생했습니다: ' + err.message, 500);
+        console.error('HRD Course Detail Critical Error:', err);
+        return c.json({
+          success: false,
+          error: '회차 정보를 처리하는 중 오류가 발생했습니다: ' + err.message
+        }, 500);
       }
     }
 
