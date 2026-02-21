@@ -259,25 +259,21 @@ courses.get('/:id', async (c) => {
       let session = await getOne<any>(
         c.env.DB,
         `SELECT 
-          s.id, 
-          (COALESCE(a.name, '미지정 과정') || ' (' || s.session_number || '회차)' || CASE WHEN s.session_name IS NOT NULL AND s.session_name != '' THEN ' - ' || s.session_name ELSE '' END) as title,
+          s.*, 
+          (COALESCE(a.name, '미지정 과정') || ' (' || COALESCE(s.session_number, '1') || '회차)' || CASE WHEN s.session_name IS NOT NULL AND s.session_name != '' THEN ' - ' || s.session_name ELSE '' END) as title,
           s.instructor_name as teacher_name,
           s.training_start_date as start_date,
           s.training_end_date as end_date,
           s.training_time_start as start_time,
           s.training_time_end as end_time,
-          s.status,
-          s.session_name,
-          s.session_number,
-          s.approved_course_id,
           a.name as approved_course_name,
           a.course_code,
           a.total_hours,
           a.category_id,
-          c.name as category_name
+          cat.name as category_name
         FROM course_sessions s
         LEFT JOIN approved_courses a ON s.approved_course_id = a.id
-        LEFT JOIN course_categories c ON a.category_id = c.id
+        LEFT JOIN course_categories cat ON a.category_id = cat.id
         WHERE s.id = ?`,
         [sessionId]
       );
@@ -287,25 +283,21 @@ courses.get('/:id', async (c) => {
         session = await getOne<any>(
           c.env.DB,
           `SELECT 
-            s.id, 
-            (COALESCE(a.name, '미지정 과정') || ' (' || s.session_number || '회차)' || CASE WHEN s.session_name IS NOT NULL AND s.session_name != '' THEN ' - ' || s.session_name ELSE '' END) as title,
+            s.*, 
+            (COALESCE(a.name, '미지정 과정') || ' (' || COALESCE(s.session_number, '1') || '회차)' || CASE WHEN s.session_name IS NOT NULL AND s.session_name != '' THEN ' - ' || s.session_name ELSE '' END) as title,
             s.instructor_name as teacher_name,
             s.training_start_date as start_date,
             s.training_end_date as end_date,
             s.training_time_start as start_time,
             s.training_time_end as end_time,
-            s.status,
-            s.session_name,
-            s.session_number,
-            s.approved_course_id,
             a.name as approved_course_name,
             a.course_code,
             a.total_hours,
             a.category_id,
-            c.name as category_name
+            cat.name as category_name
           FROM course_sessions s
           LEFT JOIN approved_courses a ON s.approved_course_id = a.id
-          LEFT JOIN course_categories c ON a.category_id = c.id
+          LEFT JOIN course_categories cat ON a.category_id = cat.id
           WHERE s.approved_course_id = ?
           ORDER BY s.session_number DESC, s.id DESC
           LIMIT 1`,
@@ -331,7 +323,7 @@ courses.get('/:id', async (c) => {
         price: 0,
         max_students: 0,
         current_students: studentCount?.count || 0,
-        status: 'active'
+        status: session.status || 'active'
       });
     }
 
