@@ -1,8 +1,8 @@
 import { teacherSidebar } from './components/teacher_sidebar';
 
 function teacherCoursesHtmlInner(activeSubMenu?: string) {
-  const tab = activeSubMenu && ['students', 'attendance', 'exams', 'surveys'].includes(activeSubMenu) ? activeSubMenu : undefined;
-  return `
+    const tab = activeSubMenu && ['students', 'attendance', 'exams', 'surveys'].includes(activeSubMenu) ? activeSubMenu : undefined;
+    return `
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -358,14 +358,14 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
 
         function viewCourseDetail(courseId, isHrd) {
             const lmsTab = getLmsTab();
-            let url = '/admin/courses/' + courseId + '/lms' + (lmsTab ? '/' + lmsTab : '');
+            let url = '/teacher/courses/' + courseId + '/lms' + (lmsTab ? '/' + lmsTab : '');
             if (isHrd) url += (url.indexOf('?') >= 0 ? '&' : '?') + 'type=hrd';
             window.location.href = url;
         }
 
         function manageCourse(courseId, isHrd) {
             const lmsTab = getLmsTab();
-            let url = '/admin/courses/' + courseId + '/lms' + (lmsTab ? '/' + lmsTab : '');
+            let url = '/teacher/courses/' + courseId + '/lms' + (lmsTab ? '/' + lmsTab : '');
             if (isHrd) url += (url.indexOf('?') >= 0 ? '&' : '?') + 'type=hrd';
             window.location.href = url;
         }

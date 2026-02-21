@@ -25,8 +25,8 @@ export const hrdSidebar = (activeMenu: string, options?: HrdSidebarOptions) => {
                 <i class="fas fa-university text-white text-lg"></i>
             </div>
             <div>
-                <span class="font-bold text-white text-base tracking-tight leading-tight block">WOW3D</span>
-                <span class="text-[10px] text-slate-500 font-medium uppercase tracking-[0.2em]">홍대센터 ADMIN</span>
+                <span id="sidebar-logo-brand" class="font-bold text-white text-base tracking-tight leading-tight block">WOW3D</span>
+                <span id="sidebar-logo-sub" class="text-[10px] text-slate-500 font-medium uppercase tracking-[0.2em]">홍대센터 ADMIN</span>
             </div>
         </div>
     </div>
@@ -37,7 +37,7 @@ export const hrdSidebar = (activeMenu: string, options?: HrdSidebarOptions) => {
             <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest opacity-70">운영 과정 바로가기</span>
         </div>
         <div class="relative group/selector">
-            <select id="sidebarActiveCourseSelector" onchange="if(this.value) location.href='/admin/courses/'+this.value+'/lms?type=hrd'" class="w-full bg-slate-800/50 border border-slate-700/50 text-slate-300 text-xs rounded-xl px-4 py-2.5 appearance-none focus:outline-none focus:ring-1 focus:ring-blue-500/50 transition cursor-pointer hover:bg-slate-800">
+            <select id="sidebarActiveCourseSelector" onchange="(function(v){ if(!v) return; var base = window.location.pathname.startsWith('/teacher') ? '/teacher' : '/admin'; location.href = base+'/courses/'+v+'/lms?type=hrd'; })(this.value)" class="w-full bg-slate-800/50 border border-slate-700/50 text-slate-300 text-xs rounded-xl px-4 py-2.5 appearance-none focus:outline-none focus:ring-1 focus:ring-blue-500/50 transition cursor-pointer hover:bg-slate-800">
                 <option value="">진행 중인 과정 선택</option>
             </select>
             <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 text-[10px]">
@@ -68,32 +68,32 @@ export const hrdSidebar = (activeMenu: string, options?: HrdSidebarOptions) => {
             <span class="text-[11px] font-bold text-slate-500 uppercase tracking-widest opacity-70">교육·과정</span>
         </div>
         <div class="space-y-1">
-            <a href="/admin/courses" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${(activeMenu === 'courses' || activeMenu === 'courses-register') ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
+        <a href="/admin/courses" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${(activeMenu === 'courses' || activeMenu === 'courses-register') ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
                 ${(activeMenu === 'courses' || activeMenu === 'courses-register') ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
                 <i class="fas fa-graduation-cap w-6 text-lg ${(activeMenu === 'courses' || activeMenu === 'courses-register') ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
-                <span class="font-medium text-[14px]">교육과정 관리</span>
+                <span class="font-medium text-[14px]">교육운영 관리</span>
             </a>
-            <a href="/admin/courses/register" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'courses-register' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
+            <a data-role="admin-only" href="/admin/courses/register" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'courses-register' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
                 <i class="fas fa-plus-circle w-6 text-sm ${activeMenu === 'courses-register' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
                 <span class="font-medium text-[13px]">일반과정등록</span>
             </a>
-            <a href="/admin/courses/categories" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'courses-categories' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
+            <a data-role="admin-only" href="/admin/courses/categories" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'courses-categories' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
                 <i class="fas fa-tags w-6 text-sm ${activeMenu === 'courses-categories' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
                 <span class="font-medium text-[13px]">과정분류관리</span>
             </a>
-            <a href="/admin/courses/approved" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'courses-approved' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
+            <a data-role="admin-only" href="/admin/courses/approved" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'courses-approved' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
                 <i class="fas fa-check-double w-6 text-sm ${activeMenu === 'courses-approved' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
                 <span class="font-medium text-[13px]">승인받은 과정</span>
             </a>
-            <a href="/admin/courses/sessions" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'courses-sessions' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
+            <a data-role="admin-only" href="/admin/courses/sessions" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'courses-sessions' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
                 <i class="fas fa-calendar-plus w-6 text-sm ${activeMenu === 'courses-sessions' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
                 <span class="font-medium text-[13px]">회차별 과정개설</span>
             </a>
-            <a href="/admin/courses/sessions/enrollments" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'courses-session-enrollments' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
+            <a data-role="admin-only" href="/admin/courses/sessions/enrollments" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'courses-session-enrollments' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
                 <i class="fas fa-user-plus w-6 text-sm ${activeMenu === 'courses-session-enrollments' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
                 <span class="font-medium text-[13px]">수강생 등록</span>
             </a>
-            <a href="/admin/courses/copy" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'courses-copy' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
+            <a data-role="admin-only" href="/admin/courses/copy" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'courses-copy' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
                 <i class="fas fa-copy w-6 text-sm ${activeMenu === 'courses-copy' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
                 <span class="font-medium text-[13px]">회차별 과정복사</span>
             </a>
@@ -162,21 +162,21 @@ export const hrdSidebar = (activeMenu: string, options?: HrdSidebarOptions) => {
             <span class="font-medium text-[14px]">NCS 분류보기</span>
         </a>
 
-        <!-- 인력·시설 -->
-        <div class="px-3 pt-6 pb-2">
+        <!-- 인력·시설 (관리자 전용) -->
+        <div data-role="admin-only" class="px-3 pt-6 pb-2">
             <span class="text-[11px] font-bold text-slate-500 uppercase tracking-widest opacity-70">인력·시설</span>
         </div>
-        <a href="/admin/personnel" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'personnel' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
+        <a data-role="admin-only" href="/admin/personnel" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'personnel' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
              ${activeMenu === 'personnel' ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
             <i class="fas fa-chalkboard-user w-6 text-lg ${activeMenu === 'personnel' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
             <span class="font-medium text-[14px]">교강사 관리</span>
         </a>
-        <a href="/admin/facilities" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'facilities' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
+        <a data-role="admin-only" href="/admin/facilities" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'facilities' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
              ${activeMenu === 'facilities' ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
             <i class="fas fa-building-circle-check w-6 text-lg ${activeMenu === 'facilities' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
             <span class="font-medium text-[14px]">훈련시설 관리</span>
         </a>
-        <div class="space-y-1">
+        <div data-role="admin-only" class="space-y-1">
             <a href="/admin/items" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'items' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
                 ${activeMenu === 'items' ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
                 <i class="fas fa-boxes-stacked w-6 text-lg ${activeMenu === 'items' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
@@ -192,7 +192,7 @@ export const hrdSidebar = (activeMenu: string, options?: HrdSidebarOptions) => {
         <div class="px-3 pt-6 pb-2">
             <span class="text-[11px] font-bold text-slate-500 uppercase tracking-widest opacity-70">콘텐츠·커뮤니티</span>
         </div>
-        <a href="/admin/users" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'users' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
+        <a data-role="admin-only" href="/admin/users" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'users' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
              ${activeMenu === 'users' ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
             <i class="fas fa-user-group w-6 text-lg ${activeMenu === 'users' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
             <span class="font-medium text-[14px]">회원 관리</span>
@@ -202,55 +202,55 @@ export const hrdSidebar = (activeMenu: string, options?: HrdSidebarOptions) => {
             <i class="fas fa-newspaper w-6 text-lg ${activeMenu === 'posts' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
             <span class="font-medium text-[14px]">게시판 관리</span>
         </a>
-        <a href="/admin/partner-universities" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'partner-universities' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
+        <a data-role="admin-only" href="/admin/partner-universities" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'partner-universities' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
              ${activeMenu === 'partner-universities' ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
             <i class="fas fa-university w-6 text-lg ${activeMenu === 'partner-universities' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
             <span class="font-medium text-[14px]">협력대학 관리</span>
         </a>
-        <a href="/admin/jobs" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'jobs' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
+        <a data-role="admin-only" href="/admin/jobs" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'jobs' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
              ${activeMenu === 'jobs' ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
             <i class="fas fa-briefcase w-6 text-lg ${activeMenu === 'jobs' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
             <span class="font-medium text-[14px]">채용공고 관리</span>
         </a>
-        <a href="/admin/jobseekers" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'jobseekers' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
+        <a data-role="admin-only" href="/admin/jobseekers" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'jobseekers' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
              ${activeMenu === 'jobseekers' ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
             <i class="fas fa-address-book w-6 text-lg ${activeMenu === 'jobseekers' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
             <span class="font-medium text-[14px]">인재풀 관리</span>
         </a>
-        <a href="/admin/reviews" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'reviews' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
+        <a data-role="admin-only" href="/admin/reviews" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'reviews' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
              ${activeMenu === 'reviews' ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
             <i class="fas fa-star w-6 text-lg ${activeMenu === 'reviews' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
             <span class="font-medium text-[14px]">수강후기 관리</span>
         </a>
-        <a href="/admin/prototype-gallery" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'prototype-gallery' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
+        <a data-role="admin-only" href="/admin/prototype-gallery" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'prototype-gallery' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
              ${activeMenu === 'prototype-gallery' ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
             <i class="fas fa-cube w-6 text-lg ${activeMenu === 'prototype-gallery' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
             <span class="font-medium text-[14px]">시제품 제작사진</span>
         </a>
-        <a href="/admin/education-gallery" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'education-gallery' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
+        <a data-role="admin-only" href="/admin/education-gallery" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'education-gallery' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
              ${activeMenu === 'education-gallery' ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
             <i class="fas fa-images w-6 text-lg ${activeMenu === 'education-gallery' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
             <span class="font-medium text-[14px]">교육사진 갤러리</span>
         </a>
-        <a href="/admin/portfolio-gallery" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'portfolio-gallery' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
+        <a data-role="admin-only" href="/admin/portfolio-gallery" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'portfolio-gallery' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
              ${activeMenu === 'portfolio-gallery' ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
             <i class="fas fa-briefcase w-6 text-lg ${activeMenu === 'portfolio-gallery' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
             <span class="font-medium text-[14px]">포트폴리오 갤러리</span>
         </a>
-        <a href="/admin/inquiries" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'inquiries' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
+        <a data-role="admin-only" href="/admin/inquiries" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'inquiries' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
              ${activeMenu === 'inquiries' ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
             <i class="fas fa-headset w-6 text-lg ${activeMenu === 'inquiries' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
             <span class="font-medium text-[14px]">온라인 문의</span>
         </a>
 
-        <!-- 슈퍼어드민 · 사이트관리 -->
-        <div class="px-3 pt-6 pb-2">
+        <!-- 슈퍼어드민 · 사이트관리 (관리자 전용) -->
+        <div data-role="admin-only" class="px-3 pt-6 pb-2">
             <span class="text-[11px] font-bold text-slate-500 uppercase tracking-widest opacity-70">슈퍼어드민</span>
         </div>
-        <div class="space-y-1">
+        <div data-role="admin-only" class="space-y-1">
             <div class="flex items-center px-4 py-3 rounded-xl text-slate-400">
                 <i class="fas fa-user-shield w-6 text-lg text-slate-500"></i>
-                <span class="font-medium text-[14px]">관리자</span>
+                <span class="font-medium text-[14px]">관리자 설정</span>
             </div>
             <a href="/admin/ncs/upload" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'ncs-upload' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
                 <i class="fas fa-file-upload w-6 text-sm ${activeMenu === 'ncs-upload' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
@@ -266,12 +266,12 @@ export const hrdSidebar = (activeMenu: string, options?: HrdSidebarOptions) => {
         <div class="p-3 bg-slate-800/40 rounded-2xl border border-slate-700/30">
             <div class="flex items-center">
                 <div class="relative">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-lg">A</div>
+                    <div id="sidebar-avatar" class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-lg">A</div>
                     <div class="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-green-500 border-2 border-[#0f172a] rounded-full"></div>
                 </div>
                 <div class="ml-3 truncate">
-                    <p class="text-sm font-bold text-white truncate">최고 관리자</p>
-                    <p class="text-[10px] text-slate-500 font-medium uppercase tracking-tight truncate">Super Admin</p>
+                    <p id="sidebar-username" class="text-sm font-bold text-white truncate"></p>
+                    <p id="sidebar-userrole" class="text-[10px] text-slate-500 font-medium uppercase tracking-tight truncate"></p>
                 </div>
                 <button id="logout-btn" class="ml-auto w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-white hover:bg-slate-700/50 transition-all duration-300">
                     <i class="fas fa-sign-out-alt"></i>
@@ -306,33 +306,73 @@ export const hrdSidebar = (activeMenu: string, options?: HrdSidebarOptions) => {
         }
     };
 
-    // 관리자 페이지 접근 권한 체크 (Role-based Access Control)
+    // 페이지 접근 권한 체크 (Role-based Access Control)
     (function(){
-        // /admin 경로로 시작하는 페이지에 대해서만 검사
-        if (window.location.pathname.startsWith('/admin')) {
-            const userStr = localStorage.getItem('user');
-            if (!userStr) {
-                // 로그인 정보가 없으면 로그인 페이지로 이동
-                window.location.href = '/login';
-                return;
-            }
-            try {
-                const user = JSON.parse(userStr);
-                // 관리자가 아닌 경우 (teacher, student 등) 리디렉션
-                if (user.role !== 'admin') {
+        const pathname = window.location.pathname;
+        const userStr = localStorage.getItem('user');
+        if (!userStr) {
+            window.location.href = '/login';
+            return;
+        }
+        try {
+            const user = JSON.parse(userStr);
+            const role = user.role;
+
+            // /admin 경로: 반드시 admin 역할이어야 함
+            if (pathname.startsWith('/admin')) {
+                if (role !== 'admin') {
                     console.warn('Unauthorized access to admin page. Redirecting...');
-                    if (user.role === 'teacher') {
+                    if (role === 'teacher') {
                         window.location.href = '/teacher';
-                    } else if (user.role === 'student') {
-                        window.location.href = '/student'; // 학생 대시보드로 이동
+                    } else if (role === 'student' || role === 'user') {
+                        window.location.href = '/student';
                     } else {
-                        window.location.href = '/'; // 그 외(알 수 없는 역할)는 메인으로
+                        window.location.href = '/';
                     }
                 }
-            } catch(e) {
-                console.error('Auth check error:', e);
-                window.location.href = '/login';
             }
+            // /teacher 경로: admin 또는 teacher 역할이어야 함
+            else if (pathname.startsWith('/teacher')) {
+                if (role !== 'teacher' && role !== 'admin') {
+                    console.warn('Unauthorized access to teacher page. Redirecting...');
+                    if (role === 'student' || role === 'user') {
+                        window.location.href = '/student';
+                    } else {
+                        window.location.href = '/login';
+                    }
+                }
+            }
+
+            // 사이드바 하단 프로필 표시 업데이트
+            const avatarEl = document.getElementById('sidebar-avatar');
+            const usernameEl = document.getElementById('sidebar-username');
+            const roleEl = document.getElementById('sidebar-userrole');
+            const logoBrandEl = document.getElementById('sidebar-logo-brand');
+            const logoSubEl = document.getElementById('sidebar-logo-sub');
+
+            if (avatarEl && user.name) {
+                avatarEl.textContent = user.name.charAt(0);
+            }
+            if (usernameEl) {
+                usernameEl.textContent = user.name || 'User';
+            }
+            if (roleEl) {
+                const roleLabels = { admin: 'Super Admin', teacher: 'Instructor', student: 'Student', user: 'User' };
+                roleEl.textContent = roleLabels[role] || role;
+            }
+
+            // 관리자가 아닌 경우 로고 및 메뉴 필터링
+            if (role !== 'admin') {
+                if (logoSubEl) logoSubEl.textContent = '홍대센터 LMS';
+                
+                // admin-only 요소들을 즉시 숨김
+                document.querySelectorAll('[data-role="admin-only"]').forEach(el => {
+                    (el as HTMLElement).style.display = 'none';
+                });
+            }
+        } catch(e) {
+            console.error('Auth check error:', e);
+            window.location.href = '/login';
         }
     })();
 
@@ -377,10 +417,10 @@ export const hrdSidebar = (activeMenu: string, options?: HrdSidebarOptions) => {
                         courseSelector.appendChild(opt);
                     });
                     
-                    // 현재 URL에서 courseId 추출하여 자동 선택
-                    const match = location.pathname.match(new RegExp('/admin/courses/(\\\\d+)/lms'));
-                    if (match && match[1]) {
-                        courseSelector.value = match[1];
+                    // 현재 URL에서 courseId 추출하여 자동 선택 (admin 또는 teacher 경로 모두 지원)
+                    const match = location.pathname.match(/\/(admin|teacher)\/courses\/(\d+)\/lms/);
+                    if (match && match[2]) {
+                        courseSelector.value = match[2];
                     }
                 }
             })

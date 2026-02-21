@@ -1,0 +1,55 @@
+﻿
+ ⛅️ wrangler 4.45.0 (update available 4.67.0)
+─────────────────────────────────────────────
+🌀 Executing on remote database DB (28fc5bec-bc18-46a9-8aea-fc4a4f6e44db):
+🌀 To execute on your local development database, remove the --remote flag from your wrangler command.
+🚣 Executed 1 command in 0.2112ms
+[
+  {
+    "results": [
+      {
+        "id": 74,
+        "name": "0069_course_sessions_lms_course_id.sql",
+        "applied_at": "2026-02-13 05:09:23"
+      },
+      {
+        "id": 73,
+        "name": "0068_add_schedule_details_json_to_training_logs.sql",
+        "applied_at": "2026-02-11 06:16:21"
+      },
+      {
+        "id": 72,
+        "name": "0067_add_missing_posts_columns.sql",
+        "applied_at": "2026-02-11 05:39:17"
+      },
+      {
+        "id": 71,
+        "name": "0066_course_sessions_access_code.sql",
+        "applied_at": "2026-02-10 04:21:44"
+      },
+      {
+        "id": 70,
+        "name": "0065_course_session_enrollments.sql",
+        "applied_at": "2026-02-09 10:53:27"
+      }
+    ],
+    "success": true,
+    "meta": {
+      "served_by": "v3-prod",
+      "served_by_region": "APAC",
+      "served_by_colo": "ICN",
+      "served_by_primary": true,
+      "timings": {
+        "sql_duration_ms": 0.2112
+      },
+      "duration": 0.2112,
+      "changes": 0,
+      "last_row_id": 0,
+      "changed_db": false,
+      "size_after": 13414400,
+      "rows_read": 5,
+      "rows_written": 0,
+      "total_attempts": 1
+    }
+  }
+]

@@ -153,8 +153,8 @@
                     var endDate = (item.training_end_date || '').split('T')[0];
                     return '<div class="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all flex justify-between items-center">' +
                         '<div class="min-w-0 flex-1">' +
-                        '<h5 class="font-bold text-gray-900 text-sm">' + (item.course_name || '과정명 없음').replace(/</g, '&lt;') + '</h5>' +
-                        '<p class="text-xs text-gray-500 mt-1">' + (item.session_name || (item.session_number + '차')).replace(/</g, '&lt;') + ' | ' + startDate + ' ~ ' + endDate + '</p>' +
+                        '<h5 class="font-bold text-gray-900 text-sm break-keep whitespace-normal">' + (item.course_name || '과정명 없음').replace(/</g, '&lt;') + '</h5>' +
+                        '<p class="text-xs text-gray-500 mt-1 break-keep whitespace-normal">' + (item.session_name || (item.session_number + '차')).replace(/</g, '&lt;') + ' | ' + startDate + ' ~ ' + endDate + '</p>' +
                         '</div>' +
                         '<button onclick="window.assignSession(' + item.id + ')" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition shrink-0 ml-4">배정하기</button>' +
                         '</div>';

@@ -374,6 +374,21 @@ app.get('/teacher/surveys', (c) => c.redirect('/teacher/courses?tab=surveys'));
 app.get('/teacher/posts', (c) => c.html(adminPostsListHtml(teacherSidebar('posts'))));
 app.get('/teacher/courses/:id/lms/counseling', (c) => c.html(adminHrdCounselingHtml(c.req.param('id'))));
 
+// 강사용 LMS 페이지 라우트 (강의실 입장 후 이동하는 경로들)
+app.get('/teacher/courses/:id/lms', (c) => c.html(adminLmsDashboardHtml));
+app.get('/teacher/courses/:id/lms/students', (c) => c.html(adminLmsStudentsHtml));
+app.get('/teacher/courses/:id/lms/attendance', (c) => c.html(adminLmsAttendanceHtml));
+app.get('/teacher/courses/:id/lms/ncs-eval', (c) => c.html(adminLmsNcsHtml));
+app.get('/teacher/courses/:id/lms/ncs-report', (c) => c.html(adminLmsNcsReportHtml));
+app.get('/teacher/courses/:id/lms/ncs-report/:studentId', (c) => c.html(adminLmsNcsStudentReportHtml));
+app.get('/teacher/courses/:id/lms/employment', (c) => c.html(adminLmsEmploymentHtml));
+app.get('/teacher/courses/:id/lms/training-logs', (c) => c.html(adminLmsTrainingLogsHtml));
+app.get('/teacher/courses/:id/lms/cbt', (c) => c.html(adminLmsCbtHtml));
+app.get('/teacher/courses/:id/lms/grades', (c) => c.html(adminLmsGradesHtml));
+app.get('/teacher/courses/:id/lms/surveys', (c) => c.html(adminLmsSurveysHtml));
+app.get('/teacher/courses/:id/lms/assignments', (c) => c.html(adminLmsAssignmentsHtml));
+app.get('/teacher/courses/:id/lms/qr-attendance', (c) => c.html(adminLmsQrAttendanceHtml));
+
 // ============================================
 // 페이지 라우트
 // ============================================

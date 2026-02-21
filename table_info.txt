@@ -1,13 +1,9 @@
 ﻿
- ⛅️ wrangler 4.51.0 (update available 4.63.0)
+ ⛅️ wrangler 4.45.0 (update available 4.67.0)
 ─────────────────────────────────────────────
-Resource location: local 
-
-Use --remote if you want to access the remote instance.
-
-🌀 Executing on local database education-platform-db (28fc5bec-bc18-46a9-8aea-fc4a4f6e44db) from .wrangler\state\v3\d1:
-🌀 To execute on your remote database, add a --remote flag to your wrangler command.
-🚣 1 command executed successfully.
+🌀 Executing on remote database DB (28fc5bec-bc18-46a9-8aea-fc4a4f6e44db):
+🌀 To execute on your local development database, remove the --remote flag from your wrangler command.
+🚣 Executed 1 command in 0.2134ms
 [
   {
     "results": [
@@ -16,59 +12,131 @@ Use --remote if you want to access the remote instance.
         "name": "id",
         "type": "INTEGER",
         "notnull": 0,
-        "dflt_value": "null",
+        "dflt_value": null,
         "pk": 1
       },
       {
         "cid": 1,
-        "name": "enrollment_id",
+        "name": "user_id",
         "type": "INTEGER",
         "notnull": 1,
-        "dflt_value": "null",
+        "dflt_value": null,
         "pk": 0
       },
       {
         "cid": 2,
-        "name": "date",
-        "type": "TEXT",
-        "notnull": 1,
-        "dflt_value": "null",
+        "name": "course_id",
+        "type": "INTEGER",
+        "notnull": 0,
+        "dflt_value": null,
         "pk": 0
       },
       {
         "cid": 3,
-        "name": "check_in_time",
+        "name": "status",
         "type": "TEXT",
         "notnull": 0,
-        "dflt_value": "null",
+        "dflt_value": "'consulting'",
         "pk": 0
       },
       {
         "cid": 4,
-        "name": "check_out_time",
+        "name": "type",
         "type": "TEXT",
         "notnull": 0,
-        "dflt_value": "null",
+        "dflt_value": null,
         "pk": 0
       },
       {
         "cid": 5,
-        "name": "status",
+        "name": "package_type",
         "type": "TEXT",
-        "notnull": 1,
-        "dflt_value": "null",
+        "notnull": 0,
+        "dflt_value": null,
         "pk": 0
       },
       {
         "cid": 6,
-        "name": "note",
+        "name": "payment_method",
         "type": "TEXT",
         "notnull": 0,
-        "dflt_value": "null",
+        "dflt_value": null,
         "pk": 0
       },
       {
         "cid": 7,
+        "name": "payment_date",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 8,
+        "name": "self_pay_amount",
+        "type": "INTEGER",
+        "notnull": 0,
+        "dflt_value": "0",
+        "pk": 0
+      },
+      {
+        "cid": 9,
+        "name": "has_application",
+        "type": "INTEGER",
+        "notnull": 0,
+        "dflt_value": "0",
+        "pk": 0
+      },
+      {
+        "cid": 10,
+        "name": "has_card",
+        "type": "INTEGER",
+        "notnull": 0,
+        "dflt_value": "0",
+        "pk": 0
+      },
+      {
+        "cid": 11,
+        "name": "is_hrd_net_registered",
+        "type": "INTEGER",
+        "notnull": 0,
+        "dflt_value": "0",
+        "pk": 0
+      },
+      {
+        "cid": 12,
+        "name": "status_memo",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 13,
+        "name": "education",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 14,
+        "name": "certifications",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 15,
+        "name": "last_consult",
+        "type": "TEXT",
+        "notnull": 0,
+        "dflt_value": null,
+        "pk": 0
+      },
+      {
+        "cid": 16,
         "name": "created_at",
         "type": "TEXT",
         "notnull": 0,
@@ -76,7 +144,7 @@ Use --remote if you want to access the remote instance.
         "pk": 0
       },
       {
-        "cid": 8,
+        "cid": 17,
         "name": "updated_at",
         "type": "TEXT",
         "notnull": 0,
@@ -86,7 +154,21 @@ Use --remote if you want to access the remote instance.
     ],
     "success": true,
     "meta": {
-      "duration": 0
+      "served_by": "v3-prod",
+      "served_by_region": "APAC",
+      "served_by_colo": "ICN",
+      "served_by_primary": true,
+      "timings": {
+        "sql_duration_ms": 0.2134
+      },
+      "duration": 0.2134,
+      "changes": 0,
+      "last_row_id": 0,
+      "changed_db": false,
+      "size_after": 13414400,
+      "rows_read": 0,
+      "rows_written": 0,
+      "total_attempts": 1
     }
   }
 ]
