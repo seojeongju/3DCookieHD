@@ -417,26 +417,28 @@ app.get('/:id/timetable/config', authMiddleware, requireRole('admin', 'teacher',
     if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
 
     const { DB } = c.env;
-    let configs = await DB.prepare(
-      'SELECT * FROM session_period_configs WHERE session_id = ? ORDER BY period_number ASC'
-    )
-      .bind(id)
-      .all();
+    let sessionId = id;
 
-    // Fallback: If no config found, maybe 'id' is approved_course_id?
-    if (!configs.results || configs.results.length === 0) {
+    // Check if sessionId is a valid course_session.id
+    const sessionCheck = await DB.prepare('SELECT id FROM course_sessions WHERE id = ?').bind(id).first();
+    if (!sessionCheck) {
       const latestSession = await DB.prepare(
         'SELECT id FROM course_sessions WHERE approved_course_id = ? ORDER BY session_number DESC, id DESC LIMIT 1'
       ).bind(id).first<{ id: number }>();
 
       if (latestSession) {
-        configs = await DB.prepare(
-          'SELECT * FROM session_period_configs WHERE session_id = ? ORDER BY period_number ASC'
-        )
-          .bind(latestSession.id)
-          .all();
+        sessionId = latestSession.id;
+        console.log(`[TimetableConfig] Fallback: Used approved_course_id ${id} to find session ${sessionId}`);
+      } else {
+        console.warn(`[TimetableConfig] No session found for ID ${id} (tried as both session_id and approved_course_id)`);
       }
     }
+
+    const configs = await DB.prepare(
+      'SELECT * FROM session_period_configs WHERE session_id = ? ORDER BY period_number ASC'
+    )
+      .bind(sessionId)
+      .all();
 
     return c.json({ success: true, data: configs.results || [] });
   } catch (e) {
@@ -489,6 +491,7 @@ app.get('/:id/timetable/resources', authMiddleware, requireRole('admin', 'teache
     if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
 
     const { DB } = c.env;
+    let sessionId = id;
 
     // 1. Session Info to get approved_course_id and instructor_name
     let session = await DB.prepare('SELECT id, approved_course_id, instructor_name FROM course_sessions WHERE id = ?').bind(id).first<{ id: number, approved_course_id: number, instructor_name: string }>();
@@ -496,12 +499,17 @@ app.get('/:id/timetable/resources', authMiddleware, requireRole('admin', 'teache
     // Fallback: If not found, maybe 'id' is approved_course_id?
     if (!session) {
       session = await DB.prepare('SELECT id, approved_course_id, instructor_name FROM course_sessions WHERE approved_course_id = ? ORDER BY session_number DESC, id DESC LIMIT 1').bind(id).first<{ id: number, approved_course_id: number, instructor_name: string }>();
+      if (session) {
+        console.log(`[TimetableResources] Fallback: Used approved_course_id ${id} to find session ${session.id}`);
+      }
     }
 
-    if (!session) return c.json({ success: false, error: '회차 정보 없음' }, 404);
+    if (!session) {
+      console.warn(`[TimetableResources] No session found for ID ${id}`);
+      return c.json({ success: false, error: '회차 정보 없음' }, 404);
+    }
 
-    // Use the found session's ID for subsequent queries
-    const sessionId = session.id;
+    sessionId = session.id;
 
     // 2. NCS Registration ID
     // Check if registration exists for this approved course
