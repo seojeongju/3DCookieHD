@@ -285,7 +285,7 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
             const titleEl = document.getElementById('tabHintTitle');
             const textEl = document.getElementById('tabHintText');
             if (!banner || !textEl) return;
-            const labels = { students: '수강생 명단', attendance: '출결 관리', cbt: 'CBT 시험 센터', surveys: '설문 및 평판' };
+            const labels = { students: '수강생 분석', attendance: '출석 관리', cbt: '평가 및 채점', surveys: '설문 및 역량진단' };
             if (lmsTab && labels[lmsTab]) {
                 banner.classList.remove('hidden');
                 titleEl.textContent = '「' + labels[lmsTab] + '」 직접 연결됨';
