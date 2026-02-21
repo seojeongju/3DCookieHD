@@ -101,6 +101,7 @@ import { teacherPortfoliosHtml } from './views/teacher_portfolios';
 import { teacherProfileHtml } from './views/teacher_profile';
 import { teacherCoursesHtml } from './views/teacher_courses';
 import { teacherStudentsHtml } from './views/teacher_students';
+import { teacherStudentConsultationHtml } from './views/teacher_student_consultation';
 import { teacherAttendanceHtml } from './views/teacher_attendance';
 import { teacherExamsHtml } from './views/teacher_exams';
 import { teacherSidebar } from './views/components/teacher_sidebar';
@@ -378,6 +379,7 @@ app.get('/teacher/courses/:id/lms/counseling', (c) => c.html(adminHrdCounselingH
 // 강사용 LMS 페이지 라우트 (강의실 입장 후 이동하는 경로들)
 app.get('/teacher/courses/:id/lms', (c) => c.html(adminLmsDashboardHtml(teacherSidebar('courses'))));
 app.get('/teacher/courses/:id/lms/students', (c) => c.html(adminLmsStudentsHtml(teacherSidebar('students'))));
+app.get('/teacher/courses/:courseId/lms/students/:studentId/consultation', (c) => c.html(teacherStudentConsultationHtml(c.req.param('courseId'), c.req.param('studentId'))));
 app.get('/teacher/courses/:id/lms/attendance', (c) => c.html(adminLmsAttendanceHtml(teacherSidebar('attendance'))));
 app.get('/teacher/courses/:id/lms/ncs-eval', (c) => c.html(adminLmsNcsHtml(teacherSidebar('exams'))));
 app.get('/teacher/courses/:id/lms/ncs-report', (c) => c.html(adminLmsNcsReportHtml));

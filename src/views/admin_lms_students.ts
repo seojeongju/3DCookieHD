@@ -229,8 +229,9 @@ export const adminLmsStudentsHtml = (sidebar: string = hrdSidebar('courses')) =>
                     const date = s.enrolled_at ? s.enrolled_at.split('T')[0] : '-';
                     const studentId = s.user_id || s.student_id; // ensure we get the ID
                     const isAdmin = window.location.pathname.startsWith('/admin');
-                    const basePath = isAdmin ? '/admin/students/' : '/teacher/students/';
-                    const href = basePath + studentId + '/journey';
+                    const href = isAdmin
+                        ? '/admin/students/' + studentId + '/journey'
+                        : '/teacher/courses/' + courseId + '/lms/students/' + studentId + '/consultation?type=hrd';
                     return '<tr class="group hover:bg-slate-50/80 transition-all duration-300 cursor-pointer" data-href="' + href + '">' +
                         '<td class="px-8 py-6">' +
                             '<div class="flex items-center gap-4">' +

@@ -1103,6 +1103,7 @@ app.get('/students/:id/consultations', authMiddleware, async (c) => {
     try {
         const id = c.req.param('id');
         const user = c.get('user'); // JWTPayload
+        const allForTeacher = c.req.query('all') === '1';
 
         let query = `
                     SELECT
@@ -1122,8 +1123,8 @@ app.get('/students/:id/consultations', authMiddleware, async (c) => {
 
         const params: any[] = [id];
 
-        // 권한 필터링: 선생(teacher)은 본인이 작성한 상담만 조회 (admin은 전체 조회)
-        if (user.role === 'teacher') {
+        // 권한: admin은 전체, teacher는 기본 본인만 / ?all=1 이면 해당 수강생 전체 상담 (강사 상담 페이지용)
+        if (user.role === 'teacher' && !allForTeacher) {
             query += " AND cl.counselor_id = ? ";
             params.push(user.userId);
         }
