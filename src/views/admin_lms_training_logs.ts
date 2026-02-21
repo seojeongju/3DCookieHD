@@ -938,27 +938,38 @@ async function printLog(id) {
             const contentVal = document.getElementById('logContent').value;
             const hoursVal = document.getElementById('logHours').value;
 
-            // New Fields Collection
+            // New Fields Collection (ES5-safe: no optional chaining)
+            var logAttPresent = document.getElementById('logAttPresent');
+            var logAttAbsent = document.getElementById('logAttAbsent');
+            var logAttLate = document.getElementById('logAttLate');
+            var logAttEarly = document.getElementById('logAttEarly');
+            var logInstructions = document.getElementById('logInstructions');
+            var logListLate = document.getElementById('logListLate');
+            var logListAbsent = document.getElementById('logListAbsent');
+            var logListEarly = document.getElementById('logListEarly');
             const attSummary = {
-                present: document.getElementById('logAttPresent')?.value || '',
-                absent: document.getElementById('logAttAbsent')?.value || '',
-                late: document.getElementById('logAttLate')?.value || '',
-                early: document.getElementById('logAttEarly')?.value || '',
-                instructions: document.getElementById('logInstructions')?.value || '',
-                late_list: document.getElementById('logListLate')?.value || '',
-                absent_list: document.getElementById('logListAbsent')?.value || '',
-                early_list: document.getElementById('logListEarly')?.value || ''
+                present: (logAttPresent && logAttPresent.value) || '',
+                absent: (logAttAbsent && logAttAbsent.value) || '',
+                late: (logAttLate && logAttLate.value) || '',
+                early: (logAttEarly && logAttEarly.value) || '',
+                instructions: (logInstructions && logInstructions.value) || '',
+                late_list: (logListLate && logListLate.value) || '',
+                absent_list: (logListAbsent && logListAbsent.value) || '',
+                early_list: (logListEarly && logListEarly.value) || ''
             };
 
-            // 시간표 데이터 수집
+            // 시간표 데이터 수집 (ES5-safe: no optional chaining, no template literal in emitted script)
             const scheduleDetails = [];
-            for(let i=1; i<=8; i++) {
-                const subj = document.querySelector(\`input[name="sch_subject_\${i}"]\`)?.value || '';
-                const inst = document.querySelector(\`input[name="sch_instructor_\${i}"]\`)?.value || '';
-                const cont = document.querySelector(\`input[name="sch_content_\${i}"]\`)?.value || '';
-                const note = document.querySelector(\`input[name="sch_note_\${i}"]\`)?.value || '';
-                
-                if(subj || inst || cont || note) {
+            for (var i = 1; i <= 8; i++) {
+                var subjEl = document.querySelector('input[name="sch_subject_' + i + '"]');
+                var instEl = document.querySelector('input[name="sch_instructor_' + i + '"]');
+                var contEl = document.querySelector('input[name="sch_content_' + i + '"]');
+                var noteEl = document.querySelector('input[name="sch_note_' + i + '"]');
+                var subj = (subjEl && subjEl.value) || '';
+                var inst = (instEl && instEl.value) || '';
+                var cont = (contEl && contEl.value) || '';
+                var note = (noteEl && noteEl.value) || '';
+                if (subj || inst || cont || note) {
                     scheduleDetails.push({
                         period: i,
                         subject: subj,
