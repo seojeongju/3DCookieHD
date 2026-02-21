@@ -1,4 +1,4 @@
-/* Admin/Teacher sidebar - used by hrd_sidebar on all admin and teacher pages */
+/* Admin/Teacher sidebar - used by hrd_sidebar (admin pages) */
 (function(){
     var wrap = document.getElementById('adminSidebarWrap');
     var backdrop = document.getElementById('adminSidebarBackdrop');
@@ -33,15 +33,22 @@ window.logout = function() {
         if (pathname.startsWith('/admin')) {
             if (role !== 'admin') {
                 console.warn('Unauthorized access to admin page. Redirecting...');
-                if (role === 'teacher') { window.location.href = '/teacher'; }
-                else if (role === 'student' || role === 'user') { window.location.href = '/student'; }
-                else { window.location.href = '/'; }
+                if (role === 'teacher') {
+                    window.location.href = '/teacher';
+                } else if (role === 'student' || role === 'user') {
+                    window.location.href = '/student';
+                } else {
+                    window.location.href = '/';
+                }
             }
         } else if (pathname.startsWith('/teacher')) {
             if (role !== 'teacher' && role !== 'admin') {
                 console.warn('Unauthorized access to teacher page. Redirecting...');
-                if (role === 'student' || role === 'user') { window.location.href = '/student'; }
-                else { window.location.href = '/login'; }
+                if (role === 'student' || role === 'user') {
+                    window.location.href = '/student';
+                } else {
+                    window.location.href = '/login';
+                }
             }
         }
         var avatarEl = document.getElementById('sidebar-avatar');
@@ -49,15 +56,21 @@ window.logout = function() {
         var roleEl = document.getElementById('sidebar-userrole');
         var logoBrandEl = document.getElementById('sidebar-logo-brand');
         var logoSubEl = document.getElementById('sidebar-logo-sub');
-        if (avatarEl && user.name) avatarEl.textContent = user.name.charAt(0);
-        if (usernameEl) usernameEl.textContent = user.name || 'User';
+        if (avatarEl && user.name) {
+            avatarEl.textContent = user.name.charAt(0);
+        }
+        if (usernameEl) {
+            usernameEl.textContent = user.name || 'User';
+        }
         if (roleEl) {
             var roleLabels = { admin: 'Super Admin', teacher: 'Instructor', student: 'Student', user: 'User' };
             roleEl.textContent = roleLabels[role] || role;
         }
         if (role !== 'admin') {
             if (logoSubEl) logoSubEl.textContent = '홍대센터 LMS';
-            document.querySelectorAll('[data-role="admin-only"]').forEach(function(el) { el.style.display = 'none'; });
+            document.querySelectorAll('[data-role="admin-only"]').forEach(function(el) {
+                el.style.display = 'none';
+            });
         }
     } catch(e) {
         console.error('Auth check error:', e);
@@ -65,20 +78,26 @@ window.logout = function() {
     }
 })();
 
-function initSidebarWhenReady() {
+function initAdminSidebar() {
     var sidebarNav = document.querySelector('aside nav');
     if (sidebarNav) {
         var savedScrollTop = sessionStorage.getItem('sidebarScrollTop');
-        if (savedScrollTop) sidebarNav.scrollTop = parseInt(savedScrollTop, 10);
+        if (savedScrollTop) {
+            sidebarNav.scrollTop = parseInt(savedScrollTop, 10);
+        }
         var links = sidebarNav.querySelectorAll('a');
         for (var i = 0; i < links.length; i++) {
             (function(link) {
-                link.addEventListener('click', function() { sessionStorage.setItem('sidebarScrollTop', sidebarNav.scrollTop); });
+                link.addEventListener('click', function() {
+                    sessionStorage.setItem('sidebarScrollTop', sidebarNav.scrollTop);
+                });
             })(links[i]);
         }
     }
     var logoutBtn = document.getElementById('logout-btn');
-    if (logoutBtn) logoutBtn.addEventListener('click', function() { window.logout(); });
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', function() { window.logout(); });
+    }
     var courseSelector = document.getElementById('sidebarActiveCourseSelector');
     var token = localStorage.getItem('token');
     if (courseSelector && token) {
@@ -100,8 +119,9 @@ function initSidebarWhenReady() {
         .catch(function(err) { console.error('Sidebar course load error:', err); });
     }
 }
+
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initSidebarWhenReady);
+    document.addEventListener('DOMContentLoaded', initAdminSidebar);
 } else {
-    initSidebarWhenReady();
+    initAdminSidebar();
 }
