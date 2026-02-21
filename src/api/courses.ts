@@ -691,13 +691,21 @@ courses.get('/:id/attendance', async (c) => {
     let attendanceLogs: any[] = [];
     let defaultStartTime = '09:00';
     let defaultEndTime = '18:00';
+    let sessionDetails: any = null;
+    let allSessionLogs: any[] = [];
 
     if (type === 'hrd') {
       // 0. 회차 정보 조회 (기본 시간 설정을 위해)
-      const session = await getOne<any>(c.env.DB, 'SELECT training_time_start, training_time_end FROM course_sessions WHERE id = ?', [courseId]);
+      const session = await getOne<any>(c.env.DB, `
+        SELECT cs.training_time_start, cs.training_time_end, ac.total_days, ac.total_hours, ac.daily_hours
+        FROM course_sessions cs
+        JOIN approved_courses ac ON cs.approved_course_id = ac.id
+        WHERE cs.id = ?
+      `, [courseId]);
       if (session) {
         if (session.training_time_start) defaultStartTime = session.training_time_start;
         if (session.training_time_end) defaultEndTime = session.training_time_end;
+        sessionDetails = session;
       }
 
       // 1. HRD 회차의 수강생 목록 조회 (배정된 학생 포함: approved, enrolled)
@@ -715,6 +723,15 @@ courses.get('/:id/attendance', async (c) => {
           SELECT id FROM course_session_enrollments WHERE session_id = ?
         ) AND date = ?
       `, [courseId, date]);
+
+      // 2-1. 전체 출석 기록 조회 (for rate calculation)
+      allSessionLogs = await getAll<any>(c.env.DB, `
+        SELECT enrollment_id, check_in_time as check_in, check_out_time as check_out, status
+        FROM attendance_logs
+        WHERE enrollment_id IN (
+          SELECT id FROM course_session_enrollments WHERE session_id = ?
+        )
+      `, [courseId]);
     } else {
       // 1. 일반 과정의 수강생 목록 조회
       const studentsQuery = `
@@ -734,11 +751,112 @@ courses.get('/:id/attendance', async (c) => {
         ) AND date = ?
       `;
       attendanceLogs = await getAll<any>(c.env.DB, attendanceQuery, [courseId, date]);
+
+      // 2-1. 전체 출결 기록 조회 (for rate calculation)  
+      allSessionLogs = await getAll<any>(c.env.DB, `
+        SELECT enrollment_id, status
+        FROM attendance_logs 
+        WHERE enrollment_id IN (
+          SELECT id FROM enrollments WHERE course_id = ?
+        )
+      `, [courseId]);
     }
 
     // 3. 데이터 병합
     const result = students.map(student => {
       const log = attendanceLogs.find(l => l.enrollment_id === student.enrollment_id);
+
+      const sLogs = allSessionLogs.filter(l => l.enrollment_id === student.enrollment_id);
+      let attendance_rate = 0;
+      let advanced_attendance: any = null;
+
+      if (type === 'hrd' && sessionDetails) {
+        const { total_days, total_hours, daily_hours } = sessionDetails;
+        const isLongTerm = (total_days >= 10 && total_hours >= 40);
+
+        let presentCount = 0;
+        let absentCount = 0;
+        let lateCount = 0;
+        let earlyCount = 0;
+        let outCount = 0;
+        let accumulatedMinutes = 0;
+
+        const daysProgressed = sLogs.length;
+
+        sLogs.forEach(l => {
+          if (l.status === 'present') presentCount++;
+          else if (l.status === 'absent') absentCount++;
+          else if (l.status === 'late') lateCount++;
+          else if (l.status === 'early_leave') earlyCount++;
+          else if (l.status === 'public_leave') outCount++;
+
+          if (!isLongTerm && l.check_in && l.check_out) {
+            const inTime = new Date(`1970-01-01T${l.check_in.substring(0, 5)}:00Z`).getTime();
+            const outTime = new Date(`1970-01-01T${l.check_out.substring(0, 5)}:00Z`).getTime();
+            if (!isNaN(inTime) && !isNaN(outTime) && outTime > inTime) {
+              accumulatedMinutes += (outTime - inTime) / 60000;
+            }
+          } else if (!isLongTerm && l.status === 'present') {
+            accumulatedMinutes += (daily_hours || 0) * 60;
+          }
+        });
+
+        if (isLongTerm) {
+          const penaltyDays = Math.floor((lateCount + earlyCount + outCount) / 3);
+          const totalAbsentConverted = absentCount + penaltyDays;
+
+          const currentAttendanceRate = daysProgressed > 0
+            ? Math.max(0, ((daysProgressed - totalAbsentConverted) / daysProgressed) * 100).toFixed(1)
+            : '0.0';
+          const finalAttendanceRate = total_days > 0
+            ? Math.max(0, ((total_days - totalAbsentConverted) / total_days) * 100).toFixed(1)
+            : '0.0';
+
+          attendance_rate = parseFloat(currentAttendanceRate);
+          advanced_attendance = {
+            type: 'days',
+            isLongTerm: true,
+            daysProgressed,
+            totalDays: total_days,
+            absent: absentCount,
+            late: lateCount,
+            early: earlyCount,
+            outing: outCount,
+            totalAbsentConverted,
+            currentRate: currentAttendanceRate,
+            finalRate: finalAttendanceRate
+          };
+        } else {
+          const expectedCurrentMinutes = daysProgressed > 0 ? daysProgressed * (daily_hours || 0) * 60 : 0;
+          const expectedTotalMinutes = total_hours > 0 ? total_hours * 60 : 0;
+
+          const currentAttendanceRate = expectedCurrentMinutes > 0
+            ? Math.min(100, (accumulatedMinutes / expectedCurrentMinutes) * 100).toFixed(1)
+            : '0.0';
+          const finalAttendanceRate = expectedTotalMinutes > 0
+            ? Math.min(100, (accumulatedMinutes / expectedTotalMinutes) * 100).toFixed(1)
+            : '0.0';
+
+          attendance_rate = parseFloat(currentAttendanceRate);
+          advanced_attendance = {
+            type: 'minutes',
+            isLongTerm: false,
+            accumulatedMinutes: Math.floor(accumulatedMinutes),
+            expectedCurrentMinutes,
+            expectedTotalMinutes,
+            currentRate: currentAttendanceRate,
+            finalRate: finalAttendanceRate,
+            absent: absentCount,
+            late: lateCount,
+            early: earlyCount,
+          };
+        }
+      } else {
+        const totalLogs = sLogs.length;
+        const attended = sLogs.filter((l: any) => l.status === 'present' || l.status === 'late').length;
+        attendance_rate = totalLogs > 0 ? Math.round((attended / totalLogs) * 100) : 0;
+      }
+
       return {
         id: student.id,
         enrollment_id: student.enrollment_id,
@@ -748,7 +866,9 @@ courses.get('/:id/attendance', async (c) => {
         check_out: log ? log.check_out_time : null,
         status: log ? log.status : null, // 기록 없으면 null (프론트에서 처리)
         note: log ? log.note : null,
-        has_log: !!log
+        has_log: !!log,
+        attendance_rate,
+        advanced_attendance
       };
     });
 

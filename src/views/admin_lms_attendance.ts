@@ -81,6 +81,7 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
                             <tr>
                                 <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">이름</th>
                                 <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">연락처</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">출석 현황</th>
                                 <th class="px-6 py-4 text-center text-xs font-bold text-gray-400 uppercase tracking-wider">입실시간</th>
                                 <th class="px-6 py-4 text-center text-xs font-bold text-gray-400 uppercase tracking-wider">퇴실시간</th>
                                 <th class="px-6 py-4 text-center text-xs font-bold text-gray-400 uppercase tracking-wider">상태</th>
@@ -89,7 +90,7 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
                         </thead>
                         <tbody id="attendanceTableBody" class="bg-white divide-y divide-gray-100">
                             <tr>
-                                <td colspan="6" class="px-6 py-12 text-center text-gray-400 font-medium">
+                                <td colspan="7" class="px-6 py-12 text-center text-gray-400 font-medium">
                                     <i class="fas fa-circle-notch fa-spin mr-2"></i> 데이터를 불러오는 중...
                                 </td>
                             </tr>
@@ -170,23 +171,72 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
                     renderTable();
                     updateStats();
                 } else {
-                    document.getElementById('attendanceTableBody').innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-red-500">데이터 로드 실패</td></tr>';
+                    document.getElementById('attendanceTableBody').innerHTML = '<tr><td colspan="7" class="px-6 py-4 text-center text-red-500">데이터 로드 실패</td></tr>';
                 }
             } catch (error) {
                 console.error('Error:', error);
-                document.getElementById('attendanceTableBody').innerHTML = '<tr><td colspan="6" class="px-6 py-12 text-center text-red-500">오류가 발생했습니다.</td></tr>';
+                document.getElementById('attendanceTableBody').innerHTML = '<tr><td colspan="7" class="px-6 py-12 text-center text-red-500">오류가 발생했습니다.</td></tr>';
             }
         }
 
         function renderTable() {
             const tbody = document.getElementById('attendanceTableBody');
-            tbody.innerHTML = students.map((student, index) => \`
+            tbody.innerHTML = students.map((student, index) => {
+                let attendanceHtml = '<span class="text-gray-400 text-xs">-</span>';
+                
+                if (student.advanced_attendance) {
+                    const adv = student.advanced_attendance;
+                    const cRate = parseFloat(adv.currentRate);
+                    let color = 'text-green-600';
+                    let bg = 'bg-green-50';
+                    if (cRate < 80) { color = 'text-red-600'; bg = 'bg-red-50'; }
+                    else if (cRate < 90) { color = 'text-yellow-600'; bg = 'bg-yellow-50'; }
+                    
+                    let tooltipHtml = '';
+                    if (adv.type === 'days') {
+                        tooltipHtml = \`<div class="text-[10px] text-gray-500 mb-1">진행 <span class="text-gray-800 font-bold">\${adv.daysProgressed}일</span> / 총 \${adv.totalDays}일</div>\` +
+                                      \`<div class="text-[10px] text-gray-500">결석 \${adv.absent}회 / 지각 \${adv.late}회 / 조퇴 \${adv.early}회</div>\` +
+                                      \`<div class="text-[10px] text-rose-500 font-bold mt-1">환산결석: \${adv.totalAbsentConverted}일</div>\`;
+                    } else {
+                        tooltipHtml = \`<div class="text-[10px] text-gray-500 mb-1">진행 <span class="text-gray-800 font-bold">\${adv.expectedCurrentMinutes}분</span> / 총 \${adv.expectedTotalMinutes}분</div>\` +
+                                      \`<div class="text-[10px] text-gray-500">결석 \${adv.absent}회 / 지각 \${adv.late}회 / 조퇴 \${adv.early}회</div>\`;
+                    }
+                    
+                    attendanceHtml = \`
+                        <div class="group relative inline-flex items-center gap-2 px-2 py-1 rounded \${bg}">
+                            <div class="flex flex-col">
+                                <span class="text-sm font-bold \${color}">\${adv.currentRate}%</span>
+                                <span class="text-[9px] font-medium text-gray-400 -mt-0.5">최종 \${adv.finalRate}%</span>
+                            </div>
+                            <i class="fas fa-info-circle text-[10px] text-gray-300"></i>
+                            
+                            <!-- Tooltip -->
+                            <div class="pointer-events-none absolute left-full ml-2 top-1/2 -translate-y-1/2 z-50 opacity-0 transition-opacity group-hover:opacity-100 bg-white border border-gray-100 shadow-xl rounded-lg p-3 min-w-[160px]">
+                                <h4 class="text-xs font-bold text-gray-800 mb-2 border-b border-gray-100 pb-1">\${adv.type === 'days' ? '장기(일수) 출석 상세' : '단기(시간) 출석 상세'}</h4>
+                                \${tooltipHtml}
+                            </div>
+                        </div>
+                    \`;
+                } else if (student.attendance_rate !== undefined) {
+                    const cRate = student.attendance_rate;
+                    let color = 'text-green-600';
+                    let bg = 'bg-green-50';
+                    if (cRate < 80) { color = 'text-red-600'; bg = 'bg-red-50'; }
+                    else if (cRate < 90) { color = 'text-yellow-600'; bg = 'bg-yellow-50'; }
+                    
+                    attendanceHtml = \`<div class="inline-flex px-2 py-1 rounded \${bg}"><span class="text-sm font-bold \${color}">\${cRate}%</span></div>\`;
+                }
+
+                return \`
                 <tr class="hover:bg-gray-50 transition" data-id="\${student.id}">
                     <td class="px-6 py-4 whitespace-nowrap">
                         <div class="text-sm font-medium text-gray-900">\${student.name}</div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         <div class="text-sm text-gray-500">\${student.phone}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap relative">
+                        \${attendanceHtml}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-center">
                         <input type="time" value="\${student.check_in || ''}" class="border rounded px-2 py-1 text-sm focus:ring-purple-500 focus:border-purple-500" onchange="updateStudentData(\${index}, 'check_in', this.value)">
@@ -207,7 +257,8 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
                         <input type="text" value="\${student.note || ''}" placeholder="비고 입력" class="w-full border rounded px-2 py-1 text-sm focus:ring-purple-500 focus:border-purple-500" onchange="updateStudentData(\${index}, 'note', this.value)">
                     </td>
                 </tr>
-            \`).join('');
+            \`;
+            }).join('');
         }
 
         function getStatusColor(status) {
