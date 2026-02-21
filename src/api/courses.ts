@@ -259,7 +259,6 @@ courses.get('/:id', async (c) => {
       let session = await getOne<any>(
         c.env.DB,
         `SELECT 
-          s.id, 
           s.*, 
           a.name as approved_course_name,
           a.course_code,
@@ -296,11 +295,14 @@ courses.get('/:id', async (c) => {
 
       if (!session) return notFoundResponse(c, '회차 정보를 찾을 수 없습니다');
 
+      // CRITICAL: Update sessionId to the actual found session ID for subsequent queries
+      const actualSessionId = session.id;
+
       // 수강생 수: 회차 배정(approved/enrolled) 기준
       const studentCount = await getOne<any>(
         c.env.DB,
         `SELECT COUNT(*) as count FROM course_session_enrollments WHERE session_id = ? AND status IN ('approved', 'enrolled')`,
-        [sessionId]
+        [actualSessionId]
       );
 
       return successResponse(c, {
