@@ -227,35 +227,97 @@ app.get('/teacher-stats', authMiddleware, async (c) => {
 
         const teacherId = payload.userId;
 
-        // 1. 담당 과정 수 (모집중·진행중·종료 등 전체)
+        // ------------------ Legacy Courses ------------------
         const coursesResult = await DB.prepare(
-            "SELECT count(*) as count FROM courses WHERE teacher_id = ?"
-        ).bind(teacherId).first<{ count: number }>();
-        const myCourses = coursesResult?.count || 0;
+            "SELECT id, title, category, status, max_students FROM courses WHERE teacher_id = ?"
+        ).bind(teacherId).all<{ id: number, title: string, category: string, status: string, max_students: number }>();
+        const legacyCourses = coursesResult.results || [];
 
-        // 2. 총 수강생 수 (담당 과정의 승인된 수강생)
-        const studentsResult = await DB.prepare(`
-            SELECT count(DISTINCT e.user_id) as count 
-            FROM enrollments e
-            JOIN courses c ON e.course_id = c.id
-            WHERE c.teacher_id = ? AND e.status = 'approved'
-        `).bind(teacherId).first<{ count: number }>();
-        const totalStudents = studentsResult?.count || 0;
+        let totalStudents = 0;
+        let avgAttendanceData = { total: 0, count: 0 };
 
-        // 3. 채점 대기 건수 (시험 제출됐지만 아직 채점 안 된 건 - exam_submissions)
+        // Legacy enrolled count and attendance
+        for (const c of legacyCourses) {
+            const enrollData = await DB.prepare(`
+                SELECT count(*) as cnt, avg(attendance) as avgA 
+                FROM enrollments 
+                WHERE course_id = ? AND status = 'approved'
+            `).bind(c.id).first<{ cnt: number, avgA: number }>();
+            (c as any).enrolled_count = enrollData?.cnt || 0;
+            totalStudents += enrollData?.cnt || 0;
+            if (enrollData?.avgA) {
+                avgAttendanceData.total += enrollData.avgA;
+                avgAttendanceData.count += 1;
+            }
+            (c as any).is_hrd = false;
+        }
+
+        // ------------------ HRD Course Sessions ------------------
+        const hrdRows = await DB.prepare(`
+            SELECT DISTINCT s.id, s.session_number, s.session_name, s.status,
+                   a.name as course_name, cc.name as category_name
+            FROM session_timetable st
+            INNER JOIN course_sessions s ON st.session_id = s.id
+            INNER JOIN approved_courses a ON s.approved_course_id = a.id
+            LEFT JOIN course_categories cc ON a.category_id = cc.id
+            WHERE st.instructor_id = ?
+        `).bind(teacherId).all<{ id: number, session_number: number, session_name: string, status: string, course_name: string, category_name: string }>();
+
+        const hrdCourses = (hrdRows.results || []).map(r => {
+            const title = (r.course_name || '') + (r.session_number != null ? ' (' + r.session_number + '회차)' : '') + (r.session_name ? ' - ' + r.session_name : '');
+            return {
+                id: r.id,
+                title: title,
+                category: r.category_name || '국비지원',
+                status: r.status,
+                max_students: 0,
+                is_hrd: true,
+                enrolled_count: 0
+            };
+        });
+
+        for (const c of hrdCourses) {
+            // enrollment counts for HRD course_sessions
+            const enrollData = await DB.prepare(`
+                SELECT count(*) as cnt
+                FROM course_session_enrollments
+                WHERE session_id = ? AND status IN ('approved', 'enrolled')
+            `).bind(c.id).first<{ cnt: number }>();
+            c.enrolled_count = enrollData?.cnt || 0;
+            totalStudents += enrollData?.cnt || 0;
+
+            // Attendance for HRD
+            const hrdAtt = await DB.prepare(`
+                SELECT count(*) as total_logs,
+                       sum(case when status = 'present' then 1 else 0 end) as present_cnt
+                FROM attendance_logs al
+                JOIN course_session_enrollments cse ON al.enrollment_id = cse.id
+                WHERE cse.session_id = ?
+            `).bind(c.id).first<{ total_logs: number, present_cnt: number }>();
+            if (hrdAtt && hrdAtt.total_logs > 0) {
+                const rat = (hrdAtt.present_cnt / hrdAtt.total_logs) * 100;
+                avgAttendanceData.total += rat;
+                avgAttendanceData.count += 1;
+            }
+        }
+
+        const myCourses = legacyCourses.length + hrdCourses.length;
+        const avgAttendance = avgAttendanceData.count > 0 ? Math.round(avgAttendanceData.total / avgAttendanceData.count) : 0;
+
+        let combinedCourses = [...legacyCourses, ...hrdCourses];
+        combinedCourses.sort((a, b) => {
+            const sa = a.status === 'active' || a.status === 'open' || a.status === 'in_progress' ? 0 : (a.status === 'recruiting' ? 1 : 2);
+            const sb = b.status === 'active' || b.status === 'open' || b.status === 'in_progress' ? 0 : (b.status === 'recruiting' ? 1 : 2);
+            return sa - sb;
+        });
+
+        // ------------------ Pending Grading ------------------
         let pendingGrading = 0;
         let pendingGradingList: { id: number; exam_id: number; student_id: number; student_name: string; exam_title: string; submitted_at: string | null }[] = [];
-        try {
-            const pendingResult = await DB.prepare(`
-                SELECT count(*) as count 
-                FROM exam_submissions es
-                JOIN exams ex ON es.exam_id = ex.id
-                JOIN courses c ON ex.course_id = c.id
-                WHERE c.teacher_id = ? AND es.status = 'submitted'
-            `).bind(teacherId).first<{ count: number }>();
-            pendingGrading = pendingResult?.count || 0;
 
-            const pendingList = await DB.prepare(`
+        try {
+            // Legacy exams
+            const pendingList1 = await DB.prepare(`
                 SELECT es.id, es.exam_id, es.student_id, u.name as student_name, ex.title as exam_title, es.submitted_at
                 FROM exam_submissions es
                 JOIN exams ex ON es.exam_id = ex.id
@@ -264,34 +326,50 @@ app.get('/teacher-stats', authMiddleware, async (c) => {
                 WHERE c.teacher_id = ? AND es.status = 'submitted'
                 ORDER BY es.submitted_at DESC
                 LIMIT 5
-            `).bind(teacherId).all<{ id: number; exam_id: number; student_id: number; student_name: string; exam_title: string; submitted_at: string | null }>();
-            pendingGradingList = pendingList?.results || [];
+            `).bind(teacherId).all<any>();
+            const list1 = pendingList1?.results || [];
+
+            // HRD assignments
+            const pendingList2 = await DB.prepare(`
+                SELECT s.id, s.assignment_id as exam_id, s.student_id, u.name as student_name, a.title as exam_title, s.submitted_at
+                FROM assignment_submissions s
+                JOIN assignments a ON s.assignment_id = a.id
+                JOIN session_timetable st ON a.session_id = st.session_id
+                JOIN users u ON s.student_id = u.id
+                WHERE st.instructor_id = ? AND s.status = 'submitted'
+                GROUP BY s.id
+                ORDER BY s.submitted_at DESC
+                LIMIT 5
+            `).bind(teacherId).all<any>();
+            const list2 = pendingList2?.results || [];
+
+            pendingGradingList = [...list1, ...list2].sort((a, b) => {
+                const da = a.submitted_at ? new Date(a.submitted_at).getTime() : 0;
+                const db = b.submitted_at ? new Date(b.submitted_at).getTime() : 0;
+                return db - da; // desc
+            }).slice(0, 5);
+
+            // Total pending
+            const pcount1 = await DB.prepare(`
+                SELECT count(*) as count 
+                FROM exam_submissions es
+                JOIN exams ex ON es.exam_id = ex.id
+                JOIN courses c ON ex.course_id = c.id
+                WHERE c.teacher_id = ? AND es.status = 'submitted'
+            `).bind(teacherId).first<{ count: number }>();
+
+            const pcount2 = await DB.prepare(`
+                SELECT count(DISTINCT s.id) as count 
+                FROM assignment_submissions s
+                JOIN assignments a ON s.assignment_id = a.id
+                JOIN session_timetable st ON a.session_id = st.session_id
+                WHERE st.instructor_id = ? AND s.status = 'submitted'
+            `).bind(teacherId).first<{ count: number }>();
+
+            pendingGrading = (pcount1?.count || 0) + (pcount2?.count || 0);
         } catch (e) {
             console.error('Failed to fetch pending grading:', e);
         }
-
-        // 4. 평균 출석률 (담당 과정의 출석률 - enrollments.attendance)
-        let avgAttendance = 0;
-        try {
-            const attendanceResult = await DB.prepare(`
-                SELECT avg(e.attendance) as avg 
-                FROM enrollments e
-                JOIN courses c ON e.course_id = c.id
-                WHERE c.teacher_id = ? AND e.status = 'approved'
-            `).bind(teacherId).first<{ avg: number }>();
-            avgAttendance = Math.round(attendanceResult?.avg || 0);
-        } catch (e) {
-            console.error('Failed to fetch attendance:', e);
-        }
-
-        // 5. 배정된 과정 전체 목록 (모집중·진행중·종료 등 상태 무관)
-        const assignedCourses = await DB.prepare(`
-            SELECT id, title, category, status, max_students,
-            (SELECT COUNT(*) FROM enrollments WHERE course_id = courses.id AND status = 'approved') as enrolled_count
-            FROM courses
-            WHERE teacher_id = ?
-            ORDER BY CASE WHEN status IN ('active', 'open') THEN 0 WHEN status = 'recruiting' THEN 1 ELSE 2 END, created_at DESC
-        `).bind(teacherId).all();
 
         return c.json({
             success: true,
@@ -300,9 +378,9 @@ app.get('/teacher-stats', authMiddleware, async (c) => {
                 totalStudents,
                 pendingGrading,
                 avgAttendance,
-                recentCourses: assignedCourses.results || [],
-                assignedCourses: assignedCourses.results || [],
-                pendingGradingList: pendingGradingList.results || []
+                recentCourses: combinedCourses,
+                assignedCourses: combinedCourses,
+                pendingGradingList: pendingGradingList
             }
         });
     } catch (e) {

@@ -765,19 +765,130 @@ app.get('/students/:id', async (c) => {
         ).bind(id).first() as { cnt: number };
         const consultation_count = consultRow?.cnt ?? 0;
 
-        // 출석률: 해당 훈련생의 course_session_enrollments 기준 attendance_logs 중 present+late 비율
-        const attRow = await c.env.DB.prepare(`
+        // 출석 정보 고도화 계산 (현재 수강중인 최신 회차 기준)
+        const activeCourseInfo = await c.env.DB.prepare(`
             SELECT 
-                (SELECT COUNT(*) FROM attendance_logs al
-                 JOIN course_session_enrollments cse ON al.enrollment_id = cse.id
-                 WHERE cse.user_id = ? AND al.status IN ('present','late')) as attended,
-                (SELECT COUNT(*) FROM attendance_logs al
-                 JOIN course_session_enrollments cse ON al.enrollment_id = cse.id
-                 WHERE cse.user_id = ?) as total
-        `).bind(id, id).first() as { attended: number; total: number };
-        const totalLogs = attRow?.total ?? 0;
-        const attended = attRow?.attended ?? 0;
-        const attendance_rate = totalLogs > 0 ? Math.round((attended / totalLogs) * 100) : 0;
+                cs.id as session_id,
+                ac.total_days,
+                ac.total_hours,
+                ac.daily_hours
+            FROM course_session_enrollments cse
+            JOIN course_sessions cs ON cse.session_id = cs.id
+            JOIN approved_courses ac ON cs.approved_course_id = ac.id
+            WHERE cse.user_id = ?
+            ORDER BY cs.training_start_date DESC LIMIT 1
+        `).bind(id).first() as { session_id: number; total_days: number; total_hours: number; daily_hours: number } | undefined;
+
+        let attendance_rate = 0;
+        let advanced_attendance = null;
+
+        if (activeCourseInfo) {
+            const { session_id, total_days, total_hours, daily_hours } = activeCourseInfo;
+            // 훈련일수 10일 && 40시간 이상이면 장기과정(일수 기준), 아니면 단기과정(시간 기준)
+            const isLongTerm = (total_days >= 10 && total_hours >= 40);
+
+            const { results: logs } = await c.env.DB.prepare(`
+                SELECT al.check_in_time as check_in, al.check_out_time as check_out, al.status
+                FROM attendance_logs al
+                JOIN course_session_enrollments cse ON al.enrollment_id = cse.id
+                WHERE cse.session_id = ? AND cse.user_id = ?
+            `).bind(session_id, id).all() as { results: any[] };
+
+            let presentCount = 0;
+            let absentCount = 0;
+            let lateCount = 0;
+            let earlyCount = 0;
+            let outCount = 0;
+            let accumulatedMinutes = 0;
+
+            const daysProgressed = logs.length;
+
+            logs.forEach(log => {
+                if (log.status === 'present') presentCount++;
+                else if (log.status === 'absent') absentCount++;
+                else if (log.status === 'late') lateCount++;
+                else if (log.status === 'early_leave') earlyCount++;
+                else if (log.status === 'public_leave') outCount++;
+
+                // 단기(시간제) 과정용 분(Minutes) 계산 (입/퇴실 기록 있는 경우)
+                if (!isLongTerm && log.check_in && log.check_out) {
+                    const inTime = new Date(`1970-01-01T${log.check_in.substring(0, 5)}:00Z`).getTime();
+                    const outTime = new Date(`1970-01-01T${log.check_out.substring(0, 5)}:00Z`).getTime();
+                    if (!isNaN(inTime) && !isNaN(outTime) && outTime > inTime) {
+                        accumulatedMinutes += (outTime - inTime) / 60000;
+                    }
+                } else if (!isLongTerm && log.status === 'present') {
+                    // 기록은 없지만 출석인 경우, 하루 기본 훈련시간 부여
+                    accumulatedMinutes += (daily_hours || 0) * 60;
+                }
+            });
+
+            if (isLongTerm) {
+                // 환산 결석일: 순수 결석일수 + Math.floor((누적 지각 + 조퇴 + 외출) / 3)
+                const penaltyDays = Math.floor((lateCount + earlyCount + outCount) / 3);
+                const totalAbsentConverted = absentCount + penaltyDays;
+
+                const currentAttendanceRate = daysProgressed > 0
+                    ? Math.max(0, ((daysProgressed - totalAbsentConverted) / daysProgressed) * 100).toFixed(1)
+                    : '0.0';
+                const finalAttendanceRate = total_days > 0
+                    ? Math.max(0, ((total_days - totalAbsentConverted) / total_days) * 100).toFixed(1)
+                    : '0.0';
+
+                attendance_rate = parseFloat(currentAttendanceRate);
+                advanced_attendance = {
+                    type: 'days',
+                    isLongTerm: true,
+                    daysProgressed,
+                    totalDays: total_days,
+                    absent: absentCount,
+                    late: lateCount,
+                    early: earlyCount,
+                    outing: outCount,
+                    totalAbsentConverted,
+                    currentRate: currentAttendanceRate,
+                    finalRate: finalAttendanceRate
+                };
+            } else {
+                const expectedCurrentMinutes = daysProgressed > 0 ? daysProgressed * (daily_hours || 0) * 60 : 0;
+                const expectedTotalMinutes = total_hours > 0 ? total_hours * 60 : 0;
+
+                const currentAttendanceRate = expectedCurrentMinutes > 0
+                    ? Math.min(100, (accumulatedMinutes / expectedCurrentMinutes) * 100).toFixed(1)
+                    : '0.0';
+                const finalAttendanceRate = expectedTotalMinutes > 0
+                    ? Math.min(100, (accumulatedMinutes / expectedTotalMinutes) * 100).toFixed(1)
+                    : '0.0';
+
+                attendance_rate = parseFloat(currentAttendanceRate);
+                advanced_attendance = {
+                    type: 'minutes',
+                    isLongTerm: false,
+                    accumulatedMinutes: Math.floor(accumulatedMinutes),
+                    expectedCurrentMinutes,
+                    expectedTotalMinutes,
+                    currentRate: currentAttendanceRate,
+                    finalRate: finalAttendanceRate,
+                    absent: absentCount,
+                    late: lateCount,
+                    early: earlyCount,
+                };
+            }
+        } else {
+            // 레거시 폴백 혹은 수강이력 없는 경우
+            const attRow = await c.env.DB.prepare(`
+                SELECT
+                            (SELECT COUNT(*) FROM attendance_logs al
+                     JOIN course_session_enrollments cse ON al.enrollment_id = cse.id
+                     WHERE cse.user_id = ? AND al.status IN('present', 'late')) as attended,
+                        (SELECT COUNT(*) FROM attendance_logs al
+                     JOIN course_session_enrollments cse ON al.enrollment_id = cse.id
+                     WHERE cse.user_id = ?) as total
+                    `).bind(id, id).first() as { attended: number; total: number };
+            const totalLogs = attRow?.total ?? 0;
+            const attended = attRow?.attended ?? 0;
+            attendance_rate = totalLogs > 0 ? Math.round((attended / totalLogs) * 100) : 0;
+        }
 
         const data = {
             ...r,
@@ -790,7 +901,8 @@ app.get('/students/:id', async (c) => {
             has_card: !!r.has_card,
             is_hrd_net_registered: !!r.is_hrd_net_registered,
             consultation_count,
-            attendance_rate
+            attendance_rate,
+            advanced_attendance
         };
         return c.json({ success: true, data });
     } catch (e: any) {
@@ -829,7 +941,7 @@ app.post('/students', async (c) => {
         let user: any = await c.env.DB.prepare("SELECT id FROM users WHERE phone = ?").bind(phone).first();
         let userId: number;
 
-        const valEmail = email || `${phone}@temp.com`;
+        const valEmail = email || `${phone} @temp.com`;
         const valBirthdate = birthdate || null;
         const valGender = gender || 'M';
         const valAddress = address || null;
@@ -863,17 +975,17 @@ app.post('/students', async (c) => {
 
         // 2. HRD 상세 정보 등록/업데이트
         await c.env.DB.prepare(`
-            INSERT INTO hrd_student_details (
-                user_id, course_id, status, type, package_type, payment_method, payment_date,
-                self_pay_amount, has_application, has_card, is_hrd_net_registered, 
-                status_memo
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO hrd_student_details(
+                        user_id, course_id, status, type, package_type, payment_method, payment_date,
+                        self_pay_amount, has_application, has_card, is_hrd_net_registered,
+                        status_memo
+                    ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(user_id) DO UPDATE SET
-                course_id = ?, status = ?, type = ?, package_type = ?, payment_method = ?, 
-                payment_date = ?, self_pay_amount = ?, has_application = ?, has_card = ?, 
-                is_hrd_net_registered = ?, status_memo = ?,
-                updated_at = CURRENT_TIMESTAMP
-        `).bind(
+                    course_id = ?, status = ?, type = ?, package_type = ?, payment_method = ?,
+                        payment_date = ?, self_pay_amount = ?, has_application = ?, has_card = ?,
+                        is_hrd_net_registered = ?, status_memo = ?,
+                        updated_at = CURRENT_TIMESTAMP
+                            `).bind(
             userId, hrdCourseId, valStatus, valType, valPackageType, valPaymentMethod, valPaymentDate,
             valSelfPayAmount, has_application ? 1 : 0, has_card ? 1 : 0,
             is_hrd_net_registered ? 1 : 0, valStatusMemo,
@@ -919,17 +1031,17 @@ app.put('/students', async (c) => {
 
         // 2. HRD 상세 정보 업데이트 (레코드가 없을 경우를 대비해 UPSERT 수행)
         await c.env.DB.prepare(`
-            INSERT INTO hrd_student_details (
-                user_id, course_id, status, type, package_type, payment_method, 
-                payment_date, self_pay_amount, has_application, has_card, 
-                is_hrd_net_registered, status_memo
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO hrd_student_details(
+                                user_id, course_id, status, type, package_type, payment_method,
+                                payment_date, self_pay_amount, has_application, has_card,
+                                is_hrd_net_registered, status_memo
+                            ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(user_id) DO UPDATE SET
-                course_id = ?, status = ?, type = ?, package_type = ?, payment_method = ?, 
-                payment_date = ?, self_pay_amount = ?, has_application = ?, has_card = ?, 
-                is_hrd_net_registered = ?, status_memo = ?,
-                updated_at = CURRENT_TIMESTAMP
-        `).bind(
+                    course_id = ?, status = ?, type = ?, package_type = ?, payment_method = ?,
+                        payment_date = ?, self_pay_amount = ?, has_application = ?, has_card = ?,
+                        is_hrd_net_registered = ?, status_memo = ?,
+                        updated_at = CURRENT_TIMESTAMP
+                            `).bind(
             id, hrdCourseId, status || 'consulting', type || 'jobseeker', package_type || null, payment_method || null, payment_date || null,
             parseInt(self_pay_amount || 0), has_application ? 1 : 0, has_card ? 1 : 0,
             is_hrd_net_registered ? 1 : 0, status_memo || null,
@@ -950,7 +1062,7 @@ app.put('/students', async (c) => {
 app.get('/counselors', authMiddleware, async (c) => {
     try {
         const { results } = await c.env.DB.prepare(
-            `SELECT id, name FROM users WHERE role IN ('admin', 'teacher', 'instructor') AND status = 'active' ORDER BY name ASC`
+            `SELECT id, name FROM users WHERE role IN('admin', 'teacher', 'instructor') AND status = 'active' ORDER BY name ASC`
         ).all();
         return c.json({ success: true, data: results || [] });
     } catch (e: any) {
@@ -966,20 +1078,20 @@ app.get('/students/:id/consultations', authMiddleware, async (c) => {
         const user = c.get('user'); // JWTPayload
 
         let query = `
-            SELECT 
-                cl.id,
-                cl.counselor_id,
-                cl.content as message,
-                cl.counseling_date as consult_date,
-                u.name as memo,
-                u.role as counselor_role,
-                cl.category,
-                cl.method,
-                cl.created_at
+                    SELECT
+                    cl.id,
+                        cl.counselor_id,
+                        cl.content as message,
+                        cl.counseling_date as consult_date,
+                        u.name as memo,
+                        u.role as counselor_role,
+                        cl.category,
+                        cl.method,
+                        cl.created_at
             FROM hrd_counseling_logs cl
             LEFT JOIN users u ON cl.counselor_id = u.id
-            WHERE cl.student_id = ? 
-        `;
+            WHERE cl.student_id = ?
+                        `;
 
         const params: any[] = [id];
 
@@ -1011,12 +1123,12 @@ app.post('/students/:id/consultations', authMiddleware, async (c) => {
 
         // hrd_counseling_logs 에 저장
         await c.env.DB.prepare(`
-            INSERT INTO hrd_counseling_logs (
-                student_id, counselor_id, course_id, counseling_date, 
-                category, method, content, created_at, updated_at
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-        `).bind(
+            INSERT INTO hrd_counseling_logs(
+                            student_id, counselor_id, course_id, counseling_date,
+                            category, method, content, created_at, updated_at
+                        )
+                    VALUES(?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                        `).bind(
             studentId, counselorId, course_id || null,
             date || new Date().toISOString().split('T')[0],
             category || 'academic', method || 'face_to_face', content
@@ -1026,8 +1138,8 @@ app.post('/students/:id/consultations', authMiddleware, async (c) => {
         await c.env.DB.prepare(`
             UPDATE hrd_student_details 
             SET last_consult = ?
-            WHERE user_id = ?
-        `).bind(date || new Date().toISOString().split('T')[0], studentId).run();
+                        WHERE user_id = ?
+                            `).bind(date || new Date().toISOString().split('T')[0], studentId).run();
 
         return c.json({ success: true });
     } catch (e: any) {
@@ -1043,22 +1155,22 @@ app.get('/students/:id/enrollments', authMiddleware, async (c) => {
         const { DB } = c.env;
 
         const { results } = await DB.prepare(`
-            SELECT 
-                cs.id as session_id,
-                cs.session_number,
-                cs.session_name,
-                cs.training_start_date,
-                cs.training_end_date,
-                cs.status as session_status,
-                ac.name as course_name,
-                cse.status as enrollment_status,
-                cse.enrolled_at
+            SELECT
+                    cs.id as session_id,
+                        cs.session_number,
+                        cs.session_name,
+                        cs.training_start_date,
+                        cs.training_end_date,
+                        cs.status as session_status,
+                        ac.name as course_name,
+                        cse.status as enrollment_status,
+                        cse.enrolled_at
             FROM course_session_enrollments cse
             JOIN course_sessions cs ON cse.session_id = cs.id
             JOIN approved_courses ac ON cs.approved_course_id = ac.id
             WHERE cse.user_id = ?
-            ORDER BY cs.training_start_date DESC
-        `).bind(id).all();
+                        ORDER BY cs.training_start_date DESC
+                            `).bind(id).all();
 
         return c.json({ success: true, data: results || [] });
     } catch (e: any) {
@@ -1076,16 +1188,16 @@ app.get('/facilities', async (c) => {
     try {
         const search = c.req.query('search');
         let query = `
-            SELECT f.*, 
-            (SELECT url FROM hrd_facility_images WHERE facility_id = f.id ORDER BY created_at DESC LIMIT 1) as image_url
+            SELECT f.*,
+                        (SELECT url FROM hrd_facility_images WHERE facility_id = f.id ORDER BY created_at DESC LIMIT 1) as image_url
             FROM hrd_facilities f 
-            WHERE 1=1
-        `;
+            WHERE 1 = 1
+                `;
         const params: any[] = [];
 
         if (search) {
             query += " AND name LIKE ?";
-            params.push(`%${search}%`);
+            params.push(`% ${search}% `);
         }
 
         query += " ORDER BY name ASC";
@@ -1105,18 +1217,18 @@ app.post('/facilities', async (c) => {
         const { name, area, managerMain, managerSub, description, image_url } = body;
 
         const result = await c.env.DB.prepare(`
-            INSERT INTO hrd_facilities (name, area, manager_main, manager_sub, description, status)
-            VALUES (?, ?, ?, ?, ?, '양호')
-        `).bind(name, area ? parseFloat(area) : null, managerMain || null, managerSub || null, description || null).run();
+            INSERT INTO hrd_facilities(name, area, manager_main, manager_sub, description, status)
+            VALUES(?, ?, ?, ?, ?, '양호')
+                `).bind(name, area ? parseFloat(area) : null, managerMain || null, managerSub || null, description || null).run();
 
         const facilityId = result.meta.last_row_id;
 
         // 초기 이미지가 있는 경우 이미지 테이블에도 등록
         if (image_url) {
             await c.env.DB.prepare(`
-                INSERT INTO hrd_facility_images (facility_id, name, size, url)
-                VALUES (?, ?, ?, ?)
-            `).bind(facilityId, 'initial_photo.jpg', Math.round(image_url.length * 0.75), image_url).run();
+                INSERT INTO hrd_facility_images(facility_id, name, size, url)
+            VALUES(?, ?, ?, ?)
+                `).bind(facilityId, 'initial_photo.jpg', Math.round(image_url.length * 0.75), image_url).run();
         }
 
         return c.json({ success: true, data: { id: facilityId } });
@@ -1135,13 +1247,13 @@ app.put('/facilities', async (c) => {
         await c.env.DB.prepare(`
             UPDATE hrd_facilities 
             SET name = ?, area = ?, manager_main = ?, manager_sub = ?, description = ?, status = ?
-            WHERE id = ?
-        `).bind(name, area ? parseFloat(area) : null, managerMain || null, managerSub || null, description || null, status, id).run();
+                WHERE id = ?
+                    `).bind(name, area ? parseFloat(area) : null, managerMain || null, managerSub || null, description || null, status, id).run();
 
         if (image_url) {
             await c.env.DB.prepare(`
-                INSERT INTO hrd_facility_images (facility_id, name, size, url)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO hrd_facility_images(facility_id, name, size, url)
+            VALUES(?, ?, ?, ?)
             `).bind(id, 'manual_update.jpg', Math.round(image_url.length * 0.75), image_url).run();
         }
 
@@ -1179,26 +1291,26 @@ app.get('/facilities/:id/maintenance', async (c) => {
         const id = c.req.param('id');
 
         const fId = parseInt(id);
-        if (isNaN(fId)) return c.json({ success: false, error: `유효하지 않은 시설 ID: ${id}` }, 400);
+        if (isNaN(fId)) return c.json({ success: false, error: `유효하지 않은 시설 ID: ${id} ` }, 400);
 
         try {
             // 안전 장치: 테이블이 없으면 생성
             await c.env.DB.prepare(`
-                CREATE TABLE IF NOT EXISTS hrd_facility_maintenance (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    facility_id INTEGER,
-                    status TEXT,
-                    title TEXT,
-                    price INTEGER DEFAULT 0,
-                    vendor TEXT,
-                    manager TEXT,
-                    memo TEXT,
-                    date TEXT,
-                    progress TEXT DEFAULT 'pending',
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-                )
-            `).run();
+                CREATE TABLE IF NOT EXISTS hrd_facility_maintenance(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                facility_id INTEGER,
+                status TEXT,
+                title TEXT,
+                price INTEGER DEFAULT 0,
+                vendor TEXT,
+                manager TEXT,
+                memo TEXT,
+                date TEXT,
+                progress TEXT DEFAULT 'pending',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+                `).run();
 
             // 기존 테이블 컬럼 마이그레이션 (개별 try-catch로 독립 실행)
             try {
@@ -1210,8 +1322,8 @@ app.get('/facilities/:id/maintenance', async (c) => {
             } catch (ignore) { }
 
             const { results } = await c.env.DB.prepare(`
-                SELECT * FROM hrd_facility_maintenance 
-                WHERE facility_id = ? 
+            SELECT * FROM hrd_facility_maintenance 
+                WHERE facility_id = ?
                 ORDER BY date DESC, created_at DESC
             `).bind(fId).all();
 
@@ -1252,14 +1364,14 @@ app.put('/facilities/maintenance/:logId', async (c) => {
             return c.json({ success: true, message: '변경 내용 없음' });
         }
 
-        const query = `UPDATE hrd_facility_maintenance SET ${updates.join(", ")}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
+        const query = `UPDATE hrd_facility_maintenance SET ${updates.join(", ")}, updated_at = CURRENT_TIMESTAMP WHERE id = ? `;
         params.push(logId);
 
         try {
             await c.env.DB.prepare(query).bind(...params).run();
         } catch (dbError) {
             // updated_at 컬럼이 없을 경우를 대비한 폴백 (과도기적 조치)
-            const fallbackQuery = `UPDATE hrd_facility_maintenance SET ${updates.join(", ")} WHERE id = ?`;
+            const fallbackQuery = `UPDATE hrd_facility_maintenance SET ${updates.join(", ")} WHERE id = ? `;
             await c.env.DB.prepare(fallbackQuery).bind(...params).run();
         }
 
@@ -1300,16 +1412,16 @@ app.post('/facilities/:id/maintenance', async (c) => {
         if (!facilityId) return c.json({ success: false, error: '시설 ID가 필요합니다.' }, 400);
 
         const fId = parseInt(facilityId);
-        if (isNaN(fId)) return c.json({ success: false, error: `유효하지 않은 시설 ID: ${facilityId}` }, 400);
+        if (isNaN(fId)) return c.json({ success: false, error: `유효하지 않은 시설 ID: ${facilityId} ` }, 400);
 
         // 상세 로그 로깅 (서버 콘솔용)
-        console.log(`Adding maintenance log: facilityId=${fId}, status=${status}, title=${title}`);
+        console.log(`Adding maintenance log: facilityId = ${fId}, status = ${status}, title = ${title} `);
 
         try {
             await c.env.DB.prepare(`
-                INSERT INTO hrd_facility_maintenance (facility_id, status, title, price, vendor, manager, memo, date)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            `).bind(
+                INSERT INTO hrd_facility_maintenance(facility_id, status, title, price, vendor, manager, memo, date)
+            VALUES(?, ?, ?, ?, ?, ?, ?, ?)
+                `).bind(
                 fId,
                 status || null,
                 title || null,
@@ -1323,7 +1435,7 @@ app.post('/facilities/:id/maintenance', async (c) => {
             // 시설의 최종 점검일 및 상태 업데이트
             await c.env.DB.prepare(`
                 UPDATE hrd_facilities SET last_check = ?, status = ? WHERE id = ?
-            `).bind(date || new Date().toISOString(), status === 'repair' ? '점검필요' : '양호', fId).run();
+                `).bind(date || new Date().toISOString(), status === 'repair' ? '점검필요' : '양호', fId).run();
 
             return c.json({ success: true });
         } catch (dbError) {
@@ -1345,7 +1457,7 @@ app.get('/facilities/:id/images', async (c) => {
         const id = c.req.param('id');
         const { results } = await c.env.DB.prepare(`
             SELECT * FROM hrd_facility_images WHERE facility_id = ? ORDER BY created_at DESC
-        `).bind(id).all();
+                `).bind(id).all();
         return c.json({ success: true, data: results });
     } catch (e) {
         console.error('Failed to fetch facility images:', e);
@@ -1361,9 +1473,9 @@ app.post('/facilities/:id/images', async (c) => {
         const { name, size, url } = body;
 
         const result = await c.env.DB.prepare(`
-            INSERT INTO hrd_facility_images (facility_id, name, size, url)
-            VALUES (?, ?, ?, ?)
-        `).bind(facilityId, name, size, url).run();
+            INSERT INTO hrd_facility_images(facility_id, name, size, url)
+            VALUES(?, ?, ?, ?)
+                `).bind(facilityId, name, size, url).run();
 
         return c.json({ success: true, data: { id: result.meta.last_row_id } });
     } catch (e) {
@@ -1393,7 +1505,7 @@ app.get('/facilities/:id/items', async (c) => {
         if (!facility) return c.json({ success: false, error: '시설을 찾을 수 없습니다.' }, 404);
 
         // 2. Search items where location contains facility name (simple matching)
-        const { results } = await c.env.DB.prepare("SELECT * FROM hrd_items WHERE location LIKE ?").bind(`%${facility.name}%`).all();
+        const { results } = await c.env.DB.prepare("SELECT * FROM hrd_items WHERE location LIKE ?").bind(`% ${facility.name}% `).all();
 
         return c.json({ success: true, data: results });
     } catch (e) {
@@ -1428,8 +1540,8 @@ app.get('/attendance', authMiddleware, async (c) => {
         // 1. 해당 과정의 수강생 목록 및 출석 정보 조회 (통합된 attendance_logs 테이블 사용)
         // HRD 뷰 호환성을 위해 필드명 매핑 (check_in_time -> in_time 등)
         const query = `
-            SELECT 
-                u.id, u.name, u.phone,
+            SELECT
+            u.id, u.name, u.phone,
                 d.package_type,
                 e.id as enrollment_id,
                 al.status,
@@ -1440,9 +1552,9 @@ app.get('/attendance', authMiddleware, async (c) => {
             JOIN hrd_student_details d ON u.id = d.user_id
             JOIN enrollments e ON u.id = e.user_id
             LEFT JOIN attendance_logs al ON e.id = al.enrollment_id AND al.date = ?
-            WHERE e.course_id = ? AND u.role = 'student'
+                WHERE e.course_id = ? AND u.role = 'student'
             ORDER BY u.name ASC
-        `;
+                `;
 
         const { results } = await c.env.DB.prepare(query).bind(date, courseId).all();
 
@@ -1473,19 +1585,19 @@ app.get('/attendance/summary', authMiddleware, async (c) => {
         // 1. 모든 활성 과정 조회 (일반 과정 + HRD 회차 통합)
         const coursesQuery = `
             SELECT id, title, teacher_name, type, created_at
-            FROM (
+            FROM(
                 SELECT c.id, c.title, u.name as teacher_name, 'general' as type, c.created_at
                 FROM courses c
                 LEFT JOIN users u ON c.teacher_id = u.id
-                WHERE c.status IN ('active', 'open', 'in_progress')
+                WHERE c.status IN('active', 'open', 'in_progress')
                 UNION ALL
                 SELECT s.id, (a.name || ' (' || s.session_number || '회차)') as title, s.instructor_name as teacher_name, 'hrd' as type, s.created_at
                 FROM course_sessions s
                 JOIN approved_courses a ON s.approved_course_id = a.id
-                WHERE s.status IN ('active', 'open', 'in_progress', 'recruiting')
+                WHERE s.status IN('active', 'open', 'in_progress', 'recruiting')
             )
             ORDER BY created_at DESC
-        `;
+                `;
         const { results: courses } = await c.env.DB.prepare(coursesQuery).all();
 
         // 2. 각 과정별 통계 조회
@@ -1501,15 +1613,15 @@ app.get('/attendance/summary', authMiddleware, async (c) => {
                 studentsCount = countResult?.count || 0;
 
                 const statsResult = await c.env.DB.prepare(`
-                    SELECT 
-                        SUM(CASE WHEN al.status = 'present' THEN 1 ELSE 0 END) as present,
-                        SUM(CASE WHEN al.status = 'late' THEN 1 ELSE 0 END) as late,
-                        SUM(CASE WHEN al.status = 'early_leave' THEN 1 ELSE 0 END) as early,
-                        SUM(CASE WHEN al.status = 'absent' THEN 1 ELSE 0 END) as absent
+            SELECT
+            SUM(CASE WHEN al.status = 'present' THEN 1 ELSE 0 END) as present,
+                SUM(CASE WHEN al.status = 'late' THEN 1 ELSE 0 END) as late,
+                SUM(CASE WHEN al.status = 'early_leave' THEN 1 ELSE 0 END) as early,
+                SUM(CASE WHEN al.status = 'absent' THEN 1 ELSE 0 END) as absent
                     FROM enrollments e
                     LEFT JOIN attendance_logs al ON e.id = al.enrollment_id AND al.date = ?
-                    WHERE e.course_id = ? AND e.status = 'approved'
-                `).bind(date, course.id).first<any>();
+                WHERE e.course_id = ? AND e.status = 'approved'
+                    `).bind(date, course.id).first<any>();
 
                 if (statsResult) {
                     stats = {
@@ -1531,15 +1643,15 @@ app.get('/attendance/summary', authMiddleware, async (c) => {
                 // 일단은 빈 상태로 유지하거나 통합 attendance_logs가 있다면 그대로 사용
                 // (일단 일반과 동일한 테이블 구조를 사용한다고 가정하거나 0으로 표시)
                 const hrdStatsResult = await c.env.DB.prepare(`
-                    SELECT 
-                        SUM(CASE WHEN al.status = 'present' THEN 1 ELSE 0 END) as present,
-                        SUM(CASE WHEN al.status = 'late' THEN 1 ELSE 0 END) as late,
-                        SUM(CASE WHEN al.status = 'early_leave' THEN 1 ELSE 0 END) as early,
-                        SUM(CASE WHEN al.status = 'absent' THEN 1 ELSE 0 END) as absent
+            SELECT
+            SUM(CASE WHEN al.status = 'present' THEN 1 ELSE 0 END) as present,
+                SUM(CASE WHEN al.status = 'late' THEN 1 ELSE 0 END) as late,
+                SUM(CASE WHEN al.status = 'early_leave' THEN 1 ELSE 0 END) as early,
+                SUM(CASE WHEN al.status = 'absent' THEN 1 ELSE 0 END) as absent
                     FROM course_session_enrollments e
                     LEFT JOIN attendance_logs al ON e.id = al.enrollment_id AND al.date = ?
-                    WHERE e.session_id = ? AND e.status = 'approved'
-                `).bind(date, course.id).first<any>();
+                WHERE e.session_id = ? AND e.status = 'approved'
+                    `).bind(date, course.id).first<any>();
 
                 if (hrdStatsResult) {
                     stats = {
@@ -1588,18 +1700,18 @@ app.get('/attendance/print-form', async (c) => {
         // 1. 회차 정보 (과정명, 기간, 강사, 시간, 강의실)
         const sessionRow = await DB.prepare(`
             SELECT s.id, s.session_number, s.session_name, s.training_start_date, s.training_end_date,
-                   s.instructor_name, s.training_time_start, s.training_time_end, s.location as session_location,
-                   a.name as course_name
+                s.instructor_name, s.training_time_start, s.training_time_end, s.location as session_location,
+                a.name as course_name
             FROM course_sessions s
             JOIN approved_courses a ON s.approved_course_id = a.id
             WHERE s.id = ?
-        `).bind(sessionId).first() as any;
+                `).bind(sessionId).first() as any;
 
         if (!sessionRow) {
             return c.json({ success: false, error: '회차를 찾을 수 없습니다.' }, 404);
         }
 
-        const courseTitle = (sessionRow.course_name || '') + (sessionRow.session_number != null ? ` + ${sessionRow.session_number}차` : '') + (sessionRow.session_name ? ' ' + sessionRow.session_name : '');
+        const courseTitle = (sessionRow.course_name || '') + (sessionRow.session_number != null ? ` + ${sessionRow.session_number} 차` : '') + (sessionRow.session_name ? ' ' + sessionRow.session_name : '');
         const trainingPeriod = [sessionRow.training_start_date, sessionRow.training_end_date].filter(Boolean).map((d: string) => d.replace(/-/g, '.')).join('~');
         const trainingTime = [sessionRow.training_time_start, sessionRow.training_time_end].filter(Boolean).join('~').replace(/:00$/, '');
 
@@ -1624,7 +1736,7 @@ app.get('/attendance/print-form', async (c) => {
         // 2. 훈련일(일차) 목록: session_timetable의 distinct training_date, 없으면 start~end 평일
         let trainingDays: { dayNumber: number; date: string; dateShort: string; dayOfWeek: string }[] = [];
         const dayRows = await DB.prepare(`
-            SELECT DISTINCT training_date FROM session_timetable WHERE session_id = ? AND (is_excluded IS NULL OR is_excluded = 0) ORDER BY training_date
+            SELECT DISTINCT training_date FROM session_timetable WHERE session_id = ? AND(is_excluded IS NULL OR is_excluded = 0) ORDER BY training_date
         `).bind(sessionId).all();
 
         const dayNames = ['일', '월', '화', '수', '목', '금', '토'];

@@ -430,7 +430,7 @@ export const teacherDashboardHtml = `
                                 <span class="text-xs font-black text-neutral-800">\${course.enrolled_count || 0}<span class="text-[10px] text-neutral-400 ml-1">Studs</span></span>
                                 <span class="text-[9px] font-black text-neutral-300 uppercase tracking-widest">Capacity</span>
                             </div>
-                            <button onclick="location.href='/teacher/courses/' + \${course.id} + '/lms'" class="w-10 h-10 rounded-2xl bg-white border border-neutral-200 flex items-center justify-center text-neutral-400 hover:bg-brand-600 hover:text-white hover:border-brand-600 transition-all">
+                            <button onclick="location.href='/teacher/courses/' + \${course.id} + '/lms' + (\${course.is_hrd ? '?type=hrd' : ''})" class="w-10 h-10 rounded-2xl bg-white border border-neutral-200 flex items-center justify-center text-neutral-400 hover:bg-brand-600 hover:text-white hover:border-brand-600 transition-all">
                                 <i class="fas fa-door-open text-xs"></i>
                             </button>
                         </div>
@@ -439,51 +439,51 @@ export const teacherDashboardHtml = `
             \`;}).join('');
         }
 
-        function initChart(avg) {
-            const canvas = document.getElementById('performanceChart');
-            const empty = document.getElementById('performanceChartEmpty');
-            if (!canvas) return;
-            
-            if (avg == null) { empty.classList.remove('hidden'); canvas.style.display = 'none'; return; }
-            empty.classList.add('hidden');
-            canvas.style.display = 'block';
+function initChart(avg) {
+    const canvas = document.getElementById('performanceChart');
+    const empty = document.getElementById('performanceChartEmpty');
+    if (!canvas) return;
 
-            const ctx = canvas.getContext('2d');
-            const grad = ctx.createLinearGradient(0, 0, 0, 300);
-            grad.addColorStop(0, 'rgba(79, 105, 242, 0.4)');
-            grad.addColorStop(1, 'rgba(79, 105, 242, 0)');
+    if (avg == null) { empty.classList.remove('hidden'); canvas.style.display = 'none'; return; }
+    empty.classList.add('hidden');
+    canvas.style.display = 'block';
 
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'],
-                    datasets: [{
-                        label: 'Attendance',
-                        data: [avg-2, avg-1, avg+1, avg, avg+3, avg-1, avg+2],
-                        borderColor: '#4f69f2',
-                        borderWidth: 6,
-                        backgroundColor: grad,
-                        fill: true,
-                        tension: 0.5,
-                        pointRadius: 0,
-                        pointHoverRadius: 8,
-                        pointHoverBackgroundColor: '#fff',
-                        pointHoverBorderColor: '#4f69f2',
-                        pointHoverBorderWidth: 4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false }, tooltip: { cornerRadius: 15, padding: 15, titleFont: { size: 14, weight: '900' }, bodyFont: { size: 12, weight: '700' } } },
-                    scales: {
-                        y: { display: false, min: 0, max: 105 },
-                        x: { border: { display: false }, grid: { display: false }, ticks: { font: { size: 10, family: 'Outfit', weight: '900' }, color: '#94a3b8', padding: 15 } }
-                    }
-                }
-            });
+    const ctx = canvas.getContext('2d');
+    const grad = ctx.createLinearGradient(0, 0, 0, 300);
+    grad.addColorStop(0, 'rgba(79, 105, 242, 0.4)');
+    grad.addColorStop(1, 'rgba(79, 105, 242, 0)');
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'],
+            datasets: [{
+                label: 'Attendance',
+                data: [avg - 2, avg - 1, avg + 1, avg, avg + 3, avg - 1, avg + 2],
+                borderColor: '#4f69f2',
+                borderWidth: 6,
+                backgroundColor: grad,
+                fill: true,
+                tension: 0.5,
+                pointRadius: 0,
+                pointHoverRadius: 8,
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: '#4f69f2',
+                pointHoverBorderWidth: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { cornerRadius: 15, padding: 15, titleFont: { size: 14, weight: '900' }, bodyFont: { size: 12, weight: '700' } } },
+            scales: {
+                y: { display: false, min: 0, max: 105 },
+                x: { border: { display: false }, grid: { display: false }, ticks: { font: { size: 10, family: 'Outfit', weight: '900' }, color: '#94a3b8', padding: 15 } }
+            }
         }
-    </script>
-</body>
-</html>
-`;
+    });
+}
+</script>
+    </body>
+    </html>
+        `;

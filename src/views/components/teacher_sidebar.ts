@@ -28,20 +28,7 @@ export const teacherSidebar = (activeMenu: string, activeSubMenu?: string) => {
         </div>
     </div>
 
-    <!-- 운영 과정 퀵 선택기 (Instructor View) -->
-    <div class="px-5 pb-6 border-b border-white/5 shrink-0 relative z-10">
-        <div class="px-3 mb-2.5">
-            <span class="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">나의 진행 과정</span>
-        </div>
-        <div class="relative group/selector px-1">
-            <select id="teacherSidebarCourseSelector" onchange="(function(v){ if(!v) return; location.href = '/teacher/courses/'+v+'/lms?type=hrd'; })(this.value)" class="w-full bg-white/5 border border-white/10 text-white text-[13px] font-bold rounded-2xl px-5 py-3.5 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition cursor-pointer hover:bg-white/10 shadow-inner">
-                <option value="" class="bg-gray-900 text-gray-400">과정 바로가기 선택</option>
-            </select>
-            <div class="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 text-[10px] group-hover/selector:text-blue-400 transition-colors">
-                <i class="fas fa-chevron-down"></i>
-            </div>
-        </div>
-    </div>
+
 
     <!-- 메뉴 영역 -->
     <nav class="flex-1 py-8 px-4 space-y-9 overflow-y-auto custom-scrollbar relative z-10">
@@ -141,6 +128,12 @@ export const teacherSidebar = (activeMenu: string, activeSubMenu?: string) => {
                     </div>
                     <span class="font-black text-sm tracking-tight">강사 프로필 수정</span>
                 </a>
+                <a href="/" class="flex items-center px-5 py-4 rounded-2xl transition-all duration-500 group text-gray-400 hover:bg-white/5 hover:text-white">
+                    <div class="w-8 flex justify-center">
+                        <i class="fas fa-home text-sm text-gray-400 group-hover:text-blue-400 transition-colors"></i>
+                    </div>
+                    <span class="font-black text-sm tracking-tight">홈페이지로 이동</span>
+                </a>
             </div>
         </div>
     </nav>
@@ -237,33 +230,7 @@ export const teacherSidebar = (activeMenu: string, activeSubMenu?: string) => {
             }
         }
 
-        // 사이드바 운영 과정 선택기 데이터 로드
-        const courseSelector = document.getElementById('teacherSidebarCourseSelector');
-        const token = localStorage.getItem('token');
-        if (courseSelector && token) {
-            fetch('/api/course-sessions?status=in_progress', {
-                headers: { 'Authorization': 'Bearer ' + token }
-            })
-            .then(r => r.json())
-            .then(res => {
-                if (res.success && res.data) {
-                    res.data.forEach(s => {
-                        const opt = document.createElement('option');
-                        opt.value = s.id;
-                        opt.textContent = '[' + (s.session_number || 1) + '차] ' + s.course_name;
-                        opt.className = "bg-gray-900 text-white";
-                        courseSelector.appendChild(opt);
-                    });
-                    
-                    // 현재 URL에서 courseId 추출하여 자동 선택
-                    const match = location.pathname.match(/\\/teacher\\/courses\\/(\\d+)\\/lms/);
-                    if (match && match[1]) {
-                        courseSelector.value = match[1];
-                    }
-                }
-            })
-            .catch(err => console.error('Teacher sidebar course load error:', err));
-        }
+
     });
 </script>
 `;

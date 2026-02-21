@@ -288,12 +288,14 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
                         <div class="mt-8 grid grid-cols-2 gap-3 border-t border-gray-50 pt-6">
                             <div class="bg-gray-50 p-3 rounded-2xl text-center">
                                 <span class="block text-[10px] font-black text-gray-400 uppercase mb-1">출석률</span>
-                                <span class="text-lg font-black text-blue-600">92%</span>
+                                <span id="sidebarAttendanceRate" class="text-lg font-black text-blue-600">-</span>
                             </div>
                             <div class="bg-gray-50 p-3 rounded-2xl text-center">
                                 <span class="block text-[10px] font-black text-gray-400 uppercase mb-1">상담횟수</span>
                                 <span class="text-lg font-black text-gray-800" id="consultCount">0</span>
                             </div>
+                        </div>
+                        <div id="advancedAttendanceContainer" class="mt-4 w-full text-left bg-gray-50 p-4 rounded-2xl hidden">
                         </div>
                     </div>
 
@@ -786,6 +788,53 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
 
             updateStepper(student.status);
             loadConsultations(id);
+
+            // Fetch detailed information for attendance and consultation count
+            const token = localStorage.getItem('token');
+            if (token) {
+                fetch('/api/hrd/students/' + id, { headers: { 'Authorization': 'Bearer ' + token } })
+                    .then(r => r.json())
+                    .then(res => {
+                        if (res.success && res.data) {
+                            const details = res.data;
+                            var attEl = document.getElementById('sidebarAttendanceRate');
+                            if (attEl) attEl.textContent = (details.attendance_rate != null) ? (details.attendance_rate + '%') : '-';
+                            var consultEl = document.getElementById('consultCount');
+                            if (consultEl) consultEl.textContent = (details.consultation_count != null) ? String(details.consultation_count) : '0';
+
+                            var advAttContainer = document.getElementById('advancedAttendanceContainer');
+                            if (advAttContainer && details.advanced_attendance) {
+                                advAttContainer.classList.remove('hidden');
+                                const adv = details.advanced_attendance;
+                                let html = '';
+                                if (adv.type === 'days') {
+                                    html += '<div class="text-xs font-bold text-gray-700 mb-2 border-b border-gray-200 pb-1">장기과정 출석 관리 (일수 기준)</div>' +
+                                            '<ul class="text-[11px] text-gray-500 space-y-1 my-2">' +
+                                                '<li><span class="text-green-600 font-bold">● 현재 누적 출석률:</span> ' + adv.currentRate + '% (진행 ' + adv.daysProgressed + '일 기준)</li>' +
+                                                '<li><span class="text-purple-600 font-bold">● 예측 최종 출석률:</span> ' + adv.finalRate + '% (총 ' + adv.totalDays + '일 기준)</li>' +
+                                            '</ul>' +
+                                            '<div class="text-[11px] text-gray-400 mt-2 bg-white p-2 rounded-lg border border-gray-100">' +
+                                                '<strong>출석 상세:</strong> 결석 ' + adv.absent + '회 / 지각 ' + adv.late + '회 / 조퇴 ' + adv.early + '회 <br/>' +
+                                                '<span class="text-[10px]">(지각/조퇴/외출 3회는 결석 1일로 환산됨 - 현재 환산결석: <b class="text-rose-500">' + adv.totalAbsentConverted + '일</b>)</span>' +
+                                            '</div>';
+                                } else if (adv.type === 'minutes') {
+                                    html += '<div class="text-xs font-bold text-gray-700 mb-2 border-b border-gray-200 pb-1">단기과정 출석 관리 (시간 기준)</div>' +
+                                            '<ul class="text-[11px] text-gray-500 space-y-1 my-2">' +
+                                                '<li><span class="text-green-600 font-bold">● 현재 분 출석률:</span> ' + adv.currentRate + '% (예상 ' + adv.expectedCurrentMinutes + '분 대비)</li>' +
+                                                '<li><span class="text-purple-600 font-bold">● 예측 총 출석률:</span> ' + adv.finalRate + '% (전체 ' + adv.expectedTotalMinutes + '분 대비)</li>' +
+                                                '<li class="text-gray-400 mt-1">누적 수강시간: <b>' + adv.accumulatedMinutes + '분</b></li>' +
+                                            '</ul>' +
+                                            '<div class="text-[11px] text-gray-400 mt-2 bg-white p-2 rounded-lg border border-gray-100">' +
+                                                '<strong>출결 상태:</strong> 결석 ' + adv.absent + '회 / 지각 ' + adv.late + '회 / 조퇴 ' + adv.early + '회' +
+                                            '</div>';
+                                }
+                                advAttContainer.innerHTML = html;
+                            } else if (advAttContainer) {
+                                advAttContainer.classList.add('hidden');
+                            }
+                        }
+                    }).catch(err => console.error('Failed to fetch student details:', err));
+            }
         }
 
         function translateStatus(s) { const m = { consulting: '초기 상담', registered: '등록·발급', learning: '집중 훈련', completed: '수료 완료', employed: '취업·성공', dropout: '중도탈락' }; return m[s] || s; }

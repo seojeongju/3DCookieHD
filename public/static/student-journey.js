@@ -277,6 +277,42 @@
 
                 var attEl = document.getElementById('sidebarAttendanceRate');
                 if (attEl) attEl.textContent = (student.attendance_rate != null) ? (student.attendance_rate + '%') : '-';
+
+                var advAttContainer = document.getElementById('advancedAttendanceContainer');
+                if (advAttContainer && student.advanced_attendance) {
+                    advAttContainer.classList.remove('hidden');
+                    const adv = student.advanced_attendance;
+                    let html = '';
+                    if (adv.type === 'days') {
+                        html += `
+                            <div class="text-xs font-bold text-gray-700 mb-2 border-b border-gray-200 pb-1">장기과정 출석 관리 (일수 기준)</div>
+                            <ul class="text-[11px] text-gray-500 space-y-1 my-2">
+                                <li><span class="text-green-600 font-bold">● 현재 누적 출석률:</span> ${adv.currentRate}% (진행 ${adv.daysProgressed}일 기준)</li>
+                                <li><span class="text-purple-600 font-bold">● 예측 최종 출석률:</span> ${adv.finalRate}% (총 ${adv.totalDays}일 기준)</li>
+                            </ul>
+                            <div class="text-[11px] text-gray-400 mt-2 bg-white p-2 rounded-lg border border-gray-100">
+                                <strong>출석 상세:</strong> 결석 ${adv.absent}회 / 지각 ${adv.late}회 / 조퇴 ${adv.early}회 <br/>
+                                <span class="text-[10px]">(지각/조퇴/외출 3회는 결석 1일로 환산됨 - 현재 환산결석: <b class="text-rose-500">${adv.totalAbsentConverted}일</b>)</span>
+                            </div>
+                        `;
+                    } else if (adv.type === 'minutes') {
+                        html += `
+                            <div class="text-xs font-bold text-gray-700 mb-2 border-b border-gray-200 pb-1">단기과정 출석 관리 (시간 기준)</div>
+                            <ul class="text-[11px] text-gray-500 space-y-1 my-2">
+                                <li><span class="text-green-600 font-bold">● 현재 분 출석률:</span> ${adv.currentRate}% (예상 ${adv.expectedCurrentMinutes}분 대비)</li>
+                                <li><span class="text-purple-600 font-bold">● 예측 총 출석률:</span> ${adv.finalRate}% (전체 ${adv.expectedTotalMinutes}분 대비)</li>
+                                <li class="text-gray-400 mt-1">누적 수강시간: <b>${adv.accumulatedMinutes}분</b></li>
+                            </ul>
+                            <div class="text-[11px] text-gray-400 mt-2 bg-white p-2 rounded-lg border border-gray-100">
+                                <strong>출결 상태:</strong> 결석 ${adv.absent}회 / 지각 ${adv.late}회 / 조퇴 ${adv.early}회
+                            </div>
+                        `;
+                    }
+                    advAttContainer.innerHTML = html;
+                } else if (advAttContainer) {
+                    advAttContainer.classList.add('hidden');
+                }
+
                 var consultEl = document.getElementById('consultCount');
                 if (consultEl) consultEl.textContent = (student.consultation_count != null) ? String(student.consultation_count) : '0';
 

@@ -162,7 +162,7 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
                             <td class="border border-gray-800 bg-gray-100 font-bold p-2 text-center">훈련과정명</td>
                             <td class="border border-gray-800 p-2 text-center font-medium tracking-tight text-xs text-gray-800" id="logCourseName">-</td>
                             <td class="border border-gray-800 bg-gray-100 font-bold p-2 text-center">재적</td>
-                            <td class="border border-gray-800 p-2 text-center text-gray-400 italic">- 명</td>
+                            <td class="border border-gray-800 p-2 text-center text-gray-800 font-bold" id="logEnrollCount">- 명</td>
                         </tr>
                     </table>
             
@@ -196,7 +196,8 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
                             <!-- JS Generated -->
                         </tbody>
                     </table>
-                    <div class="flex justify-end mt-1 mb-2">
+                    <div class="flex justify-between mt-1 mb-2">
+                         <button type="button" onclick="loadDailyAttendance()" class="text-xs text-rose-600 hover:text-rose-800 underline font-bold px-2 py-1 flex items-center gap-1"><i class="fas fa-users-viewfinder"></i> 출석 기록 불러오기</button>
                          <button type="button" onclick="loadDailySchedule()" class="text-xs text-indigo-600 hover:text-indigo-800 underline font-bold px-2 py-1 flex items-center gap-1"><i class="fas fa-sync-alt"></i> 시간표 불러오기</button>
                     </div>
             
@@ -258,6 +259,7 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
                 logDateInput.valueAsDate = new Date();
                 logDateInput.addEventListener('change', () => {
                     loadDailySchedule();
+                    loadDailyAttendance();
                 });
             }
             loadLogs();
@@ -728,6 +730,53 @@ async function printLog(id) {
             }
         }
 
+        async function loadDailyAttendance() {
+            const dateInput = document.getElementById('logDate');
+            if (!courseId || !dateInput || !dateInput.value) return;
+            
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const isHrd = urlParams.get('type') === 'hrd' ? '&type=hrd' : '';
+                const dateVal = dateInput.value;
+                const res = await fetch(\`/api/courses/\${courseId}/attendance?date=\${dateVal}\${isHrd}\`, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const result = await res.json();
+                
+                if (result.success && result.data && result.data.students) {
+                    const students = result.data.students;
+                    
+                    const enrollEl = document.getElementById('logEnrollCount');
+                    if (enrollEl) {
+                        enrollEl.textContent = students.length + ' 명';
+                        enrollEl.classList.remove('text-gray-400', 'italic');
+                        enrollEl.classList.add('text-indigo-700', 'font-black');
+                    }
+                    
+                    let p = 0, a = 0, l = 0, e = 0;
+                    let lateList = [], absentList = [], earlyList = [];
+                    
+                    students.forEach(s => {
+                        if (s.status === 'present') p++;
+                        else if (s.status === 'absent') { a++; absentList.push(s.name); }
+                        else if (s.status === 'late') { l++; lateList.push(s.name); }
+                        else if (s.status === 'early_leave') { e++; earlyList.push(s.name); }
+                    });
+                    
+                    const elP = document.getElementById('logAttPresent'); if (elP) elP.value = p;
+                    const elA = document.getElementById('logAttAbsent'); if (elA) elA.value = a;
+                    const elL = document.getElementById('logAttLate'); if (elL) elL.value = l;
+                    const elE = document.getElementById('logAttEarly'); if (elE) elE.value = e;
+                    
+                    const lstL = document.getElementById('logListLate'); if (lstL) lstL.value = lateList.join(', ');
+                    const lstA = document.getElementById('logListAbsent'); if (lstA) lstA.value = absentList.join(', ');
+                    const lstE = document.getElementById('logListEarly'); if (lstE) lstE.value = earlyList.join(', ');
+                }
+            } catch (e) {
+                console.error('Failed to load attendance for log', e);
+            }
+        }
+
         function renderScheduleTable(dbSchedules, savedDetails = null) {
             const tbody = document.getElementById('scheduleTableBody');
             if (!tbody) return;
@@ -792,6 +841,7 @@ async function printLog(id) {
             // 시간표 초기화
             if (elDate && elDate.value) {
                 loadDailySchedule(); 
+                loadDailyAttendance();
             } else {
                 renderScheduleTable(null, null); 
             }

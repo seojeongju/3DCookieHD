@@ -101,6 +101,8 @@ export const adminHrdStudentJourneyHtml = (studentId: string) => {
                                     <div class="bg-gray-50 p-3 rounded-2xl text-center"><span class="block text-[10px] font-black text-gray-400 uppercase mb-1">출석률</span><span id="sidebarAttendanceRate" class="text-lg font-black text-blue-600">-</span></div>
                                     <div class="bg-gray-50 p-3 rounded-2xl text-center"><span class="block text-[10px] font-black text-gray-400 uppercase mb-1">상담횟수</span><span class="text-lg font-black text-gray-800" id="consultCount">0</span></div>
                                 </div>
+                                <div id="advancedAttendanceContainer" class="mt-4 w-full text-left bg-gray-50 p-4 rounded-2xl hidden">
+                                </div>
                             </div>
                         </div>
                         <form id="studentForm" onsubmit="handleSaveStudent(event)" class="space-y-6 pb-12">
