@@ -11,112 +11,247 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
     <title>나의 강의 관리 - 강사 대시보드</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script>
       tailwind.config = {
         theme: {
           extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              outfit: ['Outfit', 'sans-serif'],
+            },
             colors: {
-              primary: {
-                50: '#f0f7ff', 100: '#e0effe', 200: '#baddfd', 300: '#7dbcfb', 400: '#3a9bf7',
-                500: '#5b9bd5', 600: '#4a90e2', 700: '#2d5fa3', 800: '#1e4278', 900: '#132d54'
+              brand: {
+                50: '#f5f7ff', 100: '#ebf0fe', 200: '#dce5fe', 300: '#c2d1fd', 400: '#9db4fb',
+                500: '#758ef8', 600: '#4f69f2', 700: '#3e52e0', 800: '#3543b5', 900: '#2f3b90',
+              },
+              neutral: {
+                50: '#f8fafc', 100: '#f1f5f9', 200: '#e2e8f0', 300: '#cbd5e1', 400: '#94a3b8',
+                500: '#64748b', 600: '#475569', 700: '#334155', 800: '#1e293b', 900: '#0f172a',
               }
+            },
+            borderRadius: {
+              '4xl': '2.5rem',
+              '5xl': '3rem',
+            },
+            boxShadow: {
+              'premium': '0 20px 50px -12px rgba(0, 0, 0, 0.05)',
+              'premium-hover': '0 30px 60px -12px rgba(79, 105, 242, 0.15)',
             }
           }
         }
       }
     </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .font-outfit { font-family: 'Outfit', sans-serif; }
+        .glass { background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .card-inner-shadow { box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06); }
+        @keyframes subtle-float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        .float-animation { animation: subtle-float 4s ease-in-out infinite; }
+    </style>
 </head>
-<body class="bg-gray-50 font-sans">
+<body class="bg-slate-50 font-sans text-neutral-900">
     <div class="flex h-screen overflow-hidden">
         ${teacherSidebar('courses', tab)}
         <div class="flex-1 flex flex-col overflow-hidden bg-[#f1f3f5]">
-            <header class="bg-white border-b border-gray-100 sticky top-0 z-10">
-                <div class="px-10 py-6 flex justify-between items-center">
-                    <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 rounded-2xl bg-gray-900 flex items-center justify-center text-white shadow-xl shadow-gray-200">
-                            <i class="fas fa-chalkboard-teacher text-xl"></i>
+            <header class="bg-white/80 backdrop-blur-md border-b border-gray-100 sticky top-0 z-40 transition-all duration-300">
+                <div class="px-8 py-5 flex justify-between items-center max-w-[1600px] mx-auto w-full">
+                    <div class="flex items-center gap-5">
+                        <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-600 to-brand-800 flex items-center justify-center text-white shadow-xl shadow-brand-200 group transition-transform hover:scale-110 duration-500">
+                            <i class="fas fa-chalkboard-teacher text-2xl group-hover:rotate-12 transition-transform duration-500"></i>
                         </div>
                         <div>
-                            <h1 class="text-xl font-black text-gray-900 tracking-tight">나의 강의 관리</h1>
-                            <p class="text-[11px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">학사 운영 관리 시스템</p>
+                            <div class="flex items-center gap-2">
+                                <h1 class="text-2xl font-outfit font-extrabold text-neutral-900 tracking-tight">나의 강의 관리</h1>
+                                <span class="px-3 py-1 bg-brand-50 text-brand-600 text-[10px] font-black rounded-full uppercase tracking-widest border border-brand-100">PRO EDUCATOR</span>
+                            </div>
+                            <p class="text-[11px] font-bold text-neutral-400 uppercase tracking-[0.2em] mt-0.5">Education Management & LMS Hub</p>
                         </div>
                     </div>
                     <div class="flex items-center space-x-4">
-                        <span class="px-3 py-1 bg-blue-100 text-blue-600 text-[10px] font-black rounded-lg uppercase tracking-wider">책임 강사</span>
-                        <a href="/teacher" class="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-50 hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-all border border-gray-100">
-                            <i class="fas fa-chart-pie"></i>
+                        <div class="hidden md:flex flex-col items-end mr-2">
+                            <span class="text-sm font-black text-neutral-800" id="userNameDisplay">강사님</span>
+                            <span class="text-[10px] font-bold text-emerald-500 uppercase tracking-widest flex items-center gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Online
+                            </span>
+                        </div>
+                        <a href="/teacher" class="w-12 h-12 flex items-center justify-center rounded-2xl bg-neutral-50 hover:bg-white hover:shadow-lg text-neutral-400 hover:text-brand-600 transition-all border border-neutral-100 group">
+                            <i class="fas fa-home text-lg group-hover:scale-110 transition-transform"></i>
                         </a>
+                        <div class="w-12 h-12 rounded-2xl bg-neutral-100 border-2 border-white shadow-sm overflow-hidden cursor-pointer hover:ring-2 hover:ring-brand-500 transition-all">
+                            <img src="https://ui-avatars.com/api/?name=Teacher&background=4f69f2&color=fff" alt="Profile" class="w-full h-full object-cover">
+                        </div>
                     </div>
                 </div>
             </header>
-            <main class="flex-1 overflow-y-auto p-10 custom-scrollbar">
-                <!-- tab 안내 배너 (나의 강의 → LMS 특정 탭 직행 시) -->
-                <div id="tabHintBanner" class="hidden mb-6 px-6 py-4 bg-blue-50 border border-blue-200/60 rounded-2xl flex items-center gap-3 text-blue-800">
-                    <i class="fas fa-info-circle text-blue-500 text-lg"></i>
-                    <p class="text-sm font-bold" id="tabHintText">과정을 선택하면 해당 과정의 LMS로 이동합니다.</p>
-                </div>
-                <!-- 필터 및 검색 (Bento Filter Card) -->
-                <div class="bg-white border border-gray-200 rounded-[2rem] p-6 mb-10 shadow-sm flex flex-wrap gap-4 items-center justify-between">
-                    <div class="flex gap-4 items-center flex-wrap flex-1">
-                        <div class="relative min-w-[180px]">
-                            <select id="categoryFilter" onchange="loadCourses()" class="w-full pl-5 pr-10 py-3 bg-gray-50 border-transparent rounded-xl focus:bg-white focus:ring-4 focus:ring-blue-500/5 outline-none transition-all font-bold text-gray-700 text-xs appearance-none cursor-pointer">
-                                <option value="">전체 카테고리</option>
-                                <option value="국비지원">국비지원</option>
-                                <option value="자격증">자격증</option>
-                                <option value="취업연계">취업연계</option>
-                                <option value="기타">기타</option>
-                            </select>
-                            <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-[10px]"></i>
+            
+            <main class="flex-1 overflow-y-auto p-8 lg:p-12 custom-scrollbar">
+                <div class="max-w-[1600px] mx-auto">
+                    <!-- Dashboard Stats Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+                        <div class="glass border border-white/50 rounded-4xl p-8 shadow-premium flex flex-col justify-between group hover:border-brand-200 transition-all duration-500 hover:shadow-premium-hover">
+                            <div class="flex justify-between items-start mb-8">
+                                <div class="w-12 h-12 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center group-hover:bg-brand-600 group-hover:text-white transition-all duration-500 shadow-sm">
+                                    <i class="fas fa-book-open text-lg"></i>
+                                </div>
+                                <span class="text-[10px] font-black text-brand-500 uppercase tracking-widest bg-brand-50/50 px-2 py-1 rounded-lg">Current</span>
+                            </div>
+                            <div>
+                                <h3 class="text-xs font-bold text-neutral-400 uppercase tracking-widest mb-1">진행중인 강의</h3>
+                                <div class="flex items-baseline gap-2">
+                                    <span class="text-5xl font-outfit font-black text-neutral-900" id="activeCoursesCount">0</span>
+                                    <span class="text-sm font-bold text-neutral-400 tracking-tight">개 과정</span>
+                                </div>
+                            </div>
                         </div>
-                        <div class="relative min-w-[150px]">
-                            <select id="statusFilter" onchange="loadCourses()" class="w-full pl-5 pr-10 py-3 bg-gray-50 border-transparent rounded-xl focus:bg-white focus:ring-4 focus:ring-blue-500/5 outline-none transition-all font-bold text-gray-700 text-xs appearance-none cursor-pointer">
-                                <option value="">전체 상태</option>
-                                <option value="active">진행중</option>
-                                <option value="upcoming">예정</option>
-                                <option value="completed">완료</option>
-                                <option value="cancelled">취소</option>
-                            </select>
-                            <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-[10px]"></i>
+                        <div class="glass border border-white/50 rounded-4xl p-8 shadow-premium flex flex-col justify-between group hover:border-emerald-200 transition-all duration-500 hover:shadow-premium-hover">
+                            <div class="flex justify-between items-start mb-8">
+                                <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-all duration-500 shadow-sm">
+                                    <i class="fas fa-users text-lg"></i>
+                                </div>
+                                <span class="text-[10px] font-black text-emerald-500 uppercase tracking-widest bg-emerald-50/50 px-2 py-1 rounded-lg">Impact</span>
+                            </div>
+                            <div>
+                                <h3 class="text-xs font-bold text-neutral-400 uppercase tracking-widest mb-1">총 관리 학생</h3>
+                                <div class="flex items-baseline gap-2">
+                                    <span class="text-5xl font-outfit font-black text-neutral-900" id="totalStudentsCount">0</span>
+                                    <span class="text-sm font-bold text-neutral-400 tracking-tight">명 등록</span>
+                                </div>
+                            </div>
                         </div>
-                        <div class="relative flex-1 max-w-md group">
-                            <i class="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-blue-500 transition-colors text-sm"></i>
-                            <input type="text" id="searchInput" placeholder="강의명을 입력하세요" 
-                                   class="w-full pl-12 pr-6 py-3 bg-gray-50 border-transparent rounded-xl focus:bg-white focus:ring-4 focus:ring-blue-500/5 outline-none transition-all font-bold text-gray-900 text-xs"
-                                   onkeyup="if(event.key==='Enter') loadCourses()">
+                        <div class="glass border border-white/50 rounded-4xl p-8 shadow-premium flex flex-col justify-between group hover:border-amber-200 transition-all duration-500 hover:shadow-premium-hover">
+                            <div class="flex justify-between items-start mb-8">
+                                <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center group-hover:bg-amber-600 group-hover:text-white transition-all duration-500 shadow-sm">
+                                    <i class="fas fa-calendar-check text-lg"></i>
+                                </div>
+                                <span class="text-[10px] font-black text-amber-500 uppercase tracking-widest bg-amber-50/50 px-2 py-1 rounded-lg">Weekly</span>
+                            </div>
+                            <div>
+                                <h3 class="text-xs font-bold text-neutral-400 uppercase tracking-widest mb-1">평균 출석률</h3>
+                                <div class="flex items-baseline gap-2">
+                                    <span class="text-5xl font-outfit font-black text-neutral-900">96</span>
+                                    <span class="text-sm font-bold text-neutral-400 tracking-tight">% 성실도</span>
+                                </div>
+                            </div>
                         </div>
-                        <button onclick="loadCourses()" class="px-8 py-3 bg-gray-900 text-white rounded-xl hover:bg-black font-black text-xs transition-all shadow-lg shadow-gray-200">
-                             조회
-                        </button>
+                        <div class="bg-neutral-900 rounded-4xl p-8 shadow-2xl shadow-neutral-200 flex flex-col justify-between group hover:scale-[1.02] transition-all duration-700 relative overflow-hidden">
+                            <div class="absolute -right-10 -bottom-10 w-48 h-48 bg-brand-600/10 rounded-full blur-[80px] group-hover:bg-brand-600/20 transition-all duration-1000"></div>
+                            <div class="flex justify-between items-start mb-8 relative z-10">
+                                <div class="w-12 h-12 rounded-2xl bg-white/10 text-white flex items-center justify-center group-hover:bg-white group-hover:text-neutral-900 transition-all duration-500 shadow-sm">
+                                    <i class="fas fa-medal text-lg"></i>
+                                </div>
+                                <span class="text-[10px] font-black text-brand-400 uppercase tracking-[0.3em] px-2 py-1">PREMIUM</span>
+                            </div>
+                            <div class="relative z-10">
+                                <h3 class="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-1 leading-none">강사 종합 평가</h3>
+                                <div class="flex items-center gap-4">
+                                    <span class="text-5xl font-outfit font-black text-white leading-none">S+</span>
+                                    <div class="flex flex-col gap-1">
+                                        <div class="flex gap-0.5">
+                                            <i class="fas fa-star text-[10px] text-yellow-400"></i>
+                                            <i class="fas fa-star text-[10px] text-yellow-400"></i>
+                                            <i class="fas fa-star text-[10px] text-yellow-400"></i>
+                                            <i class="fas fa-star text-[10px] text-yellow-400"></i>
+                                            <i class="fas fa-star text-[10px] text-yellow-400"></i>
+                                        </div>
+                                        <span class="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">Master Educator</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="flex items-center gap-3 pl-6 border-l border-gray-100 flex-wrap">
-                        <span id="searchResultTextTeacherCourses" class="text-sm text-gray-500">검색결과 0건</span>
-                        <label class="flex items-center gap-1.5 text-sm text-gray-500">
-                            <span>페이지당</span>
-                            <select id="rowsPerPageTeacherCourses" onchange="setRowsPerPageTeacherCourses(parseInt(this.value,10))" class="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-500">
-                                <option value="12">12</option>
-                                <option value="24">24</option>
-                                <option value="36">36</option>
-                                <option value="50">50</option>
-                            </select>
-                            <span>건</span>
-                        </label>
-                        <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">진행 중인 강의</span>
-                        <div class="bg-blue-600 text-white w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shadow-lg shadow-blue-100" id="totalCount">0</div>
-                    </div>
-                </div>
 
-                <!-- 과정 목록 -->
-                <div id="coursesContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <div class="col-span-full text-center py-12">
-                        <i class="fas fa-spinner fa-spin text-3xl text-gray-400"></i>
-                        <p class="mt-4 text-gray-500">과정 목록을 불러오는 중...</p>
+                    <!-- tab 안내 배너 -->
+                    <div id="tabHintBanner" class="hidden mb-12 overflow-hidden relative group">
+                        <div class="absolute inset-0 bg-brand-600 opacity-[0.03] group-hover:opacity-[0.05] transition-opacity duration-500"></div>
+                        <div class="px-8 py-6 border border-brand-100 rounded-4xl flex items-center gap-6 relative z-10">
+                            <div class="w-14 h-14 rounded-3xl bg-brand-100/50 text-brand-600 flex items-center justify-center animate-bounce shadow-inner">
+                                <i class="fas fa-map-marker-alt text-xl"></i>
+                            </div>
+                            <div class="flex-1">
+                                <h4 class="text-lg font-outfit font-black text-neutral-900 tracking-tight" id="tabHintTitle">LMS 다이렉트 접근 활성화</h4>
+                                <p class="text-sm font-medium text-neutral-500 mt-0.5" id="tabHintText">상세 관리 메뉴가 감지되었습니다. 과정을 선택하면 바로 관리 화면으로 이동합니다.</p>
+                            </div>
+                            <button onclick="this.closest('#tabHintBanner').classList.add('hidden')" class="w-10 h-10 rounded-2xl hover:bg-neutral-100 flex items-center justify-center text-neutral-300 hover:text-neutral-500 transition-all">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
                     </div>
-                </div>
 
-                <!-- 페이지네이션 -->
-                <div class="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div id="paginationRangeTeacherCourses" class="text-sm text-gray-600"></div>
-                    <nav id="paginationContainer" class="flex flex-wrap items-center justify-center gap-1"></nav>
+                    <!-- Filter Dock -->
+                    <div class="glass border border-white/60 rounded-[3rem] p-4 mb-12 shadow-premium flex flex-wrap gap-4 items-center sticky top-[100px] z-30 transition-all duration-500 border-white/80 hover:shadow-premium-hover">
+                        <div class="flex gap-4 items-center flex-wrap flex-1 p-1">
+                            <div class="relative group min-w-[200px]">
+                                <select id="categoryFilter" onchange="loadCourses()" class="w-full pl-6 pr-12 py-4 bg-neutral-50/50 border border-neutral-100 rounded-[1.5rem] focus:bg-white focus:ring-8 focus:ring-brand-500/5 focus:border-brand-500 outline-none transition-all font-black text-neutral-800 text-xs appearance-none cursor-pointer">
+                                    <option value="">전체 카테고리</option>
+                                    <option value="국비지원">국비지원</option>
+                                    <option value="자격증">자격증</option>
+                                    <option value="취업연계">취업연계</option>
+                                    <option value="기타">기타</option>
+                                </select>
+                                <i class="fas fa-chevron-down absolute right-6 top-1/2 -translate-y-1/2 text-neutral-300 pointer-events-none text-[8px] group-hover:text-brand-500 transition-colors"></i>
+                            </div>
+                            <div class="relative group min-w-[160px]">
+                                <select id="statusFilter" onchange="loadCourses()" class="w-full pl-6 pr-12 py-4 bg-neutral-50/50 border border-neutral-100 rounded-[1.5rem] focus:bg-white focus:ring-8 focus:ring-brand-500/5 focus:border-brand-500 outline-none transition-all font-black text-neutral-800 text-xs appearance-none cursor-pointer">
+                                    <option value="">전체 운영상태</option>
+                                    <option value="active">강의중 (Active)</option>
+                                    <option value="recruiting">모집중 (Recruiting)</option>
+                                    <option value="completed">종료 (Closed)</option>
+                                </select>
+                                <i class="fas fa-chevron-down absolute right-6 top-1/2 -translate-y-1/2 text-neutral-300 pointer-events-none text-[8px] group-hover:text-brand-500 transition-colors"></i>
+                            </div>
+                            <div class="relative flex-1 group">
+                                <i class="fas fa-search absolute left-7 top-1/2 -translate-y-1/2 text-neutral-300 group-focus-within:text-brand-500 transition-colors text-base"></i>
+                                <input type="text" id="searchInput" placeholder="나의 강의 제목으로 검색해보세요" 
+                                       class="w-full pl-16 pr-8 py-4 bg-neutral-50/50 border border-neutral-100 rounded-[1.5rem] focus:bg-white focus:ring-8 focus:ring-brand-500/5 focus:border-brand-500 outline-none transition-all font-bold text-neutral-900 text-sm"
+                                       onkeyup="if(event.key==='Enter') loadCourses()">
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4 px-6 border-l border-neutral-100">
+                             <div class="flex flex-col items-end">
+                                <span id="searchResultTextTeacherCourses" class="text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em]">Searching...</span>
+                                <div class="flex items-center gap-2 mt-1">
+                                    <span class="text-[10px] font-bold text-neutral-300 uppercase">Per Page:</span>
+                                    <select id="rowsPerPageTeacherCourses" onchange="setRowsPerPageTeacherCourses(parseInt(this.value,10))" class="bg-transparent font-black text-xs text-brand-600 outline-none cursor-pointer hover:underline">
+                                        <option value="12">12</option>
+                                        <option value="24">24</option>
+                                        <option value="48">48</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button onclick="loadCourses()" class="w-14 h-14 bg-brand-600 text-white rounded-3xl hover:bg-neutral-900 transition-all duration-500 flex items-center justify-center shadow-2xl shadow-brand-200 hover:shadow-neutral-200 group overflow-hidden relative">
+                                 <i class="fas fa-sync-alt text-lg group-hover:rotate-180 transition-transform duration-700 relative z-10"></i>
+                                 <div class="absolute inset-0 bg-gradient-to-tr from-brand-400 to-transparent opacity-0 group-hover:opacity-20 transition-opacity"></div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 과정 목록 Grid -->
+                    <div id="coursesContainer" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-10 mb-20 min-h-[400px]">
+                        <div class="col-span-full flex flex-col items-center justify-center py-40">
+                            <div class="relative w-20 h-20 mb-10">
+                                <div class="absolute inset-0 border-4 border-brand-100 rounded-full"></div>
+                                <div class="absolute inset-0 border-4 border-brand-500 rounded-full border-t-transparent animate-spin"></div>
+                            </div>
+                            <p class="font-outfit font-black text-neutral-900 text-2xl tracking-tight">강의 데이터를 최적화하고 있습니다</p>
+                            <p class="text-neutral-400 text-base mt-2 font-medium">실시간 학사 정보를 동기화하는 중입니다.</p>
+                        </div>
+                    </div>
+
+                    <!-- 페이지네이션 -->
+                    <div class="flex flex-col items-center justify-center py-16 border-t border-neutral-100/60">
+                        <div id="paginationRangeTeacherCourses" class="text-[11px] font-black text-neutral-400 uppercase tracking-[0.5em] mb-10 opacity-50"></div>
+                        <nav id="paginationContainer" class="flex flex-wrap items-center justify-center gap-3"></nav>
+                    </div>
                 </div>
             </main>
         </div>
@@ -137,25 +272,32 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
             checkLogin();
             showTabHintIfNeeded();
             loadCourses();
+            
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            if (user.name) {
+                document.getElementById('userNameDisplay').textContent = user.name + ' 강사님';
+            }
         });
 
         function showTabHintIfNeeded() {
             const lmsTab = getLmsTab();
             const banner = document.getElementById('tabHintBanner');
+            const titleEl = document.getElementById('tabHintTitle');
             const textEl = document.getElementById('tabHintText');
             if (!banner || !textEl) return;
-            const labels = { students: '수강생', attendance: '출결관리', cbt: 'CBT/시험', surveys: '설문/평가' };
+            const labels = { students: '수강생 명단', attendance: '출결 관리', cbt: 'CBT 시험 센터', surveys: '설문 및 평판' };
             if (lmsTab && labels[lmsTab]) {
                 banner.classList.remove('hidden');
-                textEl.textContent = '과정을 선택하면 해당 과정의 「' + labels[lmsTab] + '」 탭으로 바로 이동합니다.';
+                titleEl.textContent = '「' + labels[lmsTab] + '」 직접 연결됨';
+                textEl.textContent = '현재 ' + labels[lmsTab] + ' 모드가 활성화되었습니다. 과정을 클릭하면 해당 관리 페이지로 즉시 이동합니다.';
             }
         }
 
         function checkLogin() {
             const token = localStorage.getItem('token');
             if (!token) {
-                alert('로그인이 필요합니다.');
                 window.location.href = '/login';
+                return;
             }
             const user = JSON.parse(localStorage.getItem('user') || '{}');
             if (user.role !== 'teacher' && user.role !== 'admin') {
@@ -172,7 +314,6 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
                 const status = document.getElementById('statusFilter').value;
                 const search = document.getElementById('searchInput').value;
 
-                // API 호출 (강사는 자동으로 본인 과정만 필터링됨)
                 let url = '/api/courses?page=' + page + '&limit=' + limit;
                 if (category) url += '&category=' + encodeURIComponent(category);
                 if (status) url += '&status=' + encodeURIComponent(status);
@@ -187,45 +328,59 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
                     const p = result.pagination || {};
                     const total = p.total != null ? p.total : 0;
                     const pageNum = p.page != null ? p.page : currentPage;
+                    
+                    document.getElementById('searchResultTextTeacherCourses').textContent = total + ' COURSES FOUND';
+                    
+                    const activeCountEl = document.getElementById('activeCoursesCount');
+                    const totalStudentsEl = document.getElementById('totalStudentsCount');
+                    
+                    if (activeCountEl) {
+                        const activeCount = (result.data || []).filter(c => c.status === 'active' || c.status === 'open').length;
+                        activeCountEl.textContent = activeCount;
+                    }
+                    if (totalStudentsEl) {
+                        const totalStudents = (result.data || []).reduce((acc, c) => acc + (c.current_students || 0), 0);
+                        totalStudentsEl.textContent = totalStudents;
+                    }
+
                     if (p.limit) {
                         limit = p.limit;
                         const sel = document.getElementById('rowsPerPageTeacherCourses');
                         if (sel) sel.value = String(p.limit);
                     }
-                    document.getElementById('searchResultTextTeacherCourses').textContent = '검색결과 ' + total + '건';
-                    document.getElementById('totalCount').textContent = total;
+                    
                     const start = total === 0 ? 0 : (pageNum - 1) * (p.limit || limit) + 1;
                     const end = Math.min(pageNum * (p.limit || limit), total);
-                    document.getElementById('paginationRangeTeacherCourses').textContent = total > 0 ? start + '-' + end + ' / ' + total + '건' : '';
+                    document.getElementById('paginationRangeTeacherCourses').textContent = total > 0 ? start + ' - ' + end + ' OF ' + total + ' TOTAL COURSES' : '';
+                    
                     renderCourses(result.data || []);
                     renderPagination(p);
                 } else {
-                    console.error('Failed to load courses:', result.error);
-                    document.getElementById('coursesContainer').innerHTML = 
-                        '<div class="col-span-full text-center py-12 text-red-500">과정 목록을 불러오는데 실패했습니다.</div>';
+                    renderError('Data Fetch Failed');
                 }
             } catch (error) {
-                console.error('Error loading courses:', error);
-                document.getElementById('coursesContainer').innerHTML = 
-                    '<div class="col-span-full text-center py-12 text-red-500">오류가 발생했습니다.</div>';
+                renderError('Connection Refused');
             }
         }
 
+        function renderError(msg) {
+            document.getElementById('coursesContainer').innerHTML = 
+                '<div class="col-span-full flex flex-col items-center justify-center py-40 glass rounded-5xl border-rose-100 shadow-2xl">' +
+                '<div class="w-16 h-16 rounded-full bg-rose-50 flex items-center justify-center text-rose-500 mb-6"><i class="fas fa-exclamation-triangle text-2xl"></i></div>' +
+                '<h3 class="text-2xl font-black text-neutral-900">' + msg + '</h3>' +
+                '<p class="text-neutral-400 mt-2 font-medium">관리자에게 문의하거나 잠시 후 다시 시도해주세요.</p></div>';
+        }
+
         function renderCourses(courses) {
-            console.log('Rendering courses (safe version)', courses);
             const container = document.getElementById('coursesContainer');
-            
             if (!courses || courses.length === 0) {
                 container.innerHTML = 
-                    '<div class="col-span-full text-center py-32 bg-white rounded-[3rem] border border-gray-100 shadow-sm flex flex-col items-center">' +
-                        '<div class="w-24 h-24 rounded-[2rem] bg-gray-50 flex items-center justify-center text-gray-200 mb-6">' +
-                            '<i class="fas fa-chalkboard text-4xl"></i>' +
+                    '<div class="col-span-full text-center py-40 glass rounded-5xl border-white/50 flex flex-col items-center">' +
+                        '<div class="w-24 h-24 rounded-[2.5rem] bg-neutral-50 flex items-center justify-center text-neutral-200 mb-8 float-animation shadow-inner">' +
+                            '<i class="fas fa-chalkboard-teacher text-5xl"></i>' +
                         '</div>' +
-                        '<h3 class="text-2xl font-black text-gray-900 mb-2 tracking-tight">배정된 강의가 존재하지 않습니다</h3>' +
-                        '<p class="text-sm font-bold text-gray-400 uppercase tracking-widest">데이터베이스에 배정된 강의가 없습니다</p>' +
-                        '<button onclick="location.href=\\'/teacher\\'" class="mt-8 px-8 py-3 bg-gray-900 text-white rounded-2xl font-black text-xs hover:bg-black transition-all shadow-xl">' +
-                            '대시보드로 돌아가기' +
-                        '</button>' +
+                        '<h3 class="text-3xl font-outfit font-black text-neutral-900 mb-3 tracking-tight">배정된 강의가 없습니다</h3>' +
+                        '<p class="text-neutral-400 font-medium max-w-sm mx-auto">현재 배정된 강의가 없거나 필터 조건에 맞는 강의를 찾을 수 없습니다.</p>' +
                     '</div>';
                 return;
             }
@@ -235,162 +390,74 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
                 const maxStudents = course.max_students || 0;
                 const progressPercent = maxStudents > 0 ? Math.round((enrolledCount / maxStudents) * 100) : (enrolledCount > 0 ? 100 : 0);
                 
-                let statusInfo = { badge: '미정', class: 'bg-gray-100 text-gray-600' };
-                switch(course.status) {
-                    case 'active': case 'open': statusInfo = { badge: '운영중', class: 'bg-green-100 text-green-700' }; break;
-                    case 'upcoming': case 'recruiting': statusInfo = { badge: '모집중', class: 'bg-blue-100 text-blue-700' }; break;
-                    case 'completed': case 'closed': statusInfo = { badge: '종료', class: 'bg-gray-900 text-gray-400' }; break;
-                    case 'cancelled': statusInfo = { badge: '취소', class: 'bg-red-100 text-red-700' }; break;
-                }
+                let s = { label: 'PREPARING', class: 'bg-neutral-800 text-neutral-400', p: false };
+                if (course.status === 'active' || course.status === 'open') s = { label: 'RUNNING', class: 'bg-emerald-600 shadow-emerald-100', p: true };
+                else if (course.status === 'upcoming' || course.status === 'recruiting') s = { label: 'RECRUITING', class: 'bg-brand-600 shadow-brand-100', p: false };
+                else if (course.status === 'completed' || course.status === 'closed') s = { label: 'FINISHED', class: 'bg-neutral-200 text-neutral-600', p: false };
 
-                // Clean strings to prevent syntax errors (remove newlines, escape quotes)
-                const safeTitle = (course.title || '제목 없음')
-                    .replace(/\\n/g, ' ')
-                    .replace(/'/g, "&#39;")
-                    .replace(/"/g, "&quot;");
-                    
-                const safeCategory = (course.category || '일반')
-                    .replace(/\\n/g, ' ')
-                    .replace(/'/g, "&#39;")
-                    .replace(/"/g, "&quot;");
-                    
-                const safeThumbnail = (course.thumbnail_url || '')
-                    .replace(/\\n/g, '')
-                    .replace(/'/g, "&#39;")
-                    .replace(/"/g, "&quot;");
+                const safeTitle = (course.title || 'Untitled').replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+                const safeCat = (course.category || 'General').replace(/'/g, "&#39;");
 
-                const thumbnail = safeThumbnail 
-                    ? '<img src="' + safeThumbnail + '" alt="' + safeTitle + '" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000">'
-                    : '<div class="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center"><i class="fas fa-cube text-5xl text-gray-300"></i></div>';
-                
-                const categoryBadge = '<span class="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider shadow-lg bg-white/90 backdrop-blur-md text-gray-900">' + safeCategory + '</span>';
-                
-                const statusBadge = '<div class="w-2 h-2 rounded-full ' + (course.status === 'active' ? 'bg-green-500 animate-pulse' : 'bg-gray-400') + '"></div>' +
-                                    '<span class="text-[10px] font-black text-white uppercase tracking-widest">' + statusInfo.badge + '</span>';
+                const thumb = course.thumbnail_url 
+                    ? '<img src="' + course.thumbnail_url + '" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000">'
+                    : '<div class="w-full h-full bg-gradient-to-br from-neutral-100 to-neutral-200 flex items-center justify-center"><i class="fas fa-layer-group text-5xl text-neutral-300"></i></div>';
 
-                const titleSection = '<h3 class="text-xl font-black text-gray-900 tracking-tight line-clamp-2 leading-tight group-hover:text-blue-600 transition-colors">' + safeTitle + '</h3>';
-                
-                const studentsSection = maxStudents > 0
-                    ? '<span class="text-xl font-black text-gray-900">' + enrolledCount + '</span><span class="text-[10px] font-bold text-gray-400">/ ' + maxStudents + '</span>'
-                    : '<span class="text-xl font-black text-gray-900">' + enrolledCount + '</span><span class="text-[10px] font-bold text-gray-400">명</span>';
-                                        
-                const dateSection = '<span class="text-[11px] font-black text-gray-700">' + (course.start_date ? course.start_date.split('T')[0] : '미정') + '</span>';
-
-                const courseIdSafe = JSON.stringify(course.id);
-                const isHrd = course.is_hrd ? 'true' : 'false';
-
-                return '<div class="bg-white rounded-[2.5rem] border border-gray-200 overflow-hidden hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.1)] transition-all duration-500 group">' +
-                        '<div class="relative aspect-[16/10] overflow-hidden">' +
-                            thumbnail +
-                            '<div class="absolute top-6 left-6 flex gap-2">' + categoryBadge + '</div>' +
-                            '<div class="absolute bottom-0 inset-x-0 p-6 bg-gradient-to-t from-black/80 to-transparent">' +
-                                '<div class="flex items-center gap-2">' + statusBadge + '</div>' +
+                return '<div class="group bg-white rounded-5xl border border-neutral-100 hover:shadow-premium-hover transition-all duration-700 flex flex-col">' +
+                        '<div class="relative aspect-[16/11] overflow-hidden rounded-t-[3rem]">' +
+                            thumb +
+                            '<div class="absolute top-6 left-6 z-10"><span class="px-4 py-2 rounded-2xl glass border border-white/40 text-[10px] font-black text-neutral-900 tracking-widest shadow-xl uppercase">' + safeCat + '</span></div>' +
+                            '<div class="absolute top-6 right-6 z-10">' +
+                                '<div class="flex items-center gap-1.5 px-3 py-1.5 rounded-full ' + s.class + ' shadow-xl text-white">' +
+                                (s.p ? '<div class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></div>' : '') +
+                                '<span class="text-[9px] font-black uppercase tracking-widest leading-none">' + s.label + '</span></div>' +
                             '</div>' +
                         '</div>' +
-                        '<div class="p-8 space-y-6">' +
-                            '<div class="min-h-[64px]">' + titleSection + '</div>' +
-                            '<div class="grid grid-cols-2 gap-4">' +
-                                '<div class="bg-gray-50 rounded-2xl p-4 border border-gray-100">' +
-                                    '<span class="block text-[9px] font-black text-gray-400 uppercase tracking-tighter mb-1">수강생 현황</span>' +
-                                    '<div class="flex items-baseline gap-1">' + studentsSection + '</div>' +
-                                    '<div class="mt-2 w-full bg-gray-200 h-1 rounded-full overflow-hidden">' +
-                                        '<div class="bg-blue-600 h-full rounded-full transition-all duration-1000" style="width: ' + progressPercent + '%"></div>' +
-                                    '</div>' +
+                        '<div class="p-8 lg:p-10 flex-1 flex flex-col">' +
+                            '<h3 class="text-xl font-outfit font-black text-neutral-900 tracking-tight line-clamp-2 leading-snug group-hover:text-brand-600 transition-colors duration-300 mb-8 h-14">' + safeTitle + '</h3>' +
+                            '<div class="mt-auto">' +
+                                '<div class="flex justify-between items-end mb-6 font-outfit">' +
+                                    '<div class="flex flex-col"><span class="text-2xl font-black text-neutral-900">' + enrolledCount + '<span class="text-xs text-neutral-400 ml-1">/ ' + (maxStudents || '∞') + '</span></span><span class="text-[9px] font-black text-neutral-400 uppercase tracking-widest">Enrolled</span></div>' +
+                                    '<div class="flex flex-col items-end"><span class="text-sm font-black text-neutral-800">' + (course.start_date || 'TBD').split('T')[0] + '</span><span class="text-[9px] font-black text-neutral-400 uppercase tracking-widest">Start Date</span></div>' +
                                 '</div>' +
-                                '<div class="bg-gray-50 rounded-2xl p-4 border border-gray-100">' +
-                                    '<span class="block text-[9px] font-black text-gray-400 uppercase tracking-tighter mb-1">강의 일정</span>' +
-                                    '<div class="flex items-center gap-2 mt-1">' +
-                                        '<i class="far fa-calendar-alt text-blue-500 text-xs"></i>' +
-                                        dateSection +
-                                    '</div>' +
-                                    '<p class="text-[9px] font-bold text-gray-400 mt-1 uppercase">개강일</p>' +
+                                '<div class="w-full bg-neutral-100 h-2.5 rounded-full overflow-hidden mb-8 card-inner-shadow"><div class="bg-gradient-to-r from-brand-400 to-brand-700 h-full transition-all duration-1000 ease-out" style="width:' + progressPercent + '%"></div></div>' +
+                                '<div class="flex gap-4">' +
+                                    '<button onclick=\\'viewCourseDetail("' + course.id + '",' + (course.is_hrd ? "true" : "false") + ')\\' class="flex-1 px-8 py-5 bg-neutral-900 text-white rounded-3xl hover:bg-brand-600 transition-all duration-500 font-black text-[11px] tracking-[0.2em] uppercase flex items-center justify-center gap-2 group-hover:shadow-2xl group-hover:shadow-brand-200"><i class="fas fa-door-open"></i> 강의실 입장</button>' +
+                                    '<button onclick=\\'manageCourse("' + course.id + '",' + (course.is_hrd ? "true" : "false") + ')\\' class="w-16 h-16 bg-neutral-50 text-neutral-800 rounded-3xl hover:bg-white hover:shadow-xl hover:text-brand-600 transition-all border border-neutral-100 flex items-center justify-center"><i class="fas fa-cog text-xl"></i></button>' +
                                 '</div>' +
-                            '</div>' +
-                            '<div class="flex gap-3 pt-4 border-t border-gray-50">' +
-                                '<button onclick=\\'viewCourseDetail(' + courseIdSafe + ',' + isHrd + ')\\' class="flex-1 px-4 py-4 bg-gray-50 text-gray-900 rounded-2xl hover:bg-blue-600 hover:text-white transition-all font-black text-[10px] tracking-widest uppercase flex items-center justify-center gap-2 group-hover:bg-blue-50">' +
-                                     '<i class="fas fa-door-open text-xs"></i> 강의실 입장' +
-                                '</button>' +
-                                '<button onclick=\\'manageCourse(' + courseIdSafe + ',' + isHrd + ')\\' class="w-14 h-14 bg-gray-900 text-white rounded-2xl hover:bg-black flex items-center justify-center transition-all shadow-xl shadow-gray-200">' +
-                                    '<i class="fas fa-cog"></i>' +
-                                '</button>' +
                             '</div>' +
                         '</div>' +
                     '</div>';
             }).join('');
         }
 
-        function renderPagination(pagination) {
+        function renderPagination(pg) {
             const container = document.getElementById('paginationContainer');
-            if (!pagination || !pagination.totalPages || pagination.totalPages <= 1) {
-                container.innerHTML = '';
-                return;
+            if (!pg || !pg.totalPages || pg.totalPages <= 1) { container.innerHTML = ''; return; }
+            const current = pg.page || 1;
+            const total = pg.totalPages;
+            let html = '<button onclick="loadCourses(' + (current-1) + ')" ' + (current<=1?'disabled':'') + ' class="px-6 py-4 rounded-2xl border border-neutral-100 font-black text-[10px] tracking-widest uppercase transition-all ' + (current<=1?'opacity-30 cursor-not-allowed bg-neutral-50':'bg-white hover:bg-neutral-50 hover:shadow-lg') + '">Prev</button>';
+            for (let i=1; i<=total; i++) {
+                if (i===1 || i===total || (i>=current-2 && i<=current+2)) {
+                    html += '<button onclick="loadCourses(' + i + ')" class="w-12 h-12 rounded-2xl font-black text-xs transition-all ' + (i===current?'bg-brand-600 text-white shadow-xl shadow-brand-100':'bg-white border border-neutral-100 text-neutral-400 hover:bg-neutral-50') + '">' + i + '</button>';
+                } else if (i===2 || i===total-1) { html += '<span class="px-2 text-neutral-300">...</span>'; }
             }
-            const totalPages = pagination.totalPages;
-            const current = pagination.page != null ? pagination.page : (pagination.currentPage != null ? pagination.currentPage : currentPage);
-            const radius = 2;
-            const pages = [];
-            for (let i = 1; i <= totalPages; i++) {
-                if (i === 1 || i === totalPages || (i >= current - radius && i <= current + radius)) pages.push(i);
-                else if (pages[pages.length - 1] !== '...') pages.push('...');
-            }
-            let html = '';
-            html += '<button type="button" onclick="loadCourses(' + (current - 1) + ')" ' + (current <= 1 ? 'disabled' : '') + ' class="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium ' + (current <= 1 ? 'opacity-50 cursor-not-allowed bg-gray-50 text-gray-400' : 'bg-white text-gray-700 hover:bg-gray-50') + '"><i class="fas fa-chevron-left mr-1"></i> 이전</button>';
-            pages.forEach(function(n) {
-                if (n === '...') html += '<span class="px-2 py-2 text-gray-400">…</span>';
-                else {
-                    const active = n === current;
-                    html += '<button type="button" onclick="loadCourses(' + n + ')" class="min-w-[2.25rem] px-3 py-2 rounded-lg text-sm font-medium ' + (active ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50') + '">' + n + '</button>';
-                }
-            });
-            html += '<button type="button" onclick="loadCourses(' + (current + 1) + ')" ' + (current >= totalPages ? 'disabled' : '') + ' class="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium ' + (current >= totalPages ? 'opacity-50 cursor-not-allowed bg-gray-50 text-gray-400' : 'bg-white text-gray-700 hover:bg-gray-50') + '">다음 <i class="fas fa-chevron-right ml-1"></i></button>';
+            html += '<button onclick="loadCourses(' + (current+1) + ')" ' + (current>=total?'disabled':'') + ' class="px-6 py-4 rounded-2xl border border-neutral-100 font-black text-[10px] tracking-widest uppercase transition-all ' + (current>=total?'opacity-30 cursor-not-allowed bg-neutral-50':'bg-white hover:bg-neutral-50 hover:shadow-lg') + '">Next</button>';
             container.innerHTML = html;
         }
 
         function getLmsTab() {
-            const params = new URLSearchParams(window.location.search);
-            const tab = (params.get('tab') || '').toLowerCase();
-            if (tab === 'students') return 'students';
-            if (tab === 'attendance') return 'attendance';
-            if (tab === 'exams') return 'cbt';
-            if (tab === 'surveys') return 'surveys';
-            return '';
+            const p = new URLSearchParams(window.location.search);
+            const t = (p.get('tab') || '').toLowerCase();
+            return ['students', 'attendance', 'exams', 'surveys'].includes(t) ? (t === 'exams' ? 'cbt' : t) : '';
         }
 
-        function viewCourseDetail(courseId, isHrd) {
-            const lmsTab = getLmsTab();
-            let url = '/teacher/courses/' + courseId + '/lms' + (lmsTab ? '/' + lmsTab : '');
-            if (isHrd) url += (url.indexOf('?') >= 0 ? '&' : '?') + 'type=hrd';
+        function viewCourseDetail(cid, isHrd) {
+            let url = '/teacher/courses/' + cid + '/lms' + (getLmsTab() ? '/' + getLmsTab() : '');
+            if (isHrd) url += (url.includes('?') ? '&' : '?') + 'type=hrd';
             window.location.href = url;
         }
-
-        function manageCourse(courseId, isHrd) {
-            const lmsTab = getLmsTab();
-            let url = '/teacher/courses/' + courseId + '/lms' + (lmsTab ? '/' + lmsTab : '');
-            if (isHrd) url += (url.indexOf('?') >= 0 ? '&' : '?') + 'type=hrd';
-            window.location.href = url;
-        }
+        function manageCourse(cid, isHrd) { viewCourseDetail(cid, isHrd); }
     </script>
-    <style>
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #888;
-            border-radius: 3px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #555;
-        }
-        .line-clamp-2 {
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-    </style>
 </body>
 </html>
 `;
