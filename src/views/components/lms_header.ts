@@ -45,7 +45,7 @@ export const lmsHeaderHtml = (activeTab = 'dashboard', defaultType = '') => `
         
         <!-- Tab Menu Container with Horizontal Scroll Support -->
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative group">
-            <div class="flex space-x-1 overflow-x-auto scrollbar-hide py-1 pr-12" id="lms-tab-menu" style="scroll-behavior: smooth;">
+            <div class="flex space-x-1 overflow-x-auto scrollbar-hide py-1" id="lms-tab-menu" style="scroll-behavior: smooth;">
                 <a href="dashboard" class="px-3 md:px-5 py-3 rounded-t-xl transition whitespace-nowrap flex items-center gap-1.5 md:gap-2 text-[13px] md:text-sm ${activeTab === 'dashboard' ? 'bg-white text-indigo-700 font-bold' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
                     <i class="fas fa-tachometer-alt"></i> 대시보드
                 </a>
@@ -79,13 +79,13 @@ export const lmsHeaderHtml = (activeTab = 'dashboard', defaultType = '') => `
                 <a href="employment" class="px-3 md:px-5 py-3 rounded-t-xl transition whitespace-nowrap flex items-center gap-1.5 md:gap-2 text-[13px] md:text-sm ${activeTab === 'employment' ? 'bg-white text-indigo-700 font-bold' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
                     <i class="fas fa-user-tie"></i> 취업관리
                 </a>
-                <!-- Spacer for scroll end visibility -->
-                <div class="flex-shrink-0 w-8 h-1"></div>
+                <!-- 충분한 우측 여백 확보 -->
+                <div class="flex-shrink-0 w-24 md:w-40 h-1"></div>
             </div>
             
-            <!-- Gradient Overlays for scroll indication - Fixed visibility -->
+            <!-- Gradient Overlays for scroll indication - Narrower widths -->
             <div class="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-indigo-800 to-transparent pointer-events-none z-10 transition-opacity" id="scroll-edge-left"></div>
-            <div class="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-indigo-800 to-transparent pointer-events-none z-10 transition-opacity" id="scroll-edge-right"></div>
+            <div class="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-indigo-800 to-transparent pointer-events-none z-10 transition-opacity" id="scroll-edge-right"></div>
         </div>
     </div>
     
