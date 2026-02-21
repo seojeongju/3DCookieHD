@@ -2181,6 +2181,17 @@ app.post('/counseling', authMiddleware, async (c) => {
 
         const studentId = (body.student_id && body.student_id !== 0 && body.student_id !== '0') ? body.student_id : null;
 
+        // course_id는 courses.id FK — 강사/LMS에서 넘기는 값이 회차(session) ID일 수 있으므로, courses에 없으면 null로 저장
+        let courseId = body.course_id != null ? (typeof body.course_id === 'number' ? body.course_id : parseInt(String(body.course_id), 10) || null) : null;
+        if (courseId != null) {
+            try {
+                const row = await c.env.DB.prepare('SELECT id FROM courses WHERE id = ?').bind(courseId).first();
+                if (!row) courseId = null;
+            } catch (_) {
+                courseId = null;
+            }
+        }
+
         await c.env.DB.prepare(`
             INSERT INTO hrd_counseling_logs (
                 student_id, counselor_id, course_id, counseling_date, 
@@ -2189,7 +2200,7 @@ app.post('/counseling', authMiddleware, async (c) => {
             )
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
-            studentId, counselorId, body.course_id,
+            studentId, counselorId, courseId,
             body.counseling_date || new Date().toISOString(),
             body.category, body.method, body.content, body.result, body.next_counseling_date,
             body.counseling_type || 'academic', body.consultation_id
@@ -2209,13 +2220,23 @@ app.put('/counseling/:id', authMiddleware, async (c) => {
         const studentId = (body.student_id && body.student_id !== 0 && body.student_id !== '0') ? body.student_id : null;
         const counselorId = (body.counselor_id != null && body.counselor_id !== '' && body.counselor_id !== '0') ? body.counselor_id : null;
 
+        let courseId = body.course_id != null ? (typeof body.course_id === 'number' ? body.course_id : parseInt(String(body.course_id), 10) || null) : null;
+        if (courseId != null) {
+            try {
+                const row = await c.env.DB.prepare('SELECT id FROM courses WHERE id = ?').bind(courseId).first();
+                if (!row) courseId = null;
+            } catch (_) {
+                courseId = null;
+            }
+        }
+
         await c.env.DB.prepare(`
             UPDATE hrd_counseling_logs 
             SET student_id = ?, counselor_id = ?, course_id = ?, counseling_date = ?, category = ?, method = ?, content = ?,
                 result = ?, next_counseling_date = ?, counseling_type = ?, consultation_id = ?, updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
         `).bind(
-            studentId, counselorId, body.course_id, body.counseling_date, body.category, body.method,
+            studentId, counselorId, courseId, body.counseling_date, body.category, body.method,
             body.content, body.result, body.next_counseling_date,
             body.counseling_type, body.consultation_id, id
         ).run();

@@ -1235,6 +1235,7 @@ export function adminHrdCounselingHtml(courseId?: string, sidebar: string = hrdS
             const isAcademic = currentType === 'academic';
             
             let studentId = isAcademic ? document.getElementById('studentSelect').value : null;
+            if (studentId === '' || studentId == null) studentId = null; else studentId = parseInt(studentId, 10) || studentId;
             let consultationId = isAcademic ? null : document.getElementById('leadSelect').value;
 
             // 신규 오프라인 문의 등록 처리
@@ -1274,15 +1275,34 @@ export function adminHrdCounselingHtml(courseId?: string, sidebar: string = hrdS
                 }
             }
 
+            // 필수값 검증 (학사 상담: 대상 훈련생, 상담 일자, 핵심 상담 내용)
+            const counselingDate = document.getElementById('counselingDate').value;
+            const content = (document.getElementById('content').value || '').trim();
+            if (!counselingDate) {
+                alert('상담 일자를 선택해 주세요.');
+                return;
+            }
+            if (isAcademic && (studentId == null || studentId === '')) {
+                alert('대상 훈련생을 선택해 주세요.');
+                return;
+            }
+            if (!content) {
+                alert('핵심 상담 내용을 입력해 주세요.');
+                return;
+            }
+
+            const courseSelectVal = document.getElementById('courseSelect').value;
+            const courseId = (courseSelectVal === '' || courseSelectVal == null) ? null : (parseInt(courseSelectVal, 10) || courseSelectVal);
+
             const data = {
                 student_id: studentId,
-                consultation_id: consultationId ? parseInt(consultationId) : null,
-                course_id: document.getElementById('courseSelect').value || null,
+                consultation_id: consultationId && consultationId !== 'new_offline' ? parseInt(consultationId, 10) : null,
+                course_id: courseId,
                 category: document.getElementById('categorySelect').value,
                 method: document.getElementById('methodSelect').value,
-                content: document.getElementById('content').value,
-                result: document.getElementById('result').value,
-                counseling_date: document.getElementById('counselingDate').value,
+                content: content,
+                result: (document.getElementById('result').value || '').trim() || null,
+                counseling_date: counselingDate,
                 next_counseling_date: document.getElementById('nextCounselingDate').value || null,
                 counselor_id: user.id,
                 counseling_type: currentType
@@ -1296,13 +1316,14 @@ export function adminHrdCounselingHtml(courseId?: string, sidebar: string = hrdS
                     body: JSON.stringify(data)
                 });
                 
-                if (response.ok) {
+                const result = await response.json().catch(function() { return {}; });
+                if (response.ok && (result.success !== false)) {
                     alert('상담 리포트가 성공적으로 저장되었습니다.');
                     closeModal();
                     loadCounselingLogs();
+                    if (IS_LMS_MODE) updateSessionStudentsPanel();
                 } else {
-                    const err = await response.json();
-                    alert('저장 실패: ' + (err.error || '알 수 없는 오류'));
+                    alert('저장 실패: ' + (result.error || result.message || '알 수 없는 오류'));
                 }
             } catch (err) {
                 console.error(err);
