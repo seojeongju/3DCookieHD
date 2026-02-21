@@ -254,17 +254,18 @@ app.get('/teacher-stats', authMiddleware, async (c) => {
 
         // ------------------ HRD Course Sessions ------------------
         const hrdRows = await DB.prepare(`
-            SELECT DISTINCT s.id, s.session_number, s.session_name, s.status,
+            SELECT DISTINCT s.id, s.session_number, s.status, s.training_start_date, s.training_end_date,
                    a.name as course_name, cc.name as category_name
             FROM session_timetable st
             INNER JOIN course_sessions s ON st.session_id = s.id
             INNER JOIN approved_courses a ON s.approved_course_id = a.id
             LEFT JOIN course_categories cc ON a.category_id = cc.id
             WHERE st.instructor_id = ?
-        `).bind(teacherId).all<{ id: number, session_number: number, session_name: string, status: string, course_name: string, category_name: string }>();
+        `).bind(teacherId).all<{ id: number, session_number: number, status: string, training_start_date: string | null, training_end_date: string | null, course_name: string, category_name: string }>();
 
         const hrdCourses = (hrdRows.results || []).map(r => {
-            const title = (r.course_name || '') + (r.session_number != null ? ' (' + r.session_number + '회차)' : '') + (r.session_name ? ' - ' + r.session_name : '');
+            const sessionLabel = r.session_number != null ? ' (' + r.session_number + '회차)' : '';
+            const title = (r.course_name || '') + sessionLabel;
             return {
                 id: r.id,
                 title: title,
