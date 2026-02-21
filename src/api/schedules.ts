@@ -223,6 +223,56 @@ app.get('/integrated', async (c) => {
       }
     }
 
+    // 1.5 진행 중/모집 중 회차 (course_sessions - 운영 중인 과정)
+    try {
+      const { results: sessions } = await DB.prepare(`
+        SELECT s.id, s.session_number, s.status, s.training_start_date, s.training_end_date,
+               a.name as course_name
+        FROM course_sessions s
+        INNER JOIN approved_courses a ON a.id = s.approved_course_id
+        WHERE s.status IN ('in_progress', 'recruiting')
+        AND s.training_start_date IS NOT NULL AND s.training_end_date IS NOT NULL
+        AND (s.training_start_date <= ? AND s.training_end_date >= ?)
+      `).bind(queryEndDate, queryStartDate).all<{
+        id: number;
+        session_number: number | null;
+        status: string;
+        training_start_date: string | null;
+        training_end_date: string | null;
+        course_name: string | null;
+      }>();
+
+      for (const sess of (sessions || [])) {
+        const startDate = (sess.training_start_date || '').substring(0, 10);
+        const endDateRaw = (sess.training_end_date || '').substring(0, 10);
+        if (!startDate || !endDateRaw) continue;
+        const endDate = new Date(endDateRaw);
+        endDate.setDate(endDate.getDate() + 1);
+        const endDateExclusive = endDate.toISOString().substring(0, 10);
+        const num = sess.session_number != null ? sess.session_number : 1;
+        const statusLabel = sess.status === 'in_progress' ? '[운영] ' : '[모집] ';
+        const title = statusLabel + (sess.course_name || '과정') + ` (${num}회차)`;
+        events.push({
+          id: `session-${sess.id}`,
+          title,
+          start: startDate,
+          end: endDateExclusive,
+          allDay: true,
+          backgroundColor: sess.status === 'in_progress' ? '#059669' : '#6366f1', // emerald-600 / indigo-500
+          borderColor: sess.status === 'in_progress' ? '#047857' : '#4f46e5',
+          textColor: '#ffffff',
+          extendedProps: {
+            type: 'course',
+            status: sess.status,
+            roomId: '회차',
+            sessionId: sess.id
+          }
+        });
+      }
+    } catch (e) {
+      console.warn('Course sessions (in_progress) fetch failed:', e);
+    }
+
     // 2. Facilities Reservations (시설 예약)
     try {
       const { results: reservations } = await DB.prepare(`

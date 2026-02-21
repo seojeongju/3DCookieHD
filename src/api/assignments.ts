@@ -10,7 +10,7 @@ app.get('/courses/:courseId', async (c) => {
         const type = (c.req.query('type') || '').toLowerCase();
         const isHrd = type === 'hrd';
 
-        const { results } = await c.env.DB.prepare(`
+        let query = `
             SELECT a.*, u.name as teacher_name,
                    COUNT(DISTINCT s.id) as submission_count,
                    COUNT(DISTINCT CASE WHEN s.status = 'graded' THEN s.id END) as graded_count
@@ -20,7 +20,19 @@ app.get('/courses/:courseId', async (c) => {
             WHERE ${isHrd ? 'a.session_id = ?' : 'a.course_id = ?'}
             GROUP BY a.id
             ORDER BY a.due_date DESC
-        `).bind(courseId).all();
+        `;
+        let { results } = await c.env.DB.prepare(query).bind(courseId).all();
+
+        // Fallback: If HRD and no results, check if courseId is actually an approved_course_id
+        if (isHrd && (!results || results.length === 0)) {
+            const latestSession = await c.env.DB.prepare(
+                'SELECT id FROM course_sessions WHERE approved_course_id = ? ORDER BY session_number DESC, id DESC LIMIT 1'
+            ).bind(courseId).first<{ id: number }>();
+
+            if (latestSession) {
+                results = (await c.env.DB.prepare(query).bind(latestSession.id).all()).results;
+            }
+        }
 
         return c.json({ success: true, data: results });
     } catch (e) {

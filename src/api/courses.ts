@@ -256,27 +256,43 @@ courses.get('/:id', async (c) => {
       if (isNaN(sessionId)) return notFoundResponse(c, '잘못된 회차 ID입니다');
 
       // HRD 회차 정보 조회 (course_sessions.id = 회차 ID)
-      const session = await getOne<any>(
+      let session = await getOne<any>(
         c.env.DB,
         `SELECT 
           s.id, 
-          (COALESCE(a.name, '미지정 과정') || ' (' || s.session_number || '회차)' || CASE WHEN s.session_name IS NOT NULL AND s.session_name != '' THEN ' - ' || s.session_name ELSE '' END) as title,
-          s.instructor_name as teacher_name,
-          s.training_start_date as start_date,
-          s.training_end_date as end_date,
-          s.training_time_start as start_time,
-          s.training_time_end as end_time,
-          s.status,
-          s.session_name,
-          s.session_number,
-          c.name as category_name,
-          a.category_id
+          s.*, 
+          a.name as approved_course_name,
+          a.course_code,
+          a.total_hours,
+          a.category_id,
+          c.name as category_name
         FROM course_sessions s
         LEFT JOIN approved_courses a ON s.approved_course_id = a.id
         LEFT JOIN course_categories c ON a.category_id = c.id
         WHERE s.id = ?`,
         [sessionId]
       );
+
+      // Fallback: If not found, check if sessionId is actually an approved_course_id
+      if (!session) {
+        session = await getOne<any>(
+          c.env.DB,
+          `SELECT 
+            s.*, 
+            a.name as approved_course_name,
+            a.course_code,
+            a.total_hours,
+            a.category_id,
+            c.name as category_name
+          FROM course_sessions s
+          LEFT JOIN approved_courses a ON s.approved_course_id = a.id
+          LEFT JOIN course_categories c ON a.category_id = c.id
+          WHERE s.approved_course_id = ?
+          ORDER BY s.session_number DESC, s.id DESC
+          LIMIT 1`,
+          [sessionId]
+        );
+      }
 
       if (!session) return notFoundResponse(c, '회차 정보를 찾을 수 없습니다');
 
