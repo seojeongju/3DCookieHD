@@ -527,7 +527,7 @@ export const adminDashboardHtml = `
             if (el) el.textContent = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', function() {
             var userStr = localStorage.getItem('user');
             var token = localStorage.getItem('token');
             if (!userStr || !token) {
@@ -1018,7 +1018,7 @@ export const adminDashboardHtml = `
                  document.getElementById('modalEventName').textContent = '[일정] ' + event.title;
             }
 
-            document.getElementById('modalDesc').innerHTML = desc.replace(/\\n/g, '<br>') || '내용 없음';
+            document.getElementById('modalDesc').innerHTML = desc.replace(/\\\\n/g, '<br>') || '내용 없음';
             document.getElementById('eventModal').classList.remove('hidden');
         }
         function toggleCalendarSection() {

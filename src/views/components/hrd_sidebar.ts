@@ -308,15 +308,15 @@ export const hrdSidebar = (activeMenu: string, options?: HrdSidebarOptions) => {
 
     // 페이지 접근 권한 체크 (Role-based Access Control)
     (function(){
-        const pathname = window.location.pathname;
-        const userStr = localStorage.getItem('user');
+        var pathname = window.location.pathname;
+        var userStr = localStorage.getItem('user');
         if (!userStr) {
             window.location.href = '/login';
             return;
         }
         try {
-            const user = JSON.parse(userStr);
-            const role = user.role;
+            var user = JSON.parse(userStr);
+            var role = user.role;
 
             // /admin 경로: 반드시 admin 역할이어야 함
             if (pathname.startsWith('/admin')) {
@@ -344,11 +344,11 @@ export const hrdSidebar = (activeMenu: string, options?: HrdSidebarOptions) => {
             }
 
             // 사이드바 하단 프로필 표시 업데이트
-            const avatarEl = document.getElementById('sidebar-avatar');
-            const usernameEl = document.getElementById('sidebar-username');
-            const roleEl = document.getElementById('sidebar-userrole');
-            const logoBrandEl = document.getElementById('sidebar-logo-brand');
-            const logoSubEl = document.getElementById('sidebar-logo-sub');
+            var avatarEl = document.getElementById('sidebar-avatar');
+            var usernameEl = document.getElementById('sidebar-username');
+            var roleEl = document.getElementById('sidebar-userrole');
+            var logoBrandEl = document.getElementById('sidebar-logo-brand');
+            var logoSubEl = document.getElementById('sidebar-logo-sub');
 
             if (avatarEl && user.name) {
                 avatarEl.textContent = user.name.charAt(0);
@@ -357,15 +357,13 @@ export const hrdSidebar = (activeMenu: string, options?: HrdSidebarOptions) => {
                 usernameEl.textContent = user.name || 'User';
             }
             if (roleEl) {
-                const roleLabels = { admin: 'Super Admin', teacher: 'Instructor', student: 'Student', user: 'User' };
+                var roleLabels = { admin: 'Super Admin', teacher: 'Instructor', student: 'Student', user: 'User' };
                 roleEl.textContent = roleLabels[role] || role;
             }
 
             // 관리자가 아닌 경우 로고 및 메뉴 필터링
             if (role !== 'admin') {
                 if (logoSubEl) logoSubEl.textContent = '홍대센터 LMS';
-                
-                // admin-only 요소들을 즉시 숨김
                 document.querySelectorAll('[data-role="admin-only"]').forEach(function(el) {
                     el.style.display = 'none';
                 });
@@ -376,55 +374,45 @@ export const hrdSidebar = (activeMenu: string, options?: HrdSidebarOptions) => {
         }
     })();
 
-    document.addEventListener('DOMContentLoaded', () => {
-        const sidebarNav = document.querySelector('aside nav');
+    document.addEventListener('DOMContentLoaded', function() {
+        var sidebarNav = document.querySelector('aside nav');
         if (sidebarNav) {
-            const savedScrollTop = sessionStorage.getItem('sidebarScrollTop');
+            var savedScrollTop = sessionStorage.getItem('sidebarScrollTop');
             if (savedScrollTop) {
                 sidebarNav.scrollTop = parseInt(savedScrollTop, 10);
             }
-
-            const links = sidebarNav.querySelectorAll('a');
-            links.forEach(link => {
-                link.addEventListener('click', () => {
-                    sessionStorage.setItem('sidebarScrollTop', sidebarNav.scrollTop);
-                });
-            });
-        }
-        
-        // 로그아웃 버튼에 이벤트 리스너 추가
-        const logoutBtn = document.getElementById('logout-btn');
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', () => {
-                window.logout();
-            });
-        }
-
-        // 사이드바 운영 과정 선택기 데이터 로드
-        const courseSelector = document.getElementById('sidebarActiveCourseSelector');
-        const token = localStorage.getItem('token');
-        if (courseSelector && token) {
-            fetch('/api/course-sessions?status=in_progress', {
-                headers: { 'Authorization': 'Bearer ' + token }
-            })
-            .then(r => r.json())
-            .then(res => {
-                if (res.success && res.data) {
-                    res.data.forEach(s => {
-                        const opt = document.createElement('option');
-                        opt.value = s.id;
-                        opt.textContent = '[' + (s.session_number || 1) + '차] ' + s.course_name;
-                        courseSelector.appendChild(opt);
+            var links = sidebarNav.querySelectorAll('a');
+            for (var i = 0; i < links.length; i++) {
+                (function(link) {
+                    link.addEventListener('click', function() {
+                        sessionStorage.setItem('sidebarScrollTop', sidebarNav.scrollTop);
                     });
-                    
-                    // 현재 URL에서 courseId 추출하여 자동 선택 (admin 또는 teacher 경로 모두 지원)
-                    const match = location.pathname.match(/\/(admin|teacher)\/courses\/(\d+)\/lms/);
-                    if (match && match[2]) {
-                        courseSelector.value = match[2];
+                })(links[i]);
+            }
+        }
+        var logoutBtn = document.getElementById('logout-btn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', function() { window.logout(); });
+        }
+        var courseSelector = document.getElementById('sidebarActiveCourseSelector');
+        var token = localStorage.getItem('token');
+        if (courseSelector && token) {
+            fetch('/api/course-sessions?status=in_progress', { headers: { 'Authorization': 'Bearer ' + token } })
+            .then(function(r) { return r.json(); })
+            .then(function(res) {
+                if (res.success && res.data) {
+                    for (var j = 0; j < res.data.length; j++) {
+                        var s = res.data[j];
+                        var opt = document.createElement('option');
+                        opt.value = s.id;
+                        opt.textContent = '[' + (s.session_number || 1) + '\uCC9C] ' + s.course_name;
+                        courseSelector.appendChild(opt);
                     }
+                    var match = location.pathname.match(/\/(admin|teacher)\/courses\/(\d+)\/lms/);
+                    if (match && match[2]) courseSelector.value = match[2];
                 }
             })
-            .catch(err => console.error('Sidebar course load error:', err));
+            .catch(function(err) { console.error('Sidebar course load error:', err); });
         }
     });
 </script>
