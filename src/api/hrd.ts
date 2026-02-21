@@ -5,6 +5,33 @@ import { authMiddleware } from '../middleware/auth';
 
 const app = new Hono<{ Bindings: Bindings, Variables: Variables }>();
 
+// Helper to resolve session_id or course_id to the actual LMS course_id
+async function resolveLmsCourseId(DB: any, id: any): Promise<number | null> {
+    const rawId = parseInt(String(id), 10);
+    if (isNaN(rawId)) return null;
+
+    // 1. 이미 courses 테이블의 ID인지 직접 확인
+    const existsInCourses = await DB.prepare('SELECT id FROM courses WHERE id = ?').bind(rawId).first();
+    if (existsInCourses) return rawId;
+
+    // 2. course_sessions ID인 경우, 제목 매핑을 통해 shadow LMS 과정 찾기
+    const session: any = await DB.prepare(`
+        SELECT s.id, s.session_number, s.session_name, a.name as course_name
+        FROM course_sessions s
+        JOIN approved_courses a ON s.approved_course_id = a.id
+        WHERE s.id = ?
+    `).bind(rawId).first();
+
+    if (session) {
+        const title = `${session.course_name || '과정'} (${session.session_number}회차${session.session_name ? ' - ' + session.session_name : ''})`.trim();
+        const lmsCourse: any = await DB.prepare(
+            'SELECT id FROM courses WHERE title = ? LIMIT 1'
+        ).bind(title).first();
+        if (lmsCourse) return Number(lmsCourse.id);
+    }
+    return null;
+}
+
 // ============================================
 // 교강사 관리 API
 // ============================================
@@ -1529,41 +1556,80 @@ app.get('/attendance', authMiddleware, async (c) => {
             return c.json({ success: false, error: '과정과 날짜를 선택해주세요.' }, 400);
         }
 
+        const rawId = parseInt(courseId, 10);
+        let isSession = false;
+
+        // 1. 회차(course_sessions)인지 먼저 확인
+        const session: any = await c.env.DB.prepare("SELECT id FROM course_sessions WHERE id = ?").bind(rawId).first();
+        if (session) {
+            isSession = true;
+        }
+
         // 강사인 경우 권한 확인
         if (user.role === 'teacher') {
-            const course: any = await c.env.DB.prepare("SELECT teacher_id FROM courses WHERE id = ?").bind(courseId).first();
-            if (!course || course.teacher_id !== user.userId) {
-                return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
+            if (isSession) {
+                // 회차인 경우: 시간표에 배정된 강사인지 확인
+                const isInstructor = await c.env.DB.prepare("SELECT 1 FROM session_timetable WHERE session_id = ? AND instructor_id = ? LIMIT 1").bind(rawId, user.userId).first();
+                if (!isInstructor) {
+                    return forbiddenResponse(c, '이 회차에 대한 권한이 없습니다.');
+                }
+            } else {
+                // 일반 과정인 경우: 과정 담당 강사인지 확인
+                const course: any = await c.env.DB.prepare("SELECT teacher_id FROM courses WHERE id = ?").bind(rawId).first();
+                if (!course || course.teacher_id !== user.userId) {
+                    return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
+                }
             }
         }
 
-        // 1. 해당 과정의 수강생 목록 및 출석 정보 조회 (통합된 attendance_logs 테이블 사용)
-        // HRD 뷰 호환성을 위해 필드명 매핑 (check_in_time -> in_time 등)
-        const query = `
-            SELECT
-            u.id, u.name, u.phone,
-                d.package_type,
-                e.id as enrollment_id,
-                al.status,
-                al.check_in_time as in_time,
-                al.check_out_time as out_time,
-                al.note as memo
-            FROM users u
-            JOIN hrd_student_details d ON u.id = d.user_id
-            JOIN enrollments e ON u.id = e.user_id
-            LEFT JOIN attendance_logs al ON e.id = al.enrollment_id AND al.date = ?
+        // 2. 해당 과정의 수강생 목록 및 출석 정보 조회
+        let query = '';
+        if (isSession) {
+            // HRD 회차용 쿼리
+            query = `
+                SELECT
+                    u.id, u.name, u.phone,
+                    '' as package_type,
+                    cse.id as enrollment_id,
+                    al.status,
+                    al.check_in_time as in_time,
+                    al.check_out_time as out_time,
+                    al.note as memo
+                FROM users u
+                JOIN course_session_enrollments cse ON u.id = cse.user_id
+                LEFT JOIN hrd_student_details d ON u.id = d.user_id
+                LEFT JOIN attendance_logs al ON cse.id = al.enrollment_id AND al.date = ?
+                WHERE cse.session_id = ? AND u.role = 'student'
+                ORDER BY u.name ASC
+            `;
+        } else {
+            // 일반 과정용 쿼리
+            query = `
+                SELECT
+                    u.id, u.name, u.phone,
+                    d.package_type,
+                    e.id as enrollment_id,
+                    al.status,
+                    al.check_in_time as in_time,
+                    al.check_out_time as out_time,
+                    al.note as memo
+                FROM users u
+                LEFT JOIN hrd_student_details d ON u.id = d.user_id
+                JOIN enrollments e ON u.id = e.user_id
+                LEFT JOIN attendance_logs al ON e.id = al.enrollment_id AND al.date = ?
                 WHERE e.course_id = ? AND u.role = 'student'
-            ORDER BY u.name ASC
-                `;
+                ORDER BY u.name ASC
+            `;
+        }
 
-        const { results } = await c.env.DB.prepare(query).bind(date, courseId).all();
+        const { results } = await c.env.DB.prepare(query).bind(date, rawId).all();
 
         // 데이터 포맷팅
         const resultData = results.map((row: any) => ({
             id: row.id,
             name: row.name,
             phone: row.phone,
-            package_type: row.package_type,
+            package_type: row.package_type || '',
             status: row.status || 'pending', // 값이 없으면 미처리 상태
             in_time: row.in_time || '',
             out_time: row.out_time || '',
@@ -2835,7 +2901,12 @@ app.get('/surveys/summary', authMiddleware, async (c) => {
 // NCS 이수 현황 요약 조회 (대시보드 차트용)
 app.get('/courses/:courseId/ncs-summary', async (c) => {
     try {
-        const courseId = c.req.param('courseId');
+        const courseIdParam = c.req.param('courseId');
+        const courseId = await resolveLmsCourseId(c.env.DB, courseIdParam);
+
+        if (!courseId) {
+            return c.json({ success: true, data: [] });
+        }
 
         const query = `
             SELECT 
@@ -2861,13 +2932,24 @@ app.get('/courses/:courseId/ncs-summary', async (c) => {
 app.get('/courses/:courseId/employment', authMiddleware, async (c) => {
     try {
         const user = c.get('user') as JWTPayload;
-        const courseId = c.req.param('courseId');
+        const courseIdParam = c.req.param('courseId');
+        const courseId = await resolveLmsCourseId(c.env.DB, courseIdParam);
+
+        if (!courseId) {
+            return c.json({ success: true, data: [] });
+        }
 
         // 강사인 경우 권한 확인
         if (user.role === 'teacher') {
             const course: any = await c.env.DB.prepare("SELECT teacher_id FROM courses WHERE id = ?").bind(courseId).first();
             if (!course || course.teacher_id !== user.userId) {
-                return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
+                // 회차인 경우 시간표 권한도 확인 (이미 resolveLmsCourseId를 통과했다면 제목 기반 매핑이 성공한 것임)
+                // 하지만 제목 매핑된 shadow course의 teacher_id가 현재 teacherId와 다를 수 있으므로 
+                // session_timetable 기반 권한 체크를 한 번 더 수행
+                const isInstructor = await c.env.DB.prepare("SELECT 1 FROM session_timetable WHERE session_id = ? AND instructor_id = ? LIMIT 1").bind(courseIdParam, user.userId).first();
+                if (!isInstructor) {
+                    return forbiddenResponse(c, '이 과정(회차)에 대한 권한이 없습니다.');
+                }
             }
         }
         const query = `

@@ -79,7 +79,7 @@ export const teacherDashboardHtml = `
                     <div class="h-10 w-px bg-neutral-200"></div>
                     <div class="flex items-center gap-4">
                         <div class="text-right hidden sm:flex flex-col">
-                            <span id="header-user-name" class="text-sm font-black text-neutral-900">-</span>
+                            <span id="header-user-name" class="text-sm font-black text-neutral-900">강사님</span>
                             <span class="text-[10px] font-black text-emerald-500 uppercase tracking-widest flex items-center gap-1 justify-end">
                                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Authorized
                             </span>
@@ -106,7 +106,7 @@ export const teacherDashboardHtml = `
                                     <i class="fas fa-sparkles text-yellow-400 text-xs"></i>
                                     <span class="text-[10px] font-black uppercase tracking-widest text-brand-200">System Synced in Real-time</span>
                                 </div>
-                                <h2 class="text-4xl lg:text-5xl font-outfit font-black tracking-tight mb-4 leading-[1.1]">안녕하세요, <span id="welcome-name" class="text-brand-400">-</span> 강사님.</h2>
+                                <h2 class="text-4xl lg:text-5xl font-outfit font-black tracking-tight mb-4 leading-[1.1]">안녕하세요, <span id="welcome-name" class="text-brand-400">강사님</span> 강사님.</h2>
                                 <p class="text-neutral-400 text-sm font-medium leading-relaxed max-w-lg mb-8">배정된 강의의 실시간 학사 현황과 학생들의 학습 성과를 분석한 데이터입니다. 인공지능 기반의 지표를 활용하여 교육의 질을 높여보세요.</p>
                                 <div class="flex flex-wrap gap-4">
                                     <button onclick="location.href='/teacher/courses'" class="px-8 py-4 bg-brand-600 hover:bg-white hover:text-brand-900 rounded-2xl font-black text-xs transition-all duration-500 flex items-center gap-3 shadow-xl shadow-brand-600/20">
@@ -336,6 +336,18 @@ export const teacherDashboardHtml = `
         }
 
         async function loadDashboardData() {
+            // 즉시 사용자 정보 로드하여 깜빡임 방지
+            const userStr = localStorage.getItem('user');
+            if (userStr) {
+                try {
+                    const user = JSON.parse(userStr);
+                    const headerName = document.getElementById('header-user-name');
+                    const welcomeName = document.getElementById('welcome-name');
+                    if (headerName) headerName.textContent = user.name || '강사님';
+                    if (welcomeName) welcomeName.textContent = user.name || '강사님';
+                } catch (e) {}
+            }
+
             try {
                 const token = localStorage.getItem('token');
                 if (!token) { window.location.href = '/login'; return; }
@@ -355,11 +367,6 @@ export const teacherDashboardHtml = `
                     document.getElementById('card-my-courses').textContent = d.myCourses || 0;
                     document.getElementById('card-pending-grading').textContent = d.pendingGrading || 0;
                     document.getElementById('card-attendance-rate').textContent = (d.avgAttendance || 0) + '%';
-
-                    // Welcome Text
-                    const user = JSON.parse(localStorage.getItem('user') || '{}');
-                    document.getElementById('header-user-name').textContent = user.name || '강사님';
-                    document.getElementById('welcome-name').textContent = user.name || '교수진';
 
                     // Render Lists
                     renderAlerts(d.pendingGradingList || []);

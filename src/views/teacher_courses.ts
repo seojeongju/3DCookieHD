@@ -269,14 +269,16 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
         }
 
         document.addEventListener('DOMContentLoaded', () => {
+            // 즉시 사용자 정보 로드
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            if (user.name) {
+                const nameEl = document.getElementById('userNameDisplay');
+                if (nameEl) nameEl.textContent = user.name + ' 강사님';
+            }
+
             checkLogin();
             showTabHintIfNeeded();
             loadCourses();
-            
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
-            if (user.name) {
-                document.getElementById('userNameDisplay').textContent = user.name + ' 강사님';
-            }
         });
 
         function showTabHintIfNeeded() {

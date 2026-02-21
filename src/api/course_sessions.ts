@@ -411,7 +411,7 @@ app.get('/', authMiddleware, requireRole('admin', 'teacher', 'instructor'), asyn
  * GET /api/course-sessions/:id/timetable/config
  * 교시 설정 조회
  */
-app.get('/:id/timetable/config', authMiddleware, requireAdmin, async (c) => {
+app.get('/:id/timetable/config', authMiddleware, requireRole('admin', 'teacher', 'instructor'), async (c) => {
   try {
     const id = parseInt(c.req.param('id'), 10);
     if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
@@ -468,7 +468,7 @@ app.post('/:id/timetable/config', authMiddleware, requireAdmin, async (c) => {
  * GET /api/course-sessions/:id/timetable/resources
  * 교과목 및 강사 리스트 조회 (NCS 편성 정보 기반)
  */
-app.get('/:id/timetable/resources', authMiddleware, requireAdmin, async (c) => {
+app.get('/:id/timetable/resources', authMiddleware, requireRole('admin', 'teacher', 'instructor'), async (c) => {
   try {
     const id = parseInt(c.req.param('id'), 10);
     if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
@@ -599,7 +599,7 @@ app.get('/:id/timetable/resources', authMiddleware, requireAdmin, async (c) => {
  * GET /api/course-sessions/:id/timetable
  * 시간표 조회
  */
-app.get('/:id/timetable', authMiddleware, requireAdmin, async (c) => {
+app.get('/:id/timetable', authMiddleware, requireRole('admin', 'teacher', 'instructor'), async (c) => {
   try {
     const id = parseInt(c.req.param('id'), 10);
     const startDate = c.req.query('start_date');

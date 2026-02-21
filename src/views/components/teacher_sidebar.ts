@@ -213,7 +213,7 @@ export const teacherSidebar = (activeMenu: string, activeSubMenu?: string) => {
         }
     };
 
-    document.addEventListener('DOMContentLoaded', () => {
+    (function() {
         const userStr = localStorage.getItem('user');
         if (userStr) {
             try {
@@ -229,9 +229,7 @@ export const teacherSidebar = (activeMenu: string, activeSubMenu?: string) => {
                 console.error('Error parsing user data in sidebar:', e);
             }
         }
-
-
-    });
+    })();
 </script>
 `;
 }
