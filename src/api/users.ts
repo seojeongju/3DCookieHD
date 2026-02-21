@@ -288,4 +288,43 @@ app.delete('/:id', authMiddleware, requireAdmin, async (c) => {
     }
 });
 
+// 사용자 비밀번호 초기화 (관리자 전용)
+app.post('/:id/reset-password', authMiddleware, requireAdmin, async (c) => {
+    const db = c.env.DB;
+    const userId = parseInt(c.req.param('id'));
+
+    if (!userId) {
+        return c.json({ success: false, error: 'Invalid user ID' }, 400);
+    }
+
+    try {
+        // 1. 임시 비밀번호 생성 (8자리 영문+숫자 조합)
+        const charset = 'abcdefghjkmnpqrstuvwxyz23456789'; // 헷갈리는 문자(o, 0, l, 1) 제외
+        let tempPassword = '';
+        for (let i = 0; i < 8; i++) {
+            tempPassword += charset.charAt(Math.floor(Math.random() * charset.length));
+        }
+
+        // 2. 비밀번호 해싱
+        const hashedPassword = await hashPassword(tempPassword);
+
+        // 3. DB 업데이트 (비밀번호 변경 및 초기 로그인 플래그 활성화)
+        await db.prepare(`
+            UPDATE users 
+            SET password = ?, is_initial_login = 1, updated_at = datetime('now')
+            WHERE id = ?
+        `).bind(hashedPassword, userId).run();
+
+        // 4. 관리자에게 해싱 전 비밀번호 반환
+        return c.json({
+            success: true,
+            temp_password: tempPassword,
+            message: '비밀번호가 초기화되었습니다.'
+        });
+    } catch (error) {
+        console.error('[Users API] Password reset failed:', error);
+        return c.json({ success: false, error: 'Failed to reset password' }, 500);
+    }
+});
+
 export default app;

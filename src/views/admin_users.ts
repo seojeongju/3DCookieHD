@@ -27,7 +27,7 @@ export const adminUsersHtml = (activeMenu: string = 'users') => `
 </head>
 <body class="bg-[#f8fafc] text-[#1e293b]">
     <div class="flex h-screen overflow-hidden">
-        ${hrdSidebar(activeMenu)}
+        \${hrdSidebar(activeMenu)}
         <div class="flex-1 flex flex-col overflow-hidden">
             <!-- 헤더 -->
             <header class="h-20 bg-white border-b border-gray-100 flex items-center justify-between px-8 z-10">
@@ -253,9 +253,9 @@ export const adminUsersHtml = (activeMenu: string = 'users') => `
 
             try {
                 let url = '/api/users?';
-                if (search) url += \`search=\${encodeURIComponent(search)}&\`;
-                if (role) url += \`role=\${role}&\`;
-                if (status) url += \`status=\${status}\`;
+                if (search) url += 'search=' + encodeURIComponent(search) + '&';
+                if (role) url += 'role=' + role + '&';
+                if (status) url += 'status=' + status;
 
                 const token = localStorage.getItem('token');
                 if (!token) {
@@ -268,9 +268,6 @@ export const adminUsersHtml = (activeMenu: string = 'users') => `
                 });
 
                 if (response.status === 401 || response.status === 403) {
-                    const errorResult = await response.json().catch(() => ({}));
-                    const detail = errorResult.error || '인증이 만료되었거나 권한이 없습니다.';
-                    alert('오류: ' + detail + '\\n\\n시스템 보안 강화로 인해 기존 세션이 만료되었을 수 있습니다. 로그아웃 후 다시 로그인해 주세요.');
                     location.href = '/login';
                     return;
                 }
@@ -282,17 +279,17 @@ export const adminUsersHtml = (activeMenu: string = 'users') => `
                     if (totalCount) totalCount.textContent = usersData.length;
 
                     if (usersData.length === 0) {
-                        tbody.innerHTML = \`<tr><td colspan="7" class="px-8 py-20 text-center text-gray-400 font-medium">검색 결과가 없습니다.</td></tr>\`;
+                        tbody.innerHTML = '<tr><td colspan="7" class="px-8 py-20 text-center text-gray-400 font-medium">검색 결과가 없습니다.</td></tr>';
                         return;
                     }
 
                     tbody.innerHTML = usersData.map(user => getUserRowHtml(user)).join('');
                 } else {
-                    tbody.innerHTML = \`<tr><td colspan="7" class="px-8 py-20 text-center text-red-400 font-medium">오류: \${result.error || '데이터를 불러올 수 없습니다.'}</td></tr>\`;
+                    tbody.innerHTML = '<tr><td colspan="7" class="px-8 py-20 text-center text-red-400 font-medium">오류: ' + (result.error || '데이터를 불러올 수 없습니다.') + '</td></tr>';
                 }
             } catch (e) {
                 console.error('사용자 로딩 실패:', e);
-                tbody.innerHTML = \`<tr><td colspan="7" class="px-8 py-20 text-center text-red-400 font-medium">서버 연결 실패</td></tr>\`;
+                tbody.innerHTML = '<tr><td colspan="7" class="px-8 py-20 text-center text-red-400 font-medium">서버 연결 실패</td></tr>';
             }
         }
 
@@ -332,6 +329,9 @@ export const adminUsersHtml = (activeMenu: string = 'users') => `
                             <button onclick="editUser(\${user.id})" class="w-8 h-8 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 flex items-center justify-center transition" title="수정">
                                 <i class="fas fa-edit text-xs"></i>
                             </button>
+                            <button onclick="resetPassword(\${user.id})" class="w-8 h-8 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-600 flex items-center justify-center transition" title="비밀번호 초기화">
+                                <i class="fas fa-key text-xs"></i>
+                            </button>
                             <button onclick="deleteUser(\${user.id})" class="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 flex items-center justify-center transition" title="삭제">
                                 <i class="fas fa-trash text-xs"></i>
                             </button>
@@ -339,6 +339,63 @@ export const adminUsersHtml = (activeMenu: string = 'users') => `
                     </td>
                 </tr>
             \`;
+        }
+
+        async function resetPassword(id) {
+            const user = usersData.find(u => u.id == id);
+            if (!user) return;
+            
+            if (!confirm(user.name + ' 님의 비밀번호를 초기화하시겠습니까?\\n\\n초기화 시 무작위 임시 비밀번호가 생성되며, 사용자는 로그인 시 비밀번호 변경 안내를 받게 됩니다.')) return;
+            
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/users/' + id + '/reset-password', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    showTempPasswordModal(user.name, result.temp_password);
+                } else {
+                    alert('초기화 실패: ' + (result.error || '알 수 없는 오류'));
+                }
+            } catch (e) {
+                console.error('비밀번호 초기화 실패:', e);
+                alert('서버 연결 실패');
+            }
+        }
+
+        function showTempPasswordModal(userName, tempPassword) {
+            const modalHtml = \`
+                <div id="tempPasswordModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                    <div class="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm p-8 text-center border border-gray-100">
+                        <div class="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-500 mx-auto mb-4">
+                            <i class="fas fa-key text-2xl"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">비밀번호 초기화 성공</h3>
+                        <p class="text-sm text-gray-500 mb-6">\${userName} 님의 신규 비밀번호입니다.</p>
+                        
+                        <div class="bg-gray-50 rounded-2xl p-4 mb-6 flex items-center justify-between">
+                            <code class="text-2xl font-black text-blue-600 tracking-wider flex-1 ml-4">\${tempPassword}</code>
+                            <button onclick="copyPasswordToClipboard('\${tempPassword}')" class="w-10 h-10 rounded-xl bg-white border border-gray-100 text-gray-400 hover:text-blue-600 transition flex items-center justify-center shadow-sm">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        
+                        <button onclick="document.getElementById('tempPasswordModal').remove()" class="w-full py-4 bg-gray-900 text-white rounded-2xl font-bold text-sm hover:bg-blue-600 transition shadow-lg">
+                            확인 및 닫기
+                        </button>
+                    </div>
+                </div>
+            \`;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }
+
+        function copyPasswordToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('비밀번호가 복사되었습니다. 사용자에게 전달해 주세요.');
+            });
         }
 
         function openUserModal() {
@@ -353,7 +410,6 @@ export const adminUsersHtml = (activeMenu: string = 'users') => `
                 panel.classList.add('scale-100', 'opacity-100');
             }, 10);
 
-            // 폼 리셋
             document.getElementById('userForm').reset();
             document.getElementById('userId').value = '';
             document.getElementById('modalTitle').textContent = '신규 회원 등록';
@@ -386,8 +442,8 @@ export const adminUsersHtml = (activeMenu: string = 'users') => `
             document.getElementById('userRole').value = user.role || 'student';
             document.getElementById('userStatus').value = user.status || 'active';
             
-            document.getElementById('modalTitle').textContent = \`\${user.name} 회원 정보 수정\`;
-            document.getElementById('modalSubtitle').textContent = \`ID: #\${user.id} | \${user.email}\`;
+            document.getElementById('modalTitle').textContent = user.name + ' 회원 정보 수정';
+            document.getElementById('modalSubtitle').textContent = 'ID: #' + user.id + ' | ' + user.email;
         }
 
         async function handleSaveUser(e) {
@@ -418,7 +474,7 @@ export const adminUsersHtml = (activeMenu: string = 'users') => `
 
                 const result = await response.json();
                 if (result.success) {
-                    alert(\`회원 정보가 \${id ? '수정' : '등록'}되었습니다.\`);
+                    alert('회원 정보가 ' + (id ? '수정' : '등록') + '되었습니다.');
                     closeUserModal();
                     await loadUsers();
                 } else {
@@ -437,7 +493,7 @@ export const adminUsersHtml = (activeMenu: string = 'users') => `
 
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch(\`/api/users/\${id}\`, {
+                const response = await fetch('/api/users/' + id, {
                     method: 'DELETE',
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
@@ -484,49 +540,23 @@ export const adminUsersHtml = (activeMenu: string = 'users') => `
             const courses = d.courses || [];
             const logs = d.training_logs || [];
             const assignments = d.assignments || [];
-            const html = [
-                courses.length ? \`
-                    <div>
-                        <h4 class="text-sm font-bold text-gray-700 mb-2 flex items-center"><i class="fas fa-chalkboard-teacher mr-2 text-purple-500"></i>과정 강사 배정 (\${courses.length}건)</h4>
-                        <ul class="space-y-2">
-                            \${courses.map(c => \`
-                                <li class="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-xl">
-                                    <span class="text-sm text-gray-800">\${escapeHtml(c.title || '과정 #'+c.id)}</span>
-                                    <button type="button" onclick="unassignCourse(\${c.id})" class="px-3 py-1.5 bg-amber-100 text-amber-800 rounded-lg text-xs font-bold hover:bg-amber-200 transition">배정 해제</button>
-                                </li>
-                            \`).join('')}
-                        </ul>
-                    </div>
-                \` : '',
-                logs.length ? \`
-                    <div>
-                        <h4 class="text-sm font-bold text-gray-700 mb-2 flex items-center"><i class="fas fa-clipboard-list mr-2 text-blue-500"></i>훈련일지 강사 배정 (\${logs.length}건)</h4>
-                        <ul class="space-y-2">
-                            \${logs.map(l => \`
-                                <li class="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-xl">
-                                    <span class="text-sm text-gray-800">\${escapeHtml((l.course_title || '과정') + ' · ' + (l.date || '') + (l.topic ? ' · ' + l.topic : ''))}</span>
-                                    <button type="button" onclick="unassignTrainingLog(\${l.id})" class="px-3 py-1.5 bg-amber-100 text-amber-800 rounded-lg text-xs font-bold hover:bg-amber-200 transition">배정 해제</button>
-                                </li>
-                            \`).join('')}
-                        </ul>
-                    </div>
-                \` : '',
-                assignments.length ? \`
-                    <div>
-                        <h4 class="text-sm font-bold text-gray-700 mb-2 flex items-center"><i class="fas fa-tasks mr-2 text-green-500"></i>과제 담당자 배정 (\${assignments.length}건)</h4>
-                        <ul class="space-y-2">
-                            \${assignments.map(a => \`
-                                <li class="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-xl">
-                                    <span class="text-sm text-gray-800">\${escapeHtml((a.course_title || '과정') + ' · ' + (a.title || '과제 #'+a.id))}</span>
-                                    <button type="button" onclick="unassignAssignment(\${a.id})" class="px-3 py-1.5 bg-amber-100 text-amber-800 rounded-lg text-xs font-bold hover:bg-amber-200 transition">배정 해제</button>
-                                </li>
-                            \`).join('')}
-                        </ul>
-                    </div>
-                \` : '',
-                (!courses.length && !logs.length && !assignments.length) ? '<p class="text-sm text-gray-500 py-4 text-center">해제할 배정이 없습니다. 삭제를 다시 시도해 주세요.</p>' : ''
-            ].filter(Boolean).join('');
-            document.getElementById('assignmentsContent').innerHTML = html || '<p class="text-sm text-gray-500 py-4 text-center">로딩 중...</p>';
+            
+            let html = '';
+            if (courses.length) {
+                html += '<div><h4 class="text-sm font-bold text-gray-700 mb-2 flex items-center"><i class="fas fa-chalkboard-teacher mr-2 text-purple-500"></i>과정 강사 배정 (' + courses.length + '건)</h4><ul class="space-y-2">';
+                html += courses.map(c => '<li class="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-xl"><span class="text-sm text-gray-800">' + escapeHtml(c.title || '과정 #'+c.id) + '</span><button type="button" onclick="unassignCourse(' + c.id + ')" class="px-3 py-1.5 bg-amber-100 text-amber-800 rounded-lg text-xs font-bold hover:bg-amber-200 transition">배정 해제</button></li>').join('');
+                html += '</ul></div>';
+            }
+            if (logs.length) {
+                html += '<div class="mt-6"><h4 class="text-sm font-bold text-gray-700 mb-2 flex items-center"><i class="fas fa-clipboard-list mr-2 text-blue-500"></i>훈련일지 강사 배정 (' + logs.length + '건)</h4><ul class="space-y-2">';
+                html += logs.map(l => '<li class="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-xl"><span class="text-sm text-gray-800">' + escapeHtml((l.course_title || '과정') + ' · ' + (l.date || '')) + '</span><button type="button" onclick="unassignTrainingLog(' + l.id + ')" class="px-3 py-1.5 bg-amber-100 text-amber-800 rounded-lg text-xs font-bold hover:bg-amber-200 transition">배정 해제</button></li>').join('');
+                html += '</ul></div>';
+            }
+            if (!courses.length && !logs.length && !assignments.length) {
+                html = '<p class="text-sm text-gray-500 py-4 text-center">해제할 배정이 없습니다. 삭제를 다시 시도해 주세요.</p>';
+            }
+            
+            document.getElementById('assignmentsContent').innerHTML = html;
             const total = courses.length + logs.length + assignments.length;
             document.getElementById('assignmentsRetryDeleteBtn').classList.toggle('hidden', total > 0);
         }
@@ -540,50 +570,35 @@ export const adminUsersHtml = (activeMenu: string = 'users') => `
 
         async function unassignCourse(courseId) {
             const token = localStorage.getItem('token');
-            const res = await fetch(\`/api/courses/\${courseId}\`, {
+            const res = await fetch('/api/courses/' + courseId, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
                 body: JSON.stringify({ teacher_id: null })
             });
             const json = await res.json();
             if (json.success) { await refreshAssignmentsModal(); return; }
-            alert('과정 배정 해제 실패: ' + (json.error || res.status));
+            alert('과정 배정 해제 실패');
         }
 
         async function unassignTrainingLog(logId) {
             const token = localStorage.getItem('token');
-            const res = await fetch(\`/api/hrd/training-logs/\${logId}\`, {
+            const res = await fetch('/api/hrd/training-logs/' + logId, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
                 body: JSON.stringify({ instructor_id: null })
             });
             const json = await res.json();
             if (json.success) { await refreshAssignmentsModal(); return; }
-            alert('훈련일지 배정 해제 실패: ' + (json.error || res.status));
-        }
-
-        async function unassignAssignment(assignmentId) {
-            const token = localStorage.getItem('token');
-            const res = await fetch(\`/api/assignments/\${assignmentId}\`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-                body: JSON.stringify({ teacher_id: null })
-            });
-            const json = await res.json();
-            if (json.success) { await refreshAssignmentsModal(); return; }
-            alert('과제 배정 해제 실패: ' + (json.error || res.status));
+            alert('훈련일지 배정 해제 실패');
         }
 
         async function refreshAssignmentsModal() {
             if (!_assignmentsUserId) return;
             const token = localStorage.getItem('token');
-            const res = await fetch(\`/api/users/\${_assignmentsUserId}/assignments\`, { headers: { 'Authorization': 'Bearer ' + token } });
+            const res = await fetch('/api/users/' + _assignmentsUserId + '/assignments', { headers: { 'Authorization': 'Bearer ' + token } });
             const json = await res.json();
             if (json.success && json.data) {
                 renderAssignmentsContent(json.data);
-                const d = json.data;
-                const total = (d.courses?.length || 0) + (d.training_logs?.length || 0) + (d.assignments?.length || 0);
-                document.getElementById('assignmentsRetryDeleteBtn').classList.toggle('hidden', total > 0);
             }
         }
 
