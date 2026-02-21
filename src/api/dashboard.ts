@@ -212,94 +212,107 @@ app.get('/stats', async (c) => {
 app.get('/teacher-stats', authMiddleware, async (c) => {
     try {
         const { DB } = c.env;
-        const authHeader = c.req.header('Authorization');
+        const user = c.get('user');
+        const teacherId = user?.userId;
 
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return c.json({ success: false, error: '인증이 필요합니다' }, 401);
-        }
-
-        const token = authHeader.substring(7);
-        const payload = await verifyToken(token);
-
-        if (!payload || (payload.role !== 'teacher' && payload.role !== 'admin')) {
+        if (!teacherId || (user.role !== 'teacher' && user.role !== 'admin')) {
             return c.json({ success: false, error: '강사 권한이 필요합니다' }, 403);
         }
 
-        const teacherId = payload.userId;
-
         // ------------------ Legacy Courses ------------------
-        const coursesResult = await DB.prepare(
-            "SELECT id, title, category, status, max_students FROM courses WHERE teacher_id = ?"
-        ).bind(teacherId).all<{ id: number, title: string, category: string, status: string, max_students: number }>();
-        const legacyCourses = coursesResult.results || [];
+        let legacyCourses: any[] = [];
+        try {
+            const coursesResult = await DB.prepare(
+                "SELECT id, title, category, status, max_students FROM courses WHERE teacher_id = ?"
+            ).bind(teacherId).all();
+            legacyCourses = coursesResult.results || [];
+        } catch (e) {
+            console.error('Legacy courses fetch error:', e);
+        }
 
         let totalStudents = 0;
         let avgAttendanceData = { total: 0, count: 0 };
 
         // Legacy enrolled count and attendance
-        for (const c of legacyCourses) {
-            const enrollData = await DB.prepare(`
-                SELECT count(*) as cnt, avg(attendance) as avgA 
-                FROM enrollments 
-                WHERE course_id = ? AND status = 'approved'
-            `).bind(c.id).first<{ cnt: number, avgA: number }>();
-            (c as any).enrolled_count = enrollData?.cnt || 0;
-            totalStudents += enrollData?.cnt || 0;
-            if (enrollData?.avgA) {
-                avgAttendanceData.total += enrollData.avgA;
-                avgAttendanceData.count += 1;
+        for (const course of legacyCourses) {
+            try {
+                const enrollData = await DB.prepare(`
+                    SELECT count(*) as cnt, avg(attendance) as avgA 
+                    FROM enrollments 
+                    WHERE course_id = ? AND status = 'approved'
+                `).bind(course.id).first<{ cnt: number, avgA: number }>();
+
+                (course as any).enrolled_count = enrollData?.cnt || 0;
+                totalStudents += enrollData?.cnt || 0;
+                if (enrollData?.avgA) {
+                    avgAttendanceData.total += enrollData.avgA;
+                    avgAttendanceData.count += 1;
+                }
+                (course as any).is_hrd = false;
+            } catch (e) {
+                console.error(`Error processing legacy course ${course.id}:`, e);
             }
-            (c as any).is_hrd = false;
         }
 
         // ------------------ HRD Course Sessions ------------------
-        const hrdRows = await DB.prepare(`
-            SELECT DISTINCT s.id, s.session_number, s.status, s.training_start_date, s.training_end_date,
-                   a.name as course_name, cc.name as category_name
-            FROM session_timetable st
-            INNER JOIN course_sessions s ON st.session_id = s.id
-            INNER JOIN approved_courses a ON s.approved_course_id = a.id
-            LEFT JOIN course_categories cc ON a.category_id = cc.id
-            WHERE st.instructor_id = ?
-        `).bind(teacherId).all<{ id: number, session_number: number, status: string, training_start_date: string | null, training_end_date: string | null, course_name: string, category_name: string }>();
+        let hrdCourses: any[] = [];
+        try {
+            const hrdRows = await DB.prepare(`
+                SELECT DISTINCT s.id, s.session_number, s.status, s.training_start_date, s.training_end_date,
+                       a.name as course_name, cc.name as category_name
+                FROM session_timetable st
+                INNER JOIN course_sessions s ON st.session_id = s.id
+                INNER JOIN approved_courses a ON s.approved_course_id = a.id
+                LEFT JOIN course_categories cc ON a.category_id = cc.id
+                WHERE st.instructor_id = ?
+            `).bind(teacherId).all<{ id: number, session_number: number, status: string, training_start_date: string | null, training_end_date: string | null, course_name: string, category_name: string }>();
 
-        const hrdCourses = (hrdRows.results || []).map(r => {
-            const sessionLabel = r.session_number != null ? ' (' + r.session_number + '회차)' : '';
-            const title = (r.course_name || '') + sessionLabel;
-            return {
-                id: r.id,
-                title: title,
-                category: r.category_name || '국비지원',
-                status: r.status,
-                max_students: 0,
-                is_hrd: true,
-                enrolled_count: 0
-            };
-        });
+            hrdCourses = (hrdRows.results || []).map(r => {
+                const sessionLabel = r.session_number != null ? ' (' + r.session_number + '회차)' : '';
+                const title = (r.course_name || '') + sessionLabel;
+                return {
+                    id: r.id,
+                    title: title,
+                    category: r.category_name || '국비지원',
+                    status: r.status,
+                    max_students: 0,
+                    is_hrd: true,
+                    enrolled_count: 0
+                };
+            });
 
-        for (const c of hrdCourses) {
-            // enrollment counts for HRD course_sessions
-            const enrollData = await DB.prepare(`
-                SELECT count(*) as cnt
-                FROM course_session_enrollments
-                WHERE session_id = ? AND status IN ('approved', 'enrolled')
-            `).bind(c.id).first<{ cnt: number }>();
-            c.enrolled_count = enrollData?.cnt || 0;
-            totalStudents += enrollData?.cnt || 0;
+            for (const hCourse of hrdCourses) {
+                try {
+                    // enrollment counts for HRD course_sessions
+                    const enrollData = await DB.prepare(`
+                        SELECT count(*) as cnt
+                        FROM course_session_enrollments
+                        WHERE session_id = ? AND status IN ('approved', 'enrolled')
+                    `).bind(hCourse.id).first<{ cnt: number }>();
+                    hCourse.enrolled_count = enrollData?.cnt || 0;
+                    totalStudents += enrollData?.cnt || 0;
 
-            // Attendance for HRD
-            const hrdAtt = await DB.prepare(`
-                SELECT count(*) as total_logs,
-                       sum(case when status = 'present' then 1 else 0 end) as present_cnt
-                FROM attendance_logs al
-                JOIN course_session_enrollments cse ON al.enrollment_id = cse.id
-                WHERE cse.session_id = ?
-            `).bind(c.id).first<{ total_logs: number, present_cnt: number }>();
-            if (hrdAtt && hrdAtt.total_logs > 0) {
-                const rat = (hrdAtt.present_cnt / hrdAtt.total_logs) * 100;
-                avgAttendanceData.total += rat;
-                avgAttendanceData.count += 1;
+                    // Attendance for HRD
+                    const hrdAtt = await DB.prepare(`
+                        SELECT count(*) as total_logs,
+                               sum(case when status = 'present' then 1 else 0 end) as present_cnt
+                        FROM attendance_logs al
+                        JOIN course_session_enrollments cse ON al.enrollment_id = cse.id
+                        WHERE cse.session_id = ?
+                    `).bind(hCourse.id).first<{ total_logs: number, present_cnt: number }>();
+
+                    if (hrdAtt && hrdAtt.total_logs > 0) {
+                        const present = hrdAtt.present_cnt || 0;
+                        const rat = (present / hrdAtt.total_logs) * 100;
+                        avgAttendanceData.total += rat;
+                        avgAttendanceData.count += 1;
+                    }
+                } catch (e) {
+                    console.error(`Error processing HRD course ${hCourse.id}:`, e);
+                }
             }
+        } catch (e) {
+            console.error('HRD courses fetch error:', e);
         }
 
         const myCourses = legacyCourses.length + hrdCourses.length;
@@ -307,14 +320,14 @@ app.get('/teacher-stats', authMiddleware, async (c) => {
 
         let combinedCourses = [...legacyCourses, ...hrdCourses];
         combinedCourses.sort((a, b) => {
-            const sa = a.status === 'active' || a.status === 'open' || a.status === 'in_progress' ? 0 : (a.status === 'recruiting' ? 1 : 2);
-            const sb = b.status === 'active' || b.status === 'open' || b.status === 'in_progress' ? 0 : (b.status === 'recruiting' ? 1 : 2);
+            const sa = (a.status === 'active' || a.status === 'open' || a.status === 'in_progress') ? 0 : (a.status === 'recruiting' ? 1 : 2);
+            const sb = (b.status === 'active' || b.status === 'open' || b.status === 'in_progress') ? 0 : (b.status === 'recruiting' ? 1 : 2);
             return sa - sb;
         });
 
         // ------------------ Pending Grading ------------------
         let pendingGrading = 0;
-        let pendingGradingList: { id: number; exam_id: number; student_id: number; student_name: string; exam_title: string; submitted_at: string | null }[] = [];
+        let pendingGradingList: any[] = [];
 
         try {
             // Legacy exams
@@ -369,7 +382,7 @@ app.get('/teacher-stats', authMiddleware, async (c) => {
 
             pendingGrading = (pcount1?.count || 0) + (pcount2?.count || 0);
         } catch (e) {
-            console.error('Failed to fetch pending grading:', e);
+            console.error('Pending grading fetch error:', e);
         }
 
         return c.json({
