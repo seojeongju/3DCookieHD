@@ -2339,9 +2339,8 @@ app.post('/training-logs', async (c) => {
         if (!date) {
             return errorResponse(c, '훈련 날짜가 필요합니다.', 400);
         }
-        if (!topic || topic.trim() === '') {
-            return errorResponse(c, '훈련 주제가 필요합니다.', 400);
-        }
+
+        const safeTopic = (topic && topic.trim() !== '') ? topic.trim() : '-';
 
         let { attendance_summary_json } = body;
         if (attendance_summary_json === undefined) attendance_summary_json = null;
@@ -2351,7 +2350,7 @@ app.post('/training-logs', async (c) => {
             const safeNcsUnitId = (ncs_unit_id === '' || ncs_unit_id === 0 || ncs_unit_id === '0') ? null : ncs_unit_id;
 
             const updates: string[] = ['topic = ?', 'content = ?', 'teaching_method = ?', 'ncs_unit_id = ?', 'training_hours = ?', 'ncs_elements_json = ?', 'schedule_details_json = ?', 'attendance_summary_json = ?', 'updated_at = CURRENT_TIMESTAMP'];
-            const bindParams: any[] = [topic || '', content || '', teaching_method || '주입식/실습', safeNcsUnitId, training_hours || 0, ncs_elements_json || null, schedule_details_json || null, attendance_summary_json];
+            const bindParams: any[] = [safeTopic, content || '', teaching_method || '주입식/실습', safeNcsUnitId, training_hours || 0, ncs_elements_json || null, schedule_details_json || null, attendance_summary_json];
 
             if (body.instructor_id !== undefined) {
                 updates.push('instructor_id = ?');
@@ -2445,7 +2444,7 @@ app.post('/training-logs', async (c) => {
                 resolvedCourseId,
                 safeInstructorId,
                 date,
-                topic || '',
+                safeTopic,
                 content || '',
                 teaching_method || '주입식/실습',
                 safeNcsUnitId,

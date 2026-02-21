@@ -106,23 +106,11 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
                 <input type="hidden" id="logId">
                 
                 <!-- 상단 설정 바 (Administrative Fields) -->
-                <div class="flex flex-wrap gap-4 items-center justify-between bg-indigo-50/50 p-4 rounded-xl border border-indigo-100">
-                    <div class="flex gap-4 items-center flex-1">
-                         <div class="flex flex-col">
-                            <label class="text-[10px] font-bold text-indigo-400 uppercase mb-1">훈련 시간 (H)</label>
-                            <input type="number" id="logHours" value="8" min="0" max="24" class="px-3 py-1.5 border border-indigo-200 rounded-md text-sm w-20 text-center font-bold focus:ring-2 focus:ring-indigo-500 outline-none">
-                         </div>
-                         <div class="flex flex-col flex-1 max-w-md">
-                            <label class="text-[10px] font-bold text-indigo-400 uppercase mb-1">NCS 능력단위</label>
-                            <select id="logNcsUnitId" class="px-3 py-1.5 border border-indigo-200 rounded-md text-sm w-full font-medium focus:ring-2 focus:ring-indigo-500 outline-none bg-white">
-                                <option value="">선택 안함</option>
-                            </select>
-                         </div>
-                    </div>
-                    <div class="flex flex-col w-full md:w-auto md:min-w-[400px]">
-                         <label class="text-[10px] font-bold text-indigo-400 uppercase mb-1">훈련 주제 <span class="text-red-400">*</span></label>
-                         <input type="text" id="logTopic" class="px-3 py-1.5 border border-indigo-200 rounded-md text-sm w-full font-bold focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="주제를 입력하세요">
-                    </div>
+                <div class="flex items-center justify-center bg-indigo-50/50 p-4 rounded-xl border border-indigo-100 mb-6 w-fit mx-auto">
+                     <div class="flex flex-col items-center">
+                        <label class="text-[10px] font-bold text-indigo-400 uppercase mb-1">총 훈련 시간 (H)</label>
+                        <input type="number" id="logHours" value="8" min="0" max="24" class="px-4 py-1.5 border border-indigo-200 rounded-md text-sm w-24 text-center font-bold focus:ring-2 focus:ring-indigo-500 outline-none">
+                     </div>
                 </div>
             
                 <!-- Paper Form Container (Visual Match to Print) -->
@@ -811,24 +799,14 @@ async function printLog(id) {
 
         function openLogModal() {
             const elId = document.getElementById('logId');
-            const elTopic = document.getElementById('logTopic');
             const elContent = document.getElementById('logContent');
             const elHours = document.getElementById('logHours');
-            const elUnitId = document.getElementById('logNcsUnitId');
-            const elPicker = document.getElementById('elementsPicker');
             const elDate = document.getElementById('logDate');
 
             // 초기화
             if (elId) elId.value = '';
-            if (elTopic) elTopic.value = '';
             if (elContent) elContent.value = '';
             if (elHours) elHours.value = '8';
-            if (elUnitId) {
-                elUnitId.value = '';
-                const event = new Event('change');
-                elUnitId.dispatchEvent(event);
-            }
-            if (elPicker) elPicker.classList.add('hidden');
             if (elDate && !elDate.value) elDate.valueAsDate = new Date();
             
             // New Fields Reset
@@ -876,14 +854,11 @@ async function printLog(id) {
         async function editLog(log) {
             const elId = document.getElementById('logId');
             const elDate = document.getElementById('logDate');
-            const elTopic = document.getElementById('logTopic');
             const elContent = document.getElementById('logContent');
             const elHours = document.getElementById('logHours');
-            const elUnitId = document.getElementById('logNcsUnitId');
 
             if (elId) elId.value = log.id;
             if (elDate) elDate.value = log.date;
-            if (elTopic) elTopic.value = log.topic;
             if (elContent) elContent.value = log.content || ''; 
             if (elHours) elHours.value = log.training_hours;
             
@@ -908,23 +883,7 @@ async function printLog(id) {
                  }
             }
             
-            if (elUnitId) {
-                elUnitId.value = log.ncs_unit_id || '';
-                const event = new Event('change');
-                elUnitId.dispatchEvent(event);
-                
-                setTimeout(() => {
-                    if (log.ncs_elements_json) {
-                        try {
-                            const selectedIds = JSON.parse(log.ncs_elements_json);
-                            const checks = document.querySelectorAll('input[name="ncs_element"]');
-                            checks.forEach(c => {
-                                if (selectedIds.includes(parseInt(c.value))) c.checked = true;
-                            });
-                        } catch(e) {}
-                    }
-                }, 500);
-            }
+            // NCS Unit fields disabled
 
             // 시간표 데이터 복원
             if (log.schedule_details_json) {
@@ -954,13 +913,10 @@ async function printLog(id) {
 
         async function handleSaveLog(e) {
             e.preventDefault();
-            const elementIds = Array.from(document.querySelectorAll('input[name="ncs_element"]:checked')).map(i => parseInt(i.value));
             
             const idVal = document.getElementById('logId').value;
             const dateVal = document.getElementById('logDate').value;
-            const topicVal = document.getElementById('logTopic').value;
             const contentVal = document.getElementById('logContent').value;
-            const unitIdVal = document.getElementById('logNcsUnitId').value;
             const hoursVal = document.getElementById('logHours').value;
 
             // New Fields Collection
@@ -999,12 +955,12 @@ async function printLog(id) {
                 course_id: parseInt(courseId),
                 instructor_id: user.id || null,
                 date: dateVal,
-                topic: topicVal,
+                topic: '-',
                 content: contentVal,
                 teaching_method: '주입식/실습', 
-                ncs_unit_id: unitIdVal ? parseInt(unitIdVal) : null,
+                ncs_unit_id: null,
                 training_hours: parseInt(hoursVal),
-                ncs_elements_json: JSON.stringify(elementIds),
+                ncs_elements_json: null,
                 schedule_details_json: JSON.stringify(scheduleDetails),
                 attendance_summary_json: JSON.stringify(attSummary)
             };
