@@ -340,8 +340,8 @@ export const teacherPortfoliosHtml = `
             container.innerHTML = allCourses.map(course => {
                 const idSafe = JSON.stringify(course.id);
                 const raw = (course.title || '');
-                const titleSafe = raw.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
-                return '<div onclick="selectCourse(' + idSafe + ', \'' + titleSafe + '\')" ' +
+                const titleSafe = raw.replace(/\\\\/g, '\\\\\\\\').replace(/'/g, "\\\\'").replace(/"/g, '\\\\"');
+                return '<div onclick="selectCourse(' + idSafe + ', \\'' + titleSafe + '\\')" ' +
                      'class="bento-card bg-white rounded-[2rem] p-8 border border-slate-200/60 flex flex-col justify-between cursor-pointer group shadow-sm hover:border-sky-600/30">' +
                     '<div class="flex justify-between items-start mb-6">' +
                         '<div class="w-14 h-14 rounded-2xl bg-sky-50 flex items-center justify-center text-sky-600 group-hover:bg-sky-600 group-hover:text-white transition-all duration-500 shadow-sm border border-sky-100">' +
