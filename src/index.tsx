@@ -133,6 +133,7 @@ import { footerHtml } from './views/footer';
 import { navigationHtml } from './views/components/navigation';
 import { homeHtml } from './views/home';
 import { layoutHtml } from './views/components/layout';
+import { resetPasswordHtml } from './views/reset_password';
 
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -397,6 +398,7 @@ app.get('/teacher/courses/:id/lms/qr-attendance', (c) => c.html(adminLmsQrAttend
 // ============================================
 app.get('/login', (c) => c.html(loginHtml));
 app.get('/register', (c) => c.html(registerHtml));
+app.get('/reset-password', (c) => c.html(resetPasswordHtml));
 app.get('/jobs', (c) => c.html(jobsListHtml));
 app.get('/jobseekers', (c) => c.html(jobseekersListHtml));
 app.get('/courses', (c) => c.redirect('/course-sessions'));

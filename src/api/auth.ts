@@ -343,4 +343,71 @@ auth.post('/change-password', authMiddleware, async (c) => {
   }
 });
 
+// 비밀번호 찾기 (이메일 발송 요청)
+auth.post('/forgot-password', async (c: any) => {
+  const { email } = await c.req.json();
+  const db = c.env.DB;
+
+  try {
+    const user = await getOne<any>(db, 'SELECT id, name FROM users WHERE email = ?', [email]);
+    if (!user) {
+      // 보안을 위해 사용자가 없어도 성공 메시지를 보낼 수도 있지만, 편의를 위해 에러 반환
+      return errorResponse(c, '등록되지 않은 이메일입니다', 404);
+    }
+
+    // 보안 토큰 생성 (UUID 느낌의 무작위 문자열)
+    const token = crypto.randomUUID();
+    const expires = new Date(Date.now() + 3600000).toISOString(); // 1시간 후 만료
+
+    // DB에 토큰 저장
+    await execute(db, 'UPDATE users SET reset_token = ?, reset_expires = ? WHERE id = ?', [token, expires, user.id]);
+
+    // 이메일 발송
+    const { sendResetPasswordEmail } = await import('../utils/email');
+    const emailSent = await sendResetPasswordEmail(c.env, email, token, user.name);
+
+    if (emailSent) {
+      return successResponse(c, null, '비밀번호 재설정 이메일이 발송되었습니다.');
+    } else {
+      return errorResponse(c, '이메일 발송에 실패했습니다. 관리자에게 문의하세요.', 500);
+    }
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    return errorResponse(c, '처리 중 오류가 발생했습니다.');
+  }
+});
+
+// 비밀번호 재설정 (토큰 검증 및 변경)
+auth.post('/reset-password', async (c: any) => {
+  const { token, new_password } = await c.req.json();
+  const db = c.env.DB;
+
+  try {
+    // 토큰 유효성 및 만료 확인
+    const user = await getOne<any>(db,
+      'SELECT id FROM users WHERE reset_token = ? AND reset_expires > datetime("now")',
+      [token]
+    );
+
+    if (!user) {
+      return errorResponse(c, '유효하지 않거나 만료된 토큰입니다.', 400);
+    }
+
+    // 새 비밀번호 해싱
+    const { hashPassword } = await import('../utils/jwt');
+    const hashedPassword = await hashPassword(new_password);
+
+    // 비밀번호 업데이트 및 토큰 초기화
+    await execute(db,
+      'UPDATE users SET password = ?, reset_token = NULL, reset_expires = NULL, is_initial_login = 0 WHERE id = ?',
+      [hashedPassword, user.id]
+    );
+
+    return successResponse(c, null, '비밀번호가 성공적으로 재설정되었습니다. 새로운 비밀번호로 로그인해 주세요.');
+  } catch (error) {
+    console.error('Reset password error:', error);
+    return errorResponse(c, '비밀번호 재설정 중 오류가 발생했습니다.');
+  }
+});
+
 export default auth;

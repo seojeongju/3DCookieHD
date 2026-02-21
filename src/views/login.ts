@@ -69,7 +69,8 @@ export const loginHtml = `
                     </div>
 
                     <div class="text-sm">
-                        <a href="#" class="font-medium text-primary-600 hover:text-primary-500">
+                    <div class="text-sm">
+                        <a href="javascript:void(0)" onclick="openForgotModal()" class="font-medium text-primary-600 hover:text-primary-500">
                             비밀번호를 잊으셨나요?
                         </a>
                     </div>
@@ -96,7 +97,62 @@ export const loginHtml = `
         </div>
     </div>
 
+    <!-- 비밀번호 찾기 모달 -->
+    <div id="forgotModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div class="px-8 py-6 border-b border-gray-100 flex justify-between items-center">
+                <h3 class="text-xl font-bold text-gray-900 tracking-tight">비밀번호 찾기</h3>
+                <button onclick="closeForgotModal()" class="text-gray-400 hover:text-gray-600 transition"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="p-8">
+                <p class="text-sm text-gray-500 mb-6 leading-relaxed">가입 시 사용한 이메일 주소를 입력해 주세요.<br>비밀번호 재설정 링크를 보내드립니다.</p>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">이메일 주소</label>
+                        <input type="email" id="forgotEmail" class="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-4 focus:ring-primary-100 outline-none transition" placeholder="example@email.com">
+                    </div>
+                    <button onclick="handleForgotSubmit()" id="forgotBtn" class="w-full py-4 bg-primary-600 text-white rounded-xl font-bold hover:bg-primary-700 shadow-lg shadow-primary-200 transition flex items-center justify-center gap-2">
+                        재설정 링크 발송
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
+        function openForgotModal() { document.getElementById('forgotModal').classList.remove('hidden'); }
+        function closeForgotModal() { document.getElementById('forgotModal').classList.add('hidden'); }
+
+        async function handleForgotSubmit() {
+            const email = document.getElementById('forgotEmail').value.trim();
+            if (!email) { alert('이메일을 입력해 주세요.'); return; }
+
+            const btn = document.getElementById('forgotBtn');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 발송 중...';
+
+            try {
+                const res = await fetch('/api/auth/forgot-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+                const result = await res.json();
+                if (result.success) {
+                    alert('이메일이 발송되었습니다. 메일함(또는 스팸함)을 확인해 주세요.');
+                    closeForgotModal();
+                } else {
+                    alert('발송 실패: ' + result.error);
+                }
+            } catch (e) {
+                alert('서버 연결 오류');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+
         async function handleLogin(e) {
             e.preventDefault();
             
