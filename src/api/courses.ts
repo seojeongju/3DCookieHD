@@ -256,11 +256,10 @@ courses.get('/:id', async (c) => {
         const sessionId = parseInt(idParam, 10);
         if (isNaN(sessionId)) return notFoundResponse(c, '잘못된 회차 ID입니다');
 
-        const { DB } = c.env;
-
         // 1. Direct Session Lookup
-        let session = await DB.prepare(`
-          SELECT 
+        let session = await getOne<any>(
+          c.env.DB,
+          `SELECT 
             s.*,
             a.name as approved_course_name,
             a.course_code,
@@ -270,13 +269,15 @@ courses.get('/:id', async (c) => {
           FROM course_sessions s
           LEFT JOIN approved_courses a ON s.approved_course_id = a.id
           LEFT JOIN course_categories cat ON a.category_id = cat.id
-          WHERE s.id = ?
-        `).bind(sessionId).first<any>();
+          WHERE s.id = ?`,
+          [sessionId]
+        );
 
         // 2. Fallback to Latest Session by Approved Course ID
         if (!session) {
-          session = await DB.prepare(`
-            SELECT 
+          session = await getOne<any>(
+            c.env.DB,
+            `SELECT 
               s.*,
               a.name as approved_course_name,
               a.course_code,
@@ -288,8 +289,9 @@ courses.get('/:id', async (c) => {
             LEFT JOIN course_categories cat ON a.category_id = cat.id
             WHERE s.approved_course_id = ?
             ORDER BY s.session_number DESC, s.id DESC
-            LIMIT 1
-          `).bind(sessionId).first<any>();
+            LIMIT 1`,
+            [sessionId]
+          );
         }
 
         if (!session) return notFoundResponse(c, '회차 정보를 찾을 수 없습니다');
@@ -298,36 +300,34 @@ courses.get('/:id', async (c) => {
         const sessionNum = session.session_number || '1';
         const courseName = session.approved_course_name || '미지정 과정';
         const sessionNamePart = session.session_name ? ` - ${session.session_name}` : '';
-        session.title = `${courseName} (${sessionNum}회차)${sessionNamePart}`;
+        const constructedTitle = `${courseName} (${sessionNum}회차)${sessionNamePart}`;
 
-        // 4. Map Legacy Field Names
-        session.teacher_name = session.instructor_name;
-        session.start_date = session.training_start_date;
-        session.end_date = session.training_end_date;
-        session.start_time = session.training_time_start;
-        session.end_time = session.training_time_end;
+        // 4. Enrollment Count (using the resolved session ID)
+        const studentCountResult = await getOne<any>(
+          c.env.DB,
+          `SELECT COUNT(*) as count FROM course_session_enrollments WHERE session_id = ? AND status IN ('approved', 'enrolled')`,
+          [session.id]
+        );
 
-        // 5. Enrollment Count
-        const studentCount = await DB.prepare(
-          `SELECT COUNT(*) as count FROM course_session_enrollments WHERE session_id = ? AND status IN ('approved', 'enrolled')`
-        ).bind(session.id).first<{ count: number }>();
-
+        // 5. Final Response Object
         return successResponse(c, {
           ...session,
+          id: session.id, // Explicitly set to session ID
+          title: constructedTitle,
+          teacher_name: session.instructor_name,
+          start_date: session.training_start_date,
+          end_date: session.training_end_date,
+          start_time: session.training_time_start,
+          end_time: session.training_time_end,
           category: session.category_name || '국비지원',
           price: 0,
           max_students: 0,
-          current_students: studentCount?.count || 0,
+          current_students: studentCountResult?.count || 0,
           status: session.status || 'active'
         });
       } catch (err: any) {
         console.error('HRD Course Detail Error:', err);
-        return c.json({
-          success: false,
-          error: '서버 내부 오류가 발생했습니다',
-          debug: err.message,
-          stack: err.stack
-        }, 500);
+        return errorResponse(c, '과정 정보를 불러오는 중 오류가 발생했습니다: ' + err.message, 500);
       }
     }
 
