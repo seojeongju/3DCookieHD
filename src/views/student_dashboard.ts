@@ -238,6 +238,41 @@ export const studentDashboardHtml = () => `
             if (dateEl) dateEl.textContent = now.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
         }
 
+        window.onload = function() {
+            // 사용자 정보 확인
+            const userStr = localStorage.getItem('user');
+            if (userStr) {
+                const user = JSON.parse(userStr);
+                document.getElementById('userName').textContent = user.name || '-';
+                document.getElementById('welcome-name').textContent = user.name || '-';
+                
+                // 초기 로그인 여부 확인 및 모달 표시
+                if (user.is_initial_login === 1 || user.is_initial_login === true) {
+                    setTimeout(() => {
+                        document.getElementById('initialLoginModal').classList.remove('hidden');
+                    }, 500);
+                }
+            }
+            
+            updateTime();
+            setInterval(updateTime, 1000);
+            updateDate();
+            loadDashboardData();
+        };
+
+        function closeInitialModal() {
+            document.getElementById('initialLoginModal').classList.add('hidden');
+            
+            // 앞으로 다시 띄우지 않도록 서버 또는 로컬스토리지 앱데이트 (로그인 세션 동안만 막을지 영구적으로 막을지 결정)
+            // 여기서는 사용자가 '다음에 하기'를 누르면 로컬 스토리지 정보를 업데이트하여 이번 세션에서는 다시 안 뜨게 함
+            const userStr = localStorage.getItem('user');
+            if (userStr) {
+                const user = JSON.parse(userStr);
+                user.is_initial_login = 0;
+                localStorage.setItem('user', JSON.stringify(user));
+            }
+        }
+        
         function loadProfile() {
             const userStr = localStorage.getItem('user');
             if (userStr) {
@@ -1252,6 +1287,36 @@ export const studentDashboardHtml = () => `
                     <button type="submit" class="flex-1 py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-100">저장하기</button>
                 </div>
             </form>
+        </div>
+    </div>
+    
+    <!-- 초기 비밀번호 변경 권고 모달 -->
+    <div id="initialLoginModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md hidden z-[80] flex items-center justify-center p-4">
+        <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md border border-slate-200/60 overflow-hidden animate-fade-in">
+            <div class="px-8 py-10 text-center">
+                <div class="w-20 h-20 bg-amber-50 rounded-3xl flex items-center justify-center text-amber-500 mx-auto mb-6 shadow-sm border border-amber-100">
+                    <i class="fas fa-shield-halved text-3xl"></i>
+                </div>
+                <h3 class="text-2xl font-black text-slate-900 mb-3 tracking-tight">비밀번호 변경 안내</h3>
+                <p class="text-slate-500 font-medium mb-8 leading-relaxed">
+                    현재 초기 비밀번호(전화번호 뒷자리)를 사용 중입니다.<br>
+                    안전을 위해 새로운 비밀번호로 변경하시는 것을 권장합니다.
+                </p>
+                
+                <div class="flex flex-col gap-3">
+                    <button onclick="location.href='/profile?tab=password'" class="w-full py-4 bg-sky-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg shadow-sky-100 hover:bg-slate-900 transition flex items-center justify-center gap-2">
+                        <i class="fas fa-key"></i>
+                        지금 비밀번호 변경하기
+                    </button>
+                    <button onclick="closeInitialModal()" class="w-full py-4 border border-slate-200 text-slate-500 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition">
+                        다음에 변경하기 (현재 비번 계속 사용)
+                    </button>
+                </div>
+                
+                <p class="mt-6 text-[10px] text-slate-400 font-bold uppercase tracking-tighter">
+                    * 훈련생 본인 정보는 관리자만 수정 가능하며, 비밀번호만 직접 변경이 가능합니다.
+                </p>
+            </div>
         </div>
     </div>
 </body>
