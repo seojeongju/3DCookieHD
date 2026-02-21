@@ -1149,9 +1149,19 @@ app.post('/students/:id/consultations', authMiddleware, async (c) => {
         const date = body.date || new Date().toISOString().split('T')[0];
         const category = body.category || 'academic';
         const method = body.method || 'face_to_face';
-        const courseId = body.course_id != null ? (typeof body.course_id === 'number' ? body.course_id : parseInt(String(body.course_id), 10) || null) : null;
+        let courseId = body.course_id != null ? (typeof body.course_id === 'number' ? body.course_id : parseInt(String(body.course_id), 10) || null) : null;
         const user = c.get('user') as JWTPayload;
         const counselorId = user.userId;
+
+        // course_id는 courses(id) FK — 강사 페이지에서 오는 값은 회차(session) ID일 수 있으므로, courses에 없으면 null로 저장
+        if (courseId != null) {
+            try {
+                const row = await c.env.DB.prepare('SELECT id FROM courses WHERE id = ?').bind(courseId).first();
+                if (!row) courseId = null;
+            } catch (_) {
+                courseId = null;
+            }
+        }
 
         // hrd_counseling_logs 에 저장
         await c.env.DB.prepare(`
