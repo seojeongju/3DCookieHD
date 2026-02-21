@@ -348,7 +348,7 @@ export const teacherProfileHtml = `
                     </div>
                     <div>
                         <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">증빙 자료</label>
-                        <input type="file" id="certModalFileInput" multiple class="hidden" onchange="/* Handle in JS */">
+                        <input type="file" id="certModalFileInput" accept=".pdf,.jpg,.jpeg,.png,image/*,application/pdf" multiple class="hidden" onchange="handleCertModalFileSelect(this)">
                         <button type="button" onclick="document.getElementById('certModalFileInput').click()" class="w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 font-bold hover:border-blue-400 hover:text-blue-500 transition-all text-sm mb-4">
                             <i class="fas fa-cloud-upload-alt mr-2"></i> 파일 업로드 (PDF, 이미지)
                         </button>
@@ -657,9 +657,46 @@ export const teacherProfileHtml = `
         window.deleteCareer = (idx) => { if(confirm('이 경력 정보를 삭제하시겠습니까?')) { career.splice(idx,1); renderCareer(); } };
 
         // Certification Logic
+        function displayCertModalFiles() {
+            const listEl = document.getElementById('certModalFileList');
+            const urlsInput = document.getElementById('certModalFileUrls');
+            if (!listEl || !urlsInput) return;
+            let fileUrls = [];
+            try { fileUrls = JSON.parse(urlsInput.value || '[]'); } catch (e) {}
+            listEl.innerHTML = fileUrls.map(function(f, i) {
+                var url = (f && f.url) ? f.url : (typeof f === 'string' ? f : '');
+                var name = (f && f.name) ? f.name : (typeof f === 'string' ? f.split('/').pop() : '파일');
+                if (!url) return '';
+                return '<div class="flex items-center justify-between text-sm text-slate-600 bg-slate-50 px-3 py-2 rounded-xl">' +
+                    '<span><i class="fas fa-file-pdf mr-2 text-red-500"></i>' + escapeHtml(name) + '</span>' +
+                    '<a href="' + escapeHtml(url) + '" target="_blank" class="text-blue-600 hover:text-blue-800 text-xs font-bold"><i class="fas fa-external-link-alt mr-1"></i>보기</a>' +
+                '</div>';
+            }).join('');
+        }
+        function escapeHtml(s) {
+            if (!s) return '';
+            var div = document.createElement('div');
+            div.textContent = s;
+            return div.innerHTML;
+        }
+        window.handleCertModalFileSelect = function(input) {
+            if (!input || !input.files || input.files.length === 0) return;
+            const listEl = document.getElementById('certModalFileList');
+            if (!listEl) return;
+            const frag = document.createDocumentFragment();
+            for (var i = 0; i < input.files.length; i++) {
+                var f = input.files[i];
+                var row = document.createElement('div');
+                row.className = 'flex items-center justify-between text-sm text-slate-600 bg-amber-50 px-3 py-2 rounded-xl border border-amber-100';
+                row.innerHTML = '<span><i class="fas fa-plus mr-2 text-amber-500"></i>' + escapeHtml(f.name) + ' <span class="text-[10px] text-slate-400">(저장 시 업로드)</span></span>';
+                frag.appendChild(row);
+            }
+            listEl.appendChild(frag);
+        };
         window.openCertificationModal = (idx = null) => {
             currentCertIndex = idx;
             document.getElementById('certificationForm').reset();
+            document.getElementById('certModalFileUrls').value = '[]';
             document.getElementById('certModalFileList').innerHTML = '';
             if(idx !== null) {
                 const c = certifications[idx];
@@ -668,6 +705,7 @@ export const teacherProfileHtml = `
                 if(c.issue_date) document.getElementById('certModalIssueDate').value = c.issue_date.split('T')[0];
                 if(c.expiry_date) document.getElementById('certModalExpiryDate').value = c.expiry_date.split('T')[0];
                 document.getElementById('certModalFileUrls').value = JSON.stringify(c.file_urls || []);
+                displayCertModalFiles();
             }
             document.getElementById('certificationModal').classList.remove('hidden');
         };
@@ -819,8 +857,7 @@ export const teacherProfileHtml = `
             if(!token) { alert('로그인이 필요합니다.'); return; }
             const fd = new FormData();
             fd.append('file', input.files[0]);
-            fd.append('category', 'images');
-            fd.append('folder', 'profiles');
+            fd.append('category', 'profile');
             const preview = document.getElementById('pImagePreview');
             const placeholder = document.getElementById('pImagePlaceholder');
             const urlInput = document.getElementById('pImageUrl');

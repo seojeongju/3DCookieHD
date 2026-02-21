@@ -217,27 +217,46 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
     </div>
 
     <script>
-        const rawId = window.location.pathname.split('/')[3];
-        const courseId = rawId ? parseInt(rawId) : rawId;
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
-        const token = localStorage.getItem('token');
-        let assignedUnits = [];
+        var rawId = window.location.pathname.split('/')[3];
+        var courseId = rawId ? parseInt(rawId) : rawId;
+        var user = JSON.parse(localStorage.getItem('user') || '{}');
+        var token = localStorage.getItem('token');
+        var assignedUnits = [];
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const logDateInput = document.getElementById('logDate');
+        (function() {
+            var openLogModal = function() {
+                var elId = document.getElementById('logId');
+                var elContent = document.getElementById('logContent');
+                var elHours = document.getElementById('logHours');
+                var elDate = document.getElementById('logDate');
+                var elModal = document.getElementById('logModal');
+                if (elId) elId.value = '';
+                if (elContent) elContent.value = '';
+                if (elHours) elHours.value = '8';
+                if (elDate && !elDate.value && elDate.valueAsDate !== undefined) elDate.valueAsDate = new Date();
+                var ids = ['logAttPresent','logAttAbsent','logAttLate','logAttEarly','logInstructions','logListLate','logListAbsent','logListEarly'];
+                for (var i = 0; i < ids.length; i++) { var el = document.getElementById(ids[i]); if (el) el.value = ''; }
+                var elTitle = document.getElementById('modalTitle');
+                if (elTitle) elTitle.textContent = '훈련일지 작성';
+                if (typeof setModalCourseName === 'function') setModalCourseName();
+                if (elModal) elModal.classList.remove('hidden');
+            };
+            var closeLogModal = function() { var m = document.getElementById('logModal'); if (m) m.classList.add('hidden'); };
+            window.openLogModal = openLogModal;
+            window.closeLogModal = closeLogModal;
+        })();
+
+        document.addEventListener('DOMContentLoaded', function() {
+            var logDateInput = document.getElementById('logDate');
             if (logDateInput) {
                 logDateInput.valueAsDate = new Date();
-                logDateInput.addEventListener('change', () => {
+                logDateInput.addEventListener('change', function() {
                     loadDailySchedule();
                     loadDailyAttendance();
                 });
             }
             loadLogs();
             loadAssignedUnits();
-            
-            // 초기 로드시 오늘 날짜 시간표 로드 (신규 작성 시 편의)
-            // 단, loadLogs()가 비동기이므로 시간차 두고 실행하거나, openLogModal() 시점에 실행하는게 나을 수도 있음.
-            // 여기서는 일단 날짜 기본값이 오늘이므로 세팅만 함.
         });
 
         async function loadAssignedUnits() {
@@ -308,36 +327,29 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
         }
 
         function renderLogs(logs) {
-            const tbody = document.getElementById('logTableBody');
+            var tbody = document.getElementById('logTableBody');
             if (!tbody) return;
             if (!logs || logs.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-24 text-center text-gray-400 font-medium whitespace-pre-line border-dashed border-2 m-4 rounded-3xl bg-gray-50/50">등록된 훈련일지가 없습니다.\n새로운 일지를 작성해보세요.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-24 text-center text-gray-400 font-medium whitespace-pre-line border-dashed border-2 m-4 rounded-3xl bg-gray-50/50">등록된 훈련일지가 없습니다.\\n새로운 일지를 작성해보세요.</td></tr>';
                 return;
             }
-
-            tbody.innerHTML = logs.map(log => \`
-                    <tr class="hover:bg-indigo-50/30 transition-all duration-200 group border-b border-gray-50 last:border-0 shadow-[inset_0_1px_0_0_rgba(255,255,255,1)]">
-                        <td class="px-6 py-5 whitespace-nowrap text-[11px] font-black text-indigo-300 uppercase tracking-widest">\${log.date}</td>
-                        <td class="px-6 py-5">
-                            <div class="font-black text-gray-800 mb-1 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">\${log.topic}</div>
-                            <div class="text-xs text-gray-400 truncate max-w-lg font-medium leading-relaxed italic opacity-80 group-hover:opacity-100 transition-all">\${log.content || '-'}</div>
-                        </td>
-                        <td class="px-6 py-5 text-center font-black text-slate-700 text-sm">\${log.training_hours}h</td>
-                        <td class="px-6 py-5 text-right">
-                            <div class="flex items-center justify-end gap-2.5 transition-all">
-                                <button onclick="printLog(\${log.id})" class="w-9 h-9 flex items-center justify-center bg-white border border-gray-100 text-slate-400 hover:text-gray-700 hover:border-gray-300 hover:shadow-md transition-all rounded-xl active:scale-90">
-                                    <i class="fas fa-print text-xs"></i>
-                                </button>
-                                <button onclick="editLog(\${log.id})" class="w-9 h-9 flex items-center justify-center bg-white border border-gray-100 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 hover:shadow-md transition-all rounded-xl active:scale-90">
-                                    <i class="fas fa-edit text-xs"></i>
-                                </button>
-                                <button onclick="deleteLog(\${log.id})" class="w-9 h-9 flex items-center justify-center bg-white border border-gray-100 text-slate-400 hover:text-rose-500 hover:border-rose-100 hover:shadow-md transition-all rounded-xl active:scale-90">
-                                    <i class="fas fa-trash-alt text-xs"></i>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                \`).join('');
+            var html = '';
+            for (var i = 0; i < logs.length; i++) {
+                var log = logs[i];
+                var topic = (log.topic || '').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+                var content = (log.content || '-').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+                html += '<tr class="hover:bg-indigo-50/30 transition-all duration-200 group border-b border-gray-50 last:border-0 shadow-[inset_0_1px_0_0_rgba(255,255,255,1)]">' +
+                    '<td class="px-6 py-5 whitespace-nowrap text-[11px] font-black text-indigo-300 uppercase tracking-widest">' + (log.date || '') + '</td>' +
+                    '<td class="px-6 py-5"><div class="font-black text-gray-800 mb-1 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">' + topic + '</div>' +
+                    '<div class="text-xs text-gray-400 truncate max-w-lg font-medium leading-relaxed italic opacity-80 group-hover:opacity-100 transition-all">' + content + '</div></td>' +
+                    '<td class="px-6 py-5 text-center font-black text-slate-700 text-sm">' + (log.training_hours || '') + 'h</td>' +
+                    '<td class="px-6 py-5 text-right"><div class="flex items-center justify-end gap-2.5 transition-all">' +
+                    '<button onclick="printLog(' + log.id + ')" class="w-9 h-9 flex items-center justify-center bg-white border border-gray-100 text-slate-400 hover:text-gray-700 hover:border-gray-300 hover:shadow-md transition-all rounded-xl active:scale-90"><i class="fas fa-print text-xs"></i></button>' +
+                    '<button onclick="editLog(' + log.id + ')" class="w-9 h-9 flex items-center justify-center bg-white border border-gray-100 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 hover:shadow-md transition-all rounded-xl active:scale-90"><i class="fas fa-edit text-xs"></i></button>' +
+                    '<button onclick="deleteLog(' + log.id + ')" class="w-9 h-9 flex items-center justify-center bg-white border border-gray-100 text-slate-400 hover:text-rose-500 hover:border-rose-100 hover:shadow-md transition-all rounded-xl active:scale-90"><i class="fas fa-trash-alt text-xs"></i></button>' +
+                    '</div></td></tr>';
+            }
+            tbody.innerHTML = html;
         }
 
 async function printLog(id) {
@@ -947,7 +959,7 @@ async function printLog(id) {
             var logListLate = document.getElementById('logListLate');
             var logListAbsent = document.getElementById('logListAbsent');
             var logListEarly = document.getElementById('logListEarly');
-            const attSummary = {
+            var attSummary = {
                 present: (logAttPresent && logAttPresent.value) || '',
                 absent: (logAttAbsent && logAttAbsent.value) || '',
                 late: (logAttLate && logAttLate.value) || '',
@@ -959,7 +971,7 @@ async function printLog(id) {
             };
 
             // 시간표 데이터 수집 (ES5-safe: no optional chaining, no template literal in emitted script)
-            const scheduleDetails = [];
+            var scheduleDetails = [];
             for (var i = 1; i <= 8; i++) {
                 var subjEl = document.querySelector('input[name="sch_subject_' + i + '"]');
                 var instEl = document.querySelector('input[name="sch_instructor_' + i + '"]');
@@ -980,7 +992,7 @@ async function printLog(id) {
                 }
             }
 
-            const data = {
+            var data = {
                 id: idVal ? parseInt(idVal) : null,
                 course_id: parseInt(courseId),
                 instructor_id: user.id || null,
