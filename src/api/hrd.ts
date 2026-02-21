@@ -1145,34 +1145,35 @@ app.post('/students/:id/consultations', authMiddleware, async (c) => {
     try {
         const studentId = c.req.param('id');
         const body = await c.req.json();
-        const { content, date, category, method, course_id } = body;
+        const content = body.content != null ? String(body.content) : '';
+        const date = body.date || new Date().toISOString().split('T')[0];
+        const category = body.category || 'academic';
+        const method = body.method || 'face_to_face';
+        const courseId = body.course_id != null ? (typeof body.course_id === 'number' ? body.course_id : parseInt(String(body.course_id), 10) || null) : null;
         const user = c.get('user') as JWTPayload;
         const counselorId = user.userId;
 
         // hrd_counseling_logs 에 저장
         await c.env.DB.prepare(`
             INSERT INTO hrd_counseling_logs(
-                            student_id, counselor_id, course_id, counseling_date,
-                            category, method, content, created_at, updated_at
-                        )
-                    VALUES(?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-                        `).bind(
-            studentId, counselorId, course_id || null,
-            date || new Date().toISOString().split('T')[0],
-            category || 'academic', method || 'face_to_face', content
-        ).run();
+                student_id, counselor_id, course_id, counseling_date,
+                category, method, content, created_at, updated_at
+            ) VALUES(?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        `).bind(studentId, counselorId, courseId, date, category, method, content).run();
 
-        // last_consult 업데이트
-        await c.env.DB.prepare(`
-            UPDATE hrd_student_details 
-            SET last_consult = ?
-                        WHERE user_id = ?
-                            `).bind(date || new Date().toISOString().split('T')[0], studentId).run();
+        // last_consult 업데이트 (hrd_student_details 행이 없어도 상담 저장은 성공 처리)
+        try {
+            await c.env.DB.prepare(`
+                UPDATE hrd_student_details SET last_consult = ? WHERE user_id = ?
+            `).bind(date, studentId).run();
+        } catch (_) {
+            // 테이블/컬럼 없거나 행 없음 시 무시
+        }
 
         return c.json({ success: true });
     } catch (e: any) {
         console.error('Failed to add consultation:', e);
-        return c.json({ success: false, error: '상담 이력 추가 실패: ' + e.message }, 500);
+        return c.json({ success: false, error: '상담 이력 추가 실패: ' + (e?.message || String(e)) }, 500);
     }
 });
 
