@@ -366,8 +366,8 @@ export const hrdSidebar = (activeMenu: string, options?: HrdSidebarOptions) => {
                 if (logoSubEl) logoSubEl.textContent = '홍대센터 LMS';
                 
                 // admin-only 요소들을 즉시 숨김
-                document.querySelectorAll('[data-role="admin-only"]').forEach(el => {
-                    (el as HTMLElement).style.display = 'none';
+                document.querySelectorAll('[data-role="admin-only"]').forEach(function(el) {
+                    el.style.display = 'none';
                 });
             }
         } catch(e) {
