@@ -185,7 +185,7 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
                         </tbody>
                     </table>
                     <div class="flex justify-between mt-1 mb-2">
-                         <button type="button" onclick="loadDailyAttendance()" class="text-xs text-rose-600 hover:text-rose-800 underline font-bold px-2 py-1 flex items-center gap-1"><i class="fas fa-users-viewfinder"></i> 출석 기록 불러오기</button>
+                         <button type="button" id="btnLoadAttendance" onclick="loadDailyAttendance()" class="text-xs text-rose-600 hover:text-rose-800 underline font-bold px-2 py-1 flex items-center gap-1"><i class="fas fa-users-viewfinder"></i> <span id="btnLoadAttText">출석 기록 불러오기</span></button>
                          <button type="button" onclick="loadDailySchedule()" class="text-xs text-indigo-600 hover:text-indigo-800 underline font-bold px-2 py-1 flex items-center gap-1"><i class="fas fa-sync-alt"></i> 시간표 불러오기</button>
                     </div>
             
@@ -200,19 +200,23 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
                      </table>
                      <table class="w-full border-collapse border border-gray-800 border-t-0 text-xs text-left">
                         <tr>
-                             <td class="bg-gray-200 border-r border-gray-800 p-2 w-32 text-center font-bold" rowspan="5">특기<br>사항</td>
+                             <td class="bg-gray-200 border-r border-gray-800 p-2 w-32 text-center font-bold" rowspan="6">특기<br>사항</td>
                         </tr>
                         <tr>
                              <td class="bg-gray-50 border-r border-b border-gray-800 p-2 w-24 text-center font-bold">지각자</td>
-                             <td class="border-b border-gray-800 p-0 h-8"><input type="text" id="logListLate" class="w-full h-full px-2 outline-none focus:bg-gray-50 transition-colors" placeholder="이름 입력 (쉼표로 구분)"></td>
+                             <td class="border-b border-gray-800 p-0 h-8"><input type="text" id="logListLate" class="w-full h-full px-2 outline-none focus:bg-yellow-50 transition-colors" placeholder="출석 기록 불러오기 버튼 클릭 시 자동 입력됩니다"></td>
                         </tr>
                         <tr>
                              <td class="bg-gray-50 border-r border-b border-gray-800 p-2 w-24 text-center font-bold">결석자</td>
-                             <td class="border-b border-gray-800 p-0 h-8"><input type="text" id="logListAbsent" class="w-full h-full px-2 outline-none focus:bg-gray-50 transition-colors" placeholder="이름 입력 (쉼표로 구분)"></td>
+                             <td class="border-b border-gray-800 p-0 h-8"><input type="text" id="logListAbsent" class="w-full h-full px-2 outline-none focus:bg-red-50 transition-colors" placeholder="출석 기록 불러오기 버튼 클릭 시 자동 입력됩니다"></td>
                         </tr>
                         <tr>
                              <td class="bg-gray-50 border-r border-b border-gray-800 p-2 w-24 text-center font-bold">조퇴자</td>
-                             <td class="border-b border-gray-800 p-0 h-8"><input type="text" id="logListEarly" class="w-full h-full px-2 outline-none focus:bg-gray-50 transition-colors" placeholder="이름 입력 (쉼표로 구분)"></td>
+                             <td class="border-b border-gray-800 p-0 h-8"><input type="text" id="logListEarly" class="w-full h-full px-2 outline-none focus:bg-orange-50 transition-colors" placeholder="출석 기록 불러오기 버튼 클릭 시 자동 입력됩니다"></td>
+                        </tr>
+                        <tr>
+                             <td class="bg-gray-50 border-r border-b border-gray-800 p-2 w-24 text-center font-bold">공결자</td>
+                             <td class="border-b border-gray-800 p-0 h-8"><input type="text" id="logListPublic" class="w-full h-full px-2 outline-none focus:bg-blue-50 transition-colors" placeholder="출석 기록 불러오기 버튼 클릭 시 자동 입력됩니다"></td>
                         </tr>
                         <tr>
                              <td class="bg-gray-50 border-r border-gray-800 p-2 w-24 text-center font-bold">기타사항</td>
@@ -720,7 +724,15 @@ async function printLog(id) {
 
         async function loadDailyAttendance() {
             const dateInput = document.getElementById('logDate');
-            if (!courseId || !dateInput || !dateInput.value) return;
+            if (!courseId || !dateInput || !dateInput.value) {
+                showToast('먼저 훈련일을 선택해 주세요.', 'warn');
+                return;
+            }
+
+            const btn = document.getElementById('btnLoadAttendance');
+            const btnText = document.getElementById('btnLoadAttText');
+            if (btn) btn.disabled = true;
+            if (btnText) btnText.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-1"></i> 불러오는 중...';
             
             try {
                 const urlParams = new URLSearchParams(window.location.search);
@@ -741,28 +753,57 @@ async function printLog(id) {
                         enrollEl.classList.add('text-indigo-700', 'font-black');
                     }
                     
-                    let p = 0, a = 0, l = 0, e = 0;
-                    let lateList = [], absentList = [], earlyList = [];
+                    let p = 0, a = 0, l = 0, e = 0, pu = 0;
+                    let lateList = [], absentList = [], earlyList = [], publicList = [];
                     
                     students.forEach(s => {
-                        if (s.status === 'present') p++;
-                        else if (s.status === 'absent') { a++; absentList.push(s.name); }
-                        else if (s.status === 'late') { l++; lateList.push(s.name); }
-                        else if (s.status === 'early_leave') { e++; earlyList.push(s.name); }
+                        const st = s.status || 'present';
+                        if (st === 'present') {
+                            p++;
+                        } else if (st === 'absent') { a++; absentList.push(s.name); }
+                        else if (st === 'late') { l++; lateList.push(s.name); }
+                        else if (st === 'early_leave') { e++; earlyList.push(s.name); }
+                        else if (st === 'public_leave') { pu++; publicList.push(s.name); }
                     });
                     
-                    const elP = document.getElementById('logAttPresent'); if (elP) elP.value = p;
-                    const elA = document.getElementById('logAttAbsent'); if (elA) elA.value = a;
-                    const elL = document.getElementById('logAttLate'); if (elL) elL.value = l;
-                    const elE = document.getElementById('logAttEarly'); if (elE) elE.value = e;
+                    const elP = document.getElementById('logAttPresent'); if (elP) { elP.value = p; flashField(elP); }
+                    const elA = document.getElementById('logAttAbsent'); if (elA) { elA.value = a; flashField(elA); }
+                    const elL = document.getElementById('logAttLate');   if (elL) { elL.value = l; flashField(elL); }
+                    const elE = document.getElementById('logAttEarly');  if (elE) { elE.value = e; flashField(elE); }
                     
-                    const lstL = document.getElementById('logListLate'); if (lstL) lstL.value = lateList.join(', ');
-                    const lstA = document.getElementById('logListAbsent'); if (lstA) lstA.value = absentList.join(', ');
-                    const lstE = document.getElementById('logListEarly'); if (lstE) lstE.value = earlyList.join(', ');
+                    const lstL = document.getElementById('logListLate');   if (lstL) { lstL.value = lateList.join(', ');   flashField(lstL); }
+                    const lstA = document.getElementById('logListAbsent'); if (lstA) { lstA.value = absentList.join(', '); flashField(lstA); }
+                    const lstE = document.getElementById('logListEarly');  if (lstE) { lstE.value = earlyList.join(', ');  flashField(lstE); }
+                    const lstP = document.getElementById('logListPublic'); if (lstP) { lstP.value = publicList.join(', '); flashField(lstP); }
+
+                    showToast('\u2705 \ucd9c\uc11d\uae30\ub85d \ubc18\uc601 \uc644\ub8cc (' + dateVal + ') \u2014 \uc7ac\uc801 ' + students.length + '\uba85 / \ucd9c ' + p + ' / \uacb0 ' + a + ' / \uc9c0\uac01 ' + l + ' / \uc870\ud1f4 ' + e + ' / \uacf5\uacb0 ' + pu, 'success');
                 }
-            } catch (e) {
-                console.error('Failed to load attendance for log', e);
+            } catch (err) {
+                console.error('Failed to load attendance for log', err);
+                showToast('출석 기록 불러오기 중 오류가 발생했습니다.', 'error');
+            } finally {
+                if (btn) btn.disabled = false;
+                if (btnText) btnText.innerHTML = '출석 기록 불러오기';
             }
+        }
+
+        function flashField(el) {
+            if (!el) return;
+            el.style.transition = 'background-color 0.4s ease';
+            el.style.backgroundColor = '#d1fae5';
+            setTimeout(() => { el.style.backgroundColor = ''; }, 1500);
+        }
+
+        function showToast(msg, type = 'success') {
+            const existing = document.getElementById('attToast');
+            if (existing) existing.remove();
+            const colors = { success: 'bg-emerald-600', warn: 'bg-amber-500', error: 'bg-red-600' };
+            const toast = document.createElement('div');
+            toast.id = 'attToast';
+            toast.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] px-5 py-3 rounded-xl shadow-2xl text-sm font-bold text-white max-w-lg text-center ' + (colors[type] || colors.success);
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => { toast.style.transition = 'opacity 0.4s'; toast.style.opacity = '0'; setTimeout(() => toast.remove(), 500); }, 4500);
         }
 
         function renderScheduleTable(dbSchedules, savedDetails = null) {
