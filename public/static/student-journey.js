@@ -1,9 +1,14 @@
 (function () {
-    // 서버에서 주입한 ID 우선, 없으면 URL 경로에서 추출 (예: /admin/students/23/journey)
+    // 서버에서 주입한 ID 우선, 없으면 URL 경로에서 추출 (예: /admin/students/23/journey 또는 /teacher/students/23/journey)
     var studentId = window.JOURNEY_STUDENT_ID;
     if (!studentId && typeof window !== 'undefined' && window.location && window.location.pathname) {
-        var m = window.location.pathname.match(/\/admin\/students\/(\d+)\/journey/);
+        var m = window.location.pathname.match(/\/(?:admin|teacher)\/students\/(\d+)\/journey/);
         if (m) studentId = m[1];
+    }
+    function getJourneyBackHref() {
+        return (window.location.pathname && window.location.pathname.indexOf('/teacher/') === 0)
+            ? '/teacher/courses?tab=students'
+            : '/admin/students';
     }
     var coursesData = [];
 
@@ -225,7 +230,7 @@
     function loadStudentIntoPage() {
         if (!studentId) {
             alert('훈련생 ID가 없습니다.');
-            window.location.href = '/admin/students';
+            window.location.href = getJourneyBackHref();
             return;
         }
         var token = localStorage.getItem('token');
@@ -236,7 +241,7 @@
                 if (!json) return;
                 if (!json.success || !json.data) {
                     alert('훈련생을 불러올 수 없습니다.');
-                    window.location.href = '/admin/students';
+                    window.location.href = getJourneyBackHref();
                     return;
                 }
                 var student = json.data;
@@ -322,7 +327,7 @@
             .catch(function (e) {
                 if (e && e.message === 'UNAUTHORIZED') return;
                 alert('훈련생을 불러오는 중 오류가 발생했습니다.');
-                window.location.href = '/admin/students';
+                window.location.href = getJourneyBackHref();
             });
     }
 

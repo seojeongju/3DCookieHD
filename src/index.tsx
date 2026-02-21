@@ -368,6 +368,7 @@ app.get('/teacher/courses', (c) => {
     return c.html(teacherCoursesHtml(tab));
 });
 app.get('/teacher/students', (c) => c.redirect('/teacher/courses?tab=students'));
+app.get('/teacher/students/:id/journey', (c) => c.html(adminHrdStudentJourneyHtml(c.req.param('id'), { sidebarHtml: teacherSidebar('students'), backHref: '/teacher/courses?tab=students' })));
 app.get('/teacher/attendance', (c) => c.redirect('/teacher/courses?tab=attendance'));
 app.get('/teacher/exams', (c) => c.redirect('/teacher/courses?tab=exams'));
 app.get('/teacher/surveys', (c) => c.redirect('/teacher/courses?tab=surveys'));

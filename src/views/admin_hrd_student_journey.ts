@@ -1,11 +1,18 @@
 import { hrdSidebar } from './components/hrd_sidebar';
 
+export type StudentJourneyOptions = {
+    sidebarHtml?: string;
+    backHref?: string;
+};
+
 /**
  * 훈련생 여정관리 전용 페이지 (모달 대신 별도 페이지)
- * GET /admin/students/:id/journey
+ * GET /admin/students/:id/journey or GET /teacher/students/:id/journey
  */
-export const adminHrdStudentJourneyHtml = (studentId: string) => {
+export const adminHrdStudentJourneyHtml = (studentId: string, opts?: StudentJourneyOptions) => {
     const safeId = studentId || '';
+    const sidebarHtml = opts?.sidebarHtml ?? hrdSidebar('students');
+    const backHref = opts?.backHref ?? '/admin/students';
     return `
 <!DOCTYPE html>
 <html lang="ko">
@@ -28,11 +35,11 @@ export const adminHrdStudentJourneyHtml = (studentId: string) => {
 </head>
 <body class="bg-[#f8fafc] text-[#1e293b]">
     <div class="flex h-screen overflow-hidden">
-        ${hrdSidebar('students')}
+        ${sidebarHtml}
         <div class="flex-1 flex flex-col overflow-hidden">
             <header class="h-20 bg-white border-b border-gray-100 flex items-center justify-between px-8 z-10">
                 <div class="flex items-center gap-4">
-                    <a href="/admin/students" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition font-medium text-sm">
+                    <a href="${backHref}" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition font-medium text-sm">
                         <i class="fas fa-arrow-left"></i> 목록으로
                     </a>
                     <div>

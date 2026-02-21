@@ -91,11 +91,11 @@ export const lmsHeaderHtml = (activeTab = 'dashboard', defaultType = '') => `
                     <button id="lms-more-menu-btn" onclick="toggleMoreMenu(event)" class="h-12 w-12 flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all">
                         <i class="fas fa-ellipsis-v"></i>
                     </button>
-                    <!-- More Dropdown -->
+                    <!-- More Dropdown (only overflowed / hidden tabs) -->
                     <div id="lms-more-dropdown" class="hidden absolute right-4 top-14 w-56 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-[60] py-2">
-                        <div class="px-4 py-2 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-50 mb-1">전체 메뉴</div>
+                        <div id="lms-dropdown-title" class="px-4 py-2 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-50 mb-1">더보기</div>
                         <div id="lms-dropdown-items" class="max-h-[60vh] overflow-y-auto custom-scrollbar">
-                            <!-- Items will be mirrored here by script -->
+                            <!-- Only hidden tab items will be mirrored here by script -->
                         </div>
                     </div>
                 </div>
@@ -125,16 +125,28 @@ export const lmsHeaderHtml = (activeTab = 'dashboard', defaultType = '') => `
             const dropdownContainer = document.getElementById('lms-dropdown-items');
             if (!tabMenu || !dropdownContainer) return;
 
-            const tabs = tabMenu.querySelectorAll('a');
-            let html = '';
-            tabs.forEach(tab => {
-                const isActive = tab.classList.contains('bg-white');
-                const href = tab.getAttribute('href');
-                const content = tab.innerHTML;
-                html += '<a href="' + href + '" class="flex items-center gap-3 px-5 py-3 text-sm transition-colors ' + (isActive ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-gray-600 hover:bg-gray-50') + '">' +
-                        content +
-                        '</a>';
+            const containerRect = tabMenu.getBoundingClientRect();
+            const tabs = Array.from(tabMenu.querySelectorAll('a'));
+
+            const overflowedTabs = tabs.filter(tab => {
+                const r = tab.getBoundingClientRect();
+                const overlaps = r.left < containerRect.right && r.right > containerRect.left;
+                return !overlaps;
             });
+
+            let html = '';
+            if (overflowedTabs.length === 0) {
+                html = '<div class="px-5 py-4 text-sm text-gray-400 text-center">모든 메뉴가 표시 중입니다.</div>';
+            } else {
+                overflowedTabs.forEach(tab => {
+                    const isActive = tab.classList.contains('bg-white');
+                    const href = tab.getAttribute('href');
+                    const content = tab.innerHTML;
+                    html += '<a href="' + href + '" class="flex items-center gap-3 px-5 py-3 text-sm transition-colors ' + (isActive ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-gray-600 hover:bg-gray-50') + '">' +
+                            content +
+                            '</a>';
+                });
+            }
             dropdownContainer.innerHTML = html;
         }
 
