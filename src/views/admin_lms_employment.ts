@@ -1,7 +1,7 @@
 import { lmsHeaderHtml } from './components/lms_header';
 import { hrdSidebar } from './components/hrd_sidebar';
 
-export const adminLmsEmploymentHtml = `
+export const adminLmsEmploymentHtml = (sidebar: string = hrdSidebar('courses')) => `
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -19,7 +19,7 @@ export const adminLmsEmploymentHtml = `
 </head>
 <body class="bg-gray-50 overflow-hidden">
     <div class="flex h-screen overflow-hidden">
-        ${hrdSidebar('courses')}
+        ${sidebar}
         
         <div class="flex-1 flex flex-col overflow-hidden relative min-w-0">
             <div class="flex-1 overflow-y-auto custom-scrollbar">

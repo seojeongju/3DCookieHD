@@ -1,9 +1,8 @@
 import { hrdSidebar } from './components/hrd_sidebar';
 import { lmsHeaderHtml } from './components/lms_header';
 
-export function adminHrdCounselingHtml(courseId?: string): string {
+export function adminHrdCounselingHtml(courseId?: string, sidebar: string = hrdSidebar(courseId ? 'courses' : 'counseling')): string {
     const isLmsMode = !!courseId;
-    const sidebar = hrdSidebar(isLmsMode ? 'courses' : 'counseling');
 
     return `
 <!DOCTYPE html>
