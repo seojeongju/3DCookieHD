@@ -83,13 +83,24 @@ app.post('/', authMiddleware, requireAdmin, async (c) => {
             return c.json({ success: false, error: 'Email already exists' }, 409);
         }
 
-        // 비밀번호 해싱 (기본 비밀번호: changeme123)
-        const hashedPassword = await hashPassword(password || 'changeme123');
+        // 비밀번호 생성 규칙: 전달된 비번이 없으면 전화번호 뒷자리 4자리, 그외 기본값
+        let initialPassword = password;
+        if (!initialPassword) {
+            if (phone && phone.length >= 4) {
+                // 숫자만 추출 후 마지막 4자리
+                const digits = phone.replace(/[^0-9]/g, '');
+                initialPassword = digits.slice(-4);
+            }
+            if (!initialPassword) initialPassword = 'changeme123';
+        }
+
+        // 비밀번호 해싱
+        const hashedPassword = await hashPassword(initialPassword);
 
         const result = await db
             .prepare(`
-                INSERT INTO users (name, email, phone, birthdate, role, status, password, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                INSERT INTO users (name, email, phone, birthdate, role, status, password, is_initial_login, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 1, datetime('now'))
             `)
             .bind(
                 name,

@@ -169,7 +169,7 @@ auth.post('/login', async (c) => {
       role: user.role
     });
 
-    // 비밀번호 제외하고 반환
+    // 비밀번호 제외하고 반환 (초기 로그인 여부 포함)
     const { password: _, ...userWithoutPassword } = user;
 
     return successResponse(c, {
@@ -228,6 +228,15 @@ auth.put('/profile', authMiddleware, async (c) => {
 
     const body = await c.req.json();
     const { name, phone, profile_image } = body;
+
+    // 역할 확인: 수강생(student)은 이름, 전화번호 수정 불가
+    const userInfo = await getOne<User>(c.env.DB, 'SELECT role FROM users WHERE id = ?', [user.userId]);
+    if (userInfo?.role === 'student') {
+      // 수강생은 비밀번호 외의 프로필 정보(이름, 전화번호) 수정 차단
+      if (name || phone) {
+        return errorResponse(c, '수강생은 본인의 정보를 직접 수정할 수 없습니다. 관리자에게 문의하세요.', 403);
+      }
+    }
 
     // 업데이트할 필드 준비
     const updates: string[] = [];
@@ -319,10 +328,10 @@ auth.post('/change-password', authMiddleware, async (c) => {
     // 새 비밀번호 해싱
     const hashedPassword = await hashPassword(new_password);
 
-    // 비밀번호 업데이트
+    // 비밀번호 업데이트 및 초기 로그인 플래그 해제
     await execute(
       c.env.DB,
-      'UPDATE users SET password = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      'UPDATE users SET password = ?, is_initial_login = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
       [hashedPassword, user.userId]
     );
 
