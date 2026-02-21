@@ -43,7 +43,7 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
     <!-- 서브 헤더 (훈련일지 전용) -->
      <div class="bg-white border-b border-gray-200 sticky top-[6.5rem] z-30">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-            <h1 class="text-xl font-bold text-gray-800">훈련일지 관리 & NCS 연동</h1>
+            <h1 class="text-xl font-bold text-gray-800">훈련일지 관리</h1>
             <div class="flex gap-2">
                 <button onclick="openLogModal()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center shadow-sm">
                     <i class="fas fa-pen-nib mr-2"></i> 오늘 일지 작성
@@ -53,38 +53,21 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
     </div>
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            <!-- 왼쪽: NCS 이수 현황 -->
-            <div class="lg:col-span-1 space-y-6">
-                <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
-                    <h3 class="font-bold text-gray-800 mb-4 flex items-center">
-                        <i class="fas fa-tasks text-indigo-500 mr-2"></i> NCS 이수 현황
-                    </h3>
-                    <div id="ncsProgress" class="space-y-4">
-                        <div class="text-center text-gray-400 py-4 text-sm">기록을 불러오는 중...</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 오른쪽: 일지 목록 -->
-            <div class="lg:col-span-3 min-w-0">
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden overflow-x-auto">
-                    <table class="w-full text-left border-collapse min-w-[640px]">
-                        <thead class="bg-gray-50/50 border-b">
-                            <tr>
-                                <th class="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider w-32">일자</th>
-                                <th class="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">훈련 주제 및 내용</th>
-                                <th class="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider w-40">NCS 연동</th>
-                                <th class="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider w-20 text-center">시간</th>
-                                <th class="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider w-24"></th>
-                            </tr>
-                        </thead>
-                        <tbody id="logTableBody" class="divide-y divide-gray-50">
-                            <!-- JS Load -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+        <!-- 일지 목록 -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden overflow-x-auto">
+            <table class="w-full text-left border-collapse min-w-[560px]">
+                <thead class="bg-gray-50/50 border-b">
+                    <tr>
+                        <th class="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider w-32">일자</th>
+                        <th class="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">훈련 주제 및 내용</th>
+                        <th class="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider w-20 text-center">시간</th>
+                        <th class="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider w-24"></th>
+                    </tr>
+                </thead>
+                <tbody id="logTableBody" class="divide-y divide-gray-50">
+                    <!-- JS Load -->
+                </tbody>
+            </table>
         </div>
     </div>
 
@@ -333,7 +316,7 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
             const tbody = document.getElementById('logTableBody');
             if (!tbody) return;
             if (!logs || logs.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-24 text-center text-gray-400 font-medium whitespace-pre-line border-dashed border-2 m-4 rounded-3xl bg-gray-50/50">등록된 훈련일지가 없습니다.\\n새로운 일지를 작성하여 NCS 이수 시간을 관리하세요.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-24 text-center text-gray-400 font-medium whitespace-pre-line border-dashed border-2 m-4 rounded-3xl bg-gray-50/50">등록된 훈련일지가 없습니다.\n새로운 일지를 작성해보세요.</td></tr>';
                 return;
             }
 
@@ -344,15 +327,7 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
                             <div class="font-black text-gray-800 mb-1 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">\${log.topic}</div>
                             <div class="text-xs text-gray-400 truncate max-w-lg font-medium leading-relaxed italic opacity-80 group-hover:opacity-100 transition-all">\${log.content || '-'}</div>
                         </td>
-                        <td class="px-6 py-5">
-                            \${log.ncs_unit_name ? \`
-                                <div class="inline-flex items-center px-2 py-0.5 bg-indigo-50 text-indigo-500 rounded-md text-[9px] font-black border border-indigo-100/50 mb-1 shadow-sm">
-                                    \${log.ncs_unit_code}
-                                </div>
-                                <div class="text-[10px] text-gray-500 font-black truncate leading-none opacity-60 group-hover:opacity-100 transition-all font-sans uppercase tracking-tighter">\${log.ncs_unit_name}</div>
-                            \` : '<span class="text-gray-200 text-xs font-black tracking-widest leading-none">-</span>'}
-                        </td>
-                        <td class="px-6 py-5 text-center font-black text-slate-700 text-sm shadow-[inset_1px_0_0_0_rgba(248,250,252,1)] shadow-[inset_-1px_0_0_0_rgba(248,250,252,1)]">\${log.training_hours}h</td>
+                        <td class="px-6 py-5 text-center font-black text-slate-700 text-sm">\${log.training_hours}h</td>
                         <td class="px-6 py-5 text-right">
                             <div class="flex items-center justify-end gap-2.5 transition-all">
                                 <button onclick="printLog(\${log.id})" class="w-9 h-9 flex items-center justify-center bg-white border border-gray-100 text-slate-400 hover:text-gray-700 hover:border-gray-300 hover:shadow-md transition-all rounded-xl active:scale-90">
