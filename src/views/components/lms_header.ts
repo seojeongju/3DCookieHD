@@ -44,83 +44,68 @@ export const lmsHeaderHtml = (activeTab = 'dashboard', defaultType = '') => `
         </div>
         
         <!-- Tab Menu Container with Horizontal Scroll Support -->
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative group">
-            <div class="flex space-x-1 overflow-x-auto scrollbar-hide py-1" id="lms-tab-menu" style="scroll-behavior: smooth;">
-                <a href="dashboard" class="px-3 md:px-5 py-3 rounded-t-xl transition whitespace-nowrap flex items-center gap-1.5 md:gap-2 text-[13px] md:text-sm ${activeTab === 'dashboard' ? 'bg-white text-indigo-700 font-bold' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
-                    <i class="fas fa-tachometer-alt"></i> 대시보드
-                </a>
-                <a href="students" class="px-3 md:px-5 py-3 rounded-t-xl transition whitespace-nowrap flex items-center gap-1.5 md:gap-2 text-[13px] md:text-sm ${activeTab === 'students' ? 'bg-white text-indigo-700 font-bold' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
-                    <i class="fas fa-user-graduate"></i> 수강생 관리
-                </a>
-                <a href="attendance" class="px-3 md:px-5 py-3 rounded-t-xl transition whitespace-nowrap flex items-center gap-1.5 md:gap-2 text-[13px] md:text-sm ${activeTab === 'attendance' ? 'bg-white text-indigo-700 font-bold' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
-                    <i class="fas fa-user-clock"></i> 출석 관리
-                </a>
-                <a href="training-logs" class="px-3 md:px-5 py-3 rounded-t-xl transition whitespace-nowrap flex items-center gap-1.5 md:gap-2 text-[13px] md:text-sm ${activeTab === 'training-logs' ? 'bg-white text-indigo-700 font-bold' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
-                    <i class="fas fa-book-open"></i> 훈련일지
-                </a>
-                <a href="assignments" class="px-3 md:px-5 py-3 rounded-t-xl transition whitespace-nowrap flex items-center gap-1.5 md:gap-2 text-[13px] md:text-sm ${activeTab === 'assignments' ? 'bg-white text-indigo-700 font-bold' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
-                    <i class="fas fa-tasks"></i> 과제관리
-                </a>
-                <a href="cbt" class="px-3 md:px-5 py-3 rounded-t-xl transition whitespace-nowrap flex items-center gap-1.5 md:gap-2 text-[13px] md:text-sm ${activeTab === 'cbt' ? 'bg-white text-indigo-700 font-bold' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
-                    <i class="fas fa-laptop-code"></i> 평가 및 채점
-                </a>
-                <a href="grades" class="px-3 md:px-5 py-3 rounded-t-xl transition whitespace-nowrap flex items-center gap-1.5 md:gap-2 text-[13px] md:text-sm ${activeTab === 'grades' ? 'bg-white text-indigo-700 font-bold' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
-                    <i class="fas fa-chart-bar"></i> 성적관리
-                </a>
-                <a href="counseling" class="px-3 md:px-5 py-3 rounded-t-xl transition whitespace-nowrap flex items-center gap-1.5 md:gap-2 text-[13px] md:text-sm ${activeTab === 'counseling' ? 'bg-white text-indigo-700 font-bold' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
-                    <i class="fas fa-comments"></i> 상담일지
-                </a>
-                <a href="ncs-eval" class="px-3 md:px-5 py-3 rounded-t-xl transition whitespace-nowrap flex items-center gap-1.5 md:gap-2 text-[13px] md:text-sm ${activeTab === 'ncs-eval' ? 'bg-white text-indigo-700 font-bold' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
-                    <i class="fas fa-check-double"></i> NCS평가
-                </a>
-                <a href="surveys" class="px-3 md:px-5 py-3 rounded-t-xl transition whitespace-nowrap flex items-center gap-1.5 md:gap-2 text-[13px] md:text-sm ${activeTab === 'surveys' ? 'bg-white text-indigo-700 font-bold' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
-                    <i class="fas fa-poll"></i> 설문 및 역량진단
-                </a>
-                <a href="employment" class="px-3 md:px-5 py-3 rounded-t-xl transition whitespace-nowrap flex items-center gap-1.5 md:gap-2 text-[13px] md:text-sm ${activeTab === 'employment' ? 'bg-white text-indigo-700 font-bold' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
-                    <i class="fas fa-user-tie"></i> 취업관리
-                </a>
-                <!-- 충분한 우측 여백 확보 -->
-                <div class="flex-shrink-0 w-24 md:w-40 h-1"></div>
+        <div class="border-t border-white/10 mt-4">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex overflow-x-auto scrollbar-hide py-0" id="lms-tab-menu" style="scroll-behavior: smooth; -webkit-overflow-scrolling: touch;">
+                    <div class="flex flex-nowrap min-w-max">
+                        <a href="dashboard" class="px-4 md:px-6 py-4 transition whitespace-nowrap flex items-center gap-2 text-[13px] md:text-sm ${activeTab === 'dashboard' ? 'bg-white text-indigo-700 font-bold rounded-t-xl' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
+                            <i class="fas fa-tachometer-alt"></i> 대시보드
+                        </a>
+                        <a href="students" class="px-4 md:px-6 py-4 transition whitespace-nowrap flex items-center gap-2 text-[13px] md:text-sm ${activeTab === 'students' ? 'bg-white text-indigo-700 font-bold rounded-t-xl' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
+                            <i class="fas fa-user-graduate"></i> 수강생 관리
+                        </a>
+                        <a href="attendance" class="px-4 md:px-6 py-4 transition whitespace-nowrap flex items-center gap-2 text-[13px] md:text-sm ${activeTab === 'attendance' ? 'bg-white text-indigo-700 font-bold rounded-t-xl' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
+                            <i class="fas fa-user-clock"></i> 출석 관리
+                        </a>
+                        <a href="training-logs" class="px-4 md:px-6 py-4 transition whitespace-nowrap flex items-center gap-2 text-[13px] md:text-sm ${activeTab === 'training-logs' ? 'bg-white text-indigo-700 font-bold rounded-t-xl' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
+                            <i class="fas fa-book-open"></i> 훈련일지
+                        </a>
+                        <a href="assignments" class="px-4 md:px-6 py-4 transition whitespace-nowrap flex items-center gap-2 text-[13px] md:text-sm ${activeTab === 'assignments' ? 'bg-white text-indigo-700 font-bold rounded-t-xl' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
+                            <i class="fas fa-tasks"></i> 과제관리
+                        </a>
+                        <a href="cbt" class="px-4 md:px-6 py-4 transition whitespace-nowrap flex items-center gap-2 text-[13px] md:text-sm ${activeTab === 'cbt' ? 'bg-white text-indigo-700 font-bold rounded-t-xl' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
+                            <i class="fas fa-laptop-code"></i> 평가 및 채점
+                        </a>
+                        <a href="grades" class="px-4 md:px-6 py-4 transition whitespace-nowrap flex items-center gap-2 text-[13px] md:text-sm ${activeTab === 'grades' ? 'bg-white text-indigo-700 font-bold rounded-t-xl' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
+                            <i class="fas fa-chart-bar"></i> 성적관리
+                        </a>
+                        <a href="counseling" class="px-4 md:px-6 py-4 transition whitespace-nowrap flex items-center gap-2 text-[13px] md:text-sm ${activeTab === 'counseling' ? 'bg-white text-indigo-700 font-bold rounded-t-xl' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
+                            <i class="fas fa-comments"></i> 상담일지
+                        </a>
+                        <a href="ncs-eval" class="px-4 md:px-6 py-4 transition whitespace-nowrap flex items-center gap-2 text-[13px] md:text-sm ${activeTab === 'ncs-eval' ? 'bg-white text-indigo-700 font-bold rounded-t-xl' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
+                            <i class="fas fa-check-double"></i> NCS평가
+                        </a>
+                        <a href="surveys" class="px-4 md:px-6 py-4 transition whitespace-nowrap flex items-center gap-2 text-[13px] md:text-sm ${activeTab === 'surveys' ? 'bg-white text-indigo-700 font-bold rounded-t-xl' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
+                            <i class="fas fa-poll"></i> 설문 및 역량진단
+                        </a>
+                        <a href="employment" class="px-4 md:px-6 py-4 transition whitespace-nowrap flex items-center gap-2 text-[13px] md:text-sm ${activeTab === 'employment' ? 'bg-white text-indigo-700 font-bold rounded-t-xl' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
+                            <i class="fas fa-user-tie"></i> 취업관리
+                        </a>
+                        <!-- Padding for end of scroll -->
+                        <div class="w-12 h-1 flex-shrink-0"></div>
+                    </div>
+                </div>
             </div>
-            
-            <!-- Gradient Overlays for scroll indication - Narrower widths -->
-            <div class="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-indigo-800 to-transparent pointer-events-none z-10 transition-opacity" id="scroll-edge-left"></div>
-            <div class="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-indigo-800 to-transparent pointer-events-none z-10 transition-opacity" id="scroll-edge-right"></div>
         </div>
     </div>
     
     <style>
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-        #lms-tab-menu { -webkit-overflow-scrolling: touch; }
     </style>
 
     <script>
         (function() {
-            // 스크롤 상태에 따른 그라데이션 노출 제어
             setTimeout(() => {
                 const container = document.getElementById('lms-tab-menu');
-                const leftEdge = document.getElementById('scroll-edge-left');
-                const rightEdge = document.getElementById('scroll-edge-right');
-                
-                if (container && leftEdge && rightEdge) {
-                    const updateScrollUI = () => {
-                        const isScrollable = container.scrollWidth > container.clientWidth;
-                        leftEdge.style.opacity = container.scrollLeft > 10 ? "1" : "0";
-                        rightEdge.style.opacity = (container.scrollLeft + container.clientWidth < container.scrollWidth - 10) ? "1" : "0";
-                    };
-                    
-                    container.addEventListener('scroll', updateScrollUI);
-                    window.addEventListener('resize', updateScrollUI);
-                    updateScrollUI();
-                    
+                if (container) {
                     // 현재 활성화된 탭으로 스크롤 이동
                     const activeTab = container.querySelector('.bg-white');
                     if (activeTab) {
                         activeTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
                     }
                 }
-            }, 500);
+            }, 300);
             function updateLmsLinks() {
                 const userStr = localStorage.getItem('user');
                 const logoLink = document.getElementById('lms-logo-link');
