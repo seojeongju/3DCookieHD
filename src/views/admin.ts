@@ -528,21 +528,27 @@ export const adminDashboardHtml = `
         }
 
         document.addEventListener('DOMContentLoaded', () => {
+            var userStr = localStorage.getItem('user');
+            var token = localStorage.getItem('token');
+            if (!userStr || !token) {
+                location.replace('/login?redirect=' + encodeURIComponent(location.pathname));
+                return;
+            }
+            var user = null;
+            try {
+                user = JSON.parse(userStr);
+            } catch (e) { }
+            if (!user || user.role !== 'admin') {
+                location.replace('/login?redirect=' + encodeURIComponent(location.pathname));
+                return;
+            }
             updateHeaderClock();
             updateWelcomeDate();
             setInterval(updateHeaderClock, 1000);
-            const userStr = localStorage.getItem('user');
-            if (userStr) {
-                try {
-                    const user = JSON.parse(userStr);
-                    if (user.role === 'teacher') {
-                        const badge = document.getElementById('user-badge');
-                        if (badge) {
-                            badge.textContent = 'TEACHER';
-                            badge.className = 'px-2.5 py-0.5 bg-blue-500 text-white text-[10px] font-black rounded-lg uppercase tracking-widest';
-                        }
-                    }
-                } catch(e) {}
+            var badge = document.getElementById('user-badge');
+            if (badge) {
+                badge.textContent = 'ADMIN';
+                badge.className = 'px-2.5 py-0.5 bg-red-500 text-white text-[10px] font-black rounded-lg uppercase tracking-widest';
             }
             loadDashboardStats();
             loadWebsiteStats();
@@ -551,83 +557,78 @@ export const adminDashboardHtml = `
             initDashboardCalendar();
         });
 
+        function esc(s) {
+            if (s == null) return '';
+            return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
         async function loadActiveSessions() {
+            var grid = document.getElementById('active-sessions-grid');
+            if (!grid) return;
             try {
-                const token = localStorage.getItem('token');
-                const response = await fetch('/api/course-sessions?status=in_progress&limit=6', {
+                var token = localStorage.getItem('token');
+                var response = await fetch('/api/course-sessions?status=in_progress&limit=6', {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
-                const result = await response.json();
-                const grid = document.getElementById('active-sessions-grid');
-                
+                if (response.status === 401) {
+                    location.replace('/login?redirect=' + encodeURIComponent(location.pathname));
+                    return;
+                }
+                var result = await response.json();
                 if (result.success && result.data && result.data.length > 0) {
-                    grid.innerHTML = result.data.map(session => {
-                        const range = session.training_start_date && session.training_end_date 
-                            ? \`\${session.training_start_date.substring(5, 10)} ~ \${session.training_end_date.substring(5, 10)}\`
+                    var html = result.data.map(function(session) {
+                        var range = session.training_start_date && session.training_end_date
+                            ? (session.training_start_date.substring(5, 10) + ' ~ ' + session.training_end_date.substring(5, 10))
                             : '일정 미정';
-                        
-                        return \`
-                        <div class="bg-white rounded-[2rem] border border-slate-200/60 shadow-sm overflow-hidden hover:shadow-md transition-all group animate-fade-in">
-                            <div class="px-6 py-5 bg-gradient-to-br from-slate-50 to-white border-b border-slate-100">
-                                <div class="flex items-center justify-between mb-2">
-                                    <span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-black rounded uppercase tracking-wider">진행중</span>
-                                    <span class="text-[10px] font-bold text-slate-400"><i class="far fa-calendar-alt mr-1"></i> \${range}</span>
-                                </div>
-                                <h4 class="font-black text-slate-800 text-sm mb-1 truncate" title="\${session.course_name}">\${session.course_name}</h4>
-                                <div class="flex items-center gap-2">
-                                    <span class="text-xs font-bold text-slate-500">\${session.session_number || 1}회차</span>
-                                    <span class="w-1 h-1 rounded-full bg-slate-300"></span>
-                                    <span class="text-xs font-medium text-slate-400">\${session.instructor_name || '강사 미배정'}</span>
-                                </div>
-                            </div>
-                            <div class="p-4 grid grid-cols-2 gap-2 bg-white">
-                                <a href="/admin/courses/\${session.id}/lms/attendance" class="flex items-center justify-center gap-2 py-2.5 bg-slate-50 text-slate-700 rounded-xl text-xs font-bold hover:bg-primary-50 hover:text-primary-600 transition">
-                                    <i class="fas fa-user-check text-[10px]"></i> 출석
-                                </a>
-                                <a href="/admin/courses/\${session.id}/lms/counseling" class="flex items-center justify-center gap-2 py-2.5 bg-slate-50 text-slate-700 rounded-xl text-xs font-bold hover:bg-primary-50 hover:text-primary-600 transition">
-                                    <i class="fas fa-comments text-[10px]"></i> 상담
-                                </a>
-                                <a href="/admin/courses/\${session.id}/lms/assignments" class="flex items-center justify-center gap-2 py-2.5 bg-slate-50 text-slate-700 rounded-xl text-xs font-bold hover:bg-primary-50 hover:text-primary-600 transition">
-                                    <i class="fas fa-tasks text-[10px]"></i> 과제
-                                </a>
-                                <a href="/admin/courses/sessions/\${session.id}/timetable" class="flex items-center justify-center gap-2 py-2.5 bg-slate-50 text-slate-700 rounded-xl text-xs font-bold hover:bg-primary-50 hover:text-primary-600 transition">
-                                    <i class="far fa-calendar-alt text-[10px]"></i> 시간표
-                                </a>
-                            </div>
-                            <div class="px-4 pb-4">
-                                <a href="/admin/courses/\${session.id}/lms" class="w-full h-10 flex items-center justify-center gap-2 bg-slate-900 text-white rounded-xl text-xs font-black hover:bg-primary-700 transition shadow-sm">
-                                    LMS 상세 관리 <i class="fas fa-arrow-right text-[10px]"></i>
-                                </a>
-                            </div>
-                        </div>
-                        \`;
+                        var sid = session.id;
+                        var name = esc(session.course_name);
+                        var num = session.session_number || 1;
+                        var instructor = esc(session.instructor_name || '강사 미배정');
+                        return '<div class="bg-white rounded-[2rem] border border-slate-200/60 shadow-sm overflow-hidden hover:shadow-md transition-all group animate-fade-in">' +
+                            '<div class="px-6 py-5 bg-gradient-to-br from-slate-50 to-white border-b border-slate-100">' +
+                            '<div class="flex items-center justify-between mb-2">' +
+                            '<span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-black rounded uppercase tracking-wider">진행중</span>' +
+                            '<span class="text-[10px] font-bold text-slate-400"><i class="far fa-calendar-alt mr-1"></i> ' + esc(range) + '</span></div>' +
+                            '<h4 class="font-black text-slate-800 text-sm mb-1 truncate" title="' + name + '">' + name + '</h4>' +
+                            '<div class="flex items-center gap-2">' +
+                            '<span class="text-xs font-bold text-slate-500">' + num + '회차</span>' +
+                            '<span class="w-1 h-1 rounded-full bg-slate-300"></span>' +
+                            '<span class="text-xs font-medium text-slate-400">' + instructor + '</span></div></div>' +
+                            '<div class="p-4 grid grid-cols-2 gap-2 bg-white">' +
+                            '<a href="/admin/courses/' + sid + '/lms/attendance" class="flex items-center justify-center gap-2 py-2.5 bg-slate-50 text-slate-700 rounded-xl text-xs font-bold hover:bg-primary-50 hover:text-primary-600 transition"><i class="fas fa-user-check text-[10px]"></i> 출석</a>' +
+                            '<a href="/admin/courses/' + sid + '/lms/counseling" class="flex items-center justify-center gap-2 py-2.5 bg-slate-50 text-slate-700 rounded-xl text-xs font-bold hover:bg-primary-50 hover:text-primary-600 transition"><i class="fas fa-comments text-[10px]"></i> 상담</a>' +
+                            '<a href="/admin/courses/' + sid + '/lms/assignments" class="flex items-center justify-center gap-2 py-2.5 bg-slate-50 text-slate-700 rounded-xl text-xs font-bold hover:bg-primary-50 hover:text-primary-600 transition"><i class="fas fa-tasks text-[10px]"></i> 과제</a>' +
+                            '<a href="/admin/courses/sessions/' + sid + '/timetable" class="flex items-center justify-center gap-2 py-2.5 bg-slate-50 text-slate-700 rounded-xl text-xs font-bold hover:bg-primary-50 hover:text-primary-600 transition"><i class="far fa-calendar-alt text-[10px]"></i> 시간표</a>' +
+                            '</div>' +
+                            '<div class="px-4 pb-4">' +
+                            '<a href="/admin/courses/' + sid + '/lms" class="w-full h-10 flex items-center justify-center gap-2 bg-slate-900 text-white rounded-xl text-xs font-black hover:bg-primary-700 transition shadow-sm">LMS 상세 관리 <i class="fas fa-arrow-right text-[10px]"></i></a>' +
+                            '</div></div>';
                     }).join('');
+                    grid.innerHTML = html;
                 } else {
-                    grid.innerHTML = \`
-                        <div class="col-span-full py-12 text-center bg-white rounded-[2rem] border border-dashed border-slate-300">
-                            <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
-                                <i class="fas fa-chalkboard text-2xl"></i>
-                            </div>
-                            <h4 class="text-slate-800 font-bold">진행 중인 과정이 없습니다.</h4>
-                            <p class="text-xs text-slate-400 mt-1">회차별 과정 개설 관리에서 새로운 과정을 시작해보세요.</p>
-                            <a href="/admin/courses/sessions" class="inline-flex items-center gap-2 mt-4 text-primary-600 text-xs font-bold hover:underline">회차 관리로 이동 <i class="fas fa-chevron-right text-[10px]"></i></a>
-                        </div>
-                    \`;
+                    grid.innerHTML = '<div class="col-span-full py-12 text-center bg-white rounded-[2rem] border border-dashed border-slate-300">' +
+                        '<div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300"><i class="fas fa-chalkboard text-2xl"></i></div>' +
+                        '<h4 class="text-slate-800 font-bold">진행 중인 과정이 없습니다.</h4>' +
+                        '<p class="text-xs text-slate-400 mt-1">회차별 과정 개설 관리에서 새로운 과정을 시작해보세요.</p>' +
+                        '<a href="/admin/courses/sessions" class="inline-flex items-center gap-2 mt-4 text-primary-600 text-xs font-bold hover:underline">회차 관리로 이동 <i class="fas fa-chevron-right text-[10px]"></i></a>' +
+                        '</div>';
                 }
             } catch (e) {
                 console.error('Failed to load active sessions:', e);
-                document.getElementById('active-sessions-grid').innerHTML = '<div class="col-span-full p-8 text-center text-red-400">데이터 로드 실패</div>';
+                grid.innerHTML = '<div class="col-span-full p-8 text-center text-red-400">데이터 로드 실패</div>';
             }
         }
 
         async function loadWebsiteStats() {
             try {
-                const token = localStorage.getItem('token');
-                const response = await fetch('/api/dashboard/website-stats', {
+                var token = localStorage.getItem('token');
+                var response = await fetch('/api/dashboard/website-stats', {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
-                const result = await response.json();
-                
+                if (response.status === 401) {
+                    location.replace('/login?redirect=' + encodeURIComponent(location.pathname));
+                    return;
+                }
+                var result = await response.json();
                 if (result.success) {
                     const data = result.data;
                     document.getElementById('stat-today-pv').textContent = data.todayPV.toLocaleString();
@@ -712,12 +713,15 @@ export const adminDashboardHtml = `
 
         async function loadDashboardStats() {
             try {
-                const token = localStorage.getItem('token');
-                const response = await fetch('/api/dashboard/stats', {
+                var token = localStorage.getItem('token');
+                var response = await fetch('/api/dashboard/stats', {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
-                const result = await response.json();
-                
+                if (response.status === 401) {
+                    location.replace('/login?redirect=' + encodeURIComponent(location.pathname));
+                    return;
+                }
+                var result = await response.json();
                 if (result.success) {
                     const data = result.data;
                     
