@@ -273,7 +273,7 @@ export const hrdSidebar = (activeMenu: string, options?: HrdSidebarOptions) => {
                     <p id="sidebar-username" class="text-sm font-bold text-white truncate"></p>
                     <p id="sidebar-userrole" class="text-[10px] text-slate-500 font-medium uppercase tracking-tight truncate"></p>
                 </div>
-                <button id="logout-btn" class="ml-auto w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-white hover:bg-slate-700/50 transition-all duration-300">
+                <button id="logout-btn" onclick="typeof window.logout==='function'&&window.logout()" class="ml-auto w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-white hover:bg-slate-700/50 transition-all duration-300" title="로그아웃">
                     <i class="fas fa-sign-out-alt"></i>
                 </button>
             </div>

@@ -498,15 +498,15 @@ export const adminDashboardHtml = `
     </div>
 
     <script>
-        // 전역 스코프에 logout 함수 정의
-        window.logout = function logout() {
+        window.logout = function() {
             if (confirm('로그아웃 하시겠습니까?')) {
                 localStorage.removeItem('token');
                 localStorage.removeItem('user');
                 location.href = '/login';
             }
         };
-
+    </script>
+    <script>
         function openModal(id) {
             document.getElementById(id).classList.remove('hidden');
         }
@@ -656,15 +656,15 @@ export const adminDashboardHtml = `
                     });
 
                     // Render Top Pages
-                    const topPagesList = document.getElementById('top-pages-list');
+                    var topPagesList = document.getElementById('top-pages-list');
                     if (data.topPages && data.topPages.length > 0) {
-                        topPagesList.innerHTML = data.topPages.map((p, idx) => \`
-                            <li class="flex items-center">
-                                <span class="w-6 h-6 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-xs font-bold mr-3">\${idx + 1}</span>
-                                <span class="text-sm text-slate-700 flex-1 truncate font-medium">\${p.page_visited}</span>
-                                <span class="text-sm font-bold text-indigo-600">\${p.count.toLocaleString()} <small class="text-slate-400 font-normal ml-0.5">PV</small></span>
-                            </li>
-                        \`).join('');
+                        topPagesList.innerHTML = data.topPages.map(function(p, idx) {
+                            return '<li class="flex items-center">' +
+                                '<span class="w-6 h-6 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-xs font-bold mr-3">' + (idx + 1) + '</span>' +
+                                '<span class="text-sm text-slate-700 flex-1 truncate font-medium">' + (p.page_visited || '').replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</span>' +
+                                '<span class="text-sm font-bold text-indigo-600">' + (p.count || 0).toLocaleString() + ' <small class="text-slate-400 font-normal ml-0.5">PV</small></span>' +
+                                '</li>';
+                        }).join('');
                     } else {
                         topPagesList.innerHTML = '<li class="py-10 text-center text-slate-400">집계된 데이터가 없습니다.</li>';
                     }
@@ -826,70 +826,47 @@ export const adminDashboardHtml = `
         }
 
         function renderPendingList(list) {
-            const container = document.getElementById('pending-approvals-list');
+            var container = document.getElementById('pending-approvals-list');
             if (!list || list.length === 0) {
                 container.innerHTML = '<div class="p-6 text-center text-slate-500">대기 중인 항목이 없습니다.</div>';
                 return;
             }
-
-            container.innerHTML = list.map(item => \`
-                <div class="px-6 py-4 flex items-center hover:bg-slate-50 transition">
-                    <div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 mr-4">
-                        <i class="fas fa-user-clock"></i>
-                    </div>
-                    <div>
-                        <p class="text-sm font-medium text-slate-800">\${item.user_name} - \${item.course_title}</p>
-                        <p class="text-xs text-slate-500">수강 승인 요청</p>
-                    </div>
-                    <span class="ml-auto text-xs text-slate-400">\${new Date(item.created_at).toLocaleDateString()}</span>
-                </div>
-            \`).join('');
+            container.innerHTML = list.map(function(item) {
+                var name = (item.user_name || '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
+                var title = (item.course_title || '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
+                var dateStr = item.created_at ? new Date(item.created_at).toLocaleDateString() : '';
+                return '<div class="px-6 py-4 flex items-center hover:bg-slate-50 transition">' +
+                    '<div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 mr-4"><i class="fas fa-user-clock"></i></div>' +
+                    '<div><p class="text-sm font-medium text-slate-800">' + name + ' - ' + title + '</p><p class="text-xs text-slate-500">수강 승인 요청</p></div>' +
+                    '<span class="ml-auto text-xs text-slate-400">' + dateStr + '</span></div>';
+            }).join('');
         }
 
         function renderAbnormalList(facilities, items) {
-             const container = document.getElementById('abnormal-status-list');
-             const allItems = [
-                ...(facilities || []).map(f => ({ ...f, type: 'facility' })),
-                ...(items || []).map(i => ({ ...i, type: 'item' }))
-             ];
-
+             var container = document.getElementById('abnormal-status-list');
+             var allItems = [];
+             (facilities || []).forEach(function(f) { allItems.push({ type: 'facility', status: f.status, name: f.name, manager_main: f.manager_main }); });
+             (items || []).forEach(function(i) { allItems.push({ type: 'item', status: i.status, name: i.name, facility_name: i.facility_name }); });
              if (allItems.length === 0) {
                  container.innerHTML = '<div class="p-6 text-center text-slate-500"><i class="fas fa-check-circle text-green-500 text-3xl mb-2 block"></i>모든 시설과 장비가<br>정상입니다.</div>';
                  return;
              }
-
-             container.innerHTML = allItems.map(item => {
-                 const isFacility = item.type === 'facility';
-                 const statusColors = {
-                     '점검필요': 'bg-yellow-100 text-yellow-700',
-                     '수리중': 'bg-red-100 text-red-700',
-                     'bad': 'bg-yellow-100 text-yellow-700',
-                     'broken': 'bg-red-100 text-red-700',
-                     'repair': 'bg-orange-100 text-orange-700'
-                 };
-                 const statusText = {
-                     'bad': '상태나쁨', 'broken': '고장', 'repair': '수리중'
-                 };
-                 
-                 const badgeClass = statusColors[item.status] || 'bg-slate-100 text-slate-700';
-                 const badgeLabel = isFacility ? item.status : (statusText[item.status] || item.status);
-                 const icon = isFacility ? 'fa-building' : 'fa-cubes';
-                 const subText = isFacility ? (item.manager_main || '관리자 없음') : (item.facility_name || '위치 미정');
-
-                 return \`
-                    <div class="px-6 py-4 flex items-center hover:bg-slate-50 transition cursor-pointer" onclick="location.href='\${isFacility ? '/admin/facilities' : '/admin/items'}'">
-                        <div class="w-10 h-10 rounded-full \${isFacility ? 'bg-indigo-50 text-indigo-600' : 'bg-pink-50 text-pink-600'} flex items-center justify-center mr-4">
-                            <i class="fas \${icon}"></i>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <div class="flex justify-between mb-1">
-                                <h4 class="text-sm font-bold text-slate-800 truncate">\${item.name}</h4>
-                                <span class="px-2 py-0.5 rounded text-[10px] font-bold \${badgeClass}">\${badgeLabel}</span>
-                            </div>
-                            <p class="text-xs text-slate-500 truncate">\${subText}</p>
-                        </div>
-                    </div>
-                 \`;
+             var statusColors = { '점검필요': 'bg-yellow-100 text-yellow-700', '수리중': 'bg-red-100 text-red-700', 'bad': 'bg-yellow-100 text-yellow-700', 'broken': 'bg-red-100 text-red-700', 'repair': 'bg-orange-100 text-orange-700' };
+             var statusText = { 'bad': '상태나쁨', 'broken': '고장', 'repair': '수리중' };
+             container.innerHTML = allItems.map(function(item) {
+                 var isFacility = item.type === 'facility';
+                 var badgeClass = statusColors[item.status] || 'bg-slate-100 text-slate-700';
+                 var badgeLabel = isFacility ? item.status : (statusText[item.status] || item.status);
+                 var icon = isFacility ? 'fa-building' : 'fa-cubes';
+                 var subText = isFacility ? (item.manager_main || '관리자 없음') : (item.facility_name || '위치 미정');
+                 var href = isFacility ? '/admin/facilities' : '/admin/items';
+                 var nameEsc = (item.name || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+                 var subEsc = (subText || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+                 return '<div class="px-6 py-4 flex items-center hover:bg-slate-50 transition cursor-pointer" onclick="location.href=\'' + href + '\'">' +
+                     '<div class="w-10 h-10 rounded-full ' + (isFacility ? 'bg-indigo-50 text-indigo-600' : 'bg-pink-50 text-pink-600') + ' flex items-center justify-center mr-4"><i class="fas ' + icon + '"></i></div>' +
+                     '<div class="flex-1 min-w-0"><div class="flex justify-between mb-1"><h4 class="text-sm font-bold text-slate-800 truncate">' + nameEsc + '</h4>' +
+                     '<span class="px-2 py-0.5 rounded text-[10px] font-bold ' + badgeClass + '">' + badgeLabel + '</span></div>' +
+                     '<p class="text-xs text-slate-500 truncate">' + subEsc + '</p></div></div>';
              }).join('');
         }
 
