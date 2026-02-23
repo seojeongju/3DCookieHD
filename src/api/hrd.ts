@@ -3089,65 +3089,142 @@ app.get('/assignments/summary', authMiddleware, async (c) => {
     }
 });
 
-// 시험 및 CBT 참여 현황 요약 조회 (전체 과정)
+// 시험 및 CBT 참여 현황 요약 조회 — 회차별(course_sessions) 목록, 과제관리와 동일 구조
 app.get('/exams/summary', authMiddleware, async (c) => {
     try {
-        // 1. 모든 운영 중인 과정 및 기본 정보 조회
-        const { results: courses } = await c.env.DB.prepare(`
-            SELECT c.id, c.title, u.name as teacher_name
-            FROM courses c
-            LEFT JOIN users u ON c.teacher_id = u.id
-            WHERE c.status != 'closed'
-        `).all();
+        const statusFilter = (c.req.query('status') || '').toString().toLowerCase().trim();
+        let statusCondition = '';
+        const params: (string | number)[] = [];
+        if (statusFilter && ['recruiting', 'in_progress', 'completed', 'closed', 'always_open'].includes(statusFilter)) {
+            statusCondition = ' AND s.status = ?';
+            params.push(statusFilter);
+        }
+        let sessions: any[] = [];
+        try {
+            const q = c.env.DB.prepare(`
+                SELECT s.id, s.session_number, s.session_name, s.status, s.instructor_name, a.name as course_name, s.lms_course_id
+                FROM course_sessions s
+                JOIN approved_courses a ON s.approved_course_id = a.id
+                WHERE 1=1 ${statusCondition}
+                ORDER BY s.training_start_date DESC, s.id DESC
+            `);
+            const out = params.length > 0 ? await q.bind(...params).all() : await q.all();
+            sessions = out?.results ?? [];
+        } catch (err: any) {
+            console.error('exams/summary sessions query:', err?.message);
+            return c.json({ success: true, data: [] });
+        }
 
-        const summaryData = await Promise.all(courses.map(async (course: any) => {
-            // 해당 과정의 전체 시험 수
-            const examStats: any = await c.env.DB.prepare(`
-                SELECT COUNT(*) as exam_count
-                FROM exams
-                WHERE course_id = ?
-            `).bind(course.id).first();
+        const statusLabels: Record<string, string> = {
+            recruiting: '모집중', in_progress: '진행중', completed: '마감', closed: '종료', always_open: '상시모집'
+        };
 
-            // 해당 과정의 전체 제출 수 및 평균 점수
-            const submissionStats: any = await c.env.DB.prepare(`
-                SELECT 
-                    COUNT(DISTINCT student_id || '-' || exam_id) as total_submissions,
-                    AVG(total_score) as avg_score
-                FROM exam_submissions s
-                JOIN exams e ON s.exam_id = e.id
-                WHERE e.course_id = ?
-            `).bind(course.id).first();
+        const summaryData = await Promise.all(sessions.map(async (session: any) => {
+            try {
+                const courseName = (session.course_name || '과정').trim();
+                const sessionNum = session.session_number != null ? String(session.session_number) : '';
+                const sessionNamePart = (session.session_name || '').trim();
+                const title = `${courseName} (${sessionNum ? sessionNum + '회차' : ''}${sessionNamePart ? ' - ' + sessionNamePart : ''})`.replace(/\s*\(\s*\)\s*$/, '').trim() || courseName;
+                let courseId: number | null = (session.lms_course_id != null && session.lms_course_id > 0) ? Number(session.lms_course_id) : null;
+                let resolvedByTitle = false;
+                if (courseId == null && title) {
+                    try {
+                        const row: any = await c.env.DB.prepare('SELECT id FROM courses WHERE TRIM(title) = ? LIMIT 1').bind(title).first();
+                        courseId = row?.id ?? null;
+                        if (courseId != null) resolvedByTitle = true;
+                    } catch (_) {}
+                }
+                if (courseId == null && title) {
+                    try {
+                        const row: any = await c.env.DB.prepare('SELECT id FROM courses WHERE title = ? LIMIT 1').bind(title).first();
+                        courseId = row?.id ?? null;
+                        if (courseId != null) resolvedByTitle = true;
+                    } catch (_) {}
+                }
+                if (courseId == null && (courseName || sessionNum)) {
+                    try {
+                        const likePattern = '%' + courseName + '%' + (sessionNum ? sessionNum + '회차' : '') + '%';
+                        const row: any = await c.env.DB.prepare('SELECT id FROM courses WHERE title LIKE ? ORDER BY LENGTH(title) ASC LIMIT 1').bind(likePattern).first();
+                        courseId = row?.id ?? null;
+                        if (courseId != null) resolvedByTitle = true;
+                    } catch (_) {}
+                }
+                if (courseId == null && courseName && !sessionNum) {
+                    try {
+                        const row: any = await c.env.DB.prepare('SELECT id FROM courses WHERE title LIKE ? ORDER BY LENGTH(title) ASC LIMIT 1').bind('%' + courseName + '%').first();
+                        courseId = row?.id ?? null;
+                        if (courseId != null) resolvedByTitle = true;
+                    } catch (_) {}
+                }
+                if (courseId != null && resolvedByTitle) {
+                    try {
+                        await c.env.DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(courseId, session.id).run();
+                    } catch (_) {}
+                }
 
-            // 수강생 수
-            const studentStats: any = await c.env.DB.prepare(`
-                SELECT COUNT(*) as student_count
-                FROM enrollments
-                WHERE course_id = ? AND status = 'approved'
-            `).bind(course.id).first();
+                let examCount = 0, studentCount = 0, totalSubmissions = 0;
+                let avgScore = 0;
+                try {
+                    const eStat: any = await c.env.DB.prepare(
+                        'SELECT COUNT(*) as student_count FROM course_session_enrollments WHERE session_id = ? AND status IN ("approved", "enrolled")'
+                    ).bind(session.id).first();
+                    studentCount = eStat?.student_count ?? 0;
+                } catch (_) {}
+                if (courseId) {
+                    try {
+                        const xStat: any = await c.env.DB.prepare('SELECT COUNT(*) as exam_count FROM exams WHERE course_id = ?').bind(courseId).first();
+                        examCount = xStat?.exam_count ?? 0;
+                    } catch (_) {}
+                    try {
+                        const subStat: any = await c.env.DB.prepare(`
+                            SELECT COUNT(DISTINCT student_id || '-' || exam_id) as total_submissions, AVG(total_score) as avg_score
+                            FROM exam_submissions s
+                            JOIN exams e ON s.exam_id = e.id
+                            WHERE e.course_id = ?
+                        `).bind(courseId).first();
+                        totalSubmissions = subStat?.total_submissions ?? 0;
+                        avgScore = Math.round((Number(subStat?.avg_score) || 0) * 10) / 10;
+                    } catch (_) {}
+                }
+                const participationRate = (examCount > 0 && studentCount > 0)
+                    ? Math.min(100, Math.round((totalSubmissions / (examCount * studentCount)) * 100))
+                    : 0;
 
-            const examCount = examStats.exam_count || 0;
-            const studentCount = studentStats.student_count || 0;
-            const totalSubmissions = submissionStats.total_submissions || 0;
-
-            // 참여율 계산: (전체 제출 수) / (시험 수 * 학생 수) * 100
-            const participationRate = (examCount > 0 && studentCount > 0)
-                ? Math.round((totalSubmissions / (examCount * studentCount)) * 100)
-                : 0;
-
-            return {
-                ...course,
-                exam_count: examCount,
-                student_count: studentCount,
-                total_submissions: totalSubmissions,
-                avg_score: Math.round((submissionStats.avg_score || 0) * 10) / 10,
-                participation_rate: Math.min(participationRate, 100)
-            };
+                return {
+                    session_id: session.id,
+                    id: session.id,
+                    title,
+                    status: session.status,
+                    status_label: statusLabels[session.status] || session.status || '-',
+                    teacher_name: session.instructor_name || null,
+                    exam_count: examCount,
+                    student_count: studentCount,
+                    total_submissions: totalSubmissions,
+                    avg_score: avgScore,
+                    participation_rate: participationRate
+                };
+            } catch (rowErr: any) {
+                console.error('exams/summary row err session.id=' + session?.id, rowErr?.message);
+                return {
+                    session_id: session?.id,
+                    id: session?.id,
+                    title: (session?.course_name || '과정') + ' (오류)',
+                    status: session?.status,
+                    status_label: statusLabels[session?.status] || '-',
+                    teacher_name: session?.instructor_name || null,
+                    exam_count: 0,
+                    student_count: 0,
+                    total_submissions: 0,
+                    avg_score: 0,
+                    participation_rate: 0
+                };
+            }
         }));
 
         return c.json({ success: true, data: summaryData });
     } catch (e: any) {
         console.error('Failed to fetch exam summary:', e);
-        return errorResponse(c, e.message, 500);
+        return errorResponse(c, e?.message || '시험 요약 조회 실패', 500);
     }
 });
 

@@ -92,27 +92,42 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
 
                     <!-- 과정별 현황 목록 -->
                     <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-                        <div class="px-8 py-6 border-b border-gray-50 flex justify-between items-center bg-white/50 backdrop-blur-md">
-                            <div class="flex items-center gap-4">
+                        <div class="relative z-30 px-8 py-6 pb-8 border-b border-gray-50 bg-white/50 backdrop-blur-md space-y-4">
+                            <div class="flex flex-wrap justify-between items-center gap-4">
                                 <h3 class="font-black text-gray-800 text-lg uppercase tracking-tight">과정별 시험 현황</h3>
-                                <div class="flex bg-gray-100 p-1 rounded-xl">
-                                    <button onclick="filterCourses('all')" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all filter-btn active bg-white text-indigo-600 shadow-sm" data-filter="all">전체</button>
-                                    <button onclick="filterCourses('active')" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all filter-btn text-gray-500 hover:text-gray-700" data-filter="active">진행중</button>
+                                <div class="flex items-center gap-3 flex-wrap">
+                                    <select id="sortSelect" onchange="applyFilters()" class="bg-gray-50 border border-gray-200 text-xs font-bold text-gray-600 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none relative z-10">
+                                        <option value="name">과정명순</option>
+                                        <option value="rate">응시율 높은순</option>
+                                        <option value="score">평균점수 높은순</option>
+                                    </select>
                                 </div>
                             </div>
-                            <div class="flex items-center gap-4">
-                                <select id="sortSelect" onchange="sortData()" class="bg-gray-50 border-none text-xs font-bold text-gray-600 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none">
-                                    <option value="name">과정명순</option>
-                                    <option value="rate">응시율 높은순</option>
-                                    <option value="score">평균점수 높은순</option>
+                            <div class="flex flex-wrap items-center gap-3 min-h-[2.5rem]">
+                                <div class="flex bg-gray-100 p-1 rounded-xl">
+                                    <button onclick="setFilterType('all'); applyFilters();" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all filter-type-btn active bg-white text-indigo-600 shadow-sm" data-filter-type="all">전체</button>
+                                    <button onclick="setFilterType('active'); applyFilters();" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all filter-type-btn text-gray-500 hover:text-gray-700" data-filter-type="active">진행중</button>
+                                </div>
+                                <select id="statusFilter" onchange="applyFilters()" class="bg-gray-50 border border-gray-200 text-xs font-bold text-gray-600 rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-500/20 outline-none relative z-10" title="과정 상태">
+                                    <option value="all">과정 상태: 전체</option>
+                                    <option value="recruiting">모집중</option>
+                                    <option value="in_progress">진행중</option>
+                                    <option value="completed">마감</option>
+                                    <option value="closed">종료</option>
+                                    <option value="always_open">상시모집</option>
                                 </select>
+                                <div class="flex items-center bg-gray-50 rounded-xl px-3 py-2 border border-gray-200 focus-within:ring-2 focus-within:ring-indigo-500/20 min-w-[200px]">
+                                    <i class="fas fa-search text-gray-400 mr-2 text-xs"></i>
+                                    <input type="text" id="searchInput" oninput="applyFilters()" placeholder="과정명·강사명 검색" class="bg-transparent border-none outline-none text-sm w-full font-medium min-w-0">
+                                </div>
                             </div>
                         </div>
-                        <div class="overflow-x-auto">
+                        <div class="overflow-x-auto relative z-0">
                             <table class="w-full text-left border-collapse">
                                 <thead>
                                     <tr class="bg-gray-50/50">
                                         <th class="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">교육 과정 정보</th>
+                                        <th class="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">상태</th>
                                         <th class="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">담당 강사</th>
                                         <th class="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">등록 시험</th>
                                         <th class="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">응시 인원/전체</th>
@@ -122,9 +137,8 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
                                     </tr>
                                 </thead>
                                 <tbody id="summaryTableBody" class="divide-y divide-gray-50">
-                                    <!-- 데이터 로드 중 -->
                                     <tr>
-                                        <td colspan="7" class="px-8 py-20 text-center text-gray-400">
+                                        <td colspan="8" class="px-8 py-20 text-center text-gray-400">
                                             <i class="fas fa-spinner fa-spin mr-2"></i> 데이터를 불러오고 있습니다...
                                         </td>
                                     </tr>
@@ -152,9 +166,9 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
                 });
                 const result = await res.json();
                 if (result.success) {
-                    allData = result.data;
+                    allData = result.data || [];
                     updateStats(allData);
-                    filterCourses('all');
+                    applyFilters();
                 }
             } catch (e) {
                 console.error(e);
@@ -162,31 +176,30 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
         }
 
         function updateStats(data) {
-            if (!data || data.length === 0) return;
-            
-            const totalExams = data.reduce((acc, cur) => acc + (cur.exam_count || 0), 0);
-            const totalSubmissions = data.reduce((acc, cur) => acc + (cur.total_submissions || 0), 0);
-            
-            // 가중 평균 점수 계산
-            const scoreSum = data.reduce((acc, cur) => acc + (cur.avg_score * cur.total_submissions), 0);
+            const list = data && data.length ? data : [];
+            const totalExams = list.reduce((acc, cur) => acc + (cur.exam_count || 0), 0);
+            const totalSubmissions = list.reduce((acc, cur) => acc + (cur.total_submissions || 0), 0);
+            const scoreSum = list.reduce((acc, cur) => acc + ((cur.avg_score || 0) * (cur.total_submissions || 0)), 0);
             const avgScore = totalSubmissions > 0 ? (scoreSum / totalSubmissions).toFixed(1) : '0.0';
-            
-            // 평균 응시율 계산
-            const validCourses = data.filter(c => c.exam_count > 0 && c.student_count > 0);
-            const avgRate = validCourses.length > 0 
-                ? Math.round(validCourses.reduce((acc, cur) => acc + cur.participation_rate, 0) / validCourses.length)
+            const validCourses = list.filter(c => (c.exam_count || 0) > 0 && (c.student_count || 0) > 0);
+            const avgRate = validCourses.length > 0
+                ? Math.round(validCourses.reduce((acc, cur) => acc + (cur.participation_rate || 0), 0) / validCourses.length)
                 : 0;
-
-            document.getElementById('statTotalExams').textContent = totalExams.toLocaleString() + '건';
-            document.getElementById('statTotalSubmissions').textContent = totalSubmissions.toLocaleString() + '건';
-            document.getElementById('statAvgScore').textContent = avgScore;
-            document.getElementById('statAvgRate').textContent = avgRate + '%';
+            const el1 = document.getElementById('statTotalExams');
+            const el2 = document.getElementById('statTotalSubmissions');
+            const el3 = document.getElementById('statAvgScore');
+            const el4 = document.getElementById('statAvgRate');
+            if (el1) el1.textContent = totalExams.toLocaleString() + '건';
+            if (el2) el2.textContent = totalSubmissions.toLocaleString() + '건';
+            if (el3) el3.textContent = avgScore;
+            if (el4) el4.textContent = avgRate + '%';
         }
 
-        function filterCourses(filter) {
-            const btns = document.querySelectorAll('.filter-btn');
-            btns.forEach(btn => {
-                if (btn.dataset.filter === filter) {
+        let currentFilterType = 'all';
+        function setFilterType(type) {
+            currentFilterType = type;
+            document.querySelectorAll('.filter-type-btn').forEach(btn => {
+                if (btn.dataset.filterType === type) {
                     btn.classList.add('bg-white', 'text-indigo-600', 'shadow-sm');
                     btn.classList.remove('text-gray-500');
                 } else {
@@ -194,44 +207,59 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
                     btn.classList.add('text-gray-500');
                 }
             });
-
-            let filtered = allData;
-            if (filter === 'active') {
-                filtered = allData.filter(c => c.exam_count > 0);
-            }
-            
-            renderSummaryTable(filtered);
         }
 
-        function sortData() {
-            const sortBy = document.getElementById('sortSelect').value;
-            let sorted = [...allData];
+        function applyFilters() {
+            const statusVal = (document.getElementById('statusFilter') && document.getElementById('statusFilter').value) || 'all';
+            const search = (document.getElementById('searchInput') && document.getElementById('searchInput').value.trim()) || '';
+            const sortBy = (document.getElementById('sortSelect') && document.getElementById('sortSelect').value) || 'name';
 
-            if (sortBy === 'name') {
-                sorted.sort((a, b) => a.title.localeCompare(b.title));
-            } else if (sortBy === 'rate') {
-                sorted.sort((a, b) => b.participation_rate - a.participation_rate);
-            } else if (sortBy === 'score') {
-                sorted.sort((a, b) => b.avg_score - a.avg_score);
+            let filtered = allData;
+            if (statusVal !== 'all') {
+                filtered = filtered.filter(c => (String(c.status || '')).toLowerCase() === statusVal);
             }
-
-            renderSummaryTable(sorted);
+            if (currentFilterType === 'active') {
+                filtered = filtered.filter(c => (c.exam_count || 0) > 0);
+            }
+            if (search) {
+                const q = search.toLowerCase();
+                filtered = filtered.filter(c =>
+                    (c.title && c.title.toLowerCase().includes(q)) ||
+                    (c.teacher_name && c.teacher_name.toLowerCase().includes(q))
+                );
+            }
+            if (sortBy === 'name') {
+                filtered.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+            } else if (sortBy === 'rate') {
+                filtered.sort((a, b) => (b.participation_rate || 0) - (a.participation_rate || 0));
+            } else if (sortBy === 'score') {
+                filtered.sort((a, b) => (b.avg_score || 0) - (a.avg_score || 0));
+            }
+            renderSummaryTable(filtered);
         }
 
         function renderSummaryTable(data) {
             const tbody = document.getElementById('summaryTableBody');
             if (!tbody) return;
-            
             if (data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="px-8 py-20 text-center text-gray-400">조건에 맞는 과정이 없습니다.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" class="px-8 py-20 text-center text-gray-400">조건에 맞는 과정이 없습니다.</td></tr>';
                 return;
             }
-
+            const statusClass = (s) => {
+                if (['active','in_progress','open'].includes(s)) return 'bg-emerald-50 text-emerald-600 ring-emerald-100';
+                if (['recruiting','always_open'].includes(s)) return 'bg-blue-50 text-blue-600 ring-blue-100';
+                if (['completed','closed'].includes(s)) return 'bg-slate-100 text-slate-600 ring-slate-200';
+                return 'bg-gray-50 text-gray-600 ring-gray-200';
+            };
+            const totalPossible = (c) => (c.exam_count || 0) * (c.student_count || 0) || 0;
             tbody.innerHTML = data.map(c => \`
                 <tr class="hover:bg-indigo-50/30 transition-colors group border-b border-gray-50 last:border-0 shadow-[inset_0_1px_0_0_rgba(255,255,255,1)]">
                     <td class="px-8 py-5">
-                        <div class="font-black text-gray-800 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">\${c.title}</div>
-                        <div class="text-[10px] text-gray-400 mt-1 uppercase tracking-widest font-bold">Course ID: \${c.id}</div>
+                        <div class="font-black text-gray-800 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">\${c.title || '-'}</div>
+                        <div class="text-[10px] text-gray-400 mt-1 uppercase tracking-widest font-bold">회차 ID: \${c.session_id != null ? c.session_id : '-'}</div>
+                    </td>
+                    <td class="px-6 py-5 text-center">
+                        <span class="px-2.5 py-1 rounded-lg text-xs font-bold ring-1 \${statusClass(c.status)}">\${c.status_label || c.status || '-'}</span>
                     </td>
                     <td class="px-6 py-5 text-center">
                         <span class="text-sm text-slate-600 font-black">\${c.teacher_name || '강사미지정'}</span>
@@ -240,25 +268,21 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
                         <span class="px-3 py-1 bg-slate-50 text-slate-500 text-xs font-black rounded-lg ring-1 ring-slate-200/50 shadow-sm">\${c.exam_count}건</span>
                     </td>
                     <td class="px-6 py-5 text-center text-sm font-black text-slate-700">
-                        \${c.total_submissions} / \${c.exam_count * c.student_count}
+                        \${c.total_submissions} / \${totalPossible(c)}
                     </td>
                     <td class="px-6 py-5 text-center">
                         <div class="flex flex-col items-center">
-                            <div class="text-[11px] font-black \${c.participation_rate >= 80 ? 'text-emerald-500' : c.participation_rate >= 40 ? 'text-indigo-500' : 'text-amber-500'} italic font-mono uppercase tracking-tighter">\${c.participation_rate}%</div>
+                            <div class="text-[11px] font-black \${(c.participation_rate || 0) >= 80 ? 'text-emerald-500' : (c.participation_rate || 0) >= 40 ? 'text-indigo-500' : 'text-amber-500'} italic font-mono uppercase tracking-tighter">\${c.participation_rate || 0}%</div>
                             <div class="w-16 h-1.5 bg-slate-100/80 rounded-full mt-1.5 overflow-hidden shadow-inner ring-1 ring-white">
-                                <div class="h-full transition-all duration-1000 ease-out shadow-[0_0_8px_rgba(99,102,241,0.4)] \${c.participation_rate >= 80 ? 'bg-emerald-500' : 'bg-indigo-500'}" style="width: \${c.participation_rate}%"></div>
+                                <div class="h-full transition-all duration-1000 ease-out shadow-[0_0_8px_rgba(99,102,241,0.4)] \${(c.participation_rate || 0) >= 80 ? 'bg-emerald-500' : 'bg-indigo-500'}" style="width: \${Math.min(100, c.participation_rate || 0)}%"></div>
                             </div>
                         </div>
                     </td>
                     <td class="px-6 py-5 text-center">
-                        <span class="px-3 py-1 rounded-lg bg-slate-50 text-slate-600 text-xs font-black ring-1 ring-slate-200/50 shadow-sm">
-                            \${c.avg_score || 0}점
-                        </span>
+                        <span class="px-3 py-1 rounded-lg bg-slate-50 text-slate-600 text-xs font-black ring-1 ring-slate-200/50 shadow-sm">\${c.avg_score != null ? c.avg_score : 0}점</span>
                     </td>
                     <td class="px-8 py-5 text-right">
-                        <a href="/admin/courses/\${c.id}/lms/cbt" class="inline-flex items-center px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-700 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm hover:shadow-md active:scale-95 transform whitespace-nowrap">
-                            시험 관리 <i class="fas fa-arrow-right ml-2 text-[9px] opacity-50 group-hover:opacity-100"></i>
-                        </a>
+                        \${(c.session_id != null) ? '<a href="/admin/courses/' + c.session_id + '/lms/cbt" class="inline-flex items-center px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-700 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm hover:shadow-md active:scale-95 transform whitespace-nowrap">시험 관리 <i class="fas fa-arrow-right ml-2 text-[9px] opacity-50 group-hover:opacity-100"></i></a>' : '<span class="inline-flex items-center px-4 py-2 bg-gray-100 border border-gray-200 rounded-xl text-xs font-medium text-gray-400 cursor-not-allowed whitespace-nowrap">회차 없음</span>'}
                     </td>
                 </tr>
             \`).join('');
