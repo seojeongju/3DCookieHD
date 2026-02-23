@@ -155,13 +155,13 @@ export const adminHrdAttendanceHtml = (sidebar = hrdSidebar('attendance')) => `
                             <table class="min-w-full">
                                 <thead>
                                     <tr class="bg-gray-50/50 border-b border-gray-100">
-                                        <th class="px-8 py-6 text-left text-[11px] font-black text-gray-400 uppercase tracking-[0.1em]">과정 정보</th>
-                                        <th class="px-6 py-6 text-center text-[11px] font-black text-gray-400 uppercase tracking-[0.1em]">상태</th>
-                                        <th class="px-6 py-6 text-center text-[11px] font-black text-gray-400 uppercase tracking-[0.1em]">강사명</th>
-                                        <th class="px-6 py-6 text-center text-[11px] font-black text-gray-400 uppercase tracking-[0.1em]">등록 인원</th>
-                                        <th class="px-6 py-6 text-center text-[11px] font-black text-gray-400 uppercase tracking-[0.1em]">현재까지 통계</th>
-                                        <th class="px-6 py-6 text-center text-[11px] font-black text-gray-400 uppercase tracking-[0.1em]">출석률</th>
-                                        <th class="px-8 py-6 text-right text-[11px] font-black text-gray-400 uppercase tracking-[0.1em]">관리</th>
+                                        <th class="px-8 py-6 text-left text-[11px] font-black text-gray-400 uppercase tracking-[0.1em] w-[min(320px,30%)]">과정 정보</th>
+                                        <th class="px-6 py-6 text-center text-[11px] font-black text-gray-400 uppercase tracking-[0.1em] whitespace-nowrap">상태</th>
+                                        <th class="px-6 py-6 text-center text-[11px] font-black text-gray-400 uppercase tracking-[0.1em] whitespace-nowrap">강사명</th>
+                                        <th class="px-6 py-6 text-center text-[11px] font-black text-gray-400 uppercase tracking-[0.1em] whitespace-nowrap">등록 인원</th>
+                                        <th class="px-6 py-6 text-center text-[11px] font-black text-gray-400 uppercase tracking-[0.1em] whitespace-nowrap">현재까지 통계</th>
+                                        <th class="px-6 py-6 text-center text-[11px] font-black text-gray-400 uppercase tracking-[0.1em] whitespace-nowrap">출석률</th>
+                                        <th class="px-8 py-6 text-right text-[11px] font-black text-gray-400 uppercase tracking-[0.1em] whitespace-nowrap">관리</th>
                                     </tr>
                                 </thead>
                                 <tbody id="summaryTableBody" class="divide-y divide-gray-50">
@@ -280,28 +280,28 @@ export const adminHrdAttendanceHtml = (sidebar = hrdSidebar('attendance')) => `
             }
             tbody.innerHTML = pageData.map(c => \`
                 <tr class="hover:bg-primary-50/30 transition-all duration-300 group cursor-pointer" onclick="location.href='/admin/courses/\${c.id}/lms/attendance?type=\${c.type}'">
-                    <td class="px-8 py-7">
+                    <td class="px-8 py-7 min-w-0 max-w-[320px] break-words align-top">
                         <div class="flex flex-col">
-                            <div class="font-black text-gray-900 group-hover:text-primary-600 transition-colors text-sm lg:text-base mb-1.5">\${c.title}</div>
-                            <div class="flex items-center gap-2">
-                                <span class="px-2 py-0.5 bg-gray-900 text-white text-[9px] font-black rounded-full uppercase tracking-widest">\${c.type}</span>
+                            <div class="font-black text-gray-900 group-hover:text-primary-600 transition-colors text-sm lg:text-base mb-1.5 break-words">\${c.title}</div>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="px-2 py-0.5 bg-gray-900 text-white text-[9px] font-black rounded-full uppercase tracking-widest whitespace-nowrap">\${c.type}</span>
                                 <span class="text-[10px] text-gray-400 font-bold tracking-tight">\${c.type === 'hrd' ? '회차 ID' : '과정 ID'}: \${c.id}</span>
                             </div>
                         </div>
                     </td>
-                    <td class="px-6 py-7 text-center">
+                    <td class="px-6 py-7 text-center whitespace-nowrap align-top">
                         <span class="px-2.5 py-1 rounded-lg text-xs font-bold ring-1 \${statusBadgeClass(c.status_label || '')}">\${c.status_label || '-'}</span>
                     </td>
-                    <td class="px-6 py-7 text-center">
+                    <td class="px-6 py-7 text-center whitespace-nowrap align-top">
                         <div class="inline-flex flex-col items-center">
                             <div class="w-9 h-9 rounded-2xl bg-gray-100 flex items-center justify-center text-xs font-black text-gray-400 group-hover:bg-primary-100 group-hover:text-primary-600 transition-all mb-1.5">\${(c.teacher_name || '-').charAt(0)}</div>
                             <span class="text-xs text-gray-700 font-black">\${c.teacher_name || '-'}</span>
                         </div>
                     </td>
-                    <td class="px-6 py-7 text-center">
+                    <td class="px-6 py-7 text-center whitespace-nowrap align-top">
                          <span class="inline-flex items-center px-3 py-1 bg-gray-50 text-gray-600 text-xs font-black rounded-lg border border-gray-100">\${c.total_students}명</span>
                     </td>
-                    <td class="px-6 py-7 text-center">
+                    <td class="px-6 py-7 text-center whitespace-nowrap align-top">
                         <div class="flex items-center justify-center gap-1.5">
                             <div class="flex flex-col items-center px-3 py-2 bg-green-50 rounded-2xl min-w-[42px] border border-green-100/50">
                                 <span class="text-[9px] font-black text-green-400 uppercase tracking-tighter mb-0.5">출석</span>
@@ -317,7 +317,7 @@ export const adminHrdAttendanceHtml = (sidebar = hrdSidebar('attendance')) => `
                             </div>
                         </div>
                     </td>
-                    <td class="px-6 py-7 text-center">
+                    <td class="px-6 py-7 text-center whitespace-nowrap align-top">
                         <div class="flex flex-col items-center space-y-2">
                              <div class="text-[13px] font-black font-mono \${c.rate >= 90 ? 'text-green-600' : c.rate >= 70 ? 'text-primary-600' : 'text-red-500'}">\${c.rate}%</div>
                              <div class="w-16 lg:w-20 h-1.5 bg-gray-100 rounded-full overflow-hidden shadow-inner">
@@ -325,7 +325,7 @@ export const adminHrdAttendanceHtml = (sidebar = hrdSidebar('attendance')) => `
                              </div>
                         </div>
                     </td>
-                    <td class="px-8 py-7 text-right">
+                    <td class="px-8 py-7 text-right whitespace-nowrap align-top">
                         <a href="/admin/courses/\${c.id}/lms/attendance?type=\${c.type}" class="inline-flex items-center px-5 py-2.5 bg-white border-2 border-gray-100 rounded-2xl text-[11px] font-black text-gray-700 hover:border-primary-500 hover:bg-primary-500 hover:text-white transition-all shadow-sm active:scale-95 whitespace-nowrap">
                             출결 관리 <i class="fas fa-arrow-right-long ml-2 text-[10px]"></i>
                         </a>

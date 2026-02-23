@@ -129,7 +129,7 @@ export const adminHrdTrainingLogsHtml = (sidebar = hrdSidebar('training-logs')) 
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead class="bg-gray-50/50">
                                     <tr>
-                                        <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase tracking-wider">과정 정보</th>
+                                        <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase tracking-wider w-[min(320px,30%)]">과정 정보</th>
                                         <th class="px-6 py-4 text-center text-[11px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">상태</th>
                                         <th class="px-6 py-4 text-center text-[11px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">담당 강사</th>
                                         <th class="px-6 py-4 text-center text-[11px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">작성된 전체 일지</th>
@@ -263,30 +263,30 @@ export const adminHrdTrainingLogsHtml = (sidebar = hrdSidebar('training-logs')) 
             }
             tbody.innerHTML = data.map(c => \`
                 <tr class="hover:bg-indigo-50/30 transition-colors group border-b border-gray-50 last:border-0">
-                    <td class="px-6 py-5">
-                        <div class="font-bold text-gray-800 group-hover:text-indigo-600 transition-colors">\${c.title}</div>
+                    <td class="px-6 py-5 min-w-0 max-w-[320px] break-words align-top">
+                        <div class="font-bold text-gray-800 group-hover:text-indigo-600 transition-colors break-words">\${c.title}</div>
                         <div class="text-[10px] text-gray-400 mt-1 uppercase tracking-wider font-semibold">회차 ID: \${c.id}</div>
                     </td>
-                    <td class="px-6 py-5 text-center">
+                    <td class="px-6 py-5 text-center whitespace-nowrap align-top">
                         <span class="px-2.5 py-1 rounded-lg text-xs font-bold ring-1 \${statusBadgeClass(c.status_label || '')}">\${c.status_label || '-'}</span>
                     </td>
-                    <td class="px-6 py-5 text-center">
+                    <td class="px-6 py-5 text-center whitespace-nowrap align-top">
                         <div class="flex items-center justify-center">
                             <span class="text-sm text-gray-700 font-bold">\${c.teacher_name || '강사미지정'}</span>
                         </div>
                     </td>
-                    <td class="px-6 py-5 text-center">
+                    <td class="px-6 py-5 text-center whitespace-nowrap align-top">
                         <span class="px-3 py-1 rounded-full \${c.log_count > 0 ? 'bg-indigo-50 text-indigo-600' : 'bg-rose-50 text-rose-600'} text-xs font-bold ring-1 \${c.log_count > 0 ? 'ring-indigo-100' : 'ring-rose-100'}">
                             \${c.log_count || 0}건
                         </span>
                     </td>
-                    <td class="px-6 py-5 text-center text-sm font-black text-slate-700">
+                    <td class="px-6 py-5 text-center text-sm font-black text-slate-700 whitespace-nowrap align-top">
                         \${c.total_hours || 0}h
                     </td>
-                    <td class="px-6 py-5 text-center text-xs text-slate-500 font-medium">
+                    <td class="px-6 py-5 text-center text-xs text-slate-500 font-medium whitespace-nowrap align-top">
                         \${c.last_log_date || '<span class="text-slate-300">기록없음</span>'}
                     </td>
-                    <td class="px-6 py-5 text-center">
+                    <td class="px-6 py-5 text-center whitespace-nowrap align-top">
                         <div class="flex flex-col items-center">
                             <div class="text-sm font-black \${c.ncs_rate >= 90 ? 'text-emerald-600' : c.ncs_rate >= 50 ? 'text-indigo-600' : 'text-amber-500'}">\${c.ncs_rate || 0}%</div>
                             <div class="w-16 h-1.5 bg-slate-100 rounded-full mt-1.5 overflow-hidden shadow-inner">
@@ -294,8 +294,8 @@ export const adminHrdTrainingLogsHtml = (sidebar = hrdSidebar('training-logs')) 
                             </div>
                         </div>
                     </td>
-                    <td class="px-6 py-5 text-right">
-                        <a href="/admin/courses/\${c.id}/lms/training-logs" class="inline-flex items-center px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm hover:shadow-md active:scale-95 transform">
+                    <td class="px-6 py-5 text-right whitespace-nowrap align-top">
+                        <a href="/admin/courses/\${c.id}/lms/training-logs" class="inline-flex items-center px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm hover:shadow-md active:scale-95 transform whitespace-nowrap">
                             일지 관리 <i class="fas fa-arrow-right ml-2 text-[10px]"></i>
                         </a>
                     </td>
