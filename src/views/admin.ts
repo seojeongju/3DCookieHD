@@ -1,4 +1,4 @@
-﻿import { hrdSidebar } from './components/hrd_sidebar';
+import { hrdSidebar } from './components/hrd_sidebar';
 
 export const adminDashboardHtml = `
 <!DOCTYPE html>
@@ -178,7 +178,7 @@ export const adminDashboardHtml = `
                             <span class="flex items-center"><span class="w-1.5 h-1.5 rounded-full bg-green-500 mr-1"></span>완료 <b id="stat-inq-completed" class="text-slate-700">0</b></span>
                         </div>
                     </div>
-                    <div class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm group">
+                    <a href="/admin/analytics" class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm group block">
                         <div class="flex items-center justify-between mb-2">
                             <h3 class="text-slate-500 text-xs font-bold uppercase tracking-wider group-hover:text-indigo-600 transition-colors">사이트 접속</h3>
                             <div class="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 group-hover:bg-indigo-100 transition-colors">
@@ -192,8 +192,8 @@ export const adminDashboardHtml = `
                             <span id="stat-today-uv" class="text-lg font-black text-slate-600">-</span>
                             <span class="ml-0.5 text-[10px] text-slate-400 font-medium">UV</span>
                         </div>
-                        <div class="text-[10px] text-slate-400 font-medium">오늘 접속 통계</div>
-                    </div>
+                        <div class="text-[10px] text-slate-400 font-medium">오늘 접속 통계 · 자세히 보기</div>
+                    </a>
                 </div>
 
                 <!-- 1.1 현재 운영 중인 과정 (LMS Quick Access) -->

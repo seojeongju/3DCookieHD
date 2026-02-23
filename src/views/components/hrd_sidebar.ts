@@ -62,6 +62,11 @@ export const hrdSidebar = (activeMenu: string, options?: HrdSidebarOptions) => {
             <i class="fas fa-calendar-day w-6 text-lg ${activeMenu === 'schedule' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
             <span class="font-medium text-[14px]">통합 일정 관리</span>
         </a>
+        <a href="/admin/analytics" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'analytics' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
+             ${activeMenu === 'analytics' ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
+            <i class="fas fa-chart-line w-6 text-lg ${activeMenu === 'analytics' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
+            <span class="font-medium text-[14px]">사이트 접속정보</span>
+        </a>
 
         <!-- 교육·과정 (LMS) -->
         <div class="px-3 pt-6 pb-2">

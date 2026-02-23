@@ -37,7 +37,9 @@ import attendance_qr from './api/attendance_qr';
 import upload from './api/upload';
 import partnerUniversities from './api/partner_universities';
 import { setupApi } from './api/setup';
+import analytics from './api/analytics';
 import { adminDashboardHtml } from './views/admin';
+import { adminAnalyticsHtml } from './views/admin_analytics';
 import { adminJobsListHtml } from './views/admin_jobs';
 import { adminJobseekersListHtml } from './views/admin_jobseekers';
 import { jobsListHtml } from './views/jobs';
@@ -279,8 +281,10 @@ app.get('/api/dashboard/website-stats', authMiddleware, requireAdmin, async (c) 
 app.route('/api/consultations', consultations);
 app.route('/api/ncs', ncs);
 app.route('/api/setup', setupApi);
+app.route('/api/analytics', analytics);
 
 app.get('/admin', (c) => c.html(adminDashboardHtml));
+app.get('/admin/analytics', (c) => c.html(adminAnalyticsHtml()));
 app.get('/admin/jobs', (c) => c.html(adminJobsListHtml));
 app.get('/admin/jobseekers', (c) => c.html(adminJobseekersListHtml));
 app.get('/admin/courses', (c) => c.html(adminCoursesMainHtml()));
