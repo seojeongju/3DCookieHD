@@ -126,14 +126,14 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
                             <table class="w-full text-left border-collapse">
                                 <thead>
                                     <tr class="bg-gray-50/50">
-                                        <th class="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">교육 과정 정보</th>
+                                        <th class="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest w-[min(320px,30%)]">교육 과정 정보</th>
                                         <th class="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">상태</th>
-                                        <th class="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">담당 강사</th>
-                                        <th class="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">등록 시험</th>
-                                        <th class="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">응시 인원/전체</th>
-                                        <th class="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">응시율</th>
-                                        <th class="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">평균 점수</th>
-                                        <th class="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">관리</th>
+                                        <th class="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">담당 강사</th>
+                                        <th class="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">등록 시험</th>
+                                        <th class="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">응시 인원/전체</th>
+                                        <th class="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">응시율</th>
+                                        <th class="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">평균 점수</th>
+                                        <th class="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right whitespace-nowrap">관리</th>
                                     </tr>
                                 </thead>
                                 <tbody id="summaryTableBody" class="divide-y divide-gray-50">
@@ -254,23 +254,23 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
             const totalPossible = (c) => (c.exam_count || 0) * (c.student_count || 0) || 0;
             tbody.innerHTML = data.map(c => \`
                 <tr class="hover:bg-indigo-50/30 transition-colors group border-b border-gray-50 last:border-0 shadow-[inset_0_1px_0_0_rgba(255,255,255,1)]">
-                    <td class="px-8 py-5">
-                        <div class="font-black text-gray-800 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">\${c.title || '-'}</div>
+                    <td class="px-8 py-5 min-w-0 max-w-[320px] break-words align-top">
+                        <div class="font-black text-gray-800 group-hover:text-indigo-600 transition-colors uppercase tracking-tight break-words">\${c.title || '-'}</div>
                         <div class="text-[10px] text-gray-400 mt-1 uppercase tracking-widest font-bold">회차 ID: \${c.session_id != null ? c.session_id : '-'}</div>
                     </td>
-                    <td class="px-6 py-5 text-center">
+                    <td class="px-6 py-5 text-center whitespace-nowrap align-top">
                         <span class="px-2.5 py-1 rounded-lg text-xs font-bold ring-1 \${statusClass(c.status)}">\${c.status_label || c.status || '-'}</span>
                     </td>
-                    <td class="px-6 py-5 text-center">
+                    <td class="px-6 py-5 text-center whitespace-nowrap align-top">
                         <span class="text-sm text-slate-600 font-black">\${c.teacher_name || '강사미지정'}</span>
                     </td>
-                    <td class="px-6 py-5 text-center">
+                    <td class="px-6 py-5 text-center whitespace-nowrap align-top">
                         <span class="px-3 py-1 bg-slate-50 text-slate-500 text-xs font-black rounded-lg ring-1 ring-slate-200/50 shadow-sm">\${c.exam_count}건</span>
                     </td>
-                    <td class="px-6 py-5 text-center text-sm font-black text-slate-700">
+                    <td class="px-6 py-5 text-center text-sm font-black text-slate-700 whitespace-nowrap align-top">
                         \${c.total_submissions} / \${totalPossible(c)}
                     </td>
-                    <td class="px-6 py-5 text-center">
+                    <td class="px-6 py-5 text-center whitespace-nowrap align-top">
                         <div class="flex flex-col items-center">
                             <div class="text-[11px] font-black \${(c.participation_rate || 0) >= 80 ? 'text-emerald-500' : (c.participation_rate || 0) >= 40 ? 'text-indigo-500' : 'text-amber-500'} italic font-mono uppercase tracking-tighter">\${c.participation_rate || 0}%</div>
                             <div class="w-16 h-1.5 bg-slate-100/80 rounded-full mt-1.5 overflow-hidden shadow-inner ring-1 ring-white">
@@ -278,10 +278,10 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
                             </div>
                         </div>
                     </td>
-                    <td class="px-6 py-5 text-center">
+                    <td class="px-6 py-5 text-center whitespace-nowrap align-top">
                         <span class="px-3 py-1 rounded-lg bg-slate-50 text-slate-600 text-xs font-black ring-1 ring-slate-200/50 shadow-sm">\${c.avg_score != null ? c.avg_score : 0}점</span>
                     </td>
-                    <td class="px-8 py-5 text-right">
+                    <td class="px-8 py-5 text-right whitespace-nowrap align-top">
                         \${(c.session_id != null) ? '<a href="/admin/courses/' + c.session_id + '/lms/cbt" class="inline-flex items-center px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-700 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm hover:shadow-md active:scale-95 transform whitespace-nowrap">시험 관리 <i class="fas fa-arrow-right ml-2 text-[9px] opacity-50 group-hover:opacity-100"></i></a>' : '<span class="inline-flex items-center px-4 py-2 bg-gray-100 border border-gray-200 rounded-xl text-xs font-medium text-gray-400 cursor-not-allowed whitespace-nowrap">회차 없음</span>'}
                     </td>
                 </tr>
