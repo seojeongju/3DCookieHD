@@ -94,7 +94,7 @@ export const adminHrdGradesHtml = (sidebar = hrdSidebar('grades')) => `
                     <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
                         <div class="relative z-30 px-8 py-6 pb-8 border-b border-gray-50 bg-white/50 backdrop-blur-md space-y-4">
                             <div class="flex flex-wrap justify-between items-center gap-4">
-                                <h3 class="font-black text-gray-800 text-lg uppercase tracking-tight">과정별 성적 분포</h3>
+                                <h3 class="font-black text-gray-800 text-lg uppercase tracking-tight">회차별 성적 분포</h3>
                                 <div class="flex items-center gap-3 flex-wrap">
                                     <select id="sortSelect" onchange="applyFilters()" class="bg-gray-50 border border-gray-200 text-xs font-bold text-gray-600 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none relative z-10">
                                         <option value="name">과정명순</option>
@@ -108,8 +108,8 @@ export const adminHrdGradesHtml = (sidebar = hrdSidebar('grades')) => `
                                     <button onclick="setFilterType('all'); applyFilters();" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all filter-type-btn active bg-white text-indigo-600 shadow-sm" data-filter-type="all">전체</button>
                                     <button onclick="setFilterType('active'); applyFilters();" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all filter-type-btn text-gray-500 hover:text-gray-700" data-filter-type="active">성적집계중</button>
                                 </div>
-                                <select id="statusFilter" onchange="applyFilters()" class="bg-gray-50 border border-gray-200 text-xs font-bold text-gray-600 rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-500/20 outline-none relative z-10" title="과정 상태">
-                                    <option value="all">과정 상태: 전체</option>
+                                <select id="statusFilter" onchange="applyFilters()" class="bg-gray-50 border border-gray-200 text-xs font-bold text-gray-600 rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-500/20 outline-none relative z-10" title="회차 상태">
+                                    <option value="all">회차 상태: 전체</option>
                                     <option value="recruiting">모집중</option>
                                     <option value="in_progress">진행중</option>
                                     <option value="completed">마감</option>
@@ -245,7 +245,7 @@ export const adminHrdGradesHtml = (sidebar = hrdSidebar('grades')) => `
             const tbody = document.getElementById('summaryTableBody');
             if (!tbody) return;
             if (data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" class="px-8 py-20 text-center text-gray-400">조건에 맞는 과정이 없습니다.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" class="px-8 py-20 text-center text-gray-400">조건에 맞는 회차가 없습니다.</td></tr>';
                 return;
             }
             const statusClass = (s) => {

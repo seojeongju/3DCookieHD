@@ -3395,55 +3395,108 @@ app.get('/ncs-eval/summary', authMiddleware, async (c) => {
     }
 });
 
-// 설문 참여 현황 요약 조회 (전체 과정)
+// 설문 참여 현황 요약 조회 — 회차(course_sessions) 기준, 과제/시험/성적관리와 동일 구조
 app.get('/surveys/summary', authMiddleware, async (c) => {
     try {
-        const { results: courses } = await c.env.DB.prepare(`
-            SELECT c.id, c.title, u.name as teacher_name
-            FROM courses c
-            LEFT JOIN users u ON c.teacher_id = u.id
-            WHERE c.status != 'closed'
-        `).all();
+        const statusFilter = (c.req.query('status') || '').toString().toLowerCase().trim();
+        let statusCondition = '';
+        const params: (string | number)[] = [];
+        if (statusFilter && ['recruiting', 'in_progress', 'completed', 'closed', 'always_open'].includes(statusFilter)) {
+            statusCondition = ' AND s.status = ?';
+            params.push(statusFilter);
+        }
+        let sessions: any[] = [];
+        try {
+            const q = c.env.DB.prepare(`
+                SELECT s.id, s.session_number, s.session_name, s.status, s.instructor_name, a.name as course_name, s.lms_course_id
+                FROM course_sessions s
+                JOIN approved_courses a ON s.approved_course_id = a.id
+                WHERE 1=1 ${statusCondition}
+                ORDER BY s.training_start_date DESC, s.id DESC
+            `);
+            const out = params.length > 0 ? await q.bind(...params).all() : await q.all();
+            sessions = out?.results ?? [];
+        } catch (err: any) {
+            console.error('surveys/summary sessions query:', err?.message);
+            return c.json({ success: true, data: [] });
+        }
 
-        const summaryData = await Promise.all(courses.map(async (course: any) => {
-            // 1. 해당 과정의 총 설문 수
-            const surveyStats: any = await c.env.DB.prepare(`
-                SELECT COUNT(*) as survey_count
-                FROM surveys
-                WHERE course_id = ?
-            `).bind(course.id).first();
+        const statusLabels: Record<string, string> = {
+            recruiting: '모집중', in_progress: '진행중', completed: '마감', closed: '종료', always_open: '상시모집'
+        };
 
-            // 2. 전체 응답 수
-            const responseStats: any = await c.env.DB.prepare(`
-                SELECT COUNT(*) as response_count
-                FROM survey_responses r
-                JOIN surveys s ON r.survey_id = s.id
-                WHERE s.course_id = ?
-            `).bind(course.id).first();
+        const summaryData = await Promise.all(sessions.map(async (session: any) => {
+            try {
+                const courseName = (session.course_name || '과정').trim();
+                const sessionNum = session.session_number != null ? String(session.session_number) : '';
+                const sessionNamePart = (session.session_name || '').trim();
+                const title = `${courseName} (${sessionNum ? sessionNum + '회차' : ''}${sessionNamePart ? ' - ' + sessionNamePart : ''})`.replace(/\s*\(\s*\)\s*$/, '').trim() || courseName;
+                let courseId: number | null = (session.lms_course_id != null && session.lms_course_id > 0) ? Number(session.lms_course_id) : null;
+                if (courseId == null && title) {
+                    try {
+                        const row: any = await c.env.DB.prepare('SELECT id FROM courses WHERE TRIM(title) = ? LIMIT 1').bind(title).first();
+                        if (row?.id) courseId = row.id;
+                    } catch (_) {}
+                }
+                if (courseId == null && (courseName || sessionNum)) {
+                    try {
+                        const likePattern = '%' + courseName + '%' + (sessionNum ? sessionNum + '회차' : '') + '%';
+                        const row: any = await c.env.DB.prepare('SELECT id FROM courses WHERE title LIKE ? ORDER BY LENGTH(title) ASC LIMIT 1').bind(likePattern).first();
+                        if (row?.id) courseId = row.id;
+                    } catch (_) {}
+                }
 
-            // 3. 수강생 수
-            const studentStats: any = await c.env.DB.prepare(`
-                SELECT COUNT(*) as student_count
-                FROM enrollments
-                WHERE course_id = ? AND status = 'approved'
-            `).bind(course.id).first();
+                let studentCount = 0, surveyCount = 0, responseCount = 0;
+                try {
+                    const eStat: any = await c.env.DB.prepare(
+                        'SELECT COUNT(*) as student_count FROM course_session_enrollments WHERE session_id = ? AND status IN ("approved", "enrolled")'
+                    ).bind(session.id).first();
+                    studentCount = eStat?.student_count ?? 0;
+                } catch (_) {}
+                if (courseId) {
+                    try {
+                        const sStat: any = await c.env.DB.prepare('SELECT COUNT(*) as survey_count FROM surveys WHERE course_id = ?').bind(courseId).first();
+                        surveyCount = sStat?.survey_count ?? 0;
+                    } catch (_) {}
+                    try {
+                        const rStat: any = await c.env.DB.prepare(`
+                            SELECT COUNT(*) as response_count FROM survey_responses r
+                            JOIN surveys s ON r.survey_id = s.id WHERE s.course_id = ?
+                        `).bind(courseId).first();
+                        responseCount = rStat?.response_count ?? 0;
+                    } catch (_) {}
+                }
+                const participationRate = (surveyCount > 0 && studentCount > 0)
+                    ? Math.min(100, Math.round((responseCount / (surveyCount * studentCount)) * 100))
+                    : 0;
 
-            const surveyCount = surveyStats.survey_count || 0;
-            const studentCount = studentStats.student_count || 0;
-            const responseCount = responseStats.response_count || 0;
-
-            // 참여율 계산: (전체 응답 수) / (설문 수 * 학생 수) * 100
-            const participationRate = (surveyCount > 0 && studentCount > 0)
-                ? Math.round((responseCount / (surveyCount * studentCount)) * 100)
-                : 0;
-
-            return {
-                ...course,
-                survey_count: surveyCount,
-                student_count: studentCount,
-                response_count: responseCount,
-                participation_rate: Math.min(participationRate, 100)
-            };
+                return {
+                    session_id: session.id,
+                    id: session.id,
+                    title,
+                    status: session.status,
+                    status_label: statusLabels[session.status] || session.status || '-',
+                    teacher_name: session.instructor_name || null,
+                    survey_count: surveyCount,
+                    student_count: studentCount,
+                    response_count: responseCount,
+                    participation_rate: participationRate
+                };
+            } catch (rowErr: any) {
+                console.error('surveys/summary row err session.id=' + session?.id, rowErr?.message);
+                return {
+                    session_id: session?.id,
+                    id: session?.id,
+                    title: (session?.course_name || '과정') + ' (오류)',
+                    status: session?.status,
+                    status_label: statusLabels[session?.status] || '-',
+                    teacher_name: session?.instructor_name || null,
+                    survey_count: 0,
+                    student_count: 0,
+                    response_count: 0,
+                    participation_rate: 0
+                };
+            }
         }));
 
         return c.json({ success: true, data: summaryData });
