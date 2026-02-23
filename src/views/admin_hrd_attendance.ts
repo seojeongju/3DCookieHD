@@ -108,17 +108,31 @@ export const adminHrdAttendanceHtml = (sidebar = hrdSidebar('attendance')) => `
                         </div>
                     </div>
 
-                    <!-- 유틸리티 바 (날짜 선택 & 검색) -->
+                    <!-- 유틸리티 바 (날짜 선택 & 과정 상태 필터 & 검색) -->
                     <div class="bg-white rounded-[2rem] shadow-xl shadow-gray-200/30 p-2 lg:p-3 border border-gray-100">
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 lg:gap-4">
-                            <div class="flex items-center p-1.5 lg:p-2 bg-gray-100/50 rounded-2xl flex-1 max-w-sm">
-                                <div class="relative flex-shrink-0">
-                                    <input type="date" id="targetDate" onchange="loadAttendanceSummary()" class="absolute inset-0 opacity-0 cursor-pointer">
-                                    <div class="px-4 py-2 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center space-x-3 group hover:border-primary-300 transition-all">
-                                        <i class="fas fa-calendar-days text-primary-500 text-xs"></i>
-                                        <span id="displayDate" class="text-sm font-black text-gray-700">날짜 선택</span>
-                                        <i class="fas fa-chevron-down text-[10px] text-gray-400"></i>
+                            <div class="flex flex-wrap items-center gap-2 lg:gap-3">
+                                <div class="flex items-center p-1.5 lg:p-2 bg-gray-100/50 rounded-2xl">
+                                    <div class="relative flex-shrink-0">
+                                        <input type="date" id="targetDate" onchange="loadAttendanceSummary()" class="absolute inset-0 opacity-0 cursor-pointer">
+                                        <div class="px-4 py-2 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center space-x-3 group hover:border-primary-300 transition-all">
+                                            <i class="fas fa-calendar-days text-primary-500 text-xs"></i>
+                                            <span id="displayDate" class="text-sm font-black text-gray-700">날짜 선택</span>
+                                            <i class="fas fa-chevron-down text-[10px] text-gray-400"></i>
+                                        </div>
                                     </div>
+                                </div>
+                                <div class="flex items-center bg-gray-100/50 rounded-2xl px-2 py-1.5">
+                                    <i class="fas fa-filter text-gray-400 text-xs mr-2"></i>
+                                    <label for="courseStatusFilter" class="text-[11px] font-bold text-gray-500 uppercase tracking-wider mr-2 hidden sm:inline">과정 상태</label>
+                                    <select id="courseStatusFilter" onchange="loadAttendanceSummary()" class="bg-white border border-gray-100 rounded-xl px-3 py-2 text-sm font-bold text-gray-700 shadow-sm outline-none focus:ring-2 focus:ring-primary-200">
+                                        <option value="all">전체 과정 (마감/진행/모집 등)</option>
+                                        <option value="recruiting">모집중</option>
+                                        <option value="in_progress">진행중</option>
+                                        <option value="always_open">상시모집</option>
+                                        <option value="completed">마감</option>
+                                        <option value="closed">종료</option>
+                                    </select>
                                 </div>
                                 <div class="ml-auto px-4 hidden lg:block border-l border-gray-200">
                                     <span class="text-xs text-gray-400 font-bold uppercase tracking-tighter">모니터링 상태:</span>
@@ -128,10 +142,9 @@ export const adminHrdAttendanceHtml = (sidebar = hrdSidebar('attendance')) => `
                                     </span>
                                 </div>
                             </div>
-                            
                             <div class="flex items-center px-4 py-3 lg:py-4 bg-white border border-gray-100 shadow-inner rounded-2xl w-full sm:w-auto sm:min-w-[320px] focus-within:ring-2 focus-within:ring-primary-100 transition-all group">
                                 <i class="fas fa-search text-gray-400 mr-3 text-sm group-focus-within:text-primary-500 transition-colors"></i>
-                                <input type="text" id="courseSearch" oninput="filterCourses()" placeholder="검색어를 입력하세요 (과정명, 강사명...)" class="bg-transparent border-none outline-none text-sm font-medium w-full text-gray-700 placeholder:text-gray-300">
+                                <input type="text" id="courseSearch" oninput="filterCourses()" placeholder="과정명·강사명 검색 (상태 필터와 함께 사용)" class="bg-transparent border-none outline-none text-sm font-medium w-full text-gray-700 placeholder:text-gray-300">
                             </div>
                         </div>
                     </div>
@@ -143,6 +156,7 @@ export const adminHrdAttendanceHtml = (sidebar = hrdSidebar('attendance')) => `
                                 <thead>
                                     <tr class="bg-gray-50/50 border-b border-gray-100">
                                         <th class="px-8 py-6 text-left text-[11px] font-black text-gray-400 uppercase tracking-[0.1em]">과정 정보</th>
+                                        <th class="px-6 py-6 text-center text-[11px] font-black text-gray-400 uppercase tracking-[0.1em]">상태</th>
                                         <th class="px-6 py-6 text-center text-[11px] font-black text-gray-400 uppercase tracking-[0.1em]">강사명</th>
                                         <th class="px-6 py-6 text-center text-[11px] font-black text-gray-400 uppercase tracking-[0.1em]">등록 인원</th>
                                         <th class="px-6 py-6 text-center text-[11px] font-black text-gray-400 uppercase tracking-[0.1em]">금일 통계</th>
@@ -200,10 +214,12 @@ export const adminHrdAttendanceHtml = (sidebar = hrdSidebar('attendance')) => `
             updateDisplayDate();
             
             const tbody = document.getElementById('summaryTableBody');
-            tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-20 text-center text-gray-400 font-medium"><i class="fas fa-circle-notch fa-spin mr-2"></i> 데이터 로딩 중...</td></tr>';
+            const statusEl = document.getElementById('courseStatusFilter');
+            const courseStatus = statusEl ? statusEl.value : 'all';
+            tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-20 text-center text-gray-400 font-medium"><i class="fas fa-circle-notch fa-spin mr-2"></i> 데이터 로딩 중...</td></tr>';
 
             try {
-                const url = \`/api/hrd/attendance/summary?date=\${date}&page=\${currentPage}&limit=\${itemsPerPage}&search=\${encodeURIComponent(search)}\`;
+                const url = \`/api/hrd/attendance/summary?date=\${date}&page=\${currentPage}&limit=\${itemsPerPage}&search=\${encodeURIComponent(search)}&status=\${encodeURIComponent(courseStatus)}\`;
                 const response = await fetch(url, {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
@@ -213,11 +229,11 @@ export const adminHrdAttendanceHtml = (sidebar = hrdSidebar('attendance')) => `
                     updateStats(result.stats);
                     renderSummaryTable(result.data, result.pagination);
                 } else {
-                    tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-20 text-center text-red-500">데이터 로드 실패: ' + result.error + '</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-20 text-center text-red-500">데이터 로드 실패: ' + result.error + '</td></tr>';
                 }
             } catch (e) {
                 console.error(e);
-                tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-20 text-center text-red-500">오류가 발생했습니다.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-20 text-center text-red-500">오류가 발생했습니다.</td></tr>';
             }
         }
 
@@ -243,7 +259,7 @@ export const adminHrdAttendanceHtml = (sidebar = hrdSidebar('attendance')) => `
             const { total, page, limit, totalPages } = pagination;
             
             if (pageData.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-24 text-center"> <div class="flex flex-col items-center justify-center space-y-3"> <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center text-gray-300"> <i class="fas fa-folder-open text-2xl"></i> </div> <p class="text-sm font-bold text-gray-400">조건에 맞는 과정이 없습니다.</p> <p class="text-[11px] text-gray-300">검색어나 날짜를 확인해 주세요.</p> </div> </td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-24 text-center"> <div class="flex flex-col items-center justify-center space-y-3"> <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center text-gray-300"> <i class="fas fa-folder-open text-2xl"></i> </div> <p class="text-sm font-bold text-gray-400">조건에 맞는 과정이 없습니다.</p> <p class="text-[11px] text-gray-300">검색어, 날짜 또는 과정 상태를 확인해 주세요.</p> </div> </td></tr>';
                 document.getElementById('total-count').textContent = '0';
                 document.getElementById('current-range').textContent = '0-0';
                 document.getElementById('paginationControls').innerHTML = '';
@@ -256,6 +272,13 @@ export const adminHrdAttendanceHtml = (sidebar = hrdSidebar('attendance')) => `
             document.getElementById('total-count').textContent = total;
             document.getElementById('current-range').textContent = \`\${startIndex + 1}-\\u2013\${endIndex}\`;
 
+            function statusBadgeClass(s) {
+                if (s === '모집중') return 'bg-sky-50 text-sky-600 ring-sky-100';
+                if (s === '진행중') return 'bg-emerald-50 text-emerald-600 ring-emerald-100';
+                if (s === '상시모집') return 'bg-amber-50 text-amber-600 ring-amber-100';
+                if (s === '마감' || s === '종료') return 'bg-slate-100 text-slate-600 ring-slate-200';
+                return 'bg-gray-50 text-gray-600 ring-gray-100';
+            }
             tbody.innerHTML = pageData.map(c => \`
                 <tr class="hover:bg-primary-50/30 transition-all duration-300 group cursor-pointer" onclick="location.href='/admin/courses/\${c.id}/lms/attendance?type=\${c.type}'">
                     <td class="px-8 py-7">
@@ -268,9 +291,12 @@ export const adminHrdAttendanceHtml = (sidebar = hrdSidebar('attendance')) => `
                         </div>
                     </td>
                     <td class="px-6 py-7 text-center">
+                        <span class="px-2.5 py-1 rounded-lg text-xs font-bold ring-1 \${statusBadgeClass(c.status_label || '')}">\${c.status_label || '-'}</span>
+                    </td>
+                    <td class="px-6 py-7 text-center">
                         <div class="inline-flex flex-col items-center">
-                            <div class="w-9 h-9 rounded-2xl bg-gray-100 flex items-center justify-center text-xs font-black text-gray-400 group-hover:bg-primary-100 group-hover:text-primary-600 transition-all mb-1.5">\${c.teacher_name.charAt(0)}</div>
-                            <span class="text-xs text-gray-700 font-black">\${c.teacher_name}</span>
+                            <div class="w-9 h-9 rounded-2xl bg-gray-100 flex items-center justify-center text-xs font-black text-gray-400 group-hover:bg-primary-100 group-hover:text-primary-600 transition-all mb-1.5">\${(c.teacher_name || '-').charAt(0)}</div>
+                            <span class="text-xs text-gray-700 font-black">\${c.teacher_name || '-'}</span>
                         </div>
                     </td>
                     <td class="px-6 py-7 text-center">

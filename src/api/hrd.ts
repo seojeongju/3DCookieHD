@@ -1656,29 +1656,32 @@ app.get('/attendance', authMiddleware, async (c) => {
     }
 });
 
-// 전체 과정 출석 요약 정보 조회 (페이지네이션 및 검색 지원)
+// 전체 과정 출석 요약 정보 조회 (페이지네이션, 검색, 과정 상태 필터 지원)
 app.get('/attendance/summary', authMiddleware, async (c) => {
     try {
         const date = c.req.query('date') || new Date().toISOString().split('T')[0];
         const page = Math.max(1, parseInt(c.req.query('page') || '1'));
         const limit = Math.min(100, Math.max(1, parseInt(c.req.query('limit') || '10')));
         const search = c.req.query('search') || '';
+        const statusFilter = (c.req.query('status') || 'all').toLowerCase();
         const offset = (page - 1) * limit;
 
-        // 1. 개설된 과정(회차)만 조회 — 교육과정 관리와 동일한 기준 (course_sessions, recruiting/in_progress/always_open)
         let whereClause = "";
-        let searchParams: any[] = [];
+        const searchParams: (string | number)[] = [];
         if (search) {
-            whereClause = "AND (a.name LIKE ? OR s.instructor_name LIKE ?)";
-            const searchPattern = `%${search}%`;
-            searchParams = [searchPattern, searchPattern];
+            whereClause = " AND (a.name LIKE ? OR s.instructor_name LIKE ?)";
+            searchParams.push(`%${search}%`, `%${search}%`);
+        }
+        if (statusFilter && statusFilter !== 'all' && ['recruiting', 'in_progress', 'completed', 'closed', 'always_open'].includes(statusFilter)) {
+            whereClause += " AND s.status = ?";
+            searchParams.push(statusFilter);
         }
 
         const coursesQuery = `
-            SELECT s.id, (a.name || ' (' || s.session_number || '회차' || CASE WHEN s.session_name IS NOT NULL AND TRIM(s.session_name) <> '' THEN ' - ' || s.session_name ELSE '' END || ')') as title, s.instructor_name as teacher_name, 'hrd' as type, s.created_at
+            SELECT s.id, s.status, (a.name || ' (' || s.session_number || '회차' || CASE WHEN s.session_name IS NOT NULL AND TRIM(s.session_name) <> '' THEN ' - ' || s.session_name ELSE '' END || ')') as title, s.instructor_name as teacher_name, 'hrd' as type, s.created_at
             FROM course_sessions s
             JOIN approved_courses a ON s.approved_course_id = a.id
-            WHERE s.status IN ('recruiting', 'in_progress', 'always_open')
+            WHERE 1=1
             ${whereClause}
             ORDER BY s.training_start_date DESC, s.id DESC
         `;
@@ -1721,6 +1724,8 @@ app.get('/attendance/summary', authMiddleware, async (c) => {
         const { results: hrdStatsResults } = await c.env.DB.prepare(hrdStatsQuery).bind(date).all();
         const hrdStatsMap = new Map((hrdStatsResults || []).map((r: any) => [r.id, r]));
 
+        const statusLabels: Record<string, string> = { recruiting: '모집중', in_progress: '진행중', completed: '마감', closed: '종료', always_open: '상시모집' };
+
         // 3) 결합 및 상세 데이터 구성
         const allSummaryData = (allCourses || []).map((course: any) => {
             const stats = (course.type === 'general' ? generalStatsMap.get(course.id) : hrdStatsMap.get(course.id)) || {
@@ -1741,6 +1746,8 @@ app.get('/attendance/summary', authMiddleware, async (c) => {
             return {
                 id: course.id,
                 title: course.title,
+                status: course.status,
+                status_label: statusLabels[course.status] || course.status || '-',
                 teacher_name: course.teacher_name || '-',
                 total_students: totalStudents,
                 present,
@@ -2349,8 +2356,8 @@ app.get('/training-logs/summary', authMiddleware, async (c) => {
             if (courseId) {
                 const logStats: any = await c.env.DB.prepare(`
                     SELECT COUNT(*) as log_count, COALESCE(SUM(training_hours), 0) as total_hours, MAX(date) as last_log_date
-                    FROM training_logs WHERE course_id = ? AND date LIKE ?
-                `).bind(courseId, `${month}%`).first();
+                    FROM training_logs WHERE course_id = ?
+                `).bind(courseId).first();
                 log_count = logStats?.log_count ?? 0;
                 total_hours = logStats?.total_hours ?? 0;
                 last_log_date = logStats?.last_log_date ?? null;

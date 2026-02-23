@@ -31,14 +31,14 @@ export const adminHrdTrainingLogsHtml = (sidebar = hrdSidebar('training-logs')) 
         <div class="flex-1 flex flex-col overflow-hidden bg-gray-50">
             <!-- 헤더 -->
             <div class="bg-white border-b border-gray-200 flex-shrink-0">
-                <div class="px-8 py-6">
-                    <div class="flex justify-between items-center">
-                        <div>
-                            <h1 class="text-2xl font-bold text-gray-800 tracking-tight">통합 훈련일지 현황</h1>
-                            <p class="text-gray-500 mt-1 text-sm">모든 교육 과정의 훈련일지 작성 및 NCS 이수 현황을 관리합니다.</p>
+                <div class="px-4 sm:px-6 lg:px-8 py-5 lg:py-6">
+                    <div class="flex flex-wrap justify-between items-start sm:items-center gap-3">
+                        <div class="min-w-0">
+                            <h1 class="text-xl sm:text-2xl font-bold text-gray-800 tracking-tight break-words">통합 훈련일지 현황</h1>
+                            <p class="text-gray-500 mt-1 text-sm break-words">모든 교육 과정의 훈련일지 작성 및 NCS 이수 현황을 관리합니다.</p>
                         </div>
-                        <div class="flex items-center gap-3">
-                            <button onclick="loadLogSummary()" class="p-2.5 bg-white border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 hover:text-indigo-600 transition-all shadow-sm">
+                        <div class="flex items-center gap-3 shrink-0">
+                            <button onclick="loadLogSummary()" class="p-2.5 bg-white border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 hover:text-indigo-600 transition-all shadow-sm" title="새로고침">
                                 <i class="fas fa-sync-alt"></i>
                             </button>
                         </div>
@@ -57,7 +57,7 @@ export const adminHrdTrainingLogsHtml = (sidebar = hrdSidebar('training-logs')) 
                                 <i class="fas fa-book-open text-xl"></i>
                             </div>
                             <div>
-                                <div class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">총 작성 일지</div>
+                                <div class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">작성된 전체 일지</div>
                                 <div class="text-2xl font-black text-gray-800" id="stat-total-logs">0</div>
                             </div>
                         </div>
@@ -66,7 +66,7 @@ export const adminHrdTrainingLogsHtml = (sidebar = hrdSidebar('training-logs')) 
                                 <i class="fas fa-history text-xl"></i>
                             </div>
                             <div>
-                                <div class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">이달 합계 시간</div>
+                                <div class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">전체 훈련시간</div>
                                 <div class="text-2xl font-black text-gray-800" id="stat-month-hours">0h</div>
                             </div>
                         </div>
@@ -92,33 +92,33 @@ export const adminHrdTrainingLogsHtml = (sidebar = hrdSidebar('training-logs')) 
 
                     <!-- 필터 및 검색 -->
                     <div class="bg-white rounded-2xl shadow-sm p-5 border border-gray-100">
-                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <div class="flex items-center space-x-3 overflow-x-auto pb-1 md:pb-0 no-scrollbar">
-                                <div class="relative min-w-[140px]">
+                        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                            <div class="flex flex-wrap items-center gap-2 lg:gap-3">
+                                <div class="relative min-w-[130px] shrink-0">
                                     <input type="month" id="targetMonth" onchange="loadLogSummary()" class="w-full pl-10 pr-4 py-2 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-bold text-gray-700 shadow-inner">
                                     <i class="fas fa-calendar absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 text-xs"></i>
                                 </div>
-                                <select id="courseStatusFilter" onchange="loadLogSummary()" class="bg-gray-50 border-none rounded-xl px-4 py-2 text-sm font-bold text-gray-600 outline-none focus:ring-2 focus:ring-indigo-500 shadow-inner" title="과정 상태로 목록 조회">
+                                <select id="courseStatusFilter" onchange="loadLogSummary()" class="bg-gray-50 border-none rounded-xl px-3 py-2 text-sm font-bold text-gray-600 outline-none focus:ring-2 focus:ring-indigo-500 shadow-inner whitespace-nowrap shrink-0" title="과정 상태">
                                     <option value="all">전체 과정</option>
                                     <option value="recruiting">모집중</option>
                                     <option value="in_progress">진행중</option>
                                     <option value="completed">마감</option>
                                     <option value="closed">종료</option>
                                 </select>
-                                <select id="statusFilter" onchange="filterCourses()" class="bg-gray-50 border-none rounded-xl px-4 py-2 text-sm font-bold text-gray-600 outline-none focus:ring-2 focus:ring-indigo-500 shadow-inner">
+                                <select id="statusFilter" onchange="filterCourses()" class="bg-gray-50 border-none rounded-xl px-3 py-2 text-sm font-bold text-gray-600 outline-none focus:ring-2 focus:ring-indigo-500 shadow-inner whitespace-nowrap shrink-0">
                                     <option value="all">전체 현황</option>
-                                    <option value="pending">미작성 과정만</option>
-                                    <option value="active">작성 완료됨</option>
+                                    <option value="pending">미작성만</option>
+                                    <option value="active">작성완료</option>
                                 </select>
-                                <select id="sortBy" onchange="filterCourses()" class="bg-gray-50 border-none rounded-xl px-4 py-2 text-sm font-bold text-gray-600 outline-none focus:ring-2 focus:ring-indigo-500 shadow-inner">
+                                <select id="sortBy" onchange="filterCourses()" class="bg-gray-50 border-none rounded-xl px-3 py-2 text-sm font-bold text-gray-600 outline-none focus:ring-2 focus:ring-indigo-500 shadow-inner whitespace-nowrap shrink-0">
                                     <option value="title">과정명순</option>
                                     <option value="logs">일지많은순</option>
                                     <option value="ncs">이수율높은순</option>
                                 </select>
                             </div>
-                            <div class="flex items-center bg-gray-50 rounded-xl px-3 py-2 w-full md:w-80 shadow-inner group focus-within:ring-2 focus-within:ring-indigo-500 transition-all border border-transparent">
+                            <div class="flex items-center bg-gray-50 rounded-xl px-3 py-2 w-full lg:min-w-[240px] lg:max-w-[320px] shadow-inner group focus-within:ring-2 focus-within:ring-indigo-500 transition-all border border-transparent shrink-0">
                                 <i class="fas fa-search text-gray-400 mr-2 text-sm group-focus-within:text-indigo-500"></i>
-                                <input type="text" id="courseSearch" oninput="filterCourses()" placeholder="과정명 또는 강사명 검색..." class="bg-transparent border-none outline-none text-sm w-full font-medium">
+                                <input type="text" id="courseSearch" oninput="filterCourses()" placeholder="과정명·강사명 검색" class="bg-transparent border-none outline-none text-sm w-full font-medium min-w-0">
                             </div>
                         </div>
                     </div>
@@ -130,13 +130,13 @@ export const adminHrdTrainingLogsHtml = (sidebar = hrdSidebar('training-logs')) 
                                 <thead class="bg-gray-50/50">
                                     <tr>
                                         <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase tracking-wider">과정 정보</th>
-                                        <th class="px-6 py-4 text-center text-[11px] font-bold text-gray-400 uppercase tracking-wider">상태</th>
-                                        <th class="px-6 py-4 text-center text-[11px] font-bold text-gray-400 uppercase tracking-wider">담당 강사</th>
-                                        <th class="px-6 py-4 text-center text-[11px] font-bold text-gray-400 uppercase tracking-wider">이달 일지</th>
-                                        <th class="px-6 py-4 text-center text-[11px] font-bold text-gray-400 uppercase tracking-wider">이달 훈련 시간</th>
-                                        <th class="px-6 py-4 text-center text-[11px] font-bold text-gray-400 uppercase tracking-wider">최근 작성일</th>
-                                        <th class="px-6 py-4 text-center text-[11px] font-bold text-gray-400 uppercase tracking-wider">NCS 이수율</th>
-                                        <th class="px-6 py-4 text-right text-[11px] font-bold text-gray-400 uppercase tracking-wider">관리</th>
+                                        <th class="px-6 py-4 text-center text-[11px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">상태</th>
+                                        <th class="px-6 py-4 text-center text-[11px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">담당 강사</th>
+                                        <th class="px-6 py-4 text-center text-[11px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">작성된 전체 일지</th>
+                                        <th class="px-6 py-4 text-center text-[11px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">전체 훈련시간</th>
+                                        <th class="px-6 py-4 text-center text-[11px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">최근 작성일</th>
+                                        <th class="px-6 py-4 text-center text-[11px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">NCS 이수율</th>
+                                        <th class="px-6 py-4 text-right text-[11px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">관리</th>
                                     </tr>
                                 </thead>
                                 <tbody id="summaryTableBody" class="bg-white divide-y divide-gray-50">
@@ -174,7 +174,7 @@ export const adminHrdTrainingLogsHtml = (sidebar = hrdSidebar('training-logs')) 
                 tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-20 text-center text-gray-400 font-medium"><i class="fas fa-circle-notch fa-spin mr-2"></i> 데이터 로딩 중...</td></tr>';
             }
 
-            const courseStatusEl = document.getElementById('courseStatusFilter') as HTMLSelectElement | null;
+            const courseStatusEl = document.getElementById('courseStatusFilter');
             const courseStatus = courseStatusEl ? courseStatusEl.value : 'all';
             try {
                 const response = await fetch('/api/hrd/training-logs/summary?month=' + encodeURIComponent(month) + '&status=' + encodeURIComponent(courseStatus), {
@@ -254,13 +254,13 @@ export const adminHrdTrainingLogsHtml = (sidebar = hrdSidebar('training-logs')) 
                 return;
             }
 
-            const statusBadgeClass = (s: string) => {
+            function statusBadgeClass(s) {
                 if (s === '모집중') return 'bg-sky-50 text-sky-600 ring-sky-100';
                 if (s === '진행중') return 'bg-emerald-50 text-emerald-600 ring-emerald-100';
                 if (s === '상시모집') return 'bg-amber-50 text-amber-600 ring-amber-100';
                 if (s === '마감' || s === '종료') return 'bg-slate-100 text-slate-600 ring-slate-200';
                 return 'bg-gray-50 text-gray-600 ring-gray-100';
-            };
+            }
             tbody.innerHTML = data.map(c => \`
                 <tr class="hover:bg-indigo-50/30 transition-colors group border-b border-gray-50 last:border-0">
                     <td class="px-6 py-5">
