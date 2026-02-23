@@ -223,43 +223,54 @@ app.get('/integrated', async (c) => {
       }
     }
 
-    // 1.5 진행 중/모집 중 회차 (course_sessions - 운영 중인 과정)
+    // 1.5 진행 중/모집 중/상시모집 회차 (course_sessions - 운영 중인 과정 전체)
     try {
       const { results: sessions } = await DB.prepare(`
         SELECT s.id, s.session_number, s.status, s.training_start_date, s.training_end_date,
+               s.registered_at,
                a.name as course_name
         FROM course_sessions s
         INNER JOIN approved_courses a ON a.id = s.approved_course_id
-        WHERE s.status IN ('in_progress', 'recruiting')
-        AND s.training_start_date IS NOT NULL AND s.training_end_date IS NOT NULL
-        AND (s.training_start_date <= ? AND s.training_end_date >= ?)
+        WHERE s.status IN ('in_progress', 'recruiting', 'always_open')
+        AND (
+          (s.training_start_date IS NOT NULL AND s.training_end_date IS NOT NULL
+           AND s.training_start_date <= ? AND s.training_end_date >= ?)
+          OR
+          (s.training_start_date IS NULL OR s.training_end_date IS NULL)
+        )
       `).bind(queryEndDate, queryStartDate).all<{
         id: number;
         session_number: number | null;
         status: string;
         training_start_date: string | null;
         training_end_date: string | null;
+        registered_at: string | null;
         course_name: string | null;
       }>();
 
       for (const sess of (sessions || [])) {
-        const startDate = (sess.training_start_date || '').substring(0, 10);
-        const endDateRaw = (sess.training_end_date || '').substring(0, 10);
-        if (!startDate || !endDateRaw) continue;
+        let startDate = (sess.training_start_date || '').substring(0, 10);
+        let endDateRaw = (sess.training_end_date || '').substring(0, 10);
+        // 날짜 미정인 경우: 조회 기간 내 하루로 표시 (날짜 미정 과정이 보이도록)
+        if (!startDate || !endDateRaw) {
+          startDate = queryStartDate;
+          endDateRaw = queryStartDate;
+        }
         const endDate = new Date(endDateRaw);
         endDate.setDate(endDate.getDate() + 1);
         const endDateExclusive = endDate.toISOString().substring(0, 10);
         const num = sess.session_number != null ? sess.session_number : 1;
-        const statusLabel = sess.status === 'in_progress' ? '[운영] ' : '[모집] ';
+        const statusLabel = sess.status === 'in_progress' ? '[운영] ' : sess.status === 'always_open' ? '[상시모집] ' : '[모집] ';
         const title = statusLabel + (sess.course_name || '과정') + ` (${num}회차)`;
+        const isAlwaysOpen = sess.status === 'always_open';
         events.push({
           id: `session-${sess.id}`,
           title,
           start: startDate,
           end: endDateExclusive,
           allDay: true,
-          backgroundColor: sess.status === 'in_progress' ? '#059669' : '#6366f1', // emerald-600 / indigo-500
-          borderColor: sess.status === 'in_progress' ? '#047857' : '#4f46e5',
+          backgroundColor: sess.status === 'in_progress' ? '#059669' : isAlwaysOpen ? '#7c3aed' : '#6366f1', // emerald / violet / indigo
+          borderColor: sess.status === 'in_progress' ? '#047857' : isAlwaysOpen ? '#6d28d9' : '#4f46e5',
           textColor: '#ffffff',
           extendedProps: {
             type: 'course',
@@ -270,7 +281,7 @@ app.get('/integrated', async (c) => {
         });
       }
     } catch (e) {
-      console.warn('Course sessions (in_progress) fetch failed:', e);
+      console.warn('Course sessions (in_progress/recruiting/always_open) fetch failed:', e);
     }
 
     // 2. Facilities Reservations (시설 예약)
