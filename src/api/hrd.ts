@@ -832,11 +832,10 @@ app.get('/students/:id', async (c) => {
 
             logs.forEach(log => {
                 if (log.status === 'present') presentCount++;
-                else if (log.status === 'absent') absentCount++;
+                else if (log.status === 'absent' || log.status === 'absent_under_50') absentCount++;
                 else if (log.status === 'late') lateCount++;
                 else if (log.status === 'early_leave') earlyCount++;
-                else if (log.status === 'public_leave') outCount++;
-
+                else if (log.status === 'public_leave' || log.status === 'late_and_early') outCount++;
                 // 단기(시간제) 과정용 분(Minutes) 계산 (입/퇴실 기록 있는 경우)
                 if (!isLongTerm && log.check_in && log.check_out) {
                     const inTime = new Date(`1970-01-01T${log.check_in.substring(0, 5)}:00Z`).getTime();
@@ -2379,6 +2378,11 @@ app.get('/training-logs', async (c) => {
         const startDate = c.req.query('startDate');
         const endDate = c.req.query('endDate');
 
+        const page = parseInt(c.req.query('page') || '1', 10);
+        let limit = parseInt(c.req.query('limit') || '10', 10);
+        if (limit === 0) limit = 1000;
+        const offset = (page - 1) * limit;
+
         if (!courseIdParam) {
             return c.json({ success: true, data: [] });
         }
@@ -2418,10 +2422,21 @@ app.get('/training-logs', async (c) => {
             return c.json({ success: true, data: [] });
         }
 
+        let countQuery = "SELECT COUNT(*) as total FROM training_logs t WHERE t.course_id = ?";
+        const countParams: any[] = [resolvedCourseId];
+        if (startDate && endDate) {
+            countQuery += " AND t.date BETWEEN ? AND ?";
+            countParams.push(startDate, endDate);
+        }
+
+        const countRow: any = await c.env.DB.prepare(countQuery).bind(...countParams).first();
+        const total = countRow?.total || 0;
+
         let query = `
-            SELECT t.*, u.name as ncs_unit_name, u.code as ncs_unit_code
+            SELECT t.*, u.name as ncs_unit_name, u.code as ncs_unit_code, usr.name as instructor_name
             FROM training_logs t
             LEFT JOIN ncs_units u ON t.ncs_unit_id = u.id
+            LEFT JOIN users usr ON t.instructor_id = usr.id
             WHERE t.course_id = ?
         `;
         const params: any[] = [resolvedCourseId];
@@ -2431,10 +2446,21 @@ app.get('/training-logs', async (c) => {
             params.push(startDate, endDate);
         }
 
-        query += " ORDER BY t.date DESC";
+        query += " ORDER BY t.date DESC LIMIT ? OFFSET ?";
+        params.push(limit, offset);
 
         const { results } = await c.env.DB.prepare(query).bind(...params).all();
-        return c.json({ success: true, data: results });
+
+        return c.json({
+            success: true,
+            data: results,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit)
+            }
+        });
     } catch (e: any) {
         console.error('[Training Logs GET] Error:', e);
         return errorResponse(c, '훈련일지 조회 실패: ' + e.message, 500);
@@ -2446,9 +2472,10 @@ app.get('/training-logs/:id', async (c) => {
     try {
         const id = c.req.param('id');
         const result = await c.env.DB.prepare(`
-            SELECT t.*, u.name as ncs_unit_name, u.code as ncs_unit_code
+            SELECT t.*, u.name as ncs_unit_name, u.code as ncs_unit_code, usr.name as instructor_name
             FROM training_logs t
             LEFT JOIN ncs_units u ON t.ncs_unit_id = u.id
+            LEFT JOIN users usr ON t.instructor_id = usr.id
             WHERE t.id = ?
         `).bind(id).first();
         return c.json({ success: true, data: result });

@@ -1,4 +1,4 @@
-
+﻿
 import { lmsHeaderHtml } from './components/lms_header';
 import { hrdSidebar } from './components/hrd_sidebar';
 
@@ -54,12 +54,13 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- 일지 목록 -->
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden overflow-x-auto">
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden overflow-x-auto mb-4">
             <table class="w-full text-left border-collapse min-w-[560px]">
                 <thead class="bg-gray-50/50 border-b">
                     <tr>
                         <th class="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider w-32">일자</th>
                         <th class="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">훈련 주제 및 내용</th>
+                        <th class="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider w-28 text-center">작성자</th>
                         <th class="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider w-20 text-center">시간</th>
                         <th class="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider w-24"></th>
                     </tr>
@@ -69,6 +70,9 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
                 </tbody>
             </table>
         </div>
+        
+        <!-- Pagination Controls -->
+        <div id="paginationControls" class="flex justify-center flex-wrap gap-2 mb-8"></div>
     </div>
 
     <!-- 일지 등록 모달 -->
@@ -87,8 +91,10 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
 
             <form id="logForm" onsubmit="handleSaveLog(event)" class="p-8 space-y-6 overflow-y-auto flex-1 min-h-0 custom-scrollbar bg-white">
                 <input type="hidden" id="logId">
-                
-                <input type="hidden" id="logHours" value="8">
+                <div class="flex items-center gap-4 px-2">
+                     <label class="font-bold text-gray-700 text-sm"><i class="fas fa-clock text-indigo-500 mr-1"></i> 해당일 일지 훈련시간(h)</label>
+                     <input type="number" id="logHours" class="border border-gray-300 rounded-lg px-3 py-1.5 w-24 text-center outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 font-bold transition-all text-gray-700 bg-gray-50 focus:bg-white" value="8" min="1" max="24">
+                </div>
 
             
                 <!-- Paper Form Container (Visual Match to Print) -->
@@ -178,23 +184,31 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
                      </table>
                      <table class="w-full border-collapse border border-gray-800 border-t-0 text-xs text-left">
                         <tr>
-                             <td class="bg-gray-200 border-r border-gray-800 p-2 w-32 text-center font-bold" rowspan="6">특기<br>사항</td>
+                             <td class="bg-gray-200 border-r border-gray-800 p-2 w-32 text-center font-bold" rowspan="8">특기<br>사항</td>
                         </tr>
                         <tr>
                              <td class="bg-gray-50 border-r border-b border-gray-800 p-2 w-24 text-center font-bold">지각자</td>
-                             <td class="border-b border-gray-800 p-0 h-8"><input type="text" id="logListLate" class="w-full h-full px-2 outline-none focus:bg-yellow-50 transition-colors" placeholder="출석 기록 불러오기 버튼 클릭 시 자동 입력됩니다"></td>
+                             <td class="border-b border-gray-800 p-0 h-8"><input type="text" id="logListLate" class="w-full h-full px-2 outline-none focus:bg-yellow-50 transition-colors" placeholder="0명"></td>
                         </tr>
                         <tr>
                              <td class="bg-gray-50 border-r border-b border-gray-800 p-2 w-24 text-center font-bold">결석자</td>
-                             <td class="border-b border-gray-800 p-0 h-8"><input type="text" id="logListAbsent" class="w-full h-full px-2 outline-none focus:bg-red-50 transition-colors" placeholder="출석 기록 불러오기 버튼 클릭 시 자동 입력됩니다"></td>
+                             <td class="border-b border-gray-800 p-0 h-8"><input type="text" id="logListAbsent" class="w-full h-full px-2 outline-none focus:bg-red-50 transition-colors" placeholder="0명"></td>
                         </tr>
                         <tr>
                              <td class="bg-gray-50 border-r border-b border-gray-800 p-2 w-24 text-center font-bold">조퇴자</td>
-                             <td class="border-b border-gray-800 p-0 h-8"><input type="text" id="logListEarly" class="w-full h-full px-2 outline-none focus:bg-orange-50 transition-colors" placeholder="출석 기록 불러오기 버튼 클릭 시 자동 입력됩니다"></td>
+                             <td class="border-b border-gray-800 p-0 h-8"><input type="text" id="logListEarly" class="w-full h-full px-2 outline-none focus:bg-orange-50 transition-colors" placeholder="0명"></td>
                         </tr>
                         <tr>
                              <td class="bg-gray-50 border-r border-b border-gray-800 p-2 w-24 text-center font-bold">공결자</td>
-                             <td class="border-b border-gray-800 p-0 h-8"><input type="text" id="logListPublic" class="w-full h-full px-2 outline-none focus:bg-blue-50 transition-colors" placeholder="출석 기록 불러오기 버튼 클릭 시 자동 입력됩니다"></td>
+                             <td class="border-b border-gray-800 p-0 h-8"><input type="text" id="logListPublic" class="w-full h-full px-2 outline-none focus:bg-blue-50 transition-colors" placeholder="0명"></td>
+                        </tr>
+                        <tr>
+                             <td class="bg-gray-50 border-r border-b border-gray-800 p-2 w-24 text-center font-bold">50%미만결석</td>
+                             <td class="border-b border-gray-800 p-0 h-8"><input type="text" id="logListUnder50" class="w-full h-full px-2 outline-none focus:bg-red-50 transition-colors" placeholder="0명"></td>
+                        </tr>
+                        <tr>
+                             <td class="bg-gray-50 border-r border-b border-gray-800 p-2 w-24 text-center font-bold">지각&조퇴</td>
+                             <td class="border-b border-gray-800 p-0 h-8"><input type="text" id="logListLateEarly" class="w-full h-full px-2 outline-none focus:bg-yellow-50 transition-colors" placeholder="0명"></td>
                         </tr>
                         <tr>
                              <td class="bg-gray-50 border-r border-gray-800 p-2 w-24 text-center font-bold">기타사항</td>
@@ -222,31 +236,24 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
         var user = JSON.parse(localStorage.getItem('user') || '{}');
         var token = localStorage.getItem('token');
         var assignedUnits = [];
+        var globalDailyHours = 8;
+        var currentPage = 1;
 
-        (function() {
-            var openLogModal = function() {
-                var elId = document.getElementById('logId');
-                var elContent = document.getElementById('logContent');
-                var elHours = document.getElementById('logHours');
-                var elDate = document.getElementById('logDate');
-                var elModal = document.getElementById('logModal');
-                if (elId) elId.value = '';
-                if (elContent) elContent.value = '';
-                if (elHours) elHours.value = '8';
-                if (elDate && !elDate.value && elDate.valueAsDate !== undefined) elDate.valueAsDate = new Date();
-                var ids = ['logAttPresent','logAttAbsent','logAttLate','logAttEarly','logInstructions','logListLate','logListAbsent','logListEarly'];
-                for (var i = 0; i < ids.length; i++) { var el = document.getElementById(ids[i]); if (el) el.value = ''; }
-                var elTitle = document.getElementById('modalTitle');
-                if (elTitle) elTitle.textContent = '훈련일지 작성';
-                if (typeof setModalCourseName === 'function') setModalCourseName();
-                if (elModal) elModal.classList.remove('hidden');
-            };
-            var closeLogModal = function() { var m = document.getElementById('logModal'); if (m) m.classList.add('hidden'); };
-            window.openLogModal = openLogModal;
-            window.closeLogModal = closeLogModal;
-        })();
+        // Modal control functions moved to bottom for consistency and to avoid duplicates
 
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const isHrd = urlParams.get('type') === 'hrd' ? '?type=hrd' : '';
+                if (courseId) {
+                   const res = await fetch('/api/courses/' + courseId + isHrd);
+                   const result = await res.json();
+                   if (result.success && result.data && result.data.daily_hours) {
+                       globalDailyHours = result.data.daily_hours;
+                   }
+                }
+            } catch(e) {}
+
             var logDateInput = document.getElementById('logDate');
             if (logDateInput) {
                 logDateInput.valueAsDate = new Date();
@@ -261,7 +268,7 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
 
         async function loadAssignedUnits() {
             try {
-                const res = await fetch(\`/api/ncs/courses/\${courseId}\`);
+                const res = await fetch('/api/ncs/courses/' + courseId);
                 const result = await res.json();
                 if (result.success) {
                     assignedUnits = result.data;
@@ -270,7 +277,7 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
                         assignedUnits.forEach(u => {
                             const opt = document.createElement('option');
                             opt.value = u.ncs_unit_id;
-                            opt.textContent = \`[\${u.code}] \${u.name}\`;
+                            opt.textContent = '[' + u.code + '] ' + u.name;
                             select.appendChild(opt);
                         });
                     }
@@ -291,66 +298,113 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
                 }
 
                 try {
-                    const res = await fetch(\`/api/ncs/units/\${unitId}/elements\`, {
-                        headers: { 'Authorization': 'Bearer ' + token }
+                    const res = await fetch('/api/ncs/units/' + unitId + '/elements', {
+headers: { 'Authorization': 'Bearer ' + token }
                     });
-                    const result = await res.json();
-                    if (result.success && result.data.length > 0) {
-                        picker.classList.remove('hidden');
-                        container.innerHTML = result.data.map(el => \`
-                            <label class="flex items-center gap-3 p-2.5 hover:bg-indigo-50/50 rounded-xl cursor-pointer transition-all border border-transparent hover:border-indigo-100 group">
-                                <input type="checkbox" name="ncs_element" value="\${el.id}" class="w-5 h-5 text-indigo-600 rounded-lg border-gray-200 focus:ring-indigo-500 transition-all">
-                                <div class="text-sm">
-                                    <span class="font-black text-indigo-300 mr-2 uppercase tracking-tighter group-hover:text-indigo-500 transition-all font-mono">\${el.code}</span>
-                                    <span class="text-gray-600 font-bold group-hover:text-indigo-900 transition-all">\${el.name}</span>
-                                </div>
-                            </label>
-                        \`).join('');
-                    } else {
-                        picker.classList.add('hidden');
-                    }
+const result = await res.json();
+if (result.success && result.data.length > 0) {
+    picker.classList.remove('hidden');
+    container.innerHTML = result.data.map(el => 
+                            '<label class="flex items-center gap-3 p-2.5 hover:bg-indigo-50/50 rounded-xl cursor-pointer transition-all border border-transparent hover:border-indigo-100 group">' +
+                                '<input type="checkbox" name="ncs_element" value="' + el.id + '" class="w-5 h-5 text-indigo-600 rounded-lg border-gray-200 focus:ring-indigo-500 transition-all">' +
+                                '<div class="text-sm">' +
+                                    '<span class="font-black text-indigo-300 mr-2 uppercase tracking-tighter group-hover:text-indigo-500 transition-all font-mono">' + el.code + '</span>' +
+                                    '<span class="text-gray-600 font-bold group-hover:text-indigo-900 transition-all">' + el.name + '</span>' +
+                                '</div>' +
+                            '</label>'
+                        ).join('');
+} else {
+    picker.classList.add('hidden');
+}
                 } catch (e) { console.error(e); }
             });
         }
 
-        async function loadLogs() {
-            try {
-                const res = await fetch(\`/api/hrd/training-logs?courseId=\${courseId}\`, {
-                    headers: { 'Authorization': 'Bearer ' + token }
-                });
-                const result = await res.json();
-                if (result.success) {
-                    renderLogs(result.data);
-                    calculateNcsProgress();
-                }
-            } catch (e) { console.error(e); }
+async function loadLogs(page = 1) {
+    currentPage = page;
+    var tbody = document.getElementById('logTableBody');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-24 text-center text-gray-400 font-medium whitespace-pre-line border-dashed border-2 m-4 rounded-3xl bg-gray-50/50">로딩 중...</td></tr>';
+    try {
+        const res = await fetch('/api/hrd/training-logs?courseId=' + courseId + '&page=' + page + '&limit=10', {
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const result = await res.json();
+        if (result.success) {
+            const logs = result.pagination ? result.data : result.data;
+            renderLogs(logs);
+            if (result.pagination) {
+                renderPagination(result.pagination);
+            }
+            calculateNcsProgress();
         }
+    } catch (e) { console.error(e); }
+}
 
-        function renderLogs(logs) {
-            var tbody = document.getElementById('logTableBody');
-            if (!tbody) return;
-            if (!logs || logs.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-24 text-center text-gray-400 font-medium whitespace-pre-line border-dashed border-2 m-4 rounded-3xl bg-gray-50/50">등록된 훈련일지가 없습니다.\\n새로운 일지를 작성해보세요.</td></tr>';
-                return;
+function renderPagination(pagination) {
+    const container = document.getElementById('paginationControls');
+    if (!container) return;
+    if (!pagination || pagination.totalPages <= 1) {
+        container.innerHTML = '';
+        return;
+    }
+    let html = '';
+    let startPage = Math.max(1, pagination.page - 2);
+    let endPage = Math.min(pagination.totalPages, startPage + 4);
+    if (endPage - startPage < 4) startPage = Math.max(1, endPage - 4);
+
+    html += '<button onclick="loadLogs(' + Math.max(1, pagination.page - 1) + ')" ' + (pagination.page === 1 ? 'disabled' : '') + ' class="w-10 h-10 flex items-center justify-center rounded-xl ' + (pagination.page === 1 ? 'text-gray-200 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50 hover:text-indigo-600') + ' transition-all active:scale-90"><i class="fas fa-chevron-left text-[11px]"></i></button>';
+    for (let i = startPage; i <= endPage; i++) {
+        html += '<button onclick="loadLogs(' + i + ')" class="w-10 h-10 flex items-center justify-center rounded-xl text-xs font-black transition-all ' + (pagination.page === i ? 'bg-indigo-600 text-white shadow-md active:scale-95' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600') + '">' + i + '</button>';
+    }
+    html += '<button onclick="loadLogs(' + Math.min(pagination.totalPages, pagination.page + 1) + ')" ' + (pagination.page === pagination.totalPages ? 'disabled' : '') + ' class="w-10 h-10 flex items-center justify-center rounded-xl ' + (pagination.page === pagination.totalPages ? 'text-gray-200 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50 hover:text-indigo-600') + ' transition-all active:scale-90"><i class="fas fa-chevron-right text-[11px]"></i></button>';
+
+    container.innerHTML = html;
+}
+
+function renderLogs(logs) {
+    var tbody = document.getElementById('logTableBody');
+    if (!tbody) return;
+    if (!logs || logs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-24 text-center text-gray-400 font-medium whitespace-pre-line border-dashed border-2 m-4 rounded-3xl bg-gray-50/50">등록된 훈련일지가 없습니다.\\n새로운 일지를 작성해보세요.</td></tr>';
+        return;
+    }
+    var html = '';
+    for (var i = 0; i < logs.length; i++) {
+        var log = logs[i];
+        var tTopic = log.topic;
+        var tContent = log.content;
+
+        try {
+            if (log.schedule_details_json) {
+                var sch = typeof log.schedule_details_json === 'string' ? JSON.parse(log.schedule_details_json) : log.schedule_details_json;
+                var p1 = sch.find(function (s) { return s.period == 1 || s.period === '1'; });
+                if (p1) {
+                    if (!tTopic || tTopic === '-') tTopic = p1.subject;
+                    if (p1.content) tContent = p1.content;
+                }
             }
-            var html = '';
-            for (var i = 0; i < logs.length; i++) {
-                var log = logs[i];
-                var topic = (log.topic || '').replace(/</g, '&lt;').replace(/"/g, '&quot;');
-                var content = (log.content || '-').replace(/</g, '&lt;').replace(/"/g, '&quot;');
-                html += '<tr class="hover:bg-indigo-50/30 transition-all duration-200 group border-b border-gray-50 last:border-0 shadow-[inset_0_1px_0_0_rgba(255,255,255,1)]">' +
-                    '<td class="px-6 py-5 whitespace-nowrap text-[11px] font-black text-indigo-300 uppercase tracking-widest">' + (log.date || '') + '</td>' +
-                    '<td class="px-6 py-5"><div class="font-black text-gray-800 mb-1 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">' + topic + '</div>' +
-                    '<div class="text-xs text-gray-400 truncate max-w-lg font-medium leading-relaxed italic opacity-80 group-hover:opacity-100 transition-all">' + content + '</div></td>' +
-                    '<td class="px-6 py-5 text-center font-black text-slate-700 text-sm">' + (log.training_hours || '') + 'h</td>' +
-                    '<td class="px-6 py-5 text-right"><div class="flex items-center justify-end gap-2.5 transition-all">' +
-                    '<button onclick="printLog(' + log.id + ')" class="w-9 h-9 flex items-center justify-center bg-white border border-gray-100 text-slate-400 hover:text-gray-700 hover:border-gray-300 hover:shadow-md transition-all rounded-xl active:scale-90"><i class="fas fa-print text-xs"></i></button>' +
-                    '<button onclick="editLog(' + log.id + ')" class="w-9 h-9 flex items-center justify-center bg-white border border-gray-100 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 hover:shadow-md transition-all rounded-xl active:scale-90"><i class="fas fa-edit text-xs"></i></button>' +
-                    '<button onclick="deleteLog(' + log.id + ')" class="w-9 h-9 flex items-center justify-center bg-white border border-gray-100 text-slate-400 hover:text-rose-500 hover:border-rose-100 hover:shadow-md transition-all rounded-xl active:scale-90"><i class="fas fa-trash-alt text-xs"></i></button>' +
-                    '</div></td></tr>';
-            }
-            tbody.innerHTML = html;
-        }
+        } catch (e) { }
+
+        var topic = (tTopic || '-').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+        var content = (tContent || '-').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+        var instructor = (log.instructor_name || '미상').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+        var hours = (typeof log.training_hours !== 'undefined' && log.training_hours !== null && log.training_hours > 0) ? log.training_hours : (typeof globalDailyHours !== 'undefined' ? globalDailyHours : 8);
+        // Ensure decimal hours are displayed correctly
+        var displayHours = (typeof hours === 'number') ? hours : parseFloat(hours);
+        html += '<tr class="hover:bg-indigo-50/30 transition-all duration-200 group border-b border-gray-50 last:border-0 shadow-[inset_0_1px_0_0_rgba(255,255,255,1)]">' +
+            '<td class="px-6 py-5 whitespace-nowrap text-[11px] font-black text-indigo-300 uppercase tracking-widest">' + (log.date || '') + '</td>' +
+            '<td class="px-6 py-5"><div class="font-black text-gray-800 mb-1 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">' + topic + '</div>' +
+            '<div class="text-xs text-gray-400 truncate max-w-lg font-medium leading-relaxed italic opacity-80 group-hover:opacity-100 transition-all">' + content + '</div></td>' +
+            '<td class="px-6 py-5 text-center font-bold text-slate-600 text-sm">' + instructor + '</td>' +
+            '<td class="px-6 py-5 text-center font-black text-slate-700 text-sm">' + displayHours + 'h</td>' +
+            '<td class="px-6 py-5 text-right"><div class="flex items-center justify-end gap-2.5 transition-all">' +
+            '<button onclick="printLog(' + log.id + ')" class="w-9 h-9 flex items-center justify-center bg-white border border-gray-100 text-slate-400 hover:text-gray-700 hover:border-gray-300 hover:shadow-md transition-all rounded-xl active:scale-90"><i class="fas fa-print text-xs"></i></button>' +
+            '<button onclick="editLog(' + log.id + ')" class="w-9 h-9 flex items-center justify-center bg-white border border-gray-100 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 hover:shadow-md transition-all rounded-xl active:scale-90"><i class="fas fa-edit text-xs"></i></button>' +
+            '<button onclick="deleteLog(' + log.id + ')" class="w-9 h-9 flex items-center justify-center bg-white border border-gray-100 text-slate-400 hover:text-rose-500 hover:border-rose-100 hover:shadow-md transition-all rounded-xl active:scale-90"><i class="fas fa-trash-alt text-xs"></i></button>' +
+            '</div></td></tr>';
+    }
+    tbody.innerHTML = html;
+}
 
 async function printLog(id) {
     try {
@@ -392,7 +446,10 @@ async function printLog(id) {
         }
 
         const scheduleDetails = log.schedule_details_json ? JSON.parse(log.schedule_details_json) : [];
-        const attendance = log.attendance_summary_json ? JSON.parse(log.attendance_summary_json) : { present: '', absent: '', late: '', early: '' };
+        const attendance = log.attendance_summary_json ? JSON.parse(log.attendance_summary_json) : { 
+            present: '', absent: '', late: '', early: '', 
+            instructions: '', late_list: '', absent_list: '', early_list: '', public_list: '' 
+        };
         const days = ['일', '월', '화', '수', '목', '금', '토'];
         const dayName = days[new Date(log.date).getDay()];
 
@@ -562,20 +619,32 @@ async function printLog(id) {
                             <table class="footer-table">
                                 <tr>
                                     <td class="footer-label-main">지시사항</td>
-                                    <td colspan="2" class="footer-content" style="height: 60px;"></td>
+                                    <td colspan="2" class="footer-content" style="height: 60px;">\${attendance.instructions || ''}</td>
                                 </tr>
                                 <tr>
-                                    <td rowspan="4" class="footer-label-main">특기<br>사항</td>
+                                    <td rowspan="7" class="footer-label-main">특기<br>사항</td>
                                     <td class="footer-label-sub">지각자</td>
-                                    <td class="footer-content" style="height: 30px;"></td>
+                                    <td class="footer-content" style="height: 30px;">\${attendance.late_list || '0명'}</td>
                                 </tr>
                                 <tr>
                                     <td class="footer-label-sub">결석자</td>
-                                    <td class="footer-content" style="height: 30px;"></td>
+                                    <td class="footer-content" style="height: 30px;">\${attendance.absent_list || '0명'}</td>
                                 </tr>
                                 <tr>
                                     <td class="footer-label-sub">조퇴자</td>
-                                    <td class="footer-content" style="height: 30px;"></td>
+                                    <td class="footer-content" style="height: 30px;">\${attendance.early_list || '0명'}</td>
+                                </tr>
+                                <tr>
+                                    <td class="footer-label-sub">공결자</td>
+                                    <td class="footer-content" style="height: 30px;">\${attendance.public_list || '0명'}</td>
+                                </tr>
+                                <tr>
+                                    <td class="footer-label-sub">50%미만결석</td>
+                                    <td class="footer-content" style="height: 30px;">\${attendance.under50_list || '0명'}</td>
+                                </tr>
+                                <tr>
+                                    <td class="footer-label-sub">지각&조퇴</td>
+                                    <td class="footer-content" style="height: 30px;">\${attendance.late_early_list || '0명'}</td>
                                 </tr>
                                 <tr>
                                     <td class="footer-label-sub">기타사항<br><span style="font-weight:normal; font-size:10px;">(전달사항, 외출자 등)</span></td>
@@ -613,7 +682,7 @@ async function printLog(id) {
                 });
                 const result = await res.json();
                 if (result.success) {
-                    loadLogs();
+                    loadLogs(currentPage);
                     calculateNcsProgress();
                 } else {
                     alert('삭제 실패: ' + result.error);
@@ -679,8 +748,6 @@ async function printLog(id) {
         // Schedule Functions (New)
         // --------------------------------------------------------------------------------------------------------------------------------
         // --------------------------------------------------------------------------------------------------------------------------------
-        // Schedule Functions (New)
-        // --------------------------------------------------------------------------------------------------------------------------------
         async function loadDailySchedule() {
             const dateInput = document.getElementById('logDate');
             if (!courseId || !dateInput || !dateInput.value) {
@@ -688,23 +755,42 @@ async function printLog(id) {
                 return;
             }
             
+            // 기존 내용 보존 처리
+            const existingData = [];
+            for (let i = 1; i <= 8; i++) {
+                const subj = document.querySelector('input[name="sch_subject_' + i + '"]');
+                const inst = document.querySelector('input[name="sch_instructor_' + i + '"]');
+                const cont = document.querySelector('input[name="sch_content_' + i + '"]');
+                const note = document.querySelector('input[name="sch_note_' + i + '"]');
+                if (subj || inst || cont || note) {
+                    existingData.push({
+                        period: i,
+                        subject: subj ? subj.value : '',
+                        instructor: inst ? inst.value : '',
+                        content: cont ? cont.value : '',
+                        note: note ? note.value : ''
+                    });
+                }
+            }
+            
             const tbody = document.getElementById('scheduleTableBody');
             if(tbody) tbody.innerHTML = '<tr><td colspan="5" class="py-10 text-center text-gray-400 font-bold animate-pulse">시간표 불러오는 중...</td></tr>';
 
             try {
-                const res = await fetch(\`/api/hrd/training-logs/daily-schedule?courseId=\${courseId}&date=\${dateInput.value}\`, {
+                const res = await fetch('/api/hrd/training-logs/daily-schedule?courseId=' + courseId + '&date=' + dateInput.value, {
                      headers: { 'Authorization': 'Bearer ' + token }
                 });
                 const result = await res.json();
                 if (result.success) {
-                    const existingData = null; 
-                    renderScheduleTable(result.data, existingData);
+                    renderScheduleTable(result.data, existingData.length > 0 ? existingData : null);
                 } else {
                      if(tbody) tbody.innerHTML = '<tr><td colspan="5" class="py-10 text-center text-rose-400 font-bold">시간표 조회 실패</td></tr>';
+                     setTimeout(function() { renderScheduleTable(null, existingData.length > 0 ? existingData : null); }, 1000);
                 }
             } catch (e) {
                 console.error(e);
                 if(tbody) tbody.innerHTML = '<tr><td colspan="5" class="py-10 text-center text-rose-400 font-bold">오류 발생</td></tr>';
+                setTimeout(function() { renderScheduleTable(null, existingData.length > 0 ? existingData : null); }, 1000);
             }
         }
 
@@ -724,7 +810,7 @@ async function printLog(id) {
                 const urlParams = new URLSearchParams(window.location.search);
                 const isHrd = urlParams.get('type') === 'hrd' ? '&type=hrd' : '';
                 const dateVal = dateInput.value;
-                const res = await fetch(\`/api/courses/\${courseId}/attendance?date=\${dateVal}\${isHrd}\`, {
+                const res = await fetch('/api/courses/' + courseId + '/attendance?date=' + dateVal + isHrd, {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
                 const result = await res.json();
@@ -739,8 +825,8 @@ async function printLog(id) {
                         enrollEl.classList.add('text-indigo-700', 'font-black');
                     }
                     
-                    let p = 0, a = 0, l = 0, e = 0, pu = 0;
-                    let lateList = [], absentList = [], earlyList = [], publicList = [];
+                    let p = 0, a = 0, l = 0, e = 0, pu = 0, u50 = 0, le = 0;
+                    let lateList = [], absentList = [], earlyList = [], publicList = [], under50List = [], lateEarlyList = [];
                     
                     students.forEach(s => {
                         const st = s.status || 'present';
@@ -750,17 +836,21 @@ async function printLog(id) {
                         else if (st === 'late') { l++; lateList.push(s.name); }
                         else if (st === 'early_leave') { e++; earlyList.push(s.name); }
                         else if (st === 'public_leave') { pu++; publicList.push(s.name); }
+                        else if (st === 'absent_under_50') { u50++; under50List.push(s.name); }
+                        else if (st === 'late_and_early') { le++; lateEarlyList.push(s.name); }
                     });
                     
                     const elP = document.getElementById('logAttPresent'); if (elP) { elP.value = p; flashField(elP); }
-                    const elA = document.getElementById('logAttAbsent'); if (elA) { elA.value = a; flashField(elA); }
+                    const elA = document.getElementById('logAttAbsent'); if (elA) { elA.value = a + u50; flashField(elA); }
                     const elL = document.getElementById('logAttLate');   if (elL) { elL.value = l; flashField(elL); }
                     const elE = document.getElementById('logAttEarly');  if (elE) { elE.value = e; flashField(elE); }
                     
-                    const lstL = document.getElementById('logListLate');   if (lstL) { lstL.value = lateList.join(', ');   flashField(lstL); }
-                    const lstA = document.getElementById('logListAbsent'); if (lstA) { lstA.value = absentList.join(', '); flashField(lstA); }
-                    const lstE = document.getElementById('logListEarly');  if (lstE) { lstE.value = earlyList.join(', ');  flashField(lstE); }
-                    const lstP = document.getElementById('logListPublic'); if (lstP) { lstP.value = publicList.join(', '); flashField(lstP); }
+                    const lstL = document.getElementById('logListLate');   if (lstL) { lstL.value = lateList.length > 0 ? lateList.join(', ') : '0명'; flashField(lstL); }
+                    const lstA = document.getElementById('logListAbsent'); if (lstA) { lstA.value = absentList.length > 0 ? absentList.join(', ') : '0명'; flashField(lstA); }
+                    const lstE = document.getElementById('logListEarly');  if (lstE) { lstE.value = earlyList.length > 0 ? earlyList.join(', ') : '0명'; flashField(lstE); }
+                    const lstP = document.getElementById('logListPublic'); if (lstP) { lstP.value = publicList.length > 0 ? publicList.join(', ') : '0명'; flashField(lstP); }
+                    const lstU = document.getElementById('logListUnder50'); if (lstU) { lstU.value = under50List.length > 0 ? under50List.join(', ') : '0명'; flashField(lstU); }
+                    const lstLE = document.getElementById('logListLateEarly'); if (lstLE) { lstLE.value = lateEarlyList.length > 0 ? lateEarlyList.join(', ') : '0명'; flashField(lstLE); }
 
                     showToast('\u2705 \ucd9c\uc11d\uae30\ub85d \ubc18\uc601 \uc644\ub8cc (' + dateVal + ') \u2014 \uc7ac\uc801 ' + students.length + '\uba85 / \ucd9c ' + p + ' / \uacb0 ' + a + ' / \uc9c0\uac01 ' + l + ' / \uc870\ud1f4 ' + e + ' / \uacf5\uacb0 ' + pu, 'success');
                 }
@@ -798,23 +888,21 @@ async function printLog(id) {
             
             let html = '';
             for (let i = 1; i <= 8; i++) {
-                const saved = savedDetails ? savedDetails.find(s => s.period === i) : null;
-                const dbSch = dbSchedules ? dbSchedules.find(s => s.period_number === i) : null;
+                const saved = savedDetails ? savedDetails.find(s => s.period === i || s.period === String(i)) : null;
+                const dbSch = dbSchedules ? dbSchedules.find(s => s.period_number === i || s.period_number === String(i)) : null;
 
-                const subject = saved ? saved.subject : (dbSch ? dbSch.subject_name : '');
-                const instructor = saved ? saved.instructor : (dbSch ? dbSch.instructor_name : '');
+                const subject = (dbSch && dbSch.subject_name) ? dbSch.subject_name : (saved ? saved.subject : '');
+                const instructor = (dbSch && dbSch.instructor_name) ? dbSch.instructor_name : (saved ? saved.instructor : '');
                 const content = saved ? saved.content : '';
                 const note = saved ? saved.note : '';
                 
-                html += \`
-                    <tr class="hover:bg-indigo-50/30 transition-colors group">
-                        <td class="px-2 py-2 text-center border-r font-black text-gray-400 bg-gray-50/50">\${i}교시</td>
-                        <td class="px-2 py-2 border-r"><input type="text" name="sch_subject_\${i}" value="\${subject || ''}" class="w-full px-3 py-2 border border-gray-200 rounded-md text-sm font-bold text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all placeholder-gray-300" placeholder="교과목"></td>
-                        <td class="px-2 py-2 border-r"><input type="text" name="sch_instructor_\${i}" value="\${instructor || ''}" class="w-full px-3 py-2 border border-gray-200 rounded-md text-center text-sm font-medium text-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all placeholder-gray-300" placeholder="담당교사"></td>
-                        <td class="px-2 py-2 border-r"><input type="text" name="sch_content_\${i}" value="\${content || ''}" class="w-full px-3 py-2 border border-gray-200 rounded-md text-sm text-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all placeholder-gray-300" placeholder="훈련내용을 입력하세요"></td>
-                        <td class="px-2 py-2"><input type="text" name="sch_note_\${i}" value="\${note || ''}" class="w-full px-3 py-2 border border-gray-200 rounded-md text-sm text-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all placeholder-gray-300" placeholder="비고"></td>
-                    </tr>
-                \`;
+                html += '<tr class="hover:bg-indigo-50/30 transition-colors group">' +
+                        '<td class="px-2 py-2 text-center border-r font-black text-gray-400 bg-gray-50/50">' + i + '교시</td>' +
+                        '<td class="px-2 py-2 border-r"><input type="text" name="sch_subject_' + i + '" value="' + (subject || '') + '" class="w-full px-3 py-2 border border-gray-200 rounded-md text-sm font-bold text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all placeholder-gray-300" placeholder="교과목"></td>' +
+                        '<td class="px-2 py-2 border-r"><input type="text" name="sch_instructor_' + i + '" value="' + (instructor || '') + '" class="w-full px-3 py-2 border border-gray-200 rounded-md text-center text-sm font-medium text-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all placeholder-gray-300" placeholder="담당교사"></td>' +
+                        '<td class="px-2 py-2 border-r"><input type="text" name="sch_content_' + i + '" value="' + (content || '') + '" class="w-full px-3 py-2 border border-gray-200 rounded-md text-sm text-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all placeholder-gray-300" placeholder="훈련내용을 입력하세요"></td>' +
+                        '<td class="px-2 py-2"><input type="text" name="sch_note_' + i + '" value="' + (note || '') + '" class="w-full px-3 py-2 border border-gray-200 rounded-md text-sm text-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all placeholder-gray-300" placeholder="비고"></td>' +
+                    '</tr>';
             }
             tbody.innerHTML = html;
         }
@@ -833,12 +921,12 @@ async function printLog(id) {
             // 초기화
             if (elId) elId.value = '';
             if (elContent) elContent.value = '';
-            if (elHours) elHours.value = '8';
+            if (elHours) elHours.value = globalDailyHours;
             if (elDate && !elDate.value) elDate.valueAsDate = new Date();
             
             // New Fields Reset
             ['logAttPresent', 'logAttAbsent', 'logAttLate', 'logAttEarly', 
-             'logInstructions', 'logListLate', 'logListAbsent', 'logListEarly'].forEach(id => {
+             'logInstructions', 'logListLate', 'logListAbsent', 'logListEarly', 'logListPublic', 'logListUnder50', 'logListLateEarly'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';
             });
@@ -896,7 +984,8 @@ async function printLog(id) {
             // Populate New Attendance Fields
             const fieldMap = {
                 present: 'logAttPresent', absent: 'logAttAbsent', late: 'logAttLate', early: 'logAttEarly',
-                instructions: 'logInstructions', late_list: 'logListLate', absent_list: 'logListAbsent', early_list: 'logListEarly'
+                instructions: 'logInstructions', late_list: 'logListLate', absent_list: 'logListAbsent', early_list: 'logListEarly',
+                public_list: 'logListPublic', under50_list: 'logListUnder50', late_early_list: 'logListLateEarly'
             };
             
             if (log.attendance_summary_json) {
@@ -959,6 +1048,9 @@ async function printLog(id) {
             var logListLate = document.getElementById('logListLate');
             var logListAbsent = document.getElementById('logListAbsent');
             var logListEarly = document.getElementById('logListEarly');
+            var logListPublic = document.getElementById('logListPublic');
+            var logListUnder50 = document.getElementById('logListUnder50');
+            var logListLateEarly = document.getElementById('logListLateEarly');
             var attSummary = {
                 present: (logAttPresent && logAttPresent.value) || '',
                 absent: (logAttAbsent && logAttAbsent.value) || '',
@@ -967,7 +1059,10 @@ async function printLog(id) {
                 instructions: (logInstructions && logInstructions.value) || '',
                 late_list: (logListLate && logListLate.value) || '',
                 absent_list: (logListAbsent && logListAbsent.value) || '',
-                early_list: (logListEarly && logListEarly.value) || ''
+                early_list: (logListEarly && logListEarly.value) || '',
+                public_list: (logListPublic && logListPublic.value) || '',
+                under50_list: (logListUnder50 && logListUnder50.value) || '',
+                late_early_list: (logListLateEarly && logListLateEarly.value) || ''
             };
 
             // 시간표 데이터 수집 (ES5-safe: no optional chaining, no template literal in emitted script)
@@ -992,16 +1087,22 @@ async function printLog(id) {
                 }
             }
 
+            var p1Subject = '-';
+            if (scheduleDetails.length > 0) {
+                var p1 = scheduleDetails.find(function(s) { return s.period == 1 || s.period === '1'; });
+                if (p1 && p1.subject) p1Subject = p1.subject;
+            }
+
             var data = {
                 id: idVal ? parseInt(idVal) : null,
                 course_id: parseInt(courseId),
                 instructor_id: user.id || null,
                 date: dateVal,
-                topic: '-',
+                topic: p1Subject,
                 content: contentVal,
                 teaching_method: '주입식/실습', 
                 ncs_unit_id: null,
-                training_hours: parseInt(hoursVal),
+                training_hours: parseFloat(hoursVal) || 0,
                 ncs_elements_json: null,
                 schedule_details_json: JSON.stringify(scheduleDetails),
                 attendance_summary_json: JSON.stringify(attSummary)
@@ -1020,7 +1121,7 @@ async function printLog(id) {
                 if (result.success) {
                     alert(result.message);
                     closeLogModal();
-                    loadLogs();
+                    loadLogs(currentPage);
                 } else {
                     alert('저장 실패: ' + result.error);
                 }

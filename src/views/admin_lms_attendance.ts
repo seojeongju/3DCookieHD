@@ -51,26 +51,34 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
                 </div>
 
                 <!-- Stats Summary -->
-                <div class="grid grid-cols-2 md:grid-cols-5 gap-4 p-6 bg-gray-50/50">
-                    <div class="bg-white p-4 rounded-xl border border-gray-100 text-center">
-                        <div class="text-xs text-gray-400 font-bold mb-1 uppercase tracking-wider">출석</div>
-                        <div class="text-xl font-bold text-green-600" id="countPresent">0</div>
+                <div class="grid grid-cols-3 md:grid-cols-7 gap-2 md:gap-4 p-6 bg-gray-50/50">
+                    <div class="bg-white p-3 rounded-xl border border-gray-100 text-center">
+                        <div class="text-[10px] md:text-xs text-gray-400 font-bold mb-1 uppercase tracking-wider">출석</div>
+                        <div class="text-lg md:text-xl font-bold text-green-600" id="countPresent">0</div>
                     </div>
-                    <div class="bg-white p-4 rounded-xl border border-gray-100 text-center">
-                        <div class="text-xs text-gray-400 font-bold mb-1 uppercase tracking-wider">지각</div>
-                        <div class="text-xl font-bold text-yellow-600" id="countLate">0</div>
+                    <div class="bg-white p-3 rounded-xl border border-gray-100 text-center">
+                        <div class="text-[10px] md:text-xs text-gray-400 font-bold mb-1 uppercase tracking-wider">지각</div>
+                        <div class="text-lg md:text-xl font-bold text-yellow-600" id="countLate">0</div>
                     </div>
-                    <div class="bg-white p-4 rounded-xl border border-gray-100 text-center">
-                        <div class="text-xs text-gray-400 font-bold mb-1 uppercase tracking-wider">조퇴</div>
-                        <div class="text-xl font-bold text-orange-600" id="countEarly">0</div>
+                    <div class="bg-white p-3 rounded-xl border border-gray-100 text-center">
+                        <div class="text-[10px] md:text-xs text-gray-400 font-bold mb-1 uppercase tracking-wider">조퇴</div>
+                        <div class="text-lg md:text-xl font-bold text-orange-600" id="countEarly">0</div>
                     </div>
-                    <div class="bg-white p-4 rounded-xl border border-gray-100 text-center">
-                        <div class="text-xs text-gray-400 font-bold mb-1 uppercase tracking-wider">결석</div>
-                        <div class="text-xl font-bold text-red-600" id="countAbsent">0</div>
+                    <div class="bg-white p-3 rounded-xl border border-gray-100 text-center">
+                        <div class="text-[10px] md:text-xs text-gray-400 font-bold mb-1 uppercase tracking-wider">결석</div>
+                        <div class="text-lg md:text-xl font-bold text-red-600" id="countAbsent">0</div>
                     </div>
-                    <div class="bg-white p-4 rounded-xl border border-gray-100 text-center">
-                        <div class="text-xs text-gray-400 font-bold mb-1 uppercase tracking-wider">공결</div>
-                        <div class="text-xl font-bold text-blue-600" id="countPublic">0</div>
+                    <div class="bg-white p-3 rounded-xl border border-gray-100 text-center">
+                        <div class="text-[10px] md:text-xs text-gray-400 font-bold mb-1 uppercase tracking-wider">공가</div>
+                        <div class="text-lg md:text-xl font-bold text-blue-600" id="countPublic">0</div>
+                    </div>
+                    <div class="bg-white p-3 rounded-xl border border-gray-100 text-center">
+                        <div class="text-[10px] md:text-xs text-gray-400 font-bold mb-1 uppercase tracking-wider">50%미만</div>
+                        <div class="text-lg md:text-xl font-bold text-red-700" id="countAbsentUnder50">0</div>
+                    </div>
+                    <div class="bg-white p-3 rounded-xl border border-gray-100 text-center">
+                        <div class="text-[10px] md:text-xs text-gray-400 font-bold mb-1 uppercase tracking-wider">지각&조퇴</div>
+                        <div class="text-lg md:text-xl font-bold text-orange-700" id="countLateEarly">0</div>
                     </div>
                 </div>
 
@@ -245,12 +253,14 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
                         <input type="time" value="\${student.check_out || ''}" class="border rounded px-2 py-1 text-sm focus:ring-purple-500 focus:border-purple-500" onchange="updateStudentData(\${index}, 'check_out', this.value)">
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-center">
-                        <select class="border rounded px-2 py-1 text-sm focus:ring-purple-500 focus:border-purple-500 \${getStatusColor(student.status)}" onchange="updateStudentData(\${index}, 'status', this.value)">
+                        <select onchange="updateStudentData(\${index}, 'status', this.value)" class="border rounded-xl px-3 py-1.5 text-sm font-bold bg-white focus:ring-2 focus:ring-purple-500 outline-none transition-all \${getStatusColor(student.status)}">
                             <option value="present" \${student.status === 'present' ? 'selected' : ''}>출석</option>
                             <option value="late" \${student.status === 'late' ? 'selected' : ''}>지각</option>
                             <option value="early_leave" \${student.status === 'early_leave' ? 'selected' : ''}>조퇴</option>
                             <option value="absent" \${student.status === 'absent' ? 'selected' : ''}>결석</option>
-                            <option value="public_leave" \${student.status === 'public_leave' ? 'selected' : ''}>공결</option>
+                            <option value="public_leave" \${student.status === 'public_leave' ? 'selected' : ''}>공가</option>
+                            <option value="absent_under_50" \${student.status === 'absent_under_50' ? 'selected' : ''}>50%미만결석</option>
+                            <option value="late_and_early" \${student.status === 'late_and_early' ? 'selected' : ''}>지각&조퇴</option>
                         </select>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
@@ -268,6 +278,8 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
                 case 'early_leave': return 'text-orange-600 font-bold';
                 case 'absent': return 'text-red-600 font-bold';
                 case 'public_leave': return 'text-gray-600 font-bold';
+                case 'absent_under_50': return 'text-red-700 font-bold';
+                case 'late_and_early': return 'text-orange-700 font-bold';
                 default: return '';
             }
         }
@@ -282,7 +294,7 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
 
         function updateStats() {
             const counts = {
-                present: 0, late: 0, early_leave: 0, absent: 0, public_leave: 0
+                present: 0, late: 0, early_leave: 0, absent: 0, public_leave: 0, absent_under_50: 0, late_and_early: 0
             };
             
             students.forEach(s => {
@@ -294,6 +306,8 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
             document.getElementById('countEarly').textContent = counts.early_leave;
             document.getElementById('countAbsent').textContent = counts.absent;
             document.getElementById('countPublic').textContent = counts.public_leave;
+            document.getElementById('countAbsentUnder50').textContent = counts.absent_under_50;
+            document.getElementById('countLateEarly').textContent = counts.late_and_early;
         }
 
         async function saveAttendance() {

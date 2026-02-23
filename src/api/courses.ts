@@ -264,6 +264,7 @@ courses.get('/:id', async (c) => {
             s.*,
             a.name as approved_course_name,
             a.instructor_name as approved_instructor_name,
+            a.daily_hours,
             cat.name as category_name
           FROM course_sessions s
           LEFT JOIN approved_courses a ON s.approved_course_id = a.id
@@ -278,6 +279,7 @@ courses.get('/:id', async (c) => {
               s.*,
               a.name as approved_course_name,
               a.instructor_name as approved_instructor_name,
+              a.daily_hours,
               cat.name as category_name
             FROM course_sessions s
             LEFT JOIN approved_courses a ON s.approved_course_id = a.id
@@ -817,10 +819,10 @@ courses.get('/:id/attendance', async (c) => {
 
         sLogs.forEach(l => {
           if (l.status === 'present') presentCount++;
-          else if (l.status === 'absent') absentCount++;
+          else if (l.status === 'absent' || l.status === 'absent_under_50') absentCount++;
           else if (l.status === 'late') lateCount++;
           else if (l.status === 'early_leave') earlyCount++;
-          else if (l.status === 'public_leave') outCount++;
+          else if (l.status === 'public_leave' || l.status === 'late_and_early') outCount++;
 
           if (!isLongTerm && l.check_in && l.check_out) {
             const inTime = new Date(`1970-01-01T${l.check_in.substring(0, 5)}:00Z`).getTime();
