@@ -645,7 +645,7 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
                     <td class="px-8 py-5">
                         <div class="flex items-center gap-4">
                             <div class="w-12 h-12 rounded-2xl overflow-hidden border-2 border-white shadow-sm flex-shrink-0 bg-white group-hover:scale-105 transition-transform">
-                                <img src="\${s.profile_image || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(s.name)}" class="w-full h-full object-cover">
+                                <img src="\${s.profile_image || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(s.name)}" data-fallback="https://ui-avatars.com/api/?name=\${encodeURIComponent(s.name || '')}" onerror="this.onerror=null;this.src=this.dataset.fallback||''" class="w-full h-full object-cover">
                             </div>
                             <div>
                                 <h4 class="text-sm font-bold text-gray-900">\${s.name}</h4>
@@ -1004,27 +1004,26 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
             }
         }
 
-        function handleStdImage(input) {
-            if(!input.files || !input.files[0]) return;
-            const file = input.files[0];
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = function(e) {
-                const img = new Image();
-                img.src = e.target.result;
-                img.onload = function() {
-                    const canvas = document.createElement('canvas');
-                    let width = img.width, height = img.height;
-                    if (width > height) { if (width > 400) { height *= 400/width; width = 400; } }
-                    else { if (height > 400) { width *= 400/height; height = 400; } }
-                    canvas.width = width; canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-                    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-                    document.getElementById('stdProfileImage').value = dataUrl;
-                    document.getElementById('modalStdImage').src = dataUrl;
+        async function handleStdImage(input) {
+            if (!input.files || !input.files[0]) return;
+            const token = localStorage.getItem('token');
+            if (!token) { alert('로그인이 필요합니다.'); return; }
+            const fd = new FormData();
+            fd.append('file', input.files[0]);
+            fd.append('category', 'profile');
+            try {
+                const res = await fetch('/api/upload', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token }, body: fd });
+                const result = await res.json();
+                if (result && result.success && result.data && result.data.url) {
+                    document.getElementById('stdProfileImage').value = result.data.url;
+                    document.getElementById('modalStdImage').src = result.data.url;
+                } else {
+                    alert(result && result.error ? result.error : '사진 업로드에 실패했습니다.');
                 }
+            } catch (e) {
+                alert('사진 업로드 중 오류가 발생했습니다.');
             }
+            input.value = '';
         }
 
         // ========== 신규 훈련생 등록 모달 함수 ==========

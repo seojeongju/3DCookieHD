@@ -584,25 +584,30 @@
     window.handleStdImage = function (input) {
         if (!input.files || !input.files[0]) return;
         var file = input.files[0];
-        var reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = function (e) {
-            var img = new Image();
-            img.src = e.target.result;
-            img.onload = function () {
-                var canvas = document.createElement('canvas');
-                var width = img.width, height = img.height;
-                if (width > height) { if (width > 400) { height *= 400 / width; width = 400; } }
-                else { if (height > 400) { width *= 400 / height; height = 400; } }
-                canvas.width = width;
-                canvas.height = height;
-                var ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
-                var dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-                document.getElementById('stdProfileImage').value = dataUrl;
-                document.getElementById('modalStdImage').src = dataUrl;
-            };
-        };
+        var token = localStorage.getItem('token');
+        if (!token) { alert('로그인이 필요합니다.'); redirectToLogin(); return; }
+        var fd = new FormData();
+        fd.append('file', file);
+        fd.append('category', 'profile');
+        fetch('/api/upload', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + token },
+            body: fd
+        })
+            .then(handleAuthResponse)
+            .then(function (result) {
+                if (result && result.success && result.data && result.data.url) {
+                    document.getElementById('stdProfileImage').value = result.data.url;
+                    document.getElementById('modalStdImage').src = result.data.url;
+                } else {
+                    alert(result && result.error ? result.error : '사진 업로드에 실패했습니다.');
+                }
+            })
+            .catch(function (e) {
+                if (e && e.message === 'UNAUTHORIZED') return;
+                alert('사진 업로드 중 오류가 발생했습니다.');
+            });
+        input.value = '';
     };
 
     document.addEventListener('DOMContentLoaded', function () {
