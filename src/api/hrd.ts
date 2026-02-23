@@ -2923,16 +2923,26 @@ app.delete('/training-logs/:id', async (c) => {
     }
 });
 
-// 과제 제출 현황 요약 조회 (전체 과정)
+// 과제 제출 현황 요약 조회 (전체 과정 - 마감/진행중/모집중 등 모두)
 app.get('/assignments/summary', authMiddleware, async (c) => {
     try {
-        // 1. 모든 운영 중인 과정 및 기본 정보 조회
-        const { results: courses } = await c.env.DB.prepare(`
-            SELECT c.id, c.title, u.name as teacher_name
+        const statusFilter = (c.req.query('status') || 'all').toLowerCase();
+        let statusCondition = '';
+        const params: (string | number)[] = [];
+        if (statusFilter && statusFilter !== 'all' && ['active', 'open', 'closed', 'full', 'recruiting', 'in_progress', 'completed', 'upcoming', 'always_open'].includes(statusFilter)) {
+            statusCondition = ' AND c.status = ?';
+            params.push(statusFilter);
+        }
+        const query = `
+            SELECT c.id, c.title, c.status, u.name as teacher_name
             FROM courses c
             LEFT JOIN users u ON c.teacher_id = u.id
-            WHERE c.status != 'closed'
-        `).all();
+            WHERE 1=1 ${statusCondition}
+            ORDER BY c.updated_at DESC, c.id DESC
+        `;
+        const stmt = params.length > 0 ? c.env.DB.prepare(query).bind(...params) : c.env.DB.prepare(query);
+        const { results } = await stmt.all();
+        const courses = results ?? [];
 
         const summaryData = await Promise.all(courses.map(async (course: any) => {
             // 해당 과정의 전체 과제 수
@@ -2968,8 +2978,14 @@ app.get('/assignments/summary', authMiddleware, async (c) => {
                 ? Math.round((totalSubmissions / (assignmentCount * studentCount)) * 100)
                 : 0;
 
+            const statusLabels: Record<string, string> = {
+                active: '진행중', open: '모집중', recruiting: '모집중', in_progress: '진행중',
+                completed: '마감', closed: '종료', full: '정원마감', upcoming: '예정', always_open: '상시모집'
+            };
+
             return {
                 ...course,
+                status_label: statusLabels[course.status] || course.status || '-',
                 assignment_count: assignmentCount,
                 student_count: studentCount,
                 total_submissions: totalSubmissions,

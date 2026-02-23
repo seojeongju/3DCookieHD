@@ -92,20 +92,36 @@ export const adminHrdAssignmentsHtml = (sidebar = hrdSidebar('assignments')) => 
 
                     <!-- 과정별 현황 목록 -->
                     <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-                        <div class="px-8 py-6 border-b border-gray-50 flex justify-between items-center bg-white/50 backdrop-blur-md">
-                            <div class="flex items-center gap-4">
+                        <div class="px-8 py-6 border-b border-gray-50 bg-white/50 backdrop-blur-md space-y-4">
+                            <div class="flex flex-wrap justify-between items-center gap-4">
                                 <h3 class="font-black text-gray-800 text-lg uppercase tracking-tight">과정별 과제 현황</h3>
-                                <div class="flex bg-gray-100 p-1 rounded-xl">
-                                    <button onclick="filterCourses('all')" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all filter-btn active bg-white text-indigo-600 shadow-sm" data-filter="all">전체</button>
-                                    <button onclick="filterCourses('pending')" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all filter-btn text-gray-500 hover:text-gray-700" data-filter="pending">채점필요</button>
+                                <div class="flex items-center gap-3 flex-wrap">
+                                    <select id="sortSelect" onchange="applyFilters()" class="bg-gray-50 border border-gray-200 text-xs font-bold text-gray-600 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none">
+                                        <option value="name">과정명순</option>
+                                        <option value="rate">제출률 높은순</option>
+                                        <option value="pending">채점필요 많은순</option>
+                                    </select>
                                 </div>
                             </div>
-                            <div class="flex items-center gap-4">
-                                <select id="sortSelect" onchange="sortData()" class="bg-gray-50 border-none text-xs font-bold text-gray-600 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none">
-                                    <option value="name">과정명순</option>
-                                    <option value="rate">제출률 높은순</option>
-                                    <option value="pending">채점필요 많은순</option>
+                            <div class="flex flex-wrap items-center gap-3">
+                                <div class="flex bg-gray-100 p-1 rounded-xl">
+                                    <button onclick="setFilterType('all'); applyFilters();" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all filter-type-btn active bg-white text-indigo-600 shadow-sm" data-filter-type="all">전체</button>
+                                    <button onclick="setFilterType('pending'); applyFilters();" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all filter-type-btn text-gray-500 hover:text-gray-700" data-filter-type="pending">채점필요</button>
+                                </div>
+                                <select id="statusFilter" onchange="applyFilters()" class="bg-gray-50 border border-gray-200 text-xs font-bold text-gray-600 rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-500/20 outline-none" title="과정 상태">
+                                    <option value="all">과정 상태: 전체</option>
+                                    <option value="recruiting">모집중</option>
+                                    <option value="open">모집중(open)</option>
+                                    <option value="in_progress">진행중</option>
+                                    <option value="active">진행중(active)</option>
+                                    <option value="completed">마감</option>
+                                    <option value="closed">종료</option>
+                                    <option value="full">정원마감</option>
                                 </select>
+                                <div class="flex items-center bg-gray-50 rounded-xl px-3 py-2 border border-gray-200 focus-within:ring-2 focus-within:ring-indigo-500/20 min-w-[200px]">
+                                    <i class="fas fa-search text-gray-400 mr-2 text-xs"></i>
+                                    <input type="text" id="searchInput" oninput="applyFilters()" placeholder="과정명·강사명 검색" class="bg-transparent border-none outline-none text-sm w-full font-medium min-w-0">
+                                </div>
                             </div>
                         </div>
                         <div class="overflow-x-auto">
@@ -113,6 +129,7 @@ export const adminHrdAssignmentsHtml = (sidebar = hrdSidebar('assignments')) => 
                                 <thead>
                                     <tr class="bg-gray-50/50">
                                         <th class="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">교육 과정 정보</th>
+                                        <th class="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">상태</th>
                                         <th class="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">담당 강사</th>
                                         <th class="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">등록 과제</th>
                                         <th class="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">제출 인원/전체</th>
@@ -122,9 +139,8 @@ export const adminHrdAssignmentsHtml = (sidebar = hrdSidebar('assignments')) => 
                                     </tr>
                                 </thead>
                                 <tbody id="summaryTableBody" class="divide-y divide-gray-50">
-                                    <!-- 데이터 로드 중 -->
                                     <tr>
-                                        <td colspan="7" class="px-8 py-20 text-center text-gray-400">
+                                        <td colspan="8" class="px-8 py-20 text-center text-gray-400">
                                             <i class="fas fa-spinner fa-spin mr-2"></i> 데이터를 불러오고 있습니다...
                                         </td>
                                     </tr>
@@ -152,9 +168,9 @@ export const adminHrdAssignmentsHtml = (sidebar = hrdSidebar('assignments')) => 
                 });
                 const result = await res.json();
                 if (result.success) {
-                    allData = result.data;
+                    allData = result.data || [];
                     updateStats(allData);
-                    filterCourses('all');
+                    applyFilters();
                 }
             } catch (e) {
                 console.error(e);
@@ -162,28 +178,30 @@ export const adminHrdAssignmentsHtml = (sidebar = hrdSidebar('assignments')) => 
         }
 
         function updateStats(data) {
-            if (!data || data.length === 0) return;
-            
-            const totalAssignments = data.reduce((acc, cur) => acc + (cur.assignment_count || 0), 0);
-            const totalSubmissions = data.reduce((acc, cur) => acc + (cur.total_submissions || 0), 0);
-            const pendingGrading = data.reduce((acc, cur) => acc + (cur.pending_grading || 0), 0);
-            
-            // 평균 제출률 계산
-            const validCourses = data.filter(c => c.assignment_count > 0 && c.student_count > 0);
-            const avgRate = validCourses.length > 0 
-                ? Math.round(validCourses.reduce((acc, cur) => acc + cur.submission_rate, 0) / validCourses.length)
+            const list = data && data.length ? data : [];
+            const totalAssignments = list.reduce((acc, cur) => acc + (cur.assignment_count || 0), 0);
+            const totalSubmissions = list.reduce((acc, cur) => acc + (cur.total_submissions || 0), 0);
+            const pendingGrading = list.reduce((acc, cur) => acc + (cur.pending_grading || 0), 0);
+            const validCourses = list.filter(c => (c.assignment_count || 0) > 0 && (c.student_count || 0) > 0);
+            const avgRate = validCourses.length > 0
+                ? Math.round(validCourses.reduce((acc, cur) => acc + (cur.submission_rate || 0), 0) / validCourses.length)
                 : 0;
 
-            document.getElementById('statTotalAssignments').textContent = totalAssignments.toLocaleString() + '건';
-            document.getElementById('statTotalSubmissions').textContent = totalSubmissions.toLocaleString() + '건';
-            document.getElementById('statPendingGrading').textContent = pendingGrading.toLocaleString() + '건';
-            document.getElementById('statAvgRate').textContent = avgRate + '%';
+            const el1 = document.getElementById('statTotalAssignments');
+            const el2 = document.getElementById('statTotalSubmissions');
+            const el3 = document.getElementById('statPendingGrading');
+            const el4 = document.getElementById('statAvgRate');
+            if (el1) el1.textContent = totalAssignments.toLocaleString() + '건';
+            if (el2) el2.textContent = totalSubmissions.toLocaleString() + '건';
+            if (el3) el3.textContent = pendingGrading.toLocaleString() + '건';
+            if (el4) el4.textContent = avgRate + '%';
         }
 
-        function filterCourses(filter) {
-            const btns = document.querySelectorAll('.filter-btn');
-            btns.forEach(btn => {
-                if (btn.dataset.filter === filter) {
+        let currentFilterType = 'all';
+        function setFilterType(type) {
+            currentFilterType = type;
+            document.querySelectorAll('.filter-type-btn').forEach(btn => {
+                if (btn.dataset.filterType === type) {
                     btn.classList.add('bg-white', 'text-indigo-600', 'shadow-sm');
                     btn.classList.remove('text-gray-500');
                 } else {
@@ -191,28 +209,35 @@ export const adminHrdAssignmentsHtml = (sidebar = hrdSidebar('assignments')) => 
                     btn.classList.add('text-gray-500');
                 }
             });
-
-            let filtered = allData;
-            if (filter === 'pending') {
-                filtered = allData.filter(c => c.pending_grading > 0);
-            }
-            
-            renderSummaryTable(filtered);
         }
 
-        function sortData() {
-            const sortBy = document.getElementById('sortSelect').value;
-            let sorted = [...allData];
+        function applyFilters() {
+            const statusVal = (document.getElementById('statusFilter') && document.getElementById('statusFilter').value) || 'all';
+            const search = (document.getElementById('searchInput') && document.getElementById('searchInput').value.trim()) || '';
+            const sortBy = (document.getElementById('sortSelect') && document.getElementById('sortSelect').value) || 'name';
 
-            if (sortBy === 'name') {
-                sorted.sort((a, b) => a.title.localeCompare(b.title));
-            } else if (sortBy === 'rate') {
-                sorted.sort((a, b) => b.submission_rate - a.submission_rate);
-            } else if (sortBy === 'pending') {
-                sorted.sort((a, b) => b.pending_grading - a.pending_grading);
+            let filtered = allData;
+            if (statusVal !== 'all') {
+                filtered = filtered.filter(c => (c.status || '') === statusVal);
             }
-
-            renderSummaryTable(sorted);
+            if (currentFilterType === 'pending') {
+                filtered = filtered.filter(c => (c.pending_grading || 0) > 0);
+            }
+            if (search) {
+                const q = search.toLowerCase();
+                filtered = filtered.filter(c =>
+                    (c.title && c.title.toLowerCase().includes(q)) ||
+                    (c.teacher_name && c.teacher_name.toLowerCase().includes(q))
+                );
+            }
+            if (sortBy === 'name') {
+                filtered.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+            } else if (sortBy === 'rate') {
+                filtered.sort((a, b) => (b.submission_rate || 0) - (a.submission_rate || 0));
+            } else if (sortBy === 'pending') {
+                filtered.sort((a, b) => (b.pending_grading || 0) - (a.pending_grading || 0));
+            }
+            renderSummaryTable(filtered);
         }
 
         function renderSummaryTable(data) {
@@ -220,15 +245,25 @@ export const adminHrdAssignmentsHtml = (sidebar = hrdSidebar('assignments')) => 
             if (!tbody) return;
             
             if (data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="px-8 py-20 text-center text-gray-400">조건에 맞는 과정이 없습니다.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" class="px-8 py-20 text-center text-gray-400">조건에 맞는 과정이 없습니다.</td></tr>';
                 return;
             }
 
+            const statusClass = (s) => {
+                if (['active','in_progress','open'].includes(s)) return 'bg-emerald-50 text-emerald-600 ring-emerald-100';
+                if (['recruiting','always_open'].includes(s)) return 'bg-blue-50 text-blue-600 ring-blue-100';
+                if (['completed','closed'].includes(s)) return 'bg-slate-100 text-slate-600 ring-slate-200';
+                if (s === 'full') return 'bg-amber-50 text-amber-600 ring-amber-100';
+                return 'bg-gray-50 text-gray-600 ring-gray-200';
+            };
             tbody.innerHTML = data.map(c => \`
                 <tr class="hover:bg-indigo-50/30 transition-colors group border-b border-gray-50 last:border-0 shadow-[inset_0_1px_0_0_rgba(255,255,255,1)]">
                     <td class="px-8 py-5">
-                        <div class="font-black text-gray-800 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">\${c.title}</div>
+                        <div class="font-black text-gray-800 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">\${c.title || '-'}</div>
                         <div class="text-[10px] text-gray-400 mt-1 uppercase tracking-widest font-bold">Course ID: \${c.id}</div>
+                    </td>
+                    <td class="px-6 py-5 text-center">
+                        <span class="px-2.5 py-1 rounded-lg text-xs font-bold ring-1 \${statusClass(c.status)}">\${c.status_label || c.status || '-'}</span>
                     </td>
                     <td class="px-6 py-5 text-center">
                         <span class="text-sm text-slate-600 font-black">\${c.teacher_name || '강사미지정'}</span>
