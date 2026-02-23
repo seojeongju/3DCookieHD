@@ -104,7 +104,7 @@
                 list.innerHTML = data.map(function (item) {
                     var startDate = (item.training_start_date || '').split('T')[0];
                     var endDate = (item.training_end_date || '').split('T')[0];
-                    var statusMap = { 'enrolled': '등록됨', 'completed': '수료', 'dropout': '중도탈락', 'cancelled': '취소됨' };
+                    var statusMap = { 'enrolled': '등록됨', 'approved': '등록됨', 'completed': '수료', 'dropout': '중도탈락', 'cancelled': '취소됨' };
                     var sessionStatusMap = { 'recruiting': '모집중', 'in_progress': '진행중', 'completed': '종료' };
 
                     return '<div class="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all">' +
@@ -248,12 +248,32 @@
                 var student = json.data;
                 var courseTitle = coursesData.find(function (c) { return c.id == student.course_id; });
                 courseTitle = courseTitle ? courseTitle.title : null;
-                var displayCourse = (student.current_course_name || courseTitle) || '과정 미지정';
+                var currentCourses = student.current_courses || [];
+                var displayCourse;
+                if (currentCourses.length >= 2) {
+                    var sessionStatusMap = { recruiting: '모집중', in_progress: '진행중', completed: '종료', closed: '마감' };
+                    displayCourse = currentCourses.map(function (c) {
+                        var label = (c.session_status && sessionStatusMap[c.session_status]) ? sessionStatusMap[c.session_status] : '';
+                        var sessionLabel = (c.session_name || (c.session_number + '회차'));
+                        return (c.name || '과정') + ' (' + sessionLabel + (label ? ' - ' + label : '') + ')';
+                    }).join('\n');
+                } else {
+                    displayCourse = (student.current_course_name || courseTitle) || '과정 미지정';
+                }
+                var sidebarCourseEl = document.getElementById('sidebarStdCourse');
+                if (sidebarCourseEl) {
+                    if (currentCourses.length >= 2) {
+                        sidebarCourseEl.innerHTML = displayCourse.replace(/\n/g, '<br/>');
+                        sidebarCourseEl.title = currentCourses.length + '개 과정 수강 중';
+                    } else {
+                        sidebarCourseEl.textContent = displayCourse;
+                        sidebarCourseEl.title = '';
+                    }
+                }
 
                 document.getElementById('modalStdName').textContent = (student.name || '') + ' 훈련생';
                 document.getElementById('modalStdIdDisplay').textContent = 'STUDENT ID: #' + student.id;
                 document.getElementById('sidebarStdName').textContent = student.name || '-';
-                document.getElementById('sidebarStdCourse').textContent = displayCourse;
                 document.getElementById('studentId').value = student.id;
                 document.getElementById('stdName').value = student.name || '';
                 document.getElementById('stdBirthdate').value = student.birthdate || '';

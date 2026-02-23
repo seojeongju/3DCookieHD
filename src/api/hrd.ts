@@ -735,10 +735,38 @@ app.get('/students', async (c) => {
         const dataParams = [...params, limit, offset];
         const { results } = await c.env.DB.prepare(dataQuery).bind(...dataParams).all();
 
-        const safeResults = (results || []).map((r: any) => ({
+        const rawList = results || [];
+        const userIds = rawList.map((r: any) => r.id).filter(Boolean);
+        const currentCoursesByUser: Record<number, { name: string; session_number: number; session_name: string | null; session_status: string }[]> = {};
+
+        if (userIds.length > 0) {
+            const placeholders = userIds.map(() => '?').join(',');
+            const coursesQuery = `
+                SELECT cse.user_id, ac.name as course_name, cs.session_number, cs.session_name, cs.status as session_status
+                FROM course_session_enrollments cse
+                JOIN course_sessions cs ON cse.session_id = cs.id
+                JOIN approved_courses ac ON cs.approved_course_id = ac.id
+                WHERE cse.user_id IN (${placeholders}) AND cse.status IN ('enrolled', 'approved')
+                ORDER BY cse.user_id, cs.training_start_date DESC
+            `;
+            const { results: courseRows } = await c.env.DB.prepare(coursesQuery).bind(...userIds).all() as { results: any[] };
+            (courseRows || []).forEach((row: any) => {
+                const uid = row.user_id;
+                if (!currentCoursesByUser[uid]) currentCoursesByUser[uid] = [];
+                currentCoursesByUser[uid].push({
+                    name: row.course_name,
+                    session_number: row.session_number,
+                    session_name: row.session_name || null,
+                    session_status: row.session_status || null
+                });
+            });
+        }
+
+        const safeResults = rawList.map((r: any) => ({
             ...r,
             course_id: r.course_id || null,
             current_course_name: r.current_course_name || null,
+            current_courses: currentCoursesByUser[r.id] || [],
             status: r.status || 'consulting',
             type: r.type || 'jobseeker',
             last_consult: r.last_consult || null,
@@ -786,20 +814,31 @@ app.get('/students/:id', async (c) => {
         if (!row) return c.json({ success: false, error: '훈련생을 찾을 수 없습니다.' }, 404);
         let r = row;
 
-        // 여정 자동화: 수강중(enrolled/approved)인 회차 중 가장 늦게 끝나는 회차가 종료되었을 때만 수료완료로 전환
-        // (과거 수료만 있고 신규 과정 등록 전에 집중훈련으로 저장한 경우에는 덮어쓰지 않음)
-        const journeyStatus = r.status || 'consulting';
-        if (journeyStatus === 'learning') {
-            const latestActive = await c.env.DB.prepare(`
-                SELECT cs.training_end_date
-                FROM course_session_enrollments cse
-                JOIN course_sessions cs ON cse.session_id = cs.id
-                WHERE cse.user_id = ? AND cse.status IN ('enrolled', 'approved')
-                ORDER BY cs.training_end_date DESC LIMIT 1
-            `).bind(id).first() as { training_end_date: string | null } | undefined;
-            const endDate = latestActive?.training_end_date;
-            const today = new Date().toISOString().split('T')[0];
-            if (endDate && endDate <= today) {
+        const today = new Date().toISOString().split('T')[0];
+        const enrolledSessions = await c.env.DB.prepare(`
+            SELECT cs.training_end_date
+            FROM course_session_enrollments cse
+            JOIN course_sessions cs ON cse.session_id = cs.id
+            WHERE cse.user_id = ? AND cse.status IN ('enrolled', 'approved')
+            ORDER BY cs.training_end_date DESC
+        `).bind(id).all() as { results: { training_end_date: string | null }[] };
+        const latestActive = enrolledSessions?.results?.[0];
+        const endDate = latestActive?.training_end_date;
+
+        // 여정 자동화 1: 수료 완료 상태여도 신규 과정(enrolled/approved)이 아직 종료 전이면 집중훈련(learning)으로 표시
+        const hasOngoingEnrollment = endDate != null && endDate > today;
+        if (hasOngoingEnrollment) {
+            const journeyStatus = r.status || 'consulting';
+            if (journeyStatus === 'completed' || journeyStatus === 'learning') {
+                await c.env.DB.prepare(
+                    `UPDATE hrd_student_details SET status = 'learning' WHERE user_id = ?`
+                ).bind(id).run();
+                r = { ...r, status: 'learning' };
+            }
+        } else {
+            // 여정 자동화 2: 수강중(learning)인데 enrolled 회차가 모두 종료되었으면 수료완료로 전환
+            const journeyStatus = r.status || 'consulting';
+            if (journeyStatus === 'learning' && endDate != null && endDate <= today) {
                 await c.env.DB.prepare(
                     `UPDATE hrd_student_details SET status = 'completed' WHERE user_id = ?`
                 ).bind(id).run();
@@ -947,10 +986,27 @@ app.get('/students/:id', async (c) => {
             attendance_rate = totalLogs > 0 ? Math.round((attended / totalLogs) * 100) : 0;
         }
 
+        // 동시 수강 과정 목록 (enrolled/approved, 진행중·모집중 포함) — 사이드바·수강관리에서 2개 이상 표시용
+        const { results: currentCoursesRows } = await c.env.DB.prepare(`
+            SELECT ac.name as course_name, cs.session_number, cs.session_name, cs.status as session_status
+            FROM course_session_enrollments cse
+            JOIN course_sessions cs ON cse.session_id = cs.id
+            JOIN approved_courses ac ON cs.approved_course_id = ac.id
+            WHERE cse.user_id = ? AND cse.status IN ('enrolled', 'approved')
+            ORDER BY cs.training_start_date DESC
+        `).bind(id).all() as { results: { course_name: string; session_number: number; session_name: string | null; session_status: string }[] };
+        const current_courses = (currentCoursesRows || []).map((row: any) => ({
+            name: row.course_name,
+            session_number: row.session_number,
+            session_name: row.session_name || null,
+            session_status: row.session_status || null
+        }));
+
         const data = {
             ...r,
             course_id: r.course_id || null,
             current_course_name: r.current_course_name || null,
+            current_courses: current_courses,
             status: r.status || 'consulting',
             type: r.type || 'jobseeker',
             last_consult: r.last_consult || null,

@@ -26,6 +26,9 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
         
         .tab-active { color: #1e293b; border-bottom: 2px solid #3b82f6; }
         .tab-inactive { color: #94a3b8; }
+        .accordion-detail-row.hidden { display: none; }
+        .accordion-detail-row { background: #f8fafc; }
+        .accordion-chevron { transition: transform 0.2s ease; }
     </style>
 </head>
 <body class="bg-[#f8fafc] text-[#1e293b]">
@@ -568,7 +571,7 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
                     if (totalCount) totalCount.textContent = pagination.total;
                     
                     if (studentsData.length === 0) {
-                        tbody.innerHTML = \`<tr><td colspan="6" class="px-8 py-20 text-center text-gray-400 font-medium">일치하는 훈련생 데이터가 없습니다.</td></tr>\`;
+                        tbody.innerHTML = \`<tr><td colspan="7" class="px-8 py-20 text-center text-gray-400 font-medium">일치하는 훈련생 데이터가 없습니다.</td></tr>\`;
                         renderPagination();
                         return;
                     }
@@ -631,8 +634,21 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
             return datePart;
         }
 
+        window.toggleCourseAccordion = function(studentId) {
+            const row = document.getElementById('student-course-detail-' + studentId);
+            const chevron = document.getElementById('chevron-' + studentId);
+            const btn = document.getElementById('accordion-btn-' + studentId);
+            if (!row) return;
+            row.classList.toggle('hidden');
+            if (chevron) chevron.classList.toggle('rotate-180');
+            if (btn) btn.setAttribute('aria-expanded', row.classList.contains('hidden') ? 'false' : 'true');
+        };
+
         function getStudentRowHtml(s) {
-            const courseTitle = (s.current_course_name || coursesData.find(c => c.id == s.course_id)?.title || '과정 미지정').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+            const courses = s.current_courses || [];
+            const hasCourses = courses.length >= 1;
+            const sessionStatusMap = { recruiting: '모집중', in_progress: '진행중', completed: '종료', closed: '마감' };
+            const courseTitle = (s.current_course_name || coursesData.find(c => c.id == s.course_id)?.title || (courses[0] ? (courses[0].name + ' (' + (courses[0].session_name || courses[0].session_number + '회차') + ')') : '과정 미지정')).replace(/</g, '&lt;').replace(/"/g, '&quot;');
             // 여정 상태: 여정관리 페이지 스테퍼와 동일한 단계명 사용
             const statusLabels = { consulting: '초기 상담', registered: '등록·발급', learning: '집중 훈련', completed: '수료 완료', employed: '취업·성공', dropout: '중도탈락' };
             const statusColors = { consulting: 'bg-amber-50 text-amber-600', registered: 'bg-blue-50 text-blue-600', learning: 'bg-emerald-50 text-emerald-600', completed: 'bg-indigo-50 text-indigo-600', employed: 'bg-violet-50 text-violet-600', dropout: 'bg-red-50 text-red-600' };
@@ -640,8 +656,40 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
             const statusLabel = statusLabels[journeyStatus] || journeyStatus;
             const statusColor = statusColors[journeyStatus] || 'bg-gray-50 text-gray-600';
 
+            const courseCell = hasCourses
+                ? \`
+                    <div class="flex items-center gap-2">
+                        <button type="button" id="accordion-btn-\${s.id}" onclick="toggleCourseAccordion(\${s.id})" class="text-left text-sm font-bold text-gray-700 hover:text-blue-600 transition inline-flex items-center gap-2 rounded-lg px-2 py-1 -ml-2" aria-expanded="false" aria-controls="student-course-detail-\${s.id}">
+                            <span>\${courses.length}개 과정 수강 중</span>
+                            <i class="fas fa-chevron-down text-[10px] accordion-chevron" id="chevron-\${s.id}" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                \`
+                : \`<div class="text-sm font-bold text-gray-700 leading-snug break-words" title="\${courseTitle}">\${courseTitle}</div>\`;
+
+            const detailRow = hasCourses
+                ? \`
+                <tr id="student-course-detail-\${s.id}" class="accordion-detail-row hidden border-b border-gray-100" role="region" aria-label="수강 과정 목록">
+                    <td colspan="7" class="px-8 py-4 bg-slate-50/80">
+                        <div class="flex flex-wrap gap-3 pl-1">
+                            \${courses.map(function(c) {
+                                const label = (c.session_status && sessionStatusMap[c.session_status]) ? sessionStatusMap[c.session_status] : '';
+                                const sessionLabel = (c.session_name || (c.session_number + '회차')) + (label ? ' - ' + label : '');
+                                const nameSafe = (c.name || '과정').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+                                return '<a href="/admin/students/' + s.id + '/journey" class="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-700 hover:border-blue-200 hover:text-blue-600 hover:shadow-sm transition shadow-sm">' +
+                                    '<span class="text-gray-900">' + nameSafe + '</span>' +
+                                    '<span class="text-gray-400">' + sessionLabel + '</span>' +
+                                    '<i class="fas fa-arrow-right text-[10px] text-gray-300"></i>' +
+                                    '</a>';
+                            }).join('')}
+                        </div>
+                    </td>
+                </tr>
+                \`
+                : '';
+
             return \`
-                <tr class="hover:bg-gray-50/50 transition-all group border-b border-gray-50 last:border-0">
+                <tr class="hover:bg-gray-50/50 transition-all group border-b border-gray-50">
                     <td class="px-8 py-5">
                         <div class="flex items-center gap-4">
                             <div class="w-12 h-12 rounded-2xl overflow-hidden border-2 border-white shadow-sm flex-shrink-0 bg-white group-hover:scale-105 transition-transform">
@@ -657,9 +705,7 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
                         <div class="text-sm font-bold text-gray-600">\${s.phone || '-'}</div>
                         <div class="text-[10px] text-gray-300 font-medium">\${s.email || '-'}</div>
                     </td>
-                    <td class="px-8 py-5 min-w-[220px] max-w-[360px]">
-                        <div class="text-sm font-bold text-gray-700 leading-snug break-words" title="\${courseTitle}">\${courseTitle}</div>
-                    </td>
+                    <td class="px-8 py-5 min-w-[220px] max-w-[360px]">\${courseCell}</td>
                     <td class="px-8 py-5">
                         <span class="px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider \${statusColor} border border-transparent shadow-sm">\${statusLabel}</span>
                     </td>
@@ -676,6 +722,7 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
                         </a>
                     </td>
                 </tr>
+                \${detailRow}
             \`;
         }
 
