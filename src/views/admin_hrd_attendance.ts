@@ -309,7 +309,7 @@ export const adminHrdAttendanceHtml = (sidebar = hrdSidebar('attendance')) => `
                                 <span class="text-xs font-black text-green-700 font-mono">\${c.present}</span>
                             </div>
                             <div class="flex flex-col items-center px-3 py-2 bg-yellow-50 rounded-2xl min-w-[42px] border border-yellow-100/50">
-                                <span class="text-[9px] font-black text-yellow-400 uppercase tracking-tighter mb-0.5">지각</span>
+                                <span class="text-[9px] font-black text-yellow-400 uppercase tracking-tighter mb-0.5">지각/조퇴</span>
                                 <span class="text-xs font-black text-yellow-700 font-mono">\${c.late}</span>
                             </div>
                             <div class="flex flex-col items-center px-3 py-2 bg-red-50 rounded-2xl min-w-[42px] border border-red-100/50">

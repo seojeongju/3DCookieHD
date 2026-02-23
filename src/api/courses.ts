@@ -828,43 +828,61 @@ courses.get('/:id/attendance', async (c) => {
         const { total_days, total_hours, daily_hours } = sessionDetails;
         const isLongTerm = (total_days >= 10 && total_hours >= 40);
 
+        const byDate = new Map<string, { check_in?: string; check_out?: string; status?: string }>();
+        sLogs.forEach(l => {
+          const d = (l.date || '').toString().split('T')[0];
+          if (!d) return;
+
+          // 이미 그 날짜에 기록이 있으면, 더 '심각한' 상태를 유지하거나 데이터를 보완
+          if (byDate.has(d)) {
+            const existing = byDate.get(d)!;
+            // 지각 + 조퇴가 각각 들어올 경우 '지각&조퇴'로 격상
+            if ((existing.status === 'late' && l.status === 'early_leave') ||
+              (existing.status === 'early_leave' && l.status === 'late')) {
+              existing.status = 'late_and_early';
+            } else if (l.status === 'absent' || l.status === 'absent_under_50') {
+              existing.status = l.status; // 결석이 있으면 결석으로
+            }
+          } else {
+            byDate.set(d, { check_in: l.check_in, check_out: l.check_out, status: l.status });
+          }
+        });
+
+        const daysProgressed = byDate.size;
         let presentCount = 0;
         let absentCount = 0;
         let lateCount = 0;
         let earlyCount = 0;
-        let outCount = 0;
+        let outingCount = 0;
         let accumulatedMinutes = 0;
 
-        sLogs.forEach(l => {
-          if (l.status === 'present') presentCount++;
-          else if (l.status === 'absent' || l.status === 'absent_under_50') absentCount++;
-          else if (l.status === 'late') lateCount++;
-          else if (l.status === 'early_leave') earlyCount++;
-          else if (l.status === 'public_leave' || l.status === 'late_and_early') outCount++;
-        });
+        byDate.forEach((day) => {
+          const { status, check_in, check_out } = day;
 
-        const byDate = new Map<string, { check_in?: string; check_out?: string; status?: string }[]>();
-        sLogs.forEach(l => {
-          const d = (l.date || '').toString().split('T')[0];
-          if (!d) return;
-          if (!byDate.has(d)) byDate.set(d, []);
-          byDate.get(d)!.push({ check_in: l.check_in, check_out: l.check_out, status: l.status });
-        });
-        const daysProgressed = byDate.size;
+          if (status === 'present') presentCount++;
+          else if (status === 'absent' || status === 'absent_under_50') absentCount++;
+          else if (status === 'late') lateCount++;
+          else if (status === 'early_leave') earlyCount++;
+          else if (status === 'public_leave') outingCount++;
+          else if (status === 'late_and_early') {
+            lateCount++;
+            earlyCount++;
+          }
 
-        byDate.forEach((rows) => {
-          const l = rows[0];
-          if (!isLongTerm && l.check_in != null && l.check_out != null) {
-            const mins = attendanceDurationMinutes(l.check_in, l.check_out);
-            if (mins > 0) accumulatedMinutes += mins;
-            else if (rows.some(r => r.status === 'present')) accumulatedMinutes += (daily_hours || 0) * 60;
-          } else if (!isLongTerm && rows.some(r => r.status === 'present')) {
-            accumulatedMinutes += (daily_hours || 0) * 60;
+          if (!isLongTerm) {
+            if (check_in != null && check_out != null) {
+              const mins = attendanceDurationMinutes(check_in, check_out);
+              if (mins > 0) accumulatedMinutes += mins;
+              else if (status === 'present') accumulatedMinutes += (daily_hours || 0) * 60;
+            } else if (status === 'present') {
+              accumulatedMinutes += (daily_hours || 0) * 60;
+            }
           }
         });
 
         if (isLongTerm) {
-          const penaltyDays = Math.floor((lateCount + earlyCount + outCount) / 3);
+          // 지각/조퇴/외출 합산 3회당 결석 1일
+          const penaltyDays = Math.floor((lateCount + earlyCount + outingCount) / 3);
           const totalAbsentConverted = absentCount + penaltyDays;
 
           const currentAttendanceRate = daysProgressed > 0
@@ -883,7 +901,7 @@ courses.get('/:id/attendance', async (c) => {
             absent: absentCount,
             late: lateCount,
             early: earlyCount,
-            outing: outCount,
+            outing: outingCount,
             totalAbsentConverted,
             currentRate: currentAttendanceRate,
             finalRate: finalAttendanceRate
@@ -914,6 +932,7 @@ courses.get('/:id/attendance', async (c) => {
             absent: absentCount,
             late: lateCount,
             early: earlyCount,
+            outing: outingCount,
           };
         }
       } else {

@@ -6,21 +6,21 @@ import { authMiddleware } from '../middleware/auth';
 const app = new Hono<{ Bindings: Bindings, Variables: Variables }>();
 
 function timeToMinutesSinceMidnight(s: string | null | undefined): number | null {
-  if (!s || typeof s !== 'string') return null;
-  const parts = String(s).trim().substring(0, 8).split(':');
-  const h = parseInt(parts[0], 10);
-  const m = parseInt(parts[1] || '0', 10);
-  if (isNaN(h) || isNaN(m) || h < 0 || h > 23 || m < 0 || m > 59) return null;
-  return h * 60 + m;
+    if (!s || typeof s !== 'string') return null;
+    const parts = String(s).trim().substring(0, 8).split(':');
+    const h = parseInt(parts[0], 10);
+    const m = parseInt(parts[1] || '0', 10);
+    if (isNaN(h) || isNaN(m) || h < 0 || h > 23 || m < 0 || m > 59) return null;
+    return h * 60 + m;
 }
 
 function attendanceDurationMinutes(checkIn: string | null | undefined, checkOut: string | null | undefined): number {
-  const inM = timeToMinutesSinceMidnight(checkIn);
-  const outM = timeToMinutesSinceMidnight(checkOut);
-  if (inM == null || outM == null) return 0;
-  let diff = outM - inM;
-  if (diff <= 0) diff += 24 * 60;
-  return diff;
+    const inM = timeToMinutesSinceMidnight(checkIn);
+    const outM = timeToMinutesSinceMidnight(checkOut);
+    if (inM == null || outM == null) return 0;
+    let diff = outM - inM;
+    if (diff <= 0) diff += 24 * 60;
+    return diff;
 }
 
 // Helper to resolve session_id or course_id to the actual LMS course_id
@@ -1727,7 +1727,10 @@ app.get('/attendance/summary', authMiddleware, async (c) => {
                 SUM(CASE WHEN al.status = 'present' THEN 1 ELSE 0 END) as present,
                 SUM(CASE WHEN al.status = 'late' THEN 1 ELSE 0 END) as late,
                 SUM(CASE WHEN al.status = 'early_leave' THEN 1 ELSE 0 END) as early,
-                SUM(CASE WHEN al.status = 'absent' THEN 1 ELSE 0 END) as absent
+                SUM(CASE WHEN al.status = 'absent' THEN 1 ELSE 0 END) as absent,
+                SUM(CASE WHEN al.status = 'public_leave' THEN 1 ELSE 0 END) as public_leave,
+                SUM(CASE WHEN al.status = 'absent_under_50' THEN 1 ELSE 0 END) as absent_under_50,
+                SUM(CASE WHEN al.status = 'late_and_early' THEN 1 ELSE 0 END) as late_and_early
             FROM enrollments e
             LEFT JOIN attendance_logs al ON e.id = al.enrollment_id AND al.date = ?
             WHERE e.status IN ('approved', 'enrolled', 'active')
@@ -1744,7 +1747,10 @@ app.get('/attendance/summary', authMiddleware, async (c) => {
                 SUM(CASE WHEN al.status = 'present' THEN 1 ELSE 0 END) as present,
                 SUM(CASE WHEN al.status = 'late' THEN 1 ELSE 0 END) as late,
                 SUM(CASE WHEN al.status = 'early_leave' THEN 1 ELSE 0 END) as early,
-                SUM(CASE WHEN al.status = 'absent' THEN 1 ELSE 0 END) as absent
+                SUM(CASE WHEN al.status = 'absent' THEN 1 ELSE 0 END) as absent,
+                SUM(CASE WHEN al.status = 'public_leave' THEN 1 ELSE 0 END) as public_leave,
+                SUM(CASE WHEN al.status = 'absent_under_50' THEN 1 ELSE 0 END) as absent_under_50,
+                SUM(CASE WHEN al.status = 'late_and_early' THEN 1 ELSE 0 END) as late_and_early
             FROM course_session_enrollments e
             LEFT JOIN attendance_logs al ON e.id = al.enrollment_id AND al.date = ?
             WHERE e.status IN ('approved', 'enrolled', 'active')
@@ -1762,7 +1768,10 @@ app.get('/attendance/summary', authMiddleware, async (c) => {
                 present: 0,
                 late: 0,
                 early: 0,
-                absent: 0
+                absent: 0,
+                public_leave: 0,
+                absent_under_50: 0,
+                late_and_early: 0
             };
 
             const totalStudents = Number(stats.total_students) || 0;
@@ -1770,7 +1779,13 @@ app.get('/attendance/summary', authMiddleware, async (c) => {
             const late = Number(stats.late) || 0;
             const early = Number(stats.early) || 0;
             const absent = Number(stats.absent) || 0;
-            const handled = present + late + early + absent;
+            const public_leave = Number(stats.public_leave) || 0;
+            const absent_under_50 = Number(stats.absent_under_50) || 0;
+            const late_and_early = Number(stats.late_and_early) || 0;
+
+            const handledAbsents = absent + absent_under_50;
+            const handledLates = late + early + late_and_early;
+            const handled = present + handledLates + handledAbsents + public_leave;
 
             return {
                 id: course.id,
@@ -1780,10 +1795,10 @@ app.get('/attendance/summary', authMiddleware, async (c) => {
                 teacher_name: course.teacher_name || '-',
                 total_students: totalStudents,
                 present,
-                late: late + early, // 지각 + 조퇴 합산
-                absent,
-                pending: totalStudents - handled,
-                rate: totalStudents > 0 ? Math.round((present / totalStudents) * 100) : 0,
+                late: handledLates, // 지각 + 조퇴 + 지각&조퇴 합산
+                absent: handledAbsents,
+                pending: Math.max(0, totalStudents - handled),
+                rate: totalStudents > 0 ? Math.round(((present + handledLates + public_leave) / totalStudents) * 100) : 0,
                 type: course.type
             };
         });
