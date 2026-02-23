@@ -871,8 +871,8 @@ app.get('/students/:id', async (c) => {
                 if (!isLongTerm && log.check_in != null && log.check_out != null) {
                     const mins = attendanceDurationMinutes(log.check_in, log.check_out);
                     if (mins > 0) accumulatedMinutes += mins;
-                    else if (rows.some((r: any) => r.status === 'present')) accumulatedMinutes += (daily_hours || 0) * 60;
-                } else if (!isLongTerm && rows.some((r: any) => r.status === 'present')) {
+                    else if (rows.some((r: any) => r.status === 'present' || !r.status || r.status === 'pending')) accumulatedMinutes += (daily_hours || 0) * 60;
+                } else if (!isLongTerm && rows.some((r: any) => r.status === 'present' || !r.status || r.status === 'pending')) {
                     accumulatedMinutes += (daily_hours || 0) * 60;
                 }
             });
@@ -1798,7 +1798,7 @@ app.get('/attendance/summary', authMiddleware, async (c) => {
                 late: handledLates, // 지각 + 조퇴 + 지각&조퇴 합산
                 absent: handledAbsents,
                 pending: Math.max(0, totalStudents - handled),
-                rate: totalStudents > 0 ? Math.round(((present + handledLates + public_leave) / totalStudents) * 100) : 0,
+                rate: totalStudents > 0 ? Math.round(((totalStudents - handledAbsents) / totalStudents) * 100) : 0,
                 type: course.type
             };
         });

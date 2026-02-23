@@ -873,8 +873,8 @@ courses.get('/:id/attendance', async (c) => {
             if (check_in != null && check_out != null) {
               const mins = attendanceDurationMinutes(check_in, check_out);
               if (mins > 0) accumulatedMinutes += mins;
-              else if (status === 'present') accumulatedMinutes += (daily_hours || 0) * 60;
-            } else if (status === 'present') {
+              else if (status === 'present' || !status || status === 'pending') accumulatedMinutes += (daily_hours || 0) * 60;
+            } else if (status === 'present' || !status || status === 'pending') {
               accumulatedMinutes += (daily_hours || 0) * 60;
             }
           }
