@@ -351,15 +351,8 @@ courses.get('/:id', async (c) => {
       }
     }
 
-    // 조회수 증가 (legacy courses 테이블)
+    // type 없이 :id 하나로 조회 — 먼저 courses, 없으면 회차(session)로 해석 (개설 과정 ID 일원화)
     const id = idParam;
-    await execute(
-      c.env.DB,
-      'UPDATE courses SET view_count = view_count + 1 WHERE id = ?',
-      [id]
-    );
-
-    // 과정 상세 정보 조회 (legacy courses 테이블)
     const course = await getOne<any>(
       c.env.DB,
       `SELECT 
@@ -377,7 +370,63 @@ courses.get('/:id', async (c) => {
       [id]
     );
 
-    if (!course) {
+    if (course) {
+      // 조회수 증가 (legacy courses 테이블)
+      await execute(
+        c.env.DB,
+        'UPDATE courses SET view_count = view_count + 1 WHERE id = ?',
+        [id]
+      );
+    } else {
+      // 과정에 없으면 회차 ID로 해석
+      const sessionId = parseInt(id, 10);
+      if (!isNaN(sessionId)) {
+        let session = await c.env.DB.prepare(`
+          SELECT s.*, a.name as approved_course_name, a.instructor_name as approved_instructor_name, a.daily_hours, cat.name as category_name
+          FROM course_sessions s
+          LEFT JOIN approved_courses a ON s.approved_course_id = a.id
+          LEFT JOIN course_categories cat ON a.category_id = cat.id
+          WHERE s.id = ?
+        `).bind(sessionId).first<any>();
+        if (!session) {
+          session = await c.env.DB.prepare(`
+            SELECT s.*, a.name as approved_course_name, a.instructor_name as approved_instructor_name, a.daily_hours, cat.name as category_name
+            FROM course_sessions s
+            LEFT JOIN approved_courses a ON s.approved_course_id = a.id
+            LEFT JOIN course_categories cat ON a.category_id = cat.id
+            WHERE s.approved_course_id = ?
+            ORDER BY s.session_number DESC, s.id DESC
+            LIMIT 1
+          `).bind(sessionId).first<any>();
+        }
+        if (session) {
+          const realSessionId = session.id;
+          const courseName = session.approved_course_name || '미지정 과정';
+          const sessionNum = session.session_number || '1';
+          const sessionNameSuffix = session.session_name ? ` - ${session.session_name}` : '';
+          const fullTitle = `${courseName} (${sessionNum}회차)${sessionNameSuffix}`;
+          const studentCountResult = await c.env.DB.prepare(
+            'SELECT COUNT(*) as count FROM course_session_enrollments WHERE session_id = ? AND status IN ("approved", "enrolled")'
+          ).bind(realSessionId).first<{ count: number }>();
+          return successResponse(c, {
+            ...session,
+            id: realSessionId,
+            course_id: session.approved_course_id,
+            title: fullTitle,
+            name: fullTitle,
+            teacher_name: session.instructor_name || session.approved_instructor_name,
+            start_date: session.training_start_date,
+            end_date: session.training_end_date,
+            start_time: session.training_time_start,
+            end_time: session.training_time_end,
+            category: session.category_name || '국비지원',
+            price: 0,
+            current_students: studentCountResult?.count || 0,
+            max_students: 0,
+            status: session.status || 'active'
+          });
+        }
+      }
       return notFoundResponse(c, '과정을 찾을 수 없습니다');
     }
 
@@ -615,11 +664,20 @@ courses.delete('/:id', authMiddleware, requireAdmin, async (c) => {
   }
 });
 
-// GET /api/courses/:id/grades - Get course gradebook (matrix). type=hrd 시 회차 기준(과제 성적)
+// GET /api/courses/:id/grades - Get course gradebook (matrix). :id가 회차면 회차 기준, 아니면 과정 기준
 courses.get('/:id/grades', async (c) => {
-  const courseId = c.req.param('id');
+  const rawId = c.req.param('id');
   const type = (c.req.query('type') || '').toLowerCase();
-  const isHrd = type === 'hrd';
+  const idNum = parseInt(rawId, 10);
+  if (isNaN(idNum)) return errorResponse(c, '잘못된 ID입니다', 400);
+  // 회차 여부: type=hrd 이거나, courses에 없고 course_sessions에 있으면 회차
+  let isHrd = type === 'hrd';
+  if (!isHrd) {
+    const inCourses = await c.env.DB.prepare('SELECT id FROM courses WHERE id = ?').bind(idNum).first();
+    const inSessions = await c.env.DB.prepare('SELECT id FROM course_sessions WHERE id = ?').bind(idNum).first();
+    if (!inCourses && inSessions) isHrd = true;
+  }
+  const courseId = rawId;
 
   try {
     let exams: any[];
@@ -729,13 +787,20 @@ courses.get('/:id/grades', async (c) => {
 
 /**
  * GET /api/courses/:id/attendance
- * 특정 날짜의 출결 현황 조회
+ * 특정 날짜의 출결 현황 조회. :id가 회차 ID면 회차 기준, 아니면 과정 기준
  */
 courses.get('/:id/attendance', async (c) => {
   try {
     const courseId = c.req.param('id');
     const date = c.req.query('date'); // YYYY-MM-DD
     const type = c.req.query('type');
+    const idNum = parseInt(courseId, 10);
+    let isHrd = type === 'hrd';
+    if (!isHrd && !isNaN(idNum)) {
+      const inCourses = await c.env.DB.prepare('SELECT id FROM courses WHERE id = ?').bind(idNum).first();
+      const inSessions = await c.env.DB.prepare('SELECT id FROM course_sessions WHERE id = ?').bind(idNum).first();
+      if (!inCourses && inSessions) isHrd = true;
+    }
 
     if (!date) {
       return errorResponse(c, '날짜(date) 파라미터가 필요합니다', 400);
@@ -748,7 +813,7 @@ courses.get('/:id/attendance', async (c) => {
     let sessionDetails: any = null;
     let allSessionLogs: any[] = [];
 
-    if (type === 'hrd') {
+    if (isHrd) {
       // 0. 회차 정보 조회 (기본 시간 설정 + 마감 여부 + 훈련 기간)
       const session = await getOne<any>(c.env.DB, `
         SELECT cs.training_time_start, cs.training_time_end, cs.training_start_date, cs.training_end_date, cs.status as session_status, ac.total_days, ac.total_hours, ac.daily_hours
@@ -990,7 +1055,7 @@ courses.get('/:id/attendance', async (c) => {
 
 /**
  * POST /api/courses/:id/attendance
- * 출결 기록 저장
+ * 출결 기록 저장 (enrollment_id 기준이라 :id는 로그용)
  */
 courses.post('/:id/attendance', async (c) => {
   try {

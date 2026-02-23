@@ -2984,12 +2984,41 @@ app.get('/assignments/summary', authMiddleware, async (c) => {
                         if (courseId != null) resolvedByTitle = true;
                     } catch (_) {}
                 }
-                if (courseId == null && courseName) {
+                // 회차가 있을 때는 과정명만으로 매칭하면 모든 회차가 같은 과정으로 연결되므로, 회차 번호 없이 LIKE 하는 것은 회차가 없을 때만
+                if (courseId == null && courseName && !sessionNum) {
                     try {
                         const row: any = await c.env.DB.prepare('SELECT id FROM courses WHERE title LIKE ? ORDER BY LENGTH(title) ASC LIMIT 1').bind('%' + courseName + '%').first();
                         courseId = row?.id ?? null;
                         if (courseId != null) resolvedByTitle = true;
                     } catch (_) {}
+                }
+                // LMS 과정 제목에 [2026] 등 연도 접두어가 없는 경우: 접두어 제거 후 재시도
+                if (courseId == null && courseName && /^\[\d{4}\]\s*/.test(courseName)) {
+                    const courseNameWithoutYear = courseName.replace(/^\[\d{4}\]\s*/, '').trim();
+                    if (courseNameWithoutYear) {
+                        try {
+                            const altTitle = `${courseNameWithoutYear} (${sessionNum ? sessionNum + '회차' : ''}${sessionNamePart ? ' - ' + sessionNamePart : ''})`.replace(/\s*\(\s*\)\s*$/, '').trim();
+                            const row: any = await c.env.DB.prepare('SELECT id FROM courses WHERE TRIM(title) = ? OR title = ? LIMIT 1').bind(altTitle, altTitle).first();
+                            courseId = row?.id ?? null;
+                            if (courseId != null) resolvedByTitle = true;
+                        } catch (_) {}
+                        if (courseId == null) {
+                            try {
+                                const likePattern = '%' + courseNameWithoutYear + '%' + (sessionNum ? sessionNum + '회차' : '') + '%';
+                                const row: any = await c.env.DB.prepare('SELECT id FROM courses WHERE title LIKE ? ORDER BY LENGTH(title) ASC LIMIT 1').bind(likePattern).first();
+                                courseId = row?.id ?? null;
+                                if (courseId != null) resolvedByTitle = true;
+                            } catch (_) {}
+                        }
+                        // 회차가 있을 때 과정명만으로 매칭하면 다른 회차와 같은 과정으로 연결되므로, 회차 번호 없이 LIKE 하는 것은 sessionNum 없을 때만
+                        if (courseId == null && !sessionNum) {
+                            try {
+                                const row: any = await c.env.DB.prepare('SELECT id FROM courses WHERE title LIKE ? ORDER BY LENGTH(title) ASC LIMIT 1').bind('%' + courseNameWithoutYear + '%').first();
+                                courseId = row?.id ?? null;
+                                if (courseId != null) resolvedByTitle = true;
+                            } catch (_) {}
+                        }
+                    }
                 }
                 if (courseId != null && resolvedByTitle) {
                     try {

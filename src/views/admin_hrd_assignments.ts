@@ -258,7 +258,7 @@ export const adminHrdAssignmentsHtml = (sidebar = hrdSidebar('assignments')) => 
                 <tr class="hover:bg-indigo-50/30 transition-colors group border-b border-gray-50 last:border-0 shadow-[inset_0_1px_0_0_rgba(255,255,255,1)]">
                     <td class="px-8 py-5">
                         <div class="font-black text-gray-800 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">\${c.title || '-'}</div>
-                        <div class="text-[10px] text-gray-400 mt-1 uppercase tracking-widest font-bold">\${c.lms_course_id != null ? 'Course ID: ' + c.lms_course_id : '회차 ID: ' + (c.session_id || '-')}</div>
+                        <div class="text-[10px] text-gray-400 mt-1 uppercase tracking-widest font-bold">회차 ID: \${c.session_id != null ? c.session_id : '-'}</div>
                     </td>
                     <td class="px-6 py-5 text-center">
                         <span class="px-2.5 py-1 rounded-lg text-xs font-bold ring-1 \${statusClass(c.status)}">\${c.status_label || c.status || '-'}</span>
@@ -286,7 +286,7 @@ export const adminHrdAssignmentsHtml = (sidebar = hrdSidebar('assignments')) => 
                         </span>
                     </td>
                     <td class="px-8 py-5 text-right">
-                        \${c.lms_course_id != null ? '<a href="/admin/courses/' + c.lms_course_id + '/lms/assignments" class="inline-flex items-center px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-700 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm hover:shadow-md active:scale-95 transform whitespace-nowrap">과제 관리 <i class="fas fa-arrow-right ml-2 text-[9px] opacity-50 group-hover:opacity-100"></i></a>' : '<span class="inline-flex items-center px-4 py-2 bg-gray-100 border border-gray-200 rounded-xl text-xs font-medium text-gray-400 cursor-not-allowed whitespace-nowrap">LMS 미연결</span>'}
+                        \${(c.session_id != null) ? '<a href="/admin/courses/' + c.session_id + '/lms/assignments" class="inline-flex items-center px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-700 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm hover:shadow-md active:scale-95 transform whitespace-nowrap">과제 관리 <i class="fas fa-arrow-right ml-2 text-[9px] opacity-50 group-hover:opacity-100"></i></a>' : '<span class="inline-flex items-center px-4 py-2 bg-gray-100 border border-gray-200 rounded-xl text-xs font-medium text-gray-400 cursor-not-allowed whitespace-nowrap">회차 없음</span>'}
                     </td>
                 </tr>
             \`).join('');

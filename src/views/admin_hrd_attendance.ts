@@ -285,7 +285,7 @@ export const adminHrdAttendanceHtml = (sidebar = hrdSidebar('attendance')) => `
                             <div class="font-black text-gray-900 group-hover:text-primary-600 transition-colors text-sm lg:text-base mb-1.5">\${c.title}</div>
                             <div class="flex items-center gap-2">
                                 <span class="px-2 py-0.5 bg-gray-900 text-white text-[9px] font-black rounded-full uppercase tracking-widest">\${c.type}</span>
-                                <span class="text-[10px] text-gray-400 font-bold tracking-tight">ID: \${c.id}</span>
+                                <span class="text-[10px] text-gray-400 font-bold tracking-tight">\${c.type === 'hrd' ? '회차 ID' : '과정 ID'}: \${c.id}</span>
                             </div>
                         </div>
                     </td>
