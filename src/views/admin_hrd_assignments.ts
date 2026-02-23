@@ -146,6 +146,14 @@ export const adminHrdAssignmentsHtml = (sidebar = hrdSidebar('assignments')) => 
                                 </tbody>
                             </table>
                         </div>
+                        <div class="px-8 py-6 bg-gray-50/50 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                            <div class="order-2 sm:order-1 inline-flex items-center px-4 py-2 bg-white rounded-full border border-gray-100 shadow-sm text-[11px] font-bold text-gray-500">
+                                총 <span id="total-count" class="mx-1.5 text-indigo-600 font-extrabold">0</span>건
+                                <div class="mx-3 w-px h-3 bg-gray-200"></div>
+                                표시: <span id="current-range" class="ml-1.5 text-gray-900 font-extrabold text-xs">0-0</span>
+                            </div>
+                            <div class="order-1 sm:order-2 flex items-center p-1.5 bg-white rounded-2xl border border-gray-100 shadow-sm" id="paginationControls"></div>
+                        </div>
                     </div>
                 </div>
             </main>
@@ -154,6 +162,9 @@ export const adminHrdAssignmentsHtml = (sidebar = hrdSidebar('assignments')) => 
 
     <script>
         let allData = [];
+        let filteredData = [];
+        let currentPage = 1;
+        const itemsPerPage = 10;
         const token = localStorage.getItem('token');
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -238,17 +249,43 @@ export const adminHrdAssignmentsHtml = (sidebar = hrdSidebar('assignments')) => 
             } else if (sortBy === 'pending') {
                 filtered.sort((a, b) => (b.pending_grading || 0) - (a.pending_grading || 0));
             }
-            renderSummaryTable(filtered);
+            filteredData = filtered;
+            currentPage = 1;
+            const total = filtered.length;
+            const totalPages = Math.max(1, Math.ceil(total / itemsPerPage));
+            const pageData = filtered.slice(0, itemsPerPage);
+            renderSummaryTable(pageData, { total, page: 1, limit: itemsPerPage, totalPages });
         }
 
-        function renderSummaryTable(data) {
+        function goToPage(page) {
+            currentPage = page;
+            const start = (page - 1) * itemsPerPage;
+            const pageData = filteredData.slice(start, start + itemsPerPage);
+            const total = filteredData.length;
+            const totalPages = Math.max(1, Math.ceil(total / itemsPerPage));
+            renderSummaryTable(pageData, { total, page, limit: itemsPerPage, totalPages });
+        }
+
+        function renderSummaryTable(data, pagination) {
             const tbody = document.getElementById('summaryTableBody');
             if (!tbody) return;
-            
+            const totalCountEl = document.getElementById('total-count');
+            const currentRangeEl = document.getElementById('current-range');
+            const controlsEl = document.getElementById('paginationControls');
+
             if (data.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="8" class="px-8 py-20 text-center text-gray-400">조건에 맞는 과정이 없습니다.</td></tr>';
+                if (totalCountEl) totalCountEl.textContent = '0';
+                if (currentRangeEl) currentRangeEl.textContent = '0-0';
+                if (controlsEl) controlsEl.innerHTML = '';
                 return;
             }
+
+            const { total, page, limit, totalPages } = pagination || {};
+            const startIndex = total && page ? (page - 1) * limit : 0;
+            const endIndex = startIndex + data.length;
+            if (totalCountEl) totalCountEl.textContent = (total ?? data.length).toLocaleString();
+            if (currentRangeEl) currentRangeEl.textContent = total != null ? \`\${startIndex + 1}-\${endIndex}\` : \`1-\${data.length}\`;
 
             const statusClass = (s) => {
                 if (['active','in_progress','open'].includes(s)) return 'bg-emerald-50 text-emerald-600 ring-emerald-100';
@@ -293,6 +330,18 @@ export const adminHrdAssignmentsHtml = (sidebar = hrdSidebar('assignments')) => 
                     </td>
                 </tr>
             \`).join('');
+
+            if (controlsEl && total != null && totalPages > 1) {
+                let html = \`<button onclick="goToPage(\${Math.max(1, currentPage - 1)})" \${currentPage === 1 ? 'disabled' : ''} class="w-10 h-10 flex items-center justify-center rounded-xl \${currentPage === 1 ? 'text-gray-200 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50 hover:text-indigo-600'}"><i class="fas fa-chevron-left text-[11px]"></i></button>\`;
+                let startPage = Math.max(1, currentPage - 2);
+                let endPage = Math.min(totalPages, startPage + 4);
+                if (endPage - startPage < 4) startPage = Math.max(1, endPage - 4);
+                for (let i = startPage; i <= endPage; i++) {
+                    html += \`<button onclick="goToPage(\${i})" class="w-10 h-10 flex items-center justify-center rounded-xl text-xs font-black \${currentPage === i ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'}">\${i}</button>\`;
+                }
+                html += \`<button onclick="goToPage(\${Math.min(totalPages, currentPage + 1)})" \${currentPage === totalPages ? 'disabled' : ''} class="w-10 h-10 flex items-center justify-center rounded-xl \${currentPage === totalPages ? 'text-gray-200 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50 hover:text-indigo-600'}"><i class="fas fa-chevron-right text-[11px]"></i></button>\`;
+                controlsEl.innerHTML = html;
+            } else if (controlsEl) controlsEl.innerHTML = '';
         }
     </script>
 </body>
