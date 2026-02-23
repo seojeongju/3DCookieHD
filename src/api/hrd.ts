@@ -2499,7 +2499,8 @@ app.get('/training-logs/summary', authMiddleware, async (c) => {
         try {
             const sessionsQuery = c.env.DB.prepare(`
                 SELECT s.id, s.session_number, s.session_name, s.status, s.training_start_date, s.training_end_date,
-                    s.instructor_name, a.name as course_name, s.lms_course_id
+                    s.instructor_name, a.name as course_name, s.lms_course_id,
+                    a.total_hours as assigned_hours
                 FROM course_sessions s
                 JOIN approved_courses a ON s.approved_course_id = a.id
                 WHERE 1=1 ${statusCondition}
@@ -2558,7 +2559,7 @@ app.get('/training-logs/summary', authMiddleware, async (c) => {
                     // courses 조회 실패 시 courseId는 기존 값 유지
                 }
 
-                let log_count = 0, total_hours = 0, last_log_date: string | null = null, ncs_rate = 0;
+                let log_count = 0, logged_hours = 0, last_log_date: string | null = null, ncs_rate = 0;
                 if (courseId) {
                     try {
                         const logStats: any = await c.env.DB.prepare(`
@@ -2566,7 +2567,7 @@ app.get('/training-logs/summary', authMiddleware, async (c) => {
                             FROM training_logs WHERE course_id = ?
                         `).bind(courseId).first();
                         log_count = logStats?.log_count ?? 0;
-                        total_hours = logStats?.total_hours ?? 0;
+                        logged_hours = logStats?.total_hours ?? 0;
                         last_log_date = logStats?.last_log_date ?? null;
                     } catch (_) {
                         // training_logs 조회 실패 시 0 유지
@@ -2586,6 +2587,7 @@ app.get('/training-logs/summary', authMiddleware, async (c) => {
                 }
 
                 const statusLabel = { recruiting: '모집중', in_progress: '진행중', completed: '마감', closed: '종료', always_open: '상시모집' }[session.status] || session.status;
+                const assigned_hours = session.assigned_hours != null ? Number(session.assigned_hours) : 0;
 
                 return {
                     id: session.id,
@@ -2594,7 +2596,8 @@ app.get('/training-logs/summary', authMiddleware, async (c) => {
                     status_label: statusLabel,
                     teacher_name: session.instructor_name || null,
                     log_count,
-                    total_hours,
+                    total_hours: assigned_hours,
+                    logged_hours,
                     last_log_date,
                     ncs_rate,
                     training_start_date: session.training_start_date,
@@ -2603,6 +2606,7 @@ app.get('/training-logs/summary', authMiddleware, async (c) => {
                 };
             } catch (rowErr: any) {
                 console.error('[training-logs/summary] row error session.id=' + session?.id, rowErr?.message || rowErr);
+                const assigned_hours = session?.assigned_hours != null ? Number(session.assigned_hours) : 0;
                 return {
                     id: session?.id,
                     title: (session?.course_name || '과정') + ' (오류)',
@@ -2610,7 +2614,8 @@ app.get('/training-logs/summary', authMiddleware, async (c) => {
                     status_label: session?.status || '-',
                     teacher_name: session?.instructor_name || null,
                     log_count: 0,
-                    total_hours: 0,
+                    total_hours: assigned_hours,
+                    logged_hours: 0,
                     last_log_date: null,
                     ncs_rate: 0,
                     training_start_date: session?.training_start_date,

@@ -66,7 +66,7 @@ export const adminHrdTrainingLogsHtml = (sidebar = hrdSidebar('training-logs')) 
                                 <i class="fas fa-history text-xl"></i>
                             </div>
                             <div>
-                                <div class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">전체 훈련시간</div>
+                                <div class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">배정 훈련시간</div>
                                 <div class="text-2xl font-black text-gray-800" id="stat-month-hours">0h</div>
                             </div>
                         </div>
@@ -133,7 +133,7 @@ export const adminHrdTrainingLogsHtml = (sidebar = hrdSidebar('training-logs')) 
                                         <th class="px-6 py-4 text-center text-[11px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">상태</th>
                                         <th class="px-6 py-4 text-center text-[11px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">담당 강사</th>
                                         <th class="px-6 py-4 text-center text-[11px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">작성된 전체 일지</th>
-                                        <th class="px-6 py-4 text-center text-[11px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">전체 훈련시간</th>
+                                        <th class="px-6 py-4 text-center text-[11px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">배정 훈련시간</th>
                                         <th class="px-6 py-4 text-center text-[11px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">최근 작성일</th>
                                         <th class="px-6 py-4 text-center text-[11px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">NCS 이수율</th>
                                         <th class="px-6 py-4 text-right text-[11px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">관리</th>
