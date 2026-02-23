@@ -237,6 +237,7 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
         var token = localStorage.getItem('token');
         var assignedUnits = [];
         var globalDailyHours = 8;
+        var assignedHoursFromApi = null;
         var currentPage = 1;
 
         // Modal control functions moved to bottom for consistency and to avoid duplicates
@@ -334,7 +335,10 @@ async function loadLogs(page = 1) {
         const result = await res.json();
         if (result.success) {
             if (result.assignedDailyHours != null && result.assignedDailyHours > 0) {
-                globalDailyHours = Number(result.assignedDailyHours);
+                assignedHoursFromApi = Number(result.assignedDailyHours);
+                globalDailyHours = assignedHoursFromApi;
+            } else {
+                assignedHoursFromApi = null;
             }
             const logs = result.pagination ? result.data : result.data;
             renderLogs(logs);
@@ -394,15 +398,15 @@ function renderLogs(logs) {
         var topic = (tTopic || '-').replace(/</g, '&lt;').replace(/"/g, '&quot;');
         var content = (tContent || '-').replace(/</g, '&lt;').replace(/"/g, '&quot;');
         var instructor = (log.instructor_name || '미상').replace(/</g, '&lt;').replace(/"/g, '&quot;');
-        var hours = (typeof log.training_hours !== 'undefined' && log.training_hours !== null && log.training_hours > 0) ? log.training_hours : (typeof globalDailyHours !== 'undefined' ? globalDailyHours : 8);
-        // Ensure decimal hours are displayed correctly
-        var displayHours = (typeof hours === 'number') ? hours : parseFloat(hours);
+        var hasSavedHours = typeof log.training_hours !== 'undefined' && log.training_hours !== null && log.training_hours > 0;
+        var reliableHours = hasSavedHours ? log.training_hours : (assignedHoursFromApi != null && assignedHoursFromApi > 0 ? assignedHoursFromApi : null);
+        var displayHoursText = reliableHours != null ? (typeof reliableHours === 'number' ? reliableHours : parseFloat(reliableHours)) + 'h' : '-';
         html += '<tr class="hover:bg-indigo-50/30 transition-all duration-200 group border-b border-gray-50 last:border-0 shadow-[inset_0_1px_0_0_rgba(255,255,255,1)]">' +
             '<td class="px-6 py-5 whitespace-nowrap text-[11px] font-black text-indigo-300 uppercase tracking-widest">' + (log.date || '') + '</td>' +
             '<td class="px-6 py-5"><div class="font-black text-gray-800 mb-1 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">' + topic + '</div>' +
             '<div class="text-xs text-gray-400 truncate max-w-lg font-medium leading-relaxed italic opacity-80 group-hover:opacity-100 transition-all">' + content + '</div></td>' +
             '<td class="px-6 py-5 text-center font-bold text-slate-600 text-sm">' + instructor + '</td>' +
-            '<td class="px-6 py-5 text-center font-black text-slate-700 text-sm">' + displayHours + 'h</td>' +
+            '<td class="px-6 py-5 text-center font-black text-slate-700 text-sm">' + displayHoursText + '</td>' +
             '<td class="px-6 py-5 text-right"><div class="flex items-center justify-end gap-2.5 transition-all">' +
             '<button onclick="printLog(' + log.id + ')" class="w-9 h-9 flex items-center justify-center bg-white border border-gray-100 text-slate-400 hover:text-gray-700 hover:border-gray-300 hover:shadow-md transition-all rounded-xl active:scale-90"><i class="fas fa-print text-xs"></i></button>' +
             '<button onclick="editLog(' + log.id + ')" class="w-9 h-9 flex items-center justify-center bg-white border border-gray-100 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 hover:shadow-md transition-all rounded-xl active:scale-90"><i class="fas fa-edit text-xs"></i></button>' +
@@ -414,11 +418,12 @@ function renderLogs(logs) {
 
 async function printLog(id) {
     try {
-        // Fetch Data: Log, Session, Enrollments, AND All Logs for counting days
+        // Fetch Data: Log, Session, Enrollments(실데이터), All Logs for day count
+        // 훈련일 = log.date(실제 일지 저장일), 재적 = 해당 회차(courseId) 승인 수강생 수
         const [logRes, sessionRes, enrollRes, allLogsRes] = await Promise.all([
             fetch('/api/hrd/training-logs/' + id, { headers: { 'Authorization': 'Bearer ' + token } }).then(r => r.json()),
             fetch('/api/course-sessions/' + courseId, { headers: { 'Authorization': 'Bearer ' + token } }).then(r => r.json()),
-            fetch('/api/enrollments?sessionId=' + courseId, { headers: { 'Authorization': 'Bearer ' + token } }).then(r => r.json()),
+            fetch('/api/enrollments?course_id=' + courseId + '&type=hrd&limit=500', { headers: { 'Authorization': 'Bearer ' + token } }).then(r => r.json()),
             fetch('/api/hrd/training-logs?courseId=' + courseId, { headers: { 'Authorization': 'Bearer ' + token } }).then(r => r.json())
         ]);
 
@@ -426,8 +431,8 @@ async function printLog(id) {
 
         const log = logRes.data;
         const session = sessionRes.success ? sessionRes.data : { course_name: '-', session_number: '', total_hours: 0, daily_hours: 0 };
-        const enrollCount = (enrollRes.success && Array.isArray(enrollRes.data))
-            ? enrollRes.data.filter(e => e.status === 'approved').length
+        const enrollCount = (enrollRes.success && enrollRes.data != null)
+            ? (enrollRes.pagination && typeof enrollRes.pagination.total === 'number' ? enrollRes.pagination.total : enrollRes.data.length)
             : 0;
 
         // Calculate Day Count (Nth day / Total days)
@@ -543,6 +548,9 @@ async function printLog(id) {
                             
                             @media print {
                                 .print-controls { display: none !important; }
+                                .no-print { display: none !important; }
+                                #print-image-insert-area { border: none !important; padding: 0 !important; font-size: 0 !important; color: transparent !important; }
+                                #print-image-insert-area img { display: block !important; }
                                 body { background: white; -webkit-print-color-adjust: exact; }
                                 .container { width: 100%; margin: 0; padding: 0; box-shadow: none; border: none; }
                                 @page { margin: 10mm; size: A4 portrait; }
@@ -550,9 +558,9 @@ async function printLog(id) {
                         </style>
                     </head>
                     <body>
+                        <script>window.LOG_ID = ${id};</script>
                         <div class="print-controls">
-                            <!-- Mimicking the buttons in the screenshot -->
-                            <button class="btn btn-blue" onclick="alert('이미지 삽입 기능은 준비중입니다.')"><i class="fas fa-image"></i> 이미지 삽입</button>
+                            <button class="btn btn-blue" onclick="insertPrintImage()"><i class="fas fa-image"></i> 이미지 삽입</button>
                             <button class="btn btn-orange" onclick="window.print()"><i class="fas fa-print"></i> 프린트</button>
                             <button class="btn btn-gray" onclick="window.close()"><i class="fas fa-times"></i> 닫기</button>
                         </div>
@@ -659,12 +667,40 @@ async function printLog(id) {
                                     </td>
                                 </tr>
                             </table>
+                            <div id="print-image-insert-area" style="min-height: 60px; margin-top: 15px; padding: 10px; border: 1px dashed #d1d5db; border-radius: 8px; font-size: 12px; color: #9ca3af;">이미지 삽입 영역 (위 &#39;이미지 삽입&#39; 버튼으로 추가)</div>
 
                             <div style="margin-top: 30px; text-align: center;" class="no-print">
-                                <button class="btn btn-orange" style="margin-right: 10px;">문서수정</button>
-                                <button class="btn" style="background-color: #ef4444;" onclick="window.close()">문서삭제</button>
+                                <button class="btn btn-orange" style="margin-right: 10px;" onclick="if(window.opener && window.opener.editLog) { window.opener.editLog(window.LOG_ID); window.close(); }"><i class="fas fa-edit"></i> 문서수정</button>
+                                <button class="btn" style="background-color: #ef4444;" onclick="if(confirm('이 훈련일지를 삭제하시겠습니까?')) { if(window.opener && window.opener.deleteLog) { window.opener.deleteLog(window.LOG_ID); window.close(); }"><i class="fas fa-trash-alt"></i> 문서삭제</button>
                             </div>
                         </div>
+                        <script>
+                        function insertPrintImage() {
+                            var input = document.createElement('input');
+                            input.type = 'file';
+                            input.accept = 'image/*';
+                            input.onchange = function() {
+                                var f = this.files && this.files[0];
+                                if (!f) return;
+                                var r = new FileReader();
+                                r.onload = function() {
+                                    var div = document.getElementById('print-image-insert-area');
+                                    if (div) {
+                                        var img = document.createElement('img');
+                                        img.src = r.result;
+                                        img.style.maxWidth = '100%';
+                                        img.style.maxHeight = '320px';
+                                        img.style.display = 'block';
+                                        img.style.marginTop = '8px';
+                                        div.innerHTML = '';
+                                        div.appendChild(img);
+                                    }
+                                };
+                                r.readAsDataURL(f);
+                            };
+                            input.click();
+                        }
+                        </script>
                     </body>
                     </html>
                 \`;

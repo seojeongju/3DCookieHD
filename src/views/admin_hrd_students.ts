@@ -632,7 +632,7 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
         }
 
         function getStudentRowHtml(s) {
-            const courseTitle = (s.current_course_name || coursesData.find(c => c.id == s.course_id)?.title || '과정 미지정');
+            const courseTitle = (s.current_course_name || coursesData.find(c => c.id == s.course_id)?.title || '과정 미지정').replace(/</g, '&lt;').replace(/"/g, '&quot;');
             // 여정 상태: 여정관리 페이지 스테퍼와 동일한 단계명 사용
             const statusLabels = { consulting: '초기 상담', registered: '등록·발급', learning: '집중 훈련', completed: '수료 완료', employed: '취업·성공', dropout: '중도탈락' };
             const statusColors = { consulting: 'bg-amber-50 text-amber-600', registered: 'bg-blue-50 text-blue-600', learning: 'bg-emerald-50 text-emerald-600', completed: 'bg-indigo-50 text-indigo-600', employed: 'bg-violet-50 text-violet-600', dropout: 'bg-red-50 text-red-600' };
@@ -657,8 +657,8 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
                         <div class="text-sm font-bold text-gray-600">\${s.phone || '-'}</div>
                         <div class="text-[10px] text-gray-300 font-medium">\${s.email || '-'}</div>
                     </td>
-                    <td class="px-8 py-5">
-                        <div class="text-sm font-bold text-gray-500 max-w-[200px] truncate">\${courseTitle}</div>
+                    <td class="px-8 py-5 min-w-[220px] max-w-[360px]">
+                        <div class="text-sm font-bold text-gray-700 leading-snug break-words" title="\${courseTitle}">\${courseTitle}</div>
                     </td>
                     <td class="px-8 py-5">
                         <span class="px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider \${statusColor} border border-transparent shadow-sm">\${statusLabel}</span>

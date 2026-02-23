@@ -702,7 +702,8 @@ app.get('/students', async (c) => {
                 d.course_id, d.status, d.type, d.last_consult,
                 d.package_type, d.payment_method, d.payment_date, d.self_pay_amount,
                 d.has_application, d.has_card, d.is_hrd_net_registered, d.status_memo,
-                (SELECT a.name FROM course_session_enrollments cse
+                (SELECT (a.name || ' (' || cs.session_number || '회차' || CASE WHEN cs.session_name IS NOT NULL AND TRIM(cs.session_name) <> '' THEN ' - ' || cs.session_name ELSE '' END || ')')
+                 FROM course_session_enrollments cse
                  JOIN course_sessions cs ON cse.session_id = cs.id
                  JOIN approved_courses a ON cs.approved_course_id = a.id
                  WHERE cse.user_id = u.id
@@ -753,7 +754,8 @@ app.get('/students/:id', async (c) => {
                 d.course_id, d.status, d.type, d.last_consult,
                 d.package_type, d.payment_method, d.payment_date, d.self_pay_amount,
                 d.has_application, d.has_card, d.is_hrd_net_registered, d.status_memo,
-                (SELECT a.name FROM course_session_enrollments cse
+                (SELECT (a.name || ' (' || cs.session_number || '회차' || CASE WHEN cs.session_name IS NOT NULL AND TRIM(cs.session_name) <> '' THEN ' - ' || cs.session_name ELSE '' END || ')')
+                 FROM course_session_enrollments cse
                  JOIN course_sessions cs ON cse.session_id = cs.id
                  JOIN approved_courses a ON cs.approved_course_id = a.id
                  WHERE cse.user_id = u.id
