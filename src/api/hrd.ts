@@ -2923,7 +2923,7 @@ app.delete('/training-logs/:id', async (c) => {
     }
 });
 
-// 과제 제출 현황 요약 조회 — course_sessions 기준으로 전체 개설 회차 노출
+// 과제 제출 현황 요약 조회 — 개설된 과정(진행중·모집중·마감)만 course_sessions에서 조회 후 각 LMS 연결
 app.get('/assignments/summary', authMiddleware, async (c) => {
     try {
         const statusFilter = (c.req.query('status') || 'all').toLowerCase();
@@ -2932,6 +2932,9 @@ app.get('/assignments/summary', authMiddleware, async (c) => {
         if (statusFilter && statusFilter !== 'all' && ['recruiting', 'in_progress', 'completed', 'closed', 'always_open'].includes(statusFilter)) {
             statusCondition = ' AND s.status = ?';
             params.push(statusFilter);
+        } else {
+            // 전체 = 개설된 과정만: 진행중, 모집중, 마감(completed). 종료(closed) 제외
+            statusCondition = " AND s.status IN ('recruiting', 'in_progress', 'completed', 'always_open')";
         }
         let sessions: any[] = [];
         try {
@@ -2960,10 +2963,12 @@ app.get('/assignments/summary', authMiddleware, async (c) => {
                 const sessionNamePart = session.session_name ? ' - ' + session.session_name : '';
                 const title = `${courseName} (${sessionNum ? sessionNum + '회차' : ''}${sessionNamePart})`.trim();
                 let courseId: number | null = (session.lms_course_id != null && session.lms_course_id > 0) ? Number(session.lms_course_id) : null;
+                let resolvedByTitle = false;
                 if (courseId == null) {
                     try {
                         const row: any = await c.env.DB.prepare('SELECT id FROM courses WHERE TRIM(title) = ? LIMIT 1').bind(title).first();
                         courseId = row?.id ?? null;
+                        if (courseId != null) resolvedByTitle = true;
                     } catch (_) {}
                 }
                 if (courseId == null && (courseName || sessionNum)) {
@@ -2971,6 +2976,12 @@ app.get('/assignments/summary', authMiddleware, async (c) => {
                         const likePattern = '%' + courseName + '%' + (sessionNum ? sessionNum + '회차' : '') + '%';
                         const row: any = await c.env.DB.prepare('SELECT id FROM courses WHERE title LIKE ? LIMIT 1').bind(likePattern).first();
                         courseId = row?.id ?? null;
+                        if (courseId != null) resolvedByTitle = true;
+                    } catch (_) {}
+                }
+                if (courseId != null && resolvedByTitle) {
+                    try {
+                        await c.env.DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(courseId, session.id).run();
                     } catch (_) {}
                 }
 
