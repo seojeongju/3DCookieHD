@@ -937,8 +937,8 @@ courses.get('/:id/attendance', async (c) => {
         }
       } else {
         const totalLogs = sLogs.length;
-        const attended = sLogs.filter((l: any) => l.status === 'present' || l.status === 'late').length;
-        attendance_rate = totalLogs > 0 ? Math.round((attended / totalLogs) * 100) : 0;
+        const absentLogs = sLogs.filter((l: any) => l.status === 'absent' || l.status === 'absent_under_50').length;
+        attendance_rate = totalLogs > 0 ? Math.round(((totalLogs - absentLogs) / totalLogs) * 100) : 0;
       }
 
       return {

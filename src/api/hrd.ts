@@ -937,7 +937,7 @@ app.get('/students/:id', async (c) => {
                 SELECT
                             (SELECT COUNT(*) FROM attendance_logs al
                      JOIN course_session_enrollments cse ON al.enrollment_id = cse.id
-                     WHERE cse.user_id = ? AND al.status IN('present', 'late')) as attended,
+                     WHERE cse.user_id = ? AND al.status NOT IN ('absent', 'absent_under_50')) as attended,
                         (SELECT COUNT(*) FROM attendance_logs al
                      JOIN course_session_enrollments cse ON al.enrollment_id = cse.id
                      WHERE cse.user_id = ?) as total
