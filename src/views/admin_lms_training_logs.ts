@@ -558,7 +558,7 @@ async function printLog(id) {
                         </style>
                     </head>
                     <body>
-                        <script>window.LOG_ID = \${id};</script>
+                        <script>window.LOG_ID = \${id};<\/script>
                         <div class="print-controls">
                             <button class="btn btn-blue" onclick="insertPrintImage()"><i class="fas fa-image"></i> 이미지 삽입</button>
                             <button class="btn btn-orange" onclick="window.print()"><i class="fas fa-print"></i> 프린트</button>
@@ -700,7 +700,7 @@ async function printLog(id) {
                             };
                             input.click();
                         }
-                        </script>
+                        <\/script>
                     </body>
                     </html>
                 \`;
