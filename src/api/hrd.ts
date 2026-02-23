@@ -2923,19 +2923,17 @@ app.delete('/training-logs/:id', async (c) => {
     }
 });
 
-// 과제 제출 현황 요약 조회 — 개설된 과정(진행중·모집중·마감)만 course_sessions에서 조회 후 각 LMS 연결
+// 과제 제출 현황 요약 조회 — 회차별 과정 개설(/admin/courses/sessions)과 동일한 course_sessions 목록 사용 후 각 LMS 연결
 app.get('/assignments/summary', authMiddleware, async (c) => {
     try {
-        const statusFilter = (c.req.query('status') || 'all').toLowerCase();
+        const statusFilter = (c.req.query('status') || '').toString().toLowerCase().trim();
         let statusCondition = '';
         const params: (string | number)[] = [];
-        if (statusFilter && statusFilter !== 'all' && ['recruiting', 'in_progress', 'completed', 'closed', 'always_open'].includes(statusFilter)) {
+        if (statusFilter && ['recruiting', 'in_progress', 'completed', 'closed', 'always_open'].includes(statusFilter)) {
             statusCondition = ' AND s.status = ?';
             params.push(statusFilter);
-        } else {
-            // 전체 = 개설된 과정만: 진행중, 모집중, 마감(completed). 종료(closed) 제외
-            statusCondition = " AND s.status IN ('recruiting', 'in_progress', 'completed', 'always_open')";
         }
+        // status=all 또는 비어있음 → 조건 없음 (회차별 과정 개설 페이지와 동일하게 전체 회차)
         let sessions: any[] = [];
         try {
             const q = c.env.DB.prepare(`
@@ -2960,13 +2958,20 @@ app.get('/assignments/summary', authMiddleware, async (c) => {
             try {
                 const courseName = (session.course_name || '과정').trim();
                 const sessionNum = session.session_number != null ? String(session.session_number) : '';
-                const sessionNamePart = session.session_name ? ' - ' + session.session_name : '';
-                const title = `${courseName} (${sessionNum ? sessionNum + '회차' : ''}${sessionNamePart})`.trim();
+                const sessionNamePart = (session.session_name || '').trim();
+                const title = `${courseName} (${sessionNum ? sessionNum + '회차' : ''}${sessionNamePart ? ' - ' + sessionNamePart : ''})`.replace(/\s*\(\s*\)\s*$/, '').trim() || courseName;
                 let courseId: number | null = (session.lms_course_id != null && session.lms_course_id > 0) ? Number(session.lms_course_id) : null;
                 let resolvedByTitle = false;
-                if (courseId == null) {
+                if (courseId == null && title) {
                     try {
                         const row: any = await c.env.DB.prepare('SELECT id FROM courses WHERE TRIM(title) = ? LIMIT 1').bind(title).first();
+                        courseId = row?.id ?? null;
+                        if (courseId != null) resolvedByTitle = true;
+                    } catch (_) {}
+                }
+                if (courseId == null && title) {
+                    try {
+                        const row: any = await c.env.DB.prepare('SELECT id FROM courses WHERE title = ? LIMIT 1').bind(title).first();
                         courseId = row?.id ?? null;
                         if (courseId != null) resolvedByTitle = true;
                     } catch (_) {}
@@ -2974,7 +2979,14 @@ app.get('/assignments/summary', authMiddleware, async (c) => {
                 if (courseId == null && (courseName || sessionNum)) {
                     try {
                         const likePattern = '%' + courseName + '%' + (sessionNum ? sessionNum + '회차' : '') + '%';
-                        const row: any = await c.env.DB.prepare('SELECT id FROM courses WHERE title LIKE ? LIMIT 1').bind(likePattern).first();
+                        const row: any = await c.env.DB.prepare('SELECT id FROM courses WHERE title LIKE ? ORDER BY LENGTH(title) ASC LIMIT 1').bind(likePattern).first();
+                        courseId = row?.id ?? null;
+                        if (courseId != null) resolvedByTitle = true;
+                    } catch (_) {}
+                }
+                if (courseId == null && courseName) {
+                    try {
+                        const row: any = await c.env.DB.prepare('SELECT id FROM courses WHERE title LIKE ? ORDER BY LENGTH(title) ASC LIMIT 1').bind('%' + courseName + '%').first();
                         courseId = row?.id ?? null;
                         if (courseId != null) resolvedByTitle = true;
                     } catch (_) {}
