@@ -301,7 +301,7 @@ export const lmsHeaderHtml = (activeTab = 'dashboard', defaultType = '') => {
                         document.getElementById('header-courseCategory').textContent = course.category || '기타';
                         
                         const statusEl = document.getElementById('header-courseStatus');
-                        const statusLabels: Record<string, string> = {
+                        const statusLabels = {
                             recruiting: '모집중',
                             in_progress: '진행중',
                             open: '진행중',
