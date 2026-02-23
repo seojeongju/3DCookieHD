@@ -160,7 +160,6 @@ export const adminHrdAttendanceHtml = (sidebar = hrdSidebar('attendance')) => `
                                         <th class="px-6 py-6 text-center text-[11px] font-black text-gray-400 uppercase tracking-[0.1em]">강사명</th>
                                         <th class="px-6 py-6 text-center text-[11px] font-black text-gray-400 uppercase tracking-[0.1em]">등록 인원</th>
                                         <th class="px-6 py-6 text-center text-[11px] font-black text-gray-400 uppercase tracking-[0.1em]">현재까지 통계</th>
-                                        <th class="px-4 py-6 text-center text-[11px] font-black text-gray-400 uppercase tracking-[0.1em]">미처리</th>
                                         <th class="px-6 py-6 text-center text-[11px] font-black text-gray-400 uppercase tracking-[0.1em]">출석률</th>
                                         <th class="px-8 py-6 text-right text-[11px] font-black text-gray-400 uppercase tracking-[0.1em]">관리</th>
                                     </tr>
@@ -216,7 +215,7 @@ export const adminHrdAttendanceHtml = (sidebar = hrdSidebar('attendance')) => `
             const tbody = document.getElementById('summaryTableBody');
             const statusEl = document.getElementById('courseStatusFilter');
             const courseStatus = statusEl ? statusEl.value : 'all';
-            tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-20 text-center text-gray-400 font-medium"><i class="fas fa-circle-notch fa-spin mr-2"></i> 데이터 로딩 중...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-20 text-center text-gray-400 font-medium"><i class="fas fa-circle-notch fa-spin mr-2"></i> 데이터 로딩 중...</td></tr>';
 
             try {
                 const url = \`/api/hrd/attendance/summary?date=\${date}&page=\${currentPage}&limit=\${itemsPerPage}&search=\${encodeURIComponent(search)}&status=\${encodeURIComponent(courseStatus)}&stats=cumulative\`;
@@ -229,11 +228,11 @@ export const adminHrdAttendanceHtml = (sidebar = hrdSidebar('attendance')) => `
                     updateStats(result.stats);
                     renderSummaryTable(result.data, result.pagination);
                 } else {
-                    tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-20 text-center text-red-500">데이터 로드 실패: ' + result.error + '</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-20 text-center text-red-500">데이터 로드 실패: ' + result.error + '</td></tr>';
                 }
             } catch (e) {
                 console.error(e);
-                tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-20 text-center text-red-500">오류가 발생했습니다.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-20 text-center text-red-500">오류가 발생했습니다.</td></tr>';
             }
         }
 
@@ -254,35 +253,12 @@ export const adminHrdAttendanceHtml = (sidebar = hrdSidebar('attendance')) => `
             loadAttendanceSummary();
         }
 
-        async function clearUnprocessed(sessionId) {
-            const dateEl = document.getElementById('targetDate');
-            const date = dateEl ? dateEl.value : new Date().toISOString().split('T')[0];
-            if (!date) { alert('날짜를 선택해 주세요.'); return; }
-            if (!confirm('해당 날짜의 미처리(기록 없음/대기) 출석 항목을 삭제하시겠습니까?')) return;
-            try {
-                const res = await fetch(\`/api/hrd/attendance/unprocessed?sessionId=\${sessionId}&date=\${encodeURIComponent(date)}\`, {
-                    method: 'DELETE',
-                    headers: { 'Authorization': 'Bearer ' + token }
-                });
-                const result = await res.json();
-                if (result.success) {
-                    if (result.deleted > 0) alert('미처리 항목 ' + result.deleted + '건이 삭제되었습니다.');
-                    loadAttendanceSummary();
-                } else {
-                    alert(result.error || '삭제 실패');
-                }
-            } catch (e) {
-                console.error(e);
-                alert('삭제 중 오류가 발생했습니다.');
-            }
-        }
-
         function renderSummaryTable(pageData, pagination) {
             const tbody = document.getElementById('summaryTableBody');
             const { total, page, limit, totalPages } = pagination;
             
             if (pageData.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-24 text-center"> <div class="flex flex-col items-center justify-center space-y-3"> <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center text-gray-300"> <i class="fas fa-folder-open text-2xl"></i> </div> <p class="text-sm font-bold text-gray-400">조건에 맞는 과정이 없습니다.</p> <p class="text-[11px] text-gray-300">검색어, 날짜 또는 과정 상태를 확인해 주세요.</p> </div> </td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-24 text-center"> <div class="flex flex-col items-center justify-center space-y-3"> <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center text-gray-300"> <i class="fas fa-folder-open text-2xl"></i> </div> <p class="text-sm font-bold text-gray-400">조건에 맞는 과정이 없습니다.</p> <p class="text-[11px] text-gray-300">검색어, 날짜 또는 과정 상태를 확인해 주세요.</p> </div> </td></tr>';
                 document.getElementById('total-count').textContent = '0';
                 document.getElementById('current-range').textContent = '0-0';
                 document.getElementById('paginationControls').innerHTML = '';
@@ -339,12 +315,6 @@ export const adminHrdAttendanceHtml = (sidebar = hrdSidebar('attendance')) => `
                                 <span class="text-[9px] font-black text-red-400 uppercase tracking-tighter mb-0.5">결석</span>
                                 <span class="text-xs font-black text-red-700 font-mono">\${c.absent}</span>
                             </div>
-                        </div>
-                    </td>
-                    <td class="px-4 py-7 text-center" onclick="event.stopPropagation()">
-                        <div class="inline-flex items-center gap-1.5">
-                            <span class="text-xs font-black \${c.pending > 0 ? 'text-orange-500 bg-orange-50' : 'text-gray-300 bg-gray-50'} px-2 py-1 rounded-lg">\${c.pending}</span>
-                            \${c.pending > 0 && c.type === 'hrd' ? '<button type="button" onclick="clearUnprocessed(' + c.id + ')" class="px-2 py-1 text-[10px] font-bold text-red-600 hover:bg-red-50 rounded-lg border border-red-100 transition" title="미처리 항목 삭제">삭제</button>' : ''}
                         </div>
                     </td>
                     <td class="px-6 py-7 text-center">
