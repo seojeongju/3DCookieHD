@@ -2923,74 +2923,88 @@ app.delete('/training-logs/:id', async (c) => {
     }
 });
 
-// 과제 제출 현황 요약 조회 (전체 과정 - 마감/진행중/모집중 등 모두)
+// 과제 제출 현황 요약 조회 — course_sessions 기준으로 전체 개설 회차 노출
 app.get('/assignments/summary', authMiddleware, async (c) => {
     try {
         const statusFilter = (c.req.query('status') || 'all').toLowerCase();
         let statusCondition = '';
         const params: (string | number)[] = [];
-        if (statusFilter && statusFilter !== 'all' && ['active', 'open', 'closed', 'full', 'recruiting', 'in_progress', 'completed', 'upcoming', 'always_open'].includes(statusFilter)) {
-            statusCondition = ' AND c.status = ?';
+        if (statusFilter && statusFilter !== 'all' && ['recruiting', 'in_progress', 'completed', 'closed', 'always_open'].includes(statusFilter)) {
+            statusCondition = ' AND s.status = ?';
             params.push(statusFilter);
         }
-        const query = `
-            SELECT c.id, c.title, c.status, u.name as teacher_name
-            FROM courses c
-            LEFT JOIN users u ON c.teacher_id = u.id
-            WHERE 1=1 ${statusCondition}
-            ORDER BY c.updated_at DESC, c.id DESC
-        `;
-        const stmt = params.length > 0 ? c.env.DB.prepare(query).bind(...params) : c.env.DB.prepare(query);
-        const { results } = await stmt.all();
-        const courses = results ?? [];
+        let sessions: any[] = [];
+        try {
+            const q = c.env.DB.prepare(`
+                SELECT s.id, s.session_number, s.session_name, s.status, s.instructor_name, a.name as course_name, s.lms_course_id
+                FROM course_sessions s
+                JOIN approved_courses a ON s.approved_course_id = a.id
+                WHERE 1=1 ${statusCondition}
+                ORDER BY s.training_start_date DESC, s.id DESC
+            `);
+            const out = params.length > 0 ? await q.bind(...params).all() : await q.all();
+            sessions = out?.results ?? [];
+        } catch (err: any) {
+            console.error('assignments/summary sessions query:', err?.message);
+            return c.json({ success: true, data: [] });
+        }
 
-        const summaryData = await Promise.all(courses.map(async (course: any) => {
-            // 해당 과정의 전체 과제 수
-            const assignmentStats: any = await c.env.DB.prepare(`
-                SELECT COUNT(*) as assignment_count
-                FROM assignments
-                WHERE course_id = ?
-            `).bind(course.id).first();
+        const statusLabels: Record<string, string> = {
+            recruiting: '모집중', in_progress: '진행중', completed: '마감', closed: '종료', always_open: '상시모집'
+        };
 
-            // 해당 과정의 전체 제출 수 및 채점 대기 수
-            const submissionStats: any = await c.env.DB.prepare(`
-                SELECT 
-                    COUNT(*) as total_submissions,
-                    COUNT(CASE WHEN status != 'graded' THEN 1 END) as pending_grading
-                FROM assignment_submissions s
-                JOIN assignments a ON s.assignment_id = a.id
-                WHERE a.course_id = ?
-            `).bind(course.id).first();
+        const summaryData = await Promise.all(sessions.map(async (session: any) => {
+            const courseName = (session.course_name || '과정').trim();
+            const sessionNum = session.session_number != null ? String(session.session_number) : '';
+            const sessionNamePart = session.session_name ? ' - ' + session.session_name : '';
+            const title = `${courseName} (${sessionNum ? sessionNum + '회차' : ''}${sessionNamePart})`.trim();
+            let courseId: number | null = (session.lms_course_id != null && session.lms_course_id > 0) ? Number(session.lms_course_id) : null;
+            if (courseId == null) {
+                const row: any = await c.env.DB.prepare('SELECT id FROM courses WHERE TRIM(title) = ? LIMIT 1').bind(title).first();
+                courseId = row?.id ?? null;
+            }
+            if (courseId == null && (courseName || sessionNum)) {
+                const likePattern = '%' + courseName + '%' + (sessionNum ? sessionNum + '회차' : '') + '%';
+                const row: any = await c.env.DB.prepare('SELECT id FROM courses WHERE title LIKE ? LIMIT 1').bind(likePattern).first();
+                courseId = row?.id ?? null;
+            }
 
-            // 수강생 수
-            const studentStats: any = await c.env.DB.prepare(`
-                SELECT COUNT(*) as student_count
-                FROM enrollments
-                WHERE course_id = ? AND status = 'approved'
-            `).bind(course.id).first();
-
-            const assignmentCount = assignmentStats.assignment_count || 0;
-            const studentCount = studentStats.student_count || 0;
-            const totalSubmissions = submissionStats.total_submissions || 0;
-
-            // 제출률 계산: (전체 제출 수) / (과제 수 * 학생 수) * 100
+            let assignmentCount = 0, studentCount = 0, totalSubmissions = 0, pendingGrading = 0;
+            if (courseId) {
+                try {
+                    const aStat: any = await c.env.DB.prepare('SELECT COUNT(*) as assignment_count FROM assignments WHERE course_id = ?').bind(courseId).first();
+                    assignmentCount = aStat?.assignment_count ?? 0;
+                } catch (_) {}
+                try {
+                    const sStat: any = await c.env.DB.prepare(`
+                        SELECT COUNT(*) as total_submissions, COUNT(CASE WHEN s.status != 'graded' THEN 1 END) as pending_grading
+                        FROM assignment_submissions s JOIN assignments a ON s.assignment_id = a.id WHERE a.course_id = ?
+                    `).bind(courseId).first();
+                    totalSubmissions = sStat?.total_submissions ?? 0;
+                    pendingGrading = sStat?.pending_grading ?? 0;
+                } catch (_) {}
+                try {
+                    const eStat: any = await c.env.DB.prepare("SELECT COUNT(*) as student_count FROM enrollments WHERE course_id = ? AND status = 'approved'").bind(courseId).first();
+                    studentCount = eStat?.student_count ?? 0;
+                } catch (_) {}
+            }
             const submissionRate = (assignmentCount > 0 && studentCount > 0)
-                ? Math.round((totalSubmissions / (assignmentCount * studentCount)) * 100)
+                ? Math.min(100, Math.round((totalSubmissions / (assignmentCount * studentCount)) * 100))
                 : 0;
 
-            const statusLabels: Record<string, string> = {
-                active: '진행중', open: '모집중', recruiting: '모집중', in_progress: '진행중',
-                completed: '마감', closed: '종료', full: '정원마감', upcoming: '예정', always_open: '상시모집'
-            };
-
             return {
-                ...course,
-                status_label: statusLabels[course.status] || course.status || '-',
+                id: courseId,
+                title,
+                status: session.status,
+                status_label: statusLabels[session.status] || session.status || '-',
+                teacher_name: session.instructor_name || null,
                 assignment_count: assignmentCount,
                 student_count: studentCount,
                 total_submissions: totalSubmissions,
-                pending_grading: submissionStats.pending_grading || 0,
-                submission_rate: Math.min(submissionRate, 100)
+                pending_grading: pendingGrading,
+                submission_rate: submissionRate,
+                lms_course_id: courseId,
+                session_id: session.id
             };
         }));
 

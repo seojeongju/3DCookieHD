@@ -92,7 +92,7 @@ export const adminHrdAssignmentsHtml = (sidebar = hrdSidebar('assignments')) => 
 
                     <!-- 과정별 현황 목록 -->
                     <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-                        <div class="px-8 py-6 border-b border-gray-50 bg-white/50 backdrop-blur-md space-y-4">
+                        <div class="relative z-30 px-8 py-6 pb-8 border-b border-gray-50 bg-white/50 backdrop-blur-md space-y-4">
                             <div class="flex flex-wrap justify-between items-center gap-4">
                                 <h3 class="font-black text-gray-800 text-lg uppercase tracking-tight">과정별 과제 현황</h3>
                                 <div class="flex items-center gap-3 flex-wrap">
@@ -103,20 +103,18 @@ export const adminHrdAssignmentsHtml = (sidebar = hrdSidebar('assignments')) => 
                                     </select>
                                 </div>
                             </div>
-                            <div class="flex flex-wrap items-center gap-3">
+                            <div class="flex flex-wrap items-center gap-3 min-h-[2.5rem]">
                                 <div class="flex bg-gray-100 p-1 rounded-xl">
                                     <button onclick="setFilterType('all'); applyFilters();" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all filter-type-btn active bg-white text-indigo-600 shadow-sm" data-filter-type="all">전체</button>
                                     <button onclick="setFilterType('pending'); applyFilters();" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all filter-type-btn text-gray-500 hover:text-gray-700" data-filter-type="pending">채점필요</button>
                                 </div>
-                                <select id="statusFilter" onchange="applyFilters()" class="bg-gray-50 border border-gray-200 text-xs font-bold text-gray-600 rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-500/20 outline-none" title="과정 상태">
+                                <select id="statusFilter" onchange="applyFilters()" class="bg-gray-50 border border-gray-200 text-xs font-bold text-gray-600 rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-500/20 outline-none relative z-10" title="과정 상태">
                                     <option value="all">과정 상태: 전체</option>
                                     <option value="recruiting">모집중</option>
-                                    <option value="open">모집중(open)</option>
                                     <option value="in_progress">진행중</option>
-                                    <option value="active">진행중(active)</option>
                                     <option value="completed">마감</option>
                                     <option value="closed">종료</option>
-                                    <option value="full">정원마감</option>
+                                    <option value="always_open">상시모집</option>
                                 </select>
                                 <div class="flex items-center bg-gray-50 rounded-xl px-3 py-2 border border-gray-200 focus-within:ring-2 focus-within:ring-indigo-500/20 min-w-[200px]">
                                     <i class="fas fa-search text-gray-400 mr-2 text-xs"></i>
@@ -124,7 +122,7 @@ export const adminHrdAssignmentsHtml = (sidebar = hrdSidebar('assignments')) => 
                                 </div>
                             </div>
                         </div>
-                        <div class="overflow-x-auto">
+                        <div class="overflow-x-auto relative z-0">
                             <table class="w-full text-left border-collapse">
                                 <thead>
                                     <tr class="bg-gray-50/50">
@@ -218,7 +216,7 @@ export const adminHrdAssignmentsHtml = (sidebar = hrdSidebar('assignments')) => 
 
             let filtered = allData;
             if (statusVal !== 'all') {
-                filtered = filtered.filter(c => (c.status || '') === statusVal);
+                filtered = filtered.filter(c => (String(c.status || '')).toLowerCase() === statusVal);
             }
             if (currentFilterType === 'pending') {
                 filtered = filtered.filter(c => (c.pending_grading || 0) > 0);
@@ -260,7 +258,7 @@ export const adminHrdAssignmentsHtml = (sidebar = hrdSidebar('assignments')) => 
                 <tr class="hover:bg-indigo-50/30 transition-colors group border-b border-gray-50 last:border-0 shadow-[inset_0_1px_0_0_rgba(255,255,255,1)]">
                     <td class="px-8 py-5">
                         <div class="font-black text-gray-800 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">\${c.title || '-'}</div>
-                        <div class="text-[10px] text-gray-400 mt-1 uppercase tracking-widest font-bold">Course ID: \${c.id}</div>
+                        <div class="text-[10px] text-gray-400 mt-1 uppercase tracking-widest font-bold">\${c.lms_course_id != null ? 'Course ID: ' + c.lms_course_id : '회차 ID: ' + (c.session_id || '-')}</div>
                     </td>
                     <td class="px-6 py-5 text-center">
                         <span class="px-2.5 py-1 rounded-lg text-xs font-bold ring-1 \${statusClass(c.status)}">\${c.status_label || c.status || '-'}</span>
@@ -288,9 +286,7 @@ export const adminHrdAssignmentsHtml = (sidebar = hrdSidebar('assignments')) => 
                         </span>
                     </td>
                     <td class="px-8 py-5 text-right">
-                        <a href="/admin/courses/\${c.id}/lms/assignments" class="inline-flex items-center px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-700 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm hover:shadow-md active:scale-95 transform whitespace-nowrap">
-                            과제 관리 <i class="fas fa-arrow-right ml-2 text-[9px] opacity-50 group-hover:opacity-100"></i>
-                        </a>
+                        \${c.lms_course_id != null ? '<a href="/admin/courses/' + c.lms_course_id + '/lms/assignments" class="inline-flex items-center px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-700 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm hover:shadow-md active:scale-95 transform whitespace-nowrap">과제 관리 <i class="fas fa-arrow-right ml-2 text-[9px] opacity-50 group-hover:opacity-100"></i></a>' : '<span class="inline-flex items-center px-4 py-2 bg-gray-100 border border-gray-200 rounded-xl text-xs font-medium text-gray-400 cursor-not-allowed whitespace-nowrap">LMS 미연결</span>'}
                     </td>
                 </tr>
             \`).join('');
