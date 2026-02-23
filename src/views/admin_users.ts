@@ -92,6 +92,14 @@ export const adminUsersHtml = (activeMenu: string = 'users') => `
                             <tr><td colspan="7" class="px-8 py-20 text-center text-gray-400 font-medium">로딩 중...</td></tr>
                         </tbody>
                     </table>
+                    <div class="px-8 py-6 bg-gray-50/50 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div class="order-2 sm:order-1 inline-flex items-center px-4 py-2 bg-white rounded-full border border-gray-100 shadow-sm text-[11px] font-bold text-gray-500">
+                            총 <span id="total-count" class="mx-1.5 text-blue-600 font-extrabold">0</span>건
+                            <div class="mx-3 w-px h-3 bg-gray-200"></div>
+                            표시: <span id="current-range" class="ml-1.5 text-gray-900 font-extrabold text-xs">0-0</span>
+                        </div>
+                        <div class="order-1 sm:order-2 flex items-center p-1.5 bg-white rounded-2xl border border-gray-100 shadow-sm" id="paginationControls"></div>
+                    </div>
                 </div>
             </main>
         </div>
@@ -222,11 +230,12 @@ export const adminUsersHtml = (activeMenu: string = 'users') => `
 
     <script>
         let usersData = [];
+        let currentPage = 1;
+        const itemsPerPage = 10;
 
         document.addEventListener('DOMContentLoaded', () => {
             loadUsers();
             
-            // 검색 및 필터 이벤트
             document.getElementById('searchInput').addEventListener('input', debounce(loadUsers, 300));
             document.getElementById('roleFilter').addEventListener('change', loadUsers);
             document.getElementById('statusFilter').addEventListener('change', loadUsers);
@@ -244,12 +253,61 @@ export const adminUsersHtml = (activeMenu: string = 'users') => `
             };
         }
 
+        function goToPage(page) {
+            currentPage = page;
+            const total = usersData.length;
+            const totalPages = Math.max(1, Math.ceil(total / itemsPerPage));
+            const start = (page - 1) * itemsPerPage;
+            const pageData = usersData.slice(start, start + itemsPerPage);
+            renderUsersTable(pageData, { total, page, limit: itemsPerPage, totalPages });
+        }
+
+        function renderUsersTable(data, pagination) {
+            const tbody = document.getElementById('usersTableBody');
+            const totalCountEl = document.getElementById('total-count');
+            const currentRangeEl = document.getElementById('current-range');
+            const controlsEl = document.getElementById('paginationControls');
+            const totalUsersEl = document.getElementById('totalUsers');
+
+            if (totalUsersEl) totalUsersEl.textContent = (pagination ? pagination.total : data.length).toLocaleString();
+
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="px-8 py-20 text-center text-gray-400 font-medium">검색 결과가 없습니다.</td></tr>';
+                if (totalCountEl) totalCountEl.textContent = '0';
+                if (currentRangeEl) currentRangeEl.textContent = '0-0';
+                if (controlsEl) controlsEl.innerHTML = '';
+                return;
+            }
+
+            const { total, page, limit, totalPages } = pagination || {};
+            const startIndex = total != null && page != null ? (page - 1) * limit : 0;
+            const endIndex = startIndex + data.length;
+            if (totalCountEl) totalCountEl.textContent = (total ?? data.length).toLocaleString();
+            if (currentRangeEl) currentRangeEl.textContent = total != null ? (startIndex + 1) + '-' + endIndex : '1-' + data.length;
+
+            tbody.innerHTML = data.map(user => getUserRowHtml(user)).join('');
+
+            if (controlsEl && total != null && totalPages > 1) {
+                let html = '<button onclick="goToPage(' + Math.max(1, currentPage - 1) + ')" ' + (currentPage === 1 ? 'disabled' : '') + ' class="w-10 h-10 flex items-center justify-center rounded-xl ' + (currentPage === 1 ? 'text-gray-200 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50 hover:text-blue-600') + '"><i class="fas fa-chevron-left text-[11px]"></i></button>';
+                let startPage = Math.max(1, currentPage - 2);
+                let endPage = Math.min(totalPages, startPage + 4);
+                if (endPage - startPage < 4) startPage = Math.max(1, endPage - 4);
+                for (let i = startPage; i <= endPage; i++) {
+                    html += '<button onclick="goToPage(' + i + ')" class="w-10 h-10 flex items-center justify-center rounded-xl text-xs font-bold ' + (currentPage === i ? 'bg-blue-600 text-white' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600') + '">' + i + '</button>';
+                }
+                html += '<button onclick="goToPage(' + Math.min(totalPages, currentPage + 1) + ')" ' + (currentPage === totalPages ? 'disabled' : '') + ' class="w-10 h-10 flex items-center justify-center rounded-xl ' + (currentPage === totalPages ? 'text-gray-200 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50 hover:text-blue-600') + '"><i class="fas fa-chevron-right text-[11px]"></i></button>';
+                controlsEl.innerHTML = html;
+            } else if (controlsEl) controlsEl.innerHTML = '';
+        }
+
         async function loadUsers() {
             const tbody = document.getElementById('usersTableBody');
             const totalCount = document.getElementById('totalUsers');
             const search = document.getElementById('searchInput').value.trim();
             const role = document.getElementById('roleFilter').value;
             const status = document.getElementById('statusFilter').value;
+
+            tbody.innerHTML = '<tr><td colspan="7" class="px-8 py-20 text-center text-gray-400 font-medium"><i class="fas fa-circle-notch fa-spin mr-2"></i> 로딩 중...</td></tr>';
 
             try {
                 let url = '/api/users?';
@@ -276,20 +334,23 @@ export const adminUsersHtml = (activeMenu: string = 'users') => `
 
                 if (result.success) {
                     usersData = result.data || [];
-                    if (totalCount) totalCount.textContent = usersData.length;
-
-                    if (usersData.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="7" class="px-8 py-20 text-center text-gray-400 font-medium">검색 결과가 없습니다.</td></tr>';
-                        return;
-                    }
-
-                    tbody.innerHTML = usersData.map(user => getUserRowHtml(user)).join('');
+                    currentPage = 1;
+                    const total = usersData.length;
+                    const totalPages = Math.max(1, Math.ceil(total / itemsPerPage));
+                    const pageData = usersData.slice(0, itemsPerPage);
+                    renderUsersTable(pageData, { total, page: 1, limit: itemsPerPage, totalPages });
                 } else {
                     tbody.innerHTML = '<tr><td colspan="7" class="px-8 py-20 text-center text-red-400 font-medium">오류: ' + (result.error || '데이터를 불러올 수 없습니다.') + '</td></tr>';
+                    document.getElementById('total-count').textContent = '0';
+                    document.getElementById('current-range').textContent = '0-0';
+                    document.getElementById('paginationControls').innerHTML = '';
                 }
             } catch (e) {
                 console.error('사용자 로딩 실패:', e);
                 tbody.innerHTML = '<tr><td colspan="7" class="px-8 py-20 text-center text-red-400 font-medium">서버 연결 실패</td></tr>';
+                document.getElementById('total-count').textContent = '0';
+                document.getElementById('current-range').textContent = '0-0';
+                document.getElementById('paginationControls').innerHTML = '';
             }
         }
 
