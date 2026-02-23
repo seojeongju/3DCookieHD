@@ -32,6 +32,10 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
                 <i class="fas fa-lock"></i>
                 <span>마감된 과정입니다. 출석 수정이 제한됩니다. 수정이 필요하면 관리자에게 문의하세요.</span>
             </div>
+            <div id="attendanceNotTrainingDayNotice" class="hidden mb-4 p-4 bg-slate-100 border border-slate-200 rounded-xl text-slate-700 text-sm font-medium flex items-center gap-2">
+                <i class="fas fa-calendar-times"></i>
+                <span>훈련일이 아닙니다. 해당 날짜에는 출석 입력이 불가합니다. 훈련일을 선택해 주세요.</span>
+            </div>
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <!-- Toolbar -->
                 <div class="p-6 border-b border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -171,10 +175,14 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
                     const defEnd = result.data.default_end_time || '18:00';
                     const sessionStatus = result.data.session_status || '';
                     window.sessionClosed = (courseType === 'hrd' && (sessionStatus === 'completed' || sessionStatus === 'closed'));
+                    window.notTrainingDay = (courseType === 'hrd' && result.data.is_training_day === false);
                     const noticeEl = document.getElementById('attendanceClosedNotice');
+                    const notTrainingNoticeEl = document.getElementById('attendanceNotTrainingDayNotice');
                     const btnSave = document.getElementById('btnSaveAttendance');
                     if (noticeEl) noticeEl.classList.toggle('hidden', !window.sessionClosed);
-                    if (btnSave) { btnSave.disabled = window.sessionClosed; btnSave.classList.toggle('opacity-50', window.sessionClosed); btnSave.classList.toggle('cursor-not-allowed', window.sessionClosed); }
+                    if (notTrainingNoticeEl) notTrainingNoticeEl.classList.toggle('hidden', !window.notTrainingDay);
+                    const inputDisabled = window.sessionClosed || window.notTrainingDay;
+                    if (btnSave) { btnSave.disabled = inputDisabled; btnSave.classList.toggle('opacity-50', inputDisabled); btnSave.classList.toggle('cursor-not-allowed', inputDisabled); }
                     students = result.data.students.map(s => {
                         if (s.status === null) {
                             s.status = 'present';
@@ -196,7 +204,7 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
 
         function renderTable() {
             const tbody = document.getElementById('attendanceTableBody');
-            const readOnly = !!window.sessionClosed;
+            const readOnly = !!window.sessionClosed || !!window.notTrainingDay;
             const disAttr = readOnly ? ' disabled' : '';
             const roAttr = readOnly ? ' readonly' : '';
             tbody.innerHTML = students.map((student, index) => {
@@ -324,6 +332,10 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
         async function saveAttendance() {
             if (window.sessionClosed) {
                 alert('마감된 과정은 출석 수정이 제한됩니다. 수정이 필요하면 관리자에게 문의하세요.');
+                return;
+            }
+            if (window.notTrainingDay) {
+                alert('훈련일이 아닙니다. 해당 날짜에는 출석 입력이 불가합니다.');
                 return;
             }
             const date = document.getElementById('attendanceDate').value;

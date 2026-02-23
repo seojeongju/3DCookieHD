@@ -749,9 +749,9 @@ courses.get('/:id/attendance', async (c) => {
     let allSessionLogs: any[] = [];
 
     if (type === 'hrd') {
-      // 0. 회차 정보 조회 (기본 시간 설정 + 마감 여부)
+      // 0. 회차 정보 조회 (기본 시간 설정 + 마감 여부 + 훈련 기간)
       const session = await getOne<any>(c.env.DB, `
-        SELECT cs.training_time_start, cs.training_time_end, cs.status as session_status, ac.total_days, ac.total_hours, ac.daily_hours
+        SELECT cs.training_time_start, cs.training_time_end, cs.training_start_date, cs.training_end_date, cs.status as session_status, ac.total_days, ac.total_hours, ac.daily_hours
         FROM course_sessions cs
         JOIN approved_courses ac ON cs.approved_course_id = ac.id
         WHERE cs.id = ?
@@ -943,8 +943,23 @@ courses.get('/:id/attendance', async (c) => {
       default_start_time: defaultStartTime,
       default_end_time: defaultEndTime
     };
-    if (type === 'hrd' && sessionDetails && sessionDetails.session_status) {
-      payload.session_status = sessionDetails.session_status;
+    if (type === 'hrd' && sessionDetails) {
+      if (sessionDetails.session_status) payload.session_status = sessionDetails.session_status;
+      const dateStr = (date || '').toString().substring(0, 10);
+      let isTrainingDay = false;
+      const timetableRows = await c.env.DB.prepare(`
+        SELECT DISTINCT training_date FROM session_timetable
+        WHERE session_id = ? AND (is_excluded IS NULL OR is_excluded = 0)
+      `).bind(courseId).all() as { results?: { training_date: string }[] };
+      const trainingDates = new Set((timetableRows.results || []).map((r: any) => (r.training_date || '').toString().substring(0, 10)));
+      if (trainingDates.size > 0) {
+        isTrainingDay = trainingDates.has(dateStr);
+      } else {
+        const start = (sessionDetails.training_start_date || '').toString().substring(0, 10);
+        const end = (sessionDetails.training_end_date || '').toString().substring(0, 10);
+        if (start && end && dateStr >= start && dateStr <= end) isTrainingDay = true;
+      }
+      payload.is_training_day = isTrainingDay;
     }
     return successResponse(c, payload);
 

@@ -91,6 +91,13 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
 
             <form id="logForm" onsubmit="handleSaveLog(event)" class="p-8 space-y-6 overflow-y-auto flex-1 min-h-0 custom-scrollbar bg-white">
                 <input type="hidden" id="logId">
+                
+                <!-- 훈련일 아님 안내 -->
+                <div id="logNotTrainingDayNotice" class="hidden mb-4 p-4 bg-slate-100 border border-slate-200 rounded-xl text-slate-700 text-sm font-medium flex items-center gap-2">
+                    <i class="fas fa-calendar-times"></i>
+                    <span>훈련일이 아닙니다. 해당 날짜에는 훈련일지 작성이 제한됩니다. 훈련일을 선택해 주세요.</span>
+                </div>
+
                 <div class="flex items-center gap-4 px-2">
                      <label class="font-bold text-gray-700 text-sm"><i class="fas fa-clock text-indigo-500 mr-1"></i> 해당일 일지 훈련시간(h)</label>
                      <input type="number" id="logHours" class="border border-gray-300 rounded-lg px-3 py-1.5 w-24 text-center outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 font-bold transition-all text-gray-700 bg-gray-50 focus:bg-white" value="8" min="1" max="24">
@@ -864,8 +871,38 @@ async function printLog(id) {
                 });
                 const result = await res.json();
                 
-                if (result.success && result.data && result.data.students) {
-                    const students = result.data.students;
+                if (result.success && result.data) {
+                    // 훈련일 여부 체크
+                    window.notTrainingDay = result.data.is_training_day === false;
+                    const notTrainingNoticeEl = document.getElementById('logNotTrainingDayNotice');
+                    if (notTrainingNoticeEl) {
+                        notTrainingNoticeEl.classList.toggle('hidden', !window.notTrainingDay);
+                    }
+                    
+                    // 입력 필드 전체 비활성화 제어 (logDate와 취소 버튼은 제외)
+                    const formInputs = document.querySelectorAll('#logForm input, #logForm textarea, #logForm select, #logForm button');
+                    formInputs.forEach(el => {
+                        if (el.id === 'logDate') return;
+                        if (el.getAttribute('onclick') && el.getAttribute('onclick').includes('closeLogModal')) return;
+                        
+                        if (window.notTrainingDay) {
+                            el.disabled = true;
+                            if (el.tagName === 'BUTTON') {
+                                el.classList.add('opacity-50', 'cursor-not-allowed');
+                            } else {
+                                el.classList.add('bg-gray-50', 'cursor-not-allowed');
+                            }
+                        } else {
+                            el.disabled = false;
+                            if (el.tagName === 'BUTTON') {
+                                el.classList.remove('opacity-50', 'cursor-not-allowed');
+                            } else {
+                                el.classList.remove('bg-gray-50', 'cursor-not-allowed');
+                            }
+                        }
+                    });
+
+                    const students = result.data.students || [];
                     
                     const enrollEl = document.getElementById('logEnrollCount');
                     if (enrollEl) {
@@ -945,12 +982,16 @@ async function printLog(id) {
                 const content = saved ? saved.content : '';
                 const note = saved ? saved.note : '';
                 
+                const isReadOnly = !!window.notTrainingDay;
+                const disabledAttr = isReadOnly ? ' disabled' : '';
+                const readonlyClass = isReadOnly ? ' bg-gray-50 cursor-not-allowed' : '';
+
                 html += '<tr class="hover:bg-indigo-50/30 transition-colors group">' +
                         '<td class="px-2 py-2 text-center border-r font-black text-gray-400 bg-gray-50/50">' + i + '교시</td>' +
-                        '<td class="px-2 py-2 border-r"><input type="text" name="sch_subject_' + i + '" value="' + (subject || '') + '" class="w-full px-3 py-2 border border-gray-200 rounded-md text-sm font-bold text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all placeholder-gray-300" placeholder="교과목"></td>' +
-                        '<td class="px-2 py-2 border-r"><input type="text" name="sch_instructor_' + i + '" value="' + (instructor || '') + '" class="w-full px-3 py-2 border border-gray-200 rounded-md text-center text-sm font-medium text-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all placeholder-gray-300" placeholder="담당교사"></td>' +
-                        '<td class="px-2 py-2 border-r"><input type="text" name="sch_content_' + i + '" value="' + (content || '') + '" class="w-full px-3 py-2 border border-gray-200 rounded-md text-sm text-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all placeholder-gray-300" placeholder="훈련내용을 입력하세요"></td>' +
-                        '<td class="px-2 py-2"><input type="text" name="sch_note_' + i + '" value="' + (note || '') + '" class="w-full px-3 py-2 border border-gray-200 rounded-md text-sm text-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all placeholder-gray-300" placeholder="비고"></td>' +
+                        '<td class="px-2 py-2 border-r"><input type="text" name="sch_subject_' + i + '" value="' + (subject || '') + '" class="w-full px-3 py-2 border border-gray-200 rounded-md text-sm font-bold text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all placeholder-gray-300' + readonlyClass + '" placeholder="교과목"' + disabledAttr + '></td>' +
+                        '<td class="px-2 py-2 border-r"><input type="text" name="sch_instructor_' + i + '" value="' + (instructor || '') + '" class="w-full px-3 py-2 border border-gray-200 rounded-md text-center text-sm font-medium text-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all placeholder-gray-300' + readonlyClass + '" placeholder="담당교사"' + disabledAttr + '></td>' +
+                        '<td class="px-2 py-2 border-r"><input type="text" name="sch_content_' + i + '" value="' + (content || '') + '" class="w-full px-3 py-2 border border-gray-200 rounded-md text-sm text-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all placeholder-gray-300' + readonlyClass + '" placeholder="훈련내용을 입력하세요"' + disabledAttr + '></td>' +
+                        '<td class="px-2 py-2"><input type="text" name="sch_note_' + i + '" value="' + (note || '') + '" class="w-full px-3 py-2 border border-gray-200 rounded-md text-sm text-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all placeholder-gray-300' + readonlyClass + '" placeholder="비고"' + disabledAttr + '></td>' +
                     '</tr>';
             }
             tbody.innerHTML = html;
@@ -1099,6 +1140,11 @@ async function printLog(id) {
         async function handleSaveLog(e) {
             e.preventDefault();
             
+            if (window.notTrainingDay) {
+                alert('훈련일이 아닙니다. 해당 날짜에는 일지 저장이 불가합니다.');
+                return;
+            }
+
             const idVal = document.getElementById('logId').value;
             const dateVal = document.getElementById('logDate').value;
             const contentVal = document.getElementById('logContent').value;
