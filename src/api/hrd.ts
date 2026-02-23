@@ -1665,30 +1665,22 @@ app.get('/attendance/summary', authMiddleware, async (c) => {
         const search = c.req.query('search') || '';
         const offset = (page - 1) * limit;
 
-        // 1. 모든 활성 과정 조회 (검색 필터 포함)
+        // 1. 개설된 과정(회차)만 조회 — 교육과정 관리와 동일한 기준 (course_sessions, recruiting/in_progress/always_open)
         let whereClause = "";
         let searchParams: any[] = [];
         if (search) {
-            whereClause = "WHERE title LIKE ? OR teacher_name LIKE ?";
+            whereClause = "AND (a.name LIKE ? OR s.instructor_name LIKE ?)";
             const searchPattern = `%${search}%`;
             searchParams = [searchPattern, searchPattern];
         }
 
         const coursesQuery = `
-            SELECT id, title, teacher_name, type, created_at
-            FROM (
-                SELECT c.id, c.title, u.name as teacher_name, 'general' as type, c.created_at
-                FROM courses c
-                LEFT JOIN users u ON c.teacher_id = u.id
-                WHERE c.status IN ('active', 'open', 'in_progress')
-                UNION ALL
-                SELECT s.id, (a.name || ' (' || s.session_number || '회차)') as title, s.instructor_name as teacher_name, 'hrd' as type, s.created_at
-                FROM course_sessions s
-                JOIN approved_courses a ON s.approved_course_id = a.id
-                WHERE s.status IN ('active', 'open', 'in_progress', 'recruiting')
-            )
+            SELECT s.id, (a.name || ' (' || s.session_number || '회차' || CASE WHEN s.session_name IS NOT NULL AND TRIM(s.session_name) <> '' THEN ' - ' || s.session_name ELSE '' END || ')') as title, s.instructor_name as teacher_name, 'hrd' as type, s.created_at
+            FROM course_sessions s
+            JOIN approved_courses a ON s.approved_course_id = a.id
+            WHERE s.status IN ('recruiting', 'in_progress', 'always_open')
             ${whereClause}
-            ORDER BY created_at DESC
+            ORDER BY s.training_start_date DESC, s.id DESC
         `;
 
         const { results: allCourses } = await c.env.DB.prepare(coursesQuery).bind(...searchParams).all();
