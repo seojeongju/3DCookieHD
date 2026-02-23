@@ -5,6 +5,24 @@ import { authMiddleware } from '../middleware/auth';
 
 const app = new Hono<{ Bindings: Bindings, Variables: Variables }>();
 
+function timeToMinutesSinceMidnight(s: string | null | undefined): number | null {
+  if (!s || typeof s !== 'string') return null;
+  const parts = String(s).trim().substring(0, 8).split(':');
+  const h = parseInt(parts[0], 10);
+  const m = parseInt(parts[1] || '0', 10);
+  if (isNaN(h) || isNaN(m) || h < 0 || h > 23 || m < 0 || m > 59) return null;
+  return h * 60 + m;
+}
+
+function attendanceDurationMinutes(checkIn: string | null | undefined, checkOut: string | null | undefined): number {
+  const inM = timeToMinutesSinceMidnight(checkIn);
+  const outM = timeToMinutesSinceMidnight(checkOut);
+  if (inM == null || outM == null) return 0;
+  let diff = outM - inM;
+  if (diff <= 0) diff += 24 * 60;
+  return diff;
+}
+
 // Helper to resolve session_id or course_id to the actual LMS course_id
 async function resolveLmsCourseId(DB: any, id: any): Promise<number | null> {
     const rawId = parseInt(String(id), 10);
@@ -850,12 +868,10 @@ app.get('/students/:id', async (c) => {
 
             byDate.forEach((rows) => {
                 const log = rows[0];
-                if (!isLongTerm && log.check_in && log.check_out) {
-                    const inTime = new Date(`1970-01-01T${(log.check_in || '').substring(0, 5)}:00Z`).getTime();
-                    const outTime = new Date(`1970-01-01T${(log.check_out || '').substring(0, 5)}:00Z`).getTime();
-                    if (!isNaN(inTime) && !isNaN(outTime) && outTime > inTime) {
-                        accumulatedMinutes += (outTime - inTime) / 60000;
-                    }
+                if (!isLongTerm && log.check_in != null && log.check_out != null) {
+                    const mins = attendanceDurationMinutes(log.check_in, log.check_out);
+                    if (mins > 0) accumulatedMinutes += mins;
+                    else if (rows.some((r: any) => r.status === 'present')) accumulatedMinutes += (daily_hours || 0) * 60;
                 } else if (!isLongTerm && rows.some((r: any) => r.status === 'present')) {
                     accumulatedMinutes += (daily_hours || 0) * 60;
                 }

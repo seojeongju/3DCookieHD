@@ -338,8 +338,8 @@ export const adminScheduleHtml = `
             btnViewCourse.style.display = 'none';
 
             if (props.type === 'course') {
-                const statusMap = { active: '운영', recruiting: '모집', closed: '마감', completed: '마감', preparing: '준비' };
-                const statusColorMap = { active: 'blue', recruiting: 'indigo', closed: 'gray', completed: 'gray', preparing: 'cyan' };
+                const statusMap = { active: '진행중', recruiting: '모집중', in_progress: '진행중', upcoming: '모집중', closed: '마감', completed: '마감', preparing: '준비', always_open: '상시모집' };
+                const statusColorMap = { active: 'green', recruiting: 'blue', in_progress: 'green', upcoming: 'blue', closed: 'gray', completed: 'gray', preparing: 'cyan', always_open: 'purple' };
                 const s = props.status || 'active';
                 const sLabel = statusMap[s] || s;
                 

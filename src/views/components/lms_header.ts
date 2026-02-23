@@ -301,11 +301,23 @@ export const lmsHeaderHtml = (activeTab = 'dashboard', defaultType = '') => {
                         document.getElementById('header-courseCategory').textContent = course.category || '기타';
                         
                         const statusEl = document.getElementById('header-courseStatus');
-                        const isOpen = ['open', 'recruiting', 'active'].includes(course.status);
-                        statusEl.textContent = isOpen ? '진행중' : '마감';
-                        statusEl.className = isOpen ? 
-                            'px-2 py-1 bg-green-500 rounded text-xs font-semibold' : 
-                            'px-2 py-1 bg-red-500 rounded text-xs font-semibold';
+                        const statusLabels: Record<string, string> = {
+                            recruiting: '모집중',
+                            in_progress: '진행중',
+                            open: '진행중',
+                            active: '진행중',
+                            always_open: '상시모집',
+                            completed: '마감',
+                            closed: '종료'
+                        };
+                        const statusLabel = statusLabels[course.status] || (['recruiting', 'in_progress', 'open', 'active', 'always_open'].includes(course.status) ? '진행중' : '마감');
+                        const isClosed = ['completed', 'closed'].includes(course.status);
+                        statusEl.textContent = statusLabel;
+                        statusEl.className = isClosed
+                            ? 'px-2 py-1 bg-slate-500 rounded text-xs font-semibold'
+                            : course.status === 'recruiting'
+                                ? 'px-2 py-1 bg-blue-500 rounded text-xs font-semibold'
+                                : 'px-2 py-1 bg-green-500 rounded text-xs font-semibold';
 
                         const start = (course.start_date||'').split('T')[0];
                         const end = (course.end_date||'').split('T')[0];

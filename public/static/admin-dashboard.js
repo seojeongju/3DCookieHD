@@ -403,7 +403,7 @@ function showEventDetail(event) {
     btnViewCourse.style.display = 'none';
     if (props.type === 'course') {
         document.getElementById('modalEventName').textContent = '[교육과정] ' + event.title;
-        var statusMap = { active: '운영', recruiting: '모집', closed: '마감', completed: '마감', preparing: '준비' };
+        var statusMap = { active: '진행중', recruiting: '모집중', in_progress: '진행중', upcoming: '모집중', closed: '마감', completed: '마감', preparing: '준비', always_open: '상시모집' };
         var s = props.status || 'active';
         var sLabel = statusMap[s] || s;
         desc = '[상태] ' + sLabel + '\\n[장소] ' + (props.roomId || '미정') + '\\n' + desc;

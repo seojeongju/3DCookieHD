@@ -12,6 +12,26 @@ import { verifyCourseOwnership } from '../middleware/ownership';
 
 const courses = new Hono<{ Bindings: Bindings }>();
 
+/** "HH:MM" 또는 "HH:MM:SS"를 자정 기준 분으로 변환 (시간대 무관) */
+function timeToMinutesSinceMidnight(s: string | null | undefined): number | null {
+  if (!s || typeof s !== 'string') return null;
+  const parts = String(s).trim().substring(0, 8).split(':');
+  const h = parseInt(parts[0], 10);
+  const m = parseInt(parts[1] || '0', 10);
+  if (isNaN(h) || isNaN(m) || h < 0 || h > 23 || m < 0 || m > 59) return null;
+  return h * 60 + m;
+}
+
+/** 입실·퇴실 시간으로 수강 분 계산 (자정 넘김 처리) */
+function attendanceDurationMinutes(checkIn: string | null | undefined, checkOut: string | null | undefined): number {
+  const inM = timeToMinutesSinceMidnight(checkIn);
+  const outM = timeToMinutesSinceMidnight(checkOut);
+  if (inM == null || outM == null) return 0;
+  let diff = outM - inM;
+  if (diff <= 0) diff += 24 * 60;
+  return diff;
+}
+
 /**
  * GET /api/courses
  * 과정 목록 조회 (필터링, 검색, 정렬, 페이지네이션)
@@ -834,12 +854,10 @@ courses.get('/:id/attendance', async (c) => {
 
         byDate.forEach((rows) => {
           const l = rows[0];
-          if (!isLongTerm && l.check_in && l.check_out) {
-            const inTime = new Date(`1970-01-01T${(l.check_in || '').substring(0, 5)}:00Z`).getTime();
-            const outTime = new Date(`1970-01-01T${(l.check_out || '').substring(0, 5)}:00Z`).getTime();
-            if (!isNaN(inTime) && !isNaN(outTime) && outTime > inTime) {
-              accumulatedMinutes += (outTime - inTime) / 60000;
-            }
+          if (!isLongTerm && l.check_in != null && l.check_out != null) {
+            const mins = attendanceDurationMinutes(l.check_in, l.check_out);
+            if (mins > 0) accumulatedMinutes += mins;
+            else if (rows.some(r => r.status === 'present')) accumulatedMinutes += (daily_hours || 0) * 60;
           } else if (!isLongTerm && rows.some(r => r.status === 'present')) {
             accumulatedMinutes += (daily_hours || 0) * 60;
           }

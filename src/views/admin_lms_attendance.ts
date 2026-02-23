@@ -216,8 +216,9 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
                                       \`<div class="text-[10px] text-gray-500">결석 \${adv.absent}회 / 지각 \${adv.late}회 / 조퇴 \${adv.early}회</div>\` +
                                       \`<div class="text-[10px] text-rose-500 font-bold mt-1">환산결석: \${adv.totalAbsentConverted}일</div>\`;
                     } else {
-                        tooltipHtml = \`<div class="text-[10px] text-gray-500 mb-1">진행 <span class="text-gray-800 font-bold">\${adv.expectedCurrentMinutes}분</span> / 총 \${adv.expectedTotalMinutes}분</div>\` +
-                                      \`<div class="text-[10px] text-gray-500">결석 \${adv.absent}회 / 지각 \${adv.late}회 / 조퇴 \${adv.early}회</div>\`;
+                        tooltipHtml = \`<div class="text-[10px] text-gray-500 mb-1">실제 누적 <span class="text-gray-800 font-bold">\${adv.accumulatedMinutes ?? 0}분</span> / 과정 총 <span class="text-gray-800 font-bold">\${adv.expectedTotalMinutes ?? 0}분</span></div>\` +
+                                      \`<div class="text-[10px] text-gray-500 mt-0.5">(출석일수×일일시간 기준 예상: \${adv.expectedCurrentMinutes ?? 0}분)</div>\` +
+                                      \`<div class="text-[10px] text-gray-500 mt-1">결석 \${adv.absent}회 / 지각 \${adv.late}회 / 조퇴 \${adv.early}회</div>\`;
                     }
                     
                     attendanceHtml = \`
