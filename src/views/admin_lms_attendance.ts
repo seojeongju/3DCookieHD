@@ -28,6 +28,10 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
 
         <!-- Main Content -->
         <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+            <div id="attendanceClosedNotice" class="hidden mb-4 p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-sm font-medium flex items-center gap-2">
+                <i class="fas fa-lock"></i>
+                <span>마감된 과정입니다. 출석 수정이 제한됩니다. 수정이 필요하면 관리자에게 문의하세요.</span>
+            </div>
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <!-- Toolbar -->
                 <div class="p-6 border-b border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -44,7 +48,7 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
                         <button onclick="openPrintModalOrTrainee()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition flex items-center text-sm font-bold">
                             <i class="fas fa-print mr-2"></i> 출석부 출력
                         </button>
-                        <button onclick="saveAttendance()" class="px-6 py-2 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition flex items-center shadow-lg shadow-purple-200 text-sm font-bold">
+                        <button id="btnSaveAttendance" onclick="saveAttendance()" class="px-6 py-2 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition flex items-center shadow-lg shadow-purple-200 text-sm font-bold">
                             <i class="fas fa-save mr-2"></i> 변경사항 저장
                         </button>
                     </div>
@@ -165,9 +169,13 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
                 if (result.success) {
                     const defStart = result.data.default_start_time || '09:00';
                     const defEnd = result.data.default_end_time || '18:00';
-                    
+                    const sessionStatus = result.data.session_status || '';
+                    window.sessionClosed = (courseType === 'hrd' && (sessionStatus === 'completed' || sessionStatus === 'closed'));
+                    const noticeEl = document.getElementById('attendanceClosedNotice');
+                    const btnSave = document.getElementById('btnSaveAttendance');
+                    if (noticeEl) noticeEl.classList.toggle('hidden', !window.sessionClosed);
+                    if (btnSave) { btnSave.disabled = window.sessionClosed; btnSave.classList.toggle('opacity-50', window.sessionClosed); btnSave.classList.toggle('cursor-not-allowed', window.sessionClosed); }
                     students = result.data.students.map(s => {
-                        // 기록이 없으면 기본값 설정 (출석, 입실/퇴실 시간 자동 채움)
                         if (s.status === null) {
                             s.status = 'present';
                             s.check_in = defStart;
@@ -175,7 +183,6 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
                         }
                         return s;
                     });
-                    
                     renderTable();
                     updateStats();
                 } else {
@@ -189,6 +196,9 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
 
         function renderTable() {
             const tbody = document.getElementById('attendanceTableBody');
+            const readOnly = !!window.sessionClosed;
+            const disAttr = readOnly ? ' disabled' : '';
+            const roAttr = readOnly ? ' readonly' : '';
             tbody.innerHTML = students.map((student, index) => {
                 let attendanceHtml = '<span class="text-gray-400 text-xs">-</span>';
                 
@@ -247,13 +257,13 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
                         \${attendanceHtml}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-center">
-                        <input type="time" value="\${student.check_in || ''}" class="border rounded px-2 py-1 text-sm focus:ring-purple-500 focus:border-purple-500" onchange="updateStudentData(\${index}, 'check_in', this.value)">
+                        <input type="time" value="\${student.check_in || ''}" class="border rounded px-2 py-1 text-sm focus:ring-purple-500 focus:border-purple-500\${readOnly ? ' bg-gray-50' : ''}" onchange="updateStudentData(\${index}, 'check_in', this.value)"\${disAttr}\${roAttr}>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-center">
-                        <input type="time" value="\${student.check_out || ''}" class="border rounded px-2 py-1 text-sm focus:ring-purple-500 focus:border-purple-500" onchange="updateStudentData(\${index}, 'check_out', this.value)">
+                        <input type="time" value="\${student.check_out || ''}" class="border rounded px-2 py-1 text-sm focus:ring-purple-500 focus:border-purple-500\${readOnly ? ' bg-gray-50' : ''}" onchange="updateStudentData(\${index}, 'check_out', this.value)"\${disAttr}\${roAttr}>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-center">
-                        <select onchange="updateStudentData(\${index}, 'status', this.value)" class="border rounded-xl px-3 py-1.5 text-sm font-bold bg-white focus:ring-2 focus:ring-purple-500 outline-none transition-all \${getStatusColor(student.status)}">
+                        <select onchange="updateStudentData(\${index}, 'status', this.value)" class="border rounded-xl px-3 py-1.5 text-sm font-bold focus:ring-2 focus:ring-purple-500 outline-none transition-all \${getStatusColor(student.status)}\${readOnly ? ' bg-gray-50 cursor-not-allowed' : ' bg-white'}"\${disAttr}>
                             <option value="present" \${student.status === 'present' ? 'selected' : ''}>출석</option>
                             <option value="late" \${student.status === 'late' ? 'selected' : ''}>지각</option>
                             <option value="early_leave" \${student.status === 'early_leave' ? 'selected' : ''}>조퇴</option>
@@ -264,7 +274,7 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
                         </select>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <input type="text" value="\${student.note || ''}" placeholder="비고 입력" class="w-full border rounded px-2 py-1 text-sm focus:ring-purple-500 focus:border-purple-500" onchange="updateStudentData(\${index}, 'note', this.value)">
+                        <input type="text" value="\${student.note || ''}" placeholder="비고 입력" class="w-full border rounded px-2 py-1 text-sm focus:ring-purple-500 focus:border-purple-500\${readOnly ? ' bg-gray-50' : ''}" onchange="updateStudentData(\${index}, 'note', this.value)"\${disAttr}\${roAttr}>
                     </td>
                 </tr>
             \`;
@@ -311,6 +321,10 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
         }
 
         async function saveAttendance() {
+            if (window.sessionClosed) {
+                alert('마감된 과정은 출석 수정이 제한됩니다. 수정이 필요하면 관리자에게 문의하세요.');
+                return;
+            }
             const date = document.getElementById('attendanceDate').value;
             
             try {

@@ -818,7 +818,7 @@ app.get('/students/:id', async (c) => {
             const isLongTerm = (total_days >= 10 && total_hours >= 40);
 
             const { results: logs } = await c.env.DB.prepare(`
-                SELECT al.check_in_time as check_in, al.check_out_time as check_out, al.status
+                SELECT al.date, al.check_in_time as check_in, al.check_out_time as check_out, al.status
                 FROM attendance_logs al
                 JOIN course_session_enrollments cse ON al.enrollment_id = cse.id
                 WHERE cse.session_id = ? AND cse.user_id = ?
@@ -831,23 +831,32 @@ app.get('/students/:id', async (c) => {
             let outCount = 0;
             let accumulatedMinutes = 0;
 
-            const daysProgressed = logs.length;
-
-            logs.forEach(log => {
+            (logs || []).forEach((log: any) => {
                 if (log.status === 'present') presentCount++;
                 else if (log.status === 'absent' || log.status === 'absent_under_50') absentCount++;
                 else if (log.status === 'late') lateCount++;
                 else if (log.status === 'early_leave') earlyCount++;
                 else if (log.status === 'public_leave' || log.status === 'late_and_early') outCount++;
-                // 단기(시간제) 과정용 분(Minutes) 계산 (입/퇴실 기록 있는 경우)
+            });
+
+            const byDate = new Map<string, { check_in?: string; check_out?: string; status?: string }[]>();
+            (logs || []).forEach((log: any) => {
+                const d = (log.date || '').toString().split('T')[0];
+                if (!d) return;
+                if (!byDate.has(d)) byDate.set(d, []);
+                byDate.get(d)!.push({ check_in: log.check_in, check_out: log.check_out, status: log.status });
+            });
+            const daysProgressed = byDate.size;
+
+            byDate.forEach((rows) => {
+                const log = rows[0];
                 if (!isLongTerm && log.check_in && log.check_out) {
-                    const inTime = new Date(`1970-01-01T${log.check_in.substring(0, 5)}:00Z`).getTime();
-                    const outTime = new Date(`1970-01-01T${log.check_out.substring(0, 5)}:00Z`).getTime();
+                    const inTime = new Date(`1970-01-01T${(log.check_in || '').substring(0, 5)}:00Z`).getTime();
+                    const outTime = new Date(`1970-01-01T${(log.check_out || '').substring(0, 5)}:00Z`).getTime();
                     if (!isNaN(inTime) && !isNaN(outTime) && outTime > inTime) {
                         accumulatedMinutes += (outTime - inTime) / 60000;
                     }
-                } else if (!isLongTerm && log.status === 'present') {
-                    // 기록은 없지만 출석인 경우, 하루 기본 훈련시간 부여
+                } else if (!isLongTerm && rows.some((r: any) => r.status === 'present')) {
                     accumulatedMinutes += (daily_hours || 0) * 60;
                 }
             });
@@ -879,8 +888,11 @@ app.get('/students/:id', async (c) => {
                     finalRate: finalAttendanceRate
                 };
             } else {
-                const expectedCurrentMinutes = daysProgressed > 0 ? daysProgressed * (daily_hours || 0) * 60 : 0;
                 const expectedTotalMinutes = total_hours > 0 ? total_hours * 60 : 0;
+                let expectedCurrentMinutes = daysProgressed > 0 ? daysProgressed * (daily_hours || 0) * 60 : 0;
+                if (expectedTotalMinutes > 0 && expectedCurrentMinutes > expectedTotalMinutes) {
+                    expectedCurrentMinutes = expectedTotalMinutes;
+                }
 
                 const currentAttendanceRate = expectedCurrentMinutes > 0
                     ? Math.min(100, (accumulatedMinutes / expectedCurrentMinutes) * 100).toFixed(1)
@@ -893,7 +905,7 @@ app.get('/students/:id', async (c) => {
                 advanced_attendance = {
                     type: 'minutes',
                     isLongTerm: false,
-                    accumulatedMinutes: Math.floor(accumulatedMinutes),
+                    accumulatedMinutes: Math.min(Math.floor(accumulatedMinutes), expectedTotalMinutes || accumulatedMinutes),
                     expectedCurrentMinutes,
                     expectedTotalMinutes,
                     currentRate: currentAttendanceRate,

@@ -729,9 +729,9 @@ courses.get('/:id/attendance', async (c) => {
     let allSessionLogs: any[] = [];
 
     if (type === 'hrd') {
-      // 0. 회차 정보 조회 (기본 시간 설정을 위해)
+      // 0. 회차 정보 조회 (기본 시간 설정 + 마감 여부)
       const session = await getOne<any>(c.env.DB, `
-        SELECT cs.training_time_start, cs.training_time_end, ac.total_days, ac.total_hours, ac.daily_hours
+        SELECT cs.training_time_start, cs.training_time_end, cs.status as session_status, ac.total_days, ac.total_hours, ac.daily_hours
         FROM course_sessions cs
         JOIN approved_courses ac ON cs.approved_course_id = ac.id
         WHERE cs.id = ?
@@ -758,9 +758,9 @@ courses.get('/:id/attendance', async (c) => {
         ) AND date = ?
       `, [courseId, date]);
 
-      // 2-1. 전체 출석 기록 조회 (for rate calculation)
+      // 2-1. 전체 출석 기록 조회 (for rate calculation, date 포함하여 동일일 중복 제거)
       allSessionLogs = await getAll<any>(c.env.DB, `
-        SELECT enrollment_id, check_in_time as check_in, check_out_time as check_out, status
+        SELECT enrollment_id, date, check_in_time as check_in, check_out_time as check_out, status
         FROM attendance_logs
         WHERE enrollment_id IN (
           SELECT id FROM course_session_enrollments WHERE session_id = ?
@@ -815,22 +815,32 @@ courses.get('/:id/attendance', async (c) => {
         let outCount = 0;
         let accumulatedMinutes = 0;
 
-        const daysProgressed = sLogs.length;
-
         sLogs.forEach(l => {
           if (l.status === 'present') presentCount++;
           else if (l.status === 'absent' || l.status === 'absent_under_50') absentCount++;
           else if (l.status === 'late') lateCount++;
           else if (l.status === 'early_leave') earlyCount++;
           else if (l.status === 'public_leave' || l.status === 'late_and_early') outCount++;
+        });
 
+        const byDate = new Map<string, { check_in?: string; check_out?: string; status?: string }[]>();
+        sLogs.forEach(l => {
+          const d = (l.date || '').toString().split('T')[0];
+          if (!d) return;
+          if (!byDate.has(d)) byDate.set(d, []);
+          byDate.get(d)!.push({ check_in: l.check_in, check_out: l.check_out, status: l.status });
+        });
+        const daysProgressed = byDate.size;
+
+        byDate.forEach((rows) => {
+          const l = rows[0];
           if (!isLongTerm && l.check_in && l.check_out) {
-            const inTime = new Date(`1970-01-01T${l.check_in.substring(0, 5)}:00Z`).getTime();
-            const outTime = new Date(`1970-01-01T${l.check_out.substring(0, 5)}:00Z`).getTime();
+            const inTime = new Date(`1970-01-01T${(l.check_in || '').substring(0, 5)}:00Z`).getTime();
+            const outTime = new Date(`1970-01-01T${(l.check_out || '').substring(0, 5)}:00Z`).getTime();
             if (!isNaN(inTime) && !isNaN(outTime) && outTime > inTime) {
               accumulatedMinutes += (outTime - inTime) / 60000;
             }
-          } else if (!isLongTerm && l.status === 'present') {
+          } else if (!isLongTerm && rows.some(r => r.status === 'present')) {
             accumulatedMinutes += (daily_hours || 0) * 60;
           }
         });
@@ -861,8 +871,11 @@ courses.get('/:id/attendance', async (c) => {
             finalRate: finalAttendanceRate
           };
         } else {
-          const expectedCurrentMinutes = daysProgressed > 0 ? daysProgressed * (daily_hours || 0) * 60 : 0;
           const expectedTotalMinutes = total_hours > 0 ? total_hours * 60 : 0;
+          let expectedCurrentMinutes = daysProgressed > 0 ? daysProgressed * (daily_hours || 0) * 60 : 0;
+          if (expectedTotalMinutes > 0 && expectedCurrentMinutes > expectedTotalMinutes) {
+            expectedCurrentMinutes = expectedTotalMinutes;
+          }
 
           const currentAttendanceRate = expectedCurrentMinutes > 0
             ? Math.min(100, (accumulatedMinutes / expectedCurrentMinutes) * 100).toFixed(1)
@@ -875,7 +888,7 @@ courses.get('/:id/attendance', async (c) => {
           advanced_attendance = {
             type: 'minutes',
             isLongTerm: false,
-            accumulatedMinutes: Math.floor(accumulatedMinutes),
+            accumulatedMinutes: Math.min(Math.floor(accumulatedMinutes), expectedTotalMinutes || accumulatedMinutes),
             expectedCurrentMinutes,
             expectedTotalMinutes,
             currentRate: currentAttendanceRate,
@@ -906,12 +919,16 @@ courses.get('/:id/attendance', async (c) => {
       };
     });
 
-    return successResponse(c, {
+    const payload: Record<string, unknown> = {
       date,
       students: result,
       default_start_time: defaultStartTime,
       default_end_time: defaultEndTime
-    });
+    };
+    if (type === 'hrd' && sessionDetails && sessionDetails.session_status) {
+      payload.session_status = sessionDetails.session_status;
+    }
+    return successResponse(c, payload);
 
   } catch (error) {
     console.error('Get attendance error:', error);
