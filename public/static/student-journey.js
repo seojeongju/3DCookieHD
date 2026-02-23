@@ -190,8 +190,9 @@
             .then(function (result) {
                 if (!result) return;
                 if (result.success) {
-                    alert('배정이 완료되었습니다.');
+                    alert('배정이 완료되었습니다. 여정 상태가 집중훈련(수강중)으로 전환됩니다.');
                     window.switchTab('courses');
+                    loadStudentIntoPage();
                 } else {
                     alert(result.error || '배정 실패');
                 }

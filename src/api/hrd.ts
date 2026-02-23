@@ -768,17 +768,18 @@ app.get('/students/:id', async (c) => {
         if (!row) return c.json({ success: false, error: '훈련생을 찾을 수 없습니다.' }, 404);
         let r = row;
 
-        // 여정 자동화: 수강 중인 회차의 종료일이 지났으면 수료 완료로 전환
+        // 여정 자동화: 수강중(enrolled/approved)인 회차 중 가장 늦게 끝나는 회차가 종료되었을 때만 수료완료로 전환
+        // (과거 수료만 있고 신규 과정 등록 전에 집중훈련으로 저장한 경우에는 덮어쓰지 않음)
         const journeyStatus = r.status || 'consulting';
         if (journeyStatus === 'learning') {
-            const latestSession = await c.env.DB.prepare(`
+            const latestActive = await c.env.DB.prepare(`
                 SELECT cs.training_end_date
                 FROM course_session_enrollments cse
                 JOIN course_sessions cs ON cse.session_id = cs.id
-                WHERE cse.user_id = ?
+                WHERE cse.user_id = ? AND cse.status IN ('enrolled', 'approved')
                 ORDER BY cs.training_end_date DESC LIMIT 1
             `).bind(id).first() as { training_end_date: string | null } | undefined;
-            const endDate = latestSession?.training_end_date;
+            const endDate = latestActive?.training_end_date;
             const today = new Date().toISOString().split('T')[0];
             if (endDate && endDate <= today) {
                 await c.env.DB.prepare(

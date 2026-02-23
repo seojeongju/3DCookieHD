@@ -1292,9 +1292,9 @@ app.post('/:id/enrollments', authMiddleware, requireRole('admin', 'teacher', 'in
           'INSERT INTO course_session_enrollments (session_id, user_id, status) VALUES (?, ?, ?)'
         ).bind(id, uid, 'enrolled').run();
         added++;
-        // 여정 자동화: 과정 배정 완료 시 집중 훈련으로 전환
+        // 여정 자동화: 과정 배정 완료 시 집중 훈련(수강중)으로 전환 — 수료완료 후 신규과정 등록 시에도 전환
         await DB.prepare(
-          `UPDATE hrd_student_details SET status = 'learning' WHERE user_id = ? AND (status IS NULL OR status IN ('consulting', 'registered'))`
+          `UPDATE hrd_student_details SET status = 'learning' WHERE user_id = ? AND (status IS NULL OR status IN ('consulting', 'registered', 'completed'))`
         ).bind(uid).run();
       } catch (_) {
         // UNIQUE violation = already enrolled, skip
