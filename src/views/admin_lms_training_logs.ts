@@ -1,4 +1,4 @@
-﻿
+
 import { lmsHeaderHtml } from './components/lms_header';
 import { hrdSidebar } from './components/hrd_sidebar';
 
@@ -243,13 +243,16 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
 
         document.addEventListener('DOMContentLoaded', async function() {
             try {
-                const urlParams = new URLSearchParams(window.location.search);
-                const isHrd = urlParams.get('type') === 'hrd' ? '?type=hrd' : '';
                 if (courseId) {
-                   const res = await fetch('/api/courses/' + courseId + isHrd);
-                   const result = await res.json();
-                   if (result.success && result.data && result.data.daily_hours) {
-                       globalDailyHours = result.data.daily_hours;
+                   var res = await fetch('/api/courses/' + courseId + '?type=hrd');
+                   var result = await res.json();
+                   if (result.success && result.data) {
+                       var dh = result.data.daily_hours;
+                       if (dh != null && dh > 0) {
+                           globalDailyHours = Number(dh);
+                           var elH = document.getElementById('logHours');
+                           if (elH) elH.value = globalDailyHours;
+                       }
                    }
                 }
             } catch(e) {}
@@ -330,6 +333,9 @@ async function loadLogs(page = 1) {
         });
         const result = await res.json();
         if (result.success) {
+            if (result.assignedDailyHours != null && result.assignedDailyHours > 0) {
+                globalDailyHours = Number(result.assignedDailyHours);
+            }
             const logs = result.pagination ? result.data : result.data;
             renderLogs(logs);
             if (result.pagination) {
@@ -436,7 +442,7 @@ async function printLog(id) {
         }
 
         if (session.total_hours && session.daily_hours) {
-            totalDays = Math.ceil(session.total_hours / session.daily_hours);
+            totalDays = Math.ceil(parseFloat(session.total_hours) / parseFloat(session.daily_hours));
         } else if (session.training_start_date && session.training_end_date) {
             // Fallback to date diff if hours are missing (though inaccurate for weekdays)
             const start = new Date(session.training_start_date);
@@ -1039,7 +1045,7 @@ async function printLog(id) {
                     const el = document.getElementById('institution-name-display');
                     if (el) el.textContent = result.data;
                     const el2 = document.getElementById('institution-name-display-footer');
-                    if (el2) el2.textContent = result.data + '(3D쿠키 홍대센터)';
+                    if (el2) el2.textContent = result.data;
                 }
             } catch (e) { console.error(e); }
         }

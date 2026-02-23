@@ -2396,20 +2396,25 @@ app.get('/training-logs', async (c) => {
 
         let resolvedCourseId: number | null = null;
 
+        let assignedDailyHours: number | null = null;
+
         // 1. courses 테이블에 직접 있는지 확인
         const existsInCourses = await c.env.DB.prepare('SELECT id FROM courses WHERE id = ?').bind(rawId).first();
         if (existsInCourses) {
             resolvedCourseId = rawId;
         } else {
-            // 2. course_sessions인 경우, 제목으로 LMS 과정 찾기
+            // 2. course_sessions인 경우, 제목으로 LMS 과정 찾기 + 배정 일일 훈련시간
             const session: any = await c.env.DB.prepare(`
-                SELECT s.id, s.session_number, s.session_name, a.name as course_name
+                SELECT s.id, s.session_number, s.session_name, a.name as course_name, a.daily_hours
                 FROM course_sessions s
                 JOIN approved_courses a ON s.approved_course_id = a.id
                 WHERE s.id = ?
             `).bind(rawId).first();
 
             if (session) {
+                if (session.daily_hours != null && session.daily_hours > 0) {
+                    assignedDailyHours = Number(session.daily_hours);
+                }
                 const title = `${session.course_name || '과정'} (${session.session_number}회차${session.session_name ? ' - ' + session.session_name : ''})`.trim();
                 const lmsCourse: any = await c.env.DB.prepare(
                     'SELECT id FROM courses WHERE title = ? LIMIT 1'
@@ -2422,7 +2427,7 @@ app.get('/training-logs', async (c) => {
         }
 
         if (resolvedCourseId == null) {
-            return c.json({ success: true, data: [] });
+            return c.json({ success: true, data: [], assignedDailyHours: assignedDailyHours ?? undefined });
         }
 
         let countQuery = "SELECT COUNT(*) as total FROM training_logs t WHERE t.course_id = ?";
@@ -2454,7 +2459,7 @@ app.get('/training-logs', async (c) => {
 
         const { results } = await c.env.DB.prepare(query).bind(...params).all();
 
-        return c.json({
+        const out: { success: boolean; data: any; pagination?: any; assignedDailyHours?: number } = {
             success: true,
             data: results,
             pagination: {
@@ -2463,7 +2468,9 @@ app.get('/training-logs', async (c) => {
                 total,
                 totalPages: Math.ceil(total / limit)
             }
-        });
+        };
+        if (assignedDailyHours != null) out.assignedDailyHours = assignedDailyHours;
+        return c.json(out);
     } catch (e: any) {
         console.error('[Training Logs GET] Error:', e);
         return errorResponse(c, '훈련일지 조회 실패: ' + e.message, 500);
