@@ -127,6 +127,17 @@ export const adminHrdAttendanceHtml = (sidebar = hrdSidebar('attendance')) => `
                                 <!-- 데이터 로드됨 -->
                             </tbody>
                         </table>
+                        
+                        <!-- 페이지네이션 -->
+                        <div class="px-6 py-4 bg-gray-50/30 border-t border-gray-100 flex items-center justify-between">
+                            <div class="text-xs text-gray-500 font-medium">
+                                전체 <span id="total-count" class="font-bold text-gray-700">0</span>개 과정 중 
+                                <span id="current-range" class="font-bold text-gray-700">0-0</span> 표시
+                            </div>
+                            <div class="flex items-center space-x-1" id="paginationControls">
+                                <!-- 페이지 버튼 로드됨 -->
+                            </div>
+                        </div>
                     </div>
                 </div>
             </main>
@@ -134,7 +145,8 @@ export const adminHrdAttendanceHtml = (sidebar = hrdSidebar('attendance')) => `
     </div>
 
     <script>
-        let courseSummaryData = [];
+        let currentPage = 1;
+        const itemsPerPage = 10;
         const token = localStorage.getItem('token');
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -153,21 +165,22 @@ export const adminHrdAttendanceHtml = (sidebar = hrdSidebar('attendance')) => `
 
         async function loadAttendanceSummary() {
             const date = document.getElementById('targetDate').value;
+            const search = document.getElementById('courseSearch').value;
             updateDisplayDate();
             
             const tbody = document.getElementById('summaryTableBody');
             tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-20 text-center text-gray-400 font-medium"><i class="fas fa-circle-notch fa-spin mr-2"></i> 데이터 로딩 중...</td></tr>';
 
             try {
-                const response = await fetch('/api/hrd/attendance/summary?date=' + date, {
+                const url = \`/api/hrd/attendance/summary?date=\${date}&page=\${currentPage}&limit=\${itemsPerPage}&search=\${encodeURIComponent(search)}\`;
+                const response = await fetch(url, {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
                 const result = await response.json();
 
                 if (result.success) {
-                    courseSummaryData = result.data;
-                    updateStats();
-                    renderSummaryTable(courseSummaryData);
+                    updateStats(result.stats);
+                    renderSummaryTable(result.data, result.pagination);
                 } else {
                     tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-20 text-center text-red-500">데이터 로드 실패: ' + result.error + '</td></tr>';
                 }
@@ -177,36 +190,42 @@ export const adminHrdAttendanceHtml = (sidebar = hrdSidebar('attendance')) => `
             }
         }
 
-        function updateStats() {
-            const total = courseSummaryData.length;
-            const present = courseSummaryData.reduce((acc, c) => acc + c.present, 0);
-            const absent = courseSummaryData.reduce((acc, c) => acc + c.absent, 0);
-            const avgRate = total > 0 ? Math.round(courseSummaryData.reduce((acc, c) => acc + c.rate, 0) / total) : 0;
-
-            document.getElementById('stat-total-courses').textContent = total;
-            document.getElementById('stat-total-present').textContent = present;
-            document.getElementById('stat-total-absent').textContent = absent;
-            document.getElementById('stat-avg-rate').textContent = avgRate;
+        function updateStats(stats) {
+            document.getElementById('stat-total-courses').textContent = stats.totalCourses;
+            document.getElementById('stat-total-present').textContent = stats.totalPresent;
+            document.getElementById('stat-total-absent').textContent = stats.totalAbsent;
+            document.getElementById('stat-avg-rate').textContent = stats.avgRate;
         }
 
         function filterCourses() {
-            const search = document.getElementById('courseSearch').value.toLowerCase();
-            const filtered = courseSummaryData.filter(c => 
-                c.title.toLowerCase().includes(search) || 
-                c.teacher_name.toLowerCase().includes(search)
-            );
-            renderSummaryTable(filtered);
+            currentPage = 1; // 검색 시 1페이지로 리셋
+            loadAttendanceSummary();
         }
 
-        function renderSummaryTable(data) {
+        function goToPage(page) {
+            currentPage = page;
+            loadAttendanceSummary();
+        }
+
+        function renderSummaryTable(pageData, pagination) {
             const tbody = document.getElementById('summaryTableBody');
+            const { total, page, limit, totalPages } = pagination;
             
-            if (data.length === 0) {
+            if (pageData.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-20 text-center text-gray-400">조건에 맞는 과정이 없습니다.</td></tr>';
+                document.getElementById('total-count').textContent = '0';
+                document.getElementById('current-range').textContent = '0-0';
+                document.getElementById('paginationControls').innerHTML = '';
                 return;
             }
 
-            tbody.innerHTML = data.map(c => \`
+            const startIndex = (page - 1) * limit;
+            const endIndex = startIndex + pageData.length;
+
+            document.getElementById('total-count').textContent = total;
+            document.getElementById('current-range').textContent = \`\${startIndex + 1}-\${endIndex}\`;
+
+            tbody.innerHTML = pageData.map(c => \`
                 <tr class="hover:bg-gray-50/80 transition-colors group cursor-pointer" onclick="location.href='/admin/courses/\${c.id}/lms/attendance?type=\${c.type}'">
                     <td class="px-6 py-5">
                         <div class="font-bold text-gray-800 group-hover:text-blue-600 transition-colors">\${c.title}</div>
@@ -234,7 +253,7 @@ export const adminHrdAttendanceHtml = (sidebar = hrdSidebar('attendance')) => `
                     <td class="px-6 py-5 text-center">
                         <span class="text-sm font-bold \${c.pending > 0 ? 'text-orange-500' : 'text-gray-300'}">\${c.pending}</span>
                     </td>
-                    <td class="px-6 py-5 text-center">
+                    <td class="px-6 py-4 text-center">
                         <div class="flex flex-col items-center">
                             <div class="text-sm font-black \${c.rate >= 90 ? 'text-green-600' : c.rate >= 70 ? 'text-blue-600' : 'text-red-500'}">\${c.rate}%</div>
                             <div class="w-16 h-1 bg-gray-100 rounded-full mt-1.5 overflow-hidden">
@@ -249,6 +268,46 @@ export const adminHrdAttendanceHtml = (sidebar = hrdSidebar('attendance')) => `
                     </td>
                 </tr>
             \`).join('');
+
+            // 페이지네이션 컨트롤 렌더링
+            let paginationHtml = '';
+            
+            // 이전 버튼
+            paginationHtml += \`
+                <button onclick="goToPage(\${Math.max(1, currentPage - 1)})" \${currentPage === 1 ? 'disabled' : ''} class="w-8 h-8 flex items-center justify-center rounded-lg \${currentPage === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-100'} transition">
+                    <i class="fas fa-chevron-left text-[10px]"></i>
+                </button>
+            \`;
+
+            // 페이지 번호
+            for (let i = 1; i <= totalPages; i++) {
+                if (totalPages > 7) {
+                    if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+                        paginationHtml += \`
+                            <button onclick="goToPage(\${i})" class="w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold \${currentPage === i ? 'bg-blue-600 text-white shadow-md shadow-blue-100' : 'text-gray-500 hover:bg-gray-100'} transition">
+                                \${i}
+                            </button>
+                        \`;
+                    } else if (i === currentPage - 3 || i === currentPage + 3) {
+                        paginationHtml += '<span class="text-gray-300 text-xs px-1">...</span>';
+                    }
+                } else {
+                    paginationHtml += \`
+                        <button onclick="goToPage(\${i})" class="w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold \${currentPage === i ? 'bg-blue-600 text-white shadow-md shadow-blue-100' : 'text-gray-500 hover:bg-gray-100'} transition">
+                            \${i}
+                        </button>
+                    \`;
+                }
+            }
+
+            // 다음 버튼
+            paginationHtml += \`
+                <button onclick="goToPage(\${Math.min(totalPages, currentPage + 1)})" \${currentPage === totalPages ? 'disabled' : ''} class="w-8 h-8 flex items-center justify-center rounded-lg \${currentPage === totalPages ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-100'} transition">
+                    <i class="fas fa-chevron-right text-[10px]"></i>
+                </button>
+            \`;
+
+            document.getElementById('paginationControls').innerHTML = paginationHtml;
         }
     </script>
 </body>

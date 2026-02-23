@@ -1655,110 +1655,132 @@ app.get('/attendance', authMiddleware, async (c) => {
     }
 });
 
-// 전체 과정 출석 요약 정보 조회
+// 전체 과정 출석 요약 정보 조회 (페이지네이션 및 검색 지원)
 app.get('/attendance/summary', authMiddleware, async (c) => {
     try {
         const date = c.req.query('date') || new Date().toISOString().split('T')[0];
+        const page = Math.max(1, parseInt(c.req.query('page') || '1'));
+        const limit = Math.min(100, Math.max(1, parseInt(c.req.query('limit') || '10')));
+        const search = c.req.query('search') || '';
+        const offset = (page - 1) * limit;
 
-        // 1. 모든 활성 과정 조회 (일반 과정 + HRD 회차 통합)
+        // 1. 모든 활성 과정 조회 (검색 필터 포함)
+        let whereClause = "";
+        let searchParams: any[] = [];
+        if (search) {
+            whereClause = "WHERE title LIKE ? OR teacher_name LIKE ?";
+            const searchPattern = `%${search}%`;
+            searchParams = [searchPattern, searchPattern];
+        }
+
         const coursesQuery = `
             SELECT id, title, teacher_name, type, created_at
-            FROM(
+            FROM (
                 SELECT c.id, c.title, u.name as teacher_name, 'general' as type, c.created_at
                 FROM courses c
                 LEFT JOIN users u ON c.teacher_id = u.id
-                WHERE c.status IN('active', 'open', 'in_progress')
+                WHERE c.status IN ('active', 'open', 'in_progress')
                 UNION ALL
                 SELECT s.id, (a.name || ' (' || s.session_number || '회차)') as title, s.instructor_name as teacher_name, 'hrd' as type, s.created_at
                 FROM course_sessions s
                 JOIN approved_courses a ON s.approved_course_id = a.id
-                WHERE s.status IN('active', 'open', 'in_progress', 'recruiting')
+                WHERE s.status IN ('active', 'open', 'in_progress', 'recruiting')
             )
+            ${whereClause}
             ORDER BY created_at DESC
-                `;
-        const { results: courses } = await c.env.DB.prepare(coursesQuery).all();
+        `;
 
-        // 2. 각 과정별 통계 조회
-        const summaryData = await Promise.all((courses as any[]).map(async (course) => {
-            let studentsCount = 0;
-            let stats = { present: 0, late: 0, early: 0, absent: 0 };
+        const { results: allCourses } = await c.env.DB.prepare(coursesQuery).bind(...searchParams).all();
+        const total = allCourses ? allCourses.length : 0;
 
-            if (course.type === 'general') {
-                // 일반 과정 통계
-                const countResult = await c.env.DB.prepare(`
-                    SELECT COUNT(*) as count FROM enrollments WHERE course_id = ? AND status = 'approved'
-                `).bind(course.id).first<{ count: number }>();
-                studentsCount = countResult?.count || 0;
-
-                const statsResult = await c.env.DB.prepare(`
-            SELECT
-            SUM(CASE WHEN al.status = 'present' THEN 1 ELSE 0 END) as present,
+        // 2. 집계 쿼리로 모든 과정에 대한 통계 일괄 조회 (Optimization & Fix)
+        // 1) 일반 과정 통계 (status 필터 완화)
+        const generalStatsQuery = `
+            SELECT 
+                e.course_id as id, 
+                COUNT(e.id) as total_students,
+                SUM(CASE WHEN al.status = 'present' THEN 1 ELSE 0 END) as present,
                 SUM(CASE WHEN al.status = 'late' THEN 1 ELSE 0 END) as late,
                 SUM(CASE WHEN al.status = 'early_leave' THEN 1 ELSE 0 END) as early,
                 SUM(CASE WHEN al.status = 'absent' THEN 1 ELSE 0 END) as absent
-                    FROM enrollments e
-                    LEFT JOIN attendance_logs al ON e.id = al.enrollment_id AND al.date = ?
-                WHERE e.course_id = ? AND e.status = 'approved'
-                    `).bind(date, course.id).first<any>();
+            FROM enrollments e
+            LEFT JOIN attendance_logs al ON e.id = al.enrollment_id AND al.date = ?
+            WHERE e.status IN ('approved', 'enrolled', 'active')
+            GROUP BY e.course_id
+        `;
+        const { results: generalStatsResults } = await c.env.DB.prepare(generalStatsQuery).bind(date).all();
+        const generalStatsMap = new Map((generalStatsResults || []).map((r: any) => [r.id, r]));
 
-                if (statsResult) {
-                    stats = {
-                        present: Number(statsResult.present) || 0,
-                        late: Number(statsResult.late) || 0,
-                        early: Number(statsResult.early) || 0,
-                        absent: Number(statsResult.absent) || 0
-                    };
-                }
-            } else {
-                // HRD 회차 통계
-                const countResult = await c.env.DB.prepare(`
-                    SELECT COUNT(*) as count FROM course_session_enrollments WHERE session_id = ? AND status = 'approved'
-                `).bind(course.id).first<{ count: number }>();
-                studentsCount = countResult?.count || 0;
-
-                // HRD 회차는 아직 attendance_logs를 직접 쓰지 않을 수 있으므로, 
-                // 향후 확장을 고려하여 hrd_student_details 등을 통한 대체 로직이 필요할 수 있음
-                // 일단은 빈 상태로 유지하거나 통합 attendance_logs가 있다면 그대로 사용
-                // (일단 일반과 동일한 테이블 구조를 사용한다고 가정하거나 0으로 표시)
-                const hrdStatsResult = await c.env.DB.prepare(`
-            SELECT
-            SUM(CASE WHEN al.status = 'present' THEN 1 ELSE 0 END) as present,
+        // 2) HRD 회차 통계 (status 필터 완화)
+        const hrdStatsQuery = `
+            SELECT 
+                e.session_id as id, 
+                COUNT(e.id) as total_students,
+                SUM(CASE WHEN al.status = 'present' THEN 1 ELSE 0 END) as present,
                 SUM(CASE WHEN al.status = 'late' THEN 1 ELSE 0 END) as late,
                 SUM(CASE WHEN al.status = 'early_leave' THEN 1 ELSE 0 END) as early,
                 SUM(CASE WHEN al.status = 'absent' THEN 1 ELSE 0 END) as absent
-                    FROM course_session_enrollments e
-                    LEFT JOIN attendance_logs al ON e.id = al.enrollment_id AND al.date = ?
-                WHERE e.session_id = ? AND e.status = 'approved'
-                    `).bind(date, course.id).first<any>();
+            FROM course_session_enrollments e
+            LEFT JOIN attendance_logs al ON e.id = al.enrollment_id AND al.date = ?
+            WHERE e.status IN ('approved', 'enrolled', 'active')
+            GROUP BY e.session_id
+        `;
+        const { results: hrdStatsResults } = await c.env.DB.prepare(hrdStatsQuery).bind(date).all();
+        const hrdStatsMap = new Map((hrdStatsResults || []).map((r: any) => [r.id, r]));
 
-                if (hrdStatsResult) {
-                    stats = {
-                        present: Number(hrdStatsResult.present) || 0,
-                        late: Number(hrdStatsResult.late) || 0,
-                        early: Number(hrdStatsResult.early) || 0,
-                        absent: Number(hrdStatsResult.absent) || 0
-                    };
-                }
-            }
+        // 3) 결합 및 상세 데이터 구성
+        const allSummaryData = (allCourses || []).map((course: any) => {
+            const stats = (course.type === 'general' ? generalStatsMap.get(course.id) : hrdStatsMap.get(course.id)) || {
+                total_students: 0,
+                present: 0,
+                late: 0,
+                early: 0,
+                absent: 0
+            };
 
-            const total = studentsCount;
-            const handled = stats.present + stats.late + stats.early + stats.absent;
+            const totalStudents = Number(stats.total_students) || 0;
+            const present = Number(stats.present) || 0;
+            const late = Number(stats.late) || 0;
+            const early = Number(stats.early) || 0;
+            const absent = Number(stats.absent) || 0;
+            const handled = present + late + early + absent;
 
             return {
                 id: course.id,
                 title: course.title,
                 teacher_name: course.teacher_name || '-',
-                total_students: total,
-                present: stats.present,
-                late: stats.late + stats.early,
-                absent: stats.absent,
-                pending: total - handled,
-                rate: total > 0 ? Math.round((stats.present / total) * 100) : 0,
-                type: course.type // 프론트엔드 분기 처우용
+                total_students: totalStudents,
+                present,
+                late: late + early, // 지각 + 조퇴 합산
+                absent,
+                pending: totalStudents - handled,
+                rate: totalStudents > 0 ? Math.round((present / totalStudents) * 100) : 0,
+                type: course.type
             };
-        }));
+        });
 
-        return c.json({ success: true, data: summaryData });
+        // 3. 글로벌 통계 산출
+        const globalStats = {
+            totalCourses: total,
+            totalPresent: allSummaryData.reduce((acc, c) => acc + c.present, 0),
+            totalAbsent: allSummaryData.reduce((acc, c) => acc + c.absent, 0),
+            avgRate: total > 0 ? Math.round(allSummaryData.reduce((acc, c) => acc + c.rate, 0) / total) : 0
+        };
+
+        // 4. 페이지네이션 적용
+        const paginatedData = allSummaryData.slice(offset, offset + limit);
+
+        return c.json({
+            success: true,
+            data: paginatedData,
+            pagination: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit)
+            },
+            stats: globalStats
+        });
     } catch (e) {
         console.error('Failed to fetch attendance summary:', e);
         return c.json({ success: false, error: '출석 요약 조회 실패' }, 500);
