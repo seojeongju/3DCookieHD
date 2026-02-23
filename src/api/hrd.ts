@@ -1744,9 +1744,11 @@ app.get('/attendance', authMiddleware, async (c) => {
 });
 
 // 전체 과정 출석 요약 정보 조회 (페이지네이션, 검색, 과정 상태 필터 지원)
+// stats=cumulative: 현재까지 누적 통계(출석/지각/결석), pending은 선택일 기준 | stats=today: 선택일만
 app.get('/attendance/summary', authMiddleware, async (c) => {
     try {
         const date = c.req.query('date') || new Date().toISOString().split('T')[0];
+        const statsScope = (c.req.query('stats') || 'cumulative').toLowerCase(); // cumulative | today
         const page = Math.max(1, parseInt(c.req.query('page') || '1'));
         const limit = Math.min(100, Math.max(1, parseInt(c.req.query('limit') || '10')));
         const search = c.req.query('search') || '';
@@ -1776,12 +1778,15 @@ app.get('/attendance/summary', authMiddleware, async (c) => {
         const { results: allCourses } = await c.env.DB.prepare(coursesQuery).bind(...searchParams).all();
         const total = allCourses ? allCourses.length : 0;
 
-        // 2. 집계 쿼리로 모든 과정에 대한 통계 일괄 조회 (Optimization & Fix)
-        // 1) 일반 과정 통계 (status 필터 완화)
+        const dateCondition = statsScope === 'today' ? ' AND al.date = ?' : '';
+        const dateParam = statsScope === 'today' ? [date] : [];
+        const countStudents = statsScope === 'today' ? 'COUNT(e.id)' : 'COUNT(DISTINCT e.id)';
+
+        // 1) 일반 과정 통계
         const generalStatsQuery = `
             SELECT 
                 e.course_id as id, 
-                COUNT(e.id) as total_students,
+                ${countStudents} as total_students,
                 SUM(CASE WHEN al.status = 'present' THEN 1 ELSE 0 END) as present,
                 SUM(CASE WHEN al.status = 'late' THEN 1 ELSE 0 END) as late,
                 SUM(CASE WHEN al.status = 'early_leave' THEN 1 ELSE 0 END) as early,
@@ -1790,18 +1795,18 @@ app.get('/attendance/summary', authMiddleware, async (c) => {
                 SUM(CASE WHEN al.status = 'absent_under_50' THEN 1 ELSE 0 END) as absent_under_50,
                 SUM(CASE WHEN al.status = 'late_and_early' THEN 1 ELSE 0 END) as late_and_early
             FROM enrollments e
-            LEFT JOIN attendance_logs al ON e.id = al.enrollment_id AND al.date = ?
+            LEFT JOIN attendance_logs al ON e.id = al.enrollment_id ${dateCondition}
             WHERE e.status IN ('approved', 'enrolled', 'active')
             GROUP BY e.course_id
         `;
-        const { results: generalStatsResults } = await c.env.DB.prepare(generalStatsQuery).bind(date).all();
+        const { results: generalStatsResults } = await c.env.DB.prepare(generalStatsQuery).bind(...dateParam).all();
         const generalStatsMap = new Map((generalStatsResults || []).map((r: any) => [r.id, r]));
 
-        // 2) HRD 회차 통계 (status 필터 완화)
+        // 2) HRD 회차 통계 (출석/지각/결석 = 누적 또는 당일)
         const hrdStatsQuery = `
             SELECT 
                 e.session_id as id, 
-                COUNT(e.id) as total_students,
+                ${countStudents} as total_students,
                 SUM(CASE WHEN al.status = 'present' THEN 1 ELSE 0 END) as present,
                 SUM(CASE WHEN al.status = 'late' THEN 1 ELSE 0 END) as late,
                 SUM(CASE WHEN al.status = 'early_leave' THEN 1 ELSE 0 END) as early,
@@ -1810,16 +1815,38 @@ app.get('/attendance/summary', authMiddleware, async (c) => {
                 SUM(CASE WHEN al.status = 'absent_under_50' THEN 1 ELSE 0 END) as absent_under_50,
                 SUM(CASE WHEN al.status = 'late_and_early' THEN 1 ELSE 0 END) as late_and_early
             FROM course_session_enrollments e
+            LEFT JOIN attendance_logs al ON e.id = al.enrollment_id ${dateCondition}
+            WHERE e.status IN ('approved', 'enrolled', 'active')
+            GROUP BY e.session_id
+        `;
+        const { results: hrdStatsResults } = await c.env.DB.prepare(hrdStatsQuery).bind(...dateParam).all();
+        const hrdStatsMap = new Map((hrdStatsResults || []).map((r: any) => [r.id, r]));
+
+        // 3) 미처리(선택일 기준): 해당 날짜에 기록이 없는 수강생 수
+        const hrdPendingQuery = `
+            SELECT e.session_id as id, COUNT(e.id) as total_students,
+                SUM(CASE WHEN al.id IS NOT NULL THEN 1 ELSE 0 END) as handled
+            FROM course_session_enrollments e
             LEFT JOIN attendance_logs al ON e.id = al.enrollment_id AND al.date = ?
             WHERE e.status IN ('approved', 'enrolled', 'active')
             GROUP BY e.session_id
         `;
-        const { results: hrdStatsResults } = await c.env.DB.prepare(hrdStatsQuery).bind(date).all();
-        const hrdStatsMap = new Map((hrdStatsResults || []).map((r: any) => [r.id, r]));
+        const { results: hrdPendingResults } = await c.env.DB.prepare(hrdPendingQuery).bind(date).all();
+        const hrdPendingMap = new Map((hrdPendingResults || []).map((r: any) => [r.id, { total: Number(r.total_students), handled: Number(r.handled) }]));
+        const generalPendingQuery = `
+            SELECT e.course_id as id, COUNT(e.id) as total_students,
+                SUM(CASE WHEN al.id IS NOT NULL THEN 1 ELSE 0 END) as handled
+            FROM enrollments e
+            LEFT JOIN attendance_logs al ON e.id = al.enrollment_id AND al.date = ?
+            WHERE e.status IN ('approved', 'enrolled', 'active')
+            GROUP BY e.course_id
+        `;
+        const { results: generalPendingResults } = await c.env.DB.prepare(generalPendingQuery).bind(date).all();
+        const generalPendingMap = new Map((generalPendingResults || []).map((r: any) => [r.id, { total: Number(r.total_students), handled: Number(r.handled) }]));
 
         const statusLabels: Record<string, string> = { recruiting: '모집중', in_progress: '진행중', completed: '마감', closed: '종료', always_open: '상시모집' };
 
-        // 3) 결합 및 상세 데이터 구성
+        // 4) 결합 및 상세 데이터 구성 (출석/지각/결석 = 누적 또는 당일, 미처리 = 선택일 기준)
         const allSummaryData = (allCourses || []).map((course: any) => {
             const stats = (course.type === 'general' ? generalStatsMap.get(course.id) : hrdStatsMap.get(course.id)) || {
                 total_students: 0,
@@ -1831,6 +1858,7 @@ app.get('/attendance/summary', authMiddleware, async (c) => {
                 absent_under_50: 0,
                 late_and_early: 0
             };
+            const pendingInfo = (course.type === 'general' ? generalPendingMap.get(course.id) : hrdPendingMap.get(course.id)) || { total: 0, handled: 0 };
 
             const totalStudents = Number(stats.total_students) || 0;
             const present = Number(stats.present) || 0;
@@ -1843,7 +1871,9 @@ app.get('/attendance/summary', authMiddleware, async (c) => {
 
             const handledAbsents = absent + absent_under_50;
             const handledLates = late + early + late_and_early;
-            const handled = present + handledLates + handledAbsents + public_leave;
+            const pending = Math.max(0, (pendingInfo.total || totalStudents) - (pendingInfo.handled ?? 0));
+            const totalHandled = present + handledLates + handledAbsents + public_leave;
+            const rate = totalHandled > 0 ? Math.round(((present + handledLates + public_leave) / totalHandled) * 100) : (totalStudents > 0 ? Math.round(((totalStudents - handledAbsents) / totalStudents) * 100) : 0);
 
             return {
                 id: course.id,
@@ -1853,10 +1883,10 @@ app.get('/attendance/summary', authMiddleware, async (c) => {
                 teacher_name: course.teacher_name || '-',
                 total_students: totalStudents,
                 present,
-                late: handledLates, // 지각 + 조퇴 + 지각&조퇴 합산
+                late: handledLates,
                 absent: handledAbsents,
-                pending: Math.max(0, totalStudents - handled),
-                rate: totalStudents > 0 ? Math.round(((totalStudents - handledAbsents) / totalStudents) * 100) : 0,
+                pending,
+                rate,
                 type: course.type
             };
         });
@@ -1886,6 +1916,31 @@ app.get('/attendance/summary', authMiddleware, async (c) => {
     } catch (e) {
         console.error('Failed to fetch attendance summary:', e);
         return c.json({ success: false, error: '출석 요약 조회 실패' }, 500);
+    }
+});
+
+// 미처리 출석 항목 삭제 (해당 날짜·회차의 status NULL/빈값/pending 기록 삭제)
+app.delete('/attendance/unprocessed', authMiddleware, async (c) => {
+    try {
+        const sessionId = c.req.query('sessionId');
+        const date = c.req.query('date');
+        if (!sessionId || !date) {
+            return c.json({ success: false, error: 'sessionId와 date가 필요합니다.' }, 400);
+        }
+        const sid = Number(sessionId);
+        if (isNaN(sid)) return c.json({ success: false, error: '유효하지 않은 sessionId입니다.' }, 400);
+
+        const result = await c.env.DB.prepare(`
+            DELETE FROM attendance_logs
+            WHERE enrollment_id IN (SELECT id FROM course_session_enrollments WHERE session_id = ?)
+            AND date = ?
+            AND (status IS NULL OR status = '' OR status = 'pending')
+        `).bind(sid, date).run();
+        const deleted = result.meta.changes ?? 0;
+        return c.json({ success: true, deleted });
+    } catch (e: any) {
+        console.error('Failed to delete unprocessed attendance:', e);
+        return c.json({ success: false, error: e.message || '미처리 항목 삭제 실패' }, 500);
     }
 });
 
