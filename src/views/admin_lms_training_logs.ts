@@ -464,6 +464,13 @@ async function printLog(id) {
         const days = ['일', '월', '화', '수', '목', '금', '토'];
         const dayName = days[new Date(log.date).getDay()];
 
+        // 훈련기관명: 설정에서 조회 (신규 설정 시 프린트에도 반영)
+        let institutionName = '쓰리디쿠키 홍대센터(3D쿠키 홍대센터)';
+        try {
+            const instRes = await fetch('/api/settings/institution_name', { headers: { 'Authorization': 'Bearer ' + token } }).then(r => r.json());
+            if (instRes.success && instRes.data) institutionName = instRes.data;
+        } catch (e) {}
+
         // Schedule Rows
         let scheduleRows = '';
         for (let i = 1; i <= 8; i++) {
@@ -589,9 +596,9 @@ async function printLog(id) {
                             <table class="info-table">
                                 <tr>
                                     <td class="label">훈련기관명</td>
-                                    <td class="value" id="institution-name-display-footer">쓰리디쿠키 홍대센터(3D쿠키 홍대센터)</td>
+                                    <td class="value" id="institution-name-display-footer">\${(institutionName || '').replace(/</g, '&lt;').replace(/"/g, '&quot;')}</td>
                                     <td class="label">훈련일</td>
-                                    <td class="value date-value">\${log.date} \${dayName}요일<br><span style="font-weight:normal; font-size:12px;">(\${currentDayCount}일 / \${totalDays}일)</span></td>
+                                    <td class="value date-value">\${log.date} \${dayName}요일<br><span style="font-weight:normal; font-size:12px;">총 훈련일 \${totalDays || 0}일 / 작성일 \${currentDayCount || 1}일차</span></td>
                                 </tr>
                                 <tr>
                                     <td class="label">훈련과정명</td>
