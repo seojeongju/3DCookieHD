@@ -117,7 +117,8 @@ const LINKED_HOMEPAGE_COLS = `s.recruitment_status, s.representative_image_expos
 
 /**
  * GET /api/course-sessions/public
- * 연동 홈페이지용 회차 목록 (인증 없음). 모집중/상시모집/진행중 위주 노출
+ * 교육과정 전체보기 = 교육운영관리에서 관리되는 과정(회차)만 노출.
+ * course_sessions(승인과정 회차)만 사용하며, legacy courses 테이블은 제외.
  */
 app.get('/public', async (c) => {
   try {
@@ -128,97 +129,56 @@ app.get('/public', async (c) => {
     const offset = (page - 1) * limit;
     const { DB } = c.env;
 
-    // 1. 공통 필터 구성
     const params: (string | number)[] = [];
 
-    // Status Filter
     let sessionStatusFilter = "";
-    let generalStatusFilter = "";
     if (status && status.trim() !== '') {
       const s = status.trim();
       sessionStatusFilter = " AND s.status = ?";
-      generalStatusFilter = " AND (CASE WHEN c.status = 'active' THEN 'recruiting' ELSE 'completed' END) = ?";
       params.push(s);
-
-      // 모집중인 경우, 훈련 시작일이 지나지 않은(오늘 포함 미래) 과정만 필터링
       if (s === 'recruiting') {
-        sessionStatusFilter += " AND s.training_start_date >= DATE('now')";
-        generalStatusFilter += " AND c.start_date >= DATE('now')";
+        sessionStatusFilter += " AND (s.training_start_date IS NULL OR s.training_start_date >= DATE('now'))";
       }
     } else {
       sessionStatusFilter = " AND s.status IN ('recruiting', 'always_open', 'in_progress')";
-      generalStatusFilter = " AND c.status = 'active'";
     }
 
-    // Category Filter
     let sessionCategoryFilter = "";
-    let generalCategoryFilter = "";
     if (categoryName && categoryName.trim() !== '') {
       sessionCategoryFilter = " AND cat.name LIKE ?";
-      generalCategoryFilter = " AND c.category LIKE ?";
       params.push('%' + categoryName.trim() + '%');
     }
 
-    // Parameters for UNION: we need to repeat params for both parts if they are identical
-    // But D1 prepare doesn't support named parameters easily across UNION, so we duplicate
-    const unionParams = [...params, ...params];
+    const countRow = await DB.prepare(`
+      SELECT COUNT(*) as total FROM course_sessions s
+      INNER JOIN approved_courses a ON a.id = s.approved_course_id
+      LEFT JOIN course_categories cat ON cat.id = a.category_id
+      WHERE (s.homepage_exposed = 1 OR s.homepage_exposed IS NULL) ${sessionStatusFilter} ${sessionCategoryFilter}
+    `).bind(...params).first<{ total: number }>();
 
-    // 2. 카운트 쿼리
-    const totalRow = await DB.prepare(`
-      SELECT SUM(total) as total FROM (
-        SELECT COUNT(*) as total FROM course_sessions s
-        LEFT JOIN approved_courses a ON a.id = s.approved_course_id
-        LEFT JOIN course_categories cat ON cat.id = a.category_id
-        WHERE (s.homepage_exposed = 1 OR s.homepage_exposed IS NULL) ${sessionStatusFilter} ${sessionCategoryFilter}
-        UNION ALL
-        SELECT COUNT(*) as total FROM courses c
-        WHERE c.status != 'deleted' ${generalStatusFilter} ${generalCategoryFilter}
-      )
-    `).bind(...unionParams).first<{ total: number }>();
+    const total = countRow?.total ?? 0;
 
-    const total = totalRow?.total ?? 0;
-
-    // 3. 목록 데이터 (UNION)
-    unionParams.push(limit, offset);
+    params.push(limit, offset);
     const rows = await DB.prepare(`
-      SELECT * FROM (
-        SELECT 
-          'session' as source,
-          s.id,
-          a.name as course_name,
-          cat.name as category_name,
-          s.status,
-          s.training_start_date,
-          s.training_end_date,
-          s.instructor_name,
-          COALESCE(NULLIF(s.course_list_image_url, ''), NULLIF(s.main_slide_image_url, ''), '/static/course_placeholder.svg') as image_url,
-          s.session_number,
-          s.session_name
-        FROM course_sessions s
-        INNER JOIN approved_courses a ON a.id = s.approved_course_id
-        LEFT JOIN course_categories cat ON cat.id = a.category_id
-        WHERE (s.homepage_exposed = 1 OR s.homepage_exposed IS NULL) ${sessionStatusFilter} ${sessionCategoryFilter}
-        
-        UNION ALL
-        
-        SELECT 
-          'general' as source,
-          c.id,
-          c.title as course_name,
-          c.category as category_name,
-          CASE WHEN c.status = 'active' THEN 'recruiting' ELSE 'completed' END as status,
-          c.start_date as training_start_date,
-          c.end_date as training_end_date,
-          NULL as instructor_name,
-          COALESCE(NULLIF(c.thumbnail_url, ''), '/static/course_placeholder.svg') as image_url,
-          NULL as session_number,
-          NULL as session_name
-        FROM courses c
-        WHERE c.status != 'deleted' ${generalStatusFilter} ${generalCategoryFilter}
-      )
-      ORDER BY training_start_date DESC, id DESC
+      SELECT 
+        'session' as source,
+        s.id,
+        a.name as course_name,
+        cat.name as category_name,
+        s.status,
+        s.training_start_date,
+        s.training_end_date,
+        s.instructor_name,
+        COALESCE(NULLIF(TRIM(s.course_list_image_url), ''), NULLIF(TRIM(s.main_slide_image_url), ''), '/static/course_placeholder.svg') as image_url,
+        s.session_number,
+        s.session_name
+      FROM course_sessions s
+      INNER JOIN approved_courses a ON a.id = s.approved_course_id
+      LEFT JOIN course_categories cat ON cat.id = a.category_id
+      WHERE (s.homepage_exposed = 1 OR s.homepage_exposed IS NULL) ${sessionStatusFilter} ${sessionCategoryFilter}
+      ORDER BY s.training_start_date DESC, s.id DESC
       LIMIT ? OFFSET ?
-    `).bind(...unionParams).all();
+    `).bind(...params).all();
 
     return c.json({
       success: true,
