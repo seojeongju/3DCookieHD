@@ -646,9 +646,11 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
 
         function getStudentRowHtml(s) {
             const courses = s.current_courses || [];
-            const hasCourses = courses.length >= 1;
+            const hasMultiple = courses.length >= 2;
             const sessionStatusMap = { recruiting: '모집중', in_progress: '진행중', completed: '종료', closed: '마감' };
-            const courseTitle = (s.current_course_name || coursesData.find(c => c.id == s.course_id)?.title || (courses[0] ? (courses[0].name + ' (' + (courses[0].session_name || courses[0].session_number + '회차') + ')') : '과정 미지정')).replace(/</g, '&lt;').replace(/"/g, '&quot;');
+            const courseTitle = hasMultiple
+                ? (courses[0].name + ' (' + (courses[0].session_name || courses[0].session_number + '회차') + ')').replace(/</g, '&lt;').replace(/"/g, '&quot;')
+                : (s.current_course_name || coursesData.find(c => c.id == s.course_id)?.title || (courses[0] ? (courses[0].name + ' (' + (courses[0].session_name || courses[0].session_number + '회차') + ')') : '과정 미지정')).replace(/</g, '&lt;').replace(/"/g, '&quot;');
             // 여정 상태: 여정관리 페이지 스테퍼와 동일한 단계명 사용
             const statusLabels = { consulting: '초기 상담', registered: '등록·발급', learning: '집중 훈련', completed: '수료 완료', employed: '취업·성공', dropout: '중도탈락' };
             const statusColors = { consulting: 'bg-amber-50 text-amber-600', registered: 'bg-blue-50 text-blue-600', learning: 'bg-emerald-50 text-emerald-600', completed: 'bg-indigo-50 text-indigo-600', employed: 'bg-violet-50 text-violet-600', dropout: 'bg-red-50 text-red-600' };
@@ -656,7 +658,7 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
             const statusLabel = statusLabels[journeyStatus] || journeyStatus;
             const statusColor = statusColors[journeyStatus] || 'bg-gray-50 text-gray-600';
 
-            const courseCell = hasCourses
+            const courseCell = hasMultiple
                 ? \`
                     <div class="flex items-center gap-2">
                         <button type="button" id="accordion-btn-\${s.id}" onclick="toggleCourseAccordion(\${s.id})" class="text-left text-sm font-bold text-gray-700 hover:text-blue-600 transition inline-flex items-center gap-2 rounded-lg px-2 py-1 -ml-2" aria-expanded="false" aria-controls="student-course-detail-\${s.id}">
@@ -667,7 +669,7 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
                 \`
                 : \`<div class="text-sm font-bold text-gray-700 leading-snug break-words" title="\${courseTitle}">\${courseTitle}</div>\`;
 
-            const detailRow = hasCourses
+            const detailRow = hasMultiple
                 ? \`
                 <tr id="student-course-detail-\${s.id}" class="accordion-detail-row hidden border-b border-gray-100" role="region" aria-label="수강 과정 목록">
                     <td colspan="7" class="px-8 py-4 bg-slate-50/80">
