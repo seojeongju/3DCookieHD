@@ -2495,14 +2495,17 @@ app.get('/training-logs/summary', authMiddleware, async (c) => {
             }
         }
 
-        const { results: sessions } = await c.env.DB.prepare(`
+        const sessionsQuery = c.env.DB.prepare(`
             SELECT s.id, s.session_number, s.session_name, s.status, s.training_start_date, s.training_end_date,
                 s.instructor_name, a.name as course_name, s.lms_course_id
             FROM course_sessions s
             JOIN approved_courses a ON s.approved_course_id = a.id
             WHERE 1=1 ${statusCondition}
             ORDER BY s.training_start_date DESC, s.id DESC
-        `).bind(...params).all();
+        `);
+        const { results: sessions } = params.length > 0
+            ? await sessionsQuery.bind(...params).all()
+            : await sessionsQuery.all();
 
         const summaryData = await Promise.all((sessions || []).map(async (session: any) => {
             const courseName = (session.course_name || '과정').trim();
@@ -2580,7 +2583,8 @@ app.get('/training-logs/summary', authMiddleware, async (c) => {
 
         return c.json({ success: true, data: summaryData });
     } catch (e: any) {
-        return errorResponse(c, e.message, 500);
+        console.error('[training-logs/summary]', e?.message || e);
+        return errorResponse(c, e?.message || '훈련일지 요약 조회 실패', 500);
     }
 });
 
