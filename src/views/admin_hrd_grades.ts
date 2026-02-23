@@ -57,7 +57,7 @@ export const adminHrdGradesHtml = (sidebar = hrdSidebar('grades')) => `
                                 <i class="fas fa-graduation-cap text-xl"></i>
                             </div>
                             <div>
-                                <div class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">운영 과정 수</div>
+                                <div class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">운영 회차 수</div>
                                 <div class="text-2xl font-black text-gray-800 tracking-tight" id="statTotalCourses">0</div>
                             </div>
                         </div>
@@ -92,27 +92,42 @@ export const adminHrdGradesHtml = (sidebar = hrdSidebar('grades')) => `
 
                     <!-- 과정별 성적 요약 목록 -->
                     <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-                        <div class="px-8 py-6 border-b border-gray-50 flex justify-between items-center bg-white/50 backdrop-blur-md">
-                            <div class="flex items-center gap-4">
+                        <div class="relative z-30 px-8 py-6 pb-8 border-b border-gray-50 bg-white/50 backdrop-blur-md space-y-4">
+                            <div class="flex flex-wrap justify-between items-center gap-4">
                                 <h3 class="font-black text-gray-800 text-lg uppercase tracking-tight">과정별 성적 분포</h3>
-                                <div class="flex bg-gray-100 p-1 rounded-xl">
-                                    <button onclick="filterCourses('all')" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all filter-btn active bg-white text-indigo-600 shadow-sm" data-filter="all">전체</button>
-                                    <button onclick="filterCourses('active')" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all filter-btn text-gray-500 hover:text-gray-700" data-filter="active">성적집계중</button>
+                                <div class="flex items-center gap-3 flex-wrap">
+                                    <select id="sortSelect" onchange="applyFilters()" class="bg-gray-50 border border-gray-200 text-xs font-bold text-gray-600 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none relative z-10">
+                                        <option value="name">과정명순</option>
+                                        <option value="avg">평균점수 높은순</option>
+                                        <option value="max">최고점수 높은순</option>
+                                    </select>
                                 </div>
                             </div>
-                            <div class="flex items-center gap-4">
-                                <select id="sortSelect" onchange="sortData()" class="bg-gray-50 border-none text-xs font-bold text-gray-600 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none">
-                                    <option value="name">과정명순</option>
-                                    <option value="avg">평균점수 높은순</option>
-                                    <option value="max">최고점수 높은순</option>
+                            <div class="flex flex-wrap items-center gap-3 min-h-[2.5rem]">
+                                <div class="flex bg-gray-100 p-1 rounded-xl">
+                                    <button onclick="setFilterType('all'); applyFilters();" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all filter-type-btn active bg-white text-indigo-600 shadow-sm" data-filter-type="all">전체</button>
+                                    <button onclick="setFilterType('active'); applyFilters();" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all filter-type-btn text-gray-500 hover:text-gray-700" data-filter-type="active">성적집계중</button>
+                                </div>
+                                <select id="statusFilter" onchange="applyFilters()" class="bg-gray-50 border border-gray-200 text-xs font-bold text-gray-600 rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-500/20 outline-none relative z-10" title="과정 상태">
+                                    <option value="all">과정 상태: 전체</option>
+                                    <option value="recruiting">모집중</option>
+                                    <option value="in_progress">진행중</option>
+                                    <option value="completed">마감</option>
+                                    <option value="closed">종료</option>
+                                    <option value="always_open">상시모집</option>
                                 </select>
+                                <div class="flex items-center bg-gray-50 rounded-xl px-3 py-2 border border-gray-200 focus-within:ring-2 focus-within:ring-indigo-500/20 min-w-[200px]">
+                                    <i class="fas fa-search text-gray-400 mr-2 text-xs"></i>
+                                    <input type="text" id="searchInput" oninput="applyFilters()" placeholder="과정명·강사명 검색" class="bg-transparent border-none outline-none text-sm w-full font-medium min-w-0">
+                                </div>
                             </div>
                         </div>
-                        <div class="overflow-x-auto">
+                        <div class="overflow-x-auto relative z-0">
                             <table class="w-full text-left border-collapse">
                                 <thead>
                                     <tr class="bg-gray-50/50">
                                         <th class="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">교육 과정 정보</th>
+                                        <th class="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center whitespace-nowrap">상태</th>
                                         <th class="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">담당 강사</th>
                                         <th class="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">수강 인원</th>
                                         <th class="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">산출 인원</th>
@@ -124,7 +139,7 @@ export const adminHrdGradesHtml = (sidebar = hrdSidebar('grades')) => `
                                 <tbody id="summaryTableBody" class="divide-y divide-gray-50">
                                     <!-- 데이터 로드 중 -->
                                     <tr>
-                                        <td colspan="7" class="px-8 py-20 text-center text-gray-400">
+                                        <td colspan="8" class="px-8 py-20 text-center text-gray-400">
                                             <i class="fas fa-spinner fa-spin mr-2"></i> 성적 데이터를 불러오고 있습니다...
                                         </td>
                                     </tr>
@@ -152,9 +167,9 @@ export const adminHrdGradesHtml = (sidebar = hrdSidebar('grades')) => `
                 });
                 const result = await res.json();
                 if (result.success) {
-                    allData = result.data;
+                    allData = result.data || [];
                     updateStats(allData);
-                    filterCourses('all');
+                    applyFilters();
                 }
             } catch (e) {
                 console.error(e);
@@ -162,31 +177,32 @@ export const adminHrdGradesHtml = (sidebar = hrdSidebar('grades')) => `
         }
 
         function updateStats(data) {
-            if (!data || data.length === 0) return;
-            
-            const totalCourses = data.length;
-            const validData = data.filter(c => c.tested_count > 0);
-            
-            const globalAvg = validData.length > 0 
-                ? (validData.reduce((acc, cur) => acc + cur.avg_score, 0) / validData.length).toFixed(1)
+            const list = data && data.length ? data : [];
+            const totalSessions = list.length;
+            const validData = list.filter(c => (c.tested_count || 0) > 0);
+            const globalAvg = validData.length > 0
+                ? (validData.reduce((acc, cur) => acc + (cur.avg_score || 0), 0) / validData.length).toFixed(1)
                 : '0.0';
-                
-            const globalMax = data.reduce((acc, cur) => Math.max(acc, cur.max_score), 0);
-            
-            const totalStudents = data.reduce((acc, cur) => acc + cur.student_count, 0);
-            const totalTested = data.reduce((acc, cur) => acc + cur.tested_count, 0);
+            const globalMax = list.reduce((acc, cur) => Math.max(acc, cur.max_score || 0), 0);
+            const totalStudents = list.reduce((acc, cur) => acc + (cur.student_count || 0), 0);
+            const totalTested = list.reduce((acc, cur) => acc + (cur.tested_count || 0), 0);
             const completionRate = totalStudents > 0 ? Math.round((totalTested / totalStudents) * 100) : 0;
 
-            document.getElementById('statTotalCourses').textContent = totalCourses + '개 과정';
-            document.getElementById('statGlobalAvg').textContent = globalAvg + '점';
-            document.getElementById('statGlobalMax').textContent = globalMax + '점';
-            document.getElementById('statCompletionRate').textContent = completionRate + '%';
+            const el1 = document.getElementById('statTotalCourses');
+            const el2 = document.getElementById('statGlobalAvg');
+            const el3 = document.getElementById('statGlobalMax');
+            const el4 = document.getElementById('statCompletionRate');
+            if (el1) el1.textContent = totalSessions + '개 회차';
+            if (el2) el2.textContent = globalAvg + '점';
+            if (el3) el3.textContent = globalMax + '점';
+            if (el4) el4.textContent = completionRate + '%';
         }
 
-        function filterCourses(filter) {
-            const btns = document.querySelectorAll('.filter-btn');
-            btns.forEach(btn => {
-                if (btn.dataset.filter === filter) {
+        let currentFilterType = 'all';
+        function setFilterType(type) {
+            currentFilterType = type;
+            document.querySelectorAll('.filter-type-btn').forEach(btn => {
+                if (btn.dataset.filterType === type) {
                     btn.classList.add('bg-white', 'text-indigo-600', 'shadow-sm');
                     btn.classList.remove('text-gray-500');
                 } else {
@@ -194,71 +210,77 @@ export const adminHrdGradesHtml = (sidebar = hrdSidebar('grades')) => `
                     btn.classList.add('text-gray-500');
                 }
             });
-
-            let filtered = allData;
-            if (filter === 'active') {
-                filtered = allData.filter(c => c.tested_count > 0);
-            }
-            
-            renderSummaryTable(filtered);
         }
 
-        function sortData() {
-            const sortBy = document.getElementById('sortSelect').value;
-            let sorted = [...allData];
+        function applyFilters() {
+            const statusVal = (document.getElementById('statusFilter') && document.getElementById('statusFilter').value) || 'all';
+            const search = (document.getElementById('searchInput') && document.getElementById('searchInput').value.trim()) || '';
+            const sortBy = (document.getElementById('sortSelect') && document.getElementById('sortSelect').value) || 'name';
 
-            if (sortBy === 'name') {
-                sorted.sort((a, b) => a.title.localeCompare(b.title));
-            } else if (sortBy === 'avg') {
-                sorted.sort((a, b) => b.avg_score - a.avg_score);
-            } else if (sortBy === 'max') {
-                sorted.sort((a, b) => b.max_score - a.max_score);
+            let filtered = allData;
+            if (statusVal !== 'all') {
+                filtered = filtered.filter(c => (String(c.status || '')).toLowerCase() === statusVal);
             }
-
-            renderSummaryTable(sorted);
+            if (currentFilterType === 'active') {
+                filtered = filtered.filter(c => (c.tested_count || 0) > 0);
+            }
+            if (search) {
+                const q = search.toLowerCase();
+                filtered = filtered.filter(c =>
+                    (c.title && c.title.toLowerCase().includes(q)) ||
+                    (c.teacher_name && c.teacher_name.toLowerCase().includes(q))
+                );
+            }
+            if (sortBy === 'name') {
+                filtered.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+            } else if (sortBy === 'avg') {
+                filtered.sort((a, b) => (b.avg_score || 0) - (a.avg_score || 0));
+            } else if (sortBy === 'max') {
+                filtered.sort((a, b) => (b.max_score || 0) - (a.max_score || 0));
+            }
+            renderSummaryTable(filtered);
         }
 
         function renderSummaryTable(data) {
             const tbody = document.getElementById('summaryTableBody');
             if (!tbody) return;
-            
             if (data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="px-8 py-20 text-center text-gray-400">조건에 맞는 과정이 없습니다.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" class="px-8 py-20 text-center text-gray-400">조건에 맞는 과정이 없습니다.</td></tr>';
                 return;
             }
-
+            const statusClass = (s) => {
+                if (['active','in_progress','open'].includes(s)) return 'bg-emerald-50 text-emerald-600 ring-emerald-100';
+                if (['recruiting','always_open'].includes(s)) return 'bg-blue-50 text-blue-600 ring-blue-100';
+                if (['completed','closed'].includes(s)) return 'bg-slate-100 text-slate-600 ring-slate-200';
+                return 'bg-gray-50 text-gray-600 ring-gray-200';
+            };
             tbody.innerHTML = data.map(c => \`
                 <tr class="hover:bg-indigo-50/30 transition-colors group border-b border-gray-50 last:border-0 shadow-[inset_0_1px_0_0_rgba(255,255,255,1)]">
                     <td class="px-8 py-5">
-                        <div class="font-black text-gray-800 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">\${c.title}</div>
-                        <div class="text-[10px] text-gray-400 mt-1 uppercase tracking-widest font-bold">Course ID: \${c.id}</div>
+                        <div class="font-black text-gray-800 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">\${c.title || '-'}</div>
+                        <div class="text-[10px] text-gray-400 mt-1 uppercase tracking-widest font-bold">회차 ID: \${c.session_id != null ? c.session_id : (c.id != null ? c.id : '-')}</div>
+                    </td>
+                    <td class="px-6 py-5 text-center">
+                        <span class="px-2.5 py-1 rounded-lg text-xs font-bold ring-1 \${statusClass(c.status)}">\${c.status_label || c.status || '-'}</span>
                     </td>
                     <td class="px-6 py-5 text-center">
                         <span class="text-sm text-slate-600 font-black">\${c.teacher_name || '강사미지정'}</span>
                     </td>
-                    <td class="px-6 py-5 text-center text-sm font-black text-slate-700">
-                        \${c.student_count}명
-                    </td>
-                    <td class="px-6 py-5 text-center text-sm font-black text-indigo-500">
-                        \${c.tested_count}명
-                    </td>
+                    <td class="px-6 py-5 text-center text-sm font-black text-slate-700">\${c.student_count ?? 0}명</td>
+                    <td class="px-6 py-5 text-center text-sm font-black text-indigo-500">\${c.tested_count ?? 0}명</td>
                     <td class="px-6 py-5 text-center">
                         <div class="flex flex-col items-center">
-                            <div class="text-[11px] font-black \${c.avg_score >= 80 ? 'text-emerald-500' : c.avg_score >= 60 ? 'text-indigo-500' : 'text-amber-500'} italic font-mono uppercase tracking-tighter">\${c.avg_score}점</div>
+                            <div class="text-[11px] font-black \${(c.avg_score || 0) >= 80 ? 'text-emerald-500' : (c.avg_score || 0) >= 60 ? 'text-indigo-500' : 'text-amber-500'} italic font-mono uppercase tracking-tighter">\${c.avg_score != null ? c.avg_score : 0}점</div>
                             <div class="w-16 h-1.5 bg-slate-100/80 rounded-full mt-1.5 overflow-hidden shadow-inner ring-1 ring-white">
-                                <div class="h-full transition-all duration-1000 ease-out shadow-[0_0_8px_rgba(99,102,241,0.4)] \${c.avg_score >= 80 ? 'bg-emerald-500' : 'bg-indigo-500'}" style="width: \${c.avg_score}%"></div>
+                                <div class="h-full transition-all duration-1000 ease-out \${(c.avg_score || 0) >= 80 ? 'bg-emerald-500' : 'bg-indigo-500'}" style="width: \${Math.min(100, c.avg_score || 0)}%"></div>
                             </div>
                         </div>
                     </td>
                     <td class="px-6 py-5 text-center">
-                        <span class="px-3 py-1 rounded-lg bg-emerald-50 text-emerald-600 text-xs font-black ring-1 ring-emerald-100 shadow-sm">
-                            \${c.max_score}점
-                        </span>
+                        <span class="px-3 py-1 rounded-lg bg-emerald-50 text-emerald-600 text-xs font-black ring-1 ring-emerald-100 shadow-sm">\${c.max_score != null ? c.max_score : 0}점</span>
                     </td>
                     <td class="px-8 py-5 text-right">
-                        <a href="/admin/courses/\${c.id}/lms/grades" class="inline-flex items-center px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-700 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm hover:shadow-md active:scale-95 transform whitespace-nowrap">
-                            종합 성적표 <i class="fas fa-file-invoice ml-2 text-[9px] opacity-50 group-hover:opacity-100"></i>
-                        </a>
+                        \${(c.session_id != null || c.id != null) ? '<a href="/admin/courses/' + (c.session_id != null ? c.session_id : c.id) + '/lms/grades" class="inline-flex items-center px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-700 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm hover:shadow-md active:scale-95 transform whitespace-nowrap">종합 성적표 <i class="fas fa-file-invoice ml-2 text-[9px] opacity-50 group-hover:opacity-100"></i></a>' : '<span class="inline-flex items-center px-4 py-2 bg-gray-100 border border-gray-200 rounded-xl text-xs font-medium text-gray-400 cursor-not-allowed whitespace-nowrap">회차 없음</span>'}
                     </td>
                 </tr>
             \`).join('');
