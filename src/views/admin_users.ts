@@ -27,7 +27,7 @@ export const adminUsersHtml = (activeMenu: string = 'users') => `
 </head>
 <body class="bg-[#f8fafc] text-[#1e293b]">
     <div class="flex h-screen overflow-hidden">
-        \${hrdSidebar(activeMenu)}
+        \${hrdSidebar(activeMenu, { alwaysVisible: true })}
         <div class="flex-1 flex flex-col overflow-hidden">
             <!-- 헤더 -->
             <header class="h-20 bg-white border-b border-gray-100 flex items-center justify-between px-8 z-10">
