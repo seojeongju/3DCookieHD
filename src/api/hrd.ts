@@ -2147,12 +2147,12 @@ app.get('/stats', async (c) => {
                     const totalLogs: any = await c.env.DB.prepare("SELECT COUNT(*) as count FROM attendance_logs").first();
                     if (!totalLogs || totalLogs.count === 0) return 0;
 
-                    // 출석(present) 또는 지각(late) 수
-                    const presentLogs: any = await c.env.DB.prepare(
-                        "SELECT COUNT(*) as count FROM attendance_logs WHERE status IN ('present', 'late')"
+                    // 결석(absent, absent_under_50)이 아닌 모든 상태를 출석으로 인정 (통일 로직)
+                    const attendedLogs: any = await c.env.DB.prepare(
+                        "SELECT COUNT(*) as count FROM attendance_logs WHERE status NOT IN ('absent', 'absent_under_50')"
                     ).first();
 
-                    const rate = (presentLogs.count / totalLogs.count) * 100;
+                    const rate = (attendedLogs.count / totalLogs.count) * 100;
                     return Math.round(rate * 10) / 10; // 소수점 첫째 자리까지 반올림
                 })(),
                 notifications: 3
