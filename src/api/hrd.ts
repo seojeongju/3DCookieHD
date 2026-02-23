@@ -2522,44 +2522,55 @@ app.get('/training-logs/summary', authMiddleware, async (c) => {
                 let courseId: number | null = (session.lms_course_id != null && session.lms_course_id > 0) ? Number(session.lms_course_id) : null;
                 let resolvedByTitleOrLike = false;
 
-                if (courseId == null) {
-                    const exact: any = await c.env.DB.prepare('SELECT id FROM courses WHERE TRIM(title) = ? LIMIT 1').bind(title).first();
-                    courseId = exact?.id ?? null;
-                    if (courseId != null) resolvedByTitleOrLike = true;
-                }
-                if (courseId == null) {
-                    const lmsCourse: any = await c.env.DB.prepare('SELECT id FROM courses WHERE title = ? LIMIT 1').bind(title).first();
-                    courseId = lmsCourse?.id ?? null;
-                    if (courseId != null) resolvedByTitleOrLike = true;
-                }
-                if (courseId == null && (courseName || sessionNum)) {
-                    const likePattern = '%' + courseName + '%' + (sessionNum ? sessionNum + '회차' : '') + '%';
-                    const fallback: any = await c.env.DB.prepare('SELECT id FROM courses WHERE title LIKE ? LIMIT 1').bind(likePattern).first();
-                    courseId = fallback?.id ?? null;
-                    if (courseId != null) resolvedByTitleOrLike = true;
-                }
-                if (courseId == null && courseName) {
-                    const broadPattern = '%' + courseName + '%';
-                    const broad: any = await c.env.DB.prepare(
-                        'SELECT id FROM courses WHERE title LIKE ? ORDER BY LENGTH(title) ASC LIMIT 1'
-                    ).bind(broadPattern).first();
-                    courseId = broad?.id ?? null;
-                    if (courseId != null) resolvedByTitleOrLike = true;
-                }
-                if (courseId != null && resolvedByTitleOrLike) {
-                    await c.env.DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(courseId, session.id).run();
+                try {
+                    if (courseId == null) {
+                        const exact: any = await c.env.DB.prepare('SELECT id FROM courses WHERE TRIM(title) = ? LIMIT 1').bind(title).first();
+                        courseId = exact?.id ?? null;
+                        if (courseId != null) resolvedByTitleOrLike = true;
+                    }
+                    if (courseId == null) {
+                        const lmsCourse: any = await c.env.DB.prepare('SELECT id FROM courses WHERE title = ? LIMIT 1').bind(title).first();
+                        courseId = lmsCourse?.id ?? null;
+                        if (courseId != null) resolvedByTitleOrLike = true;
+                    }
+                    if (courseId == null && (courseName || sessionNum)) {
+                        const likePattern = '%' + courseName + '%' + (sessionNum ? sessionNum + '회차' : '') + '%';
+                        const fallback: any = await c.env.DB.prepare('SELECT id FROM courses WHERE title LIKE ? LIMIT 1').bind(likePattern).first();
+                        courseId = fallback?.id ?? null;
+                        if (courseId != null) resolvedByTitleOrLike = true;
+                    }
+                    if (courseId == null && courseName) {
+                        const broadPattern = '%' + courseName + '%';
+                        const broad: any = await c.env.DB.prepare(
+                            'SELECT id FROM courses WHERE title LIKE ? ORDER BY LENGTH(title) ASC LIMIT 1'
+                        ).bind(broadPattern).first();
+                        courseId = broad?.id ?? null;
+                        if (courseId != null) resolvedByTitleOrLike = true;
+                    }
+                    if (courseId != null && resolvedByTitleOrLike) {
+                        try {
+                            await c.env.DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(courseId, session.id).run();
+                        } catch (_) {
+                            // lms_course_id 컬럼 없거나 권한 등으로 실패해도 계속 진행
+                        }
+                    }
+                } catch (_) {
+                    // courses 조회 실패 시 courseId는 기존 값 유지
                 }
 
                 let log_count = 0, total_hours = 0, last_log_date: string | null = null, ncs_rate = 0;
                 if (courseId) {
-                    const logStats: any = await c.env.DB.prepare(`
-                        SELECT COUNT(*) as log_count, COALESCE(SUM(training_hours), 0) as total_hours, MAX(date) as last_log_date
-                        FROM training_logs WHERE course_id = ?
-                    `).bind(courseId).first();
-                    log_count = logStats?.log_count ?? 0;
-                    total_hours = logStats?.total_hours ?? 0;
-                    last_log_date = logStats?.last_log_date ?? null;
-
+                    try {
+                        const logStats: any = await c.env.DB.prepare(`
+                            SELECT COUNT(*) as log_count, COALESCE(SUM(training_hours), 0) as total_hours, MAX(date) as last_log_date
+                            FROM training_logs WHERE course_id = ?
+                        `).bind(courseId).first();
+                        log_count = logStats?.log_count ?? 0;
+                        total_hours = logStats?.total_hours ?? 0;
+                        last_log_date = logStats?.last_log_date ?? null;
+                    } catch (_) {
+                        // training_logs 조회 실패 시 0 유지
+                    }
                     try {
                         const ncsStats: any = await c.env.DB.prepare(`
                             SELECT COALESCE(SUM(cnu.training_hours), 0) as target_total,
