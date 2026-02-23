@@ -126,7 +126,7 @@ export const courseSessionsListHtml = `
                     }
 
                         listEl.innerHTML = list.map(function(s) {
-                            var imgUrl = (s.image_url || '').trim() || '/static/course_placeholder.jpg';
+                            var imgUrl = (s.image_url || '').trim() || '/static/course_placeholder.svg';
                             var start = (s.training_start_date || '').trim();
                             var end = (s.training_end_date || '').trim();
                             var dateStr = start && end ? (new Date(start).toLocaleDateString('ko-KR') + ' ~ ' + new Date(end).toLocaleDateString('ko-KR')) : (start ? new Date(start).toLocaleDateString('ko-KR') + '~' : '일정 미정');
@@ -142,7 +142,7 @@ export const courseSessionsListHtml = `
 
                             return '<a href="' + detailUrl + '" class="bg-white rounded-lg shadow-sm hover:shadow-xl transition border border-gray-100 overflow-hidden flex flex-col h-full group">' +
                                 '<div class="relative h-48 overflow-hidden bg-white/50 border-b border-gray-50">' +
-                                '<img src="' + imgUrl.replace(/"/g, '&quot;') + '" alt="" class="w-full h-full object-contain group-hover:scale-105 transition duration-300" onerror="this.src=\\'/static/course_placeholder.jpg\\'">' +
+                                '<img src="' + imgUrl.replace(/"/g, '&quot;') + '" alt="" class="w-full h-full object-contain group-hover:scale-105 transition duration-300" onerror="this.src=\\'/static/course_placeholder.svg\\'">' +
                                 '<span class="absolute top-3 right-3 px-2.5 py-1 text-xs font-bold rounded-full text-white ' + statusClass + '">' + statusText(s.status) + '</span>' + 
                                 sourceBadge + '</div>' +
                                 '<div class="p-5 flex-1 flex flex-col"><span class="text-xs text-primary-600 font-medium mb-1">' + (s.category_name || '과정') + '</span>' +

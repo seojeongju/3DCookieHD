@@ -94,7 +94,7 @@ app.get('/me/enrollments', authMiddleware, async (c) => {
     const data = (rows.results || []).map((r: any) => ({
       ...r,
       course_title: (r.course_name || '') + (r.session_number ? ` (${r.session_number}회차)` : ''),
-      course_thumbnail: r.course_list_image_url || r.main_slide_image_url || '/static/course_placeholder.jpg',
+      course_thumbnail: r.course_list_image_url || r.main_slide_image_url || '/static/course_placeholder.svg',
       course_category: r.category_name || '국비지원',
       enrolled_at: r.enrolled_at,
       course_id: r.approved_course_id, // Compatible binding
@@ -191,7 +191,7 @@ app.get('/public', async (c) => {
           s.training_start_date,
           s.training_end_date,
           s.instructor_name,
-          COALESCE(NULLIF(s.course_list_image_url, ''), NULLIF(s.main_slide_image_url, ''), '/static/course_placeholder.jpg') as image_url,
+          COALESCE(NULLIF(s.course_list_image_url, ''), NULLIF(s.main_slide_image_url, ''), '/static/course_placeholder.svg') as image_url,
           s.session_number,
           s.session_name
         FROM course_sessions s
@@ -210,7 +210,7 @@ app.get('/public', async (c) => {
           c.start_date as training_start_date,
           c.end_date as training_end_date,
           NULL as instructor_name,
-          COALESCE(NULLIF(c.thumbnail_url, ''), '/static/course_placeholder.jpg') as image_url,
+          COALESCE(NULLIF(c.thumbnail_url, ''), '/static/course_placeholder.svg') as image_url,
           NULL as session_number,
           NULL as session_name
         FROM courses c

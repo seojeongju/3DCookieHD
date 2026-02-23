@@ -271,7 +271,7 @@ export const coursesListHtml = `
                 list.innerHTML = result.data.map(course => \`
                     <div class="bg-white rounded-lg shadow-sm hover:shadow-xl transition duration-300 border border-gray-100 overflow-hidden flex flex-col h-full group cursor-pointer" onclick='openCourseDetail(\${JSON.stringify(course).replace(/'/g, "&#39;")})'>
                         <div class="relative h-48 overflow-hidden bg-gray-200">
-                            <img src="\${course.thumbnail_url || '/static/course_placeholder.jpg'}" alt="\${course.title}" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
+                            <img src="\${course.thumbnail_url || '/static/course_placeholder.svg'}" alt="\${course.title}" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
                             <div class="absolute top-3 right-3">
                                 <span class="px-2.5 py-1 text-xs font-bold rounded-full \${
                                     course.status === 'open' ? 'bg-green-500 text-white' : 
@@ -326,7 +326,7 @@ export const coursesListHtml = `
         function openCourseDetail(course) {
             document.getElementById('modalTitle').textContent = course.title;
             document.getElementById('modalCategory').textContent = course.category || '일반과정';
-            document.getElementById('modalImage').src = course.thumbnail_url || '/static/course_placeholder.jpg';
+            document.getElementById('modalImage').src = course.thumbnail_url || '/static/course_placeholder.svg';
             document.getElementById('modalPrice').textContent = course.price ? Number(course.price).toLocaleString() + '원' : '무료';
             
             let durationText = '';
