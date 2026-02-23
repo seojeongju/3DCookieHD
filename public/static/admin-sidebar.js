@@ -126,6 +126,23 @@ function initAdminSidebar() {
             })
             .catch(function (err) { console.error('Sidebar course load error:', err); });
     }
+
+    // Fetch and update institution name in sidebar
+    fetch('/api/settings/institution_name')
+        .then(function (r) { return r.json(); })
+        .then(function (res) {
+            if (res.success && res.data) {
+                var brandEl = document.getElementById('sidebar-logo-brand');
+                var subEl = document.getElementById('sidebar-logo-sub');
+                if (brandEl) {
+                    var parts = res.data.split(' ');
+                    brandEl.textContent = parts[0];
+                    if (subEl) {
+                        subEl.textContent = (parts.slice(1).join(' ') || '센터') + ' ADMIN';
+                    }
+                }
+            }
+        }).catch(function (e) { });
 }
 
 if (document.readyState === 'loading') {

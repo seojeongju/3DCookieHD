@@ -1823,8 +1823,11 @@ app.get('/attendance/print-form', async (c) => {
 
         const instructors = (sessionRow.instructor_name || '').split(/[,/]/).map((n: string) => n.trim()).filter(Boolean).join('/') || '-';
 
+        const settingRow = await DB.prepare('SELECT value FROM site_settings WHERE key = ?').bind('institution_name').first() as any;
+        const institutionName = settingRow?.value || '와우쓰리디(WOW3D) 홍대센터';
+
         const info = {
-            institution: '와우쓰리디(WOW3D) 홍대센터',
+            institution: institutionName,
             courseTitle,
             classroom,
             trainingTime: trainingTime || '-',

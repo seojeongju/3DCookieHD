@@ -72,7 +72,7 @@ export const adminHrdAttendancePrintHtml = `
                 * 출력일시: <span id="printDate"></span>
             </div>
             <div class="text-right">
-                <p class="text-lg font-bold">와우쓰리디홍대센터</p>
+                <p class="text-lg font-bold" id="institution-name-display-att-footer">와우쓰리디홍대센터</p>
             </div>
         </div>
     </div>
@@ -97,6 +97,18 @@ export const adminHrdAttendancePrintHtml = `
             document.getElementById('printDate').textContent = new Date().toLocaleString();
 
             await loadData(courseId, year, month);
+
+            // Fetch institution name
+            try {
+                const res = await fetch('/api/settings/institution_name');
+                const result = await res.json();
+                if (result.success && result.data) {
+                    const el = document.getElementById('institution-name-display-att-footer');
+                    if (el) el.textContent = result.data;
+                }
+            } catch (e) {
+                console.error('Failed to fetch institution name:', e);
+            }
         });
 
         async function loadData(courseId, year, month) {

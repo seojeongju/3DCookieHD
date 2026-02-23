@@ -66,7 +66,7 @@ export function adminSessionTimetablePrintHtml(sessionId: number): string {
                 </tr>
                 <tr class="border-none">
                     <th class="border bg-slate-100">훈련기관명</th>
-                    <td class="border text-left px-4">와우쓰리디홍대센터</td>
+                    <td class="border text-left px-4" id="institutionNameDisplay">와우쓰리디홍대센터</td>
                     <th class="border bg-slate-100">총 시간</th>
                     <td class="border" id="totalHours">-</td>
                 </tr>
@@ -102,7 +102,7 @@ export function adminSessionTimetablePrintHtml(sessionId: number): string {
         </div>
         
         <div class="mt-8 text-right">
-            <span class="font-bold text-lg">와우쓰리디홍대센터장 (인)</span>
+            <span class="font-bold text-lg" id="institutionNameDisplayFooter">와우쓰리디홍대센터장 (인)</span>
         </div>
     </div>
 
@@ -120,7 +120,8 @@ export function adminSessionTimetablePrintHtml(sessionId: number): string {
                         fetch('/api/course-sessions/public/' + sessionId),
                         fetch('/api/course-sessions/' + sessionId + '/timetable', { headers }),
                         fetch('/api/course-sessions/' + sessionId + '/timetable/resources', { headers }),
-                        fetch('/api/course-sessions/' + sessionId + '/timetable/config', { headers })
+                        fetch('/api/course-sessions/' + sessionId + '/timetable/config', { headers }),
+                        fetch('/api/settings/institution_name')
                     ]);
 
                     if (!sRes.ok || !tRes.ok) throw new Error('Failed to load data');
@@ -129,13 +130,15 @@ export function adminSessionTimetablePrintHtml(sessionId: number): string {
                     const tJson = await tRes.json();
                     const rJson = await rRes.json();
                     const cJson = await cRes.json();
+                    const iJson = await iRes.json();
 
                     const session = sJson.data || {};
                     const timetable = tJson.data || [];
                     const resources = rJson.data || { subjects: [], instructors: [] };
                     const configs = cJson.data || [];
+                    const institutionName = iJson.success && iJson.data ? iJson.data : '와우쓰리디홍대센터';
 
-                    render(session, timetable, resources, configs);
+                    render(session, timetable, resources, configs, institutionName);
 
                 } catch (e) {
                     console.error(e);
@@ -143,8 +146,10 @@ export function adminSessionTimetablePrintHtml(sessionId: number): string {
                 }
             }
 
-            function render(session, timetable, resources, configs) {
+            function render(session, timetable, resources, configs, institutionName) {
                 // Render Header
+                document.getElementById('institutionNameDisplay').textContent = institutionName;
+                document.getElementById('institutionNameDisplayFooter').textContent = institutionName + '장 (인)';
                 document.getElementById('courseName').textContent = session.course_name || '';
                 document.getElementById('trainingPeriod').textContent = (session.training_start_date || '') + ' ~ ' + (session.training_end_date || '');
                 document.getElementById('sessionNumber').textContent = (session.session_number || '') + '회차';

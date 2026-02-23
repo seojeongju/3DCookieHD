@@ -16,6 +16,7 @@ import campuses from './api/campuses';
 import enrollments from './api/enrollments';
 import reviews from './api/reviews';
 import posts from './api/posts';
+import settings from './api/settings';
 
 import schedules from './api/schedules';
 import jobs from './api/jobs';
@@ -71,6 +72,7 @@ import { adminHrdCounselingHtml } from './views/admin_hrd_counseling';
 import { adminNcsHtml } from './views/admin_ncs';
 import { adminNcsViewerHtml } from './views/admin_ncs_viewer';
 import { adminNcsUploadHtml } from './views/admin_ncs_upload';
+import { adminSettingsHtml } from './views/admin_settings';
 
 import { adminNcsApprovedHtml, adminNcsApprovedListHtml } from './views/admin_ncs_approved';
 import { adminLmsDashboardHtml } from './views/admin_lms_dashboard';
@@ -193,6 +195,7 @@ app.route('/api/reviews', reviews);
 
 // 게시판 API
 app.route('/api/posts', posts);
+app.route('/api/settings', settings);
 
 
 // 스케줄 API
@@ -314,6 +317,7 @@ app.get('/admin/counseling', (c) => c.html(adminHrdCounselingHtml()));
 app.get('/admin/ncs', (c) => c.html(adminNcsHtml));
 app.get('/admin/ncs/viewer', (c) => c.html(adminNcsViewerHtml()));
 app.get('/admin/ncs/upload', (c) => c.html(adminNcsUploadHtml()));
+app.get('/admin/settings', (c) => c.html(adminSettingsHtml()));
 
 app.get('/admin/ncs/approved', (c) => c.redirect('/admin/courses/approved'));
 app.get('/admin/ncs/approved/list', (c) => c.redirect('/admin/courses/approved'));

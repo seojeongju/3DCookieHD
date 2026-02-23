@@ -248,10 +248,10 @@ export const hrdSidebar = (activeMenu: string, options?: HrdSidebarOptions) => {
             <span class="text-[11px] font-bold text-slate-500 uppercase tracking-widest opacity-70">슈퍼어드민</span>
         </div>
         <div data-role="admin-only" class="space-y-1">
-            <div class="flex items-center px-4 py-3 rounded-xl text-slate-400">
-                <i class="fas fa-user-shield w-6 text-lg text-slate-500"></i>
-                <span class="font-medium text-[14px]">관리자 설정</span>
-            </div>
+            <a href="/admin/settings" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'settings' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
+                <i class="fas fa-cog w-6 text-sm ${activeMenu === 'settings' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
+                <span class="font-medium text-[13px]">훈련기관 정보설정</span>
+            </a>
             <a href="/admin/ncs/upload" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'ncs-upload' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
                 <i class="fas fa-file-upload w-6 text-sm ${activeMenu === 'ncs-upload' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
                 <span class="font-medium text-[13px]">NCS 데이터 업로드</span>

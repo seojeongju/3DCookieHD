@@ -124,7 +124,7 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
                     <table class="w-full border-collapse border border-gray-800 text-sm mb-4">
                         <tr>
                             <td class="border border-gray-800 bg-gray-100 font-bold p-2 text-center w-32">훈련기관명</td>
-                            <td class="border border-gray-800 p-2 text-center font-medium">쓰리디쿠키 홍대센터</td>
+                            <td class="border border-gray-800 p-2 text-center font-medium" id="institution-name-display">쓰리디쿠키 홍대센터</td>
                             <td class="border border-gray-800 bg-gray-100 font-bold p-2 text-center w-24">훈련일</td>
                             <td class="border border-gray-800 p-1 text-center bg-white">
                                 <input type="date" id="logDate" required class="w-full text-center font-bold bg-transparent outline-none cursor-pointer text-gray-800 hover:text-indigo-600">
@@ -575,7 +575,7 @@ async function printLog(id) {
                             <table class="info-table">
                                 <tr>
                                     <td class="label">훈련기관명</td>
-                                    <td class="value">쓰리디쿠키 홍대센터(3D쿠키 홍대센터)</td>
+                                    <td class="value" id="institution-name-display-footer">쓰리디쿠키 홍대센터(3D쿠키 홍대센터)</td>
                                     <td class="label">훈련일</td>
                                     <td class="value date-value">\${log.date} \${dayName}요일<br><span style="font-weight:normal; font-size:12px;">(\${currentDayCount}일 / \${totalDays}일)</span></td>
                                 </tr>
@@ -1030,6 +1030,22 @@ async function printLog(id) {
             const elModal = document.getElementById('logModal');
             if (elModal) elModal.classList.add('hidden'); 
         }
+
+        async function fetchInstitutionName() {
+            try {
+                const res = await fetch('/api/settings/institution_name');
+                const result = await res.json();
+                if (result.success && result.data) {
+                    const el = document.getElementById('institution-name-display');
+                    if (el) el.textContent = result.data;
+                    const el2 = document.getElementById('institution-name-display-footer');
+                    if (el2) el2.textContent = result.data + '(3D쿠키 홍대센터)';
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        // Call fetchInstitutionName when appropriate
+        document.addEventListener('DOMContentLoaded', fetchInstitutionName);
 
         async function handleSaveLog(e) {
             e.preventDefault();
