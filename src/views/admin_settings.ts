@@ -14,7 +14,7 @@ export const adminSettingsHtml = (sidebarHtml?: string) => `
 </head>
 <body class="bg-slate-50 font-sans text-slate-900 antialiased overflow-hidden">
     <div class="flex h-[100dvh] overflow-hidden">
-        \${sidebarHtml || hrdSidebar('settings')}
+        ${sidebarHtml || hrdSidebar('settings')}
 
         <main class="flex-1 flex flex-col overflow-hidden relative">
             <div class="absolute inset-0 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:32px_32px] opacity-40 pointer-events-none"></div>
