@@ -97,6 +97,7 @@ export const adminHrdGradesHtml = (sidebar = hrdSidebar('grades')) => `
                                 <h3 class="font-black text-gray-800 text-lg uppercase tracking-tight">회차별 성적 분포</h3>
                                 <div class="flex items-center gap-3 flex-wrap">
                                     <select id="sortSelect" onchange="applyFilters()" class="bg-gray-50 border border-gray-200 text-xs font-bold text-gray-600 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none relative z-10">
+                                        <option value="latest" selected>최신순</option>
                                         <option value="name">과정명순</option>
                                         <option value="avg">평균점수 높은순</option>
                                         <option value="max">최고점수 높은순</option>
@@ -215,7 +216,7 @@ export const adminHrdGradesHtml = (sidebar = hrdSidebar('grades')) => `
         function applyFilters() {
             const statusVal = (document.getElementById('statusFilter') && document.getElementById('statusFilter').value) || 'all';
             const search = (document.getElementById('searchInput') && document.getElementById('searchInput').value.trim()) || '';
-            const sortBy = (document.getElementById('sortSelect') && document.getElementById('sortSelect').value) || 'name';
+            const sortBy = (document.getElementById('sortSelect') && document.getElementById('sortSelect').value) || 'latest';
 
             let filtered = allData;
             if (statusVal !== 'all') {
@@ -231,7 +232,9 @@ export const adminHrdGradesHtml = (sidebar = hrdSidebar('grades')) => `
                     (c.teacher_name && c.teacher_name.toLowerCase().includes(q))
                 );
             }
-            if (sortBy === 'name') {
+            if (sortBy === 'latest') {
+                filtered.sort((a, b) => (b.session_id ?? b.id ?? 0) - (a.session_id ?? a.id ?? 0));
+            } else if (sortBy === 'name') {
                 filtered.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
             } else if (sortBy === 'avg') {
                 filtered.sort((a, b) => (b.avg_score || 0) - (a.avg_score || 0));

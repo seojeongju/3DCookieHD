@@ -111,6 +111,7 @@ export const adminHrdTrainingLogsHtml = (sidebar = hrdSidebar('training-logs')) 
                                     <option value="active">작성완료</option>
                                 </select>
                                 <select id="sortBy" onchange="filterCourses()" class="bg-gray-50 border-none rounded-xl px-3 py-2 text-sm font-bold text-gray-600 outline-none focus:ring-2 focus:ring-indigo-500 shadow-inner whitespace-nowrap shrink-0">
+                                    <option value="latest" selected>최신순</option>
                                     <option value="title">과정명순</option>
                                     <option value="logs">일지많은순</option>
                                     <option value="ncs">이수율높은순</option>
@@ -222,7 +223,7 @@ export const adminHrdTrainingLogsHtml = (sidebar = hrdSidebar('training-logs')) 
 
             const search = searchInput.value.toLowerCase();
             const statusFilter = statusFilterInput.value;
-            const sortBy = sortByInput.value;
+            const sortBy = sortByInput.value || 'latest';
 
             let filtered = (courseSummaryData || []).filter(c => 
                 (c.title.toLowerCase().includes(search) || (c.teacher_name && c.teacher_name.toLowerCase().includes(search)))
@@ -236,6 +237,7 @@ export const adminHrdTrainingLogsHtml = (sidebar = hrdSidebar('training-logs')) 
 
             // Sorting
             filtered.sort((a, b) => {
+                if (sortBy === 'latest') return (b.id ?? 0) - (a.id ?? 0);
                 if (sortBy === 'title') return (a.title || '').localeCompare(b.title || '');
                 if (sortBy === 'logs') return (b.log_count || 0) - (a.log_count || 0);
                 if (sortBy === 'ncs') return (b.ncs_rate || 0) - (a.ncs_rate || 0);
