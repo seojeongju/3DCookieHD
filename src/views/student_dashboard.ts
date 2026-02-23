@@ -239,25 +239,48 @@ export const studentDashboardHtml = () => `
         }
 
         window.onload = function() {
-            // 사용자 정보 확인
-            const userStr = localStorage.getItem('user');
-            if (userStr) {
-                const user = JSON.parse(userStr);
-                document.getElementById('userName').textContent = user.name || '-';
-                document.getElementById('welcome-name').textContent = user.name || '-';
-                
-                // 초기 로그인 여부 확인 및 모달 표시
-                if (user.is_initial_login === 1 || user.is_initial_login === true) {
-                    setTimeout(() => {
-                        document.getElementById('initialLoginModal').classList.remove('hidden');
-                    }, 500);
-                }
+            var token = localStorage.getItem('token');
+            if (!token) {
+                localStorage.removeItem('user');
+                location.href = '/login';
+                return;
             }
-            
-            updateTime();
-            setInterval(updateTime, 1000);
-            updateDate();
-            loadDashboardData();
+            fetch('/api/auth/me', { headers: { 'Authorization': 'Bearer ' + token } })
+                .then(function(r) { return r.json(); })
+                .then(function(result) {
+                    if (!result || !result.success || !result.data) {
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('user');
+                        location.href = '/login';
+                        return;
+                    }
+                    var user = result.data;
+                    localStorage.setItem('user', JSON.stringify(user));
+                    if (user.role === 'admin') {
+                        location.href = '/admin';
+                        return;
+                    }
+                    if (user.role === 'teacher') {
+                        location.href = '/teacher';
+                        return;
+                    }
+                    document.getElementById('userName').textContent = user.name || '-';
+                    document.getElementById('welcome-name').textContent = user.name || '-';
+                    if (user.is_initial_login === 1 || user.is_initial_login === true) {
+                        setTimeout(function() {
+                            document.getElementById('initialLoginModal').classList.remove('hidden');
+                        }, 500);
+                    }
+                    updateTime();
+                    setInterval(updateTime, 1000);
+                    updateDate();
+                    loadDashboardData();
+                })
+                .catch(function() {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    location.href = '/login';
+                });
         };
 
         function closeInitialModal() {

@@ -333,14 +333,25 @@ export const lmsHeaderHtml = (activeTab = 'dashboard', defaultType = '') => {
                 }
             }
 
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', () => {
-                    updateLmsLinks();
-                    loadLmsHeaderInfo();
-                });
-            } else {
+            async function syncUserThenInit() {
+                var token = localStorage.getItem('token');
+                if (token) {
+                    try {
+                        var r = await fetch('/api/auth/me', { headers: { 'Authorization': 'Bearer ' + token } });
+                        var res = await r.json();
+                        if (res && res.success && res.data) {
+                            localStorage.setItem('user', JSON.stringify(res.data));
+                        }
+                    } catch (e) {}
+                }
                 updateLmsLinks();
                 loadLmsHeaderInfo();
+                setTimeout(updateLmsLinks, 600);
+            }
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', function() { syncUserThenInit(); });
+            } else {
+                syncUserThenInit();
             }
         })();
     </script>

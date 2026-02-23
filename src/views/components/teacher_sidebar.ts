@@ -244,21 +244,44 @@ export const teacherSidebar = (activeMenu: string, activeSubMenu?: string) => {
     };
 
     (function() {
-        const userStr = localStorage.getItem('user');
-        if (userStr) {
-            try {
-                const user = JSON.parse(userStr);
-                const nameEl = document.getElementById('sidebar-teacher-name');
-                const initialEl = document.getElementById('sidebar-teacher-initial');
-                
+        var token = localStorage.getItem('token');
+        if (!token) {
+            localStorage.removeItem('user');
+            location.href = '/login';
+            return;
+        }
+        fetch('/api/auth/me', { headers: { 'Authorization': 'Bearer ' + token } })
+            .then(function(r) { return r.json(); })
+            .then(function(result) {
+                if (!result || !result.success || !result.data) {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    location.href = '/login';
+                    return;
+                }
+                var user = result.data;
+                localStorage.setItem('user', JSON.stringify(user));
+                var role = user.role;
+                if (role === 'student' || role === 'user') {
+                    location.href = '/student';
+                    return;
+                }
+                if (role !== 'teacher' && role !== 'admin') {
+                    location.href = '/login';
+                    return;
+                }
+                var nameEl = document.getElementById('sidebar-teacher-name');
+                var initialEl = document.getElementById('sidebar-teacher-initial');
                 if (nameEl && user.name) {
                     nameEl.textContent = user.name;
                     if (initialEl) initialEl.textContent = user.name[0];
                 }
-            } catch(e) {
-                console.error('Error parsing user data in sidebar:', e);
-            }
-        }
+            })
+            .catch(function() {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                location.href = '/login';
+            });
     })();
 </script>
 `;

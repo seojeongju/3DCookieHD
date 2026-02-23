@@ -22,60 +22,72 @@ window.logout = function () {
 
 (function () {
     var pathname = window.location.pathname;
-    var userStr = localStorage.getItem('user');
-    if (!userStr) {
+    var token = localStorage.getItem('token');
+    if (!token) {
+        localStorage.removeItem('user');
         window.location.href = '/login';
         return;
     }
-    try {
-        var user = JSON.parse(userStr);
-        var role = user.role;
-        if (pathname.startsWith('/admin')) {
+    fetch('/api/auth/me', { headers: { 'Authorization': 'Bearer ' + token } })
+        .then(function (r) { return r.json(); })
+        .then(function (result) {
+            if (!result || !result.success || !result.data) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                window.location.href = '/login';
+                return;
+            }
+            var user = result.data;
+            localStorage.setItem('user', JSON.stringify(user));
+            var role = user.role;
+            if (pathname.startsWith('/admin')) {
+                if (role !== 'admin') {
+                    if (role === 'teacher') {
+                        window.location.href = '/teacher';
+                    } else if (role === 'student' || role === 'user') {
+                        window.location.href = '/student';
+                    } else {
+                        window.location.href = '/';
+                    }
+                    return;
+                }
+            } else if (pathname.startsWith('/teacher')) {
+                if (role !== 'teacher' && role !== 'admin') {
+                    if (role === 'student' || role === 'user') {
+                        window.location.href = '/student';
+                    } else {
+                        window.location.href = '/login';
+                    }
+                    return;
+                }
+            }
+            var avatarEl = document.getElementById('sidebar-avatar');
+            var usernameEl = document.getElementById('sidebar-username');
+            var roleEl = document.getElementById('sidebar-userrole');
+            var logoBrandEl = document.getElementById('sidebar-logo-brand');
+            var logoSubEl = document.getElementById('sidebar-logo-sub');
+            if (avatarEl && user.name) {
+                avatarEl.textContent = user.name.charAt(0);
+            }
+            if (usernameEl) {
+                usernameEl.textContent = user.name || 'User';
+            }
+            if (roleEl) {
+                var roleLabels = { admin: 'Super Admin', teacher: 'Instructor', student: 'Student', user: 'User' };
+                roleEl.textContent = roleLabels[role] || role;
+            }
             if (role !== 'admin') {
-                console.warn('Unauthorized access to admin page. Redirecting...');
-                if (role === 'teacher') {
-                    window.location.href = '/teacher';
-                } else if (role === 'student' || role === 'user') {
-                    window.location.href = '/student';
-                } else {
-                    window.location.href = '/';
-                }
+                if (logoSubEl) logoSubEl.textContent = '홍대센터 LMS';
+                document.querySelectorAll('[data-role="admin-only"]').forEach(function (el) {
+                    el.style.display = 'none';
+                });
             }
-        } else if (pathname.startsWith('/teacher')) {
-            if (role !== 'teacher' && role !== 'admin') {
-                console.warn('Unauthorized access to teacher page. Redirecting...');
-                if (role === 'student' || role === 'user') {
-                    window.location.href = '/student';
-                } else {
-                    window.location.href = '/login';
-                }
-            }
-        }
-        var avatarEl = document.getElementById('sidebar-avatar');
-        var usernameEl = document.getElementById('sidebar-username');
-        var roleEl = document.getElementById('sidebar-userrole');
-        var logoBrandEl = document.getElementById('sidebar-logo-brand');
-        var logoSubEl = document.getElementById('sidebar-logo-sub');
-        if (avatarEl && user.name) {
-            avatarEl.textContent = user.name.charAt(0);
-        }
-        if (usernameEl) {
-            usernameEl.textContent = user.name || 'User';
-        }
-        if (roleEl) {
-            var roleLabels = { admin: 'Super Admin', teacher: 'Instructor', student: 'Student', user: 'User' };
-            roleEl.textContent = roleLabels[role] || role;
-        }
-        if (role !== 'admin') {
-            if (logoSubEl) logoSubEl.textContent = '홍대센터 LMS';
-            document.querySelectorAll('[data-role="admin-only"]').forEach(function (el) {
-                el.style.display = 'none';
-            });
-        }
-    } catch (e) {
-        console.error('Auth check error:', e);
-        window.location.href = '/login';
-    }
+        })
+        .catch(function () {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/login';
+        });
 })();
 
 function initAdminSidebar() {
