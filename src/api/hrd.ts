@@ -2316,49 +2316,69 @@ app.get('/training-logs/daily-schedule', async (c) => {
     }
 });
 
-// 훈련 일지 요약 정보 조회 (전체 과정) - Moved here to prevent shadowing by /:id
+// 훈련 일지 요약 정보 조회 — 교육운영관리 회차(course_sessions) 전체 목록 + 상태 필터
 app.get('/training-logs/summary', authMiddleware, async (c) => {
     try {
         const month = c.req.query('month') || new Date().toISOString().substring(0, 7); // YYYY-MM
+        const statusFilter = (c.req.query('status') || 'all').toLowerCase(); // all | recruiting | in_progress | completed | closed
 
-        // 1. 모든 운영 중인 과정 및 기본 정보 조회
-        const { results: courses } = await c.env.DB.prepare(`
-            SELECT c.id, c.title, u.name as teacher_name
-            FROM courses c
-            LEFT JOIN users u ON c.teacher_id = u.id
-            WHERE c.status != 'closed'
-        `).all();
+        let statusCondition = '';
+        const params: (string | number)[] = [];
+        if (statusFilter && statusFilter !== 'all') {
+            if (['recruiting', 'in_progress', 'completed', 'closed', 'always_open'].includes(statusFilter)) {
+                statusCondition = ' AND s.status = ?';
+                params.push(statusFilter);
+            }
+        }
 
-        const summaryData = await Promise.all(courses.map(async (course: any) => {
-            // 이번 달 작성된 일지 수 및 합계 시간
-            const logStats: any = await c.env.DB.prepare(`
-                SELECT 
-                    COUNT(*) as log_count,
-                    COALESCE(SUM(training_hours), 0) as total_hours,
-                    MAX(date) as last_log_date
-                FROM training_logs
-                WHERE course_id = ? AND date LIKE ?
-            `).bind(course.id, `${month}%`).first();
+        const { results: sessions } = await c.env.DB.prepare(`
+            SELECT s.id, s.session_number, s.session_name, s.status, s.training_start_date, s.training_end_date,
+                s.instructor_name, a.name as course_name
+            FROM course_sessions s
+            JOIN approved_courses a ON s.approved_course_id = a.id
+            WHERE 1=1 ${statusCondition}
+            ORDER BY s.training_start_date DESC, s.id DESC
+        `).bind(...params).all();
 
-            // NCS 이수율 계산 (전체 대비)
-            const ncsStats: any = await c.env.DB.prepare(`
-                SELECT 
-                    COALESCE(SUM(cnu.training_hours), 0) as target_total,
-                    (SELECT COALESCE(SUM(training_hours), 0) FROM training_logs WHERE course_id = ?) as current_total
-                FROM course_ncs_units cnu
-                WHERE cnu.course_id = ?
-            `).bind(course.id, course.id).first();
+        const summaryData = await Promise.all((sessions || []).map(async (session: any) => {
+            const title = `${session.course_name || '과정'} (${session.session_number != null ? session.session_number + '회차' : ''}${session.session_name ? ' - ' + session.session_name : ''})`.trim();
+            const lmsCourse: any = await c.env.DB.prepare('SELECT id FROM courses WHERE title = ? LIMIT 1').bind(title).first();
+            const courseId = lmsCourse?.id ?? null;
 
-            const ncsRate = ncsStats.target_total > 0
-                ? Math.round((ncsStats.current_total / ncsStats.target_total) * 100)
-                : 0;
+            let log_count = 0, total_hours = 0, last_log_date: string | null = null, ncs_rate = 0;
+            if (courseId) {
+                const logStats: any = await c.env.DB.prepare(`
+                    SELECT COUNT(*) as log_count, COALESCE(SUM(training_hours), 0) as total_hours, MAX(date) as last_log_date
+                    FROM training_logs WHERE course_id = ? AND date LIKE ?
+                `).bind(courseId, `${month}%`).first();
+                log_count = logStats?.log_count ?? 0;
+                total_hours = logStats?.total_hours ?? 0;
+                last_log_date = logStats?.last_log_date ?? null;
+
+                const ncsStats: any = await c.env.DB.prepare(`
+                    SELECT COALESCE(SUM(cnu.training_hours), 0) as target_total,
+                        (SELECT COALESCE(SUM(training_hours), 0) FROM training_logs WHERE course_id = ?) as current_total
+                    FROM course_ncs_units cnu WHERE cnu.course_id = ?
+                `).bind(courseId, courseId).first();
+                const target = ncsStats?.target_total ?? 0;
+                const current = ncsStats?.current_total ?? 0;
+                ncs_rate = target > 0 ? Math.round((current / target) * 100) : 0;
+            }
+
+            const statusLabel = { recruiting: '모집중', in_progress: '진행중', completed: '마감', closed: '종료', always_open: '상시모집' }[session.status] || session.status;
 
             return {
-                ...course,
-                log_count: logStats.log_count,
-                total_hours: logStats.total_hours,
-                last_log_date: logStats.last_log_date,
-                ncs_rate: ncsRate
+                id: session.id,
+                title,
+                status: session.status,
+                status_label: statusLabel,
+                teacher_name: session.instructor_name || null,
+                log_count,
+                total_hours,
+                last_log_date,
+                ncs_rate,
+                training_start_date: session.training_start_date,
+                training_end_date: session.training_end_date
             };
         }));
 

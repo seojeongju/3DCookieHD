@@ -98,6 +98,13 @@ export const adminHrdTrainingLogsHtml = (sidebar = hrdSidebar('training-logs')) 
                                     <input type="month" id="targetMonth" onchange="loadLogSummary()" class="w-full pl-10 pr-4 py-2 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-bold text-gray-700 shadow-inner">
                                     <i class="fas fa-calendar absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 text-xs"></i>
                                 </div>
+                                <select id="courseStatusFilter" onchange="loadLogSummary()" class="bg-gray-50 border-none rounded-xl px-4 py-2 text-sm font-bold text-gray-600 outline-none focus:ring-2 focus:ring-indigo-500 shadow-inner" title="과정 상태로 목록 조회">
+                                    <option value="all">전체 과정</option>
+                                    <option value="recruiting">모집중</option>
+                                    <option value="in_progress">진행중</option>
+                                    <option value="completed">마감</option>
+                                    <option value="closed">종료</option>
+                                </select>
                                 <select id="statusFilter" onchange="filterCourses()" class="bg-gray-50 border-none rounded-xl px-4 py-2 text-sm font-bold text-gray-600 outline-none focus:ring-2 focus:ring-indigo-500 shadow-inner">
                                     <option value="all">전체 현황</option>
                                     <option value="pending">미작성 과정만</option>
@@ -123,6 +130,7 @@ export const adminHrdTrainingLogsHtml = (sidebar = hrdSidebar('training-logs')) 
                                 <thead class="bg-gray-50/50">
                                     <tr>
                                         <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase tracking-wider">과정 정보</th>
+                                        <th class="px-6 py-4 text-center text-[11px] font-bold text-gray-400 uppercase tracking-wider">상태</th>
                                         <th class="px-6 py-4 text-center text-[11px] font-bold text-gray-400 uppercase tracking-wider">담당 강사</th>
                                         <th class="px-6 py-4 text-center text-[11px] font-bold text-gray-400 uppercase tracking-wider">이달 일지</th>
                                         <th class="px-6 py-4 text-center text-[11px] font-bold text-gray-400 uppercase tracking-wider">이달 훈련 시간</th>
@@ -163,11 +171,13 @@ export const adminHrdTrainingLogsHtml = (sidebar = hrdSidebar('training-logs')) 
             const month = monthInput.value;
             const tbody = document.getElementById('summaryTableBody');
             if (tbody) {
-                tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-20 text-center text-gray-400 font-medium"><i class="fas fa-circle-notch fa-spin mr-2"></i> 데이터 로딩 중...</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-20 text-center text-gray-400 font-medium"><i class="fas fa-circle-notch fa-spin mr-2"></i> 데이터 로딩 중...</td></tr>';
             }
 
+            const courseStatusEl = document.getElementById('courseStatusFilter') as HTMLSelectElement | null;
+            const courseStatus = courseStatusEl ? courseStatusEl.value : 'all';
             try {
-                const response = await fetch('/api/hrd/training-logs/summary?month=' + month, {
+                const response = await fetch('/api/hrd/training-logs/summary?month=' + encodeURIComponent(month) + '&status=' + encodeURIComponent(courseStatus), {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
                 const result = await response.json();
@@ -177,11 +187,11 @@ export const adminHrdTrainingLogsHtml = (sidebar = hrdSidebar('training-logs')) 
                     updateStats();
                     filterCourses();
                 } else {
-                    if (tbody) tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-20 text-center text-red-500">데이터 로드 실패: ' + result.error + '</td></tr>';
+                    if (tbody) tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-20 text-center text-red-500">데이터 로드 실패: ' + result.error + '</td></tr>';
                 }
             } catch (e) {
                 console.error(e);
-                if (tbody) tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-20 text-center text-red-500">오류가 발생했습니다.</td></tr>';
+                if (tbody) tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-20 text-center text-red-500">오류가 발생했습니다.</td></tr>';
             }
         }
 
@@ -240,15 +250,25 @@ export const adminHrdTrainingLogsHtml = (sidebar = hrdSidebar('training-logs')) 
             if (!tbody) return;
             
             if (data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-20 text-center text-gray-400">조건에 맞는 과정이 없습니다.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-20 text-center text-gray-400">조건에 맞는 과정이 없습니다.</td></tr>';
                 return;
             }
 
+            const statusBadgeClass = (s: string) => {
+                if (s === '모집중') return 'bg-sky-50 text-sky-600 ring-sky-100';
+                if (s === '진행중') return 'bg-emerald-50 text-emerald-600 ring-emerald-100';
+                if (s === '상시모집') return 'bg-amber-50 text-amber-600 ring-amber-100';
+                if (s === '마감' || s === '종료') return 'bg-slate-100 text-slate-600 ring-slate-200';
+                return 'bg-gray-50 text-gray-600 ring-gray-100';
+            };
             tbody.innerHTML = data.map(c => \`
                 <tr class="hover:bg-indigo-50/30 transition-colors group border-b border-gray-50 last:border-0">
                     <td class="px-6 py-5">
                         <div class="font-bold text-gray-800 group-hover:text-indigo-600 transition-colors">\${c.title}</div>
-                        <div class="text-[10px] text-gray-400 mt-1 uppercase tracking-wider font-semibold">Course ID: \${c.id}</div>
+                        <div class="text-[10px] text-gray-400 mt-1 uppercase tracking-wider font-semibold">회차 ID: \${c.id}</div>
+                    </td>
+                    <td class="px-6 py-5 text-center">
+                        <span class="px-2.5 py-1 rounded-lg text-xs font-bold ring-1 \${statusBadgeClass(c.status_label || '')}">\${c.status_label || '-'}</span>
                     </td>
                     <td class="px-6 py-5 text-center">
                         <div class="flex items-center justify-center">
