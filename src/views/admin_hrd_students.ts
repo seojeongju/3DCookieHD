@@ -49,24 +49,61 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
             </header>
 
             <main class="flex-1 overflow-y-auto p-8">
-                <!-- 검색 필터 섹션 -->
-                <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 mb-8 flex flex-wrap gap-4 items-center">
-                    <div class="relative flex-1 min-w-[300px]">
-                        <input type="text" id="searchInput" placeholder="이름, 연락처, 또는 수강 과정을 입력하세요" class="w-full pl-11 pr-4 py-3 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500/20 transition-all outline-none text-sm">
-                        <i class="fas fa-search absolute left-4 top-3.5 text-gray-400"></i>
+                <!-- 검색·필터 섹션 (고도화) -->
+                <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 mb-6">
+                    <div class="flex items-center gap-2 mb-4">
+                        <i class="fas fa-filter text-blue-500 text-sm"></i>
+                        <span class="text-xs font-black text-gray-500 uppercase tracking-wider">검색 및 필터</span>
                     </div>
-                    <div class="min-w-[180px]">
-                        <select id="statusFilter" class="w-full px-4 py-3 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500/20 transition-all outline-none text-sm cursor-pointer">
-                            <option value="">전체 여정 상태</option>
-                            <option value="consulting">초기 상담</option>
-                            <option value="registered">등록·발급</option>
-                            <option value="learning">집중 훈련</option>
-                            <option value="completed">수료 완료</option>
-                            <option value="employed">취업·성공</option>
-                            <option value="dropout">중도탈락</option>
-                        </select>
+                    <div class="flex flex-wrap gap-3 items-end">
+                        <div class="relative flex-1 min-w-[260px]">
+                            <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">검색어</label>
+                            <input type="text" id="searchInput" placeholder="이름, 연락처, 수강 과정명" class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500/30 focus:border-blue-200 transition-all outline-none text-sm" autocomplete="off">
+                            <i class="fas fa-search absolute left-3.5 top-[38px] text-gray-400 text-xs"></i>
+                        </div>
+                        <div class="w-[160px]">
+                            <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">여정 상태</label>
+                            <select id="statusFilter" class="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500/30 text-sm cursor-pointer outline-none">
+                                <option value="">전체</option>
+                                <option value="consulting">초기 상담</option>
+                                <option value="registered">등록·발급</option>
+                                <option value="learning">집중 훈련</option>
+                                <option value="completed">수료 완료</option>
+                                <option value="employed">취업·성공</option>
+                                <option value="dropout">중도탈락</option>
+                            </select>
+                        </div>
+                        <div class="w-[140px]">
+                            <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">교육 대상</label>
+                            <select id="typeFilter" class="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500/30 text-sm cursor-pointer outline-none">
+                                <option value="">전체</option>
+                                <option value="jobseeker">구직자</option>
+                                <option value="worker">재직자</option>
+                                <option value="general">일반</option>
+                                <option value="student">학생</option>
+                            </select>
+                        </div>
+                        <div class="w-[150px]">
+                            <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">정렬</label>
+                            <select id="sortFilter" class="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500/30 text-sm cursor-pointer outline-none">
+                                <option value="created_desc">가입일 최신순</option>
+                                <option value="created_asc">가입일 오래된순</option>
+                                <option value="name_asc">이름 가나다순</option>
+                            </select>
+                        </div>
+                        <div class="flex gap-2">
+                            <button type="button" onclick="applyFilters()" class="px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition font-bold text-sm shadow-sm">
+                                <i class="fas fa-search mr-1.5"></i> 검색
+                            </button>
+                            <button type="button" onclick="resetFilters()" class="px-4 py-2.5 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 transition font-bold text-sm">
+                                <i class="fas fa-undo mr-1.5"></i> 초기화
+                            </button>
+                        </div>
                     </div>
-                    <button onclick="currentPage=1; loadStudents()" class="px-6 py-3 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition font-bold text-sm">검색 적용</button>
+                    <div id="filterChipsWrap" class="mt-4 flex flex-wrap gap-2 items-center hidden">
+                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mr-1">적용된 필터:</span>
+                        <div id="filterChips" class="flex flex-wrap gap-2"></div>
+                    </div>
                 </div>
 
                 <!-- 수강생 리스트 테이블 -->
@@ -515,7 +552,10 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
 
         document.addEventListener('DOMContentLoaded', async () => { 
             await loadCourses(); 
-            await loadStudents(); 
+            await loadStudents();
+            renderFilterChips();
+            var searchInput = document.getElementById('searchInput');
+            if (searchInput) searchInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); applyFilters(); } });
         });
 
         async function loadCourses() {
@@ -551,16 +591,79 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
             } catch (e) { console.error(e); }
         }
 
+        function getFilterValues() {
+            return {
+                search: (document.getElementById('searchInput') && document.getElementById('searchInput').value) ? document.getElementById('searchInput').value.trim() : '',
+                status: (document.getElementById('statusFilter') && document.getElementById('statusFilter').value) || '',
+                type: (document.getElementById('typeFilter') && document.getElementById('typeFilter').value) || '',
+                sort: (document.getElementById('sortFilter') && document.getElementById('sortFilter').value) || 'created_desc'
+            };
+        }
+
+        window.applyFilters = function() {
+            currentPage = 1;
+            loadStudents();
+            renderFilterChips();
+        };
+
+        window.resetFilters = function() {
+            const searchInput = document.getElementById('searchInput');
+            const statusFilter = document.getElementById('statusFilter');
+            const typeFilter = document.getElementById('typeFilter');
+            const sortFilter = document.getElementById('sortFilter');
+            if (searchInput) searchInput.value = '';
+            if (statusFilter) statusFilter.value = '';
+            if (typeFilter) typeFilter.value = '';
+            if (sortFilter) sortFilter.value = 'created_desc';
+            currentPage = 1;
+            loadStudents();
+            renderFilterChips();
+        };
+
+        function renderFilterChips() {
+            const wrap = document.getElementById('filterChipsWrap');
+            const container = document.getElementById('filterChips');
+            if (!wrap || !container) return;
+            const f = getFilterValues();
+            const chips = [];
+            if (f.search) chips.push({ label: '검색: \"' + f.search + '\"', key: 'search' });
+            const statusLabels = { consulting: '초기 상담', registered: '등록·발급', learning: '집중 훈련', completed: '수료 완료', employed: '취업·성공', dropout: '중도탈락' };
+            if (f.status) chips.push({ label: '여정: ' + (statusLabels[f.status] || f.status), key: 'status' });
+            const typeLabels = { jobseeker: '구직자', worker: '재직자', general: '일반', student: '학생' };
+            if (f.type) chips.push({ label: '대상: ' + (typeLabels[f.type] || f.type), key: 'type' });
+            if (f.sort && f.sort !== 'created_desc') chips.push({ label: '정렬: ' + (f.sort === 'name_asc' ? '이름순' : '가입일 오래된순'), key: 'sort' });
+            if (chips.length === 0) {
+                wrap.classList.add('hidden');
+                container.innerHTML = '';
+                return;
+            }
+            wrap.classList.remove('hidden');
+            container.innerHTML = chips.map(function(c) {
+                return '<span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-xs font-bold">' + c.label + '<button type="button" onclick="removeFilterChip(\\'' + c.key + '\\')" class="ml-0.5 rounded-full p-0.5 hover:bg-blue-200/50 transition" aria-label="제거"><i class="fas fa-times text-[10px]"></i></button></span>';
+            }).join('');
+        }
+
+        window.removeFilterChip = function(key) {
+            if (key === 'search') { var el = document.getElementById('searchInput'); if (el) el.value = ''; }
+            if (key === 'status') { var el = document.getElementById('statusFilter'); if (el) el.value = ''; }
+            if (key === 'type') { var el = document.getElementById('typeFilter'); if (el) el.value = ''; }
+            if (key === 'sort') { var el = document.getElementById('sortFilter'); if (el) el.value = 'created_desc'; }
+            currentPage = 1;
+            loadStudents();
+            renderFilterChips();
+        };
+
         async function loadStudents() {
             const tbody = document.getElementById('studentListBody');
             const totalCount = document.getElementById('totalCount');
-            const search = document.getElementById('searchInput').value;
-            const status = document.getElementById('statusFilter').value;
+            const f = getFilterValues();
 
             try {
                 let url = '/api/hrd/students?page=' + currentPage + '&limit=' + pageSize + '&';
-                if (search) url += 'search=' + encodeURIComponent(search) + '&';
-                if (status) url += 'status=' + encodeURIComponent(status) + '&';
+                if (f.search) url += 'search=' + encodeURIComponent(f.search) + '&';
+                if (f.status) url += 'status=' + encodeURIComponent(f.status) + '&';
+                if (f.type) url += 'type=' + encodeURIComponent(f.type) + '&';
+                if (f.sort) url += 'sort=' + encodeURIComponent(f.sort) + '&';
 
                 const response = await fetch(url);
                 const result = await response.json();

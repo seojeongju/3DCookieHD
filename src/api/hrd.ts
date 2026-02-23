@@ -680,9 +680,10 @@ app.delete('/items/:id', async (c) => {
 // 훈련생 목록 조회 (페이지네이션 지원)
 app.get('/students', async (c) => {
     try {
-        const search = c.req.query('search');
+        const search = (c.req.query('search') || '').trim();
         const status = c.req.query('status');
         const type = c.req.query('type');
+        const sort = ['created_asc', 'name_asc'].includes(c.req.query('sort') || '') ? c.req.query('sort') : 'created_desc';
         const page = Math.max(1, parseInt(c.req.query('page') || '1', 10));
         const limit = Math.min(50, Math.max(10, parseInt(c.req.query('limit') || '15', 10)));
         const offset = (page - 1) * limit;
@@ -691,9 +692,9 @@ app.get('/students', async (c) => {
         const params: any[] = [];
 
         if (search) {
-            whereClause.push("(u.name LIKE ? OR u.phone LIKE ?)");
+            whereClause.push("(u.name LIKE ? OR u.phone LIKE ? OR EXISTS (SELECT 1 FROM course_session_enrollments cse JOIN course_sessions cs ON cse.session_id = cs.id JOIN approved_courses a ON cs.approved_course_id = a.id WHERE cse.user_id = u.id AND cse.status IN ('enrolled','approved') AND a.name LIKE ?))");
             const searchParam = `%${search}%`;
-            params.push(searchParam, searchParam);
+            params.push(searchParam, searchParam, searchParam);
         }
         if (status) {
             whereClause.push("d.status = ?");
@@ -705,6 +706,7 @@ app.get('/students', async (c) => {
         }
 
         const whereSql = ' WHERE ' + whereClause.join(' AND ');
+        const orderSql = sort === 'name_asc' ? ' ORDER BY u.name ASC, u.id ASC' : sort === 'created_asc' ? ' ORDER BY u.created_at ASC, u.id ASC' : ' ORDER BY u.created_at DESC, u.id DESC';
 
         // 총 개수 조회
         const countQuery = `SELECT COUNT(*) as total FROM users u LEFT JOIN hrd_student_details d ON u.id = d.user_id ${whereSql}`;
@@ -729,7 +731,7 @@ app.get('/students', async (c) => {
             FROM users u
             LEFT JOIN hrd_student_details d ON u.id = d.user_id
             ${whereSql}
-            ORDER BY u.created_at DESC
+            ${orderSql}
             LIMIT ? OFFSET ?
         `;
         const dataParams = [...params, limit, offset];
@@ -2440,7 +2442,7 @@ app.get('/training-logs/summary', authMiddleware, async (c) => {
 
         const { results: sessions } = await c.env.DB.prepare(`
             SELECT s.id, s.session_number, s.session_name, s.status, s.training_start_date, s.training_end_date,
-                s.instructor_name, a.name as course_name
+                s.instructor_name, a.name as course_name, s.lms_course_id
             FROM course_sessions s
             JOIN approved_courses a ON s.approved_course_id = a.id
             WHERE 1=1 ${statusCondition}
@@ -2448,9 +2450,40 @@ app.get('/training-logs/summary', authMiddleware, async (c) => {
         `).bind(...params).all();
 
         const summaryData = await Promise.all((sessions || []).map(async (session: any) => {
-            const title = `${session.course_name || '과정'} (${session.session_number != null ? session.session_number + '회차' : ''}${session.session_name ? ' - ' + session.session_name : ''})`.trim();
-            const lmsCourse: any = await c.env.DB.prepare('SELECT id FROM courses WHERE title = ? LIMIT 1').bind(title).first();
-            const courseId = lmsCourse?.id ?? null;
+            const courseName = (session.course_name || '과정').trim();
+            const sessionNum = session.session_number != null ? String(session.session_number) : '';
+            const sessionNamePart = session.session_name ? ' - ' + session.session_name : '';
+            const title = `${courseName} (${sessionNum ? sessionNum + '회차' : ''}${sessionNamePart})`.trim();
+            let courseId: number | null = (session.lms_course_id != null && session.lms_course_id > 0) ? Number(session.lms_course_id) : null;
+            let resolvedByTitleOrLike = false;
+
+            if (courseId == null) {
+                const exact: any = await c.env.DB.prepare('SELECT id FROM courses WHERE TRIM(title) = ? LIMIT 1').bind(title).first();
+                courseId = exact?.id ?? null;
+                if (courseId != null) resolvedByTitleOrLike = true;
+            }
+            if (courseId == null) {
+                const lmsCourse: any = await c.env.DB.prepare('SELECT id FROM courses WHERE title = ? LIMIT 1').bind(title).first();
+                courseId = lmsCourse?.id ?? null;
+                if (courseId != null) resolvedByTitleOrLike = true;
+            }
+            if (courseId == null && (courseName || sessionNum)) {
+                const likePattern = '%' + courseName + '%' + (sessionNum ? sessionNum + '회차' : '') + '%';
+                const fallback: any = await c.env.DB.prepare('SELECT id FROM courses WHERE title LIKE ? LIMIT 1').bind(likePattern).first();
+                courseId = fallback?.id ?? null;
+                if (courseId != null) resolvedByTitleOrLike = true;
+            }
+            if (courseId == null && courseName) {
+                const broadPattern = '%' + courseName + '%';
+                const broad: any = await c.env.DB.prepare(
+                    'SELECT id FROM courses WHERE title LIKE ? ORDER BY LENGTH(title) ASC LIMIT 1'
+                ).bind(broadPattern).first();
+                courseId = broad?.id ?? null;
+                if (courseId != null) resolvedByTitleOrLike = true;
+            }
+            if (courseId != null && resolvedByTitleOrLike) {
+                await c.env.DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(courseId, session.id).run();
+            }
 
             let log_count = 0, total_hours = 0, last_log_date: string | null = null, ncs_rate = 0;
             if (courseId) {
@@ -2485,7 +2518,8 @@ app.get('/training-logs/summary', authMiddleware, async (c) => {
                 last_log_date,
                 ncs_rate,
                 training_start_date: session.training_start_date,
-                training_end_date: session.training_end_date
+                training_end_date: session.training_end_date,
+                lms_course_id: courseId
             };
         }));
 
@@ -2543,6 +2577,7 @@ app.get('/training-logs', async (c) => {
 
                 if (lmsCourse) {
                     resolvedCourseId = lmsCourse.id;
+                    await c.env.DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(resolvedCourseId, rawId).run();
                 }
             }
         }
@@ -2702,6 +2737,7 @@ app.post('/training-logs', async (c) => {
                             resolvedCourseId = Number(newCourseId);
                             console.log('[Training Log] Created new LMS course:', resolvedCourseId, title);
                         }
+                        await c.env.DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(resolvedCourseId, rawId).run();
                     }
                 }
             } catch (queryErr) {
@@ -2780,59 +2816,6 @@ app.delete('/training-logs/:id', async (c) => {
         await c.env.DB.prepare('DELETE FROM training_logs WHERE id = ?').bind(id).run();
         return c.json({ success: true, message: '일지가 삭제되었습니다.' });
     } catch (e: any) {
-        return errorResponse(c, e.message, 500);
-    }
-});
-
-// 훈련 일지 요약 정보 조회 (전체 과정)
-app.get('/training-logs/summary', authMiddleware, async (c) => {
-    try {
-        const month = c.req.query('month') || new Date().toISOString().substring(0, 7); // YYYY-MM
-
-        // 1. 모든 운영 중인 과정 및 기본 정보 조회
-        const { results: courses } = await c.env.DB.prepare(`
-            SELECT c.id, c.title, u.name as teacher_name
-            FROM courses c
-            LEFT JOIN users u ON c.teacher_id = u.id
-            WHERE c.status != 'closed'
-        `).all();
-
-        const summaryData = await Promise.all(courses.map(async (course: any) => {
-            // 이번 달 작성된 일지 수 및 합계 시간
-            const logStats: any = await c.env.DB.prepare(`
-                SELECT 
-                    COUNT(*) as log_count,
-                    COALESCE(SUM(training_hours), 0) as total_hours,
-                    MAX(date) as last_log_date
-                FROM training_logs
-                WHERE course_id = ? AND date LIKE ?
-            `).bind(course.id, `${month}%`).first();
-
-            // NCS 이수율 계산 (전체 대비)
-            const ncsStats: any = await c.env.DB.prepare(`
-                SELECT 
-                    COALESCE(SUM(cnu.training_hours), 0) as target_total,
-                    (SELECT COALESCE(SUM(training_hours), 0) FROM training_logs WHERE course_id = ?) as current_total
-                FROM course_ncs_units cnu
-                WHERE cnu.course_id = ?
-            `).bind(course.id, course.id).first();
-
-            const ncsRate = ncsStats.target_total > 0
-                ? Math.round((ncsStats.current_total / ncsStats.target_total) * 100)
-                : 0;
-
-            return {
-                ...course,
-                log_count: logStats.log_count || 0,
-                total_hours: logStats.total_hours || 0,
-                last_log_date: logStats.last_log_date || '',
-                ncs_rate: Math.min(ncsRate, 100)
-            };
-        }));
-
-        return c.json({ success: true, data: summaryData });
-    } catch (e: any) {
-        console.error('Failed to fetch training log summary:', e);
         return errorResponse(c, e.message, 500);
     }
 });
