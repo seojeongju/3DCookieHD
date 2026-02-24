@@ -2504,8 +2504,8 @@ app.delete('/counseling/:id', authMiddleware, async (c) => {
 
 // 훈련 일지 목록 조회
 
-// 훈련 일지용 일일 시간표 조회 (자동완성용)
-app.get('/training-logs/daily-schedule', async (c) => {
+// 훈련 일지용 일일 시간표 조회 (자동완성용, 강의 후 설문지 과목/강사 로드)
+app.get('/training-logs/daily-schedule', authMiddleware, async (c) => {
     try {
         const courseId = c.req.query('courseId'); // session_id
         const date = c.req.query('date');

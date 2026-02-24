@@ -134,6 +134,49 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
         </div>
     </main>
 
+    <!-- 강의 후 설문지 생성/수정 모달 -->
+    <div id="postLectureModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div class="px-6 py-4 border-b flex justify-between items-center bg-amber-50 rounded-t-xl">
+                <h3 class="text-xl font-bold text-gray-800" id="postLectureModalTitle">강의 후 설문지</h3>
+                <button type="button" onclick="closeModal('postLectureModal')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <form id="postLectureForm" class="p-6 space-y-4">
+                <input type="hidden" id="postLectureSurveyId" value="">
+                <div id="postLectureLectureDateBlock" class="space-y-2">
+                    <label class="block text-sm font-bold text-gray-700">교육일 (날짜 선택 시 해당 일자의 과목·강사가 자동 표시됩니다)</label>
+                    <input type="date" id="postLectureDate" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500">
+                    <div id="postLectureSubjectInstructor" class="p-4 bg-gray-50 rounded-lg text-sm text-gray-700 hidden">
+                        <div class="font-bold text-gray-800 mb-2">해당 일자 시간표</div>
+                        <div id="postLectureScheduleList">-</div>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">제목</label>
+                    <input type="text" id="postLectureTitle" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500" value="강의 후 설문지" placeholder="강의 후 설문지">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">설명</label>
+                    <textarea id="postLectureDesc" rows="3" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500" placeholder="설문 안내 문구">수고하셨습니다. 오늘 교육 프로그램에 대한 전반적인 부분을 객관적으로 파악하고, 향후 교육의 기초 자료로 활용하고자 설문을 진행합니다. 더 나은 교육을 위해 솔직한 평가 부탁드립니다.</textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-1">시작일</label>
+                        <input type="date" id="postLectureStartDate" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-1">종료일</label>
+                        <input type="date" id="postLectureEndDate" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500">
+                    </div>
+                </div>
+                <div class="pt-4 flex justify-end gap-3">
+                    <button type="button" onclick="closeModal('postLectureModal')" class="px-5 py-2.5 text-gray-700 font-medium bg-gray-100 rounded-lg hover:bg-gray-200">취소</button>
+                    <button type="submit" class="px-5 py-2.5 bg-amber-600 text-white font-bold rounded-lg hover:bg-amber-700">저장</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- 생성 모달 -->
     <div id="createModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -243,14 +286,22 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
         document.addEventListener('DOMContentLoaded', () => {
              loadSurveys();
              var btn = document.getElementById('btnPostLectureSurvey');
-             if (btn) btn.addEventListener('click', createPostLectureSurvey);
+             if (btn) btn.addEventListener('click', function() { openPostLectureModal(false); });
              var filter = document.getElementById('filterType');
              if (filter) filter.addEventListener('change', function() { loadSurveys(); });
              var list = document.getElementById('surveyList');
              if (list) list.addEventListener('click', function(e) {
-                 var el = e.target && e.target.closest && e.target.closest('.btn-view-results');
-                 if (el) { viewResults(parseInt(el.getAttribute('data-id'), 10), el.getAttribute('data-type') || ''); }
+                 var viewBtn = e.target && e.target.closest && e.target.closest('.btn-view-results');
+                 if (viewBtn) { viewResults(parseInt(viewBtn.getAttribute('data-id'), 10), viewBtn.getAttribute('data-type') || ''); return; }
+                 var editBtn = e.target && e.target.closest && e.target.closest('.btn-edit-post-lecture');
+                 if (editBtn) { openPostLectureModal(true, parseInt(editBtn.getAttribute('data-id'), 10)); return; }
+                 var delBtn = e.target && e.target.closest && e.target.closest('.btn-delete-survey');
+                 if (delBtn) { deleteSurvey(parseInt(delBtn.getAttribute('data-id'), 10)); }
              });
+             var lectureDateEl = document.getElementById('postLectureDate');
+             if (lectureDateEl) lectureDateEl.addEventListener('change', function() { loadLectureSchedule(this.value); });
+             var postForm = document.getElementById('postLectureForm');
+             if (postForm) postForm.addEventListener('submit', function(e) { e.preventDefault(); savePostLectureSurvey(); });
         });
 
         function getSurveysApiUrl() {
@@ -318,6 +369,7 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
                     '<td class="px-6 py-4 text-right">' +
                     '<a href="' + previewHref + '" target="_blank" class="text-amber-600 hover:underline text-xs font-bold mr-3">미리보기</a>' +
                     '<button type="button" class="btn-view-results text-blue-600 hover:underline text-xs font-bold mr-3" data-id="' + s.id + '" data-type="' + typeAttr + '">결과분석</button>' +
+                    (s.type === 'post_lecture' ? '<button type="button" class="btn-edit-post-lecture text-indigo-600 hover:underline text-xs font-bold mr-3" data-id="' + s.id + '">수정</button><button type="button" class="btn-delete-survey text-red-600 hover:underline text-xs font-bold" data-id="' + s.id + '">삭제</button>' : '') +
                     '</td></tr>';
             }).join('');
         }
@@ -336,34 +388,110 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
             document.getElementById('stat-stars').innerHTML = '<i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>';
         }
 
-        function createPostLectureSurvey() {
-            if (!courseId) { alert('과정/회차 정보가 없습니다.'); return; }
+        function openPostLectureModal(isEdit, surveyId) {
+            var idEl = document.getElementById('postLectureSurveyId');
+            var titleEl = document.getElementById('postLectureModalTitle');
+            var block = document.getElementById('postLectureLectureDateBlock');
+            if (block) block.style.display = isHrd ? 'block' : 'none';
+            if (!isEdit) {
+                idEl.value = '';
+                titleEl.textContent = '강의 후 설문지 생성';
+                document.getElementById('postLectureTitle').value = '강의 후 설문지';
+                document.getElementById('postLectureDesc').value = '수고하셨습니다. 오늘 교육 프로그램에 대한 전반적인 부분을 객관적으로 파악하고, 향후 교육의 기초 자료로 활용하고자 설문을 진행합니다. 더 나은 교육을 위해 솔직한 평가 부탁드립니다.';
+                var today = new Date();
+                var startDate = today.toISOString().split('T')[0];
+                var endDate = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+                document.getElementById('postLectureStartDate').value = startDate;
+                document.getElementById('postLectureEndDate').value = endDate;
+                document.getElementById('postLectureDate').value = startDate;
+                document.getElementById('postLectureSubjectInstructor').classList.add('hidden');
+                if (isHrd && startDate) loadLectureSchedule(startDate);
+            } else {
+                titleEl.textContent = '강의 후 설문지 수정';
+                idEl.value = String(surveyId);
+                var token = localStorage.getItem('token');
+                if (!token) { alert('로그인이 필요합니다.'); return; }
+                fetch('/api/surveys/' + surveyId, { headers: { 'Authorization': 'Bearer ' + token } })
+                    .then(function(r) { return r.json(); })
+                    .then(function(res) {
+                        if (!res || !res.success || !res.data) { alert('설문 정보를 불러오지 못했습니다.'); return; }
+                        var s = res.data;
+                        document.getElementById('postLectureTitle').value = s.title || '강의 후 설문지';
+                        document.getElementById('postLectureDesc').value = s.description || '';
+                        document.getElementById('postLectureStartDate').value = (s.start_date || '').split('T')[0];
+                        document.getElementById('postLectureEndDate').value = (s.end_date || '').split('T')[0];
+                        document.getElementById('postLectureDate').value = (s.start_date || '').split('T')[0];
+                        document.getElementById('postLectureSubjectInstructor').classList.add('hidden');
+                        if (isHrd && s.start_date) loadLectureSchedule((s.start_date || '').split('T')[0]);
+                    })
+                    .catch(function() { alert('설문 정보를 불러오는 중 오류가 발생했습니다.'); });
+            }
+            document.getElementById('postLectureModal').classList.remove('hidden');
+        }
+
+        function loadLectureSchedule(date) {
+            if (!isHrd || !courseId || !date) return;
+            var box = document.getElementById('postLectureSubjectInstructor');
+            var listEl = document.getElementById('postLectureScheduleList');
+            listEl.textContent = '불러오는 중...';
+            box.classList.remove('hidden');
+            var token = localStorage.getItem('token');
+            fetch('/api/hrd/training-logs/daily-schedule?courseId=' + encodeURIComponent(courseId) + '&date=' + encodeURIComponent(date), { headers: { 'Authorization': 'Bearer ' + (token || '') } })
+                .then(function(r) { return r.json(); })
+                .then(function(res) {
+                    if (!res || !res.success || !Array.isArray(res.data)) { listEl.innerHTML = '해당 일자에 등록된 시간표가 없습니다.'; return; }
+                    var rows = res.data.filter(function(r) { return !r.is_excluded; });
+                    if (rows.length === 0) { listEl.innerHTML = '해당 일자에 등록된 강의가 없습니다.'; return; }
+                    listEl.innerHTML = rows.map(function(r) {
+                        var sub = (r.subject_name || '-').split('<').join('&lt;').split('>').join('&gt;');
+                        var inst = (r.instructor_name || '-').split('<').join('&lt;').split('>').join('&gt;');
+                        return '<div class="py-1">' + (r.period_number ? r.period_number + '교시 ' : '') + '과목: ' + sub + ' / 담당강사: ' + inst + '</div>';
+                    }).join('');
+                })
+                .catch(function() { listEl.textContent = '시간표를 불러오지 못했습니다.'); });
+        }
+
+        function savePostLectureSurvey() {
+            var idEl = document.getElementById('postLectureSurveyId');
+            var surveyId = idEl.value ? parseInt(idEl.value, 10) : null;
             var token = localStorage.getItem('token');
             if (!token) { alert('로그인이 필요합니다.'); return; }
-            var today = new Date();
-            var startDate = today.toISOString().split('T')[0];
-            var endDate = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-            if (!confirm('강의 후 설문지를 생성하시겠습니까?\\n기간: ' + startDate + ' ~ ' + endDate)) return;
+            if (!courseId) { alert('과정/회차 정보가 없습니다.'); return; }
             var body = {
                 type: 'post_lecture',
-                title: '강의 후 설문지',
-                description: '수고하셨습니다. 오늘 교육 프로그램에 대한 전반적인 부분을 객관적으로 파악하고, 향후 교육의 기초 자료로 활용하고자 설문을 진행합니다. 더 나은 교육을 위해 솔직한 평가 부탁드립니다.',
-                start_date: startDate,
-                end_date: endDate,
+                title: document.getElementById('postLectureTitle').value.trim() || '강의 후 설문지',
+                description: document.getElementById('postLectureDesc').value.trim() || null,
+                start_date: document.getElementById('postLectureStartDate').value,
+                end_date: document.getElementById('postLectureEndDate').value,
                 status: 'active'
             };
             if (isHrd) body.session_id = parseInt(courseId, 10); else body.course_id = parseInt(courseId, 10);
-            fetch('/api/surveys', {
-                method: 'POST',
+            var url = surveyId ? '/api/surveys/' + surveyId : '/api/surveys';
+            var method = surveyId ? 'PUT' : 'POST';
+            fetch(url, {
+                method: method,
                 headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
                 body: JSON.stringify(body)
             })
                 .then(function(r) { return r.json(); })
                 .then(function(res) {
-                    if (res && res.success) { alert('강의 후 설문지가 생성되었습니다.'); loadSurveys(); }
-                    else alert(res && res.message ? res.message : '생성에 실패했습니다.');
+                    if (res && res.success) { alert(surveyId ? '수정되었습니다.' : '강의 후 설문지가 생성되었습니다.'); closeModal('postLectureModal'); loadSurveys(); }
+                    else alert(res && res.message ? res.message : (surveyId ? '수정에 실패했습니다.' : '생성에 실패했습니다.'));
                 })
-                .catch(function() { alert('생성 중 오류가 발생했습니다.'); });
+                .catch(function() { alert('저장 중 오류가 발생했습니다.'); });
+        }
+
+        function deleteSurvey(id) {
+            if (!confirm('이 설문을 삭제하시겠습니까? 응답 데이터도 함께 삭제됩니다.')) return;
+            var token = localStorage.getItem('token');
+            if (!token) { alert('로그인이 필요합니다.'); return; }
+            fetch('/api/surveys/' + id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } })
+                .then(function(r) { return r.json(); })
+                .then(function(res) {
+                    if (res && res.success) { alert('삭제되었습니다.'); loadSurveys(); }
+                    else alert(res && res.message ? res.message : '삭제에 실패했습니다.');
+                })
+                .catch(function() { alert('삭제 중 오류가 발생했습니다.'); });
         }
 
         /* Create Modal Functions */
