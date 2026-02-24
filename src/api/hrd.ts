@@ -2971,34 +2971,53 @@ app.post('/training-logs', async (c) => {
             const safeInstructorId = (instructor_id === '' || instructor_id === 0 || instructor_id === '0') ? null : instructor_id;
             const safeNcsUnitId = (ncs_unit_id === '' || ncs_unit_id === 0 || ncs_unit_id === '0') ? null : ncs_unit_id;
 
-            console.log('[Training Log Insert] Resolved Course ID:', resolvedCourseId);
-            console.log('[Training Log Insert] Data:', {
-                resolvedCourseId,
-                safeInstructorId,
-                date,
-                topic,
-                content,
-                teaching_method,
-                safeNcsUnitId,
-                training_hours
-            });
+            // 중복 방지: 같은 과정·같은 날짜 일지가 이미 있으면 INSERT 대신 UPDATE
+            const existingByDate = await c.env.DB.prepare(
+                'SELECT id FROM training_logs WHERE course_id = ? AND date = ? LIMIT 1'
+            ).bind(resolvedCourseId, date).first();
+            const existingId = existingByDate && (existingByDate as { id?: number }).id ? (existingByDate as { id: number }).id : null;
 
-            await c.env.DB.prepare(`
-                INSERT INTO training_logs (course_id, instructor_id, date, topic, content, teaching_method, ncs_unit_id, training_hours, ncs_elements_json, schedule_details_json, attendance_summary_json)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `).bind(
-                resolvedCourseId,
-                safeInstructorId,
-                date,
-                safeTopic,
-                content || '',
-                teaching_method || '주입식/실습',
-                safeNcsUnitId,
-                training_hours || 0,
-                ncs_elements_json || null,
-                schedule_details_json || null,
-                attendance_summary_json
-            ).run();
+            if (existingId) {
+                console.log('[Training Log Upsert] Existing log for same course+date, updating id:', existingId);
+                const updates: string[] = ['topic = ?', 'content = ?', 'teaching_method = ?', 'ncs_unit_id = ?', 'training_hours = ?', 'ncs_elements_json = ?', 'schedule_details_json = ?', 'attendance_summary_json = ?', 'updated_at = CURRENT_TIMESTAMP'];
+                const bindParams: any[] = [safeTopic, content || '', teaching_method || '주입식/실습', safeNcsUnitId, training_hours || 0, ncs_elements_json || null, schedule_details_json || null, attendance_summary_json];
+                if (body.instructor_id !== undefined) {
+                    updates.push('instructor_id = ?');
+                    const safeUpdateInstructorId = (body.instructor_id === '' || body.instructor_id === null || body.instructor_id === 0 || body.instructor_id === '0') ? null : body.instructor_id;
+                    bindParams.push(safeUpdateInstructorId);
+                }
+                bindParams.push(existingId);
+                await c.env.DB.prepare(`UPDATE training_logs SET ${updates.join(', ')} WHERE id = ?`).bind(...bindParams).run();
+            } else {
+                console.log('[Training Log Insert] Resolved Course ID:', resolvedCourseId);
+                console.log('[Training Log Insert] Data:', {
+                    resolvedCourseId,
+                    safeInstructorId,
+                    date,
+                    topic,
+                    content,
+                    teaching_method,
+                    safeNcsUnitId,
+                    training_hours
+                });
+
+                await c.env.DB.prepare(`
+                    INSERT INTO training_logs (course_id, instructor_id, date, topic, content, teaching_method, ncs_unit_id, training_hours, ncs_elements_json, schedule_details_json, attendance_summary_json)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `).bind(
+                    resolvedCourseId,
+                    safeInstructorId,
+                    date,
+                    safeTopic,
+                    content || '',
+                    teaching_method || '주입식/실습',
+                    safeNcsUnitId,
+                    training_hours || 0,
+                    ncs_elements_json || null,
+                    schedule_details_json || null,
+                    attendance_summary_json
+                ).run();
+            }
         }
 
         console.log('[Training Log Save] Success');

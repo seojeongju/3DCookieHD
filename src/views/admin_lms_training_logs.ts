@@ -231,7 +231,7 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
             
                 <div class="flex justify-center gap-3 pt-4">
                     <button type="button" onclick="closeLogModal()" class="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg font-bold hover:bg-gray-50 transition shadow-sm">취소</button>
-                    <button type="submit" class="px-8 py-2.5 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition shadow-lg hover:shadow-indigo-200">저장하기</button>
+                    <button type="submit" id="logFormSubmitBtn" class="px-8 py-2.5 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition shadow-lg hover:shadow-indigo-200 disabled:opacity-60 disabled:cursor-not-allowed">저장하기</button>
                 </div>
             </form>
         </div>
@@ -1145,6 +1145,13 @@ async function printLog(id) {
                 return;
             }
 
+            var submitBtn = document.getElementById('logFormSubmitBtn');
+            if (submitBtn && submitBtn.disabled) return;
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = '저장 중...';
+            }
+
             const idVal = document.getElementById('logId').value;
             const dateVal = document.getElementById('logDate').value;
             const contentVal = document.getElementById('logContent').value;
@@ -1239,6 +1246,11 @@ async function printLog(id) {
             } catch (e) {
                 console.error(e);
                 alert('오류가 발생했습니다.');
+            } finally {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = '저장하기';
+                }
             }
         }
     </script>
