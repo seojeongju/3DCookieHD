@@ -85,6 +85,8 @@
 
 이렇게 해서 회차 12에 회차 4의 일지가 섞여 보이는 문제를 방지합니다.
 
+**공통 유틸**: `src/utils/sessionCourseResolution.ts`의 `resolveSessionToLmsCourseId(DB, id)`를 훈련일지·**과제·시험(CBT)·상담·NCS요약·취업현황** 등에서 모두 사용합니다. 회차 ID가 넘어오면 풀네임·1:1 규칙으로 LMS 과정 ID를 반환하므로, 같은 로직으로 처리되어 중복/혼동이 나지 않습니다.
+
 ---
 
 ## 6. 정리

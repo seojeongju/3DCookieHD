@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { Bindings, Variables } from '../types';
+import { resolveSessionToLmsCourseId } from '../utils/sessionCourseResolution';
 
 const app = new Hono<{ Bindings: Bindings, Variables: Variables }>();
 
@@ -79,11 +80,10 @@ app.post('/', async (c) => {
             if (sessionId == null || isNaN(sessionId)) {
                 return c.json({ success: false, error: 'HRD 과제 등록 시 회차(session_id)가 필요합니다.' }, 400);
             }
-            const placeholder = await c.env.DB.prepare('SELECT id FROM courses LIMIT 1').first() as { id: number } | null;
-            if (!placeholder) {
-                return c.json({ success: false, error: 'HRD 과제 등록을 위해 시스템에 과정이 하나 이상 등록되어 있어야 합니다.' }, 400);
+            courseId = await resolveSessionToLmsCourseId(c.env.DB, sessionId);
+            if (courseId == null) {
+                return c.json({ success: false, error: '해당 회차에 연결된 LMS 과정이 없습니다. 훈련일지 등에서 과정 연결을 먼저 해주세요.' }, 400);
             }
-            courseId = placeholder.id;
         } else {
             courseId = course_id != null ? Number(course_id) : null;
             if (courseId == null || isNaN(courseId)) {

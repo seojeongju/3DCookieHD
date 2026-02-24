@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { Bindings, JWTPayload, Variables } from '../types';
 import { successResponse, errorResponse, forbiddenResponse } from '../utils/response';
 import { authMiddleware } from '../middleware/auth';
+import { resolveSessionToLmsCourseId } from '../utils/sessionCourseResolution';
 
 const app = new Hono<{ Bindings: Bindings, Variables: Variables }>();
 
@@ -39,31 +40,9 @@ function normalizePackageType(v: string | null | undefined): string | null {
     return null;
 }
 
-// Helper to resolve session_id or course_id to the actual LMS course_id
+// 회차/과정 ID → LMS 과정 ID (과제·훈련일지·시험 등과 동일 로직: 풀네임·1:1)
 async function resolveLmsCourseId(DB: any, id: any): Promise<number | null> {
-    const rawId = parseInt(String(id), 10);
-    if (isNaN(rawId)) return null;
-
-    // 1. 이미 courses 테이블의 ID인지 직접 확인
-    const existsInCourses = await DB.prepare('SELECT id FROM courses WHERE id = ?').bind(rawId).first();
-    if (existsInCourses) return rawId;
-
-    // 2. course_sessions ID인 경우, 제목 매핑을 통해 shadow LMS 과정 찾기
-    const session: any = await DB.prepare(`
-        SELECT s.id, s.session_number, s.session_name, a.name as course_name
-        FROM course_sessions s
-        JOIN approved_courses a ON s.approved_course_id = a.id
-        WHERE s.id = ?
-    `).bind(rawId).first();
-
-    if (session) {
-        const title = `${session.course_name || '과정'} (${session.session_number}회차${session.session_name ? ' - ' + session.session_name : ''})`.trim();
-        const lmsCourse: any = await DB.prepare(
-            'SELECT id FROM courses WHERE title = ? LIMIT 1'
-        ).bind(title).first();
-        if (lmsCourse) return Number(lmsCourse.id);
-    }
-    return null;
+    return resolveSessionToLmsCourseId(DB, id);
 }
 
 // ============================================
@@ -1299,14 +1278,10 @@ app.post('/students/:id/consultations', authMiddleware, async (c) => {
         const user = c.get('user') as JWTPayload;
         const counselorId = user.userId;
 
-        // course_id는 courses(id) FK — 강사 페이지에서 오는 값은 회차(session) ID일 수 있으므로, courses에 없으면 null로 저장
+        // course_id는 courses(id) FK — 강사 페이지에서 오는 값은 회차(session) ID일 수 있으므로, 회차면 동일 해석 로직으로 LMS 과정 ID로 저장
         if (courseId != null) {
-            try {
-                const row = await c.env.DB.prepare('SELECT id FROM courses WHERE id = ?').bind(courseId).first();
-                if (!row) courseId = null;
-            } catch (_) {
-                courseId = null;
-            }
+            const resolved = await resolveSessionToLmsCourseId(c.env.DB, courseId);
+            courseId = resolved;
         }
 
         // hrd_counseling_logs 에 저장
@@ -2899,12 +2874,14 @@ app.post('/training-logs', async (c) => {
             }
 
             let resolvedCourseId: number | null = null;
+            let resolvedViaSession = false;
 
             try {
                 const existsInCourses = await c.env.DB.prepare('SELECT id FROM courses WHERE id = ?').bind(rawId).first();
                 if (existsInCourses) {
                     resolvedCourseId = rawId;
                 } else {
+                    resolvedViaSession = true;
                     const session: any = await c.env.DB.prepare(`
                         SELECT s.id, s.session_number, s.session_name, s.lms_course_id, a.name as course_name
                         FROM course_sessions s
@@ -2965,6 +2942,30 @@ app.post('/training-logs', async (c) => {
 
             if (resolvedCourseId == null) {
                 return errorResponse(c, '선택한 과정(회차)을 찾을 수 없습니다. 유효한 과정 또는 회차를 선택해 주세요.', 400);
+            }
+
+            // 등록 직전 한 번 더: 이 과정이 다른 회차에 연결돼 있으면 사용 금지 → 이 회차 전용 과정 새로 생성 (회차 4 일지가 회차 12에 보이는 문제 방지)
+            if (resolvedViaSession) {
+                const other: any = await c.env.DB.prepare(
+                    'SELECT id FROM course_sessions WHERE lms_course_id = ? AND id != ? LIMIT 1'
+                ).bind(resolvedCourseId, rawId).first();
+                if (other) {
+                    const session: any = await c.env.DB.prepare(`
+                        SELECT s.session_number, s.session_name, a.name as course_name
+                        FROM course_sessions s
+                        JOIN approved_courses a ON s.approved_course_id = a.id
+                        WHERE s.id = ?
+                    `).bind(rawId).first();
+                    const expectedTitle = `${session?.course_name || '과정'} (${session?.session_number}회차${session?.session_name ? ' - ' + session.session_name : ''})`.trim();
+                    const insert = await c.env.DB.prepare(
+                        `INSERT INTO courses (title, category, status) VALUES (?, '국비지원', 'active')`
+                    ).bind(expectedTitle).run();
+                    const newId = insert.meta?.last_row_id;
+                    if (newId != null) {
+                        resolvedCourseId = Number(newId);
+                        await c.env.DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(resolvedCourseId, rawId).run();
+                    }
+                }
             }
 
             const safeInstructorId = (instructor_id === '' || instructor_id === 0 || instructor_id === '0') ? null : instructor_id;
