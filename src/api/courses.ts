@@ -797,6 +797,46 @@ courses.get('/:id/grades', async (c) => {
 });
 
 /**
+ * GET /api/courses/:id/attendance-info
+ * HRD 회차 마감 여부 및 최종 훈련일 조회 (출결 페이지 초기 날짜 설정용)
+ */
+courses.get('/:id/attendance-info', async (c) => {
+  try {
+    const courseId = c.req.param('id');
+    const type = c.req.query('type');
+    if (type !== 'hrd') {
+      return successResponse(c, { session_status: '', training_end_date: null, last_training_date: null });
+    }
+    const session = await getOne<any>(c.env.DB, `
+      SELECT cs.training_end_date, cs.status as session_status
+      FROM course_sessions cs
+      WHERE cs.id = ?
+    `, [courseId]);
+    if (!session) {
+      return successResponse(c, { session_status: '', training_end_date: null, last_training_date: null });
+    }
+    const trainingEndDate = (session.training_end_date || '').toString().substring(0, 10);
+    let lastTrainingDate = trainingEndDate;
+    const lastRow = await c.env.DB.prepare(`
+      SELECT training_date FROM session_timetable
+      WHERE session_id = ? AND (is_excluded IS NULL OR is_excluded = 0)
+      ORDER BY training_date DESC LIMIT 1
+    `).bind(courseId).first() as { training_date: string } | null;
+    if (lastRow && lastRow.training_date) {
+      lastTrainingDate = lastRow.training_date.toString().substring(0, 10);
+    }
+    return successResponse(c, {
+      session_status: session.session_status || '',
+      training_end_date: trainingEndDate || null,
+      last_training_date: lastTrainingDate || trainingEndDate || null
+    });
+  } catch (e: any) {
+    console.error('attendance-info error:', e);
+    return errorResponse(c, e.message, 500);
+  }
+});
+
+/**
  * GET /api/courses/:id/attendance
  * 특정 날짜의 출결 현황 조회. :id가 회차 ID면 회차 기준, 아니면 과정 기준
  */

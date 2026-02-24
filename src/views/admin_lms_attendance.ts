@@ -45,7 +45,7 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
                             <i class="fas fa-calendar absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                         </div>
                         <div class="text-sm text-gray-500">
-                            출결 현황 기준일: <span id="currentDateDisplay" class="font-bold text-purple-600"></span>
+                            <span id="dateLabelText">출결 현황 기준일:</span> <span id="currentDateDisplay" class="font-bold text-purple-600"></span>
                         </div>
                     </div>
                     <div class="flex items-center space-x-2">
@@ -142,16 +142,31 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
         const courseType = urlParams.get('type') || '';
         let students = [];
 
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             const today = new Date();
             const yyyy = today.getFullYear();
             const mm = String(today.getMonth() + 1).padStart(2, '0');
             const dd = String(today.getDate()).padStart(2, '0');
             const dateStr = \`\${yyyy}-\${mm}-\${dd}\`;
-            
-            document.getElementById('attendanceDate').value = dateStr;
-            document.getElementById('currentDateDisplay').textContent = dateStr;
-            
+            let initialDate = dateStr;
+            if (courseType === 'hrd') {
+                try {
+                    const token = localStorage.getItem('token');
+                    const res = await fetch(\`/api/courses/\${courseId}/attendance-info?type=hrd\`, { headers: { 'Authorization': 'Bearer ' + (token || '') } });
+                    const json = await res.json();
+                    if (json && json.success && json.data) {
+                        const st = (json.data.session_status || '').toLowerCase();
+                        const closed = st === 'completed' || st === 'closed';
+                        const lastDate = json.data.last_training_date || json.data.training_end_date;
+                        if (closed && lastDate) {
+                            initialDate = lastDate.toString().substring(0, 10);
+                            document.getElementById('dateLabelText').textContent = '최종 마감일 (마감된 출석현황):';
+                        }
+                    }
+                } catch (e) { /* ignore */ }
+            }
+            document.getElementById('attendanceDate').value = initialDate;
+            document.getElementById('currentDateDisplay').textContent = initialDate;
             loadAttendanceData();
         });
 
