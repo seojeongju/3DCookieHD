@@ -233,40 +233,6 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
         </div>
     </div>
 
-    <!-- 결과 분석 모달 -->
-    <div id="resultModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <div class="px-6 py-4 border-b flex justify-between items-center bg-gray-50 rounded-t-xl">
-                <h3 class="text-xl font-bold text-gray-800" id="resultModalTitle">설문 결과 분석</h3>
-                <button onclick="closeModal('resultModal')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times text-xl"></i></button>
-            </div>
-            <div class="p-8">
-                <div class="mb-8 grid grid-cols-3 gap-4">
-                    <div class="bg-amber-50 rounded-lg p-4 text-center">
-                        <div class="text-2xl font-black text-amber-700" id="resultTotalResponses">0</div>
-                        <div class="text-xs font-bold text-amber-600">참여 응답</div>
-                    </div>
-                    <div class="bg-slate-50 rounded-lg p-4 text-center">
-                        <div class="text-2xl font-black text-slate-700" id="resultTotalTarget">0</div>
-                        <div class="text-xs font-bold text-slate-600">대상 인원</div>
-                    </div>
-                    <div class="bg-blue-50 rounded-lg p-4 text-center">
-                        <div class="text-2xl font-black text-blue-700" id="resultResponseRate">0%</div>
-                        <div class="text-xs font-bold text-blue-600">참여율</div>
-                    </div>
-                </div>
-                <h4 class="font-bold text-gray-700 mb-4">항목별 결과</h4>
-                <div id="resultQuestionCharts" class="space-y-8">
-                    <!-- 항목별 그래프/카드 동적 삽입 -->
-                </div>
-                <div class="border-t pt-6 mt-8">
-                    <h4 class="font-bold text-gray-700 mb-4">서술형 응답</h4>
-                    <div class="bg-gray-50 rounded-lg p-4 max-h-48 overflow-y-auto text-sm text-gray-600 space-y-2" id="resultCommentsList"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- 템플릿: 문항 아이템 -->
     <template id="questionTemplate">
         <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 relative group question-item">
@@ -292,7 +258,6 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
         const urlParams = new URLSearchParams(window.location.search);
         const isHrd = (urlParams.get('type') || '').toLowerCase().startsWith('hrd') || window.location.pathname.indexOf('/lms') !== -1;
         let surveys = [];
-        let resultCharts = [];
         let currentUser = null;
         let teachersList = [];
         let pendingPostLectureTeacherId = null;
@@ -316,8 +281,6 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
                  if (startBtn) { startSurvey(parseInt(startBtn.getAttribute('data-id'), 10)); return; }
                  var closeBtn = e.target && e.target.closest && e.target.closest('.btn-survey-close');
                  if (closeBtn) { closeSurvey(parseInt(closeBtn.getAttribute('data-id'), 10)); return; }
-                 var viewBtn = e.target && e.target.closest && e.target.closest('.btn-view-results');
-                 if (viewBtn) { viewResults(parseInt(viewBtn.getAttribute('data-id'), 10), viewBtn.getAttribute('data-type') || ''); return; }
                  var editBtn = e.target && e.target.closest && e.target.closest('.btn-edit-post-lecture');
                  if (editBtn) { openPostLectureModal(true, parseInt(editBtn.getAttribute('data-id'), 10)); return; }
                  var delBtn = e.target && e.target.closest && e.target.closest('.btn-delete-survey');
@@ -397,7 +360,7 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
                     (s.status !== 'active' ? '<button type="button" class="btn-survey-start text-green-600 hover:underline text-xs font-bold mr-3" data-id="' + s.id + '">설문진행</button>' : '') +
                     (s.status === 'active' ? '<button type="button" class="btn-survey-close text-orange-600 hover:underline text-xs font-bold mr-3" data-id="' + s.id + '">진행종료</button>' : '') +
                     '<a href="' + previewHref + '" target="_blank" class="text-amber-600 hover:underline text-xs font-bold mr-3">미리보기</a>' +
-                    '<button type="button" class="btn-view-results text-blue-600 hover:underline text-xs font-bold mr-3" data-id="' + s.id + '" data-type="' + typeAttr + '">결과분석</button>' +
+                    '<a href="/admin/courses/' + courseId + '/lms/surveys/' + s.id + '/results' + (isHrd ? '?type=hrd' : '') + '" class="text-blue-600 hover:underline text-xs font-bold mr-3">결과분석</a>' +
                     (s.type === 'post_lecture' ? '<button type="button" class="btn-edit-post-lecture text-indigo-600 hover:underline text-xs font-bold mr-3" data-id="' + s.id + '">수정</button><button type="button" class="btn-delete-survey text-red-600 hover:underline text-xs font-bold" data-id="' + s.id + '">삭제</button>' : '') +
                     '</td></tr>';
             }).join('');
@@ -613,13 +576,7 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
             document.getElementById('createModal').classList.remove('hidden');
         };
 
-        window.closeModal = function(id) {
-            document.getElementById(id).classList.add('hidden');
-            if (id === 'resultModal') {
-                resultCharts.forEach(function(ch) { if (ch && ch.destroy) ch.destroy(); });
-                resultCharts = [];
-            }
-        };
+        window.closeModal = function(id) { document.getElementById(id).classList.add('hidden'); };
 
         window.addQuestion = () => {
             const tpl = document.getElementById('questionTemplate').content.cloneNode(true);
@@ -641,115 +598,6 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
             closeModal('createModal');
             // Reload logic would go here
         };
-
-        /* Result Functions */
-        window.viewResults = function(id, type) {
-            var token = localStorage.getItem('token');
-            if (!token) { alert('로그인이 필요합니다.'); return; }
-            document.getElementById('resultModalTitle').textContent = '결과 불러오는 중...';
-            document.getElementById('resultQuestionCharts').innerHTML = '<div class="py-12 text-center text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></div>';
-            document.getElementById('resultModal').classList.remove('hidden');
-            resultCharts.forEach(function(ch) { if (ch && ch.destroy) ch.destroy(); });
-            resultCharts = [];
-            fetch('/api/surveys/' + id + '/results', { headers: { 'Authorization': 'Bearer ' + token } })
-                .then(function(r) { return r.json(); })
-                .then(function(res) {
-                    if (!res || !res.success || !res.data) {
-                        document.getElementById('resultModalTitle').textContent = '설문 결과 분석';
-                        document.getElementById('resultQuestionCharts').innerHTML = '<div class="py-8 text-center text-red-500">결과를 불러오지 못했습니다.</div>';
-                        return;
-                    }
-                    var data = res.data;
-                    var survey = data.survey || {};
-                    var stats = data.stats || {};
-                    var questionStats = data.question_stats || [];
-                    document.getElementById('resultModalTitle').textContent = (survey.title || '설문') + ' - 결과 분석';
-                    document.getElementById('resultTotalResponses').textContent = stats.total_responses || 0;
-                    document.getElementById('resultTotalTarget').textContent = stats.total_target || 0;
-                    document.getElementById('resultResponseRate').textContent = (stats.response_rate || 0) + '%';
-                    var scaleLabels = { 1: '매우 아니다', 2: '아니다', 3: '보통', 4: '그렇다', 5: '매우 그렇다' };
-                    var commentsHtml = [];
-                    var container = document.getElementById('resultQuestionCharts');
-                    container.innerHTML = '';
-                    questionStats.forEach(function(q, idx) {
-                        var card = document.createElement('div');
-                        card.className = 'bg-white border border-gray-200 rounded-xl p-5 shadow-sm';
-                        var title = document.createElement('p');
-                        title.className = 'font-bold text-gray-800 mb-4 text-sm';
-                        title.textContent = (idx + 1) + '. ' + (q.question_text || '');
-                        card.appendChild(title);
-                        if (q.question_type === 'rating') {
-                            var dist = q.distribution || {};
-                            var labels = [1,2,3,4,5].map(function(k) { return k + '(' + (scaleLabels[k] || '') + ')'; });
-                            var values = [1,2,3,4,5].map(function(k) { return dist[k] || 0; });
-                            var canvas = document.createElement('canvas');
-                            canvas.height = 220;
-                            card.appendChild(canvas);
-                            container.appendChild(card);
-                            var ch = new Chart(canvas.getContext('2d'), {
-                                type: 'bar',
-                                data: {
-                                    labels: labels,
-                                    datasets: [{ label: '응답 수', data: values, backgroundColor: ['#fef3c7','#fde68a','#fcd34d','#f59e0b','#d97706'], borderColor: '#b45309', borderWidth: 1 }]
-                                },
-                                options: {
-                                    indexAxis: 'y',
-                                    responsive: true,
-                                    maintainAspectRatio: false,
-                                    plugins: { legend: { display: false } },
-                                    scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } }
-                                }
-                            });
-                            resultCharts.push(ch);
-                            var avg = q.average != null ? q.average.toFixed(1) : '-';
-                            var avgP = document.createElement('p');
-                            avgP.className = 'text-xs text-amber-700 font-bold mt-2';
-                            avgP.textContent = '평균: ' + avg + '점  |  응답 ' + (q.total_responses || 0) + '명';
-                            card.appendChild(avgP);
-                        } else if (q.question_type === 'choice') {
-                            var dist = q.distribution || {};
-                            var keys = Object.keys(dist);
-                            var choiceLabels = keys;
-                            var choiceValues = keys.map(function(k) { return dist[k]; });
-                            var canvas = document.createElement('canvas');
-                            canvas.height = Math.max(180, keys.length * 36);
-                            card.appendChild(canvas);
-                            container.appendChild(card);
-                            var ch = new Chart(canvas.getContext('2d'), {
-                                type: 'bar',
-                                data: {
-                                    labels: choiceLabels,
-                                    datasets: [{ label: '응답 수', data: choiceValues, backgroundColor: 'rgba(59, 130, 246, 0.6)', borderColor: 'rgb(37, 99, 235)', borderWidth: 1 }]
-                                },
-                                options: {
-                                    indexAxis: 'y',
-                                    responsive: true,
-                                    maintainAspectRatio: false,
-                                    plugins: { legend: { display: false } },
-                                    scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } }
-                                }
-                            });
-                            resultCharts.push(ch);
-                        } else if (q.question_type === 'text') {
-                            var texts = q.text_answers || [];
-                            if (texts.length > 0) {
-                                texts.forEach(function(t) { commentsHtml.push('<div class="p-2 border-b border-gray-100">' + String(t).replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>'); });
-                            }
-                            var txtWrap = document.createElement('div');
-                            txtWrap.className = 'text-sm text-gray-600 bg-gray-50 rounded-lg p-3 max-h-32 overflow-y-auto';
-                            txtWrap.innerHTML = texts.length ? texts.map(function(t) { return '<div class="py-1">' + String(t).replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>'; }).join('') : '<span class="text-gray-400">응답 없음</span>';
-                            card.appendChild(txtWrap);
-                            container.appendChild(card);
-                        }
-                    });
-                    document.getElementById('resultCommentsList').innerHTML = commentsHtml.length ? commentsHtml.join('') : '<p class="text-gray-400">서술형 응답이 없습니다.</p>';
-                })
-                .catch(function() {
-                    document.getElementById('resultModalTitle').textContent = '설문 결과 분석';
-                    document.getElementById('resultQuestionCharts').innerHTML = '<div class="py-8 text-center text-red-500">요청 중 오류가 발생했습니다.</div>';
-                });
-        };
-
 
     </script>
             </div>

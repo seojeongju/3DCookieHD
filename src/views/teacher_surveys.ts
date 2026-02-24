@@ -235,43 +235,6 @@ export const teacherSurveysHtml = `
         </div>
     </div>
 
-    <!-- Result Analytics Modal -->
-    <div id="resultModal" class="fixed inset-0 modal-blur hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col animate-fade-in">
-            <div class="px-10 py-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                <div class="flex flex-col">
-                    <h3 class="text-xl font-black text-slate-900 tracking-tight">피드백 결과 분석</h3>
-                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">데이터 종합 및 의견 확인</span>
-                </div>
-                <button onclick="closeModal('resultModal')" class="w-12 h-12 flex items-center justify-center rounded-2xl hover:bg-red-500 hover:text-white text-slate-400 transition-all">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="overflow-y-auto p-10 space-y-12 custom-scrollbar">
-                <div class="grid grid-cols-3 gap-4 mb-8">
-                    <div class="bg-amber-50 rounded-2xl p-4 text-center">
-                        <div class="text-xl font-black text-amber-700" id="resultTotalResponses">0</div>
-                        <div class="text-[10px] font-black text-amber-600 uppercase tracking-widest">참여 응답</div>
-                    </div>
-                    <div class="bg-slate-50 rounded-2xl p-4 text-center">
-                        <div class="text-xl font-black text-slate-700" id="resultTotalTarget">0</div>
-                        <div class="text-[10px] font-black text-slate-600 uppercase tracking-widest">대상 인원</div>
-                    </div>
-                    <div class="bg-blue-50 rounded-2xl p-4 text-center">
-                        <div class="text-xl font-black text-blue-700" id="resultResponseRate">0%</div>
-                        <div class="text-[10px] font-black text-blue-600 uppercase tracking-widest">참여율</div>
-                    </div>
-                </div>
-                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">항목별 결과 (그래프)</h4>
-                <div id="resultQuestionCharts" class="space-y-8"></div>
-                <div class="pt-12 border-t border-slate-100">
-                    <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">주관식 의견 (수강생 피드백)</h4>
-                    <div id="commentsList" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Logic Block Template -->
     <template id="questionTemplate">
         <div class="logic-block p-6 rounded-2xl border border-slate-200 relative group question-item">
@@ -300,7 +263,6 @@ export const teacherSurveysHtml = `
     </template>
 
     <script>
-        let resultCharts = [];
         let selectedCourseId = null;
         let allSurveys = [];
         let currentSurveyId = null;
@@ -427,7 +389,7 @@ export const teacherSurveysHtml = `
                             '<td class="px-6 py-6 text-center">' + statusLabel + '</td>' +
                             '<td class="px-10 py-6 text-right">' +
                                 '<div class="flex items-center justify-end gap-1 opacity-40 group-hover:opacity-100 transition-opacity">' +
-                                    '<button onclick="viewResults(' + s.id + ', \\\'' + s.type + '\\\')" title="결과 분석" class="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-900 text-white hover:bg-blue-600 transition-all shadow-lg shadow-slate-200"><i class="fas fa-chart-pie text-[10px]"></i></button>' +
+                                    '<a href="/teacher/courses/' + selectedCourseId + '/lms/surveys/' + s.id + '/results" title="결과 분석" class="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-900 text-white hover:bg-blue-600 transition-all shadow-lg shadow-slate-200"><i class="fas fa-chart-pie text-[10px]"></i></a>' +
                                     '<button onclick="editSurvey(' + s.id + ')" title="설정 수정" class="w-9 h-9 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all shadow-sm"><i class="fas fa-terminal text-[10px]"></i></button>' +
                                     (s.status === 'active' ? '<button onclick="closeSurvey(' + s.id + ')" title="설문 종료" class="w-9 h-9 flex items-center justify-center rounded-xl bg-orange-50 text-orange-500 hover:bg-orange-500 hover:text-white transition-all shadow-sm"><i class="fas fa-power-off text-[10px]"></i></button>' : '') +
                                     '<button onclick="deleteSurvey(' + s.id + ')" title="삭제" class="w-9 h-9 flex items-center justify-center rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm"><i class="fas fa-trash-alt text-[10px]"></i></button>' +
@@ -463,13 +425,7 @@ export const teacherSurveysHtml = `
             document.getElementById('createModal').classList.remove('hidden');
         };
 
-        window.closeModal = (id) => {
-            document.getElementById(id).classList.add('hidden');
-            if (id === 'resultModal') {
-                resultCharts.forEach(ch => { if (ch && ch.destroy) ch.destroy(); });
-                resultCharts = [];
-            }
-        };
+        window.closeModal = (id) => document.getElementById(id).classList.add('hidden');
 
         window.addQuestion = () => {
             const tpl = document.getElementById('questionTemplate').content.cloneNode(true);
@@ -575,98 +531,6 @@ export const teacherSurveysHtml = `
                 if((await res.json()).success) loadSurveys();
             } catch (e) { console.error(e); }
         }
-
-        window.viewResults = async (id, type) => {
-            try {
-                const token = localStorage.getItem('token');
-                const response = await fetch('/api/surveys/' + id + '/results', { headers: { 'Authorization': 'Bearer ' + token } });
-                const result = await response.json();
-                if (!result.success) return;
-                const data = result.data;
-                const survey = data.survey || {};
-                const stats = data.stats || {};
-                const question_stats = data.question_stats || [];
-                document.getElementById('resultModal').classList.remove('hidden');
-                resultCharts.forEach(ch => { if (ch && ch.destroy) ch.destroy(); });
-                resultCharts = [];
-                document.getElementById('resultTotalResponses').textContent = stats.total_responses || 0;
-                document.getElementById('resultTotalTarget').textContent = stats.total_target || 0;
-                document.getElementById('resultResponseRate').textContent = (stats.response_rate || 0) + '%';
-                const scaleLabels = { 1: '매우 아니다', 2: '아니다', 3: '보통', 4: '그렇다', 5: '매우 그렇다' };
-                const commentsHtml = [];
-                const container = document.getElementById('resultQuestionCharts');
-                container.innerHTML = '';
-                question_stats.forEach((q, idx) => {
-                    const card = document.createElement('div');
-                    card.className = 'bg-white rounded-2xl border border-slate-200 p-6 shadow-sm';
-                    const title = document.createElement('p');
-                    title.className = 'text-sm font-black text-slate-900 mb-4';
-                    title.textContent = (idx + 1) + '. ' + (q.question_text || '');
-                    card.appendChild(title);
-                    if (q.question_type === 'rating') {
-                        const dist = q.distribution || {};
-                        const labels = [1,2,3,4,5].map(k => k + '(' + (scaleLabels[k] || '') + ')');
-                        const values = [1,2,3,4,5].map(k => dist[k] || 0);
-                        const canvas = document.createElement('canvas');
-                        canvas.height = 220;
-                        card.appendChild(canvas);
-                        container.appendChild(card);
-                        const ch = new Chart(canvas.getContext('2d'), {
-                            type: 'bar',
-                            data: {
-                                labels,
-                                datasets: [{ label: '응답 수', data: values, backgroundColor: ['#fef3c7','#fde68a','#fcd34d','#f59e0b','#d97706'], borderColor: '#b45309', borderWidth: 1 }]
-                            },
-                            options: {
-                                indexAxis: 'y',
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                plugins: { legend: { display: false } },
-                                scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } }
-                            }
-                        });
-                        resultCharts.push(ch);
-                        const avg = q.average != null ? q.average.toFixed(1) : '-';
-                        const avgP = document.createElement('p');
-                        avgP.className = 'text-xs font-black text-amber-700 mt-2';
-                        avgP.textContent = '평균: ' + avg + '점  |  응답 ' + (q.total_responses || 0) + '명';
-                        card.appendChild(avgP);
-                    } else if (q.question_type === 'choice') {
-                        const dist = q.distribution || {};
-                        const keys = Object.keys(dist);
-                        const choiceValues = keys.map(k => dist[k]);
-                        const canvas = document.createElement('canvas');
-                        canvas.height = Math.max(180, keys.length * 36);
-                        card.appendChild(canvas);
-                        container.appendChild(card);
-                        const ch = new Chart(canvas.getContext('2d'), {
-                            type: 'bar',
-                            data: {
-                                labels: keys,
-                                datasets: [{ label: '응답 수', data: choiceValues, backgroundColor: 'rgba(59, 130, 246, 0.6)', borderColor: 'rgb(37, 99, 235)', borderWidth: 1 }]
-                            },
-                            options: {
-                                indexAxis: 'y',
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                plugins: { legend: { display: false } },
-                                scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } }
-                            }
-                        });
-                        resultCharts.push(ch);
-                    } else if (q.question_type === 'text') {
-                        const texts = q.text_answers || [];
-                        texts.forEach(t => commentsHtml.push('<div class="p-3 rounded-xl border border-slate-100 bg-slate-50/50 text-sm text-slate-700">' + String(t).replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>'));
-                        const txtWrap = document.createElement('div');
-                        txtWrap.className = 'text-sm text-slate-600 bg-slate-50 rounded-xl p-4 max-h-32 overflow-y-auto space-y-2';
-                        txtWrap.innerHTML = texts.length ? texts.map(t => '<div class="py-1">' + String(t).replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>').join('') : '<span class="text-slate-400">응답 없음</span>';
-                        card.appendChild(txtWrap);
-                        container.appendChild(card);
-                    }
-                });
-                document.getElementById('commentsList').innerHTML = commentsHtml.length ? commentsHtml.join('') : '<div class="col-span-full py-10 text-center text-[10px] font-black text-slate-300 uppercase tracking-widest">수집된 서술형 응답이 없습니다.</div>';
-            } catch (e) { console.error(e); }
-        };
 
         document.getElementById('typeFilter').addEventListener('change', loadSurveys);
 
