@@ -103,7 +103,7 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
 
                 <div class="flex items-center gap-4 px-2">
                      <label class="font-bold text-gray-700 text-sm"><i class="fas fa-clock text-indigo-500 mr-1"></i> 해당일 일지 훈련시간(h)</label>
-                     <input type="number" id="logHours" class="border border-gray-300 rounded-lg px-3 py-1.5 w-24 text-center outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 font-bold transition-all text-gray-700 bg-gray-50 focus:bg-white" value="8" min="1" max="24">
+                     <input type="number" id="logHours" class="border border-gray-300 rounded-lg px-3 py-1.5 w-24 text-center outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 font-bold transition-all text-gray-700 bg-gray-50 focus:bg-white" min="0.5" max="24" step="0.5" placeholder="배정시간">
                 </div>
 
             
@@ -137,7 +137,9 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
                             <td class="border border-gray-800 p-2 text-center font-medium" id="institution-name-display">쓰리디쿠키 홍대센터</td>
                             <td class="border border-gray-800 bg-gray-100 font-bold p-2 text-center w-24">훈련일</td>
                             <td class="border border-gray-800 p-1 text-center bg-white">
-                                <input type="date" id="logDate" required class="w-full text-center font-bold bg-transparent outline-none cursor-pointer text-gray-800 hover:text-indigo-600">
+                                <select id="logDateSelect" class="w-full text-center font-bold bg-transparent outline-none cursor-pointer text-gray-800 hover:text-indigo-600 border-0 py-1" style="display:none;"></select>
+                                <input type="date" id="logDateFallback" required class="w-full text-center font-bold bg-transparent outline-none cursor-pointer text-gray-800 hover:text-indigo-600" style="display:none;">
+                                <input type="hidden" id="logDate" required>
                             </td>
                         </tr>
                         <tr>
@@ -249,8 +251,21 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
         var globalDailyHours = 8;
         var assignedHoursFromApi = null;
         var currentPage = 1;
+        var sessionClosedForTrainingLog = false;
 
-        // Modal control functions moved to bottom for consistency and to avoid duplicates
+        function onTrainingDateChange() {
+            var elDate = document.getElementById('logDate');
+            var elSelect = document.getElementById('logDateSelect');
+            var elFallback = document.getElementById('logDateFallback');
+            if (elSelect && elSelect.style.display !== 'none' && elSelect.value) {
+                if (elDate) elDate.value = elSelect.value;
+            }
+            if (elFallback && elFallback.style.display !== 'none' && elFallback.value) {
+                if (elDate) elDate.value = elFallback.value;
+            }
+            loadDailySchedule();
+            loadDailyAttendance();
+        }
 
         document.addEventListener('DOMContentLoaded', async function() {
             try {
@@ -265,17 +280,21 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
                            if (elH) elH.value = globalDailyHours;
                        }
                    }
+                   var datesRes = await fetch('/api/hrd/training-logs/training-dates?courseId=' + courseId, { headers: { 'Authorization': 'Bearer ' + token } });
+                   var datesJson = await datesRes.json();
+                   if (datesJson.success && datesJson.data && datesJson.data.is_closed) {
+                       sessionClosedForTrainingLog = true;
+                       var btn = document.querySelector('button[onclick="openLogModal()"]');
+                       if (btn) { btn.disabled = true; btn.title = '마감된 과정에는 신규 훈련일지를 작성할 수 없습니다. 기존 일지만 수정할 수 있습니다.'; btn.classList.add('opacity-60', 'cursor-not-allowed'); }
+                   }
                 }
             } catch(e) {}
 
-            var logDateInput = document.getElementById('logDate');
-            if (logDateInput) {
-                logDateInput.valueAsDate = new Date();
-                logDateInput.addEventListener('change', function() {
-                    loadDailySchedule();
-                    loadDailyAttendance();
-                });
-            }
+            var logDateSelect = document.getElementById('logDateSelect');
+            var logDateFallback = document.getElementById('logDateFallback');
+            if (logDateSelect) logDateSelect.addEventListener('change', onTrainingDateChange);
+            if (logDateFallback) logDateFallback.addEventListener('change', onTrainingDateChange);
+
             loadLogs();
             loadAssignedUnits();
         });
@@ -431,7 +450,9 @@ function renderLogs(logs) {
         var content = (tContent || '-').replace(/</g, '&lt;').replace(/"/g, '&quot;');
         var instructor = (log.instructor_name || '미상').replace(/</g, '&lt;').replace(/"/g, '&quot;');
         var hasSavedHours = typeof log.training_hours !== 'undefined' && log.training_hours !== null && log.training_hours > 0;
-        var assignedHours = assignedHoursFromApi != null && assignedHoursFromApi > 0 ? (typeof assignedHoursFromApi === 'number' ? assignedHoursFromApi : parseFloat(assignedHoursFromApi)) : null;
+        var fromApi = assignedHoursFromApi != null && assignedHoursFromApi > 0 ? (typeof assignedHoursFromApi === 'number' ? assignedHoursFromApi : parseFloat(assignedHoursFromApi)) : null;
+        var fromCourse = globalDailyHours != null && globalDailyHours > 0 ? (typeof globalDailyHours === 'number' ? globalDailyHours : parseFloat(globalDailyHours)) : null;
+        var assignedHours = fromApi != null ? fromApi : fromCourse;
         var reliableHours = assignedHours != null ? assignedHours : (hasSavedHours ? (typeof log.training_hours === 'number' ? log.training_hours : parseFloat(log.training_hours)) : null);
         var displayHoursText = reliableHours != null ? reliableHours + 'h' : '-';
         html += '<tr class="hover:bg-indigo-50/30 transition-all duration-200 group border-b border-gray-50 last:border-0 shadow-[inset_0_1px_0_0_rgba(255,255,255,1)]">' +
@@ -1028,39 +1049,93 @@ async function printLog(id) {
         // Modal & Form Logic
         // --------------------------------------------------------------------------------------------------------------------------------
 
-        function openLogModal() {
+        async function openLogModal() {
+            if (sessionClosedForTrainingLog) {
+                alert('마감된 과정에는 신규 훈련일지를 작성할 수 없습니다. 기존 일지만 수정할 수 있습니다.');
+                return;
+            }
             const elId = document.getElementById('logId');
             const elContent = document.getElementById('logContent');
             const elHours = document.getElementById('logHours');
             const elDate = document.getElementById('logDate');
+            const elDateSelect = document.getElementById('logDateSelect');
+            const elDateFallback = document.getElementById('logDateFallback');
 
-            // 초기화
             if (elId) elId.value = '';
             if (elContent) elContent.value = '';
-            if (elHours) elHours.value = globalDailyHours;
-            if (elDate && !elDate.value) elDate.valueAsDate = new Date();
-            
-            // New Fields Reset
-            ['logAttPresent', 'logAttAbsent', 'logAttLate', 'logAttEarly', 
+            if (elHours) elHours.value = globalDailyHours || '';
+            if (elDate) elDate.value = '';
+
+            if (courseId) {
+                try {
+                    var res = await fetch('/api/courses/' + courseId + '?type=hrd', { headers: { 'Authorization': 'Bearer ' + token } });
+                    var result = await res.json();
+                    if (result.success && result.data) {
+                        var dh = result.data.daily_hours;
+                        if (dh != null && dh > 0) {
+                            globalDailyHours = Number(dh);
+                            if (elHours) elHours.value = globalDailyHours;
+                        }
+                    }
+                    var datesRes = await fetch('/api/hrd/training-logs/training-dates?courseId=' + courseId, { headers: { 'Authorization': 'Bearer ' + token } });
+                    var datesJson = await datesRes.json();
+                    if (datesJson.success && datesJson.data) {
+                        var dates = datesJson.data.dates || [];
+                        if (dates.length > 0) {
+                            if (elDateSelect) {
+                                elDateSelect.innerHTML = '';
+                                var today = new Date().toISOString().substring(0, 10);
+                                var selected = dates.indexOf(today) >= 0 ? today : dates[0];
+                                dates.forEach(function(d) {
+                                    var opt = document.createElement('option');
+                                    opt.value = d;
+                                    var label = d;
+                                    try {
+                                        var dayNames = ['일','월','화','수','목','금','토'];
+                                        var day = dayNames[new Date(d).getDay()];
+                                        label = d + ' (' + day + ')';
+                                    } catch(e) {}
+                                    opt.textContent = label;
+                                    if (d === selected) opt.selected = true;
+                                    elDateSelect.appendChild(opt);
+                                });
+                                elDateSelect.style.display = '';
+                                if (elDateFallback) elDateFallback.style.display = 'none';
+                                if (elDate) elDate.value = selected;
+                            }
+                        } else {
+                            if (elDateSelect) elDateSelect.style.display = 'none';
+                            if (elDateFallback) {
+                                elDateFallback.style.display = '';
+                                var start = datesJson.data.training_start_date || '';
+                                var end = datesJson.data.training_end_date || '';
+                                if (start) elDateFallback.min = start.substring(0, 10);
+                                if (end) elDateFallback.max = end.substring(0, 10);
+                                elDateFallback.valueAsDate = new Date();
+                                if (elDate) elDate.value = elDateFallback.value;
+                            }
+                        }
+                    }
+                } catch (e) {}
+            }
+
+            ['logAttPresent', 'logAttAbsent', 'logAttLate', 'logAttEarly',
              'logInstructions', 'logListLate', 'logListAbsent', 'logListEarly', 'logListPublic', 'logListUnder50', 'logListLateEarly'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';
             });
-            
-            // 시간표 초기화
+
             if (elDate && elDate.value) {
-                loadDailySchedule(); 
+                loadDailySchedule();
                 loadDailyAttendance();
             } else {
-                renderScheduleTable(null, null); 
+                renderScheduleTable(null, null);
             }
 
-            const elTitle = document.getElementById('modalTitle');
+            var elTitle = document.getElementById('modalTitle');
             if (elTitle) elTitle.textContent = '훈련일지 작성';
-            
             setModalCourseName();
-            
-            const elModal = document.getElementById('logModal');
+            var elModal = document.getElementById('logModal');
             if (elModal) elModal.classList.remove('hidden');
         }
         
@@ -1094,7 +1169,24 @@ async function printLog(id) {
 
             if (elId) elId.value = log.id;
             if (elDate) elDate.value = log.date;
-            if (elContent) elContent.value = log.content || ''; 
+            var elDateSelect = document.getElementById('logDateSelect');
+            var elDateFallback = document.getElementById('logDateFallback');
+            if (elDateSelect && elDateSelect.style.display !== 'none') {
+                if (elDateSelect.querySelector('option[value="' + log.date + '"]')) {
+                    elDateSelect.value = log.date;
+                } else {
+                    var opt = document.createElement('option');
+                    opt.value = log.date;
+                    opt.textContent = log.date;
+                    opt.selected = true;
+                    elDateSelect.appendChild(opt);
+                }
+            } else if (elDateFallback) {
+                elDateFallback.style.display = '';
+                elDateFallback.value = log.date;
+                if (elDateSelect) elDateSelect.style.display = 'none';
+            }
+            if (elContent) elContent.value = log.content || '';
             if (elHours) elHours.value = log.training_hours;
             
             // Populate New Attendance Fields

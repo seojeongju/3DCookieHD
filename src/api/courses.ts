@@ -285,6 +285,8 @@ courses.get('/:id', async (c) => {
             a.name as approved_course_name,
             a.instructor_name as approved_instructor_name,
             a.daily_hours,
+            a.total_hours,
+            a.total_days,
             cat.name as category_name
           FROM course_sessions s
           LEFT JOIN approved_courses a ON s.approved_course_id = a.id
@@ -300,6 +302,8 @@ courses.get('/:id', async (c) => {
               a.name as approved_course_name,
               a.instructor_name as approved_instructor_name,
               a.daily_hours,
+              a.total_hours,
+              a.total_days,
               cat.name as category_name
             FROM course_sessions s
             LEFT JOIN approved_courses a ON s.approved_course_id = a.id
@@ -311,6 +315,12 @@ courses.get('/:id', async (c) => {
         }
 
         if (!session) return notFoundResponse(c, '개설된 회차 정보를 찾을 수 없습니다');
+
+        const dailyHoursResolved = session.daily_hours != null && Number(session.daily_hours) > 0
+          ? Number(session.daily_hours)
+          : (session.total_hours != null && session.total_days != null && Number(session.total_days) > 0 && Number(session.total_hours) > 0
+            ? Math.round((Number(session.total_hours) / Number(session.total_days)) * 10) / 10
+            : null);
 
         // 3. 프론트엔드 호환 필드 구성
         const realSessionId = session.id;
@@ -324,7 +334,7 @@ courses.get('/:id', async (c) => {
           'SELECT COUNT(*) as count FROM course_session_enrollments WHERE session_id = ? AND status IN ("approved", "enrolled")'
         ).bind(realSessionId).first<{ count: number }>();
 
-        // 5. 최종 데이터 반환
+        // 5. 최종 데이터 반환 (daily_hours: 배정 훈련시간, 없으면 total_hours/total_days로 계산)
         return successResponse(c, {
           ...session,
           id: realSessionId, // 매우 중요: 이후 모든 LMS API는 이 ID를 사용함
@@ -340,7 +350,8 @@ courses.get('/:id', async (c) => {
           price: 0,
           current_students: studentCountResult?.count || 0,
           max_students: 0,
-          status: session.status || 'active'
+          status: session.status || 'active',
+          daily_hours: dailyHoursResolved
         });
       } catch (err: any) {
         console.error('HRD Course Detail Critical Error:', err);

@@ -2701,7 +2701,7 @@ app.get('/training-logs', async (c) => {
 
         // 1. 회차(session) 우선: URL이 회차 ID이면 해당 회차 전용 LMS 과정으로 해석 (복사로 만든 신규 회차가 다른 회차 일지를 보는 문제 방지)
         const sessionRow: any = await c.env.DB.prepare(`
-            SELECT s.id, s.session_number, s.session_name, s.lms_course_id, a.name as course_name, a.daily_hours
+            SELECT s.id, s.session_number, s.session_name, s.lms_course_id, a.name as course_name, a.daily_hours, a.total_hours, a.total_days
             FROM course_sessions s
             JOIN approved_courses a ON s.approved_course_id = a.id
             WHERE s.id = ?
@@ -2710,8 +2710,13 @@ app.get('/training-logs', async (c) => {
         if (sessionRow) {
             const session = sessionRow;
             if (session.daily_hours != null && session.daily_hours > 0) {
-                    assignedDailyHours = Number(session.daily_hours);
-                }
+                assignedDailyHours = Number(session.daily_hours);
+            }
+            if (assignedDailyHours == null && session.total_hours != null && session.total_days != null && Number(session.total_days) > 0) {
+                const th = Number(session.total_hours);
+                const td = Number(session.total_days);
+                if (th > 0) assignedDailyHours = Math.round((th / td) * 10) / 10;
+            }
                 const expectedTitle = `${session.course_name || '과정'} (${session.session_number}회차${session.session_name ? ' - ' + session.session_name : ''})`.trim();
                 // 이미 연결된 LMS 과정이 있으면, 제목 일치 + 다른 회차에 연결돼 있지 않을 때만 사용
                 if (session.lms_course_id != null && session.lms_course_id > 0) {
@@ -2906,6 +2911,67 @@ app.post('/training-logs/ensure-dedicated-course', authMiddleware, async (c) => 
     }
 });
 
+// 지정된 훈련일 목록 조회 (모달에서 훈련일을 리스트로만 선택하기 위함)
+app.get('/training-logs/training-dates', authMiddleware, async (c) => {
+    try {
+        const courseIdParam = c.req.query('courseId');
+        if (!courseIdParam) return errorResponse(c, 'courseId가 필요합니다.', 400);
+        const rawId = Number(courseIdParam);
+        if (isNaN(rawId)) return errorResponse(c, '유효한 courseId를 입력해 주세요.', 400);
+
+        const session: any = await c.env.DB.prepare(`
+            SELECT s.id, s.status, s.training_start_date, s.training_end_date
+            FROM course_sessions s
+            WHERE s.id = ?
+        `).bind(rawId).first();
+        if (!session) return errorResponse(c, '회차를 찾을 수 없습니다.', 404);
+
+        const today = new Date().toISOString().substring(0, 10);
+        const isClosed = ['completed', 'closed'].includes(String(session.status)) ||
+            (session.training_end_date && String(session.training_end_date).substring(0, 10) < today);
+
+        const timetableRows: any = await c.env.DB.prepare(`
+            SELECT DISTINCT training_date FROM session_timetable
+            WHERE session_id = ? AND (is_excluded IS NULL OR is_excluded = 0)
+            ORDER BY training_date ASC
+        `).bind(rawId).all();
+        const datesFromTimetable = (timetableRows.results || []).map((r: any) => String(r.training_date || '').substring(0, 10)).filter(Boolean);
+
+        let dates: string[];
+        if (datesFromTimetable.length > 0) {
+            dates = datesFromTimetable;
+        } else {
+            const start = (session.training_start_date || '').toString().substring(0, 10);
+            const end = (session.training_end_date || '').toString().substring(0, 10);
+            if (!start || !end) {
+                dates = [];
+            } else {
+                dates = [];
+                const d = new Date(start);
+                const endD = new Date(end);
+                while (d <= endD) {
+                    dates.push(d.toISOString().substring(0, 10));
+                    d.setDate(d.getDate() + 1);
+                }
+            }
+        }
+
+        return c.json({
+            success: true,
+            data: {
+                dates,
+                training_start_date: session.training_start_date,
+                training_end_date: session.training_end_date,
+                status: session.status,
+                is_closed: isClosed
+            }
+        });
+    } catch (e: any) {
+        console.error('[training-dates]', e);
+        return errorResponse(c, e?.message || '훈련일 목록 조회 실패', 500);
+    }
+});
+
 // 훈련 일지 상세 조회
 app.get('/training-logs/:id', async (c) => {
     try {
@@ -2971,6 +3037,22 @@ app.post('/training-logs', async (c) => {
             const rawId = course_id == null ? null : Number(course_id);
             if (rawId == null || isNaN(rawId)) {
                 return errorResponse(c, '과정(회차)을 선택해 주세요.', 400);
+            }
+
+            const today = new Date().toISOString().substring(0, 10);
+            const sessionForClosed: any = await c.env.DB.prepare(`
+                SELECT id, status, training_end_date FROM course_sessions WHERE id = ?
+            `).bind(rawId).first();
+            const sessionByCourse: any = await c.env.DB.prepare(`
+                SELECT id, status, training_end_date FROM course_sessions WHERE lms_course_id = ? LIMIT 1
+            `).bind(rawId).first();
+            const sess = sessionForClosed || sessionByCourse;
+            if (sess) {
+                const endStr = (sess.training_end_date || '').toString().substring(0, 10);
+                const isClosed = ['completed', 'closed'].includes(String(sess.status)) || (endStr && endStr < today);
+                if (isClosed) {
+                    return errorResponse(c, '마감된 과정에는 신규 훈련일지를 등록할 수 없습니다. 기존 일지만 수정할 수 있습니다.', 403);
+                }
             }
 
             let resolvedCourseId: number | null = null;
