@@ -488,10 +488,12 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
                                     <label class="text-[10px] font-bold text-gray-400 ml-1 mb-2 block uppercase">지원 유형</label>
                                     <select id="stdPackageType" class="w-full px-5 py-3 bg-gray-50 border-none rounded-2xl text-sm outline-none appearance-none cursor-pointer">
                                         <option value="">유형 선택</option>
-                                        <option value="type1">국기 (I유형)</option>
-                                        <option value="type2">일반 (II유형)</option>
-                                        <option value="k-digital">K-Digital Training</option>
-                                        <option value="general">일반 실업자/재직자</option>
+                                        <option value="jobholder">일반훈련생(재직자)</option>
+                                        <option value="unemployed">일반훈련생(일반실업자)</option>
+                                        <option value="package2">취업성공패키지2유형</option>
+                                        <option value="package1">취업성공패키지1유형(2유형중 저소득층)</option>
+                                        <option value="eitc">근로장려금수급자</option>
+                                        <option value="general">일반</option>
                                     </select>
                                 </div>
                                 <div>
@@ -931,7 +933,8 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
             document.getElementById('stdAddress').value = student.address || '';
             document.getElementById('stdEducation').value = student.education || '';
             document.getElementById('stdCertifications').value = student.certifications || '';
-            document.getElementById('stdPackageType').value = student.package_type || '';
+            const pt = (student.package_type || '').toLowerCase();
+            document.getElementById('stdPackageType').value = ['', 'jobholder', 'unemployed', 'package2', 'package1', 'eitc', 'general'].includes(pt) ? pt : '';
             const pm = (student.payment_method || '').toLowerCase();
             document.getElementById('stdPaymentMethod').value = ['', 'card', 'transfer', 'cash'].includes(pm) ? pm : '';
             const noteEl = document.getElementById('stdPaymentMethodNote');

@@ -290,7 +290,8 @@
                 document.getElementById('stdAddress').value = student.address || '';
                 document.getElementById('stdEducation').value = student.education || '';
                 document.getElementById('stdCertifications').value = student.certifications || '';
-                document.getElementById('stdPackageType').value = student.package_type || '';
+                var pt = (student.package_type || '').toLowerCase();
+                document.getElementById('stdPackageType').value = ['', 'jobholder', 'unemployed', 'package2', 'package1', 'eitc', 'general'].includes(pt) ? pt : '';
                 var pm = (student.payment_method || '').toLowerCase();
                 document.getElementById('stdPaymentMethod').value = ['', 'card', 'transfer', 'cash'].includes(pm) ? pm : '';
                 var noteEl = document.getElementById('stdPaymentMethodNote');
