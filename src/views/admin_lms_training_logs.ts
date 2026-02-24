@@ -103,6 +103,14 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
                      <input type="number" id="logHours" class="border border-gray-300 rounded-lg px-3 py-1.5 w-24 text-center outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 font-bold transition-all text-gray-700 bg-gray-50 focus:bg-white" min="0.5" max="24" step="0.1" placeholder="배정시간 (자동 로드, 소수 입력 가능)">
                 </div>
 
+                <div class="flex items-center gap-4 px-2">
+                     <label class="font-bold text-gray-700 text-sm"><i class="fas fa-user-edit text-indigo-500 mr-1"></i> 작성자</label>
+                     <select id="logAuthorId" class="border border-gray-300 rounded-lg px-3 py-1.5 min-w-[180px] outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 font-medium text-gray-700 bg-white">
+                        <option value="">선택</option>
+                     </select>
+                     <span id="logAuthorLabel" class="hidden text-sm font-bold text-gray-600"></span>
+                </div>
+
             
                 <!-- Paper Form Container (Visual Match to Print) -->
                 <div class="border-2 border-gray-800 p-8 shadow-sm relative">
@@ -388,6 +396,17 @@ async function loadLogs(page = 1) {
                 globalDailyHours = assignedHoursFromApi;
             } else {
                 assignedHoursFromApi = null;
+                if (courseId) {
+                    try {
+                        var courseRes = await fetch('/api/courses/' + courseId + '?type=hrd', { headers: { 'Authorization': 'Bearer ' + token } });
+                        var courseJson = await courseRes.json();
+                        if (courseJson.success && courseJson.data && courseJson.data.daily_hours != null && Number(courseJson.data.daily_hours) > 0) {
+                            var dh = Number(courseJson.data.daily_hours);
+                            assignedHoursFromApi = dh;
+                            globalDailyHours = dh;
+                        }
+                    } catch (e) { }
+                }
             }
             const logs = result.pagination ? result.data : result.data;
             renderLogs(logs);
@@ -1070,11 +1089,41 @@ async function printLog(id) {
             const elDate = document.getElementById('logDate');
             const elDateSelect = document.getElementById('logDateSelect');
             const elDateFallback = document.getElementById('logDateFallback');
+            const elAuthor = document.getElementById('logAuthorId');
+            const elAuthorLabel = document.getElementById('logAuthorLabel');
 
             if (elId) elId.value = '';
             if (elContent) elContent.value = '';
             if (elHours) elHours.value = (globalDailyHours != null && globalDailyHours > 0) ? String(Number(globalDailyHours)) : '';
             if (elDate) elDate.value = '';
+
+            if (elAuthor) {
+                elAuthor.innerHTML = '<option value="">선택</option>';
+                var isAdmin = (user && user.role === 'admin');
+                if (isAdmin && instructorList.length > 0) {
+                    for (var a = 0; a < instructorList.length; a++) {
+                        var o = document.createElement('option');
+                        o.value = instructorList[a].id;
+                        o.textContent = instructorList[a].name || ('ID ' + instructorList[a].id);
+                        elAuthor.appendChild(o);
+                    }
+                    elAuthor.disabled = false;
+                    elAuthor.style.display = '';
+                    if (elAuthorLabel) { elAuthorLabel.classList.add('hidden'); elAuthorLabel.textContent = ''; }
+                } else if (user && (user.role === 'teacher' || user.role === 'instructor') && user.id) {
+                    var o = document.createElement('option');
+                    o.value = user.id;
+                    o.textContent = (user.name || '').trim() || ('ID ' + user.id);
+                    o.selected = true;
+                    elAuthor.appendChild(o);
+                    elAuthor.disabled = true;
+                    elAuthor.style.display = '';
+                    if (elAuthorLabel) { elAuthorLabel.classList.add('hidden'); elAuthorLabel.textContent = ''; }
+                } else {
+                    if (elAuthorLabel) { elAuthorLabel.textContent = (user && user.name) ? user.name : '-'; elAuthorLabel.classList.remove('hidden'); elAuthor.style.display = 'none'; }
+                    else { elAuthor.style.display = ''; }
+                }
+            }
 
             if (courseId) {
                 try {
@@ -1198,7 +1247,41 @@ async function printLog(id) {
             }
             if (elContent) elContent.value = log.content || '';
             if (elHours) elHours.value = (log.training_hours != null && log.training_hours !== '') ? String(Number(log.training_hours)) : '';
-            
+
+            var elAuthor = document.getElementById('logAuthorId');
+            var elAuthorLabel = document.getElementById('logAuthorLabel');
+            if (elAuthor) {
+                var isAdmin = (user && user.role === 'admin');
+                var authorVal = (log.instructor_id != null && log.instructor_id !== '') ? String(log.instructor_id) : '';
+                if (isAdmin && instructorList.length > 0) {
+                    elAuthor.innerHTML = '<option value="">선택</option>';
+                    for (var a = 0; a < instructorList.length; a++) {
+                        var o = document.createElement('option');
+                        o.value = instructorList[a].id;
+                        o.textContent = instructorList[a].name || ('ID ' + instructorList[a].id);
+                        if (String(instructorList[a].id) === authorVal) o.selected = true;
+                        elAuthor.appendChild(o);
+                    }
+                    elAuthor.disabled = false;
+                    elAuthor.style.display = '';
+                    if (elAuthorLabel) { elAuthorLabel.classList.add('hidden'); }
+                } else if (user && (user.role === 'teacher' || user.role === 'instructor') && user.id) {
+                    elAuthor.innerHTML = '';
+                    var o = document.createElement('option');
+                    o.value = user.id;
+                    o.textContent = (user.name || '').trim() || ('ID ' + user.id);
+                    o.selected = true;
+                    elAuthor.appendChild(o);
+                    elAuthor.disabled = true;
+                    elAuthor.style.display = '';
+                    if (elAuthorLabel) { elAuthorLabel.classList.add('hidden'); }
+                } else if (elAuthorLabel) {
+                    elAuthorLabel.textContent = (log.instructor_name || (user && user.name)) || '-';
+                    elAuthorLabel.classList.remove('hidden');
+                    elAuthor.style.display = 'none';
+                }
+            }
+
             // Populate New Attendance Fields
             const fieldMap = {
                 present: 'logAttPresent', absent: 'logAttAbsent', late: 'logAttLate', early: 'logAttEarly',
@@ -1345,10 +1428,17 @@ async function printLog(id) {
                 if (p1 && p1.subject) p1Subject = p1.subject;
             }
 
+            var elAuthor = document.getElementById('logAuthorId');
+            var authorId = null;
+            if (user && (user.role === 'admin') && elAuthor && elAuthor.value) {
+                authorId = elAuthor.value === '' ? null : (parseInt(elAuthor.value, 10) || null);
+            }
+            if (authorId == null && user && user.id) authorId = user.id;
+
             var data = {
                 id: idVal ? parseInt(idVal) : null,
                 course_id: parseInt(courseId),
-                instructor_id: user.id || null,
+                instructor_id: authorId,
                 date: dateVal,
                 topic: p1Subject,
                 content: contentVal,
