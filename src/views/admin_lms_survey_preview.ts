@@ -109,7 +109,7 @@ export const adminLmsSurveyPreviewHtml = (sidebar: string = hrdSidebar('courses'
                             html += '</tr></thead><tbody>';
                             items.forEach(function(q) {
                                 html += '<tr class="border-t border-gray-100"><td class="py-3 pl-4 pr-2 text-gray-800">' + (q.question_text || '') + '</td>';
-                                for (var k = 5; k >= 1; k--) html += '<td class="py-3 text-center"><input type="radio" name="q' + q.id + '" class="rounded-full" disabled></td>';
+                                for (var k = 5; k >= 1; k--) html += '<td class="py-3 text-center"><input type="radio" name="q' + q.id + '" value="' + k + '" class="rounded-full cursor-pointer"></td>';
                                 html += '</tr>';
                             });
                             html += '</tbody></table>';
