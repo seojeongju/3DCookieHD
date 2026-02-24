@@ -448,7 +448,7 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
                         return '<div class="py-1">' + (r.period_number ? r.period_number + '교시 ' : '') + '과목: ' + sub + ' / 담당강사: ' + inst + '</div>';
                     }).join('');
                 })
-                .catch(function() { listEl.textContent = '시간표를 불러오지 못했습니다.'); });
+                .catch(function() { listEl.textContent = '시간표를 불러오지 못했습니다.'; });
         }
 
         function savePostLectureSurvey() {
