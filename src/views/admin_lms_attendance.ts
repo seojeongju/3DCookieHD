@@ -199,7 +199,7 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
                     const inputDisabled = window.sessionClosed || window.notTrainingDay;
                     if (btnSave) { btnSave.disabled = inputDisabled; btnSave.classList.toggle('opacity-50', inputDisabled); btnSave.classList.toggle('cursor-not-allowed', inputDisabled); }
                     students = result.data.students.map(s => {
-                        if (s.status === null) {
+                        if (s.status === null && !window.sessionClosed) {
                             s.status = 'present';
                             s.check_in = defStart;
                             s.check_out = defEnd;
@@ -224,8 +224,9 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
             const roAttr = readOnly ? ' readonly' : '';
             tbody.innerHTML = students.map((student, index) => {
                 let attendanceHtml = '<span class="text-gray-400 text-xs">-</span>';
-                
-                if (student.advanced_attendance) {
+                if (readOnly && student.has_log === false) {
+                    attendanceHtml = '<span class="text-gray-500 text-xs font-medium">해당일 미기록</span>';
+                } else if (student.advanced_attendance) {
                     const adv = student.advanced_attendance;
                     const cRate = parseFloat(adv.currentRate);
                     let color = 'text-green-600';
@@ -288,6 +289,7 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-center">
                         <select onchange="updateStudentData(\${index}, 'status', this.value)" class="border rounded-xl px-3 py-1.5 text-sm font-bold focus:ring-2 focus:ring-purple-500 outline-none transition-all \${getStatusColor(student.status)}\${readOnly ? ' bg-gray-50 cursor-not-allowed' : ' bg-white'}"\${disAttr}>
+                            <option value="" \${(student.status == null || student.status === '') ? 'selected' : ''}>미입력</option>
                             <option value="present" \${student.status === 'present' ? 'selected' : ''}>출석</option>
                             <option value="late" \${student.status === 'late' ? 'selected' : ''}>지각</option>
                             <option value="early_leave" \${student.status === 'early_leave' ? 'selected' : ''}>조퇴</option>
@@ -306,6 +308,7 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
         }
 
         function getStatusColor(status) {
+            if (status == null || status === '') return 'text-gray-500 font-medium';
             switch(status) {
                 case 'present': return 'text-green-600 font-bold';
                 case 'late': return 'text-yellow-600 font-bold';
@@ -332,7 +335,7 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
             };
             
             students.forEach(s => {
-                if (counts[s.status] !== undefined) counts[s.status]++;
+                if (s.status != null && s.status !== '' && counts[s.status] !== undefined) counts[s.status]++;
             });
 
             document.getElementById('countPresent').textContent = counts.present;
