@@ -3039,22 +3039,6 @@ app.post('/training-logs', async (c) => {
                 return errorResponse(c, '과정(회차)을 선택해 주세요.', 400);
             }
 
-            const today = new Date().toISOString().substring(0, 10);
-            const sessionForClosed: any = await c.env.DB.prepare(`
-                SELECT id, status, training_end_date FROM course_sessions WHERE id = ?
-            `).bind(rawId).first();
-            const sessionByCourse: any = await c.env.DB.prepare(`
-                SELECT id, status, training_end_date FROM course_sessions WHERE lms_course_id = ? LIMIT 1
-            `).bind(rawId).first();
-            const sess = sessionForClosed || sessionByCourse;
-            if (sess) {
-                const endStr = (sess.training_end_date || '').toString().substring(0, 10);
-                const isClosed = ['completed', 'closed'].includes(String(sess.status)) || (endStr && endStr < today);
-                if (isClosed) {
-                    return errorResponse(c, '마감된 과정에는 신규 훈련일지를 등록할 수 없습니다. 기존 일지만 수정할 수 있습니다.', 403);
-                }
-            }
-
             let resolvedCourseId: number | null = null;
             let resolvedViaSession = false;
 
