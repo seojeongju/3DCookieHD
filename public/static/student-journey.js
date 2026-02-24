@@ -291,7 +291,8 @@
                 document.getElementById('stdEducation').value = student.education || '';
                 document.getElementById('stdCertifications').value = student.certifications || '';
                 document.getElementById('stdPackageType').value = student.package_type || '';
-                document.getElementById('stdPaymentMethod').value = student.payment_method || '';
+                var pm = (student.payment_method || '').toLowerCase();
+                document.getElementById('stdPaymentMethod').value = ['', 'card', 'transfer', 'cash'].includes(pm) ? pm : '';
                 document.getElementById('stdPaymentDate').value = student.payment_date || '';
                 document.getElementById('stdSelfPay').value = student.self_pay_amount || '';
                 document.getElementById('stdHasApplication').checked = !!student.has_application;

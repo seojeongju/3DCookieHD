@@ -496,7 +496,7 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
                                 </div>
                                 <div>
                                     <label class="text-[10px] font-bold text-gray-400 ml-1 mb-2 block uppercase">자부담금 결제 수단</label>
-                                    <input type="text" id="stdPaymentMethod" class="w-full px-5 py-3 bg-gray-50 border-none rounded-2xl text-sm outline-none" placeholder="예: 신한카드">
+                                    <select id="stdPaymentMethod" class="w-full px-5 py-3 bg-gray-50 border-none rounded-2xl text-sm outline-none cursor-pointer"><option value="">선택</option><option value="card">카드</option><option value="transfer">계좌이체</option><option value="cash">현금</option></select>
                                 </div>
                                 <div>
                                     <label class="text-[10px] font-bold text-gray-400 ml-1 mb-2 block uppercase">결제일</label>
@@ -928,7 +928,8 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
             document.getElementById('stdEducation').value = student.education || '';
             document.getElementById('stdCertifications').value = student.certifications || '';
             document.getElementById('stdPackageType').value = student.package_type || '';
-            document.getElementById('stdPaymentMethod').value = student.payment_method || '';
+            const pm = (student.payment_method || '').toLowerCase();
+            document.getElementById('stdPaymentMethod').value = ['', 'card', 'transfer', 'cash'].includes(pm) ? pm : '';
             document.getElementById('stdPaymentDate').value = student.payment_date || '';
             document.getElementById('stdSelfPay').value = student.self_pay_amount || 0;
             document.getElementById('stdHasApplication').checked = !!student.has_application;

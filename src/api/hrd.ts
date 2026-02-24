@@ -23,6 +23,14 @@ function attendanceDurationMinutes(checkIn: string | null | undefined, checkOut:
     return diff;
 }
 
+/** DB CHECK allows only '', 'card', 'transfer', 'cash'. Normalize to avoid SQLITE_CONSTRAINT. */
+function normalizePaymentMethod(v: string | null | undefined): string | null {
+    if (v == null || typeof v !== 'string') return null;
+    const s = String(v).trim().toLowerCase();
+    if (['', 'card', 'transfer', 'cash'].includes(s)) return s === '' ? null : s;
+    return null;
+}
+
 // Helper to resolve session_id or course_id to the actual LMS course_id
 async function resolveLmsCourseId(DB: any, id: any): Promise<number | null> {
     const rawId = parseInt(String(id), 10);
@@ -1083,7 +1091,7 @@ app.post('/students', async (c) => {
         const valStatus = status || 'consulting';
         const valType = type || 'jobseeker';
         const valPackageType = package_type || null;
-        const valPaymentMethod = payment_method || null;
+        const valPaymentMethod = normalizePaymentMethod(payment_method);
         const valPaymentDate = payment_date || null;
         const valSelfPayAmount = parseInt(self_pay_amount || '0') || 0;
         const valStatusMemo = status_memo || null;
@@ -1101,11 +1109,11 @@ app.post('/students', async (c) => {
                         is_hrd_net_registered = ?, status_memo = ?,
                         updated_at = CURRENT_TIMESTAMP
                             `).bind(
-            userId, hrdCourseId, valStatus, valType, valPackageType, valPaymentMethod, valPaymentDate,
+            userId, hrdCourseId, valStatus, valType, valPackageType, (valPaymentMethod ?? ''), valPaymentDate,
             valSelfPayAmount, has_application ? 1 : 0, has_card ? 1 : 0,
             is_hrd_net_registered ? 1 : 0, valStatusMemo,
             // UPDATE values
-            hrdCourseId, valStatus, valType, valPackageType, valPaymentMethod, valPaymentDate,
+            hrdCourseId, valStatus, valType, valPackageType, (valPaymentMethod ?? ''), valPaymentDate,
             valSelfPayAmount, has_application ? 1 : 0, has_card ? 1 : 0,
             is_hrd_net_registered ? 1 : 0, valStatusMemo
         ).run();
@@ -1157,11 +1165,11 @@ app.put('/students', async (c) => {
                         is_hrd_net_registered = ?, status_memo = ?,
                         updated_at = CURRENT_TIMESTAMP
                             `).bind(
-            id, hrdCourseId, status || 'consulting', type || 'jobseeker', package_type || null, payment_method || null, payment_date || null,
+            id, hrdCourseId, status || 'consulting', type || 'jobseeker', package_type || null, (normalizePaymentMethod(payment_method) ?? ''), payment_date || null,
             parseInt(self_pay_amount || 0), has_application ? 1 : 0, has_card ? 1 : 0,
             is_hrd_net_registered ? 1 : 0, status_memo || null,
             // UPDATE values
-            hrdCourseId, status || 'consulting', type || 'jobseeker', package_type || null, payment_method || null, payment_date || null,
+            hrdCourseId, status || 'consulting', type || 'jobseeker', package_type || null, (normalizePaymentMethod(payment_method) ?? ''), payment_date || null,
             parseInt(self_pay_amount || 0), has_application ? 1 : 0, has_card ? 1 : 0,
             is_hrd_net_registered ? 1 : 0, status_memo || null
         ).run();
