@@ -213,6 +213,14 @@ export const adminHrdStudentJourneyHtml = (studentId: string, opts?: StudentJour
                                     <div><label class="text-[10px] font-bold text-gray-400 ml-1 mb-2 block uppercase">자부담 결제수단 직접입력</label><input type="text" id="stdPaymentMethodNote" class="w-full px-5 py-3 bg-gray-50 border-none rounded-2xl text-sm outline-none" placeholder="예: 결제선생 신한7911"></div>
                                     <div><label class="text-[10px] font-bold text-gray-400 ml-1 mb-2 block uppercase">결제일</label><input type="date" id="stdPaymentDate" class="w-full px-5 py-3 bg-gray-50 border-none rounded-2xl text-sm outline-none"></div>
                                     <div><label class="text-[10px] font-bold text-gray-400 ml-1 mb-2 block uppercase">자부담 실결제액</label><input type="number" id="stdSelfPay" class="w-full px-5 py-3 bg-gray-50 border-none rounded-2xl text-sm outline-none" placeholder="0"></div>
+                                    <div class="col-span-2 flex justify-end"><button type="button" id="btnSavePayment" onclick="window.handleSavePayment && window.handleSavePayment()" class="px-6 py-3 bg-orange-500 text-white rounded-2xl text-sm font-bold hover:bg-orange-600 transition-colors"><i class="fas fa-save mr-2"></i>결재 저장</button></div>
+                                </div>
+                                <div class="mt-6 pt-6 border-t border-gray-100">
+                                    <h6 class="text-xs font-black text-gray-500 uppercase mb-3">저장된 결재 내역</h6>
+                                    <div id="paymentListContainer" class="space-y-2 max-h-48 overflow-y-auto rounded-xl bg-gray-50/50 p-3">
+                                        <div id="paymentListEmpty" class="text-center text-gray-400 text-sm py-4">저장된 결재가 없습니다. 위에서 입력 후 &#39;결재 저장&#39;을 눌러 주세요.</div>
+                                        <ul id="paymentList" class="hidden space-y-2"></ul>
+                                    </div>
                                 </div>
                             </div>
                             <div class="bg-white rounded-[2rem] p-8 border border-gray-100 shadow-sm space-y-6">

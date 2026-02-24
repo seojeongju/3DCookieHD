@@ -33,6 +33,75 @@
         var m = { jobseeker: '구직자', worker: '재직자', general: '일반', student: '학생' };
         return m[t] || t;
     }
+    function paymentMethodLabel(m) {
+        var map = { card: '카드', transfer: '계좌이체', cash: '현금' };
+        return map[m] || m || '';
+    }
+    function loadPayments(sid) {
+        var listEl = document.getElementById('paymentList');
+        var emptyEl = document.getElementById('paymentListEmpty');
+        if (!listEl || !emptyEl) return;
+        var token = localStorage.getItem('token');
+        if (!token) return;
+        fetch('/api/hrd/students/' + sid + '/payments', { headers: { 'Authorization': 'Bearer ' + token } })
+            .then(handleAuthResponse)
+            .then(function (res) {
+                if (!res || !res.success) return;
+                var items = res.data || [];
+                if (items.length === 0) {
+                    listEl.classList.add('hidden');
+                    listEl.innerHTML = '';
+                    emptyEl.classList.remove('hidden');
+                    return;
+                }
+                emptyEl.classList.add('hidden');
+                listEl.classList.remove('hidden');
+                listEl.innerHTML = items.map(function (p) {
+                    var date = p.payment_date || '-';
+                    var method = paymentMethodLabel(p.payment_method);
+                    var note = (p.payment_method_note) ? ' (' + p.payment_method_note + ')' : '';
+                    var amt = (p.amount != null && p.amount !== '') ? Number(p.amount).toLocaleString() + '원' : '0원';
+                    return '<li class="flex justify-between items-center text-sm py-2 px-3 bg-white rounded-lg border border-gray-100"><span class="text-gray-700">' + date + ' · ' + method + note + '</span><span class="font-bold text-gray-900">' + amt + '</span></li>';
+                }).join('');
+            })
+            .catch(function () { });
+    }
+    window.handleSavePayment = function () {
+        var sid = studentId;
+        if (!sid) return;
+        var method = (document.getElementById('stdPaymentMethod') && document.getElementById('stdPaymentMethod').value) || '';
+        if (!method || !['card', 'transfer', 'cash'].includes(method)) {
+            alert('결제 수단을 선택해 주세요. (카드/계좌이체/현금)');
+            return;
+        }
+        var token = localStorage.getItem('token');
+        if (!token) { alert('로그인이 필요합니다.'); redirectToLogin(); return; }
+        var payload = {
+            payment_method: method,
+            payment_method_note: (document.getElementById('stdPaymentMethodNote') && document.getElementById('stdPaymentMethodNote').value.trim()) || null,
+            payment_date: (document.getElementById('stdPaymentDate') && document.getElementById('stdPaymentDate').value) || null,
+            amount: parseInt(document.getElementById('stdSelfPay').value, 10) || 0
+        };
+        fetch('/api/hrd/students/' + sid + '/payments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify(payload)
+        })
+            .then(handleAuthResponse)
+            .then(function (result) {
+                if (!result) return;
+                if (result.success) {
+                    loadPayments(sid);
+                    document.getElementById('stdPaymentMethod').value = '';
+                    if (document.getElementById('stdPaymentMethodNote')) document.getElementById('stdPaymentMethodNote').value = '';
+                    if (document.getElementById('stdPaymentDate')) document.getElementById('stdPaymentDate').value = '';
+                    if (document.getElementById('stdSelfPay')) document.getElementById('stdSelfPay').value = '0';
+                } else {
+                    alert(result.error || '결재 저장에 실패했습니다.');
+                }
+            })
+            .catch(function (e) { if (e && e.message === 'UNAUTHORIZED') return; alert('결재 저장 중 오류가 발생했습니다.'); });
+    };
 
     function updateStepper(activeStage) {
         var stages = ['consulting', 'registered', 'learning', 'completed', 'employed'];
@@ -301,6 +370,8 @@
                 document.getElementById('stdHasApplication').checked = !!student.has_application;
                 document.getElementById('stdHasCard').checked = !!student.has_card;
                 document.getElementById('stdIsRegistered').checked = !!student.is_hrd_net_registered;
+
+                loadPayments(student.id);
 
                 document.getElementById('sidebarStdStatus').textContent = translateStatus(student.status);
                 document.getElementById('sidebarStdType').textContent = translateType(student.type);

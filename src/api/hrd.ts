@@ -1190,6 +1190,47 @@ app.put('/students', async (c) => {
     }
 });
 
+// 훈련생 결제 목록 조회 (다건)
+app.get('/students/:id/payments', authMiddleware, async (c) => {
+    try {
+        const id = c.req.param('id');
+        const userId = parseInt(id, 10);
+        if (isNaN(userId)) return c.json({ success: false, error: '잘못된 ID' }, 400);
+        const { results } = await c.env.DB.prepare(
+            `SELECT id, user_id, payment_method, payment_method_note, payment_date, amount, created_at
+             FROM hrd_student_payments WHERE user_id = ? ORDER BY payment_date DESC, created_at DESC`
+        ).bind(userId).all();
+        return c.json({ success: true, data: results || [] });
+    } catch (e: any) {
+        console.error('Failed to fetch payments:', e);
+        return c.json({ success: false, error: e.message }, 500);
+    }
+});
+
+// 훈련생 결제 1건 추가 (결재 저장)
+app.post('/students/:id/payments', authMiddleware, async (c) => {
+    try {
+        const id = c.req.param('id');
+        const userId = parseInt(id, 10);
+        if (isNaN(userId)) return c.json({ success: false, error: '잘못된 ID' }, 400);
+        const body = await c.req.json();
+        const { payment_method, payment_method_note, payment_date, amount } = body;
+        const method = normalizePaymentMethod(payment_method);
+        if (!method || method === '') return c.json({ success: false, error: '결제 수단을 선택해 주세요. (카드/계좌이체/현금)' }, 400);
+        const note = (payment_method_note != null && String(payment_method_note).trim() !== '') ? String(payment_method_note).trim() : null;
+        const date = payment_date || null;
+        const amt = parseInt(amount || '0', 10) || 0;
+        await c.env.DB.prepare(
+            `INSERT INTO hrd_student_payments (user_id, payment_method, payment_method_note, payment_date, amount)
+             VALUES (?, ?, ?, ?, ?)`
+        ).bind(userId, method, note, date, amt).run();
+        return c.json({ success: true, message: '결재가 저장되었습니다.' });
+    } catch (e: any) {
+        console.error('Failed to add payment:', e);
+        return c.json({ success: false, error: '결재 저장 실패: ' + e.message }, 500);
+    }
+});
+
 // 상담자 목록 (관리자·강사 — 상담 수정 시 지정용)
 app.get('/counselors', authMiddleware, async (c) => {
     try {
