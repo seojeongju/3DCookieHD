@@ -46,6 +46,9 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
             <div class="flex justify-between items-center">
                 <h2 class="text-xl font-bold text-gray-800">역량 평가 및 설문 관리</h2>
                 <div class="flex gap-2">
+                    <button type="button" id="btnPostLectureSurvey" class="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition flex items-center shadow-sm">
+                        <i class="fas fa-clipboard-list mr-2"></i> 강의 후 설문지 생성
+                    </button>
                     <button onclick="openCreateModal('diagnosis')" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center shadow-sm">
                         <i class="fas fa-chart-radar mr-2"></i> 역량 진단 생성
                     </button>
@@ -103,6 +106,7 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
                 <div class="flex gap-2">
                     <select id="filterType" class="text-sm border-gray-300 rounded-lg focus:ring-blue-500">
                         <option value="all">전체 보기</option>
+                        <option value="post_lecture">강의 후 설문지</option>
                         <option value="diagnosis">역량 진단</option>
                         <option value="survey">일반 설문</option>
                     </select>
@@ -229,64 +233,130 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
     </template>
 
     <script>
-        const courseId = window.location.pathname.split('/')[3];
+        const pathParts = window.location.pathname.split('/');
+        const courseId = pathParts[pathParts.indexOf('courses') + 1];
+        const urlParams = new URLSearchParams(window.location.search);
+        const isHrd = (urlParams.get('type') || '').toLowerCase().startsWith('hrd') || window.location.pathname.indexOf('/lms') !== -1;
+        let surveys = [];
         let competencyChart = null;
-
-        // Mock Data Storage (API 대체용)
-        let surveys = [
-            { id: 1, type: 'diagnosis', title: '사전 NC·S 직무 역량 진단', startDate: '2024-01-01', endDate: '2024-01-10', responseCount: 15, totalTarget: 20, status: 'closed' },
-            { id: 2, type: 'survey', title: '1개월차 훈련과정 만족도 조사', startDate: '2024-02-01', endDate: '2024-02-05', responseCount: 18, totalTarget: 20, status: 'active' }
-        ];
 
         document.addEventListener('DOMContentLoaded', () => {
              loadSurveys();
-             updateStats();
+             var btn = document.getElementById('btnPostLectureSurvey');
+             if (btn) btn.addEventListener('click', createPostLectureSurvey);
+             var filter = document.getElementById('filterType');
+             if (filter) filter.addEventListener('change', function() { loadSurveys(); });
         });
+
+        function getSurveysApiUrl() {
+            var token = localStorage.getItem('token');
+            if (!token) return null;
+            if (isHrd && courseId) return '/api/surveys?session_id=' + encodeURIComponent(courseId);
+            if (courseId) return '/api/surveys?course_id=' + encodeURIComponent(courseId);
+            return null;
+        }
 
         function loadSurveys() {
             const tbody = document.getElementById('surveyList');
-            tbody.innerHTML = surveys.map(s => {
-                const typeLabel = s.type === 'diagnosis' 
+            const url = getSurveysApiUrl();
+            if (!url) {
+                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-10 text-center text-gray-500">과정/회차 정보가 없습니다.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-10 text-center text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i> 불러오는 중...</td></tr>';
+            fetch(url, { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } })
+                .then(function(r) { return r.json(); })
+                .then(function(res) {
+                    if (!res || !res.success) { surveys = []; }
+                    else { surveys = Array.isArray(res.data) ? res.data : []; }
+                    renderSurveyList();
+                    updateStats();
+                })
+                .catch(function() { surveys = []; renderSurveyList(); updateStats(); });
+        }
+
+        function renderSurveyList() {
+            const tbody = document.getElementById('surveyList');
+            const filterVal = (document.getElementById('filterType') && document.getElementById('filterType').value) || 'all';
+            let list = surveys;
+            if (filterVal !== 'all') list = list.filter(function(s) { return s.type === filterVal; });
+
+            if (list.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-10 text-center text-gray-500">등록된 설문이 없습니다. 위 버튼으로 생성해 주세요.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = list.map(function(s) {
+                var typeLabel = s.type === 'post_lecture'
+                    ? '<span class="px-2 py-1 bg-amber-100 text-amber-700 rounded text-xs font-bold">강의후설문</span>'
+                    : s.type === 'diagnosis'
                     ? '<span class="px-2 py-1 bg-indigo-100 text-indigo-700 rounded text-xs font-bold">역량진단</span>'
                     : '<span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-bold">일반설문</span>';
-                
-                const statusLabel = s.status === 'active'
+                var statusLabel = s.status === 'active'
                     ? '<span class="text-green-600 font-bold text-xs"><i class="fas fa-circle text-[8px] mr-1"></i>진행중</span>'
                     : '<span class="text-gray-400 font-bold text-xs">종료됨</span>';
-                
-                const rate = Math.round((s.responseCount / s.totalTarget) * 100);
-
-                return \`
-                    <tr class="hover:bg-gray-50 transition">
-                        <td class="px-6 py-4 whitespace-nowrap">\${typeLabel}</td>
-                        <td class="px-6 py-4 font-medium text-gray-800">\${s.title}</td>
-                        <td class="px-6 py-4 text-xs text-gray-500">\${s.startDate} ~ \${s.endDate}</td>
-                        <td class="px-6 py-4 text-center">
-                            <div class="flex items-center justify-center gap-2">
-                                <span class="text-sm font-bold text-gray-700">\${s.responseCount}/\${s.totalTarget}</span>
-                                <span class="text-xs text-gray-400">(\${rate}%)</span>
-                            </div>
-                            <div class="w-full bg-gray-100 rounded-full h-1.5 mt-1 max-w-[100px] mx-auto">
-                                <div class="bg-blue-500 h-1.5 rounded-full" style="width: \${rate}%"></div>
-                            </div>
-                        </td>
-                        <td class="px-6 py-4 text-center">\${statusLabel}</td>
-                        <td class="px-6 py-4 text-right">
-                            <button onclick="viewResults(\${s.id}, '\${s.type}')" class="text-blue-600 hover:underline text-xs font-bold mr-3">결과분석</button>
-                            <button onclick="alert('준비중')" class="text-gray-400 hover:text-gray-600 text-xs">수정</button>
-                        </td>
-                    </tr>
-                \`;
+                var total = s.total_target || 0;
+                var count = s.response_count || 0;
+                var rate = total > 0 ? Math.round((count / total) * 100) : 0;
+                var startDate = (s.start_date || '').split('T')[0];
+                var endDate = (s.end_date || '').split('T')[0];
+                var previewHref = '/admin/courses/' + courseId + '/lms/surveys/' + s.id + '/preview' + (isHrd ? '?type=hrd' : '');
+                return '<tr class="hover:bg-gray-50 transition">' +
+                    '<td class="px-6 py-4 whitespace-nowrap">' + typeLabel + '</td>' +
+                    '<td class="px-6 py-4 font-medium text-gray-800">' + (s.title || '-') + '</td>' +
+                    '<td class="px-6 py-4 text-xs text-gray-500">' + startDate + ' ~ ' + endDate + '</td>' +
+                    '<td class="px-6 py-4 text-center"><div class="flex items-center justify-center gap-2"><span class="text-sm font-bold text-gray-700">' + count + '/' + total + '</span><span class="text-xs text-gray-400">(' + rate + '%)</span></div>' +
+                    '<div class="w-full bg-gray-100 rounded-full h-1.5 mt-1 max-w-[100px] mx-auto"><div class="bg-blue-500 h-1.5 rounded-full" style="width:' + rate + '%"></div></div></td>' +
+                    '<td class="px-6 py-4 text-center">' + statusLabel + '</td>' +
+                    '<td class="px-6 py-4 text-right">' +
+                    '<a href="' + previewHref + '" target="_blank" class="text-amber-600 hover:underline text-xs font-bold mr-3">미리보기</a>' +
+                    '<button type="button" onclick="viewResults(' + s.id + ', \'' + (s.type || '') + '\')" class="text-blue-600 hover:underline text-xs font-bold mr-3">결과분석</button>' +
+                    '</td></tr>';
             }).join('');
         }
 
         function updateStats() {
-            // Mock Stats Calculation
-            document.getElementById('stat-active').textContent = surveys.filter(s => s.status === 'active').length;
-            document.getElementById('stat-progress').textContent = '78%';
-            document.getElementById('stat-progress-bar').style.width = '78%';
-            document.getElementById('stat-satisfaction').textContent = '4.2';
-            document.getElementById('stat-stars').innerHTML = '<i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i>';
+            var active = surveys.filter(function(s) { return s.status === 'active'; }).length;
+            document.getElementById('stat-active').textContent = active;
+            var totalTarget = surveys.length && surveys[0].total_target != null ? surveys[0].total_target : 0;
+            var totalResp = surveys.reduce(function(a, s) { return a + (s.response_count || 0); }, 0);
+            var rate = totalTarget > 0 ? Math.round((totalResp / (surveys.length * Math.max(totalTarget, 1))) * 100) : 0;
+            if (surveys.length && totalTarget > 0) rate = Math.round((totalResp / (surveys.length * totalTarget)) * 100);
+            rate = Math.min(100, rate);
+            document.getElementById('stat-progress').textContent = rate + '%';
+            document.getElementById('stat-progress-bar').style.width = rate + '%';
+            document.getElementById('stat-satisfaction').textContent = '5.0';
+            document.getElementById('stat-stars').innerHTML = '<i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>';
+        }
+
+        function createPostLectureSurvey() {
+            if (!courseId) { alert('과정/회차 정보가 없습니다.'); return; }
+            var token = localStorage.getItem('token');
+            if (!token) { alert('로그인이 필요합니다.'); return; }
+            var today = new Date();
+            var startDate = today.toISOString().split('T')[0];
+            var endDate = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+            if (!confirm('강의 후 설문지를 생성하시겠습니까?\\n기간: ' + startDate + ' ~ ' + endDate)) return;
+            var body = {
+                type: 'post_lecture',
+                title: '강의 후 설문지',
+                description: '수고하셨습니다. 오늘 교육 프로그램에 대한 전반적인 부분을 객관적으로 파악하고, 향후 교육의 기초 자료로 활용하고자 설문을 진행합니다. 더 나은 교육을 위해 솔직한 평가 부탁드립니다.',
+                start_date: startDate,
+                end_date: endDate,
+                status: 'active'
+            };
+            if (isHrd) body.session_id = parseInt(courseId, 10); else body.course_id = parseInt(courseId, 10);
+            fetch('/api/surveys', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                body: JSON.stringify(body)
+            })
+                .then(function(r) { return r.json(); })
+                .then(function(res) {
+                    if (res && res.success) { alert('강의 후 설문지가 생성되었습니다.'); loadSurveys(); }
+                    else alert(res && res.message ? res.message : '생성에 실패했습니다.');
+                })
+                .catch(function() { alert('생성 중 오류가 발생했습니다.'); });
         }
 
         /* Create Modal Functions */

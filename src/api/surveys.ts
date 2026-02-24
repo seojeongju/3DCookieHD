@@ -5,6 +5,101 @@ import { successResponse, errorResponse, notFoundResponse } from '../utils/respo
 
 const app = new Hono<{ Bindings: Bindings }>();
 
+/** 강의 후 설문지 고정 문항 (교육만족도 3, 솔루션/강사 3, 교육내용 4, 기타 1) */
+const POST_LECTURE_QUESTIONS = [
+    { question_text: '교육과정에 대해 전반적으로 만족한다.', question_type: 'rating' as const, options: null, order_index: 1 },
+    { question_text: '교육 내용이 쉽게 구성되었으며, 전반적으로 이해 하였다', question_type: 'rating' as const, options: null, order_index: 2 },
+    { question_text: '본 교육의 전반적인 만족도는?', question_type: 'rating' as const, options: null, order_index: 3 },
+    { question_text: '강의 내용을 알기 쉽게 설명 했는가?', question_type: 'rating' as const, options: null, order_index: 4 },
+    { question_text: '교수는 강의의 중요성을 잘 짚어주었는가?', question_type: 'rating' as const, options: null, order_index: 5 },
+    { question_text: '교수가 전체적으로 분위기를 잘 이끌었는가?', question_type: 'rating' as const, options: null, order_index: 6 },
+    { question_text: '강의에 포함된 내용이 흥미로웠는가?', question_type: 'rating' as const, options: null, order_index: 7 },
+    { question_text: '왕성한 의욕을 갖도록 동기유발을 잘 하였는가?', question_type: 'rating' as const, options: null, order_index: 8 },
+    { question_text: '교육목표에 적합한 교육계획을 수립하였는가?', question_type: 'rating' as const, options: null, order_index: 9 },
+    { question_text: '강의 내용이 실력향상에 도움이 되었는가?', question_type: 'rating' as const, options: null, order_index: 10 },
+    { question_text: '전반적인 교육 소감을 구체적으로 작성하여 주시기 바랍니다.', question_type: 'text' as const, options: null, order_index: 11 }
+];
+
+// GET /api/surveys - List surveys by course_id or session_id (for LMS 설문관리)
+app.get('/', authMiddleware, async (c) => {
+    try {
+        const user = c.get('user');
+        if (user.role !== 'admin' && user.role !== 'teacher') {
+            return errorResponse(c, '권한이 없습니다', 403);
+        }
+        const courseId = c.req.query('course_id') ? parseInt(c.req.query('course_id')!, 10) : null;
+        const sessionId = c.req.query('session_id') ? parseInt(c.req.query('session_id')!, 10) : null;
+        if (!courseId && !sessionId) {
+            return errorResponse(c, 'course_id 또는 session_id가 필요합니다', 400);
+        }
+
+        const { DB } = c.env;
+        let query = `
+            SELECT s.*,
+                (SELECT COUNT(*) FROM survey_responses sr WHERE sr.survey_id = s.id) as response_count
+            FROM surveys s
+            WHERE 1=1
+        `;
+        const params: any[] = [];
+
+        if (sessionId) {
+            query += ' AND s.session_id = ?';
+            params.push(sessionId);
+        }
+        if (courseId) {
+            query += ' AND s.course_id = ?';
+            params.push(courseId);
+        }
+
+        // teacher: only own courses (session은 회차 단위로 조회 허용)
+        if (user.role === 'teacher') {
+            if (sessionId) {
+                const session: any = await DB.prepare('SELECT id FROM course_sessions WHERE id = ?').bind(sessionId).first();
+                if (!session) return successResponse(c, []);
+            } else if (courseId) {
+                const course: any = await DB.prepare('SELECT teacher_id FROM courses WHERE id = ?').bind(courseId).first();
+                if (!course || course.teacher_id !== user.userId) return successResponse(c, []);
+            }
+        }
+
+        query += ' ORDER BY s.created_at DESC';
+        const { results } = await DB.prepare(query).bind(...params).all();
+
+        let totalTarget = 0;
+        if (sessionId) {
+            const t: any = await DB.prepare(
+                'SELECT COUNT(*) as total FROM course_session_enrollments WHERE session_id = ? AND status IN (\'approved\', \'enrolled\')'
+            ).bind(sessionId).first();
+            totalTarget = t?.total ?? 0;
+        } else if (courseId) {
+            const t: any = await DB.prepare(
+                'SELECT COUNT(*) as total FROM enrollments WHERE course_id = ? AND status = \'approved\''
+            ).bind(courseId).first();
+            totalTarget = t?.total ?? 0;
+        }
+
+        const list = (results || []).map((s: any) => ({
+            id: s.id,
+            course_id: s.course_id,
+            session_id: s.session_id,
+            type: s.type,
+            title: s.title,
+            description: s.description,
+            start_date: s.start_date,
+            end_date: s.end_date,
+            status: s.status,
+            response_count: s.response_count || 0,
+            total_target: totalTarget,
+            created_at: s.created_at
+        }));
+
+        return successResponse(c, list);
+    } catch (e: any) {
+        console.error('Error listing surveys:', e);
+        return errorResponse(c, e.message, 500);
+    }
+});
+
 // GET /api/surveys/teacher - Get surveys for teacher's assigned courses
 app.get('/teacher', authMiddleware, async (c) => {
     try {
@@ -104,17 +199,40 @@ app.get('/:id', authMiddleware, async (c) => {
         const user = c.get('user');
 
         const survey: any = await DB.prepare(`
-            SELECT s.*, c.title as course_title, c.teacher_id
+            SELECT s.*, c.title as course_title, c.teacher_id, u.name as teacher_name
             FROM surveys s
             LEFT JOIN courses c ON s.course_id = c.id
+            LEFT JOIN users u ON c.teacher_id = u.id
             WHERE s.id = ?
         `).bind(id).first();
 
         if (!survey) return notFoundResponse(c, 'Survey not found');
 
-        // 강사는 본인이 담당하는 과정의 설문만 조회 가능
-        if (user.role === 'teacher' && survey.teacher_id !== user.userId) {
-            return errorResponse(c, '본인이 담당하는 과정의 설문만 조회할 수 있습니다', 403);
+        if (survey.session_id) {
+            const session: any = await DB.prepare(`
+                SELECT cs.session_number, cs.session_name, cs.training_start_date, cs.training_end_date,
+                    ac.name as approved_course_name, ac.instructor_name as approved_instructor_name,
+                    cs.instructor_name as session_instructor_name
+                FROM course_sessions cs
+                LEFT JOIN approved_courses ac ON cs.approved_course_id = ac.id
+                WHERE cs.id = ?
+            `).bind(survey.session_id).first();
+            if (session) {
+                const courseName = session.approved_course_name || '';
+                const sessionNum = session.session_number || 1;
+                const sessionNameSuffix = session.session_name ? ` - ${session.session_name}` : '';
+                survey.course_title = `${courseName} (${sessionNum}회차)${sessionNameSuffix}`.trim();
+                survey.teacher_name = session.session_instructor_name || session.approved_instructor_name || survey.teacher_name;
+                survey.subject_title = courseName;
+            }
+        }
+
+        if (user.role === 'teacher') {
+            if (survey.session_id) {
+                // 회차(session) 설문: 회차 담당 여부는 별도 컬럼이 없을 수 있어, 조회는 허용
+            } else if (survey.teacher_id != null && survey.teacher_id !== user.userId) {
+                return errorResponse(c, '본인이 담당하는 과정의 설문만 조회할 수 있습니다', 403);
+            }
         }
 
         const { results: questions } = await DB.prepare(`
@@ -236,13 +354,13 @@ app.post('/', authMiddleware, async (c) => {
         const user = c.get('user');
         const { DB } = c.env;
         const body = await c.req.json();
-        const { course_id, type, title, description, start_date, end_date, status, questions } = body;
+        const { course_id, session_id, type, title, description, start_date, end_date, status, questions } = body;
 
         if (user.role !== 'admin' && user.role !== 'teacher') {
             return errorResponse(c, '권한이 없습니다', 403);
         }
 
-        // 강사는 본인이 담당하는 과정에만 설문 생성 가능
+        // 강사 권한: course_id일 때만 담당 과정 확인 (session은 회차 단위로 생성 허용)
         if (user.role === 'teacher' && course_id) {
             const course: any = await DB.prepare('SELECT teacher_id FROM courses WHERE id = ?').bind(course_id).first();
             if (!course || course.teacher_id !== user.userId) {
@@ -250,20 +368,33 @@ app.post('/', authMiddleware, async (c) => {
             }
         }
 
+        const finalQuestions = (type === 'post_lecture' && (!questions || !questions.length))
+            ? POST_LECTURE_QUESTIONS.map((q, i) => ({ ...q, order_index: i + 1 }))
+            : (questions && Array.isArray(questions) ? questions : []);
+
         const result = await DB.prepare(`
-            INSERT INTO surveys (course_id, type, title, description, start_date, end_date, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        `).bind(course_id, type, title, description || null, start_date || null, end_date || null, status || 'active').run();
+            INSERT INTO surveys (course_id, session_id, type, title, description, start_date, end_date, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `).bind(
+            course_id || null,
+            session_id || null,
+            type || 'survey',
+            type === 'post_lecture' ? (title || '강의 후 설문지') : title,
+            description || null,
+            start_date || null,
+            end_date || null,
+            status || 'active'
+        ).run();
 
         const surveyId = result.meta.last_row_id;
 
-        if (questions && Array.isArray(questions) && questions.length > 0) {
+        if (finalQuestions.length > 0) {
             const stmt = DB.prepare(`
                 INSERT INTO survey_questions (survey_id, question_text, question_type, options, order_index)
                 VALUES (?, ?, ?, ?, ?)
             `);
 
-            const batch = questions.map((q: any, index: number) =>
+            const batch = finalQuestions.map((q: any, index: number) =>
                 stmt.bind(
                     surveyId,
                     q.question_text,
@@ -290,7 +421,7 @@ app.put('/:id', authMiddleware, async (c) => {
         const { DB } = c.env;
         const id = c.req.param('id');
         const body = await c.req.json();
-        const { course_id, type, title, description, start_date, end_date, status, questions } = body;
+        const { course_id, session_id, type, title, description, start_date, end_date, status, questions } = body;
 
         const survey: any = await DB.prepare(`
             SELECT s.*, c.teacher_id
@@ -301,15 +432,18 @@ app.put('/:id', authMiddleware, async (c) => {
 
         if (!survey) return notFoundResponse(c, 'Survey not found');
 
-        if (user.role === 'teacher' && survey.teacher_id !== user.userId) {
-            return errorResponse(c, '본인이 담당하는 과정의 설문만 수정할 수 있습니다', 403);
+        if (user.role === 'teacher') {
+            if (survey.session_id != null) { /* 회차 설문 수정 허용 */ }
+            else if (survey.teacher_id != null && survey.teacher_id !== user.userId) {
+                return errorResponse(c, '본인이 담당하는 과정의 설문만 수정할 수 있습니다', 403);
+            }
         }
 
         await DB.prepare(`
             UPDATE surveys 
-            SET course_id = ?, type = ?, title = ?, description = ?, start_date = ?, end_date = ?, status = ?, updated_at = CURRENT_TIMESTAMP
+            SET course_id = ?, session_id = ?, type = ?, title = ?, description = ?, start_date = ?, end_date = ?, status = ?, updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
-        `).bind(course_id, type, title, description || null, start_date || null, end_date || null, status || 'active', id).run();
+        `).bind(course_id || null, session_id != null ? session_id : survey.session_id, type, title, description || null, start_date || null, end_date || null, status || 'active', id).run();
 
         if (questions && Array.isArray(questions)) {
             await DB.prepare('DELETE FROM survey_questions WHERE survey_id = ?').bind(id).run();
