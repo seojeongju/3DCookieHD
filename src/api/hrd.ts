@@ -2719,9 +2719,9 @@ app.get('/training-logs', async (c) => {
         if (existsInCourses) {
             resolvedCourseId = rawId;
         } else {
-            // 2. course_sessions인 경우, 제목으로 LMS 과정 찾기 + 배정 일일 훈련시간
+            // 2. course_sessions(회차)인 경우: lms_course_id 우선 사용, 없으면 제목으로 LMS 과정 찾기
             const session: any = await c.env.DB.prepare(`
-                SELECT s.id, s.session_number, s.session_name, a.name as course_name, a.daily_hours
+                SELECT s.id, s.session_number, s.session_name, s.lms_course_id, a.name as course_name, a.daily_hours
                 FROM course_sessions s
                 JOIN approved_courses a ON s.approved_course_id = a.id
                 WHERE s.id = ?
@@ -2731,14 +2731,23 @@ app.get('/training-logs', async (c) => {
                 if (session.daily_hours != null && session.daily_hours > 0) {
                     assignedDailyHours = Number(session.daily_hours);
                 }
-                const title = `${session.course_name || '과정'} (${session.session_number}회차${session.session_name ? ' - ' + session.session_name : ''})`.trim();
-                const lmsCourse: any = await c.env.DB.prepare(
-                    'SELECT id FROM courses WHERE title = ? LIMIT 1'
-                ).bind(title).first();
+                // 이미 연결된 LMS 과정이 있으면 해당 과정 사용 (다른 회차 일지가 섞이지 않도록)
+                if (session.lms_course_id != null && session.lms_course_id > 0) {
+                    const existingCourse: any = await c.env.DB.prepare('SELECT id FROM courses WHERE id = ?').bind(session.lms_course_id).first();
+                    if (existingCourse) {
+                        resolvedCourseId = Number(session.lms_course_id);
+                    }
+                }
+                if (resolvedCourseId == null) {
+                    const title = `${session.course_name || '과정'} (${session.session_number}회차${session.session_name ? ' - ' + session.session_name : ''})`.trim();
+                    const lmsCourse: any = await c.env.DB.prepare(
+                        'SELECT id FROM courses WHERE title = ? LIMIT 1'
+                    ).bind(title).first();
 
-                if (lmsCourse) {
-                    resolvedCourseId = lmsCourse.id;
-                    await c.env.DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(resolvedCourseId, rawId).run();
+                    if (lmsCourse) {
+                        resolvedCourseId = lmsCourse.id;
+                        await c.env.DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(resolvedCourseId, rawId).run();
+                    }
                 }
             }
         }
@@ -2869,36 +2878,42 @@ app.post('/training-logs', async (c) => {
                     resolvedCourseId = rawId;
                 } else {
                     const session: any = await c.env.DB.prepare(`
-                        SELECT s.id, s.session_number, s.session_name, a.name as course_name
+                        SELECT s.id, s.session_number, s.session_name, s.lms_course_id, a.name as course_name
                         FROM course_sessions s
                         JOIN approved_courses a ON s.approved_course_id = a.id
                         WHERE s.id = ?
                     `).bind(rawId).first();
 
                     if (session) {
-                        // 회차에 대한 LMS 과정을 생성 (이미 존재하면 재사용)
-                        const title = `${session.course_name || '과정'} (${session.session_number}회차${session.session_name ? ' - ' + session.session_name : ''})`.trim();
-
-                        // 동일한 제목의 과정이 이미 있는지 확인
-                        const existingCourse: any = await c.env.DB.prepare(
-                            'SELECT id FROM courses WHERE title = ? LIMIT 1'
-                        ).bind(title).first();
-
-                        if (existingCourse) {
-                            resolvedCourseId = existingCourse.id;
-                            console.log('[Training Log] Using existing LMS course:', resolvedCourseId, title);
-                        } else {
-                            const insert = await c.env.DB.prepare(`
-                                INSERT INTO courses (title, category, status) VALUES (?, '국비지원', 'active')
-                            `).bind(title).run();
-                            const newCourseId = insert.meta?.last_row_id;
-                            if (newCourseId == null) {
-                                return errorResponse(c, 'LMS 과정 생성에 실패했습니다.', 500);
+                        // 이미 연결된 LMS 과정이 있으면 사용 (훈련일지 목록과 동일한 과정에 저장)
+                        if (session.lms_course_id != null && session.lms_course_id > 0) {
+                            const existingCourse: any = await c.env.DB.prepare('SELECT id FROM courses WHERE id = ?').bind(session.lms_course_id).first();
+                            if (existingCourse) {
+                                resolvedCourseId = Number(session.lms_course_id);
                             }
-                            resolvedCourseId = Number(newCourseId);
-                            console.log('[Training Log] Created new LMS course:', resolvedCourseId, title);
                         }
-                        await c.env.DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(resolvedCourseId, rawId).run();
+                        if (resolvedCourseId == null) {
+                            const title = `${session.course_name || '과정'} (${session.session_number}회차${session.session_name ? ' - ' + session.session_name : ''})`.trim();
+                            const existingCourse: any = await c.env.DB.prepare(
+                                'SELECT id FROM courses WHERE title = ? LIMIT 1'
+                            ).bind(title).first();
+
+                            if (existingCourse) {
+                                resolvedCourseId = existingCourse.id;
+                                console.log('[Training Log] Using existing LMS course:', resolvedCourseId, title);
+                            } else {
+                                const insert = await c.env.DB.prepare(`
+                                    INSERT INTO courses (title, category, status) VALUES (?, '국비지원', 'active')
+                                `).bind(title).run();
+                                const newCourseId = insert.meta?.last_row_id;
+                                if (newCourseId == null) {
+                                    return errorResponse(c, 'LMS 과정 생성에 실패했습니다.', 500);
+                                }
+                                resolvedCourseId = Number(newCourseId);
+                                console.log('[Training Log] Created new LMS course:', resolvedCourseId, title);
+                            }
+                            await c.env.DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(resolvedCourseId, rawId).run();
+                        }
                     }
                 }
             } catch (queryErr) {
