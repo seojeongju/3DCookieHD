@@ -307,26 +307,6 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
             loadAssignedUnits();
         });
 
-        async function updateLogInstructor(logId, instructorId) {
-            var val = (instructorId === '' || instructorId === null || instructorId === undefined) ? null : instructorId;
-            try {
-                var res = await fetch('/api/hrd/training-logs/' + logId, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-                    body: JSON.stringify({ instructor_id: val })
-                });
-                var result = await res.json();
-                if (result.success) {
-                    loadLogs(currentPage);
-                } else {
-                    alert(result.error || '담당강사 변경에 실패했습니다.');
-                }
-            } catch (e) {
-                console.error(e);
-                alert('요청 중 오류가 발생했습니다.');
-            }
-        }
-
         async function loadAssignedUnits() {
             try {
                 const res = await fetch('/api/ncs/courses/' + courseId);
@@ -465,32 +445,14 @@ function renderLogs(logs) {
 
         var topic = (tTopic || '-').replace(/</g, '&lt;').replace(/"/g, '&quot;');
         var content = (tContent || '-').replace(/</g, '&lt;').replace(/"/g, '&quot;');
-        var currentInstructorId = (log.instructor_id != null && log.instructor_id !== '') ? String(log.instructor_id) : '';
         var instructorDisplay = (log.instructor_name || '미상').replace(/</g, '&lt;').replace(/"/g, '&quot;');
-        var hasSavedHours = typeof log.training_hours !== 'undefined' && log.training_hours !== null && log.training_hours > 0;
-        var fromApi = assignedHoursFromApi != null && assignedHoursFromApi > 0 ? (typeof assignedHoursFromApi === 'number' ? assignedHoursFromApi : parseFloat(assignedHoursFromApi)) : null;
-        var fromCourse = globalDailyHours != null && globalDailyHours > 0 ? (typeof globalDailyHours === 'number' ? globalDailyHours : parseFloat(globalDailyHours)) : null;
-        var assignedHours = fromApi != null ? fromApi : fromCourse;
-        var reliableHours = assignedHours != null ? assignedHours : (hasSavedHours ? (typeof log.training_hours === 'number' ? log.training_hours : parseFloat(log.training_hours)) : null);
-        var displayHoursText = reliableHours != null ? reliableHours + 'h' : '-';
-        var authorCell = '';
-        if (instructorList.length > 0) {
-            var opts = '<option value="">선택</option>';
-            for (var k = 0; k < instructorList.length; k++) {
-                var inst = instructorList[k];
-                var safeName = (inst.name || '').replace(/</g, '&lt;').replace(/"/g, '&quot;');
-                var sel = (currentInstructorId === String(inst.id)) ? ' selected' : '';
-                opts += '<option value="' + inst.id + '"' + sel + '>' + safeName + '</option>';
-            }
-            authorCell = '<td class="px-6 py-5 text-center"><select data-log-id="' + log.id + '" onchange="updateLogInstructor(' + log.id + ', this.value)" class="w-full max-w-[140px] mx-auto border border-gray-300 rounded-lg px-2 py-1.5 text-sm font-medium text-slate-600 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">' + opts + '</select></td>';
-        } else {
-            authorCell = '<td class="px-6 py-5 text-center font-bold text-slate-600 text-sm">' + instructorDisplay + '</td>';
-        }
+        var savedHours = (log.training_hours != null && log.training_hours !== '' && Number(log.training_hours) >= 0) ? (typeof log.training_hours === 'number' ? log.training_hours : parseFloat(log.training_hours)) : null;
+        var displayHoursText = (savedHours != null && !isNaN(savedHours)) ? savedHours + 'h' : '-';
         html += '<tr class="hover:bg-indigo-50/30 transition-all duration-200 group border-b border-gray-50 last:border-0 shadow-[inset_0_1px_0_0_rgba(255,255,255,1)]">' +
             '<td class="px-6 py-5 whitespace-nowrap text-[11px] font-black text-indigo-300 uppercase tracking-widest">' + (log.date || '') + '</td>' +
             '<td class="px-6 py-5"><div class="font-black text-gray-800 mb-1 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">' + topic + '</div>' +
             '<div class="text-xs text-gray-400 truncate max-w-lg font-medium leading-relaxed italic opacity-80 group-hover:opacity-100 transition-all">' + content + '</div></td>' +
-            authorCell +
+            '<td class="px-6 py-5 text-center font-bold text-slate-600 text-sm">' + instructorDisplay + '</td>' +
             '<td class="px-6 py-5 text-center font-black text-slate-700 text-sm">' + displayHoursText + '</td>' +
             '<td class="px-6 py-5 text-right"><div class="flex items-center justify-end gap-2.5 transition-all">' +
             '<button onclick="printLog(' + log.id + ')" class="w-9 h-9 flex items-center justify-center bg-white border border-gray-100 text-slate-400 hover:text-gray-700 hover:border-gray-300 hover:shadow-md transition-all rounded-xl active:scale-90"><i class="fas fa-print text-xs"></i></button>' +
