@@ -2704,7 +2704,7 @@ app.get('/training-logs', async (c) => {
         if (existsInCourses) {
             resolvedCourseId = rawId;
         } else {
-            // 2. course_sessions(회차): 회차별 별도 LMS 과정(1:1). 과정명 풀네임으로만 매칭.
+            // 2. course_sessions(회차): 회차별 전용 LMS 과정 1:1. 다른 회차와 공유하면 안 됨.
             const session: any = await c.env.DB.prepare(`
                 SELECT s.id, s.session_number, s.session_name, s.lms_course_id, a.name as course_name, a.daily_hours
                 FROM course_sessions s
@@ -2751,6 +2751,19 @@ app.get('/training-logs', async (c) => {
                             await c.env.DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(resolvedCourseId, rawId).run();
                         }
                     }
+                }
+                // 여전히 없으면: 이 회차 전용 LMS 과정을 새로 만들어서 1:1 연결 (과정 4에서 등록한 일지가 과정 12에 안 보이게)
+                if (resolvedCourseId == null) {
+                    try {
+                        const insert = await c.env.DB.prepare(
+                            'INSERT INTO courses (title, category, status) VALUES (?, \'국비지원\', \'active\')'
+                        ).bind(expectedTitle).run();
+                        const newId = insert.meta?.last_row_id;
+                        if (newId != null) {
+                            resolvedCourseId = Number(newId);
+                            await c.env.DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(resolvedCourseId, rawId).run();
+                        }
+                    } catch (_) {}
                 }
             }
         }
