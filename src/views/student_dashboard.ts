@@ -1119,58 +1119,144 @@ export const studentDashboardHtml = () => `
 
         async function loadStudentSurveys() {
             const container = document.getElementById('contentArea');
-            container.innerHTML = '<div class="text-center py-12"><i class="fas fa-spinner fa-spin text-3xl text-blue-500"></i><p class="mt-4 text-gray-500">설문 목록을 불러오는 중...</p></div>';
+            container.innerHTML = '<div class="text-center py-12"><i class="fas fa-spinner fa-spin text-3xl text-sky-500"></i><p class="mt-4 text-slate-500 font-bold">설문 목록을 불러오는 중...</p></div>';
 
             try {
-                // Mock Data for now (Simulating API fetch)
-                // In a real app: const res = await fetch('/api/surveys/my-pending', ...);
-                await new Promise(r => setTimeout(r, 500)); // Simulate delay
-                
-                const surveys = [
-                    { id: 1, type: 'diagnosis', title: '사전 NC·S 직무 역량 진단', startDate: '2024-01-01', endDate: '2024-12-31', status: 'pending', courseTitle: 'Java 국비지원 과정' },
-                    { id: 2, type: 'survey', title: '1개월차 훈련과정 만족도 조사', startDate: '2024-02-01', endDate: '2024-02-05', status: 'completed', courseTitle: 'Java 국비지원 과정' }
-                ];
+                const token = localStorage.getItem('token');
+                if (!token) { container.innerHTML = '<div class="text-center text-red-500">로그인이 필요합니다.</div>'; return; }
+                const res = await fetch('/api/surveys/my-pending', { headers: { 'Authorization': 'Bearer ' + token } });
+                const json = await res.json();
+                const surveys = (json && json.success && Array.isArray(json.data)) ? json.data : [];
 
                 if (surveys.length === 0) {
-                    container.innerHTML = \`
-                        <div class="bento-card bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200 p-12 text-center">
-                            <i class="fas fa-poll text-5xl text-slate-300 mb-4"></i>
-                            <p class="font-bold text-slate-500">진행 중인 설문이 없습니다.</p>
-                        </div>
-                    \`;
+                    container.innerHTML = '<div class="bento-card bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200 p-12 text-center"><i class="fas fa-poll text-5xl text-slate-300 mb-4"></i><p class="font-bold text-slate-500">진행 중인 설문이 없습니다.</p></div>';
                     return;
                 }
 
-                container.innerHTML = '<div class="space-y-6">' + surveys.map(s => {
-                    const isPending = s.status === 'pending';
-                    const badgeClass = isPending ? 'bg-orange-100 text-orange-700' : 'bg-emerald-100 text-emerald-700';
-                    const statusText = isPending ? '미참여' : '완료됨';
-                    const btnClass = isPending ? 'px-6 py-3 bg-sky-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 shadow-lg shadow-sky-100' : 'px-6 py-3 bg-slate-100 text-slate-400 rounded-2xl font-black text-[10px] uppercase cursor-not-allowed';
-                    return \`
-                        <div class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm hover:border-sky-200 transition">
-                            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
-                                <div class="flex-1">
-                                    <div class="flex items-center gap-2 mb-2">
-                                        <span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] font-black rounded-full uppercase tracking-widest">\${s.courseTitle}</span>
-                                        <span class="px-2 py-0.5 \${s.type === 'diagnosis' ? 'bg-purple-50 text-purple-600' : 'bg-sky-50 text-sky-600'} text-[10px] font-black rounded-full uppercase tracking-widest">\${s.type === 'diagnosis' ? '역량진단' : '설문조사'}</span>
-                                    </div>
-                                    <h3 class="text-lg font-black text-slate-800 tracking-tight">\${s.title}</h3>
-                                    <p class="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-wider"><i class="far fa-calendar-alt mr-1"></i> \${s.startDate} ~ \${s.endDate}</p>
-                                </div>
-                                <div class="flex items-center gap-4">
-                                    <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest \${badgeClass}">\${statusText}</span>
-                                    <button onclick="\${isPending ? \`alert('설문 페이지로 이동합니다 (구현 예정)')\` : ''}" \${!isPending ? 'disabled' : ''} class="\${btnClass} transition">
-                                        \${isPending ? '참여하기' : '완료'}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    \`;
-                }).join('') + '</div>';
+                const startStr = function(s) { return (s.start_date || '').split('T')[0]; };
+                const endStr = function(s) { return (s.end_date || '').split('T')[0]; };
+                const courseTitle = function(s) { return s.course_title || '-'; };
+                const typeLabel = function(s) { return s.type === 'diagnosis' ? '역량진단' : (s.type === 'post_lecture' ? '강의후설문' : '설문조사'); };
+                const typeClass = function(s) { return s.type === 'diagnosis' ? 'bg-purple-50 text-purple-600' : 'bg-sky-50 text-sky-600'; };
 
+                container.innerHTML = '<div class="space-y-6">' + surveys.map(function(s) {
+                    var isPending = (s.response_status || '') === 'pending';
+                    var badgeClass = isPending ? 'bg-orange-100 text-orange-700' : 'bg-emerald-100 text-emerald-700';
+                    var statusText = isPending ? '미참여' : '완료됨';
+                    var btnClass = isPending ? 'px-6 py-3 bg-sky-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 shadow-lg shadow-sky-100 cursor-pointer' : 'px-6 py-3 bg-slate-100 text-slate-400 rounded-2xl font-black text-[10px] uppercase cursor-not-allowed';
+                    var safeTitle = String(s.title || '-').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+                    var safeCourse = String(courseTitle(s)).replace(/</g, '&lt;').replace(/"/g, '&quot;');
+                    return '<div class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm hover:border-sky-200 transition">' +
+                        '<div class="flex flex-col md:flex-row justify-between items-center gap-4">' +
+                        '<div class="flex-1">' +
+                        '<div class="flex items-center gap-2 mb-2">' +
+                        '<span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] font-black rounded-full uppercase tracking-widest">' + safeCourse + '</span>' +
+                        '<span class="px-2 py-0.5 ' + typeClass(s) + ' text-[10px] font-black rounded-full uppercase tracking-widest">' + typeLabel(s) + '</span>' +
+                        '</div>' +
+                        '<h3 class="text-lg font-black text-slate-800 tracking-tight">' + safeTitle + '</h3>' +
+                        '<p class="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-wider"><i class="far fa-calendar-alt mr-1"></i> ' + startStr(s) + ' ~ ' + endStr(s) + '</p>' +
+                        '</div>' +
+                        '<div class="flex items-center gap-4">' +
+                        '<span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ' + badgeClass + '">' + statusText + '</span>' +
+                        (isPending ? '<button type="button" onclick="openSurveyForm(' + s.id + ')" class="' + btnClass + '">참여하기</button>' : '<span class="' + btnClass + '">완료</span>') +
+                        '</div></div></div>';
+                }).join('') + '</div>';
             } catch (e) {
                 console.error(e);
                 container.innerHTML = '<div class="text-center text-red-500">목록을 불러오는데 실패했습니다.</div>';
+            }
+        }
+
+        async function openSurveyForm(surveyId) {
+            const container = document.getElementById('contentArea');
+            container.innerHTML = '<div class="text-center py-12"><i class="fas fa-spinner fa-spin text-3xl text-sky-500"></i><p class="mt-4 text-slate-500 font-bold">설문을 불러오는 중...</p></div>';
+            var token = localStorage.getItem('token');
+            if (!token) { container.innerHTML = '<div class="text-center text-red-500">로그인이 필요합니다.</div>'; return; }
+            try {
+                var res = await fetch('/api/surveys/' + surveyId, { headers: { 'Authorization': 'Bearer ' + token } });
+                var json = await res.json();
+                if (!json || !json.success || !json.data) {
+                    container.innerHTML = '<div class="text-center text-red-500">설문을 불러올 수 없습니다.</div><button type="button" onclick="loadStudentSurveys()" class="mt-4 px-4 py-2 bg-slate-200 text-slate-700 rounded-xl font-bold">목록으로</button>';
+                    return;
+                }
+                var survey = json.data;
+                var questions = survey.questions || [];
+                var backBtn = '<button type="button" onclick="loadStudentSurveys()" class="mb-6 inline-flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-200 transition"><i class="fas fa-arrow-left"></i> 목록으로</button>';
+                var desc = (survey.description || '').replace(/</g, '&lt;').replace(/"/g, '&quot;').replace(/\n/g, '<br>');
+                var formHtml = backBtn + '<div class="bg-white rounded-[2rem] border border-slate-200/60 shadow-sm overflow-hidden"><div class="p-6 md:p-8 border-b border-slate-100"><h2 class="text-xl font-black text-slate-900">' + (survey.title || '설문').replace(/</g, '&lt;') + '</h2><p class="mt-2 text-sm text-slate-600">' + desc + '</p></div><form id="studentSurveyForm" class="p-6 md:p-8 space-y-6">';
+                formHtml += '<input type="hidden" name="surveyId" value="' + surveyId + '">';
+                for (var i = 0; i < questions.length; i++) {
+                    var q = questions[i];
+                    var qid = q.id;
+                    var qText = (q.question_text || '').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+                    formHtml += '<div class="border-b border-slate-100 pb-6">';
+                    formHtml += '<p class="font-bold text-slate-800 mb-3">' + (i + 1) + '. ' + qText + '</p>';
+                    if (q.question_type === 'rating') {
+                        formHtml += '<div class="flex flex-wrap gap-2">';
+                        for (var r = 1; r <= 5; r++) {
+                            formHtml += '<label class="inline-flex items-center gap-1.5 cursor-pointer"><input type="radio" name="q_' + qid + '" value="' + r + '" class="rounded border-slate-300 text-sky-600 focus:ring-sky-500"> <span class="text-sm font-bold text-slate-600">' + r + '점</span></label>';
+                        }
+                        formHtml += '</div>';
+                    } else if (q.question_type === 'text') {
+                        formHtml += '<textarea name="q_' + qid + '" rows="4" class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm" placeholder="내용을 입력하세요"></textarea>';
+                    } else {
+                        formHtml += '<input type="text" name="q_' + qid + '" class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-sky-500 text-sm" placeholder="입력">';
+                    }
+                    formHtml += '</div>';
+                }
+                formHtml += '<div class="pt-4 flex gap-3"><button type="button" onclick="loadStudentSurveys()" class="px-6 py-3 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition">취소</button><button type="submit" class="px-8 py-3 bg-sky-600 text-white rounded-xl font-black hover:bg-slate-900 transition shadow-lg shadow-sky-100">제출하기</button></div></form></div>';
+                container.innerHTML = formHtml;
+                document.getElementById('studentSurveyForm').addEventListener('submit', function(e) { e.preventDefault(); submitSurveyForm(surveyId); });
+            } catch (err) {
+                console.error(err);
+                container.innerHTML = '<div class="text-center text-red-500">설문을 불러오는 중 오류가 발생했습니다.</div><button type="button" onclick="loadStudentSurveys()" class="mt-4 px-4 py-2 bg-slate-200 text-slate-700 rounded-xl font-bold">목록으로</button>';
+            }
+        }
+
+        async function submitSurveyForm(surveyId) {
+            var form = document.getElementById('studentSurveyForm');
+            if (!form) return;
+            var answers = [];
+            var seen = {};
+            var inputs = form.querySelectorAll('input[name^="q_"], textarea[name^="q_"]');
+            for (var i = 0; i < inputs.length; i++) {
+                var el = inputs[i];
+                var name = el.getAttribute('name');
+                if (!name || name.indexOf('q_') !== 0) continue;
+                var qid = name.replace('q_', '');
+                if (seen[qid]) continue;
+                seen[qid] = true;
+                var val;
+                if (el.type === 'radio') {
+                    var checked = form.querySelector('input[name="' + name + '"]:checked');
+                    val = checked ? checked.value : '';
+                } else {
+                    val = el.value || '';
+                }
+                answers.push({ question_id: parseInt(qid, 10), answer_value: val });
+            }
+            var token = localStorage.getItem('token');
+            if (!token) { alert('로그인이 필요합니다.'); return; }
+            var btn = form.querySelector('button[type="submit"]');
+            if (btn) { btn.disabled = true; btn.textContent = '제출 중...'; }
+            try {
+                var res = await fetch('/api/surveys/' + surveyId + '/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({ answers: answers })
+                });
+                var json = await res.json();
+                if (json && json.success) {
+                    alert(json.message || '설문에 참여해 주셔서 감사합니다.');
+                    loadStudentSurveys();
+                } else {
+                    alert(json && json.error ? json.error : '제출에 실패했습니다.');
+                    if (btn) { btn.disabled = false; btn.textContent = '제출하기'; }
+                }
+            } catch (e) {
+                console.error(e);
+                alert('제출 중 오류가 발생했습니다.');
+                if (btn) { btn.disabled = false; btn.textContent = '제출하기'; }
             }
         }
 

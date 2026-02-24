@@ -291,6 +291,10 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
              if (filter) filter.addEventListener('change', function() { loadSurveys(); });
              var list = document.getElementById('surveyList');
              if (list) list.addEventListener('click', function(e) {
+                 var startBtn = e.target && e.target.closest && e.target.closest('.btn-survey-start');
+                 if (startBtn) { startSurvey(parseInt(startBtn.getAttribute('data-id'), 10)); return; }
+                 var closeBtn = e.target && e.target.closest && e.target.closest('.btn-survey-close');
+                 if (closeBtn) { closeSurvey(parseInt(closeBtn.getAttribute('data-id'), 10)); return; }
                  var viewBtn = e.target && e.target.closest && e.target.closest('.btn-view-results');
                  if (viewBtn) { viewResults(parseInt(viewBtn.getAttribute('data-id'), 10), viewBtn.getAttribute('data-type') || ''); return; }
                  var editBtn = e.target && e.target.closest && e.target.closest('.btn-edit-post-lecture');
@@ -350,6 +354,8 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
                     : '<span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-bold">일반설문</span>';
                 var statusLabel = s.status === 'active'
                     ? '<span class="text-green-600 font-bold text-xs"><i class="fas fa-circle text-[8px] mr-1"></i>진행중</span>'
+                    : s.status === 'draft'
+                    ? '<span class="text-amber-600 font-bold text-xs">대기</span>'
                     : '<span class="text-gray-400 font-bold text-xs">종료됨</span>';
                 var total = s.total_target || 0;
                 var count = s.response_count || 0;
@@ -367,6 +373,8 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
                     '<div class="w-full bg-gray-100 rounded-full h-1.5 mt-1 max-w-[100px] mx-auto"><div class="bg-blue-500 h-1.5 rounded-full" style="width:' + rate + '%"></div></div></td>' +
                     '<td class="px-6 py-4 text-center">' + statusLabel + '</td>' +
                     '<td class="px-6 py-4 text-right">' +
+                    (s.status !== 'active' ? '<button type="button" class="btn-survey-start text-green-600 hover:underline text-xs font-bold mr-3" data-id="' + s.id + '">설문진행</button>' : '') +
+                    (s.status === 'active' ? '<button type="button" class="btn-survey-close text-orange-600 hover:underline text-xs font-bold mr-3" data-id="' + s.id + '">진행종료</button>' : '') +
                     '<a href="' + previewHref + '" target="_blank" class="text-amber-600 hover:underline text-xs font-bold mr-3">미리보기</a>' +
                     '<button type="button" class="btn-view-results text-blue-600 hover:underline text-xs font-bold mr-3" data-id="' + s.id + '" data-type="' + typeAttr + '">결과분석</button>' +
                     (s.type === 'post_lecture' ? '<button type="button" class="btn-edit-post-lecture text-indigo-600 hover:underline text-xs font-bold mr-3" data-id="' + s.id + '">수정</button><button type="button" class="btn-delete-survey text-red-600 hover:underline text-xs font-bold" data-id="' + s.id + '">삭제</button>' : '') +
@@ -479,6 +487,31 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
                     else alert(res && res.message ? res.message : (surveyId ? '수정에 실패했습니다.' : '생성에 실패했습니다.'));
                 })
                 .catch(function() { alert('저장 중 오류가 발생했습니다.'); });
+        }
+
+        function startSurvey(id) {
+            var token = localStorage.getItem('token');
+            if (!token) { alert('로그인이 필요합니다.'); return; }
+            fetch('/api/surveys/' + id + '/start', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token } })
+                .then(function(r) { return r.json(); })
+                .then(function(res) {
+                    if (res && res.success) { alert(res.message || '설문이 진행 중으로 변경되었습니다.'); loadSurveys(); }
+                    else alert(res && res.error ? res.error : '설문 진행 처리에 실패했습니다.');
+                })
+                .catch(function() { alert('요청 중 오류가 발생했습니다.'); });
+        }
+
+        function closeSurvey(id) {
+            if (!confirm('이 설문을 진행 종료(마감)하시겠습니까?')) return;
+            var token = localStorage.getItem('token');
+            if (!token) { alert('로그인이 필요합니다.'); return; }
+            fetch('/api/surveys/' + id + '/close', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token } })
+                .then(function(r) { return r.json(); })
+                .then(function(res) {
+                    if (res && res.success) { alert(res.message || '설문이 마감되었습니다.'); loadSurveys(); }
+                    else alert(res && res.error ? res.error : '진행 종료에 실패했습니다.');
+                })
+                .catch(function() { alert('요청 중 오류가 발생했습니다.'); });
         }
 
         function deleteSurvey(id) {

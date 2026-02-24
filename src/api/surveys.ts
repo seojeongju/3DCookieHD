@@ -155,7 +155,7 @@ app.get('/teacher', authMiddleware, async (c) => {
     }
 });
 
-// GET /api/surveys/my-pending (For Students)
+// GET /api/surveys/my-pending (For Students) — course_id 과정 + session_id(회차) 과정 모두 포함
 app.get('/my-pending', authMiddleware, async (c) => {
     try {
         const user = c.get('user');
@@ -166,25 +166,47 @@ app.get('/my-pending', authMiddleware, async (c) => {
         const { DB } = c.env;
         const studentId = user.userId;
 
-        // 학생이 수강 중인 과정의 활성 설문 조회
-        const { results } = await DB.prepare(`
+        // 1) course_id 기준: enrollments로 수강 중인 과정의 활성 설문
+        const { results: byCourse } = await DB.prepare(`
             SELECT 
-                s.*,
+                s.id, s.course_id, s.session_id, s.type, s.title, s.description, s.start_date, s.end_date, s.status, s.created_at,
                 c.title as course_title,
                 CASE WHEN sr.id IS NOT NULL THEN 'completed' ELSE 'pending' END as response_status
             FROM surveys s
-            INNER JOIN enrollments e ON s.course_id = e.course_id
+            INNER JOIN enrollments e ON s.course_id = e.course_id AND e.user_id = ? AND e.status = 'approved'
             LEFT JOIN courses c ON s.course_id = c.id
             LEFT JOIN survey_responses sr ON s.id = sr.survey_id AND sr.student_id = ?
-            WHERE e.user_id = ? 
-                AND e.status = 'approved'
-                AND s.status = 'active'
+            WHERE s.status = 'active'
                 AND (s.start_date IS NULL OR s.start_date <= date('now'))
                 AND (s.end_date IS NULL OR s.end_date >= date('now'))
-            ORDER BY s.created_at DESC
         `).bind(studentId, studentId).all();
 
-        return successResponse(c, results || []);
+        // 2) session_id(회차) 기준: course_session_enrollments로 수강 중인 회차의 활성 설문
+        const { results: bySession } = await DB.prepare(`
+            SELECT 
+                s.id, s.course_id, s.session_id, s.type, s.title, s.description, s.start_date, s.end_date, s.status, s.created_at,
+                (SELECT (ac.name || ' (' || cs.session_number || '회차' || CASE WHEN cs.session_name IS NOT NULL AND TRIM(cs.session_name) <> '' THEN ' - ' || cs.session_name ELSE '' END || ')')
+                 FROM course_sessions cs LEFT JOIN approved_courses ac ON cs.approved_course_id = ac.id WHERE cs.id = s.session_id) as course_title,
+                CASE WHEN sr.id IS NOT NULL THEN 'completed' ELSE 'pending' END as response_status
+            FROM surveys s
+            INNER JOIN course_session_enrollments cse ON s.session_id = cse.session_id AND cse.user_id = ? AND cse.status IN ('approved', 'enrolled')
+            LEFT JOIN survey_responses sr ON s.id = sr.survey_id AND sr.student_id = ?
+            WHERE s.session_id IS NOT NULL AND s.status = 'active'
+                AND (s.start_date IS NULL OR s.start_date <= date('now'))
+                AND (s.end_date IS NULL OR s.end_date >= date('now'))
+        `).bind(studentId, studentId).all();
+
+        const seen = new Set<number>();
+        const merged: any[] = [];
+        for (const row of (byCourse || [])) {
+            if (row.id && !seen.has(row.id)) { seen.add(row.id); merged.push(row); }
+        }
+        for (const row of (bySession || [])) {
+            if (row.id && !seen.has(row.id)) { seen.add(row.id); merged.push(row); }
+        }
+        merged.sort((a, b) => new Date((b.created_at || '')).getTime() - new Date((a.created_at || '')).getTime());
+
+        return successResponse(c, merged);
     } catch (e: any) {
         console.error('Error fetching pending surveys:', e);
         return errorResponse(c, e.message, 500);
@@ -249,6 +271,97 @@ app.get('/:id', authMiddleware, async (c) => {
         return successResponse(c, { ...survey, questions: parsedQuestions });
     } catch (e: any) {
         console.error('Error fetching survey:', e);
+        return errorResponse(c, e.message, 500);
+    }
+});
+
+// POST /api/surveys/:id/submit - Student submits survey answers
+app.post('/:id/submit', authMiddleware, async (c) => {
+    try {
+        const user = c.get('user');
+        if (user.role !== 'student') {
+            return errorResponse(c, '학생만 설문에 참여할 수 있습니다', 403);
+        }
+        const { DB } = c.env;
+        const id = c.req.param('id');
+        const body = await c.req.json();
+        const answers = Array.isArray(body.answers) ? body.answers : [];
+
+        const survey: any = await DB.prepare('SELECT s.* FROM surveys s WHERE s.id = ?').bind(id).first();
+        if (!survey) return notFoundResponse(c, '설문을 찾을 수 없습니다.');
+        if (survey.status !== 'active') {
+            return errorResponse(c, '진행 중인 설문이 아닙니다.', 400);
+        }
+
+        const studentId = user.userId;
+        let allowed = false;
+        if (survey.course_id) {
+            const e: any = await DB.prepare('SELECT 1 FROM enrollments WHERE course_id = ? AND user_id = ? AND status = \'approved\' LIMIT 1')
+                .bind(survey.course_id, studentId).first();
+            allowed = !!e;
+        }
+        if (!allowed && survey.session_id) {
+            const e: any = await DB.prepare('SELECT 1 FROM course_session_enrollments WHERE session_id = ? AND user_id = ? AND status IN (\'approved\', \'enrolled\') LIMIT 1')
+                .bind(survey.session_id, studentId).first();
+            allowed = !!e;
+        }
+        if (!allowed) return errorResponse(c, '해당 과정 수강생만 참여할 수 있습니다.', 403);
+
+        const existing: any = await DB.prepare('SELECT id FROM survey_responses WHERE survey_id = ? AND student_id = ? LIMIT 1')
+            .bind(id, studentId).first();
+        if (existing) return errorResponse(c, '이미 참여한 설문입니다.', 400);
+
+        const res = await DB.prepare('INSERT INTO survey_responses (survey_id, student_id) VALUES (?, ?)')
+            .bind(id, studentId).run();
+        const responseId = res.meta?.last_row_id;
+        if (!responseId) return errorResponse(c, '응답 저장에 실패했습니다.', 500);
+
+        for (const a of answers) {
+            const qid = a.question_id;
+            const val = a.answer_value != null ? String(a.answer_value).trim() : null;
+            if (!qid) continue;
+            await DB.prepare('INSERT INTO survey_answers (response_id, question_id, answer_value) VALUES (?, ?, ?)')
+                .bind(responseId, qid, val || null).run();
+        }
+
+        return successResponse(c, { response_id: responseId }, '설문에 참여해 주셔서 감사합니다.');
+    } catch (e: any) {
+        console.error('Error submitting survey:', e);
+        return errorResponse(c, e.message, 500);
+    }
+});
+
+// POST /api/surveys/:id/start - Set survey status to active (설문진행)
+app.post('/:id/start', authMiddleware, async (c) => {
+    try {
+        const user = c.get('user');
+        if (user.role !== 'admin' && user.role !== 'teacher') {
+            return errorResponse(c, '권한이 없습니다', 403);
+        }
+        const { DB } = c.env;
+        const id = c.req.param('id');
+
+        const survey: any = await DB.prepare(`
+            SELECT s.*, c.teacher_id
+            FROM surveys s
+            LEFT JOIN courses c ON s.course_id = c.id
+            WHERE s.id = ?
+        `).bind(id).first();
+
+        if (!survey) return notFoundResponse(c, '설문을 찾을 수 없습니다.');
+
+        if (user.role === 'teacher') {
+            if (survey.session_id != null) {
+                // 회차 설문: 담당 여부는 session_timetable 등으로 확인할 수 있으나, 여기서는 허용
+            } else if (survey.teacher_id != null && survey.teacher_id !== user.userId) {
+                return errorResponse(c, '본인이 담당하는 과정의 설문만 진행할 수 있습니다', 403);
+            }
+        }
+
+        await DB.prepare('UPDATE surveys SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').bind('active', id).run();
+        return successResponse(c, null, '설문이 진행 중으로 변경되었습니다.');
+    } catch (e: any) {
+        console.error('Error starting survey:', e);
         return errorResponse(c, e.message, 500);
     }
 });
@@ -509,10 +622,13 @@ app.delete('/:id', authMiddleware, async (c) => {
     }
 });
 
-// POST /api/surveys/:id/close - Close survey
+// POST /api/surveys/:id/close - Close survey (진행종료)
 app.post('/:id/close', authMiddleware, async (c) => {
     try {
         const user = c.get('user');
+        if (user.role !== 'admin' && user.role !== 'teacher') {
+            return errorResponse(c, '권한이 없습니다', 403);
+        }
         const { DB } = c.env;
         const id = c.req.param('id');
 
@@ -523,15 +639,17 @@ app.post('/:id/close', authMiddleware, async (c) => {
             WHERE s.id = ?
         `).bind(id).first();
 
-        if (!survey) return notFoundResponse(c, 'Survey not found');
+        if (!survey) return notFoundResponse(c, '설문을 찾을 수 없습니다.');
 
-        if (user.role === 'teacher' && survey.teacher_id !== user.userId) {
-            return errorResponse(c, '본인이 담당하는 과정의 설문만 마감할 수 있습니다', 403);
+        if (user.role === 'teacher') {
+            if (survey.session_id != null) { /* 회차 설문 허용 */ }
+            else if (survey.teacher_id != null && survey.teacher_id !== user.userId) {
+                return errorResponse(c, '본인이 담당하는 과정의 설문만 마감할 수 있습니다', 403);
+            }
         }
 
         await DB.prepare('UPDATE surveys SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').bind('closed', id).run();
-
-        return successResponse(c, null, '설문이 마감되었습니다');
+        return successResponse(c, null, '설문이 마감되었습니다.');
     } catch (e: any) {
         console.error('Error closing survey:', e);
         return errorResponse(c, e.message, 500);
