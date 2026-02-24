@@ -246,6 +246,11 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
              if (btn) btn.addEventListener('click', createPostLectureSurvey);
              var filter = document.getElementById('filterType');
              if (filter) filter.addEventListener('change', function() { loadSurveys(); });
+             var list = document.getElementById('surveyList');
+             if (list) list.addEventListener('click', function(e) {
+                 var el = e.target && e.target.closest && e.target.closest('.btn-view-results');
+                 if (el) { viewResults(parseInt(el.getAttribute('data-id'), 10), el.getAttribute('data-type') || ''); }
+             });
         });
 
         function getSurveysApiUrl() {
@@ -301,7 +306,7 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
                 var startDate = (s.start_date || '').split('T')[0];
                 var endDate = (s.end_date || '').split('T')[0];
                 var previewHref = '/admin/courses/' + courseId + '/lms/surveys/' + s.id + '/preview' + (isHrd ? '?type=hrd' : '');
-                var typeSafe = String(s.type || '').split('\\\\').join('\\\\\\\\').split("'").join("\\\\'");
+                var typeAttr = String(s.type || '').split('&').join('&amp;').split('<').join('&lt;').split('>').join('&gt;').split('"').join('&quot;');
                 var titleSafe = String(s.title || '-').split('<').join('&lt;').split('>').join('&gt;').split('"').join('&quot;');
                 return '<tr class="hover:bg-gray-50 transition">' +
                     '<td class="px-6 py-4 whitespace-nowrap">' + typeLabel + '</td>' +
@@ -312,7 +317,7 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
                     '<td class="px-6 py-4 text-center">' + statusLabel + '</td>' +
                     '<td class="px-6 py-4 text-right">' +
                     '<a href="' + previewHref + '" target="_blank" class="text-amber-600 hover:underline text-xs font-bold mr-3">미리보기</a>' +
-                    '<button type="button" onclick="viewResults(' + s.id + ', \'' + typeSafe + '\')" class="text-blue-600 hover:underline text-xs font-bold mr-3">결과분석</button>' +
+                    '<button type="button" class="btn-view-results text-blue-600 hover:underline text-xs font-bold mr-3" data-id="' + s.id + '" data-type="' + typeAttr + '">결과분석</button>' +
                     '</td></tr>';
             }).join('');
         }
