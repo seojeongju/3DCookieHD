@@ -1,5 +1,14 @@
 (function () {
-    if (!document.getElementById('approvedListBody')) return;
+    var tbody = document.getElementById('approvedListBody');
+    if (!tbody) return;
+    tbody.addEventListener('click', function (e) {
+        var target = e.target;
+        if (target.closest('a') || target.closest('button')) return;
+        var row = target.closest('tr.approved-list-row');
+        if (!row) return;
+        tbody.querySelectorAll('tr.approved-list-row').forEach(function (r) { r.classList.remove('approved-row-selected'); });
+        row.classList.add('approved-row-selected');
+    });
     var tipToggle = document.getElementById('approvedTipToggle');
     var tipContent = document.getElementById('approvedTipContent');
     var tipIcon = document.getElementById('approvedTipIcon');
@@ -92,7 +101,7 @@
                             ? '<a href="/admin/courses/sessions?approved_course_id=' + item.id + '" class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-blue-50 text-blue-700 text-[10px] font-bold hover:bg-blue-100 transition whitespace-nowrap" title="회차 목록 보기"><i class="fas fa-list-ol"></i> ' + sessionCount + '회차</a>'
                             : '<span class="text-slate-300 text-[10px]">0회차</span>';
 
-                        return '<tr class="hover:bg-slate-50/80 transition align-middle">' +
+                        return '<tr class="approved-list-row hover:bg-slate-50/80 transition align-middle cursor-pointer" data-approved-id="' + (item.id || '') + '">' +
                             '<td class="p-3 text-center text-slate-500 text-xs align-middle">' + no + '</td>' +
                             '<td class="p-3 text-slate-600 text-xs font-medium align-middle whitespace-nowrap">' + (item.category_name || '-') + '</td>' +
                             '<td class="p-3 align-middle min-w-0 approved-col-name" title="' + nameEsc + '">' +
@@ -115,7 +124,7 @@
                             '</tr>';
                     }).join('');
                     tbody.querySelectorAll('.btn-approved-delete').forEach(function (btn) {
-                        btn.addEventListener('click', function () { window.deleteApproved(parseInt(btn.getAttribute('data-id'), 10), btn.getAttribute('data-name') || ''); });
+                        btn.addEventListener('click', function (e) { e.stopPropagation(); window.deleteApproved(parseInt(btn.getAttribute('data-id'), 10), btn.getAttribute('data-name') || ''); });
                     });
                 }
                 renderPagination(pagination);
@@ -192,3 +201,4 @@
 
     loadCategories().then(function () { loadApprovedList(); });
 })();
+

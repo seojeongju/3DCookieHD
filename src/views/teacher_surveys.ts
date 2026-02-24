@@ -248,19 +248,22 @@ export const teacherSurveysHtml = `
                 </button>
             </div>
             <div class="overflow-y-auto p-10 space-y-12 custom-scrollbar">
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                    <div id="chartContainer" class="bg-slate-50 rounded-[2rem] p-8 border border-slate-200">
-                        <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-8 text-center">역량 진단 레이더 차트</h4>
-                        <div class="h-80 w-full flex items-center justify-center">
-                            <canvas id="competencyChart"></canvas>
-                        </div>
+                <div class="grid grid-cols-3 gap-4 mb-8">
+                    <div class="bg-amber-50 rounded-2xl p-4 text-center">
+                        <div class="text-xl font-black text-amber-700" id="resultTotalResponses">0</div>
+                        <div class="text-[10px] font-black text-amber-600 uppercase tracking-widest">참여 응답</div>
                     </div>
-                    <div class="space-y-6">
-                        <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">문항별 점수 상세</h4>
-                        <div id="scoreDetails" class="space-y-4"></div>
+                    <div class="bg-slate-50 rounded-2xl p-4 text-center">
+                        <div class="text-xl font-black text-slate-700" id="resultTotalTarget">0</div>
+                        <div class="text-[10px] font-black text-slate-600 uppercase tracking-widest">대상 인원</div>
+                    </div>
+                    <div class="bg-blue-50 rounded-2xl p-4 text-center">
+                        <div class="text-xl font-black text-blue-700" id="resultResponseRate">0%</div>
+                        <div class="text-[10px] font-black text-blue-600 uppercase tracking-widest">참여율</div>
                     </div>
                 </div>
-                
+                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">항목별 결과 (그래프)</h4>
+                <div id="resultQuestionCharts" class="space-y-8"></div>
                 <div class="pt-12 border-t border-slate-100">
                     <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">주관식 의견 (수강생 피드백)</h4>
                     <div id="commentsList" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
@@ -297,7 +300,7 @@ export const teacherSurveysHtml = `
     </template>
 
     <script>
-        let competencyChart = null;
+        let resultCharts = [];
         let selectedCourseId = null;
         let allSurveys = [];
         let currentSurveyId = null;
@@ -462,7 +465,10 @@ export const teacherSurveysHtml = `
 
         window.closeModal = (id) => {
             document.getElementById(id).classList.add('hidden');
-            if(id === 'resultModal' && competencyChart) competencyChart.destroy();
+            if (id === 'resultModal') {
+                resultCharts.forEach(ch => { if (ch && ch.destroy) ch.destroy(); });
+                resultCharts = [];
+            }
         };
 
         window.addQuestion = () => {
@@ -576,55 +582,89 @@ export const teacherSurveysHtml = `
                 const response = await fetch('/api/surveys/' + id + '/results', { headers: { 'Authorization': 'Bearer ' + token } });
                 const result = await response.json();
                 if (!result.success) return;
-                
-                const { question_stats, responses } = result.data;
+                const data = result.data;
+                const survey = data.survey || {};
+                const stats = data.stats || {};
+                const question_stats = data.question_stats || [];
                 document.getElementById('resultModal').classList.remove('hidden');
-                
-                // Chart Setup
-                const chartBox = document.getElementById('chartContainer');
-                if (type === 'diagnosis' && question_stats.length > 0) {
-                    chartBox.classList.remove('hidden');
-                    const ratingQs = question_stats.filter(q => q.question_type === 'rating');
-                    if (ratingQs.length > 0) {
-                        if (competencyChart) competencyChart.destroy();
-                        const ctx = document.getElementById('competencyChart').getContext('2d');
-                        competencyChart = new Chart(ctx, {
-                            type: 'radar',
+                resultCharts.forEach(ch => { if (ch && ch.destroy) ch.destroy(); });
+                resultCharts = [];
+                document.getElementById('resultTotalResponses').textContent = stats.total_responses || 0;
+                document.getElementById('resultTotalTarget').textContent = stats.total_target || 0;
+                document.getElementById('resultResponseRate').textContent = (stats.response_rate || 0) + '%';
+                const scaleLabels = { 1: '매우 아니다', 2: '아니다', 3: '보통', 4: '그렇다', 5: '매우 그렇다' };
+                const commentsHtml = [];
+                const container = document.getElementById('resultQuestionCharts');
+                container.innerHTML = '';
+                question_stats.forEach((q, idx) => {
+                    const card = document.createElement('div');
+                    card.className = 'bg-white rounded-2xl border border-slate-200 p-6 shadow-sm';
+                    const title = document.createElement('p');
+                    title.className = 'text-sm font-black text-slate-900 mb-4';
+                    title.textContent = (idx + 1) + '. ' + (q.question_text || '');
+                    card.appendChild(title);
+                    if (q.question_type === 'rating') {
+                        const dist = q.distribution || {};
+                        const labels = [1,2,3,4,5].map(k => k + '(' + (scaleLabels[k] || '') + ')');
+                        const values = [1,2,3,4,5].map(k => dist[k] || 0);
+                        const canvas = document.createElement('canvas');
+                        canvas.height = 220;
+                        card.appendChild(canvas);
+                        container.appendChild(card);
+                        const ch = new Chart(canvas.getContext('2d'), {
+                            type: 'bar',
                             data: {
-                                labels: ratingQs.map(q => q.question_text.substring(0, 12)),
-                                datasets: [{
-                                    data: ratingQs.map(q => q.average || 0),
-                                    fill: true,
-                                    backgroundColor: 'rgba(99, 102, 241, 0.2)',
-                                    borderColor: 'rgb(99, 102, 241)',
-                                    borderWidth: 2,
-                                    pointBackgroundColor: 'rgb(99, 102, 241)'
-                                }]
+                                labels,
+                                datasets: [{ label: '응답 수', data: values, backgroundColor: ['#fef3c7','#fde68a','#fcd34d','#f59e0b','#d97706'], borderColor: '#b45309', borderWidth: 1 }]
                             },
-                            options: { scales: { r: { suggestedMin: 0, suggestedMax: 5, ticks: { display: false } } }, plugins: { legend: { display: false } } }
+                            options: {
+                                indexAxis: 'y',
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: { legend: { display: false } },
+                                scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                            }
                         });
-                    } else chartBox.classList.add('hidden');
-                } else chartBox.classList.add('hidden');
-
-                // Breakdown list
-                document.getElementById('scoreDetails').innerHTML = question_stats.map(q => {
-                    const avg = q.average || 0;
-                    const pct = q.question_type === 'rating' ? (avg / 5 * 100) : (avg / 100 * 100);
-                    return '<div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">' +
-                            '<div class="flex justify-between items-center mb-3">' +
-                                '<span class="text-[10px] font-black text-slate-900 tracking-tight uppercase">' + q.question_text + '</span>' +
-                                '<span class="text-xs font-black text-blue-600">' + avg.toFixed(1) + '</span>' +
-                            '</div>' +
-                            '<div class="w-full bg-slate-50 h-1 rounded-full overflow-hidden">' +
-                                '<div class="bg-blue-600 h-full" style="width: ' + pct + '%"></div>' +
-                            '</div>' +
-                            '<div class="text-[8px] font-black text-slate-300 uppercase mt-2 tracking-widest">응답: ' + q.total_responses + '명</div>' +
-                        '</div>';
-                }).join('') || '<div class="text-[10px] uppercase font-black text-slate-300 py-10">정량적 데이터가 없습니다.</div>';
-                
-                // Subjective Commits (Async details omitted for brevity, but follows same pattern as original)
-                document.getElementById('commentsList').innerHTML = '<div class="col-span-full py-10 text-center text-[10px] font-black text-slate-300 uppercase tracking-widest">수집된 데이터 없음</div>';
-                
+                        resultCharts.push(ch);
+                        const avg = q.average != null ? q.average.toFixed(1) : '-';
+                        const avgP = document.createElement('p');
+                        avgP.className = 'text-xs font-black text-amber-700 mt-2';
+                        avgP.textContent = '평균: ' + avg + '점  |  응답 ' + (q.total_responses || 0) + '명';
+                        card.appendChild(avgP);
+                    } else if (q.question_type === 'choice') {
+                        const dist = q.distribution || {};
+                        const keys = Object.keys(dist);
+                        const choiceValues = keys.map(k => dist[k]);
+                        const canvas = document.createElement('canvas');
+                        canvas.height = Math.max(180, keys.length * 36);
+                        card.appendChild(canvas);
+                        container.appendChild(card);
+                        const ch = new Chart(canvas.getContext('2d'), {
+                            type: 'bar',
+                            data: {
+                                labels: keys,
+                                datasets: [{ label: '응답 수', data: choiceValues, backgroundColor: 'rgba(59, 130, 246, 0.6)', borderColor: 'rgb(37, 99, 235)', borderWidth: 1 }]
+                            },
+                            options: {
+                                indexAxis: 'y',
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: { legend: { display: false } },
+                                scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                            }
+                        });
+                        resultCharts.push(ch);
+                    } else if (q.question_type === 'text') {
+                        const texts = q.text_answers || [];
+                        texts.forEach(t => commentsHtml.push('<div class="p-3 rounded-xl border border-slate-100 bg-slate-50/50 text-sm text-slate-700">' + String(t).replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>'));
+                        const txtWrap = document.createElement('div');
+                        txtWrap.className = 'text-sm text-slate-600 bg-slate-50 rounded-xl p-4 max-h-32 overflow-y-auto space-y-2';
+                        txtWrap.innerHTML = texts.length ? texts.map(t => '<div class="py-1">' + String(t).replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>').join('') : '<span class="text-slate-400">응답 없음</span>';
+                        card.appendChild(txtWrap);
+                        container.appendChild(card);
+                    }
+                });
+                document.getElementById('commentsList').innerHTML = commentsHtml.length ? commentsHtml.join('') : '<div class="col-span-full py-10 text-center text-[10px] font-black text-slate-300 uppercase tracking-widest">수집된 서술형 응답이 없습니다.</div>';
             } catch (e) { console.error(e); }
         };
 

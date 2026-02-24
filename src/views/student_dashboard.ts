@@ -1192,9 +1192,11 @@ export const studentDashboardHtml = () => `
                     formHtml += '<div class="border-b border-slate-100 pb-6">';
                     formHtml += '<p class="font-bold text-slate-800 mb-3">' + (i + 1) + '. ' + qText + '</p>';
                     if (q.question_type === 'rating') {
+                        var scaleLabels = ['매우 아니다', '아니다', '보통', '그렇다', '매우 그렇다'];
                         formHtml += '<div class="flex flex-wrap gap-2">';
                         for (var r = 1; r <= 5; r++) {
-                            formHtml += '<label class="inline-flex items-center gap-1.5 cursor-pointer"><input type="radio" name="q_' + qid + '" value="' + r + '" class="rounded border-slate-300 text-sky-600 focus:ring-sky-500"> <span class="text-sm font-bold text-slate-600">' + r + '점</span></label>';
+                            var labelText = r + '(' + (scaleLabels[r - 1] || '') + ')';
+                            formHtml += '<label class="inline-flex items-center gap-1.5 cursor-pointer"><input type="radio" name="q_' + qid + '" value="' + r + '" class="rounded border-slate-300 text-sky-600 focus:ring-sky-500"> <span class="text-sm font-bold text-slate-600">' + labelText + '</span></label>';
                         }
                         formHtml += '</div>';
                     } else if (q.question_type === 'text') {

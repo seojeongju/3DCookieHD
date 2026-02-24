@@ -340,6 +340,7 @@ export const adminCoursesApprovedHtml = () =>
             .approved-list-table .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
             .approved-list-table .approved-col-instructor { min-width: 0; white-space: nowrap; }
             .approved-list-table .approved-col-status { white-space: nowrap; min-width: 3.5rem; }
+            .approved-list-table tr.approved-row-selected { background-color: rgb(238 242 255) !important; }
         </style>
         <div class="flex-1 overflow-auto custom-scrollbar relative">
             <table class="approved-list-table w-full text-left border-collapse table-fixed" style="min-width: 990px;">
