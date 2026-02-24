@@ -44,7 +44,10 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
      <div class="bg-white border-b border-gray-200 sticky top-[6.5rem] z-30">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
             <h1 class="text-xl font-bold text-gray-800">훈련일지 관리</h1>
-            <div class="flex gap-2">
+            <div class="flex flex-wrap gap-2 items-center">
+                <button type="button" onclick="ensureDedicatedCourse()" class="px-3 py-2 text-sm border border-amber-200 bg-amber-50 text-amber-800 rounded-lg hover:bg-amber-100 transition flex items-center shadow-sm" title="다른 과정과 훈련일지가 겹쳐 보일 때 이 회차 전용 과정으로 분리합니다">
+                    <i class="fas fa-unlink mr-1.5"></i> 회차 전용 연동 분리
+                </button>
                 <button onclick="openLogModal()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center shadow-sm">
                     <i class="fas fa-pen-nib mr-2"></i> 오늘 일지 작성
                 </button>
@@ -277,6 +280,28 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
             loadAssignedUnits();
         });
 
+        async function ensureDedicatedCourse() {
+            if (!courseId) return;
+            if (!confirm('이 회차를 전용 LMS 과정으로 연동 분리할까요? 다른 과정과 훈련일지가 겹쳐 보일 때 사용하세요.')) return;
+            try {
+                var res = await fetch('/api/hrd/training-logs/ensure-dedicated-course', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({ courseId: courseId })
+                });
+                var result = await res.json();
+                if (result.success) {
+                    alert(result.message || '연동 분리되었습니다.');
+                    loadLogs(currentPage);
+                } else {
+                    alert(result.error || '연동 분리 실패');
+                }
+            } catch (e) {
+                console.error(e);
+                alert('요청 중 오류가 발생했습니다.');
+            }
+        }
+
         async function loadAssignedUnits() {
             try {
                 const res = await fetch('/api/ncs/courses/' + courseId);
@@ -406,8 +431,9 @@ function renderLogs(logs) {
         var content = (tContent || '-').replace(/</g, '&lt;').replace(/"/g, '&quot;');
         var instructor = (log.instructor_name || '미상').replace(/</g, '&lt;').replace(/"/g, '&quot;');
         var hasSavedHours = typeof log.training_hours !== 'undefined' && log.training_hours !== null && log.training_hours > 0;
-        var reliableHours = hasSavedHours ? log.training_hours : (assignedHoursFromApi != null && assignedHoursFromApi > 0 ? assignedHoursFromApi : null);
-        var displayHoursText = reliableHours != null ? (typeof reliableHours === 'number' ? reliableHours : parseFloat(reliableHours)) + 'h' : '-';
+        var assignedHours = assignedHoursFromApi != null && assignedHoursFromApi > 0 ? (typeof assignedHoursFromApi === 'number' ? assignedHoursFromApi : parseFloat(assignedHoursFromApi)) : null;
+        var reliableHours = assignedHours != null ? assignedHours : (hasSavedHours ? (typeof log.training_hours === 'number' ? log.training_hours : parseFloat(log.training_hours)) : null);
+        var displayHoursText = reliableHours != null ? reliableHours + 'h' : '-';
         html += '<tr class="hover:bg-indigo-50/30 transition-all duration-200 group border-b border-gray-50 last:border-0 shadow-[inset_0_1px_0_0_rgba(255,255,255,1)]">' +
             '<td class="px-6 py-5 whitespace-nowrap text-[11px] font-black text-indigo-300 uppercase tracking-widest">' + (log.date || '') + '</td>' +
             '<td class="px-6 py-5"><div class="font-black text-gray-800 mb-1 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">' + topic + '</div>' +

@@ -2699,21 +2699,17 @@ app.get('/training-logs', async (c) => {
 
         let assignedDailyHours: number | null = null;
 
-        // 1. courses 테이블에 직접 있는지 확인
-        const existsInCourses = await c.env.DB.prepare('SELECT id FROM courses WHERE id = ?').bind(rawId).first();
-        if (existsInCourses) {
-            resolvedCourseId = rawId;
-        } else {
-            // 2. course_sessions(회차): 회차별 전용 LMS 과정 1:1. 다른 회차와 공유하면 안 됨.
-            const session: any = await c.env.DB.prepare(`
-                SELECT s.id, s.session_number, s.session_name, s.lms_course_id, a.name as course_name, a.daily_hours
-                FROM course_sessions s
-                JOIN approved_courses a ON s.approved_course_id = a.id
-                WHERE s.id = ?
-            `).bind(rawId).first();
+        // 1. 회차(session) 우선: URL이 회차 ID이면 해당 회차 전용 LMS 과정으로 해석 (복사로 만든 신규 회차가 다른 회차 일지를 보는 문제 방지)
+        const sessionRow: any = await c.env.DB.prepare(`
+            SELECT s.id, s.session_number, s.session_name, s.lms_course_id, a.name as course_name, a.daily_hours
+            FROM course_sessions s
+            JOIN approved_courses a ON s.approved_course_id = a.id
+            WHERE s.id = ?
+        `).bind(rawId).first();
 
-            if (session) {
-                if (session.daily_hours != null && session.daily_hours > 0) {
+        if (sessionRow) {
+            const session = sessionRow;
+            if (session.daily_hours != null && session.daily_hours > 0) {
                     assignedDailyHours = Number(session.daily_hours);
                 }
                 const expectedTitle = `${session.course_name || '과정'} (${session.session_number}회차${session.session_name ? ' - ' + session.session_name : ''})`.trim();
@@ -2764,6 +2760,20 @@ app.get('/training-logs', async (c) => {
                             await c.env.DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(resolvedCourseId, rawId).run();
                         }
                     } catch (_) {}
+                }
+        } else {
+            // 2. 회차가 아니면 courses.id로 해석 (직접 과정 ID로 들어온 경우)
+            const existsInCourses = await c.env.DB.prepare('SELECT id FROM courses WHERE id = ?').bind(rawId).first();
+            if (existsInCourses) {
+                resolvedCourseId = rawId;
+                const sessionWithCourse: any = await c.env.DB.prepare(`
+                    SELECT a.daily_hours FROM course_sessions s
+                    JOIN approved_courses a ON s.approved_course_id = a.id
+                    WHERE s.lms_course_id = ?
+                    LIMIT 1
+                `).bind(rawId).first();
+                if (sessionWithCourse && sessionWithCourse.daily_hours != null && sessionWithCourse.daily_hours > 0) {
+                    assignedDailyHours = Number(sessionWithCourse.daily_hours);
                 }
             }
         }
@@ -2816,6 +2826,83 @@ app.get('/training-logs', async (c) => {
     } catch (e: any) {
         console.error('[Training Logs GET] Error:', e);
         return errorResponse(c, '훈련일지 조회 실패: ' + e.message, 500);
+    }
+});
+
+// 훈련일지 회차 연동 해제: 이 회차 전용 LMS 과정을 만들어서 다른 과정과 일지가 겹치지 않게 함 (관리자 한 번 호출)
+app.post('/training-logs/ensure-dedicated-course', authMiddleware, async (c) => {
+    try {
+        const body = await c.req.json().catch(() => ({}));
+        const courseIdParam = c.req.query('courseId') ?? body.courseId;
+        if (courseIdParam == null || courseIdParam === '') {
+            return errorResponse(c, 'courseId가 필요합니다.', 400);
+        }
+        const rawId = Number(courseIdParam);
+        if (isNaN(rawId)) {
+            return errorResponse(c, '유효한 courseId를 입력해 주세요.', 400);
+        }
+
+        const existsInCourses = await c.env.DB.prepare('SELECT id FROM courses WHERE id = ?').bind(rawId).first();
+        if (existsInCourses) {
+            return c.json({ success: true, message: '이미 LMS 과정 ID입니다. 연동 해제가 필요하지 않습니다.', resolvedCourseId: rawId });
+        }
+
+        const session: any = await c.env.DB.prepare(`
+            SELECT s.id, s.session_number, s.session_name, s.lms_course_id, a.name as course_name
+            FROM course_sessions s
+            JOIN approved_courses a ON s.approved_course_id = a.id
+            WHERE s.id = ?
+        `).bind(rawId).first();
+
+        if (!session) {
+            return errorResponse(c, '해당 회차를 찾을 수 없습니다.', 404);
+        }
+
+        const expectedTitle = `${session.course_name || '과정'} (${session.session_number}회차${session.session_name ? ' - ' + session.session_name : ''})`.trim();
+        let resolvedCourseId: number | null = null;
+
+        const otherSession: any = session.lms_course_id != null
+            ? await c.env.DB.prepare('SELECT id FROM course_sessions WHERE lms_course_id = ? AND id != ? LIMIT 1')
+                .bind(session.lms_course_id, rawId).first()
+            : null;
+
+        if (otherSession) {
+            await c.env.DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(null, rawId).run();
+        }
+
+        const lmsCourse: any = await c.env.DB.prepare('SELECT id FROM courses WHERE title = ? LIMIT 1').bind(expectedTitle).first();
+        if (lmsCourse) {
+            const usedByOther: any = await c.env.DB.prepare(
+                'SELECT id FROM course_sessions WHERE lms_course_id = ? AND id != ? LIMIT 1'
+            ).bind(lmsCourse.id, rawId).first();
+            if (!usedByOther) {
+                resolvedCourseId = lmsCourse.id;
+                await c.env.DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(resolvedCourseId, rawId).run();
+            }
+        }
+
+        if (resolvedCourseId == null) {
+            const insert = await c.env.DB.prepare(
+                'INSERT INTO courses (title, category, status) VALUES (?, \'국비지원\', \'active\')'
+            ).bind(expectedTitle).run();
+            const newId = insert.meta?.last_row_id;
+            if (newId != null) {
+                resolvedCourseId = Number(newId);
+                await c.env.DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(resolvedCourseId, rawId).run();
+            }
+        }
+
+        if (resolvedCourseId == null) {
+            return errorResponse(c, '전용 과정 생성에 실패했습니다.', 500);
+        }
+        return c.json({
+            success: true,
+            message: '이 회차 전용 LMS 과정으로 연동되었습니다. 페이지를 새로고침하면 해당 회차 일지만 보입니다.',
+            resolvedCourseId
+        });
+    } catch (e: any) {
+        console.error('[ensure-dedicated-course]', e);
+        return errorResponse(c, '연동 해제 실패: ' + (e?.message || String(e)), 500);
     }
 });
 
