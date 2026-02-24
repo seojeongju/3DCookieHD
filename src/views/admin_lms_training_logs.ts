@@ -135,8 +135,8 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
                             <td class="border border-gray-800 bg-gray-100 font-bold p-2 text-center w-24">훈련일</td>
                             <td class="border border-gray-800 p-1 text-center bg-white">
                                 <select id="logDateSelect" class="w-full text-center font-bold bg-transparent outline-none cursor-pointer text-gray-800 hover:text-indigo-600 border-0 py-1" style="display:none;"></select>
-                                <input type="date" id="logDateFallback" required class="w-full text-center font-bold bg-transparent outline-none cursor-pointer text-gray-800 hover:text-indigo-600" style="display:none;">
-                                <input type="hidden" id="logDate" required>
+                                <input type="date" id="logDateFallback" class="w-full text-center font-bold bg-transparent outline-none cursor-pointer text-gray-800 hover:text-indigo-600" style="display:none;">
+                                <input type="hidden" id="logDate">
                             </td>
                         </tr>
                         <tr>
@@ -167,8 +167,8 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
                         <thead class="bg-gray-50">
                             <tr>
                                 <th class="border border-gray-800 p-2 w-12">교시</th>
-                                <th class="border border-gray-800 p-2 w-40">훈련과목</th>
-                                <th class="border border-gray-800 p-2 w-20">담당교사</th>
+                                <th class="border border-gray-800 p-2 min-w-[200px] w-52">훈련과목</th>
+                                <th class="border border-gray-800 p-2 min-w-[120px] w-36">담당교사</th>
                                 <th class="border border-gray-800 p-2">훈련 내용</th>
                                 <th class="border border-gray-800 p-2 w-28">비고</th>
                             </tr>
@@ -1036,8 +1036,10 @@ async function printLog(id) {
                 const saved = savedDetails ? savedDetails.find(s => s.period === i || s.period === String(i)) : null;
                 const dbSch = dbSchedules ? dbSchedules.find(s => s.period_number === i || s.period_number === String(i)) : null;
 
-                const subject = (dbSch && dbSch.subject_name) ? dbSch.subject_name : (saved ? saved.subject : '');
-                const instructor = (dbSch && dbSch.instructor_name) ? dbSch.instructor_name : (saved ? saved.instructor : '');
+                var subject = (dbSch && dbSch.subject_name) ? dbSch.subject_name : (saved ? saved.subject : '');
+                var instructor = (dbSch && dbSch.instructor_name) ? dbSch.instructor_name : (saved ? saved.instructor : '');
+                var subjectTrim = (subject || '').toString().trim();
+                if (!subjectTrim || subjectTrim === '교과목') { instructor = ''; }
                 const content = saved ? saved.content : '';
                 const note = saved ? saved.note : '';
                 
@@ -1047,8 +1049,8 @@ async function printLog(id) {
 
                 html += '<tr class="hover:bg-indigo-50/30 transition-colors group">' +
                         '<td class="px-2 py-2 text-center border-r font-black text-gray-400 bg-gray-50/50">' + i + '교시</td>' +
-                        '<td class="px-2 py-2 border-r"><input type="text" name="sch_subject_' + i + '" value="' + (subject || '') + '" class="w-full px-3 py-2 border border-gray-200 rounded-md text-sm font-bold text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all placeholder-gray-300' + readonlyClass + '" placeholder="교과목"' + disabledAttr + '></td>' +
-                        '<td class="px-2 py-2 border-r"><input type="text" name="sch_instructor_' + i + '" value="' + (instructor || '') + '" class="w-full px-3 py-2 border border-gray-200 rounded-md text-center text-sm font-medium text-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all placeholder-gray-300' + readonlyClass + '" placeholder="담당교사"' + disabledAttr + '></td>' +
+                        '<td class="px-2 py-2 border-r min-w-[200px] w-52"><input type="text" name="sch_subject_' + i + '" value="' + (subject || '') + '" class="w-full min-w-0 px-3 py-2 border border-gray-200 rounded-md text-sm font-bold text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all placeholder-gray-300' + readonlyClass + '" placeholder="교과목"' + disabledAttr + '></td>' +
+                        '<td class="px-2 py-2 border-r min-w-[120px] w-36"><input type="text" name="sch_instructor_' + i + '" value="' + (instructor || '') + '" class="w-full min-w-0 px-3 py-2 border border-gray-200 rounded-md text-center text-sm font-medium text-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all placeholder-gray-300' + readonlyClass + '" placeholder="담당교사"' + disabledAttr + '></td>' +
                         '<td class="px-2 py-2 border-r"><input type="text" name="sch_content_' + i + '" value="' + (content || '') + '" class="w-full px-3 py-2 border border-gray-200 rounded-md text-sm text-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all placeholder-gray-300' + readonlyClass + '" placeholder="훈련내용을 입력하세요"' + disabledAttr + '></td>' +
                         '<td class="px-2 py-2"><input type="text" name="sch_note_' + i + '" value="' + (note || '') + '" class="w-full px-3 py-2 border border-gray-200 rounded-md text-sm text-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all placeholder-gray-300' + readonlyClass + '" placeholder="비고"' + disabledAttr + '></td>' +
                     '</tr>';
@@ -1279,9 +1281,15 @@ async function printLog(id) {
             }
 
             const idVal = document.getElementById('logId').value;
-            const dateVal = document.getElementById('logDate').value;
+            const dateVal = (document.getElementById('logDate') && document.getElementById('logDate').value) ? document.getElementById('logDate').value.trim() : '';
             const contentVal = document.getElementById('logContent').value;
             const hoursVal = document.getElementById('logHours').value;
+
+            if (!dateVal) {
+                if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '저장'; }
+                alert('훈련일을 선택해 주세요.');
+                return;
+            }
 
             // New Fields Collection (ES5-safe: no optional chaining)
             var logAttPresent = document.getElementById('logAttPresent');
