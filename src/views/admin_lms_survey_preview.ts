@@ -105,7 +105,7 @@ export const adminLmsSurveyPreviewHtml = (sidebar: string = hrdSidebar('courses'
                             html += '<div class="p-4"><textarea class="w-full h-32 border border-gray-200 rounded-lg p-3 text-sm bg-gray-50" placeholder="교육 소감을 작성해 주세요." readonly></textarea></div>';
                         } else {
                             html += '<table class="w-full text-sm"><thead><tr><th class="text-left py-2 pl-4 font-medium text-gray-600 w-1/2">문항</th>';
-                            for (var i = 5; i >= 1; i--) html += '<th class="py-2 text-center text-xs text-gray-500 font-medium">' + i + '</th>';
+                            for (var i = 5; i >= 1; i--) html += '<th class="py-2 text-center text-xs text-gray-500 font-medium">' + i + '(' + scaleLabels[i - 1] + ')</th>';
                             html += '</tr></thead><tbody>';
                             items.forEach(function(q) {
                                 html += '<tr class="border-t border-gray-100"><td class="py-3 pl-4 pr-2 text-gray-800">' + (q.question_text || '') + '</td>';
