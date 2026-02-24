@@ -296,7 +296,7 @@ export const loginHtml = `
                                 location.href = '/admin';
                             } else if (user.role === 'teacher') {
                                 location.href = '/teacher';
-                            } else if (user.role === 'student') {
+                            } else if (user.role === 'student' || user.role === 'user') {
                                 location.href = '/student';
                             } else {
                                 location.href = '/';

@@ -267,14 +267,12 @@ export const studentDashboardHtml = () => `
                     document.getElementById('userName').textContent = user.name || '-';
                     document.getElementById('welcome-name').textContent = user.name || '-';
                     if (user.is_initial_login === 1 || user.is_initial_login === true) {
-                        setTimeout(function() {
-                            document.getElementById('initialLoginModal').classList.remove('hidden');
-                        }, 500);
+                        var modalEl = document.getElementById('initialLoginModal');
+                        if (modalEl) modalEl.classList.remove('hidden');
                     }
-                    updateTime();
-                    setInterval(updateTime, 1000);
-                    updateDate();
-                    loadDashboardData();
+                    updateWelcomeTime();
+                    setInterval(updateWelcomeTime, 1000);
+                    loadStudentStats();
                 })
                 .catch(function() {
                     localStorage.removeItem('token');
