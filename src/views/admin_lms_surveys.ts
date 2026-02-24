@@ -301,16 +301,18 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
                 var startDate = (s.start_date || '').split('T')[0];
                 var endDate = (s.end_date || '').split('T')[0];
                 var previewHref = '/admin/courses/' + courseId + '/lms/surveys/' + s.id + '/preview' + (isHrd ? '?type=hrd' : '');
+                var typeSafe = String(s.type || '').replace(/'/g, '\\\'').replace(/\\/g, '\\\\');
+                var titleSafe = String(s.title || '-').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
                 return '<tr class="hover:bg-gray-50 transition">' +
                     '<td class="px-6 py-4 whitespace-nowrap">' + typeLabel + '</td>' +
-                    '<td class="px-6 py-4 font-medium text-gray-800">' + (s.title || '-') + '</td>' +
+                    '<td class="px-6 py-4 font-medium text-gray-800">' + titleSafe + '</td>' +
                     '<td class="px-6 py-4 text-xs text-gray-500">' + startDate + ' ~ ' + endDate + '</td>' +
                     '<td class="px-6 py-4 text-center"><div class="flex items-center justify-center gap-2"><span class="text-sm font-bold text-gray-700">' + count + '/' + total + '</span><span class="text-xs text-gray-400">(' + rate + '%)</span></div>' +
                     '<div class="w-full bg-gray-100 rounded-full h-1.5 mt-1 max-w-[100px] mx-auto"><div class="bg-blue-500 h-1.5 rounded-full" style="width:' + rate + '%"></div></div></td>' +
                     '<td class="px-6 py-4 text-center">' + statusLabel + '</td>' +
                     '<td class="px-6 py-4 text-right">' +
                     '<a href="' + previewHref + '" target="_blank" class="text-amber-600 hover:underline text-xs font-bold mr-3">미리보기</a>' +
-                    '<button type="button" onclick="viewResults(' + s.id + ', \'' + (s.type || '') + '\')" class="text-blue-600 hover:underline text-xs font-bold mr-3">결과분석</button>' +
+                    '<button type="button" onclick="viewResults(' + s.id + ', \'' + typeSafe + '\')" class="text-blue-600 hover:underline text-xs font-bold mr-3">결과분석</button>' +
                     '</td></tr>';
             }).join('');
         }
@@ -444,17 +446,13 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
                 { label: '직무이해', score: 85 },
                 { label: '기술활용', score: 72 },
                 { label: '문제해결', score: 90 }
-            ].map(d => \`
-                <div>
-                    <div class="flex justify-between text-sm mb-1">
-                        <span class="font-bold text-gray-700">\${d.label}</span>
-                        <span class="font-bold text-blue-600">\${d.score}점</span>
-                    </div>
-                    <div class="w-full bg-gray-100 rounded-full h-2">
-                        <div class="bg-blue-500 h-2 rounded-full" style="width: \${d.score}%"></div>
-                    </div>
-                </div>
-            \`).join('');
+            ].map(function(d) {
+                return '<div><div class="flex justify-between text-sm mb-1">' +
+                    '<span class="font-bold text-gray-700">' + d.label + '</span>' +
+                    '<span class="font-bold text-blue-600">' + d.score + '점</span></div>' +
+                    '<div class="w-full bg-gray-100 rounded-full h-2">' +
+                    '<div class="bg-blue-500 h-2 rounded-full" style="width:' + d.score + '%"></div></div></div>';
+            }).join('');
 
             document.getElementById('commentsList').innerHTML = '<div class="p-2 border-b">수업이 매우 유익했습니다.</div><div class="p-2 border-b">실습 장비가 조금 더 많았으면 좋겠습니다.</div>';
         }
