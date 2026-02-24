@@ -12,10 +12,10 @@ export const adminLmsSurveyPreviewHtml = (sidebar: string = hrdSidebar('courses'
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
 </head>
-<body class="bg-gray-100">
-    <div class="flex min-h-screen">
+<body class="bg-gray-100 overflow-hidden">
+    <div class="flex h-screen overflow-hidden">
         ${sidebar}
-        <div class="flex-1 flex flex-col">
+        <div class="flex-1 flex flex-col overflow-hidden relative min-w-0">
             <div class="flex-1 overflow-y-auto p-6 md:p-10">
                 ${lmsHeaderHtml('surveys')}
                 <div class="max-w-4xl mx-auto mt-8">
