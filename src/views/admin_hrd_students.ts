@@ -499,6 +499,10 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
                                     <select id="stdPaymentMethod" class="w-full px-5 py-3 bg-gray-50 border-none rounded-2xl text-sm outline-none cursor-pointer"><option value="">선택</option><option value="card">카드</option><option value="transfer">계좌이체</option><option value="cash">현금</option></select>
                                 </div>
                                 <div>
+                                    <label class="text-[10px] font-bold text-gray-400 ml-1 mb-2 block uppercase">자부담 결제수단 직접입력</label>
+                                    <input type="text" id="stdPaymentMethodNote" class="w-full px-5 py-3 bg-gray-50 border-none rounded-2xl text-sm outline-none" placeholder="예: 결제선생 신한7911">
+                                </div>
+                                <div>
                                     <label class="text-[10px] font-bold text-gray-400 ml-1 mb-2 block uppercase">결제일</label>
                                     <input type="date" id="stdPaymentDate" class="w-full px-5 py-3 bg-gray-50 border-none rounded-2xl text-sm outline-none">
                                 </div>
@@ -930,6 +934,8 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
             document.getElementById('stdPackageType').value = student.package_type || '';
             const pm = (student.payment_method || '').toLowerCase();
             document.getElementById('stdPaymentMethod').value = ['', 'card', 'transfer', 'cash'].includes(pm) ? pm : '';
+            const noteEl = document.getElementById('stdPaymentMethodNote');
+            if (noteEl) noteEl.value = student.payment_method_note || '';
             document.getElementById('stdPaymentDate').value = student.payment_date || '';
             document.getElementById('stdSelfPay').value = student.self_pay_amount || 0;
             document.getElementById('stdHasApplication').checked = !!student.has_application;
@@ -1057,6 +1063,7 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
                 certifications: document.getElementById('stdCertifications').value.trim() || null,
                 package_type: document.getElementById('stdPackageType').value || null,
                 payment_method: document.getElementById('stdPaymentMethod').value.trim() || null,
+                payment_method_note: (document.getElementById('stdPaymentMethodNote') && document.getElementById('stdPaymentMethodNote').value.trim()) || null,
                 payment_date: document.getElementById('stdPaymentDate').value || null,
                 self_pay_amount: parseInt(document.getElementById('stdSelfPay').value) || 0,
                 has_application: document.getElementById('stdHasApplication').checked,

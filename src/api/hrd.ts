@@ -728,7 +728,7 @@ app.get('/students', async (c) => {
                 u.id, u.name, u.phone, u.email, u.created_at,
                 u.address, u.birthdate, u.gender, u.education, u.certifications, u.profile_image,
                 d.course_id, d.status, d.type, d.last_consult,
-                d.package_type, d.payment_method, d.payment_date, d.self_pay_amount,
+                d.package_type, d.payment_method, d.payment_method_note, d.payment_date, d.self_pay_amount,
                 d.has_application, d.has_card, d.is_hrd_net_registered, d.status_memo,
                 (SELECT (a.name || ' (' || cs.session_number || '회차' || CASE WHEN cs.session_name IS NOT NULL AND TRIM(cs.session_name) <> '' THEN ' - ' || cs.session_name ELSE '' END || ')')
                  FROM course_session_enrollments cse
@@ -808,7 +808,7 @@ app.get('/students/:id', async (c) => {
                 u.id, u.name, u.phone, u.email, u.created_at,
                 u.address, u.birthdate, u.gender, u.education, u.certifications, u.profile_image,
                 d.course_id, d.status, d.type, d.last_consult,
-                d.package_type, d.payment_method, d.payment_date, d.self_pay_amount,
+                d.package_type, d.payment_method, d.payment_method_note, d.payment_date, d.self_pay_amount,
                 d.has_application, d.has_card, d.is_hrd_net_registered, d.status_memo,
                 (SELECT (a.name || ' (' || cs.session_number || '회차' || CASE WHEN cs.session_name IS NOT NULL AND TRIM(cs.session_name) <> '' THEN ' - ' || cs.session_name ELSE '' END || ')')
                  FROM course_session_enrollments cse
@@ -1051,7 +1051,7 @@ app.post('/students', async (c) => {
         const body = await c.req.json();
         const {
             name, email, phone, birthdate, gender, address, education,
-            certifications, type, status, course_id, package_type, payment_method,
+            certifications, type, status, course_id, package_type, payment_method, payment_method_note,
             payment_date, self_pay_amount, has_application, has_card,
             is_hrd_net_registered, status_memo, profile_image
         } = body;
@@ -1092,6 +1092,7 @@ app.post('/students', async (c) => {
         const valType = type || 'jobseeker';
         const valPackageType = package_type || null;
         const valPaymentMethod = normalizePaymentMethod(payment_method);
+        const valPaymentMethodNote = (payment_method_note != null && String(payment_method_note).trim() !== '') ? String(payment_method_note).trim() : null;
         const valPaymentDate = payment_date || null;
         const valSelfPayAmount = parseInt(self_pay_amount || '0') || 0;
         const valStatusMemo = status_memo || null;
@@ -1099,21 +1100,21 @@ app.post('/students', async (c) => {
         // 2. HRD 상세 정보 등록/업데이트
         await c.env.DB.prepare(`
             INSERT INTO hrd_student_details(
-                        user_id, course_id, status, type, package_type, payment_method, payment_date,
+                        user_id, course_id, status, type, package_type, payment_method, payment_method_note, payment_date,
                         self_pay_amount, has_application, has_card, is_hrd_net_registered,
                         status_memo
-                    ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(user_id) DO UPDATE SET
-                    course_id = ?, status = ?, type = ?, package_type = ?, payment_method = ?,
+                    course_id = ?, status = ?, type = ?, package_type = ?, payment_method = ?, payment_method_note = ?,
                         payment_date = ?, self_pay_amount = ?, has_application = ?, has_card = ?,
                         is_hrd_net_registered = ?, status_memo = ?,
                         updated_at = CURRENT_TIMESTAMP
                             `).bind(
-            userId, hrdCourseId, valStatus, valType, valPackageType, (valPaymentMethod ?? ''), valPaymentDate,
+            userId, hrdCourseId, valStatus, valType, valPackageType, (valPaymentMethod ?? ''), valPaymentMethodNote, valPaymentDate,
             valSelfPayAmount, has_application ? 1 : 0, has_card ? 1 : 0,
             is_hrd_net_registered ? 1 : 0, valStatusMemo,
             // UPDATE values
-            hrdCourseId, valStatus, valType, valPackageType, (valPaymentMethod ?? ''), valPaymentDate,
+            hrdCourseId, valStatus, valType, valPackageType, (valPaymentMethod ?? ''), valPaymentMethodNote, valPaymentDate,
             valSelfPayAmount, has_application ? 1 : 0, has_card ? 1 : 0,
             is_hrd_net_registered ? 1 : 0, valStatusMemo
         ).run();
@@ -1131,7 +1132,7 @@ app.put('/students', async (c) => {
         const body = await c.req.json();
         const {
             id, name, email, phone, birthdate, gender, address, education,
-            certifications, type, status, course_id, package_type, payment_method,
+            certifications, type, status, course_id, package_type, payment_method, payment_method_note,
             payment_date, self_pay_amount, has_application, has_card,
             is_hrd_net_registered, status_memo, profile_image
         } = body;
@@ -1152,24 +1153,25 @@ app.put('/students', async (c) => {
 
         const hrdCourseId = course_id ? parseInt(course_id) : null;
 
+        const valPaymentMethodNote = (payment_method_note != null && String(payment_method_note).trim() !== '') ? String(payment_method_note).trim() : null;
         // 2. HRD 상세 정보 업데이트 (레코드가 없을 경우를 대비해 UPSERT 수행)
         await c.env.DB.prepare(`
             INSERT INTO hrd_student_details(
-                                user_id, course_id, status, type, package_type, payment_method,
+                                user_id, course_id, status, type, package_type, payment_method, payment_method_note,
                                 payment_date, self_pay_amount, has_application, has_card,
                                 is_hrd_net_registered, status_memo
-                            ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(user_id) DO UPDATE SET
-                    course_id = ?, status = ?, type = ?, package_type = ?, payment_method = ?,
+                    course_id = ?, status = ?, type = ?, package_type = ?, payment_method = ?, payment_method_note = ?,
                         payment_date = ?, self_pay_amount = ?, has_application = ?, has_card = ?,
                         is_hrd_net_registered = ?, status_memo = ?,
                         updated_at = CURRENT_TIMESTAMP
                             `).bind(
-            id, hrdCourseId, status || 'consulting', type || 'jobseeker', package_type || null, (normalizePaymentMethod(payment_method) ?? ''), payment_date || null,
+            id, hrdCourseId, status || 'consulting', type || 'jobseeker', package_type || null, (normalizePaymentMethod(payment_method) ?? ''), valPaymentMethodNote, payment_date || null,
             parseInt(self_pay_amount || 0), has_application ? 1 : 0, has_card ? 1 : 0,
             is_hrd_net_registered ? 1 : 0, status_memo || null,
             // UPDATE values
-            hrdCourseId, status || 'consulting', type || 'jobseeker', package_type || null, (normalizePaymentMethod(payment_method) ?? ''), payment_date || null,
+            hrdCourseId, status || 'consulting', type || 'jobseeker', package_type || null, (normalizePaymentMethod(payment_method) ?? ''), valPaymentMethodNote, payment_date || null,
             parseInt(self_pay_amount || 0), has_application ? 1 : 0, has_card ? 1 : 0,
             is_hrd_net_registered ? 1 : 0, status_memo || null
         ).run();

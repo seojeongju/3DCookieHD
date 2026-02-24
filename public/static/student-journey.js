@@ -293,6 +293,8 @@
                 document.getElementById('stdPackageType').value = student.package_type || '';
                 var pm = (student.payment_method || '').toLowerCase();
                 document.getElementById('stdPaymentMethod').value = ['', 'card', 'transfer', 'cash'].includes(pm) ? pm : '';
+                var noteEl = document.getElementById('stdPaymentMethodNote');
+                if (noteEl) noteEl.value = student.payment_method_note || '';
                 document.getElementById('stdPaymentDate').value = student.payment_date || '';
                 document.getElementById('stdSelfPay').value = student.self_pay_amount || '';
                 document.getElementById('stdHasApplication').checked = !!student.has_application;
@@ -577,6 +579,7 @@
             certifications: document.getElementById('stdCertifications').value.trim() || null,
             package_type: document.getElementById('stdPackageType').value || null,
             payment_method: document.getElementById('stdPaymentMethod').value.trim() || null,
+            payment_method_note: (document.getElementById('stdPaymentMethodNote') && document.getElementById('stdPaymentMethodNote').value.trim()) || null,
             payment_date: document.getElementById('stdPaymentDate').value || null,
             self_pay_amount: parseInt(document.getElementById('stdSelfPay').value, 10) || 0,
             has_application: document.getElementById('stdHasApplication').checked,
