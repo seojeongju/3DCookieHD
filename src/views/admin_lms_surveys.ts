@@ -301,8 +301,8 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
                 var startDate = (s.start_date || '').split('T')[0];
                 var endDate = (s.end_date || '').split('T')[0];
                 var previewHref = '/admin/courses/' + courseId + '/lms/surveys/' + s.id + '/preview' + (isHrd ? '?type=hrd' : '');
-                var typeSafe = String(s.type || '').replace(/'/g, '\\\'').replace(/\\/g, '\\\\');
-                var titleSafe = String(s.title || '-').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+                var typeSafe = String(s.type || '').split('\\\\').join('\\\\\\\\').split("'").join("\\\\'");
+                var titleSafe = String(s.title || '-').split('<').join('&lt;').split('>').join('&gt;').split('"').join('&quot;');
                 return '<tr class="hover:bg-gray-50 transition">' +
                     '<td class="px-6 py-4 whitespace-nowrap">' + typeLabel + '</td>' +
                     '<td class="px-6 py-4 font-medium text-gray-800">' + titleSafe + '</td>' +
