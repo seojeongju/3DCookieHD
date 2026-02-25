@@ -1,5 +1,5 @@
 # 세션 인계 문서
-> 마지막 업데이트: 2026-02-20 (19:25 KST)
+> 마지막 업데이트: 2026-02-25
 
 ---
 
@@ -16,9 +16,31 @@
 
 ---
 
-## ✅ 이번 세션에서 완료된 작업
+## ✅ 이번 세션에서 완료된 작업 (2026-02-25)
 
-### 1. 역할 기반 접근 제어 (Admin Role Access Fix)
+### 1. 학생 대시보드 종합 개선
+- **종합 대시보드**: 첫 진입 화면을 종합 대시보드로 변경, 수강 중인 강의 상단·진행 중인 시험 요약 표시 (`src/views/student_dashboard.ts`)
+- **사이드메뉴**: 기능별 그룹화(학습 / 평가·설문 / 성과 / 계정), 프로필 요약·섹션 라벨·아이콘 버튼 UI 고도화
+- **메뉴 순서**: 종합 대시보드 → 수강 중인 강의 → 나의 시험 → 성적/결과 → 설문/평가 → 포트폴리오 → NCS 평가 → 취업 성과 → 수강생 정보
+- **학사관리**: 홈페이지 학사관리 하위메뉴를 관리자/강사/학생 대시보드 3개만 표시 (`public/static/academic-menu.js`); 관리자·강사가 학생 대시보드 진입 시 리다이렉트 제거
+- **스크립트 오류 수정**: 인라인 스크립트 내 TypeScript `as` 제거, 정규식 `/<` → `new RegExp('<','g')`, 동적 onclick 내 `\'` → `&#39;` 로 수정해 SyntaxError 해소
+- **커밋**: `0734ed4`, `5b83577`, `bcf110d`, `70360c9`
+
+### 2. (이전) 수강생 대시보드 접속 오류 수정
+- **문제**: 수강생 로그인 후 `/student` 대시보드 접속 불가
+- **원인**: `src/views/student_dashboard.ts`의 `window.onload`에서 **존재하지 않는 함수** 호출 → `updateTime()`, `updateDate()`, `loadDashboardData()` → ReferenceError로 스크립트 중단
+- **수정**:
+  - `window.onload` 성공 시 `updateWelcomeTime()`, `setInterval(updateWelcomeTime, 1000)`, `loadStudentStats()` 호출로 변경
+  - 초기 로그인 모달 표시 시 `getElementById('initialLoginModal')` null 체크 추가
+- **로그인**: `src/views/login.ts` — 역할 `user`인 경우에도 `/student`로 리디렉션하도록 추가
+- **커밋**: `ddf3d49` — fix(student): 수강생 대시보드 접속 오류 수정
+
+### 2. (이전 세션) 출석 실데이터 표시
+- **파일**: `src/views/admin_lms_attendance.ts`
+- **내용**: 마감 과정에서 미입력 옵션, 해당일 미기록 표시, 통계에서 null 제외
+- **커밋**: `3273f5f`
+
+### 3. (이전) 역할 기반 접근 제어 (Admin Role Access Fix)
 - **파일**: `src/views/components/hrd_sidebar.ts`
 - **내용**: `/admin` 경로 접근 시 역할 검사 IIFE 추가
   - `teacher` → `/teacher` 리디렉션
@@ -26,17 +48,17 @@
   - 비로그인 → `/login` 리디렉션
 - **커밋**: `93bc4eb`
 
-### 2. LMS 헤더 교육 시간 표시 개선
+### 4. LMS 헤더 교육 시간 표시 개선
 - **파일**: `src/views/components/lms_header.ts`
 - **내용**: `recruiting`, `active` 상태를 "진행중"으로 표시, 요일 정보 없어도 시간 표시
 - **커밋**: `93bc4eb`
 
-### 3. 과정 상세 API 수정
+### 5. 과정 상세 API 수정
 - **파일**: `src/api/courses.ts`
 - **내용**: HRD 과정 상세 조회 시 `training_time_start`(→ `start_time`), `training_time_end`(→ `end_time`), `status` 반환 추가
 - **커밋**: `93bc4eb`
 
-### 4. CBT 시험 생성 에러 수정 (중요)
+### 6. CBT 시험 생성 에러 수정 (중요)
 - **문제**: `/admin/courses/:id/lms/cbt` 페이지에서 시험 생성 클릭 시 404 에러
 - **원인**: `/api/cbt/exams`, `/api/cbt/questions` 백엔드 라우트가 미등록
 - **수정**:
@@ -81,10 +103,10 @@
 
 ```
 브랜치: education-platform
-최신 커밋: c615399 - fix: add /api/cbt/exams and /api/cbt/questions endpoints
-이전 커밋: 93bc4eb - fix: 역할 전환 버그 수정
+최신 커밋: 70360c9 - fix(student): onclick location.href quote escape to fix Unexpected string error
+이전 커밋: bcf110d - feat(student): 사이드메뉴 기능별 그룹화 및 UI 고도화, 메뉴순서 및 onclick 수정
 origin과 동기화됨
-언커밋 변경: public/static/student-journey.js (내용 불명), table_info.txt (DB 조회 결과 파일)
+배포: npm run deploy 후 https://*.3dcookiehd.pages.dev
 ```
 
 ---
