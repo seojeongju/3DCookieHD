@@ -869,10 +869,14 @@ export const studentDashboardHtml = () => `
         }
 
         async function submitEvidence() {
-            const planId = (document.getElementById('uploadPlanId') as HTMLInputElement).value;
-            const fileName = (document.getElementById('uploadFileName') as HTMLInputElement).value;
-            const fileUrl = (document.getElementById('uploadFileUrl') as HTMLInputElement).value;
-            const comment = (document.getElementById('uploadComment') as HTMLTextAreaElement).value;
+            var elPlanId = document.getElementById('uploadPlanId');
+            var elFileName = document.getElementById('uploadFileName');
+            var elFileUrl = document.getElementById('uploadFileUrl');
+            var elComment = document.getElementById('uploadComment');
+            const planId = elPlanId ? elPlanId.value : '';
+            const fileName = elFileName ? elFileName.value : '';
+            const fileUrl = elFileUrl ? elFileUrl.value : '';
+            const comment = elComment ? elComment.value : '';
             const user = JSON.parse(localStorage.getItem('user'));
 
             if (!fileName) return alert('제출물 제목을 입력해주세요.');
@@ -906,11 +910,11 @@ export const studentDashboardHtml = () => `
         }
 
         function openUploadModal(planId, unitName, defaultFileName = '') {
-            (document.getElementById('uploadPlanId') as HTMLInputElement).value = planId;
+            var elPlanId = document.getElementById('uploadPlanId'); if (elPlanId) elPlanId.value = planId;
             document.getElementById('uploadUnitName').textContent = unitName;
-            (document.getElementById('uploadFileName') as HTMLInputElement).value = defaultFileName;
-            (document.getElementById('uploadFileUrl') as HTMLInputElement).value = '';
-            (document.getElementById('uploadComment') as HTMLTextAreaElement).value = '';
+            var elFileName = document.getElementById('uploadFileName'); if (elFileName) elFileName.value = defaultFileName;
+            var elFileUrl = document.getElementById('uploadFileUrl'); if (elFileUrl) elFileUrl.value = '';
+            var elComment = document.getElementById('uploadComment'); if (elComment) elComment.value = '';
             document.getElementById('uploadModal').classList.remove('hidden');
         }
 
