@@ -134,8 +134,11 @@ export const studentDashboardHtml = () => `
                             </div>
                             <span class="block text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 sm:mb-4">인박스 메뉴</span>
                             <div class="space-y-1.5 sm:space-y-2">
-                                <button onclick="switchTab('exams')" id="btn-exams" class="touch-target w-full text-left px-4 sm:px-5 py-3 sm:py-3.5 bg-sky-50 text-sky-700 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm transition border border-sky-100 hover:border-sky-200 flex items-center gap-3">
-                                    <i class="fas fa-book-open text-sky-600 w-5"></i> 나의 시험
+                                <button onclick="switchTab('dashboard')" id="btn-dashboard" class="touch-target w-full text-left px-4 sm:px-5 py-3 sm:py-3.5 bg-sky-50 text-sky-700 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm transition border border-sky-100 hover:border-sky-200 flex items-center gap-3">
+                                    <i class="fas fa-th-large text-sky-600 w-5"></i> 종합 대시보드
+                                </button>
+                                <button onclick="switchTab('exams')" id="btn-exams" class="touch-target w-full text-left px-4 sm:px-5 py-3 sm:py-3.5 text-slate-600 hover:bg-slate-50 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm transition border border-transparent hover:border-slate-200 flex items-center gap-3">
+                                    <i class="fas fa-book-open text-slate-400 w-5 flex-shrink-0"></i> <span>나의 시험</span>
                                 </button>
                                 <button onclick="switchTab('lectures')" id="btn-lectures" class="touch-target w-full text-left px-4 sm:px-5 py-3 sm:py-3.5 text-slate-600 hover:bg-slate-50 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm transition border border-transparent hover:border-slate-200 flex items-center gap-3">
                                     <i class="fas fa-video text-slate-400 w-5 flex-shrink-0"></i> <span>수강 중인 강의</span>
@@ -170,7 +173,7 @@ export const studentDashboardHtml = () => `
                                     <i class="fas fa-edit text-xs sm:text-sm"></i>
                                 </div>
                                 <div class="min-w-0 flex-1">
-                                    <h2 id="contentTitle" class="text-base sm:text-lg md:text-xl font-black text-slate-900 tracking-tight truncate">진행 중인 시험</h2>
+                                    <h2 id="contentTitle" class="text-base sm:text-lg md:text-xl font-black text-slate-900 tracking-tight truncate">종합 대시보드</h2>
                                     <p class="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">인박스 컨텐츠</p>
                                 </div>
                             </div>
@@ -194,7 +197,7 @@ export const studentDashboardHtml = () => `
             updateWelcomeTime();
             setInterval(updateWelcomeTime, 1000);
             loadStudentStats();
-            switchTab('exams');
+            switchTab('dashboard');
         });
 
         async function loadStudentStats() {
@@ -312,15 +315,15 @@ export const studentDashboardHtml = () => `
             window.logout();
         }
 
-        var tabLabels = { exams: '진행 중인 시험', lectures: '수강 중인 강의', grades: '성적/결과', ncs: 'NCS 능력단위 평가', surveys: '설문 및 역량평가', portfolio: '나의 포트폴리오', employment: '나의 취업 성과', profile: '수강생 정보수정' };
-        var tabIcons = { exams: 'fa-edit', lectures: 'fa-video', grades: 'fa-history', ncs: 'fa-certificate', surveys: 'fa-poll', portfolio: 'fa-image', employment: 'fa-user-tie', profile: 'fa-user-edit' };
+        var tabLabels = { dashboard: '종합 대시보드', exams: '진행 중인 시험', lectures: '수강 중인 강의', grades: '성적/결과', ncs: 'NCS 능력단위 평가', surveys: '설문 및 역량평가', portfolio: '나의 포트폴리오', employment: '나의 취업 성과', profile: '수강생 정보수정' };
+        var tabIcons = { dashboard: 'fa-th-large', exams: 'fa-edit', lectures: 'fa-video', grades: 'fa-history', ncs: 'fa-certificate', surveys: 'fa-poll', portfolio: 'fa-image', employment: 'fa-user-tie', profile: 'fa-user-edit' };
 
         function switchTab(tab) {
             var iconEl = document.getElementById('contentTitleIcon');
             if (iconEl && tabIcons[tab]) {
                 iconEl.innerHTML = '<i class="fas ' + tabIcons[tab] + ' text-sm"></i>';
             }
-            ['exams', 'lectures', 'grades', 'ncs', 'surveys', 'portfolio', 'employment', 'profile'].forEach(t => {
+            ['dashboard', 'exams', 'lectures', 'grades', 'ncs', 'surveys', 'portfolio', 'employment', 'profile'].forEach(t => {
                 const btn = document.getElementById('btn-' + t);
                 if (btn) {
                     if (t === tab) {
@@ -334,7 +337,8 @@ export const studentDashboardHtml = () => `
             const titleEl = document.getElementById('contentTitle');
             if (titleEl) titleEl.textContent = tabLabels[tab] || tab;
 
-            if (tab === 'exams') loadExams();
+            if (tab === 'dashboard') loadDashboard();
+            else if (tab === 'exams') loadExams();
             else if (tab === 'lectures') loadLectures();
             else if (tab === 'grades') loadGrades();
             else if (tab === 'ncs') loadNcsStatus();
@@ -469,6 +473,71 @@ export const studentDashboardHtml = () => `
             } catch (err) {
                 console.error(err);
                 alert('수정 중 오류가 발생했습니다.');
+            }
+        }
+
+        async function loadDashboard() {
+            const container = document.getElementById('contentArea');
+            container.innerHTML = '<div class="text-center py-12"><i class="fas fa-spinner fa-spin text-3xl text-sky-500"></i><p class="text-slate-400 font-bold text-sm mt-4 uppercase tracking-widest">로딩 중...</p></div>';
+            try {
+                const token = localStorage.getItem('token');
+                const [resGeneral, resSession, resExams] = await Promise.all([
+                    fetch('/api/enrollments?status=approved', { headers: { 'Authorization': 'Bearer ' + token } }),
+                    fetch('/api/course-sessions/me/enrollments', { headers: { 'Authorization': 'Bearer ' + token } }),
+                    fetch('/api/exams', { headers: { 'Authorization': 'Bearer ' + token } })
+                ]);
+                const jsonGeneral = await resGeneral.json();
+                const jsonSession = await resSession.json();
+                const examsJson = await resExams.json();
+                const examList = Array.isArray(examsJson) ? examsJson : (examsJson.data || []);
+                const activeExams = examList.filter(function(e) { return e.is_active; });
+
+                const generalData = jsonGeneral.success ? (jsonGeneral.data || []) : [];
+                const sessionData = jsonSession.success ? (jsonSession.data || []) : [];
+                const allData = [].concat(sessionData, generalData);
+                allData.sort(function(a, b) { return new Date(b.enrolled_at) - new Date(a.enrolled_at); });
+
+                var statEn = document.getElementById('stat-enrollments');
+                var statEx = document.getElementById('stat-active-exams');
+                if (statEn) statEn.textContent = allData.length;
+                if (statEx) statEx.textContent = activeExams.length;
+
+                var html = '';
+                html += '<div class="space-y-10">';
+
+                html += '<section><h3 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><i class="fas fa-video text-sky-500"></i> 수강 중인 강의</h3>';
+                if (allData.length === 0) {
+                    html += '<div class="bento-card bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200 p-12 text-center"><i class="fas fa-chalkboard text-5xl text-slate-300 mb-4"></i><p class="font-bold text-slate-500 mb-2">수강 중인 강의가 없습니다.</p><a href="/course-sessions" class="inline-flex items-center gap-2 mt-4 px-6 py-3 bg-sky-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition shadow-lg shadow-sky-100"><i class="fas fa-search"></i> 과정 둘러보기</a></div>';
+                } else {
+                    html += '<div class="space-y-6">';
+                    allData.forEach(function(item) {
+                        var linkUrl = item.session_id ? '/student/classroom/' + item.session_id : '/courses/' + item.course_id;
+                        var linkText = item.session_id ? '강의실 입장' : '과정 상세';
+                        var linkIcon = item.session_id ? 'fa-door-open' : 'fa-chevron-right';
+                        var thumb = item.course_thumbnail || (item.session_id ? item.main_slide_image_url : item.thumbnail_url) || 'https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=400';
+                        html += '<div class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm hover:border-sky-200 transition"><div class="flex flex-col md:flex-row gap-6"><div class="w-full md:w-48 h-32 bg-slate-100 rounded-2xl overflow-hidden flex-shrink-0 relative"><img src="' + thumb + '" class="w-full h-full object-cover" alt="' + (item.course_title || '') + '">' + (item.has_access_code ? '<div class="absolute top-2 right-2 w-8 h-8 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white"><i class="fas fa-lock text-xs"></i></div>' : '') + '</div><div class="flex-1 flex flex-col justify-between"><div><div class="flex items-center gap-2 mb-2"><span class="px-2 py-0.5 bg-sky-50 text-sky-600 text-[10px] font-black rounded-full uppercase tracking-widest">' + (item.course_category || '일반') + '</span><span class="text-[10px] text-slate-400 font-bold"><i class="far fa-calendar-alt mr-1"></i> ' + new Date(item.enrolled_at).toLocaleDateString() + ' 등록</span></div><h3 class="text-xl font-black text-slate-800 tracking-tight mb-2">' + (item.course_title || '') + '</h3><p class="text-sm text-slate-600 mb-4 line-clamp-2">' + (item.course_category === '국비지원' ? '국비지원 과정입니다.' : '일반 과정입니다.') + '</p></div><div class="flex items-center justify-between mt-auto pt-4 border-t border-slate-100"><div class="flex items-center gap-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider"><span><i class="fas fa-check-circle text-emerald-500 mr-1"></i>승인됨</span><span><i class="fas fa-school mr-1"></i>' + (item.campus_name || '홍대센터') + '</span></div><a href="' + linkUrl + '" class="text-sky-600 hover:text-slate-900 font-black text-[10px] uppercase tracking-widest flex items-center gap-1">' + linkText + ' <i class="fas ' + linkIcon + '"></i></a></div></div></div></div>';
+                    });
+                    html += '</div><div class="mt-4 flex justify-end"><button type="button" onclick="switchTab(\'lectures\')" class="text-sky-600 hover:text-slate-900 font-black text-[10px] uppercase tracking-widest flex items-center gap-1">수강 중인 강의 전체보기 <i class="fas fa-chevron-right"></i></button></div>';
+                }
+                html += '</section>';
+
+                html += '<section><h3 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><i class="fas fa-book-open text-sky-500"></i> 진행 중인 시험</h3>';
+                if (activeExams.length === 0) {
+                    html += '<div class="bento-card bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200 p-8 text-center"><i class="fas fa-clipboard-check text-4xl text-slate-300 mb-3"></i><p class="font-bold text-slate-500 text-sm">현재 진행 중인 시험이 없습니다.</p></div>';
+                } else {
+                    html += '<div class="space-y-4">';
+                    activeExams.slice(0, 5).forEach(function(exam) {
+                        html += '<div class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm hover:border-sky-200 transition flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"><div class="flex-1"><div class="flex items-center gap-2 mb-1"><span class="px-2 py-0.5 bg-sky-50 text-sky-600 text-[10px] font-black rounded-full uppercase tracking-widest">' + (exam.course_title || '일반') + '</span><span class="text-[10px] text-slate-400 font-bold"><i class="far fa-clock mr-1"></i> ' + (exam.time_limit_minutes || exam.time_limit || 0) + '분</span></div><h3 class="text-lg font-black text-slate-800 tracking-tight">' + (exam.title || '') + '</h3><p class="text-sm text-slate-600 mt-1">' + (exam.description || '설명 없음') + '</p></div><button type="button" onclick="location.href=\'/student/exam/' + exam.id + '\'" class="px-6 py-3.5 bg-sky-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition shadow-lg shadow-sky-100 whitespace-nowrap flex items-center gap-2"><i class="fas fa-pen-fancy"></i> 응시하기</button></div>';
+                    });
+                    html += '</div><div class="mt-4 flex justify-end"><button type="button" onclick="switchTab(\'exams\')" class="text-sky-600 hover:text-slate-900 font-black text-[10px] uppercase tracking-widest flex items-center gap-1">나의 시험 전체보기 <i class="fas fa-chevron-right"></i></button></div>';
+                }
+                html += '</section>';
+
+                html += '</div>';
+                container.innerHTML = html;
+            } catch (e) {
+                console.error(e);
+                document.getElementById('contentArea').innerHTML = '<div class="text-center py-12 text-red-500 font-bold">대시보드를 불러오는데 실패했습니다.</div>';
             }
         }
 
