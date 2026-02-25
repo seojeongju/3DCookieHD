@@ -1146,8 +1146,8 @@ export const studentDashboardHtml = () => `
                     var badgeClass = isPending ? 'bg-orange-100 text-orange-700' : 'bg-emerald-100 text-emerald-700';
                     var statusText = isPending ? '미참여' : '완료됨';
                     var btnClass = isPending ? 'px-6 py-3 bg-sky-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 shadow-lg shadow-sky-100 cursor-pointer' : 'px-6 py-3 bg-slate-100 text-slate-400 rounded-2xl font-black text-[10px] uppercase cursor-not-allowed';
-                    var safeTitle = String(s.title || '-').replace(/</g, '&lt;').replace(/"/g, '&quot;');
-                    var safeCourse = String(courseTitle(s)).replace(/</g, '&lt;').replace(/"/g, '&quot;');
+                    var safeTitle = String(s.title || '-').replace(new RegExp('<', 'g'), '&lt;').replace(/"/g, '&quot;');
+                    var safeCourse = String(courseTitle(s)).replace(new RegExp('<', 'g'), '&lt;').replace(/"/g, '&quot;');
                     return '<div class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm hover:border-sky-200 transition">' +
                         '<div class="flex flex-col md:flex-row justify-between items-center gap-4">' +
                         '<div class="flex-1">' +
@@ -1184,13 +1184,13 @@ export const studentDashboardHtml = () => `
                 var survey = json.data;
                 var questions = survey.questions || [];
                 var backBtn = '<button type="button" onclick="loadStudentSurveys()" class="mb-6 inline-flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-200 transition"><i class="fas fa-arrow-left"></i> 목록으로</button>';
-                var desc = (survey.description || '').replace(/</g, '&lt;').replace(/"/g, '&quot;').replace(/\n/g, '<br>');
-                var formHtml = backBtn + '<div class="bg-white rounded-[2rem] border border-slate-200/60 shadow-sm overflow-hidden"><div class="p-6 md:p-8 border-b border-slate-100"><h2 class="text-xl font-black text-slate-900">' + (survey.title || '설문').replace(/</g, '&lt;') + '</h2><p class="mt-2 text-sm text-slate-600">' + desc + '</p></div><form id="studentSurveyForm" class="p-6 md:p-8 space-y-6">';
+                var desc = (survey.description || '').replace(new RegExp('<', 'g'), '&lt;').replace(/"/g, '&quot;').replace(/\\n/g, '<br>');
+                var formHtml = backBtn + '<div class="bg-white rounded-[2rem] border border-slate-200/60 shadow-sm overflow-hidden"><div class="p-6 md:p-8 border-b border-slate-100"><h2 class="text-xl font-black text-slate-900">' + (survey.title || '설문').replace(new RegExp('<', 'g'), '&lt;') + '</h2><p class="mt-2 text-sm text-slate-600">' + desc + '</p></div><form id="studentSurveyForm" class="p-6 md:p-8 space-y-6">';
                 formHtml += '<input type="hidden" name="surveyId" value="' + surveyId + '">';
                 for (var i = 0; i < questions.length; i++) {
                     var q = questions[i];
                     var qid = q.id;
-                    var qText = (q.question_text || '').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+                    var qText = (q.question_text || '').replace(new RegExp('<', 'g'), '&lt;').replace(/"/g, '&quot;');
                     formHtml += '<div class="border-b border-slate-100 pb-6">';
                     formHtml += '<p class="font-bold text-slate-800 mb-3">' + (i + 1) + '. ' + qText + '</p>';
                     if (q.question_type === 'rating') {
