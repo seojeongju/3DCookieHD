@@ -256,14 +256,7 @@ export const studentDashboardHtml = () => `
                     }
                     var user = result.data;
                     localStorage.setItem('user', JSON.stringify(user));
-                    if (user.role === 'admin') {
-                        location.href = '/admin';
-                        return;
-                    }
-                    if (user.role === 'teacher') {
-                        location.href = '/teacher';
-                        return;
-                    }
+                    // 관리자/강사도 학사관리 메뉴에서 '학생 대시보드'로 진입할 수 있으므로 리다이렉트하지 않음
                     document.getElementById('userName').textContent = user.name || '-';
                     document.getElementById('welcome-name').textContent = user.name || '-';
                     if (user.is_initial_login === 1 || user.is_initial_login === true) {

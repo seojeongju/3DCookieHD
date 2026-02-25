@@ -34,11 +34,8 @@ function updateAcademicMenu() {
                         break;
 
                     case 'admin':
-                        // 관리자는 모든 페이지 접근 가능
+                        // 홈페이지 학사관리 하위메뉴: 대시보드 3개만 표시
                         menuHTML = `
-                            <div class="px-2 py-1">
-                                <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">대시보드</p>
-                            </div>
                             <a href="/admin" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600">
                                 <i class="fas fa-chart-line mr-2 text-purple-600"></i>통합 관리자 대시보드
                             </a>
@@ -47,22 +44,6 @@ function updateAcademicMenu() {
                             </a>
                             <a href="/student" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600">
                                 <i class="fas fa-user-graduate mr-2 text-green-600"></i>학생 대시보드
-                            </a>
-                            <div class="border-t border-gray-100 my-1"></div>
-                            <div class="px-2 py-1">
-                                <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">HRD 관리</p>
-                            </div>
-                            <a href="/admin/enrollments" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600">
-                                <i class="fas fa-won-sign mr-2"></i>수강/매출 관리
-                            </a>
-                            <a href="/admin/personnel" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600">
-                                <i class="fas fa-users mr-2"></i>인원 관리 (교강사)
-                            </a>
-                             <a href="/admin/students" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600">
-                                <i class="fas fa-user-plus mr-2"></i>훈련생 관리
-                            </a>
-                            <a href="/admin/attendance" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600">
-                                <i class="fas fa-clipboard-check mr-2"></i>출결 관리
                             </a>
                         `;
                         break;
