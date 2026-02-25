@@ -30,6 +30,8 @@ export const studentDashboardHtml = () => `
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        .nav-side-btn.active { background: rgb(240 249 255); color: rgb(7 89 133); }
+        .nav-side-btn.active span:first-child { background: rgb(224 242 254) !important; color: rgb(2 132 199) !important; }
         @media (max-width: 768px) {
             .touch-target { min-height: 44px; min-width: 44px; }
         }
@@ -119,49 +121,91 @@ export const studentDashboardHtml = () => `
                 </section>
 
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 animate-fade-in" style="animation-delay: 0.2s">
-                    <!-- 왼쪽: 인박스 벤토 그리드 - 메뉴 카드 (반응형) -->
+                    <!-- 왼쪽: 사이드 네비게이션 (기능별 그룹) -->
                     <div class="lg:col-span-4 xl:col-span-3">
-                        <div class="bento-card bg-white rounded-2xl sm:rounded-[2.5rem] p-4 sm:p-6 md:p-8 border border-slate-200/60 shadow-sm mb-4 sm:mb-6">
-                            <div class="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
-                                <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-sky-50 flex items-center justify-center text-sky-600 border border-sky-100 flex-shrink-0">
-                                    <i class="fas fa-user-graduate text-lg sm:text-xl"></i>
-                                </div>
-                                <div class="min-w-0 flex-1">
-                                    <h3 class="font-black text-slate-900 tracking-tight text-sm sm:text-base">내 정보</h3>
-                                    <p id="profileName" class="text-xs sm:text-sm font-bold text-slate-600 truncate">-</p>
-                                    <p id="profileEmail" class="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest truncate">-</p>
+                        <div class="bg-white rounded-2xl sm:rounded-[2.5rem] border border-slate-200/60 shadow-sm overflow-hidden mb-4 sm:mb-6">
+                            <!-- 프로필 요약 -->
+                            <div class="p-4 sm:p-5 bg-gradient-to-br from-sky-50 to-slate-50 border-b border-slate-100">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-11 h-11 rounded-xl bg-sky-600 flex items-center justify-center text-white shadow-md flex-shrink-0">
+                                        <i class="fas fa-user-graduate text-sm"></i>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <p id="profileName" class="text-sm font-black text-slate-800 truncate">-</p>
+                                        <p id="profileEmail" class="text-[10px] font-bold text-slate-500 truncate uppercase tracking-wider">-</p>
+                                    </div>
                                 </div>
                             </div>
-                            <span class="block text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 sm:mb-4">인박스 메뉴</span>
-                            <div class="space-y-1.5 sm:space-y-2">
-                                <button onclick="switchTab('dashboard')" id="btn-dashboard" class="touch-target w-full text-left px-4 sm:px-5 py-3 sm:py-3.5 bg-sky-50 text-sky-700 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm transition border border-sky-100 hover:border-sky-200 flex items-center gap-3">
-                                    <i class="fas fa-th-large text-sky-600 w-5"></i> 종합 대시보드
-                                </button>
-                                <button onclick="switchTab('exams')" id="btn-exams" class="touch-target w-full text-left px-4 sm:px-5 py-3 sm:py-3.5 text-slate-600 hover:bg-slate-50 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm transition border border-transparent hover:border-slate-200 flex items-center gap-3">
-                                    <i class="fas fa-book-open text-slate-400 w-5 flex-shrink-0"></i> <span>나의 시험</span>
-                                </button>
-                                <button onclick="switchTab('lectures')" id="btn-lectures" class="touch-target w-full text-left px-4 sm:px-5 py-3 sm:py-3.5 text-slate-600 hover:bg-slate-50 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm transition border border-transparent hover:border-slate-200 flex items-center gap-3">
-                                    <i class="fas fa-video text-slate-400 w-5 flex-shrink-0"></i> <span>수강 중인 강의</span>
-                                </button>
-                                <button onclick="switchTab('grades')" id="btn-grades" class="touch-target w-full text-left px-4 sm:px-5 py-3 sm:py-3.5 text-slate-600 hover:bg-slate-50 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm transition border border-transparent hover:border-slate-200 flex items-center gap-3">
-                                    <i class="fas fa-history text-slate-400 w-5 flex-shrink-0"></i> <span>성적/결과</span>
-                                </button>
-                                <button onclick="switchTab('ncs')" id="btn-ncs" class="touch-target w-full text-left px-4 sm:px-5 py-3 sm:py-3.5 text-slate-600 hover:bg-slate-50 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm transition border border-transparent hover:border-slate-200 flex items-center gap-3">
-                                    <i class="fas fa-certificate text-slate-400 w-5 flex-shrink-0"></i> <span>NCS 평가</span>
-                                </button>
-                                <button onclick="switchTab('surveys')" id="btn-surveys" class="touch-target w-full text-left px-4 sm:px-5 py-3 sm:py-3.5 text-slate-600 hover:bg-slate-50 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm transition border border-transparent hover:border-slate-200 flex items-center gap-3">
-                                    <i class="fas fa-poll text-slate-400 w-5 flex-shrink-0"></i> <span>설문/평가</span>
-                                </button>
-                                <button onclick="switchTab('portfolio')" id="btn-portfolio" class="touch-target w-full text-left px-4 sm:px-5 py-3 sm:py-3.5 text-slate-600 hover:bg-slate-50 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm transition border border-transparent hover:border-slate-200 flex items-center gap-3">
-                                    <i class="fas fa-image text-slate-400 w-5 flex-shrink-0"></i> <span>포트폴리오</span>
-                                </button>
-                                <button onclick="switchTab('employment')" id="btn-employment" class="touch-target w-full text-left px-4 sm:px-5 py-3 sm:py-3.5 text-slate-600 hover:bg-slate-50 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm transition border border-transparent hover:border-slate-200 flex items-center gap-3">
-                                    <i class="fas fa-user-tie text-slate-400 w-5 flex-shrink-0"></i> <span>취업 성과</span>
-                                </button>
-                                <button onclick="switchTab('profile')" id="btn-profile" class="touch-target w-full text-left px-4 sm:px-5 py-3 sm:py-3.5 text-slate-600 hover:bg-slate-50 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm transition border border-transparent hover:border-slate-200 flex items-center gap-3">
-                                    <i class="fas fa-user-edit text-slate-400 w-5 flex-shrink-0"></i> <span>수강생 정보수정</span>
-                                </button>
-                            </div>
+                            <nav class="p-3 sm:p-4 space-y-6">
+                                <!-- 학습 -->
+                                <div>
+                                    <p class="px-3 py-1.5 text-[10px] font-black text-sky-600 uppercase tracking-widest flex items-center gap-2 mb-2">
+                                        <i class="fas fa-graduation-cap opacity-70"></i> 학습
+                                    </p>
+                                    <div class="space-y-1">
+                                        <button onclick="switchTab('dashboard')" id="btn-dashboard" class="nav-side-btn active w-full text-left px-3.5 py-3 rounded-xl font-black text-xs sm:text-sm transition-all duration-200 flex items-center gap-3 group">
+                                            <span class="w-8 h-8 rounded-lg bg-sky-100 text-sky-600 flex items-center justify-center flex-shrink-0 group-hover:bg-sky-200 transition-colors"><i class="fas fa-th-large text-[10px]"></i></span>
+                                            <span>종합 대시보드</span>
+                                        </button>
+                                        <button onclick="switchTab('lectures')" id="btn-lectures" class="nav-side-btn w-full text-left px-3.5 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 flex items-center gap-3 group text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+                                            <span class="w-8 h-8 rounded-lg bg-slate-100 text-slate-400 flex items-center justify-center flex-shrink-0 group-hover:bg-slate-200 group-hover:text-slate-600 transition-colors"><i class="fas fa-video text-[10px]"></i></span>
+                                            <span>수강 중인 강의</span>
+                                        </button>
+                                        <button onclick="switchTab('exams')" id="btn-exams" class="nav-side-btn w-full text-left px-3.5 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 flex items-center gap-3 group text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+                                            <span class="w-8 h-8 rounded-lg bg-slate-100 text-slate-400 flex items-center justify-center flex-shrink-0 group-hover:bg-slate-200 group-hover:text-slate-600 transition-colors"><i class="fas fa-book-open text-[10px]"></i></span>
+                                            <span>나의 시험</span>
+                                        </button>
+                                        <button onclick="switchTab('grades')" id="btn-grades" class="nav-side-btn w-full text-left px-3.5 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 flex items-center gap-3 group text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+                                            <span class="w-8 h-8 rounded-lg bg-slate-100 text-slate-400 flex items-center justify-center flex-shrink-0 group-hover:bg-slate-200 group-hover:text-slate-600 transition-colors"><i class="fas fa-chart-line text-[10px]"></i></span>
+                                            <span>성적/결과</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <!-- 평가·설문 -->
+                                <div>
+                                    <p class="px-3 py-1.5 text-[10px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-2 mb-2">
+                                        <i class="fas fa-clipboard-check opacity-70"></i> 평가·설문
+                                    </p>
+                                    <div class="space-y-1">
+                                        <button onclick="switchTab('surveys')" id="btn-surveys" class="nav-side-btn w-full text-left px-3.5 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 flex items-center gap-3 group text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+                                            <span class="w-8 h-8 rounded-lg bg-slate-100 text-slate-400 flex items-center justify-center flex-shrink-0 group-hover:bg-slate-200 group-hover:text-slate-600 transition-colors"><i class="fas fa-poll text-[10px]"></i></span>
+                                            <span>설문/평가</span>
+                                        </button>
+                                        <button onclick="switchTab('ncs')" id="btn-ncs" class="nav-side-btn w-full text-left px-3.5 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 flex items-center gap-3 group text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+                                            <span class="w-8 h-8 rounded-lg bg-slate-100 text-slate-400 flex items-center justify-center flex-shrink-0 group-hover:bg-slate-200 group-hover:text-slate-600 transition-colors"><i class="fas fa-certificate text-[10px]"></i></span>
+                                            <span>NCS 평가</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <!-- 성과 -->
+                                <div>
+                                    <p class="px-3 py-1.5 text-[10px] font-black text-amber-600 uppercase tracking-widest flex items-center gap-2 mb-2">
+                                        <i class="fas fa-trophy opacity-70"></i> 성과
+                                    </p>
+                                    <div class="space-y-1">
+                                        <button onclick="switchTab('portfolio')" id="btn-portfolio" class="nav-side-btn w-full text-left px-3.5 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 flex items-center gap-3 group text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+                                            <span class="w-8 h-8 rounded-lg bg-slate-100 text-slate-400 flex items-center justify-center flex-shrink-0 group-hover:bg-slate-200 group-hover:text-slate-600 transition-colors"><i class="fas fa-images text-[10px]"></i></span>
+                                            <span>포트폴리오</span>
+                                        </button>
+                                        <button onclick="switchTab('employment')" id="btn-employment" class="nav-side-btn w-full text-left px-3.5 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 flex items-center gap-3 group text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+                                            <span class="w-8 h-8 rounded-lg bg-slate-100 text-slate-400 flex items-center justify-center flex-shrink-0 group-hover:bg-slate-200 group-hover:text-slate-600 transition-colors"><i class="fas fa-briefcase text-[10px]"></i></span>
+                                            <span>취업 성과</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <!-- 계정 -->
+                                <div class="pt-2 border-t border-slate-100">
+                                    <p class="px-3 py-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-2">
+                                        <i class="fas fa-cog opacity-70"></i> 계정
+                                    </p>
+                                    <div class="space-y-1">
+                                        <button onclick="switchTab('profile')" id="btn-profile" class="nav-side-btn w-full text-left px-3.5 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 flex items-center gap-3 group text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+                                            <span class="w-8 h-8 rounded-lg bg-slate-100 text-slate-400 flex items-center justify-center flex-shrink-0 group-hover:bg-slate-200 group-hover:text-slate-600 transition-colors"><i class="fas fa-user-edit text-[10px]"></i></span>
+                                            <span>수강생 정보</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </nav>
                         </div>
                     </div>
 
@@ -315,7 +359,7 @@ export const studentDashboardHtml = () => `
             window.logout();
         }
 
-        var tabLabels = { dashboard: '종합 대시보드', exams: '진행 중인 시험', lectures: '수강 중인 강의', grades: '성적/결과', ncs: 'NCS 능력단위 평가', surveys: '설문 및 역량평가', portfolio: '나의 포트폴리오', employment: '나의 취업 성과', profile: '수강생 정보수정' };
+        var tabLabels = { dashboard: '종합 대시보드', exams: '진행 중인 시험', lectures: '수강 중인 강의', grades: '성적/결과', ncs: 'NCS 평가', surveys: '설문/평가', portfolio: '포트폴리오', employment: '취업 성과', profile: '수강생 정보' };
         var tabIcons = { dashboard: 'fa-th-large', exams: 'fa-edit', lectures: 'fa-video', grades: 'fa-history', ncs: 'fa-certificate', surveys: 'fa-poll', portfolio: 'fa-image', employment: 'fa-user-tie', profile: 'fa-user-edit' };
 
         function switchTab(tab) {
@@ -323,14 +367,19 @@ export const studentDashboardHtml = () => `
             if (iconEl && tabIcons[tab]) {
                 iconEl.innerHTML = '<i class="fas ' + tabIcons[tab] + ' text-sm"></i>';
             }
-            ['dashboard', 'exams', 'lectures', 'grades', 'ncs', 'surveys', 'portfolio', 'employment', 'profile'].forEach(t => {
+            var navBtnBase = 'nav-side-btn w-full text-left px-3.5 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 flex items-center gap-3 group ';
+            var navBtnActive = navBtnBase + 'active font-black ';
+            var navBtnInactive = navBtnBase + 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 ';
+            var iconBase = 'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ';
+            var iconInactive = iconBase + 'bg-slate-100 text-slate-400 group-hover:bg-slate-200 group-hover:text-slate-600 ';
+            var iconActive = iconBase + 'bg-sky-100 text-sky-600 ';
+            ['dashboard', 'lectures', 'exams', 'grades', 'surveys', 'portfolio', 'ncs', 'employment', 'profile'].forEach(t => {
                 const btn = document.getElementById('btn-' + t);
                 if (btn) {
-                    if (t === tab) {
-                        btn.className = 'w-full text-left px-5 py-3.5 bg-sky-50 text-sky-700 rounded-2xl font-black text-sm transition border border-sky-100 hover:border-sky-200 flex items-center gap-3';
-                    } else {
-                        btn.className = 'w-full text-left px-5 py-3.5 text-slate-600 hover:bg-slate-50 rounded-2xl font-bold text-sm transition border border-transparent hover:border-slate-200 flex items-center gap-3';
-                    }
+                    var isActive = t === tab;
+                    btn.className = isActive ? navBtnActive : navBtnInactive;
+                    var iconSpan = btn.querySelector('span:first-child');
+                    if (iconSpan) iconSpan.className = isActive ? iconActive : iconInactive;
                 }
             });
 
@@ -517,7 +566,7 @@ export const studentDashboardHtml = () => `
                         var thumb = item.course_thumbnail || (item.session_id ? item.main_slide_image_url : item.thumbnail_url) || 'https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=400';
                         html += '<div class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm hover:border-sky-200 transition"><div class="flex flex-col md:flex-row gap-6"><div class="w-full md:w-48 h-32 bg-slate-100 rounded-2xl overflow-hidden flex-shrink-0 relative"><img src="' + thumb + '" class="w-full h-full object-cover" alt="' + (item.course_title || '') + '">' + (item.has_access_code ? '<div class="absolute top-2 right-2 w-8 h-8 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white"><i class="fas fa-lock text-xs"></i></div>' : '') + '</div><div class="flex-1 flex flex-col justify-between"><div><div class="flex items-center gap-2 mb-2"><span class="px-2 py-0.5 bg-sky-50 text-sky-600 text-[10px] font-black rounded-full uppercase tracking-widest">' + (item.course_category || '일반') + '</span><span class="text-[10px] text-slate-400 font-bold"><i class="far fa-calendar-alt mr-1"></i> ' + new Date(item.enrolled_at).toLocaleDateString() + ' 등록</span></div><h3 class="text-xl font-black text-slate-800 tracking-tight mb-2">' + (item.course_title || '') + '</h3><p class="text-sm text-slate-600 mb-4 line-clamp-2">' + (item.course_category === '국비지원' ? '국비지원 과정입니다.' : '일반 과정입니다.') + '</p></div><div class="flex items-center justify-between mt-auto pt-4 border-t border-slate-100"><div class="flex items-center gap-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider"><span><i class="fas fa-check-circle text-emerald-500 mr-1"></i>승인됨</span><span><i class="fas fa-school mr-1"></i>' + (item.campus_name || '홍대센터') + '</span></div><a href="' + linkUrl + '" class="text-sky-600 hover:text-slate-900 font-black text-[10px] uppercase tracking-widest flex items-center gap-1">' + linkText + ' <i class="fas ' + linkIcon + '"></i></a></div></div></div></div>';
                     });
-                    html += '</div><div class="mt-4 flex justify-end"><button type="button" onclick="switchTab(\'lectures\')" class="text-sky-600 hover:text-slate-900 font-black text-[10px] uppercase tracking-widest flex items-center gap-1">수강 중인 강의 전체보기 <i class="fas fa-chevron-right"></i></button></div>';
+                    html += '</div><div class="mt-4 flex justify-end"><button type="button" onclick="switchTab(&#39;lectures&#39;)" class="text-sky-600 hover:text-slate-900 font-black text-[10px] uppercase tracking-widest flex items-center gap-1">수강 중인 강의 전체보기 <i class="fas fa-chevron-right"></i></button></div>';
                 }
                 html += '</section>';
 
@@ -529,7 +578,7 @@ export const studentDashboardHtml = () => `
                     activeExams.slice(0, 5).forEach(function(exam) {
                         html += '<div class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm hover:border-sky-200 transition flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"><div class="flex-1"><div class="flex items-center gap-2 mb-1"><span class="px-2 py-0.5 bg-sky-50 text-sky-600 text-[10px] font-black rounded-full uppercase tracking-widest">' + (exam.course_title || '일반') + '</span><span class="text-[10px] text-slate-400 font-bold"><i class="far fa-clock mr-1"></i> ' + (exam.time_limit_minutes || exam.time_limit || 0) + '분</span></div><h3 class="text-lg font-black text-slate-800 tracking-tight">' + (exam.title || '') + '</h3><p class="text-sm text-slate-600 mt-1">' + (exam.description || '설명 없음') + '</p></div><button type="button" onclick="location.href=\'/student/exam/' + exam.id + '\'" class="px-6 py-3.5 bg-sky-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition shadow-lg shadow-sky-100 whitespace-nowrap flex items-center gap-2"><i class="fas fa-pen-fancy"></i> 응시하기</button></div>';
                     });
-                    html += '</div><div class="mt-4 flex justify-end"><button type="button" onclick="switchTab(\'exams\')" class="text-sky-600 hover:text-slate-900 font-black text-[10px] uppercase tracking-widest flex items-center gap-1">나의 시험 전체보기 <i class="fas fa-chevron-right"></i></button></div>';
+                    html += '</div><div class="mt-4 flex justify-end"><button type="button" onclick="switchTab(&#39;exams&#39;)" class="text-sky-600 hover:text-slate-900 font-black text-[10px] uppercase tracking-widest flex items-center gap-1">나의 시험 전체보기 <i class="fas fa-chevron-right"></i></button></div>';
                 }
                 html += '</section>';
 
