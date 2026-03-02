@@ -207,6 +207,7 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
                 <button onclick="closeModal('createModal')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times text-xl"></i></button>
             </div>
             <form id="createForm" onsubmit="handleSave(event)" class="p-6 space-y-4">
+                <input type="hidden" id="surveyId" value="">
                 <input type="hidden" id="surveyType">
                 <div>
                     <label class="block text-sm font-bold text-gray-700 mb-1">제목</label>
@@ -293,8 +294,14 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
                  if (startBtn) { startSurvey(parseInt(startBtn.getAttribute('data-id'), 10)); return; }
                  var closeBtn = e.target && e.target.closest && e.target.closest('.btn-survey-close');
                  if (closeBtn) { closeSurvey(parseInt(closeBtn.getAttribute('data-id'), 10)); return; }
-                 var editBtn = e.target && e.target.closest && e.target.closest('.btn-edit-post-lecture');
-                 if (editBtn) { openPostLectureModal(true, parseInt(editBtn.getAttribute('data-id'), 10)); return; }
+                 var editBtn = e.target && e.target.closest && e.target.closest('.btn-edit-survey');
+                 if (editBtn) {
+                     var id = parseInt(editBtn.getAttribute('data-id'), 10);
+                     var type = editBtn.getAttribute('data-type');
+                     if (type === 'post_lecture') openPostLectureModal(true, id);
+                     else openCreateModal(type, true, id);
+                     return;
+                 }
                  var delBtn = e.target && e.target.closest && e.target.closest('.btn-delete-survey');
                  if (delBtn) { deleteSurvey(parseInt(delBtn.getAttribute('data-id'), 10)); }
              });
@@ -373,7 +380,8 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
                     (s.status === 'active' ? '<button type="button" class="btn-survey-close text-orange-600 hover:underline text-xs font-bold mr-3" data-id="' + s.id + '">진행종료</button>' : '') +
                     '<a href="' + previewHref + '" target="_blank" class="text-amber-600 hover:underline text-xs font-bold mr-3">미리보기</a>' +
                     '<a href="/admin/courses/' + courseId + '/lms/surveys/' + s.id + '/results' + (isHrd ? '?type=hrd' : '') + '" class="text-blue-600 hover:underline text-xs font-bold mr-3">결과분석</a>' +
-                    (s.type === 'post_lecture' ? '<button type="button" class="btn-edit-post-lecture text-indigo-600 hover:underline text-xs font-bold mr-3" data-id="' + s.id + '">수정</button><button type="button" class="btn-delete-survey text-red-600 hover:underline text-xs font-bold" data-id="' + s.id + '">삭제</button>' : '') +
+                    '<button type="button" class="btn-edit-survey text-indigo-600 hover:underline text-xs font-bold mr-3" data-id="' + s.id + '" data-type="' + typeAttr + '">수정</button>' +
+                    '<button type="button" class="btn-delete-survey text-red-600 hover:underline text-xs font-bold" data-id="' + s.id + '">삭제</button>' +
                     '</td></tr>';
             }).join('');
         }
@@ -604,9 +612,7 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
                 start_date: startDateVal,
                 end_date: endDateVal,
                 status: 'active',
-                questions: questions,
-                course_id: null,
-                session_id: null
+                questions: questions
             };
 
             var parsedCourseId = parseInt(courseId, 10);
@@ -706,22 +712,73 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
         }
 
         /* Create Modal Functions */
-        window.openCreateModal = (type) => {
-            document.getElementById('createForm').reset();
-            document.getElementById('questionContainer').innerHTML = '';
+        window.openCreateModal = (type, isEdit, surveyId) => {
+            var form = document.getElementById('createForm');
+            var idEl = document.getElementById('surveyId');
+            var titleEl = document.getElementById('modalTitle');
+            var qContainer = document.getElementById('questionContainer');
+            
+            form.reset();
+            qContainer.innerHTML = '';
             document.getElementById('surveyType').value = type;
-            document.getElementById('modalTitle').textContent = type === 'diagnosis' ? '역량 진단 생성' : '새 설문 생성';
+            idEl.value = isEdit ? String(surveyId) : '';
             
-            // Add default question
-            addQuestion();
-            
-            document.getElementById('createModal').classList.remove('hidden');
+            if (!isEdit) {
+                titleEl.textContent = type === 'diagnosis' ? '역량 진단 생성' : '새 설문 생성';
+                addQuestion();
+                document.getElementById('createModal').classList.remove('hidden');
+            } else {
+                titleEl.textContent = type === 'diagnosis' ? '역량 진단 수정' : '설문 수정';
+                var token = localStorage.getItem('token');
+                if (!token) { alert('로그인이 필요합니다.'); return; }
+                
+                qContainer.innerHTML = '<div class="text-center text-gray-400 py-4"><i class="fas fa-spinner fa-spin mr-2"></i> 데이터를 불러오고 있습니다...</div>';
+                
+                fetch('/api/surveys/' + surveyId, { headers: { 'Authorization': 'Bearer ' + token } })
+                    .then(function(r) { return r.json(); })
+                    .then(function(res) {
+                        if (!res || !res.success || !res.data) { alert('설문 정보를 불러오지 못했습니다.'); return; }
+                        var s = res.data;
+                        document.getElementById('surveyTitle').value = s.title || '';
+                        document.getElementById('surveyDesc').value = s.description || '';
+                        document.getElementById('startDate').value = (s.start_date || '').split('T')[0];
+                        document.getElementById('endDate').value = (s.end_date || '').split('T')[0];
+                        
+                        qContainer.innerHTML = '';
+                        if (s.questions && s.questions.length > 0) {
+                            s.questions.forEach(function(q) {
+                                addQuestion(q.question_text, q.question_type, q.options);
+                            });
+                        } else {
+                            addQuestion();
+                        }
+                    })
+                    .catch(function() { alert('정보를 불러오는 중 오류가 발생했습니다.'); });
+                
+                document.getElementById('createModal').classList.remove('hidden');
+            }
         };
 
         window.closeModal = function(id) { document.getElementById(id).classList.add('hidden'); };
 
-        window.addQuestion = () => {
+        window.addQuestion = (text, type, options) => {
             const tpl = document.getElementById('questionTemplate').content.cloneNode(true);
+            const item = tpl.querySelector('.question-item');
+            
+            if (text) item.querySelector('input[name="q_text"]').value = text;
+            if (type) {
+                const select = item.querySelector('select[name="q_type"]');
+                select.value = type;
+                if (type === 'choice') {
+                    const area = item.querySelector('.options-area');
+                    area.classList.remove('hidden');
+                    if (options) {
+                        const optVal = Array.isArray(options) ? options.join(',') : (typeof options === 'string' ? options : '');
+                        area.querySelector('input').value = optVal;
+                    }
+                }
+            }
+            
             document.getElementById('questionContainer').appendChild(tpl);
         };
 
@@ -738,34 +795,74 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
             var token = localStorage.getItem('token');
             if (!token) { alert('로그인이 필요합니다.'); return; }
             if (!courseId) { alert('과정/회차 정보가 없습니다.'); return; }
+            
+            var surveyId = document.getElementById('surveyId').value;
             var type = document.getElementById('surveyType').value;
             var title = document.getElementById('surveyTitle').value.trim();
             var desc = document.getElementById('surveyDesc').value.trim();
             var startDate = document.getElementById('startDate').value;
             var endDate = document.getElementById('endDate').value;
+            
             if (!title || !startDate || !endDate) { alert('제목, 시작일, 종료일을 입력해 주세요.'); return; }
+            
             var questions = [];
             document.querySelectorAll('#questionContainer .question-item').forEach(function(item, idx) {
                 var text = item.querySelector('input[name="q_text"]') ? item.querySelector('input[name="q_text"]').value.trim() : '';
                 var qtype = item.querySelector('select[name="q_type"]') ? item.querySelector('select[name="q_type"]').value : 'rating';
-                if (text) questions.push({ question_text: text, question_type: qtype, options: null, order_index: idx + 1 });
+                var options = null;
+                if (qtype === 'choice') {
+                    var optStr = item.querySelector('.options-area input').value.trim();
+                    options = optStr ? optStr.split(',').map(s => s.trim()).filter(Boolean) : [];
+                }
+                if (text) questions.push({ question_text: text, question_type: qtype, options: options, order_index: idx + 1 });
             });
-            var body = { type: type, title: title, description: desc || null, start_date: startDate, end_date: endDate, status: 'active', questions: questions };
-            if (isHrd) body.session_id = parseInt(courseId, 10); else body.course_id = parseInt(courseId, 10);
+            
+            var body = { 
+                type: type, 
+                title: title, 
+                description: desc || null, 
+                start_date: startDate, 
+                end_date: endDate, 
+                status: 'active', 
+                questions: questions 
+            };
+            
+            var parsedCourseId = parseInt(courseId, 10);
+            if (isHrd) body.session_id = parsedCourseId; else body.course_id = parsedCourseId;
+            
             var btn = e.target.querySelector('button[type="submit"]');
-            if (btn) { btn.disabled = true; btn.textContent = '저장 중...'; }
-            fetch('/api/surveys', {
-                method: 'POST',
+            if (btn) { 
+                btn.disabled = true; 
+                btn.textContent = '저장 중...'; 
+                btn.classList.add('opacity-50');
+            }
+            
+            var url = surveyId ? '/api/surveys/' + surveyId : '/api/surveys';
+            var method = surveyId ? 'PUT' : 'POST';
+            
+            fetch(url, {
+                method: method,
                 headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
                 body: JSON.stringify(body)
             })
             .then(function(r) { return r.json(); })
             .then(function(res) {
-                if (res && res.success) { alert('설문이 생성되었습니다.'); closeModal('createModal'); loadSurveys(); }
-                else { alert(res && res.message ? res.message : '생성에 실패했습니다.'); if (btn) { btn.disabled = false; btn.textContent = '저장하기'; } }
+                if (res && res.success) { 
+                    alert(surveyId ? '설문이 수정되었습니다.' : '설문이 생성되었습니다.'); 
+                    closeModal('createModal'); 
+                    loadSurveys(); 
+                }
+                else { 
+                    alert(res && res.message ? res.message : '저장에 실패했습니다.'); 
+                    if (btn) { btn.disabled = false; btn.textContent = '저장하기'; btn.classList.remove('opacity-50'); } 
+                }
             })
-            .catch(function() { alert('저장 중 오류가 발생했습니다.'); if (btn) { btn.disabled = false; btn.textContent = '저장하기'; } });
+            .catch(function(err) { 
+                alert('저장 중 오류가 발생했습니다: ' + err.message); 
+                if (btn) { btn.disabled = false; btn.textContent = '저장하기'; btn.classList.remove('opacity-50'); } 
+            });
         };
+
 
     </script>
             </div>

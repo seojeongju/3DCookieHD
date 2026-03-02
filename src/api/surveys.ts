@@ -579,13 +579,32 @@ app.put('/:id', authMiddleware, async (c) => {
             }
         }
 
+        const updated_course_id = (course_id !== undefined) ? course_id : survey.course_id;
+        const updated_session_id = (session_id !== undefined) ? session_id : survey.session_id;
+        const updated_type = (type !== undefined) ? type : survey.type;
+        const updated_title = (title !== undefined) ? title : survey.title;
+        const updated_description = (description !== undefined) ? description : survey.description;
+        const updated_start_date = (start_date !== undefined) ? start_date : survey.start_date;
+        const updated_end_date = (end_date !== undefined) ? end_date : survey.end_date;
+        const updated_status = (status !== undefined) ? status : survey.status;
         const final_teacher_id = user.role === 'teacher' ? user.userId : (body_teacher_id !== undefined ? (body_teacher_id != null ? parseInt(String(body_teacher_id), 10) : null) : survey.teacher_id);
 
         await DB.prepare(`
             UPDATE surveys 
             SET course_id = ?, session_id = ?, type = ?, title = ?, description = ?, start_date = ?, end_date = ?, status = ?, teacher_id = ?, updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
-        `).bind(course_id || null, session_id != null ? session_id : survey.session_id, type, title, description || null, start_date || null, end_date || null, status || 'active', final_teacher_id != null ? final_teacher_id : null, id).run();
+        `).bind(
+            updated_course_id || null,
+            updated_session_id || null,
+            updated_type,
+            updated_title,
+            updated_description || null,
+            updated_start_date || null,
+            updated_end_date || null,
+            updated_status,
+            final_teacher_id,
+            id
+        ).run();
 
         if (questions && Array.isArray(questions)) {
             await DB.prepare('DELETE FROM survey_questions WHERE survey_id = ?').bind(id).run();
@@ -611,6 +630,7 @@ app.put('/:id', authMiddleware, async (c) => {
         }
 
         return successResponse(c, null, '설문이 수정되었습니다');
+
     } catch (e: any) {
         console.error('Error updating survey:', e);
         return errorResponse(c, e.message, 500);
