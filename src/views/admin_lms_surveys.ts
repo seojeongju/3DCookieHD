@@ -179,6 +179,18 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
                         <input type="date" id="postLectureEndDate" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500">
                     </div>
                 </div>
+
+                <!-- 문항 편집 섹션 -->
+                <div class="border-t pt-4 mt-2">
+                    <div class="flex justify-between items-center mb-3">
+                        <label class="block text-sm font-bold text-gray-700">설문 문항 편집</label>
+                        <button type="button" onclick="addPostLectureQuestion()" class="text-xs bg-amber-100 text-amber-700 px-3 py-1.5 rounded-lg hover:bg-amber-200 font-bold"><i class="fas fa-plus mr-1"></i>문항 추가</button>
+                    </div>
+                    <div id="postLectureQuestions" class="space-y-3">
+                        <!-- 문항들이 동적으로 로드됨 -->
+                    </div>
+                </div>
+
                 <div class="pt-4 flex justify-end gap-3">
                     <button type="button" onclick="closeModal('postLectureModal')" class="px-5 py-2.5 text-gray-700 font-medium bg-gray-100 rounded-lg hover:bg-gray-200">취소</button>
                     <button type="submit" class="px-5 py-2.5 bg-amber-600 text-white font-bold rounded-lg hover:bg-amber-700">저장</button>
@@ -418,6 +430,70 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
             }
         }
 
+        // 고정 문항 기본값 (신규 생성 시 표시)
+        var DEFAULT_POST_LECTURE_QUESTIONS = [
+            { question_text: '교육과정에 대해 전반적으로 만족한다.', question_type: 'rating' },
+            { question_text: '교육 내용이 쉽게 구성되었으며, 전반적으로 이해 하였다', question_type: 'rating' },
+            { question_text: '본 교육의 전반적인 만족도는?', question_type: 'rating' },
+            { question_text: '강의 내용을 알기 쉽게 설명 했는가?', question_type: 'rating' },
+            { question_text: '교수는 강의의 중요성을 잘 짚어주었는가?', question_type: 'rating' },
+            { question_text: '교수가 전체적으로 분위기를 잘 이끌었는가?', question_type: 'rating' },
+            { question_text: '강의에 포함된 내용이 흥미로웠는가?', question_type: 'rating' },
+            { question_text: '왕성한 의욕을 갖도록 동기유발을 잘 하였는가?', question_type: 'rating' },
+            { question_text: '교육목표에 적합한 교육계획을 수립하였는가?', question_type: 'rating' },
+            { question_text: '강의 내용이 실력향상에 도움이 되었는가?', question_type: 'rating' },
+            { question_text: '전반적인 교육 소감을 구체적으로 작성하여 주시기 바랍니다.', question_type: 'text' }
+        ];
+
+        function renderPostLectureQuestions(questions) {
+            var container = document.getElementById('postLectureQuestions');
+            if (!container) return;
+            container.innerHTML = '';
+            (questions || []).forEach(function(q, idx) {
+                container.appendChild(buildPostLectureQuestionEl(q.question_text, q.question_type, idx));
+            });
+        }
+
+        function buildPostLectureQuestionEl(text, type, idx) {
+            var div = document.createElement('div');
+            div.className = 'bg-gray-50 border border-gray-200 rounded-lg p-3 flex gap-2 items-start post-lecture-q-item';
+            div.innerHTML =
+                '<span class="text-xs font-bold text-gray-400 pt-2 min-w-[1.75rem] text-right">' + (idx + 1) + '.</span>' +
+                '<div class="flex-1 space-y-1">' +
+                '<input type="text" name="pl_q_text" value="' + (text || '').replace(/"/g, '&quot;') + '" class="w-full px-3 py-1.5 border rounded-lg text-sm focus:ring-2 focus:ring-amber-500" placeholder="문항 내용">' +
+                '<select name="pl_q_type" class="px-2 py-1 border rounded text-xs text-gray-600">' +
+                '<option value="rating"' + (type === 'rating' ? ' selected' : '') + '>5점 척도</option>' +
+                '<option value="text"' + (type === 'text' ? ' selected' : '') + '>서술형</option>' +
+                '<option value="choice"' + (type === 'choice' ? ' selected' : '') + '>객관식</option>' +
+                '</select></div>' +
+                '<button type="button" onclick="removePostLectureQuestion(this)" class="mt-1 text-gray-300 hover:text-red-500 flex-shrink-0"><i class="fas fa-trash"></i></button>';
+            return div;
+        }
+
+        function addPostLectureQuestion() {
+            var container = document.getElementById('postLectureQuestions');
+            if (!container) return;
+            var idx = container.querySelectorAll('.post-lecture-q-item').length;
+            container.appendChild(buildPostLectureQuestionEl('', 'rating', idx));
+            // 번호 갱신
+            reindexPostLectureQuestions();
+        }
+
+        function removePostLectureQuestion(btn) {
+            var item = btn.closest('.post-lecture-q-item');
+            if (item) item.remove();
+            reindexPostLectureQuestions();
+        }
+
+        function reindexPostLectureQuestions() {
+            var container = document.getElementById('postLectureQuestions');
+            if (!container) return;
+            container.querySelectorAll('.post-lecture-q-item').forEach(function(el, i) {
+                var numEl = el.querySelector('span');
+                if (numEl) numEl.textContent = (i + 1) + '.';
+            });
+        }
+
         function openPostLectureModal(isEdit, surveyId) {
             var idEl = document.getElementById('postLectureSurveyId');
             var titleEl = document.getElementById('postLectureModalTitle');
@@ -439,11 +515,16 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
                 if (isHrd && startDate) loadLectureSchedule(startDate);
                 var sel = document.getElementById('postLectureTeacherId');
                 if (sel) sel.value = '';
+                // 기본 문항 렌더링
+                renderPostLectureQuestions(DEFAULT_POST_LECTURE_QUESTIONS);
             } else {
                 titleEl.textContent = '강의 후 설문지 수정';
                 idEl.value = String(surveyId);
                 var token = localStorage.getItem('token');
                 if (!token) { alert('로그인이 필요합니다.'); return; }
+                // 문항 로딩 중 표시
+                var qContainer = document.getElementById('postLectureQuestions');
+                if (qContainer) qContainer.innerHTML = '<div class="text-center text-gray-400 py-4"><i class="fas fa-spinner fa-spin mr-2"></i>문항 불러오는 중...</div>';
                 fetch('/api/surveys/' + surveyId, { headers: { 'Authorization': 'Bearer ' + token } })
                     .then(function(r) { return r.json(); })
                     .then(function(res) {
@@ -463,6 +544,9 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
                             }
                         }
                         if (isHrd && s.start_date) loadLectureSchedule((s.start_date || '').split('T')[0]);
+                        // 기존 문항이 있으면 로드, 없으면 기본 문항
+                        var qs = (s.questions && s.questions.length > 0) ? s.questions : DEFAULT_POST_LECTURE_QUESTIONS;
+                        renderPostLectureQuestions(qs);
                     })
                     .catch(function() { alert('설문 정보를 불러오는 중 오류가 발생했습니다.'); });
             }
@@ -497,13 +581,26 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
             var token = localStorage.getItem('token');
             if (!token) { alert('로그인이 필요합니다.'); return; }
             if (!courseId) { alert('과정/회차 정보가 없습니다.'); return; }
+
+            // 문항 수집
+            var questions = [];
+            var qItems = document.querySelectorAll('#postLectureQuestions .post-lecture-q-item');
+            qItems.forEach(function(item, idx) {
+                var textInput = item.querySelector('input[name="pl_q_text"]');
+                var typeSelect = item.querySelector('select[name="pl_q_type"]');
+                var text = textInput ? textInput.value.trim() : '';
+                var type = typeSelect ? typeSelect.value : 'rating';
+                if (text) questions.push({ question_text: text, question_type: type, options: null, order_index: idx + 1 });
+            });
+
             var body = {
                 type: 'post_lecture',
                 title: document.getElementById('postLectureTitle').value.trim() || '강의 후 설문지',
                 description: document.getElementById('postLectureDesc').value.trim() || null,
                 start_date: document.getElementById('postLectureStartDate').value,
                 end_date: document.getElementById('postLectureEndDate').value,
-                status: 'active'
+                status: 'active',
+                questions: questions
             };
             if (isHrd) body.session_id = parseInt(courseId, 10); else body.course_id = parseInt(courseId, 10);
             if (currentUser && currentUser.role === 'admin') {
@@ -512,6 +609,8 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
             }
             var url = surveyId ? '/api/surveys/' + surveyId : '/api/surveys';
             var method = surveyId ? 'PUT' : 'POST';
+            var submitBtn = document.querySelector('#postLectureForm button[type="submit"]');
+            if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = '저장 중...'; }
             fetch(url, {
                 method: method,
                 headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
@@ -519,10 +618,19 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
             })
                 .then(function(r) { return r.json(); })
                 .then(function(res) {
-                    if (res && res.success) { alert(surveyId ? '수정되었습니다.' : '강의 후 설문지가 생성되었습니다.'); closeModal('postLectureModal'); loadSurveys(); }
-                    else alert(res && res.message ? res.message : (surveyId ? '수정에 실패했습니다.' : '생성에 실패했습니다.'));
+                    if (res && res.success) {
+                        alert(surveyId ? '수정되었습니다.' : '강의 후 설문지가 생성되었습니다.');
+                        closeModal('postLectureModal');
+                        loadSurveys();
+                    } else {
+                        alert(res && res.message ? res.message : (surveyId ? '수정에 실패했습니다.' : '생성에 실패했습니다.'));
+                        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '저장'; }
+                    }
                 })
-                .catch(function() { alert('저장 중 오류가 발생했습니다.'); });
+                .catch(function() {
+                    alert('저장 중 오류가 발생했습니다.');
+                    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '저장'; }
+                });
         }
 
         function startSurvey(id) {
@@ -593,10 +701,36 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
 
         window.handleSave = (e) => {
             e.preventDefault();
-            // Mock Save
-            alert('저장되었습니다. (실제 데이터베이스 연동 필요)');
-            closeModal('createModal');
-            // Reload logic would go here
+            var token = localStorage.getItem('token');
+            if (!token) { alert('로그인이 필요합니다.'); return; }
+            if (!courseId) { alert('과정/회차 정보가 없습니다.'); return; }
+            var type = document.getElementById('surveyType').value;
+            var title = document.getElementById('surveyTitle').value.trim();
+            var desc = document.getElementById('surveyDesc').value.trim();
+            var startDate = document.getElementById('startDate').value;
+            var endDate = document.getElementById('endDate').value;
+            if (!title || !startDate || !endDate) { alert('제목, 시작일, 종료일을 입력해 주세요.'); return; }
+            var questions = [];
+            document.querySelectorAll('#questionContainer .question-item').forEach(function(item, idx) {
+                var text = item.querySelector('input[name="q_text"]') ? item.querySelector('input[name="q_text"]').value.trim() : '';
+                var qtype = item.querySelector('select[name="q_type"]') ? item.querySelector('select[name="q_type"]').value : 'rating';
+                if (text) questions.push({ question_text: text, question_type: qtype, options: null, order_index: idx + 1 });
+            });
+            var body = { type: type, title: title, description: desc || null, start_date: startDate, end_date: endDate, status: 'active', questions: questions };
+            if (isHrd) body.session_id = parseInt(courseId, 10); else body.course_id = parseInt(courseId, 10);
+            var btn = e.target.querySelector('button[type="submit"]');
+            if (btn) { btn.disabled = true; btn.textContent = '저장 중...'; }
+            fetch('/api/surveys', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                body: JSON.stringify(body)
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(res) {
+                if (res && res.success) { alert('설문이 생성되었습니다.'); closeModal('createModal'); loadSurveys(); }
+                else { alert(res && res.message ? res.message : '생성에 실패했습니다.'); if (btn) { btn.disabled = false; btn.textContent = '저장하기'; } }
+            })
+            .catch(function() { alert('저장 중 오류가 발생했습니다.'); if (btn) { btn.disabled = false; btn.textContent = '저장하기'; } });
         };
 
     </script>
