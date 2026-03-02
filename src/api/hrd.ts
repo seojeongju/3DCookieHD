@@ -868,8 +868,9 @@ app.get('/students/:id', async (c) => {
 
         if (activeCourseInfo) {
             const { session_id, total_days, total_hours, daily_hours } = activeCourseInfo;
-            // 훈련일수 10일 && 40시간 이상이면 장기과정(일수 기준), 아니면 단기과정(시간 기준)
-            const isLongTerm = (total_days >= 10 && total_hours >= 40);
+            // daily_hours가 명시된 경우 시간 기반(단기) 처리
+            // daily_hours가 없을 때만 total_days/total_hours 기준으로 장기 판별
+            const isLongTerm = !daily_hours && (total_days >= 10 && total_hours >= 40);
 
             const { results: logs } = await c.env.DB.prepare(`
                 SELECT al.date, al.check_in_time as check_in, al.check_out_time as check_out, al.status
@@ -903,12 +904,9 @@ app.get('/students/:id', async (c) => {
             const daysProgressed = byDate.size;
 
             byDate.forEach((rows) => {
-                const log = rows[0];
-                if (!isLongTerm && log.check_in != null && log.check_out != null) {
-                    const mins = attendanceDurationMinutes(log.check_in, log.check_out);
-                    if (mins > 0) accumulatedMinutes += mins;
-                    else if (rows.some((r: any) => r.status === 'present' || !r.status || r.status === 'pending')) accumulatedMinutes += (daily_hours || 0) * 60;
-                } else if (!isLongTerm && rows.some((r: any) => r.status === 'present' || !r.status || r.status === 'pending')) {
+                // 결석(absent, absent_under_50)인 날은 0분, 그 외는 daily_hours × 60분 고정
+                const isAbsent = rows.some((r: any) => r.status === 'absent' || r.status === 'absent_under_50');
+                if (!isLongTerm && !isAbsent) {
                     accumulatedMinutes += (daily_hours || 0) * 60;
                 }
             });
@@ -940,24 +938,30 @@ app.get('/students/:id', async (c) => {
                     finalRate: finalAttendanceRate
                 };
             } else {
-                const expectedTotalMinutes = total_hours > 0 ? total_hours * 60 : 0;
-                let expectedCurrentMinutes = daysProgressed > 0 ? daysProgressed * (daily_hours || 0) * 60 : 0;
-                if (expectedTotalMinutes > 0 && expectedCurrentMinutes > expectedTotalMinutes) {
-                    expectedCurrentMinutes = expectedTotalMinutes;
-                }
+                // 단기(시간 기반) 과정
+                // ▪ expectedTotalMinutes : total_hours × 60 (finalRate 분모)
+                // ▪ expectedCurrentMinutes: daysProgressed × daily_hours × 60 (currentRate 분모)
+                //   ※ 클램핑 금지! daysProgressed > total_days일 때 클램핑하면 100% 버그 발생
+                const expectedTotalMinutes = total_hours > 0 ? Math.round(total_hours * 60) : 0;
+                const expectedCurrentMinutes = daysProgressed > 0 ? Math.round(daysProgressed * (daily_hours || 0) * 60) : 0;
 
+                // 분자: 실제 누적분(결석일 제외) — 클램핑 없음
+                const rawAccumulated = Math.round(accumulatedMinutes);
+
+                // currentRate: 진행일 기준 (11일 출석 / 13일 진행 = 84.6%)
                 const currentAttendanceRate = expectedCurrentMinutes > 0
-                    ? Math.min(100, (accumulatedMinutes / expectedCurrentMinutes) * 100).toFixed(1)
+                    ? Math.min(100, (rawAccumulated / expectedCurrentMinutes * 100)).toFixed(1)
                     : '0.0';
+                // finalRate: 과정 종료 기준 (total_hours 분모)
                 const finalAttendanceRate = expectedTotalMinutes > 0
-                    ? Math.min(100, (accumulatedMinutes / expectedTotalMinutes) * 100).toFixed(1)
+                    ? Math.min(100, (rawAccumulated / expectedTotalMinutes) * 100).toFixed(1)
                     : '0.0';
 
                 attendance_rate = parseFloat(currentAttendanceRate);
                 advanced_attendance = {
                     type: 'minutes',
                     isLongTerm: false,
-                    accumulatedMinutes: Math.min(Math.floor(accumulatedMinutes), expectedTotalMinutes || accumulatedMinutes),
+                    accumulatedMinutes: rawAccumulated,
                     expectedCurrentMinutes,
                     expectedTotalMinutes,
                     currentRate: currentAttendanceRate,
@@ -2571,7 +2575,7 @@ app.get('/training-logs/summary', authMiddleware, async (c) => {
                         else if (linked || otherSession) {
                             try {
                                 await c.env.DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(null, session.id).run();
-                            } catch (_) {}
+                            } catch (_) { }
                         }
                     }
                     // 훈련일지: 회차별 별도 LMS 과정(1:1) — 과정명 풀네임으로만 매칭, LIKE 미사용
@@ -2717,55 +2721,55 @@ app.get('/training-logs', async (c) => {
                 const td = Number(session.total_days);
                 if (th > 0) assignedDailyHours = Math.round((th / td) * 10) / 10;
             }
-                const expectedTitle = `${session.course_name || '과정'} (${session.session_number}회차${session.session_name ? ' - ' + session.session_name : ''})`.trim();
-                // 이미 연결된 LMS 과정이 있으면, 제목 일치 + 다른 회차에 연결돼 있지 않을 때만 사용
-                if (session.lms_course_id != null && session.lms_course_id > 0) {
-                    const existingCourse: any = await c.env.DB.prepare('SELECT id, title FROM courses WHERE id = ?').bind(session.lms_course_id).first();
-                    const titleMatches = existingCourse && existingCourse.title != null && (
-                        String(existingCourse.title).trim() === expectedTitle ||
-                        String(existingCourse.title).trim() === `${session.course_name || '과정'} (${session.session_number}회차)`.trim()
-                    );
+            const expectedTitle = `${session.course_name || '과정'} (${session.session_number}회차${session.session_name ? ' - ' + session.session_name : ''})`.trim();
+            // 이미 연결된 LMS 과정이 있으면, 제목 일치 + 다른 회차에 연결돼 있지 않을 때만 사용
+            if (session.lms_course_id != null && session.lms_course_id > 0) {
+                const existingCourse: any = await c.env.DB.prepare('SELECT id, title FROM courses WHERE id = ?').bind(session.lms_course_id).first();
+                const titleMatches = existingCourse && existingCourse.title != null && (
+                    String(existingCourse.title).trim() === expectedTitle ||
+                    String(existingCourse.title).trim() === `${session.course_name || '과정'} (${session.session_number}회차)`.trim()
+                );
+                const otherSession: any = await c.env.DB.prepare(
+                    'SELECT id FROM course_sessions WHERE lms_course_id = ? AND id != ? LIMIT 1'
+                ).bind(session.lms_course_id, rawId).first();
+                const notUsedByOther = !otherSession;
+                if (titleMatches && notUsedByOther) {
+                    resolvedCourseId = Number(session.lms_course_id);
+                } else if (existingCourse || otherSession) {
+                    try {
+                        await c.env.DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(null, rawId).run();
+                    } catch (_) { }
+                }
+            }
+            if (resolvedCourseId == null) {
+                const lmsCourse: any = await c.env.DB.prepare(
+                    'SELECT id FROM courses WHERE title = ? LIMIT 1'
+                ).bind(expectedTitle).first();
+
+                if (lmsCourse) {
+                    // 이 과정이 이미 다른 회차에 연결돼 있으면 사용하지 않음 (회차 12에 회차 4 일지가 보이는 문제 방지)
                     const otherSession: any = await c.env.DB.prepare(
                         'SELECT id FROM course_sessions WHERE lms_course_id = ? AND id != ? LIMIT 1'
-                    ).bind(session.lms_course_id, rawId).first();
-                    const notUsedByOther = !otherSession;
-                    if (titleMatches && notUsedByOther) {
-                        resolvedCourseId = Number(session.lms_course_id);
-                    } else if (existingCourse || otherSession) {
-                        try {
-                            await c.env.DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(null, rawId).run();
-                        } catch (_) {}
+                    ).bind(lmsCourse.id, rawId).first();
+                    if (!otherSession) {
+                        resolvedCourseId = lmsCourse.id;
+                        await c.env.DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(resolvedCourseId, rawId).run();
                     }
                 }
-                if (resolvedCourseId == null) {
-                    const lmsCourse: any = await c.env.DB.prepare(
-                        'SELECT id FROM courses WHERE title = ? LIMIT 1'
-                    ).bind(expectedTitle).first();
-
-                    if (lmsCourse) {
-                        // 이 과정이 이미 다른 회차에 연결돼 있으면 사용하지 않음 (회차 12에 회차 4 일지가 보이는 문제 방지)
-                        const otherSession: any = await c.env.DB.prepare(
-                            'SELECT id FROM course_sessions WHERE lms_course_id = ? AND id != ? LIMIT 1'
-                        ).bind(lmsCourse.id, rawId).first();
-                        if (!otherSession) {
-                            resolvedCourseId = lmsCourse.id;
-                            await c.env.DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(resolvedCourseId, rawId).run();
-                        }
+            }
+            // 여전히 없으면: 이 회차 전용 LMS 과정을 새로 만들어서 1:1 연결 (과정 4에서 등록한 일지가 과정 12에 안 보이게)
+            if (resolvedCourseId == null) {
+                try {
+                    const insert = await c.env.DB.prepare(
+                        'INSERT INTO courses (title, category, status) VALUES (?, \'국비지원\', \'active\')'
+                    ).bind(expectedTitle).run();
+                    const newId = insert.meta?.last_row_id;
+                    if (newId != null) {
+                        resolvedCourseId = Number(newId);
+                        await c.env.DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(resolvedCourseId, rawId).run();
                     }
-                }
-                // 여전히 없으면: 이 회차 전용 LMS 과정을 새로 만들어서 1:1 연결 (과정 4에서 등록한 일지가 과정 12에 안 보이게)
-                if (resolvedCourseId == null) {
-                    try {
-                        const insert = await c.env.DB.prepare(
-                            'INSERT INTO courses (title, category, status) VALUES (?, \'국비지원\', \'active\')'
-                        ).bind(expectedTitle).run();
-                        const newId = insert.meta?.last_row_id;
-                        if (newId != null) {
-                            resolvedCourseId = Number(newId);
-                            await c.env.DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(resolvedCourseId, rawId).run();
-                        }
-                    } catch (_) {}
-                }
+                } catch (_) { }
+            }
         } else {
             // 2. 회차가 아니면 courses.id로 해석 (직접 과정 ID로 들어온 경우)
             const existsInCourses = await c.env.DB.prepare('SELECT id FROM courses WHERE id = ?').bind(rawId).first();
@@ -3071,7 +3075,7 @@ app.post('/training-logs', async (c) => {
                             else if (existingCourse || otherSession) {
                                 try {
                                     await c.env.DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(null, rawId).run();
-                                } catch (_) {}
+                                } catch (_) { }
                             }
                         }
                         if (resolvedCourseId == null) {
@@ -3268,14 +3272,14 @@ app.get('/assignments/summary', authMiddleware, async (c) => {
                         const row: any = await c.env.DB.prepare('SELECT id FROM courses WHERE TRIM(title) = ? LIMIT 1').bind(title).first();
                         courseId = row?.id ?? null;
                         if (courseId != null) resolvedByTitle = true;
-                    } catch (_) {}
+                    } catch (_) { }
                 }
                 if (courseId == null && title) {
                     try {
                         const row: any = await c.env.DB.prepare('SELECT id FROM courses WHERE title = ? LIMIT 1').bind(title).first();
                         courseId = row?.id ?? null;
                         if (courseId != null) resolvedByTitle = true;
-                    } catch (_) {}
+                    } catch (_) { }
                 }
                 if (courseId == null && (courseName || sessionNum)) {
                     try {
@@ -3283,7 +3287,7 @@ app.get('/assignments/summary', authMiddleware, async (c) => {
                         const row: any = await c.env.DB.prepare('SELECT id FROM courses WHERE title LIKE ? ORDER BY LENGTH(title) ASC LIMIT 1').bind(likePattern).first();
                         courseId = row?.id ?? null;
                         if (courseId != null) resolvedByTitle = true;
-                    } catch (_) {}
+                    } catch (_) { }
                 }
                 // 회차가 있을 때는 과정명만으로 매칭하면 모든 회차가 같은 과정으로 연결되므로, 회차 번호 없이 LIKE 하는 것은 회차가 없을 때만
                 if (courseId == null && courseName && !sessionNum) {
@@ -3291,7 +3295,7 @@ app.get('/assignments/summary', authMiddleware, async (c) => {
                         const row: any = await c.env.DB.prepare('SELECT id FROM courses WHERE title LIKE ? ORDER BY LENGTH(title) ASC LIMIT 1').bind('%' + courseName + '%').first();
                         courseId = row?.id ?? null;
                         if (courseId != null) resolvedByTitle = true;
-                    } catch (_) {}
+                    } catch (_) { }
                 }
                 // LMS 과정 제목에 [2026] 등 연도 접두어가 없는 경우: 접두어 제거 후 재시도
                 if (courseId == null && courseName && /^\[\d{4}\]\s*/.test(courseName)) {
@@ -3302,14 +3306,14 @@ app.get('/assignments/summary', authMiddleware, async (c) => {
                             const row: any = await c.env.DB.prepare('SELECT id FROM courses WHERE TRIM(title) = ? OR title = ? LIMIT 1').bind(altTitle, altTitle).first();
                             courseId = row?.id ?? null;
                             if (courseId != null) resolvedByTitle = true;
-                        } catch (_) {}
+                        } catch (_) { }
                         if (courseId == null) {
                             try {
                                 const likePattern = '%' + courseNameWithoutYear + '%' + (sessionNum ? sessionNum + '회차' : '') + '%';
                                 const row: any = await c.env.DB.prepare('SELECT id FROM courses WHERE title LIKE ? ORDER BY LENGTH(title) ASC LIMIT 1').bind(likePattern).first();
                                 courseId = row?.id ?? null;
                                 if (courseId != null) resolvedByTitle = true;
-                            } catch (_) {}
+                            } catch (_) { }
                         }
                         // 회차가 있을 때 과정명만으로 매칭하면 다른 회차와 같은 과정으로 연결되므로, 회차 번호 없이 LIKE 하는 것은 sessionNum 없을 때만
                         if (courseId == null && !sessionNum) {
@@ -3317,14 +3321,14 @@ app.get('/assignments/summary', authMiddleware, async (c) => {
                                 const row: any = await c.env.DB.prepare('SELECT id FROM courses WHERE title LIKE ? ORDER BY LENGTH(title) ASC LIMIT 1').bind('%' + courseNameWithoutYear + '%').first();
                                 courseId = row?.id ?? null;
                                 if (courseId != null) resolvedByTitle = true;
-                            } catch (_) {}
+                            } catch (_) { }
                         }
                     }
                 }
                 if (courseId != null && resolvedByTitle) {
                     try {
                         await c.env.DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(courseId, session.id).run();
-                    } catch (_) {}
+                    } catch (_) { }
                 }
 
                 let assignmentCount = 0, studentCount = 0, totalSubmissions = 0, pendingGrading = 0;
@@ -3332,7 +3336,7 @@ app.get('/assignments/summary', authMiddleware, async (c) => {
                     try {
                         const aStat: any = await c.env.DB.prepare('SELECT COUNT(*) as assignment_count FROM assignments WHERE course_id = ?').bind(courseId).first();
                         assignmentCount = aStat?.assignment_count ?? 0;
-                    } catch (_) {}
+                    } catch (_) { }
                     try {
                         const sStat: any = await c.env.DB.prepare(`
                             SELECT COUNT(*) as total_submissions, COUNT(CASE WHEN sub.status != 'graded' THEN 1 END) as pending_grading
@@ -3340,11 +3344,11 @@ app.get('/assignments/summary', authMiddleware, async (c) => {
                         `).bind(courseId).first();
                         totalSubmissions = sStat?.total_submissions ?? 0;
                         pendingGrading = sStat?.pending_grading ?? 0;
-                    } catch (_) {}
+                    } catch (_) { }
                     try {
                         const eStat: any = await c.env.DB.prepare("SELECT COUNT(*) as student_count FROM enrollments WHERE course_id = ? AND status = 'approved'").bind(courseId).first();
                         studentCount = eStat?.student_count ?? 0;
-                    } catch (_) {}
+                    } catch (_) { }
                 }
                 const submissionRate = (assignmentCount > 0 && studentCount > 0)
                     ? Math.min(100, Math.round((totalSubmissions / (assignmentCount * studentCount)) * 100))
@@ -3433,14 +3437,14 @@ app.get('/exams/summary', authMiddleware, async (c) => {
                         const row: any = await c.env.DB.prepare('SELECT id FROM courses WHERE TRIM(title) = ? LIMIT 1').bind(title).first();
                         courseId = row?.id ?? null;
                         if (courseId != null) resolvedByTitle = true;
-                    } catch (_) {}
+                    } catch (_) { }
                 }
                 if (courseId == null && title) {
                     try {
                         const row: any = await c.env.DB.prepare('SELECT id FROM courses WHERE title = ? LIMIT 1').bind(title).first();
                         courseId = row?.id ?? null;
                         if (courseId != null) resolvedByTitle = true;
-                    } catch (_) {}
+                    } catch (_) { }
                 }
                 if (courseId == null && (courseName || sessionNum)) {
                     try {
@@ -3448,19 +3452,19 @@ app.get('/exams/summary', authMiddleware, async (c) => {
                         const row: any = await c.env.DB.prepare('SELECT id FROM courses WHERE title LIKE ? ORDER BY LENGTH(title) ASC LIMIT 1').bind(likePattern).first();
                         courseId = row?.id ?? null;
                         if (courseId != null) resolvedByTitle = true;
-                    } catch (_) {}
+                    } catch (_) { }
                 }
                 if (courseId == null && courseName && !sessionNum) {
                     try {
                         const row: any = await c.env.DB.prepare('SELECT id FROM courses WHERE title LIKE ? ORDER BY LENGTH(title) ASC LIMIT 1').bind('%' + courseName + '%').first();
                         courseId = row?.id ?? null;
                         if (courseId != null) resolvedByTitle = true;
-                    } catch (_) {}
+                    } catch (_) { }
                 }
                 if (courseId != null && resolvedByTitle) {
                     try {
                         await c.env.DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(courseId, session.id).run();
-                    } catch (_) {}
+                    } catch (_) { }
                 }
 
                 let examCount = 0, studentCount = 0, totalSubmissions = 0;
@@ -3470,12 +3474,12 @@ app.get('/exams/summary', authMiddleware, async (c) => {
                         'SELECT COUNT(*) as student_count FROM course_session_enrollments WHERE session_id = ? AND status IN ("approved", "enrolled")'
                     ).bind(session.id).first();
                     studentCount = eStat?.student_count ?? 0;
-                } catch (_) {}
+                } catch (_) { }
                 if (courseId) {
                     try {
                         const xStat: any = await c.env.DB.prepare('SELECT COUNT(*) as exam_count FROM exams WHERE course_id = ?').bind(courseId).first();
                         examCount = xStat?.exam_count ?? 0;
-                    } catch (_) {}
+                    } catch (_) { }
                     try {
                         const subStat: any = await c.env.DB.prepare(`
                             SELECT COUNT(DISTINCT student_id || '-' || exam_id) as total_submissions, AVG(total_score) as avg_score
@@ -3485,7 +3489,7 @@ app.get('/exams/summary', authMiddleware, async (c) => {
                         `).bind(courseId).first();
                         totalSubmissions = subStat?.total_submissions ?? 0;
                         avgScore = Math.round((Number(subStat?.avg_score) || 0) * 10) / 10;
-                    } catch (_) {}
+                    } catch (_) { }
                 }
                 const participationRate = (examCount > 0 && studentCount > 0)
                     ? Math.min(100, Math.round((totalSubmissions / (examCount * studentCount)) * 100))
@@ -3570,14 +3574,14 @@ app.get('/grades/summary', authMiddleware, async (c) => {
                     try {
                         const row: any = await c.env.DB.prepare('SELECT id FROM courses WHERE TRIM(title) = ? LIMIT 1').bind(title).first();
                         if (row?.id) courseId = row.id;
-                    } catch (_) {}
+                    } catch (_) { }
                 }
                 if (courseId == null && title) {
                     try {
                         const likePattern = '%' + courseName + '%' + (sessionNum ? sessionNum + '회차' : '') + '%';
                         const row: any = await c.env.DB.prepare('SELECT id FROM courses WHERE title LIKE ? ORDER BY LENGTH(title) ASC LIMIT 1').bind(likePattern).first();
                         if (row?.id) courseId = row.id;
-                    } catch (_) {}
+                    } catch (_) { }
                 }
 
                 let studentCount = 0, testedCount = 0, avgScore = 0, maxScore = 0;
@@ -3586,7 +3590,7 @@ app.get('/grades/summary', authMiddleware, async (c) => {
                         'SELECT COUNT(*) as student_count FROM course_session_enrollments WHERE session_id = ? AND status IN ("approved", "enrolled")'
                     ).bind(session.id).first();
                     studentCount = eStat?.student_count ?? 0;
-                } catch (_) {}
+                } catch (_) { }
                 if (courseId) {
                     try {
                         const gradeStats: any = await c.env.DB.prepare(`
@@ -3598,7 +3602,7 @@ app.get('/grades/summary', authMiddleware, async (c) => {
                         testedCount = gradeStats?.tested_count ?? 0;
                         avgScore = Math.round((Number(gradeStats?.avg_score) || 0) * 10) / 10;
                         maxScore = Number(gradeStats?.max_score) || 0;
-                    } catch (_) {}
+                    } catch (_) { }
                 }
 
                 return {
@@ -3737,14 +3741,14 @@ app.get('/surveys/summary', authMiddleware, async (c) => {
                     try {
                         const row: any = await c.env.DB.prepare('SELECT id FROM courses WHERE TRIM(title) = ? LIMIT 1').bind(title).first();
                         if (row?.id) courseId = row.id;
-                    } catch (_) {}
+                    } catch (_) { }
                 }
                 if (courseId == null && (courseName || sessionNum)) {
                     try {
                         const likePattern = '%' + courseName + '%' + (sessionNum ? sessionNum + '회차' : '') + '%';
                         const row: any = await c.env.DB.prepare('SELECT id FROM courses WHERE title LIKE ? ORDER BY LENGTH(title) ASC LIMIT 1').bind(likePattern).first();
                         if (row?.id) courseId = row.id;
-                    } catch (_) {}
+                    } catch (_) { }
                 }
 
                 let studentCount = 0, surveyCount = 0, responseCount = 0;
@@ -3753,19 +3757,19 @@ app.get('/surveys/summary', authMiddleware, async (c) => {
                         'SELECT COUNT(*) as student_count FROM course_session_enrollments WHERE session_id = ? AND status IN ("approved", "enrolled")'
                     ).bind(session.id).first();
                     studentCount = eStat?.student_count ?? 0;
-                } catch (_) {}
+                } catch (_) { }
                 if (courseId) {
                     try {
                         const sStat: any = await c.env.DB.prepare('SELECT COUNT(*) as survey_count FROM surveys WHERE course_id = ?').bind(courseId).first();
                         surveyCount = sStat?.survey_count ?? 0;
-                    } catch (_) {}
+                    } catch (_) { }
                     try {
                         const rStat: any = await c.env.DB.prepare(`
                             SELECT COUNT(*) as response_count FROM survey_responses r
                             JOIN surveys s ON r.survey_id = s.id WHERE s.course_id = ?
                         `).bind(courseId).first();
                         responseCount = rStat?.response_count ?? 0;
-                    } catch (_) {}
+                    } catch (_) { }
                 }
                 const participationRate = (surveyCount > 0 && studentCount > 0)
                     ? Math.min(100, Math.round((responseCount / (surveyCount * studentCount)) * 100))

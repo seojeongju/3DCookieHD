@@ -942,7 +942,9 @@ courses.get('/:id/attendance', async (c) => {
 
       if (type === 'hrd' && sessionDetails) {
         const { total_days, total_hours, daily_hours } = sessionDetails;
-        const isLongTerm = (total_days >= 10 && total_hours >= 40);
+        // daily_hours가 명시된 경우 시간 기반(단기) 처리
+        // daily_hours가 없을 때만 total_days/total_hours 기준으로 장기 판별
+        const isLongTerm = !daily_hours && (total_days >= 10 && total_hours >= 40);
 
         const byDate = new Map<string, { check_in?: string; check_out?: string; status?: string }>();
         sLogs.forEach(l => {
@@ -986,11 +988,10 @@ courses.get('/:id/attendance', async (c) => {
           }
 
           if (!isLongTerm) {
-            if (check_in != null && check_out != null) {
-              const mins = attendanceDurationMinutes(check_in, check_out);
-              if (mins > 0) accumulatedMinutes += mins;
-              else if (status === 'present' || !status || status === 'pending') accumulatedMinutes += (daily_hours || 0) * 60;
-            } else if (status === 'present' || !status || status === 'pending') {
+            // 결석(absent, absent_under_50)인 날은 0분, 그 외는 daily_hours × 60분 고정 사용
+            // (실제 check_in/check_out 시간 차이가 잌다르게 기록될 수 있어 daily_hours 기준이 정확)
+            const isAbsent = status === 'absent' || status === 'absent_under_50';
+            if (!isAbsent) {
               accumulatedMinutes += (daily_hours || 0) * 60;
             }
           }
@@ -1023,24 +1024,31 @@ courses.get('/:id/attendance', async (c) => {
             finalRate: finalAttendanceRate
           };
         } else {
-          const expectedTotalMinutes = total_hours > 0 ? total_hours * 60 : 0;
-          let expectedCurrentMinutes = daysProgressed > 0 ? daysProgressed * (daily_hours || 0) * 60 : 0;
-          if (expectedTotalMinutes > 0 && expectedCurrentMinutes > expectedTotalMinutes) {
-            expectedCurrentMinutes = expectedTotalMinutes;
-          }
+          // 단기(시간 기반) 과정
+          // ▪ expectedTotalMinutes : total_hours × 60 (과정 종료 시 출석률, finalRate 분모)
+          // ▪ expectedCurrentMinutes: daysProgressed × daily_hours × 60 (=현재 진행일수 기준 예상, currentRate 분모)
+          //   ※ 클램핑 금지! daysProgressed > total_days일 때(=실제 연장) 클램핑하면
+          //     분자(accumulatedMinutes) > 분모(expectedCurrentMinutes)가 되어 100% 버그 발생
+          const expectedTotalMinutes = total_hours > 0 ? Math.round(total_hours * 60) : 0;
+          const expectedCurrentMinutes = daysProgressed > 0 ? Math.round(daysProgressed * (daily_hours || 0) * 60) : 0;
 
+          // 분자: 실제 누적분(결석일 제외) — 클램핑 없음 (= 결석 날수 왼바르게 반영)
+          const rawAccumulated = Math.round(accumulatedMinutes);
+
+          // currentRate: 진행일 기준 출석률 (결석 2일 시: 11/13 = 84.6%)
           const currentAttendanceRate = expectedCurrentMinutes > 0
-            ? Math.min(100, (accumulatedMinutes / expectedCurrentMinutes) * 100).toFixed(1)
+            ? Math.min(100, (rawAccumulated / expectedCurrentMinutes) * 100).toFixed(1)
             : '0.0';
+          // finalRate: 과정 전체 기준 예상 수료 출석률 (total_hours 분모)
           const finalAttendanceRate = expectedTotalMinutes > 0
-            ? Math.min(100, (accumulatedMinutes / expectedTotalMinutes) * 100).toFixed(1)
+            ? Math.min(100, (rawAccumulated / expectedTotalMinutes) * 100).toFixed(1)
             : '0.0';
 
           attendance_rate = parseFloat(currentAttendanceRate);
           advanced_attendance = {
             type: 'minutes',
             isLongTerm: false,
-            accumulatedMinutes: Math.min(Math.floor(accumulatedMinutes), expectedTotalMinutes || accumulatedMinutes),
+            accumulatedMinutes: rawAccumulated,
             expectedCurrentMinutes,
             expectedTotalMinutes,
             currentRate: currentAttendanceRate,
@@ -1096,6 +1104,36 @@ courses.get('/:id/attendance', async (c) => {
       }
       payload.is_training_day = isTrainingDay;
     }
+
+    // ── 전체 과정 기간 누적 통계 (enrollment_id + 날짜 기준 중복 제거) ──
+    const totalStats: Record<string, number> = {
+      present: 0, late: 0, early_leave: 0, absent: 0,
+      public_leave: 0, absent_under_50: 0, late_and_early: 0
+    };
+    // "enrollmentId_date" → 최종 상태 맵
+    const byEnrollmentDate = new Map<string, string>();
+    allSessionLogs.forEach((log: any) => {
+      const d = (log.date || '').toString().split('T')[0];
+      if (!d) return;
+      const key = `${log.enrollment_id}_${d}`;
+      const newStatus = log.status || 'present';
+      const existing = byEnrollmentDate.get(key);
+      if (!existing) {
+        byEnrollmentDate.set(key, newStatus);
+      } else {
+        if ((existing === 'late' && newStatus === 'early_leave') ||
+          (existing === 'early_leave' && newStatus === 'late')) {
+          byEnrollmentDate.set(key, 'late_and_early');
+        } else if (newStatus === 'absent' || newStatus === 'absent_under_50') {
+          byEnrollmentDate.set(key, newStatus);
+        }
+      }
+    });
+    byEnrollmentDate.forEach((status) => {
+      if (totalStats[status] !== undefined) totalStats[status]++;
+    });
+    payload.total_stats = totalStats;
+
     return successResponse(c, payload);
 
   } catch (error) {
