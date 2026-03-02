@@ -3,6 +3,7 @@ import { Bindings, JWTPayload, Variables } from '../types';
 import { successResponse, errorResponse, forbiddenResponse } from '../utils/response';
 import { authMiddleware } from '../middleware/auth';
 import { resolveSessionToLmsCourseId } from '../utils/sessionCourseResolution';
+import { calcActualDailyMinutes, calcAttendedMinutes } from '../lib/attendance';
 
 const app = new Hono<{ Bindings: Bindings, Variables: Variables }>();
 
@@ -902,31 +903,50 @@ app.get('/students/:id', async (c) => {
             let outCount = 0;
             let accumulatedMinutes = 0;
 
-            (logs || []).forEach((log: any) => {
-                if (log.status === 'present') presentCount++;
-                else if (log.status === 'absent' || log.status === 'absent_under_50') absentCount++;
-                else if (log.status === 'late') lateCount++;
-                else if (log.status === 'early_leave') earlyCount++;
-                else if (log.status === 'public_leave' || log.status === 'late_and_early') outCount++;
-            });
-
-            const byDate = new Map<string, { check_in?: string; check_out?: string; status?: string }[]>();
+            // byDate: 날짜별 단일 merge (courses.ts와 동일 구조)
+            const byDate = new Map<string, { check_in?: string; check_out?: string; status?: string }>();
             (logs || []).forEach((log: any) => {
                 const d = (log.date || '').toString().split('T')[0];
                 if (!d) return;
-                if (!byDate.has(d)) byDate.set(d, []);
-                byDate.get(d)!.push({ check_in: log.check_in, check_out: log.check_out, status: log.status });
+                if (byDate.has(d)) {
+                    const existing = byDate.get(d)!;
+                    if (log.status === 'absent' || log.status === 'absent_under_50') {
+                        existing.status = log.status;
+                    } else if (
+                        (existing.status === 'late' && log.status === 'early_leave') ||
+                        (existing.status === 'early_leave' && log.status === 'late')
+                    ) {
+                        const lateCheckIn = existing.status === 'late' ? existing.check_in : log.check_in;
+                        const earlyCheckOut = existing.status === 'late' ? log.check_out : existing.check_out;
+                        existing.status = 'late_and_early';
+                        existing.check_in = lateCheckIn;
+                        existing.check_out = earlyCheckOut;
+                    }
+                } else {
+                    byDate.set(d, { check_in: log.check_in, check_out: log.check_out, status: log.status });
+                }
             });
             const daysProgressed = byDate.size;
 
-            byDate.forEach((rows) => {
-                // 결석(absent, absent_under_50)인 날은 0분
-                // 그 외는 실제 수업 시간(training_time start~end) 기준 분 고정
-                const isAbsent = rows.some((r: any) => r.status === 'absent' || r.status === 'absent_under_50');
-                if (!isLongTerm && !isAbsent) {
-                    accumulatedMinutes += actualDailyMinutes;
+            byDate.forEach((day) => {
+                const { status, check_in, check_out } = day;
+                if (status === 'present') presentCount++;
+                else if (status === 'absent' || status === 'absent_under_50') absentCount++;
+                else if (status === 'late') lateCount++;
+                else if (status === 'early_leave') earlyCount++;
+                else if (status === 'public_leave') outCount++;
+                else if (status === 'late_and_early') { lateCount++; earlyCount++; }
+
+                if (!isLongTerm) {
+                    accumulatedMinutes += calcAttendedMinutes(
+                        status, check_in, check_out,
+                        training_time_start || '00:00',
+                        training_time_end || '23:59',
+                        actualDailyMinutes
+                    );
                 }
             });
+
 
             if (isLongTerm) {
                 // 환산 결석일: 순수 결석일수 + Math.floor((누적 지각 + 조퇴 + 외출) / 3)

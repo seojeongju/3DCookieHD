@@ -9,6 +9,7 @@ import { verifyToken } from '../utils/jwt';
 import { getOne, getAll, execute, calculatePagination } from '../utils/database';
 import { authMiddleware, requireAdmin, requireTeacher } from '../middleware/auth';
 import { verifyCourseOwnership } from '../middleware/ownership';
+import { calcActualDailyMinutes, calcAttendedMinutes } from '../lib/attendance';
 
 const courses = new Hono<{ Bindings: Bindings }>();
 
@@ -966,36 +967,33 @@ courses.get('/:id/attendance', async (c) => {
         // daily_hours가 없을 때만 total_days/total_hours 기준으로 장기 판별
         const isLongTerm = !daily_hours && (total_days >= 10 && total_hours >= 40);
 
-        // ─── 실제 일일 수업 분 계산 ───────────────────────────────────
-        // training_time_start/end(예: '19:00'/'22:30')가 있으면 실제 차이를 사용
-        // → daily_hours 설정값이 잘못되어도 정확한 값이 반영됨
-        // 없으면 daily_hours × 60으로 fallback
-        function calcDailyMinutes(start: string, end: string): number {
-          if (!start || !end) return 0;
-          const [sh, sm] = start.split(':').map(Number);
-          const [eh, em] = end.split(':').map(Number);
-          const diff = (eh * 60 + em) - (sh * 60 + sm);
-          return diff > 0 ? diff : 0;
-        }
-        const actualDailyMinutes = training_time_start && training_time_end
-          ? calcDailyMinutes(training_time_start, training_time_end)
-          : (daily_hours || 0) * 60;   // fallback
+        // 실제 일일 수업 분 (training_time 우선, 없으면 daily_hours × 60 fallback)
+        const actualDailyMinutes = calcActualDailyMinutes(training_time_start, training_time_end, daily_hours);
 
         const byDate = new Map<string, { check_in?: string; check_out?: string; status?: string }>();
         sLogs.forEach(l => {
           const d = (l.date || '').toString().split('T')[0];
           if (!d) return;
 
-          // 이미 그 날짜에 기록이 있으면, 더 '심각한' 상태를 유지하거나 데이터를 보완
           if (byDate.has(d)) {
             const existing = byDate.get(d)!;
-            // 지각 + 조퇴가 각각 들어올 경우 '지각&조퇴'로 격상
-            if ((existing.status === 'late' && l.status === 'early_leave') ||
-              (existing.status === 'early_leave' && l.status === 'late')) {
+            // 결석이 있으면 우선
+            if (l.status === 'absent' || l.status === 'absent_under_50') {
+              existing.status = l.status;
+            } else if (
+              (existing.status === 'late' && l.status === 'early_leave') ||
+              (existing.status === 'early_leave' && l.status === 'late')
+            ) {
+              // 지각 + 조퇴 → late_and_early
+              // check_in:  지각 레코드의 check_in (더 늦은 입실 시간)
+              // check_out: 조퇴 레코드의 check_out (더 이른 퇴실 시간)
+              const lateCheckIn = existing.status === 'late' ? existing.check_in : l.check_in;
+              const earlyCheckOut = existing.status === 'late' ? l.check_out : existing.check_out;
               existing.status = 'late_and_early';
-            } else if (l.status === 'absent' || l.status === 'absent_under_50') {
-              existing.status = l.status; // 결석이 있으면 결석으로
+              existing.check_in = lateCheckIn;
+              existing.check_out = earlyCheckOut;
             }
+            // 그 외(같은 상태 중복 등)는 첫 번째 레코드 유지
           } else {
             byDate.set(d, { check_in: l.check_in, check_out: l.check_out, status: l.status });
           }
@@ -1023,12 +1021,14 @@ courses.get('/:id/attendance', async (c) => {
           }
 
           if (!isLongTerm) {
-            // 결석(absent, absent_under_50)인 날은 0분
-            // 그 외는 실제 수업 시간(training_time start~end) 기준 분 고정
-            const isAbsent = status === 'absent' || status === 'absent_under_50';
-            if (!isAbsent) {
-              accumulatedMinutes += actualDailyMinutes;
-            }
+            // 출석 상태 + 실제 check_in/check_out 시간으로 인정 분 계산
+            // late/early_leave/late_and_early는 실제 시간이 공제됨
+            accumulatedMinutes += calcAttendedMinutes(
+              status, check_in, check_out,
+              training_time_start || '00:00',
+              training_time_end || '23:59',
+              actualDailyMinutes
+            );
           }
         });
 
