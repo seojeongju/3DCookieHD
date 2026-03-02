@@ -853,6 +853,7 @@ app.get('/students/:id', async (c) => {
         const activeCourseInfo = await c.env.DB.prepare(`
             SELECT 
                 cs.id as session_id,
+                cs.status as session_status,
                 ac.total_days,
                 ac.total_hours,
                 ac.daily_hours
@@ -861,13 +862,13 @@ app.get('/students/:id', async (c) => {
             JOIN approved_courses ac ON cs.approved_course_id = ac.id
             WHERE cse.user_id = ?
             ORDER BY cs.training_start_date DESC LIMIT 1
-        `).bind(id).first() as { session_id: number; total_days: number; total_hours: number; daily_hours: number } | undefined;
+        `).bind(id).first() as { session_id: number; session_status: string; total_days: number; total_hours: number; daily_hours: number } | undefined;
 
         let attendance_rate = 0;
         let advanced_attendance = null;
 
         if (activeCourseInfo) {
-            const { session_id, total_days, total_hours, daily_hours } = activeCourseInfo;
+            const { session_id, session_status, total_days, total_hours, daily_hours } = activeCourseInfo;
             // daily_hours가 명시된 경우 시간 기반(단기) 처리
             // daily_hours가 없을 때만 total_days/total_hours 기준으로 장기 판별
             const isLongTerm = !daily_hours && (total_days >= 10 && total_hours >= 40);
@@ -939,20 +940,37 @@ app.get('/students/:id', async (c) => {
                 };
             } else {
                 // 단기(시간 기반) 과정
-                // ▪ expectedTotalMinutes : total_hours × 60 (finalRate 분모)
-                // ▪ expectedCurrentMinutes: daysProgressed × daily_hours × 60 (currentRate 분모)
-                //   ※ 클램핑 금지! daysProgressed > total_days일 때 클램핑하면 100% 버그 발생
-                const expectedTotalMinutes = total_hours > 0 ? Math.round(total_hours * 60) : 0;
-                const expectedCurrentMinutes = daysProgressed > 0 ? Math.round(daysProgressed * (daily_hours || 0) * 60) : 0;
+                // ▪ timetable 기반으로 분모 계산 (total_hours보다 실제 운영일 수가 정확)
+                //   - 마감: 전체 timetable 일수 × daily_hours × 60 = expectedTotalMinutes
+                //   - 진행 중: 오늘까지 timetable 일수 × daily_hours × 60 = expectedCurrentMinutes
+                const isClosed2 = (session_status || '') === 'closed';
+                const today2 = new Date().toISOString().split('T')[0];
+                const { results: timetableRows2 } = await c.env.DB.prepare(`
+                    SELECT DISTINCT training_date FROM session_timetable
+                    WHERE session_id = ? AND (is_excluded IS NULL OR is_excluded = 0)
+                    ORDER BY training_date ASC
+                `).bind(session_id).all() as { results: { training_date: string }[] };
 
-                // 분자: 실제 누적분(결석일 제외) — 클램핑 없음
+                const tblDates = (timetableRows2 || []).map((r: any) => (r.training_date || '').toString().substring(0, 10)).filter(Boolean);
+                const tblTotalDays = tblDates.length;
+                const tblProgressedDays = isClosed2 ? tblTotalDays : tblDates.filter(d => d <= today2).length;
+
+                const safeDaily = daily_hours || 0;
+                const expectedTotalMinutes = tblTotalDays > 0
+                    ? Math.round(tblTotalDays * safeDaily * 60)
+                    : (total_hours > 0 ? Math.round(total_hours * 60) : 0);
+                const expectedCurrentMinutes = tblProgressedDays > 0
+                    ? Math.round(tblProgressedDays * safeDaily * 60)
+                    : (daysProgressed > 0 ? Math.round(daysProgressed * safeDaily * 60) : 0);
+
+                // 분자: 결석일 제외 누적분 (클램핑 없음)
                 const rawAccumulated = Math.round(accumulatedMinutes);
 
-                // currentRate: 진행일 기준 (11일 출석 / 13일 진행 = 84.6%)
+                // currentRate: 현재 진행일 기준 출석률
                 const currentAttendanceRate = expectedCurrentMinutes > 0
                     ? Math.min(100, (rawAccumulated / expectedCurrentMinutes * 100)).toFixed(1)
                     : '0.0';
-                // finalRate: 과정 종료 기준 (total_hours 분모)
+                // finalRate: 전체 과정 기준 수료 예상 출석률
                 const finalAttendanceRate = expectedTotalMinutes > 0
                     ? Math.min(100, (rawAccumulated / expectedTotalMinutes) * 100).toFixed(1)
                     : '0.0';

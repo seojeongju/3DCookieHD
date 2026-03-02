@@ -863,6 +863,10 @@ courses.get('/:id/attendance', async (c) => {
     let defaultEndTime = '18:00';
     let sessionDetails: any = null;
     let allSessionLogs: any[] = [];
+    // timetable 기반 훈련일 수 (isHrd 그룹 이후 학생 루프에서 사용되므로 바깜에 let 선언)
+    let timetableTotalDays = 0;           // 과정 전체 훈련일 수 (finalRate 분모)
+    let timetableProgressedDays = 0;      // 오늘까지 훈련일 수 (currentRate 분모)
+    let allTimetableDates: string[] = []; // is_training_day 판별용 재사용
 
     if (isHrd) {
       // 0. 회차 정보 조회 (기본 시간 설정 + 마감 여부 + 훈련 기간)
@@ -894,7 +898,7 @@ courses.get('/:id/attendance', async (c) => {
         ) AND date = ?
       `, [courseId, date]);
 
-      // 2-1. 전체 출석 기록 조회 (for rate calculation, date 포함하여 동일일 중복 제거)
+      // 2-1. 전체 출석 기록 조회 (for rate calculation)
       allSessionLogs = await getAll<any>(c.env.DB, `
         SELECT enrollment_id, date, check_in_time as check_in, check_out_time as check_out, status
         FROM attendance_logs
@@ -902,6 +906,22 @@ courses.get('/:id/attendance', async (c) => {
           SELECT id FROM course_session_enrollments WHERE session_id = ?
         )
       `, [courseId]);
+
+      const today2 = new Date().toISOString().split('T')[0];
+      const isClosed = (sessionDetails?.session_status || '') === 'closed';
+
+      const { results: timetableRowsData } = await c.env.DB.prepare(`
+        SELECT DISTINCT training_date FROM session_timetable
+        WHERE session_id = ? AND (is_excluded IS NULL OR is_excluded = 0)
+        ORDER BY training_date ASC
+      `).bind(courseId).all() as { results: { training_date: string }[] };
+
+      allTimetableDates = (timetableRowsData || []).map((r: any) => (r.training_date || '').toString().substring(0, 10)).filter(Boolean);
+      timetableTotalDays = allTimetableDates.length;
+      timetableProgressedDays = isClosed
+        ? timetableTotalDays
+        : allTimetableDates.filter(d => d <= today2).length;
+
     } else {
       // 1. 일반 과정의 수강생 목록 조회
       const studentsQuery = `
@@ -1025,21 +1045,27 @@ courses.get('/:id/attendance', async (c) => {
           };
         } else {
           // 단기(시간 기반) 과정
-          // ▪ expectedTotalMinutes : total_hours × 60 (과정 종료 시 출석률, finalRate 분모)
-          // ▪ expectedCurrentMinutes: daysProgressed × daily_hours × 60 (=현재 진행일수 기준 예상, currentRate 분모)
-          //   ※ 클램핑 금지! daysProgressed > total_days일 때(=실제 연장) 클램핑하면
-          //     분자(accumulatedMinutes) > 분모(expectedCurrentMinutes)가 되어 100% 버그 발생
-          const expectedTotalMinutes = total_hours > 0 ? Math.round(total_hours * 60) : 0;
-          const expectedCurrentMinutes = daysProgressed > 0 ? Math.round(daysProgressed * (daily_hours || 0) * 60) : 0;
+          // ▪ expectedTotalMinutes   : session_timetable 전체 훈련일 수 × daily_hours × 60
+          //   (마감 과정 기준 = 실제 운영일 수 → total_hours보다 정확)
+          // ▪ expectedCurrentMinutes : session_timetable에서 오늘까지 훈련일 수 × daily_hours × 60
+          //   (마감이면 = expectedTotalMinutes, 진행 중이면 = 오늘까지 일수로 제한)
+          const safeDaily = daily_hours || 0;
+          const expectedTotalMinutes = timetableTotalDays > 0
+            ? Math.round(timetableTotalDays * safeDaily * 60)
+            : (total_hours > 0 ? Math.round(total_hours * 60) : 0);  // timetable 없으면 fallback
+          const expectedCurrentMinutes = timetableProgressedDays > 0
+            ? Math.round(timetableProgressedDays * safeDaily * 60)
+            : (daysProgressed > 0 ? Math.round(daysProgressed * safeDaily * 60) : 0);  // timetable 없으면 fallback
 
-          // 분자: 실제 누적분(결석일 제외) — 클램핑 없음 (= 결석 날수 왼바르게 반영)
+          // 분자: 결석일 제외 실제 누적분 (클램핑 없음)
           const rawAccumulated = Math.round(accumulatedMinutes);
 
-          // currentRate: 진행일 기준 출석률 (결석 2일 시: 11/13 = 84.6%)
+          // currentRate: 현재 진행일 기준 출석률
+          //   예) timetable 12일중 10일 출석 = 10/12 = 83.3%
           const currentAttendanceRate = expectedCurrentMinutes > 0
             ? Math.min(100, (rawAccumulated / expectedCurrentMinutes) * 100).toFixed(1)
             : '0.0';
-          // finalRate: 과정 전체 기준 예상 수료 출석률 (total_hours 분모)
+          // finalRate: 전체 과정 기준 수료 예상 출석률
           const finalAttendanceRate = expectedTotalMinutes > 0
             ? Math.min(100, (rawAccumulated / expectedTotalMinutes) * 100).toFixed(1)
             : '0.0';
@@ -1090,14 +1116,11 @@ courses.get('/:id/attendance', async (c) => {
       if (sessionDetails.session_status) payload.session_status = sessionDetails.session_status;
       const dateStr = (date || '').toString().substring(0, 10);
       let isTrainingDay = false;
-      const timetableRows = await c.env.DB.prepare(`
-        SELECT DISTINCT training_date FROM session_timetable
-        WHERE session_id = ? AND (is_excluded IS NULL OR is_excluded = 0)
-      `).bind(courseId).all() as { results?: { training_date: string }[] };
-      const trainingDates = new Set((timetableRows.results || []).map((r: any) => (r.training_date || '').toString().substring(0, 10)));
-      if (trainingDates.size > 0) {
-        isTrainingDay = trainingDates.has(dateStr);
+      // allTimetableDates는 위 isHrd 블록에서 이미 조회됨 → 재사용 (중복 DB 조회 없음)
+      if (allTimetableDates.length > 0) {
+        isTrainingDay = new Set(allTimetableDates).has(dateStr);
       } else {
+        // timetable이 없으면 훈련 기간 범위로 판별 (fallback)
         const start = (sessionDetails.training_start_date || '').toString().substring(0, 10);
         const end = (sessionDetails.training_end_date || '').toString().substring(0, 10);
         if (start && end && dateStr >= start && dateStr <= end) isTrainingDay = true;
