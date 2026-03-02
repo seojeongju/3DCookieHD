@@ -3809,22 +3809,43 @@ app.get('/surveys/summary', authMiddleware, async (c) => {
                     ).bind(session.id).first();
                     studentCount = eStat?.student_count ?? 0;
                 } catch (_) { }
+
+                // session_id 기준 설문 조회 (HRD 회차 설문)
+                try {
+                    const sStat: any = await c.env.DB.prepare(
+                        'SELECT COUNT(*) as survey_count FROM surveys WHERE session_id = ?'
+                    ).bind(session.id).first();
+                    surveyCount += sStat?.survey_count ?? 0;
+                } catch (_) { }
+                try {
+                    const rStat: any = await c.env.DB.prepare(`
+                        SELECT COUNT(*) as response_count FROM survey_responses r
+                        JOIN surveys sv ON r.survey_id = sv.id WHERE sv.session_id = ?
+                    `).bind(session.id).first();
+                    responseCount += rStat?.response_count ?? 0;
+                } catch (_) { }
+
+                // course_id 기준 설문도 포함 (lms_course_id 연결된 경우)
                 if (courseId) {
                     try {
-                        const sStat: any = await c.env.DB.prepare('SELECT COUNT(*) as survey_count FROM surveys WHERE course_id = ?').bind(courseId).first();
-                        surveyCount = sStat?.survey_count ?? 0;
+                        const sStat: any = await c.env.DB.prepare(
+                            'SELECT COUNT(*) as survey_count FROM surveys WHERE course_id = ?'
+                        ).bind(courseId).first();
+                        surveyCount += sStat?.survey_count ?? 0;
                     } catch (_) { }
                     try {
                         const rStat: any = await c.env.DB.prepare(`
                             SELECT COUNT(*) as response_count FROM survey_responses r
-                            JOIN surveys s ON r.survey_id = s.id WHERE s.course_id = ?
+                            JOIN surveys sv ON r.survey_id = sv.id WHERE sv.course_id = ?
                         `).bind(courseId).first();
-                        responseCount = rStat?.response_count ?? 0;
+                        responseCount += rStat?.response_count ?? 0;
                     } catch (_) { }
                 }
+
                 const participationRate = (surveyCount > 0 && studentCount > 0)
                     ? Math.min(100, Math.round((responseCount / (surveyCount * studentCount)) * 100))
                     : 0;
+
 
                 return {
                     session_id: session.id,
