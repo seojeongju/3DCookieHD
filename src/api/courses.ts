@@ -961,10 +961,25 @@ courses.get('/:id/attendance', async (c) => {
       let advanced_attendance: any = null;
 
       if (type === 'hrd' && sessionDetails) {
-        const { total_days, total_hours, daily_hours } = sessionDetails;
+        const { total_days, total_hours, daily_hours, training_time_start, training_time_end } = sessionDetails;
         // daily_hours가 명시된 경우 시간 기반(단기) 처리
         // daily_hours가 없을 때만 total_days/total_hours 기준으로 장기 판별
         const isLongTerm = !daily_hours && (total_days >= 10 && total_hours >= 40);
+
+        // ─── 실제 일일 수업 분 계산 ───────────────────────────────────
+        // training_time_start/end(예: '19:00'/'22:30')가 있으면 실제 차이를 사용
+        // → daily_hours 설정값이 잘못되어도 정확한 값이 반영됨
+        // 없으면 daily_hours × 60으로 fallback
+        function calcDailyMinutes(start: string, end: string): number {
+          if (!start || !end) return 0;
+          const [sh, sm] = start.split(':').map(Number);
+          const [eh, em] = end.split(':').map(Number);
+          const diff = (eh * 60 + em) - (sh * 60 + sm);
+          return diff > 0 ? diff : 0;
+        }
+        const actualDailyMinutes = training_time_start && training_time_end
+          ? calcDailyMinutes(training_time_start, training_time_end)
+          : (daily_hours || 0) * 60;   // fallback
 
         const byDate = new Map<string, { check_in?: string; check_out?: string; status?: string }>();
         sLogs.forEach(l => {
@@ -1008,11 +1023,11 @@ courses.get('/:id/attendance', async (c) => {
           }
 
           if (!isLongTerm) {
-            // 결석(absent, absent_under_50)인 날은 0분, 그 외는 daily_hours × 60분 고정 사용
-            // (실제 check_in/check_out 시간 차이가 잌다르게 기록될 수 있어 daily_hours 기준이 정확)
+            // 결석(absent, absent_under_50)인 날은 0분
+            // 그 외는 실제 수업 시간(training_time start~end) 기준 분 고정
             const isAbsent = status === 'absent' || status === 'absent_under_50';
             if (!isAbsent) {
-              accumulatedMinutes += (daily_hours || 0) * 60;
+              accumulatedMinutes += actualDailyMinutes;
             }
           }
         });
@@ -1045,23 +1060,19 @@ courses.get('/:id/attendance', async (c) => {
           };
         } else {
           // 단기(시간 기반) 과정
-          // ▪ expectedTotalMinutes   : session_timetable 전체 훈련일 수 × daily_hours × 60
-          //   (마감 과정 기준 = 실제 운영일 수 → total_hours보다 정확)
-          // ▪ expectedCurrentMinutes : session_timetable에서 오늘까지 훈련일 수 × daily_hours × 60
-          //   (마감이면 = expectedTotalMinutes, 진행 중이면 = 오늘까지 일수로 제한)
-          const safeDaily = daily_hours || 0;
+          // ▪ expectedTotalMinutes   : timetable 전체 훈련일 수 × actualDailyMinutes
+          // ▪ expectedCurrentMinutes : timetable 오늘까지 훈련일 수 × actualDailyMinutes
           const expectedTotalMinutes = timetableTotalDays > 0
-            ? Math.round(timetableTotalDays * safeDaily * 60)
-            : (total_hours > 0 ? Math.round(total_hours * 60) : 0);  // timetable 없으면 fallback
+            ? Math.round(timetableTotalDays * actualDailyMinutes)
+            : (total_hours > 0 ? Math.round(total_hours * 60) : 0);
           const expectedCurrentMinutes = timetableProgressedDays > 0
-            ? Math.round(timetableProgressedDays * safeDaily * 60)
-            : (daysProgressed > 0 ? Math.round(daysProgressed * safeDaily * 60) : 0);  // timetable 없으면 fallback
+            ? Math.round(timetableProgressedDays * actualDailyMinutes)
+            : (daysProgressed > 0 ? Math.round(daysProgressed * actualDailyMinutes) : 0);
 
           // 분자: 결석일 제외 실제 누적분 (클램핑 없음)
           const rawAccumulated = Math.round(accumulatedMinutes);
 
           // currentRate: 현재 진행일 기준 출석률
-          //   예) timetable 12일중 10일 출석 = 10/12 = 83.3%
           const currentAttendanceRate = expectedCurrentMinutes > 0
             ? Math.min(100, (rawAccumulated / expectedCurrentMinutes) * 100).toFixed(1)
             : '0.0';

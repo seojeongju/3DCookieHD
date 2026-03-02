@@ -854,6 +854,8 @@ app.get('/students/:id', async (c) => {
             SELECT 
                 cs.id as session_id,
                 cs.status as session_status,
+                cs.training_time_start,
+                cs.training_time_end,
                 ac.total_days,
                 ac.total_hours,
                 ac.daily_hours
@@ -862,16 +864,29 @@ app.get('/students/:id', async (c) => {
             JOIN approved_courses ac ON cs.approved_course_id = ac.id
             WHERE cse.user_id = ?
             ORDER BY cs.training_start_date DESC LIMIT 1
-        `).bind(id).first() as { session_id: number; session_status: string; total_days: number; total_hours: number; daily_hours: number } | undefined;
+        `).bind(id).first() as { session_id: number; session_status: string; training_time_start: string; training_time_end: string; total_days: number; total_hours: number; daily_hours: number } | undefined;
 
         let attendance_rate = 0;
         let advanced_attendance = null;
 
         if (activeCourseInfo) {
-            const { session_id, session_status, total_days, total_hours, daily_hours } = activeCourseInfo;
+            const { session_id, session_status, training_time_start, training_time_end, total_days, total_hours, daily_hours } = activeCourseInfo;
             // daily_hours가 명시된 경우 시간 기반(단기) 처리
             // daily_hours가 없을 때만 total_days/total_hours 기준으로 장기 판별
             const isLongTerm = !daily_hours && (total_days >= 10 && total_hours >= 40);
+
+            // 실제 일일 수업 분: training_time start~end 차이
+            // daily_hours 설정값이 잘못되어도 실제 시간 반영
+            function calcDailyMinutesH(start: string, end: string): number {
+                if (!start || !end) return 0;
+                const [sh, sm] = start.split(':').map(Number);
+                const [eh, em] = end.split(':').map(Number);
+                const diff = (eh * 60 + em) - (sh * 60 + sm);
+                return diff > 0 ? diff : 0;
+            }
+            const actualDailyMinutes = training_time_start && training_time_end
+                ? calcDailyMinutesH(training_time_start, training_time_end)
+                : (daily_hours || 0) * 60;
 
             const { results: logs } = await c.env.DB.prepare(`
                 SELECT al.date, al.check_in_time as check_in, al.check_out_time as check_out, al.status
@@ -905,10 +920,11 @@ app.get('/students/:id', async (c) => {
             const daysProgressed = byDate.size;
 
             byDate.forEach((rows) => {
-                // 결석(absent, absent_under_50)인 날은 0분, 그 외는 daily_hours × 60분 고정
+                // 결석(absent, absent_under_50)인 날은 0분
+                // 그 외는 실제 수업 시간(training_time start~end) 기준 분 고정
                 const isAbsent = rows.some((r: any) => r.status === 'absent' || r.status === 'absent_under_50');
                 if (!isLongTerm && !isAbsent) {
-                    accumulatedMinutes += (daily_hours || 0) * 60;
+                    accumulatedMinutes += actualDailyMinutes;
                 }
             });
 
@@ -940,9 +956,7 @@ app.get('/students/:id', async (c) => {
                 };
             } else {
                 // 단기(시간 기반) 과정
-                // ▪ timetable 기반으로 분모 계산 (total_hours보다 실제 운영일 수가 정확)
-                //   - 마감: 전체 timetable 일수 × daily_hours × 60 = expectedTotalMinutes
-                //   - 진행 중: 오늘까지 timetable 일수 × daily_hours × 60 = expectedCurrentMinutes
+                // timetable 기반으로 분모 계산 + actualDailyMinutes 사용
                 const isClosed2 = (session_status || '') === 'closed';
                 const today2 = new Date().toISOString().split('T')[0];
                 const { results: timetableRows2 } = await c.env.DB.prepare(`
@@ -955,13 +969,12 @@ app.get('/students/:id', async (c) => {
                 const tblTotalDays = tblDates.length;
                 const tblProgressedDays = isClosed2 ? tblTotalDays : tblDates.filter(d => d <= today2).length;
 
-                const safeDaily = daily_hours || 0;
                 const expectedTotalMinutes = tblTotalDays > 0
-                    ? Math.round(tblTotalDays * safeDaily * 60)
+                    ? Math.round(tblTotalDays * actualDailyMinutes)
                     : (total_hours > 0 ? Math.round(total_hours * 60) : 0);
                 const expectedCurrentMinutes = tblProgressedDays > 0
-                    ? Math.round(tblProgressedDays * safeDaily * 60)
-                    : (daysProgressed > 0 ? Math.round(daysProgressed * safeDaily * 60) : 0);
+                    ? Math.round(tblProgressedDays * actualDailyMinutes)
+                    : (daysProgressed > 0 ? Math.round(daysProgressed * actualDailyMinutes) : 0);
 
                 // 분자: 결석일 제외 누적분 (클램핑 없음)
                 const rawAccumulated = Math.round(accumulatedMinutes);
