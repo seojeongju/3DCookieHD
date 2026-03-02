@@ -199,10 +199,12 @@ app.get('/my-pending', authMiddleware, async (c) => {
         const seen = new Set<number>();
         const merged: any[] = [];
         for (const row of (byCourse || [])) {
-            if (row.id && !seen.has(row.id)) { seen.add(row.id); merged.push(row); }
+            const r = row as any;
+            if (r.id && !seen.has(r.id as number)) { seen.add(r.id as number); merged.push(r); }
         }
         for (const row of (bySession || [])) {
-            if (row.id && !seen.has(row.id)) { seen.add(row.id); merged.push(row); }
+            const r = row as any;
+            if (r.id && !seen.has(r.id as number)) { seen.add(r.id as number); merged.push(r); }
         }
         merged.sort((a, b) => new Date((b.created_at || '')).getTime() - new Date((a.created_at || '')).getTime());
 
@@ -220,13 +222,17 @@ app.get('/:id', authMiddleware, async (c) => {
         const id = c.req.param('id');
         const user = c.get('user');
 
+        const surveyId = parseInt(id, 10);
         const survey: any = await DB.prepare(`
-            SELECT s.*, c.title as course_title, c.teacher_id as course_teacher_id, u.name as teacher_name
+            SELECT 
+                s.id, s.course_id, s.session_id, s.type, s.title, s.description, s.start_date, s.end_date, s.status, s.teacher_id, s.created_at, s.updated_at,
+                c.title as course_title, c.teacher_id as course_teacher_id, 
+                u.name as teacher_name
             FROM surveys s
             LEFT JOIN courses c ON s.course_id = c.id
             LEFT JOIN users u ON s.teacher_id = u.id
             WHERE s.id = ?
-        `).bind(id).first();
+        `).bind(surveyId).first();
 
         if (!survey) return notFoundResponse(c, 'Survey not found');
 
@@ -579,31 +585,49 @@ app.put('/:id', authMiddleware, async (c) => {
             }
         }
 
-        const updated_course_id = (course_id !== undefined) ? course_id : survey.course_id;
-        const updated_session_id = (session_id !== undefined) ? session_id : survey.session_id;
-        const updated_type = (type !== undefined) ? type : survey.type;
-        const updated_title = (title !== undefined) ? title : survey.title;
-        const updated_description = (description !== undefined) ? description : survey.description;
-        const updated_start_date = (start_date !== undefined) ? start_date : survey.start_date;
-        const updated_end_date = (end_date !== undefined) ? end_date : survey.end_date;
-        const updated_status = (status !== undefined) ? status : survey.status;
-        const final_teacher_id = user.role === 'teacher' ? user.userId : (body_teacher_id !== undefined ? (body_teacher_id != null ? parseInt(String(body_teacher_id), 10) : null) : survey.teacher_id);
+        const final_teacher_id = user.role === 'teacher'
+            ? user.userId
+            : (body_teacher_id !== undefined ? (body_teacher_id != null ? parseInt(String(body_teacher_id), 10) : null) : survey.teacher_id);
+
+        const updated_course_id = course_id !== undefined ? course_id : survey.course_id;
+        const updated_session_id = session_id !== undefined ? session_id : survey.session_id;
+        const updated_type = type !== undefined ? type : survey.type;
+        const updated_start_date = start_date !== undefined ? start_date : survey.start_date;
+        const updated_end_date = end_date !== undefined ? end_date : survey.end_date;
+        const updated_status = status !== undefined ? status : survey.status;
+
+        // 제목: post_lecture일 경우의 기본값 처리 포함
+        let updated_title = title !== undefined ? title : survey.title;
+        if (updated_type === 'post_lecture' && (!updated_title || updated_title.trim() === '')) {
+            updated_title = '강의 후 설문지';
+        }
+
+        const updated_description = description !== undefined ? description : survey.description;
 
         await DB.prepare(`
             UPDATE surveys 
-            SET course_id = ?, session_id = ?, type = ?, title = ?, description = ?, start_date = ?, end_date = ?, status = ?, teacher_id = ?, updated_at = CURRENT_TIMESTAMP
+            SET course_id = ?, 
+                session_id = ?, 
+                type = ?, 
+                title = ?, 
+                description = ?, 
+                start_date = ?, 
+                end_date = ?, 
+                status = ?, 
+                teacher_id = ?, 
+                updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
         `).bind(
             updated_course_id || null,
             updated_session_id || null,
             updated_type,
-            updated_title,
+            updated_title || '제목 없음',
             updated_description || null,
             updated_start_date || null,
             updated_end_date || null,
             updated_status,
             final_teacher_id,
-            id
+            parseInt(id, 10)
         ).run();
 
         if (questions && Array.isArray(questions)) {

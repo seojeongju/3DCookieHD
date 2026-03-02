@@ -503,6 +503,9 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
         }
 
         function openPostLectureModal(isEdit, surveyId) {
+            var form = document.getElementById('postLectureForm');
+            if (form) form.reset();
+            
             var idEl = document.getElementById('postLectureSurveyId');
             var titleEl = document.getElementById('postLectureModalTitle');
             var block = document.getElementById('postLectureLectureDateBlock');

@@ -116,7 +116,7 @@ export function adminSessionTimetablePrintHtml(sessionId: number): string {
             async function init() {
                 try {
                     // Fetch Data
-                    const [sRes, tRes, rRes, cRes] = await Promise.all([
+                    const [sRes, tRes, rRes, cRes, iRes] = await Promise.all([
                         fetch('/api/course-sessions/public/' + sessionId),
                         fetch('/api/course-sessions/' + sessionId + '/timetable', { headers }),
                         fetch('/api/course-sessions/' + sessionId + '/timetable/resources', { headers }),

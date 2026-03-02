@@ -21,10 +21,8 @@ export const adminLmsSurveyPreviewHtml = (sidebar: string = hrdSidebar('courses'
                 <div class="max-w-4xl mx-auto mt-8">
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                         <div class="p-8 md:p-10">
-                            <h1 class="text-2xl md:text-3xl font-black text-center text-gray-900 mb-4">강의 후 설문지</h1>
-                            <p class="text-sm text-gray-600 text-center mb-8 leading-relaxed">
-                                수고하셨습니다. 오늘 교육 프로그램에 대한 전반적인 부분을 객관적으로 파악하고, 향후 교육의 기초 자료로 활용하고자 설문을 진행합니다. 더 나은 교육을 위해 솔직한 평가 부탁드립니다.
-                            </p>
+                            <h1 id="preview-title" class="text-2xl md:text-3xl font-black text-center text-gray-900 mb-4 opacity-30">불러오는 중...</h1>
+                            <p id="preview-desc" class="text-sm text-gray-600 text-center mb-8 leading-relaxed whitespace-pre-wrap">데이터를 불러오고 있습니다...</p>
 
                             <table class="w-full border border-gray-200 rounded-lg overflow-hidden mb-8 text-sm">
                                 <tr class="bg-gray-50">
@@ -83,6 +81,16 @@ export const adminLmsSurveyPreviewHtml = (sidebar: string = hrdSidebar('courses'
                         return;
                     }
                     var s = res.data;
+                    var titleEl = document.getElementById('preview-title');
+                    titleEl.textContent = s.title || '강의 후 설문지';
+                    titleEl.classList.remove('opacity-30');
+                    
+                    var descArea = document.getElementById('preview-desc');
+                    if (s.description) {
+                        descArea.textContent = s.description;
+                    } else {
+                        descArea.textContent = '수고하셨습니다. 오늘 교육 프로그램에 대한 전반적인 부분을 객관적으로 파악하고, 향후 교육의 기초 자료로 활용하고자 설문을 진행합니다. 더 나은 교육을 위해 솔직한 평가 부탁드립니다.';
+                    }
                     document.getElementById('preview-course').textContent = s.course_title || '-';
                     document.getElementById('preview-subject').textContent = s.subject_title || s.course_title || '-';
                     document.getElementById('preview-teacher').textContent = '담당교사 : ' + (s.teacher_name || '-');

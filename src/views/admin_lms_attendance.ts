@@ -29,8 +29,8 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
         <!-- Main Content -->
         <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
             <div id="attendanceClosedNotice" class="hidden mb-4 p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-sm font-medium flex items-center gap-2">
-                <i class="fas fa-lock"></i>
-                <span>마감된 과정입니다. 출석 수정이 제한됩니다. 수정이 필요하면 관리자에게 문의하세요.</span>
+                <i class="fas fa-lock-open"></i>
+                <span id="attendanceClosedNoticeText">마감된 과정입니다. <strong>관리자는 출석 수정이 가능합니다.</strong></span>
             </div>
             <div id="attendanceNotTrainingDayNotice" class="hidden mb-4 p-4 bg-slate-100 border border-slate-200 rounded-xl text-slate-700 text-sm font-medium flex items-center gap-2">
                 <i class="fas fa-calendar-times"></i>
@@ -59,7 +59,13 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
                 </div>
 
                 <!-- Stats Summary -->
-                <div class="grid grid-cols-3 md:grid-cols-7 gap-2 md:gap-4 p-6 bg-gray-50/50">
+                <div class="grid grid-cols-3 md:grid-cols-7 gap-2 md:gap-4 px-6 pt-3 pb-1 bg-gray-50/50">
+                    <div class="col-span-3 md:col-span-7 flex items-center justify-between mb-1">
+                        <span class="text-[10px] text-gray-400" id="statsModeLabel">오늘 기준</span>
+                        <span class="text-[10px] px-2 py-0.5 rounded-full font-bold hidden" id="statsCumulativeBadge" style="background:#e0e7ff;color:#3730a3;">📊 전체 기간 누적</span>
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 md:grid-cols-7 gap-2 md:gap-4 px-6 pb-6 bg-gray-50/50">
                     <div class="bg-white p-3 rounded-xl border border-gray-100 text-center">
                         <div class="text-[10px] md:text-xs text-gray-400 font-bold mb-1 uppercase tracking-wider">출석</div>
                         <div class="text-lg md:text-xl font-bold text-green-600" id="countPresent">0</div>
@@ -142,6 +148,17 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
         const courseType = urlParams.get('type') || '';
         let students = [];
 
+        // JWT 토큰에서 역할 파싱 (서명 검증 불필요 - UI 표시 용도)
+        function getTokenRole() {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) return '';
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                return (payload.role || '').toLowerCase();
+            } catch(e) { return ''; }
+        }
+        const isAdmin = getTokenRole() === 'admin';
+
         document.addEventListener('DOMContentLoaded', async () => {
             const today = new Date();
             const yyyy = today.getFullYear();
@@ -191,15 +208,28 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
                     const sessionStatus = result.data.session_status || '';
                     window.sessionClosed = (courseType === 'hrd' && (sessionStatus === 'completed' || sessionStatus === 'closed'));
                     window.notTrainingDay = (courseType === 'hrd' && result.data.is_training_day === false);
+                    // 전체 기간 누적 통계 저장
+                    window.totalStats = result.data.total_stats || null;
                     const noticeEl = document.getElementById('attendanceClosedNotice');
                     const notTrainingNoticeEl = document.getElementById('attendanceNotTrainingDayNotice');
                     const btnSave = document.getElementById('btnSaveAttendance');
                     if (noticeEl) noticeEl.classList.toggle('hidden', !window.sessionClosed);
                     if (notTrainingNoticeEl) notTrainingNoticeEl.classList.toggle('hidden', !window.notTrainingDay);
-                    const inputDisabled = window.sessionClosed || window.notTrainingDay;
+                    // 관리자는 마감 과정도 편집 가능, 비훈련일은 관리자도 불가
+                    const inputDisabled = (window.sessionClosed && !isAdmin) || window.notTrainingDay;
                     if (btnSave) { btnSave.disabled = inputDisabled; btnSave.classList.toggle('opacity-50', inputDisabled); btnSave.classList.toggle('cursor-not-allowed', inputDisabled); }
+                    // 관리자용 배너 문구 업데이트
+                    const noticeTextEl = document.getElementById('attendanceClosedNoticeText');
+                    if (noticeTextEl && window.sessionClosed) {
+                        if (isAdmin) {
+                            noticeTextEl.innerHTML = '마감된 과정입니다. <strong style="color:#92400e">관리자 권한으로 출석 수정이 가능합니다.</strong>';
+                            if (noticeEl) noticeEl.style.backgroundColor = '#fef3c7';
+                        } else {
+                            noticeTextEl.innerHTML = '마감된 과정입니다. 출석 수정이 제한됩니다.';
+                        }
+                    }
                     students = result.data.students.map(s => {
-                        if (s.status === null && !window.sessionClosed) {
+                        if (s.status === null && (!window.sessionClosed || isAdmin)) {
                             s.status = 'present';
                             s.check_in = defStart;
                             s.check_out = defEnd;
@@ -219,7 +249,8 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
 
         function renderTable() {
             const tbody = document.getElementById('attendanceTableBody');
-            const readOnly = !!window.sessionClosed || !!window.notTrainingDay;
+            // 관리자는 마감 과정도 편집 가능, 비훈련일은 불가
+            const readOnly = (!!window.sessionClosed && !isAdmin) || !!window.notTrainingDay;
             const disAttr = readOnly ? ' disabled' : '';
             const roAttr = readOnly ? ' readonly' : '';
             tbody.innerHTML = students.map((student, index) => {
@@ -330,26 +361,44 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
         }
 
         function updateStats() {
-            const counts = {
-                present: 0, late: 0, early_leave: 0, absent: 0, public_leave: 0, absent_under_50: 0, late_and_early: 0
-            };
-            
-            students.forEach(s => {
-                if (s.status != null && s.status !== '' && counts[s.status] !== undefined) counts[s.status]++;
-            });
-
-            document.getElementById('countPresent').textContent = counts.present;
-            document.getElementById('countLate').textContent = counts.late;
-            document.getElementById('countEarly').textContent = counts.early_leave;
-            document.getElementById('countAbsent').textContent = counts.absent;
-            document.getElementById('countPublic').textContent = counts.public_leave;
-            document.getElementById('countAbsentUnder50').textContent = counts.absent_under_50;
-            document.getElementById('countLateEarly').textContent = counts.late_and_early;
+            // HRD 과정이면 서버에서 받은 전체 기간 누적 통계(total_stats) 사용
+            const badgeEl = document.getElementById('statsCumulativeBadge');
+            const labelEl = document.getElementById('statsModeLabel');
+            if (courseType === 'hrd' && window.totalStats) {
+                const s = window.totalStats;
+                document.getElementById('countPresent').textContent = s.present || 0;
+                document.getElementById('countLate').textContent = s.late || 0;
+                document.getElementById('countEarly').textContent = s.early_leave || 0;
+                document.getElementById('countAbsent').textContent = s.absent || 0;
+                document.getElementById('countPublic').textContent = s.public_leave || 0;
+                document.getElementById('countAbsentUnder50').textContent = s.absent_under_50 || 0;
+                document.getElementById('countLateEarly').textContent = s.late_and_early || 0;
+                if (badgeEl) badgeEl.classList.remove('hidden');
+                if (labelEl) labelEl.textContent = '전체 과정 누적 횟수';
+            } else {
+                // 일반 과정: 현재 날짜 기준
+                const counts = {
+                    present: 0, late: 0, early_leave: 0, absent: 0, public_leave: 0, absent_under_50: 0, late_and_early: 0
+                };
+                students.forEach(s => {
+                    if (s.status != null && s.status !== '' && counts[s.status] !== undefined) counts[s.status]++;
+                });
+                document.getElementById('countPresent').textContent = counts.present;
+                document.getElementById('countLate').textContent = counts.late;
+                document.getElementById('countEarly').textContent = counts.early_leave;
+                document.getElementById('countAbsent').textContent = counts.absent;
+                document.getElementById('countPublic').textContent = counts.public_leave;
+                document.getElementById('countAbsentUnder50').textContent = counts.absent_under_50;
+                document.getElementById('countLateEarly').textContent = counts.late_and_early;
+                if (badgeEl) badgeEl.classList.add('hidden');
+                if (labelEl) labelEl.textContent = '선택일 기준';
+            }
         }
 
         async function saveAttendance() {
-            if (window.sessionClosed) {
-                alert('마감된 과정은 출석 수정이 제한됩니다. 수정이 필요하면 관리자에게 문의하세요.');
+            // 관리자는 마감 과정도 저장 가능
+            if (window.sessionClosed && !isAdmin) {
+                alert('마감된 과정은 출석 수정이 제한됩니다. 관리자 계정으로 접속 후 수정하세요.');
                 return;
             }
             if (window.notTrainingDay) {
