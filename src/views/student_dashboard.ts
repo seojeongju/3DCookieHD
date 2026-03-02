@@ -1294,39 +1294,90 @@ export const studentDashboardHtml = () => `
                 }
                 var survey = json.data;
                 var questions = survey.questions || [];
-                var backBtn = '<button type="button" onclick="loadStudentSurveys()" class="mb-6 inline-flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-200 transition"><i class="fas fa-arrow-left"></i> 목록으로</button>';
-                var desc = (survey.description || '').replace(new RegExp('<', 'g'), '&lt;').replace(/"/g, '&quot;').replace(/\\n/g, '<br>');
-                var formHtml = backBtn + '<div class="bg-white rounded-[2rem] border border-slate-200/60 shadow-sm overflow-hidden"><div class="p-6 md:p-8 border-b border-slate-100"><h2 class="text-xl font-black text-slate-900">' + (survey.title || '설문').replace(new RegExp('<', 'g'), '&lt;') + '</h2><p class="mt-2 text-sm text-slate-600">' + desc + '</p></div><form id="studentSurveyForm" class="p-6 md:p-8 space-y-6">';
-                formHtml += '<input type="hidden" name="surveyId" value="' + surveyId + '">';
-                for (var i = 0; i < questions.length; i++) {
-                    var q = questions[i];
-                    var qid = q.id;
-                    var qText = (q.question_text || '').replace(new RegExp('<', 'g'), '&lt;').replace(/"/g, '&quot;');
-                    formHtml += '<div class="border-b border-slate-100 pb-6">';
-                    formHtml += '<p class="font-bold text-slate-800 mb-3">' + (i + 1) + '. ' + qText + '</p>';
-                    if (q.question_type === 'rating') {
-                        var scaleLabels = ['매우 아니다', '아니다', '보통', '그렇다', '매우 그렇다'];
-                        formHtml += '<div class="flex flex-wrap gap-2">';
-                        for (var r = 1; r <= 5; r++) {
-                            var labelText = r + '(' + (scaleLabels[r - 1] || '') + ')';
-                            formHtml += '<label class="inline-flex items-center gap-1.5 cursor-pointer"><input type="radio" name="q_' + qid + '" value="' + r + '" class="rounded border-slate-300 text-sky-600 focus:ring-sky-500"> <span class="text-sm font-bold text-slate-600">' + labelText + '</span></label>';
-                        }
-                        formHtml += '</div>';
-                    } else if (q.question_type === 'text') {
-                        formHtml += '<textarea name="q_' + qid + '" rows="4" class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm" placeholder="내용을 입력하세요"></textarea>';
+
+                // 날짜 포맷
+                var d = survey.created_at ? new Date(survey.created_at) : new Date();
+                var y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
+                var dayNames = ['일','월','화','수','목','금','토'];
+                var dateStr = y + '. ' + m + '. ' + day + '. (' + dayNames[d.getDay()] + ')';
+
+                var scaleLabels = ['매우 아니다','아니다','보통','그렇다','매우 그렇다'];
+
+                // 4개 섹션 정의 (관리자 미리보기와 동일)
+                var sections = [
+                    { title: '교육만족도', start: 0, end: 3, isText: false },
+                    { title: '솔루션 평가 및 강사 평가', start: 3, end: 6, isText: false },
+                    { title: '교육내용평가', start: 6, end: 10, isText: false },
+                    { title: '전반적인 교육 소감을 구체적으로 작성하여 주시기 바랍니다.', start: 10, end: 11, isText: true }
+                ];
+
+                var safeTitle = (survey.title || '강의 후 설문지').replace(/</g, '&lt;');
+                var courseTitle = (survey.course_title || '-').replace(/</g, '&lt;');
+                var subjectTitle = (survey.subject_title || survey.course_title || '-').replace(/</g, '&lt;');
+                var teacherName = survey.teacher_name || '-';
+
+                var html = '<button type="button" onclick="loadStudentSurveys()" class="mb-6 inline-flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-200 transition"><i class="fas fa-arrow-left"></i> 목록으로</button>';
+                html += '<div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">';
+                html += '<div class="p-8 md:p-10">';
+                html += '<h1 class="text-2xl md:text-3xl font-black text-center text-gray-900 mb-4">' + safeTitle + '</h1>';
+                html += '<p class="text-sm text-gray-600 text-center mb-8 leading-relaxed">수고하셨습니다. 오늘 교육 프로그램에 대한 전반적인 부분을 객관적으로 파악하고, 향후 교육의 기초 자료로 활용하고자 설문을 진행합니다. 더 나은 교육을 위해 솔직한 평가 부탁드립니다.</p>';
+
+                // 교육 정보 테이블
+                html += '<table class="w-full border border-gray-200 rounded-lg overflow-hidden mb-8 text-sm">';
+                html += '<tr class="bg-gray-50"><td class="px-4 py-3 font-bold text-gray-600 w-28 border-b border-r border-gray-200">교육과정</td><td class="px-4 py-3 border-b border-gray-200">' + courseTitle + '</td></tr>';
+                html += '<tr class="bg-gray-50"><td class="px-4 py-3 font-bold text-gray-600 border-r border-gray-200">교육과목</td><td class="px-4 py-3">' + subjectTitle + '</td></tr>';
+                html += '<tr><td class="px-4 py-2 text-[10px] text-gray-400 border-r border-gray-200"></td><td class="px-4 py-2 text-xs text-gray-500">담당교사 : ' + teacherName + '</td></tr>';
+                html += '<tr class="bg-gray-50"><td class="px-4 py-3 font-bold text-gray-600 border-r border-t border-gray-200">설문작성일</td><td class="px-4 py-3 border-t border-gray-200">' + dateStr + '</td></tr>';
+                html += '</table>';
+
+                // 설문 폼
+                html += '<form id="studentSurveyForm" class="space-y-6">';
+                html += '<input type="hidden" name="surveyId" value="' + surveyId + '">';
+
+                sections.forEach(function(sec) {
+                    var items = questions.slice(sec.start, sec.end);
+                    if (items.length === 0 && !sec.isText) return;
+
+                    html += '<div class="border border-gray-200 rounded-xl overflow-hidden">';
+                    html += '<div class="bg-gray-100 px-4 py-3 font-bold text-gray-700 text-sm text-center">' + sec.title + '</div>';
+
+                    if (sec.isText) {
+                        var qLast = items[0];
+                        var qIdLast = qLast ? qLast.id : 'text_0';
+                        html += '<div class="p-4"><textarea name="q_' + qIdLast + '" rows="5" class="w-full border border-gray-200 rounded-lg p-3 text-sm bg-gray-50 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 resize-none" placeholder="교육 소감을 작성해 주세요."></textarea></div>';
                     } else {
-                        formHtml += '<input type="text" name="q_' + qid + '" class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-sky-500 text-sm" placeholder="입력">';
+                        html += '<table class="w-full text-sm"><thead><tr><th class="text-left py-2 pl-4 font-medium text-gray-600 w-1/2">문항</th>';
+                        for (var i = 5; i >= 1; i--) {
+                            html += '<th class="py-2 text-center text-xs text-gray-500 font-medium">' + i + '<br><span class="text-[10px] font-normal">' + scaleLabels[i - 1] + '</span></th>';
+                        }
+                        html += '</tr></thead><tbody>';
+                        items.forEach(function(q) {
+                            html += '<tr class="border-t border-gray-100"><td class="py-3 pl-4 pr-2 text-gray-800">' + (q.question_text || '').replace(/</g,'&lt;') + '</td>';
+                            for (var k = 5; k >= 1; k--) {
+                                html += '<td class="py-3 text-center"><input type="radio" required name="q_' + q.id + '" value="' + k + '" class="w-4 h-4 cursor-pointer accent-sky-600"></td>';
+                            }
+                            html += '</tr>';
+                        });
+                        html += '</tbody></table>';
                     }
-                    formHtml += '</div>';
-                }
-                formHtml += '<div class="pt-4 flex gap-3"><button type="button" onclick="loadStudentSurveys()" class="px-6 py-3 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition">취소</button><button type="submit" class="px-8 py-3 bg-sky-600 text-white rounded-xl font-black hover:bg-slate-900 transition shadow-lg shadow-sky-100">제출하기</button></div></form></div>';
-                container.innerHTML = formHtml;
+                    html += '</div>';
+                });
+
+                html += '<div class="pt-6 flex gap-3 justify-end">';
+                html += '<button type="button" onclick="loadStudentSurveys()" class="px-6 py-3 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition">취소</button>';
+                html += '<button type="submit" class="px-8 py-3 bg-sky-600 text-white rounded-xl font-black hover:bg-slate-900 transition shadow-lg shadow-sky-100"><i class="fas fa-paper-plane mr-2"></i>제출하기</button>';
+                html += '</div>';
+                html += '</form>';
+                html += '</div></div>';
+
+                container.innerHTML = html;
                 document.getElementById('studentSurveyForm').addEventListener('submit', function(e) { e.preventDefault(); submitSurveyForm(surveyId); });
             } catch (err) {
                 console.error(err);
                 container.innerHTML = '<div class="text-center text-red-500">설문을 불러오는 중 오류가 발생했습니다.</div><button type="button" onclick="loadStudentSurveys()" class="mt-4 px-4 py-2 bg-slate-200 text-slate-700 rounded-xl font-bold">목록으로</button>';
             }
         }
+
 
         async function submitSurveyForm(surveyId) {
             var form = document.getElementById('studentSurveyForm');
