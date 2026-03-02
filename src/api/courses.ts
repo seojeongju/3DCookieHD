@@ -943,9 +943,9 @@ courses.get('/:id/attendance', async (c) => {
       `;
       attendanceLogs = await getAll<any>(c.env.DB, attendanceQuery, [courseId, date]);
 
-      // 2-1. 전체 출결 기록 조회 (for rate calculation)  
+      // 2-1. 전체 출거 기록 조회 (날짜 + 체크인/아웃 포함 → 지각/조퇴 집계 가능하도록)
       allSessionLogs = await getAll<any>(c.env.DB, `
-        SELECT enrollment_id, status
+        SELECT enrollment_id, date, check_in_time as check_in, check_out_time as check_out, status
         FROM attendance_logs 
         WHERE enrollment_id IN (
           SELECT id FROM enrollments WHERE course_id = ?
@@ -1097,9 +1097,53 @@ courses.get('/:id/attendance', async (c) => {
           };
         }
       } else {
-        const totalLogs = sLogs.length;
-        const absentLogs = sLogs.filter((l: any) => l.status === 'absent' || l.status === 'absent_under_50').length;
-        attendance_rate = totalLogs > 0 ? Math.round(((totalLogs - absentLogs) / totalLogs) * 100) : 0;
+        // 일반 과정 — HRD와 동일한 byDate 기반 지각/조퇴/결석 카운트
+        const byDateG = new Map<string, { check_in?: string; check_out?: string; status?: string }>();
+        sLogs.forEach((l: any) => {
+          const d = (l.date || '').toString().split('T')[0];
+          if (!d) return;
+          if (byDateG.has(d)) {
+            const existing = byDateG.get(d)!;
+            if (l.status === 'absent' || l.status === 'absent_under_50') {
+              existing.status = l.status;
+            } else if (
+              (existing.status === 'late' && l.status === 'early_leave') ||
+              (existing.status === 'early_leave' && l.status === 'late')
+            ) {
+              existing.status = 'late_and_early';
+            }
+          } else {
+            byDateG.set(d, { check_in: l.check_in, check_out: l.check_out, status: l.status });
+          }
+        });
+
+        let gPresent = 0, gAbsent = 0, gLate = 0, gEarly = 0, gOuting = 0, gLateEarly = 0;
+        byDateG.forEach(({ status }) => {
+          if (status === 'present') gPresent++;
+          else if (status === 'absent' || status === 'absent_under_50') gAbsent++;
+          else if (status === 'late') gLate++;
+          else if (status === 'early_leave') gEarly++;
+          else if (status === 'public_leave') gOuting++;
+          else if (status === 'late_and_early') gLateEarly++;
+          else if (!status) gPresent++; // 상태 없으면 출석으로
+        });
+
+        const totalDays = byDateG.size;
+        const absentTotal = gAbsent;
+        attendance_rate = totalDays > 0 ? Math.round(((totalDays - absentTotal) / totalDays) * 100) : 0;
+        if (byDateG.size > 0) {
+          advanced_attendance = {
+            type: 'days',
+            isLongTerm: null,
+            daysProgressed: totalDays,
+            present: gPresent,
+            absent: gAbsent,
+            late: gLate,
+            early: gEarly,
+            outing: gOuting,
+            lateAndEarly: gLateEarly,
+          };
+        }
       }
 
       return {
@@ -1145,12 +1189,21 @@ courses.get('/:id/attendance', async (c) => {
       public_leave: 0, absent_under_50: 0, late_and_early: 0
     };
     // "enrollmentId_date" → 최종 상태 맵
+    // date가 없는 레거시 데이터는 enrollmentId_idx 키로 fallback
     const byEnrollmentDate = new Map<string, string>();
+    const enrollmentCounters = new Map<string, number>(); // fallback용 카운터
     allSessionLogs.forEach((log: any) => {
       const d = (log.date || '').toString().split('T')[0];
-      if (!d) return;
-      const key = `${log.enrollment_id}_${d}`;
       const newStatus = log.status || 'present';
+      let key: string;
+      if (d) {
+        key = `${log.enrollment_id}_${d}`;
+      } else {
+        // date 없는 레거시 데이터: idx 기반 고유키
+        const cnt = (enrollmentCounters.get(String(log.enrollment_id)) || 0) + 1;
+        enrollmentCounters.set(String(log.enrollment_id), cnt);
+        key = `${log.enrollment_id}_idx_${cnt}`;
+      }
       const existing = byEnrollmentDate.get(key);
       if (!existing) {
         byEnrollmentDate.set(key, newStatus);
