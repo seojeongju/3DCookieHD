@@ -14,10 +14,10 @@ export const adminLmsSurveyPreviewHtml = (sidebar: string = hrdSidebar('courses'
 </head>
 <body class="bg-gray-100 overflow-hidden">
     <div class="flex h-screen overflow-hidden">
-        \${sidebar}
+        ${sidebar}
         <div class="flex-1 flex flex-col overflow-hidden relative min-w-0">
             <div class="flex-1 overflow-y-auto p-6 md:p-10">
-                \${lmsHeaderHtml('surveys')}
+                ${lmsHeaderHtml('surveys')}
                 <div class="max-w-4xl mx-auto mt-8">
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                         <div class="p-8 md:p-10">
