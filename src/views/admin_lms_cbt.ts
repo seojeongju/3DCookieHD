@@ -100,8 +100,8 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
 
         <!-- 문제 은행 탭 -->
         <div id="content-questions" class="tab-content hidden">
-            <div class="bg-white rounded-lg shadow p-4 mb-6 flex justify-between items-center">
-                <div class="flex gap-4">
+            <div class="bg-white rounded-lg shadow p-4 mb-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+                <div class="flex gap-4 flex-wrap">
                     <select id="questionTypeFilter" class="border rounded-lg px-3 py-2 text-sm" onchange="applyQuestionFilters()">
                         <option value="">전체 유형</option>
                         <option value="multiple_choice">객관식</option>
@@ -118,11 +118,41 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                         <option value="">전체 NCS 능력단위</option>
                     </select>
                 </div>
-                <div class="flex gap-2">
+                <div class="flex gap-2 flex-wrap">
                     <button onclick="document.getElementById('pdfUploadInput').click()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm flex items-center">
                         <i class="fas fa-file-pdf mr-2"></i> AI 문제 생성 (PDF)
                     </button>
                     <input type="file" id="pdfUploadInput" accept=".pdf" class="hidden" onchange="handlePdfUpload(this)">
+                    <button type="button" onclick="openGlobalBankPanel()" class="px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 border border-indigo-100 text-sm flex items-center">
+                        <i class="fas fa-database mr-2"></i> 전역 문제은행에서 추가
+                    </button>
+                </div>
+            </div>
+
+            <div id="globalBankPanel" class="mb-4 hidden">
+                <div class="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <div>
+                            <div class="text-xs font-black text-slate-500 uppercase tracking-widest">전역 문제은행</div>
+                            <div class="text-[11px] text-slate-400 mt-0.5">과정과 무관하게 등록된 문제를 선택해 현재 과정의 시험에 추가할 수 있습니다.</div>
+                        </div>
+                        <div class="flex items-center gap-2 text-[11px] text-slate-400">
+                            <span id="globalBankCountLabel"></span>
+                            <button type="button" onclick="loadGlobalBank()" class="px-2 py-1 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50">새로고침</button>
+                        </div>
+                    </div>
+                    <div class="flex items-center bg-gray-50 rounded-xl px-3 py-2 border border-gray-200 mb-3">
+                        <i class="fas fa-search text-gray-400 mr-2 text-xs"></i>
+                        <input id="globalBankKeywordInput" type="text" placeholder="전역 문제은행에서 검색" class="bg-transparent border-none outline-none text-xs w-full" onkeydown="if(event.key==='Enter'){loadGlobalBank();}">
+                    </div>
+                    <div id="globalBankList" class="max-h-64 overflow-y-auto custom-scrollbar text-xs text-slate-600 space-y-2">
+                        <div class="text-center py-8 text-gray-400 text-xs">불러오는 중...</div>
+                    </div>
+                    <div class="mt-3 flex justify-end">
+                        <button type="button" onclick="importGlobalBankQuestions()" class="inline-flex items-center px-3 py-1.5 rounded-xl bg-indigo-600 text-white text-[11px] font-bold hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed" id="globalBankImportBtn">
+                            선택 문제를 현재 시험에 추가
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -328,6 +358,7 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
         document.addEventListener('DOMContentLoaded', () => {
             loadExams();
             loadQuestions();
+            loadGlobalBank();
             const params = new URLSearchParams(window.location.search);
             if (params.get('tab') === 'results') switchTab('results');
         });
@@ -520,6 +551,106 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                 return true;
             });
             renderQuestionList(filtered);
+        }
+        let globalBankQuestions = [];
+        function openGlobalBankPanel() {
+            const panel = document.getElementById('globalBankPanel');
+            if (!panel) return;
+            const isHidden = panel.classList.contains('hidden');
+            if (isHidden) {
+                panel.classList.remove('hidden');
+                loadGlobalBank();
+            } else {
+                panel.classList.add('hidden');
+            }
+        }
+        async function loadGlobalBank() {
+            const listEl = document.getElementById('globalBankList');
+            const countEl = document.getElementById('globalBankCountLabel');
+            const importBtn = document.getElementById('globalBankImportBtn');
+            if (!listEl) return;
+            listEl.innerHTML = '<div class="text-center py-8 text-gray-400 text-xs">불러오는 중...</div>';
+            const keyword = (document.getElementById('globalBankKeywordInput') || {}).value || '';
+            try {
+                const params = new URLSearchParams();
+                params.set('global', '1');
+                if (keyword) params.set('keyword', keyword);
+                const token = localStorage.getItem('token');
+                const res = await fetch(`/api/cbt/question-bank?${params.toString()}`, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const json = await res.json();
+                globalBankQuestions = json && json.success && Array.isArray(json.data) ? json.data : (Array.isArray(json) ? json : []);
+                if (!globalBankQuestions.length) {
+                    listEl.innerHTML = '<div class="text-center py-8 text-gray-400 text-xs">전역 문제은행에 등록된 문제가 없습니다.</div>';
+                    if (countEl) countEl.textContent = '';
+                    if (importBtn) importBtn.disabled = true;
+                    return;
+                }
+                listEl.innerHTML = globalBankQuestions.map(q => `
+                    <label class="flex items-start gap-2 px-2 py-1.5 rounded-lg hover:bg-indigo-50/60 cursor-pointer">
+                        <input type="checkbox" class="mt-0.5 global-bank-checkbox" value="${q.id}">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex flex-wrap items-center gap-1 mb-0.5">
+                                <span class="px-1.5 py-0.5 rounded bg-slate-100 text-[10px] font-bold text-slate-600 uppercase">#${q.id}</span>
+                                <span class="px-1.5 py-0.5 rounded bg-gray-100 text-[10px] font-bold text-gray-600">${(q.question_type || '').replace('_', ' ')}</span>
+                                ${q.difficulty ? '<span class="px-1.5 py-0.5 rounded bg-blue-50 text-[10px] font-bold text-blue-600">' + (q.difficulty === 'high' ? '상' : q.difficulty === 'low' ? '하' : '중') + '</span>' : ''}
+                                ${q.category ? '<span class="px-1.5 py-0.5 rounded bg-violet-50 text-[10px] font-bold text-violet-700">' + String(q.category || '').replace(/</g, '&lt;') + '</span>' : ''}
+                            </div>
+                            <div class="text-[11px] text-slate-700 line-clamp-2">${String(q.question_text || '').replace(/</g, '&lt;')}</div>
+                        </div>
+                    </label>
+                `).join('');
+                if (countEl) countEl.textContent = `총 ${globalBankQuestions.length}문항`;
+                if (importBtn) importBtn.disabled = false;
+            } catch (e) {
+                console.error(e);
+                listEl.innerHTML = '<div class="text-center py-8 text-red-400 text-xs">전역 문제은행을 불러오지 못했습니다.</div>';
+                if (countEl) countEl.textContent = '';
+                const importBtn2 = document.getElementById('globalBankImportBtn');
+                if (importBtn2) importBtn2.disabled = true;
+            }
+        }
+        async function importGlobalBankQuestions() {
+            if (!examListCache.length) {
+                alert('먼저 시험을 생성한 뒤, 문제를 추가할 시험을 선택해 주세요.');
+                return;
+            }
+            const currentExamSelect = examListCache[0] && document.querySelector('#examListBody tr input[type=radio]') ? null : null;
+            const activeExam = examListCache[0];
+            const selectedExamId = activeExam && activeExam.id;
+            if (!selectedExamId) {
+                alert('현재는 전역 문제를 추가할 시험을 자동 인식하지 못했습니다. (다음 단계에서 시험 선택 UI를 보강해야 합니다.)');
+                return;
+            }
+            const checkboxes = Array.from(document.querySelectorAll('.global-bank-checkbox'));
+            const ids = checkboxes.filter(cb => cb.checked).map(cb => parseInt(cb.value, 10)).filter(v => !Number.isNaN(v));
+            if (!ids.length) {
+                alert('추가할 문제를 선택해 주세요.');
+                return;
+            }
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`/api/cbt/exams/${selectedExamId}/import-questions`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({ question_bank_ids: ids })
+                });
+                const json = await res.json();
+                if (json && json.success) {
+                    alert('선택한 전역 문제들이 시험에 추가되었습니다.');
+                    checkboxes.forEach(cb => { cb.checked = false; });
+                    loadQuestions();
+                } else {
+                    alert('추가 실패: ' + (json && (json.error || json.message) || '알 수 없는 오류'));
+                }
+            } catch (e) {
+                console.error(e);
+                alert('전역 문제 추가 중 오류가 발생했습니다.');
+            }
         }
         function renderQuestionList(questions) {
             const list = document.getElementById('questionList');

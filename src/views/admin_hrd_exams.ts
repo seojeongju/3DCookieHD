@@ -182,20 +182,23 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
                                 <div class="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-4 flex flex-col">
                                     <div class="flex justify-between items-center mb-3">
                                         <div>
-                                            <div class="text-xs font-black text-slate-500 uppercase tracking-widest">문제은행</div>
-                                            <div class="text-[11px] text-slate-400 mt-0.5">선택한 회차의 모든 시험·사전평가에서 생성된 문제 목록입니다.</div>
+                                            <div class="text-xs font-black text-slate-500 uppercase tracking-widest">문제은행 (전역)</div>
+                                            <div class="text-[11px] text-slate-400 mt-0.5">과정 무관 전체 문제 풀. 등록 후 회차·시험을 선택해 우측 시험에 추가할 수 있습니다.</div>
                                         </div>
                                         <div class="flex items-center gap-2 flex-wrap">
-                                            <select id="bankCurriculumFilter" class="border border-gray-200 rounded-xl text-[11px] px-2.5 py-1.5 text-gray-600 min-w-[120px]" onchange="loadQuestionBank()">
-                                                <option value="">전체 과목</option>
-                                            </select>
                                             <select id="bankTypeFilter" class="border border-gray-200 rounded-xl text-[11px] px-2.5 py-1.5 text-gray-600" onchange="loadQuestionBank()">
                                                 <option value="">전체 유형</option>
                                                 <option value="multiple_choice">객관식</option>
                                                 <option value="short_answer">단답형</option>
                                                 <option value="essay">서술형</option>
                                             </select>
-                                            <button type="button" id="bankCreateQuestionBtn" onclick="openBankQuestionModal()" class="inline-flex items-center px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 text-[11px] font-bold hover:bg-emerald-100 disabled:opacity-40 disabled:cursor-not-allowed">
+                                            <select id="bankDifficultyFilter" class="border border-gray-200 rounded-xl text-[11px] px-2.5 py-1.5 text-gray-600" onchange="loadQuestionBank()">
+                                                <option value="">전체 난이도</option>
+                                                <option value="low">하</option>
+                                                <option value="medium">중</option>
+                                                <option value="high">상</option>
+                                            </select>
+                                            <button type="button" id="bankCreateQuestionBtn" onclick="openBankQuestionModal()" class="inline-flex items-center px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 text-[11px] font-bold hover:bg-emerald-100">
                                                 <i class="fas fa-plus-circle mr-1.5 text-[10px]"></i> 문제 등록
                                             </button>
                                         </div>
@@ -205,7 +208,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
                                         <input id="bankKeywordInput" type="text" placeholder="문제 내용 검색" class="bg-transparent border-none outline-none text-xs w-full" onkeydown="if(event.key==='Enter'){loadQuestionBank();}">
                                     </div>
                                     <div id="bankList" class="flex-1 min-h-[160px] max-h-80 overflow-y-auto custom-scrollbar text-xs text-slate-600 space-y-2">
-                                        <div class="text-center py-10 text-gray-400 text-xs">회차와 시험을 먼저 선택해 주세요.</div>
+                                        <div class="text-center py-10 text-gray-400 text-xs">불러오는 중...</div>
                                     </div>
                                     <div class="mt-3 flex justify-between items-center">
                                         <div class="text-[11px] text-slate-400" id="bankCountLabel"></div>
@@ -300,11 +303,18 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-gray-600 mb-1">배정 과목 (선택)</label>
-                        <select name="curriculum_id" id="bankQuestionCurriculum" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm">
+                        <label class="block text-xs font-bold text-gray-600 mb-1">난이도 (선택)</label>
+                        <select name="difficulty" id="bankQuestionDifficulty" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm">
                             <option value="">선택 안 함</option>
+                            <option value="low">하</option>
+                            <option value="medium">중</option>
+                            <option value="high">상</option>
                         </select>
                     </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-1">분류 (선택)</label>
+                    <input type="text" name="category" id="bankQuestionCategory" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" placeholder="예: 3D모델링, 실기">
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-gray-600 mb-1">질문 내용</label>
@@ -363,6 +373,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
                     updateStats(allData);
                     applyFilters();
                     initExamMgmtSelectors();
+                    loadQuestionBank();
                 }
             } catch (e) {
                 console.error(e);
@@ -587,25 +598,18 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
                 if (mgmtSessionId) addExamBtn.classList.remove('hidden');
                 else addExamBtn.classList.add('hidden');
             }
-            if (bankCreateBtn) {
-                bankCreateBtn.disabled = !mgmtSessionId;
-            }
             if (!mgmtSessionId) {
                 mgmtSubjects = [];
-                const curSel = document.getElementById('bankCurriculumFilter');
-                if (curSel) curSel.innerHTML = '<option value=\"\">전체 과목</option>';
                 if (examSelect) examSelect.innerHTML = '<option value=\"\">시험 선택</option>';
-                const bankListEl = document.getElementById('bankList'); if (bankListEl) bankListEl.innerHTML = '<div class=\"text-center py-10 text-gray-400 text-xs\">회차를 선택해 주세요.</div>';
                 const examListEl = document.getElementById('examQuestionList'); if (examListEl) examListEl.innerHTML = '<div class=\"text-center py-10 text-gray-400 text-xs\">시험을 선택해 주세요.</div>';
                 document.getElementById('importBtn')?.setAttribute('disabled', 'true');
+                await loadQuestionBank();
                 return;
             }
             try {
                 const subRes = await fetch('/api/ncs/approved/syllabus/session/' + mgmtSessionId + '/subjects', { headers: { 'Authorization': 'Bearer ' + token } });
                 const subJson = await subRes.json();
                 mgmtSubjects = (subJson?.data?.subjects || []).map((s) => ({ id: s.id, name: s.name || ('과목 ' + s.id) }));
-                const curSel = document.getElementById('bankCurriculumFilter');
-                if (curSel) curSel.innerHTML = '<option value=\"\">전체 과목</option>' + mgmtSubjects.map((s) => '<option value=\"' + s.id + '\">' + (s.name || '').replace(/"/g, '&quot;') + '</option>').join('');
             } catch (_) { mgmtSubjects = []; }
             await loadMgmtExams();
             await loadQuestionBank();
@@ -650,20 +654,15 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
             const countEl = document.getElementById('bankCountLabel');
             const importBtn = document.getElementById('importBtn');
             if (!listEl) return;
-            if (!mgmtSessionId) {
-                listEl.innerHTML = '<div class=\"text-center py-10 text-gray-400 text-xs\">회차를 먼저 선택해 주세요.</div>';
-                if (countEl) countEl.textContent = '';
-                if (importBtn) importBtn.disabled = true;
-                return;
-            }
+            listEl.innerHTML = '<div class=\"text-center py-10 text-gray-400 text-xs\">불러오는 중...</div>';
             const typeVal = document.getElementById('bankTypeFilter')?.value || '';
-            const curriculumVal = document.getElementById('bankCurriculumFilter')?.value || '';
+            const difficultyVal = document.getElementById('bankDifficultyFilter')?.value || '';
             const keyword = document.getElementById('bankKeywordInput')?.value || '';
             try {
                 const params = new URLSearchParams();
-                params.set('course_id', mgmtSessionId);
-                if (curriculumVal) params.set('curriculum_id', curriculumVal);
+                params.set('global', '1');
                 if (typeVal) params.set('type', typeVal);
+                if (difficultyVal) params.set('difficulty', difficultyVal);
                 if (keyword) params.set('keyword', keyword);
                 const res = await fetch(\`/api/cbt/question-bank?\${params.toString()}\`, {
                     headers: { 'Authorization': 'Bearer ' + token }
@@ -671,26 +670,23 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
                 const json = await res.json();
                 bankQuestions = json && json.success && Array.isArray(json.data) ? json.data : (Array.isArray(json) ? json : []);
                 if (!bankQuestions.length) {
-                    listEl.innerHTML = '<div class=\"text-center py-10 text-gray-400 text-xs\">조건에 맞는 문제가 없습니다.</div>';
+                    listEl.innerHTML = '<div class=\"text-center py-10 text-gray-400 text-xs\">조건에 맞는 문제가 없습니다. 문제 등록 버튼으로 추가해 보세요.</div>';
                     if (countEl) countEl.textContent = '';
                     if (importBtn) importBtn.disabled = true;
                     return;
                 }
-                const subjectName = (cid) => (mgmtSubjects.find((s) => s.id === cid) || {}).name || '';
-                listEl.innerHTML = bankQuestions.map((q, idx) => \`
+                listEl.innerHTML = bankQuestions.map((q) => \`
                     <label class=\"flex items-start gap-2 px-2 py-1.5 rounded-lg hover:bg-indigo-50/60 cursor-pointer\">
                         <input type=\"checkbox\" class=\"mt-0.5 bank-question-checkbox\" value=\"\${q.id}\">
                         <div class=\"flex-1 min-w-0\">
                             <div class=\"flex flex-wrap items-center gap-1 mb-0.5\">
                                 <span class=\"px-1.5 py-0.5 rounded bg-slate-100 text-[10px] font-bold text-slate-600 uppercase\">#\${q.id}</span>
                                 <span class=\"px-1.5 py-0.5 rounded bg-gray-100 text-[10px] font-bold text-gray-600\">\${(q.question_type || '').replace('_', ' ')}</span>
-                                \${q.curriculum_id && subjectName(q.curriculum_id) ? '<span class=\"px-1.5 py-0.5 rounded bg-violet-50 text-[10px] font-bold text-violet-700\">' + (subjectName(q.curriculum_id) || '').replace(/</g, '&lt;') + '</span>' : ''}
-                                \${q.ncs_ability_unit_name ? \`<span class=\"px-1.5 py-0.5 rounded bg-amber-50 text-[10px] font-bold text-amber-700\" title=\"NCS 능력단위\">\${q.ncs_ability_unit_name}</span>\` : ''}
+                                \${q.difficulty ? '<span class=\"px-1.5 py-0.5 rounded bg-blue-50 text-[10px] font-bold text-blue-600\">' + (q.difficulty === 'high' ? '상' : q.difficulty === 'low' ? '하' : '중') + '</span>' : ''}
+                                \${(q.category || q.course_title) ? '<span class=\"px-1.5 py-0.5 rounded bg-violet-50 text-[10px] font-bold text-violet-700\">' + String(q.category || q.course_title || '').replace(/</g, '&lt;') + '</span>' : ''}
+                                \${q.ncs_ability_unit_name ? '<span class=\"px-1.5 py-0.5 rounded bg-amber-50 text-[10px] font-bold text-amber-700\" title=\"NCS 능력단위\">' + String(q.ncs_ability_unit_name).replace(/</g, '&lt;') + '</span>' : ''}
                             </div>
-                            <div class=\"text-[11px] text-slate-700 line-clamp-2\">\${q.question_text}</div>
-                            <div class=\"text-[10px] text-slate-400 mt-0.5\">
-                                \${(q.course_title || '') && (q.exam_title || '') ? \`\${q.course_title} · \${q.exam_title}\` : (q.exam_title || '')}
-                            </div>
+                            <div class=\"text-[11px] text-slate-700 line-clamp-2\">\${String(q.question_text || '').replace(/</g, '&lt;')}</div>
                         </div>
                     </label>
                 \`).join('');
@@ -705,29 +701,22 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
         }
 
         function openBankQuestionModal() {
-            if (!mgmtSessionId) {
-                alert('먼저 회차를 선택해 주세요.');
-                return;
-            }
             const modal = document.getElementById('bankQuestionModal');
             const typeSelect = document.getElementById('bankQuestionType');
-            const subjectSelect = document.getElementById('bankQuestionCurriculum');
             const textArea = document.getElementById('bankQuestionText');
+            const categoryInput = document.getElementById('bankQuestionCategory');
+            const difficultySelect = document.getElementById('bankQuestionDifficulty');
             if (typeSelect) typeSelect.value = 'multiple_choice';
             if (textArea) textArea.value = '';
-            if (subjectSelect) {
-                subjectSelect.innerHTML = '<option value=\"\">선택 안 함</option>' + (mgmtSubjects || []).map(function (s) {
-                    return '<option value=\"' + s.id + '\">' + String(s.name || ('과목 ' + s.id)).replace(/</g, '&lt;') + '</option>';
-                }).join('');
-            }
-            // 보기/정답 영역 초기화
+            if (categoryInput) categoryInput.value = '';
+            if (difficultySelect) difficultySelect.value = '';
             ['option_1','option_2','option_3','option_4'].forEach(function(name, idx) {
-                const el = document.querySelector('input[name=\"' + name + '\"]');
+                const el = document.querySelector('#bankQuestionModal input[name=\"' + name + '\"]');
                 if (el) el.value = '';
-                const radio = document.querySelector('input[name=\"correct_option\"][value=\"' + (idx + 1) + '\"]');
+                const radio = document.querySelector('#bankQuestionModal input[name=\"correct_option\"][value=\"' + (idx + 1) + '\"]');
                 if (radio) radio.checked = idx === 0;
             });
-            const shortAns = document.querySelector('input[name=\"short_answer\"]');
+            const shortAns = document.querySelector('#bankQuestionModal input[name=\"short_answer\"]');
             if (shortAns) shortAns.value = '';
             const optArea = document.getElementById('bankOptionsArea');
             const ansArea = document.getElementById('bankAnswerArea');
@@ -759,35 +748,29 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
 
         async function handleBankSaveQuestion(e) {
             e.preventDefault();
-            if (!mgmtSessionId) {
-                alert('회차가 선택되지 않았습니다.');
-                return;
-            }
             const form = e.target;
             const formData = new FormData(form);
             const type = formData.get('question_type') || 'multiple_choice';
             const payload = {
-                course_id: mgmtSessionId,
                 question_text: formData.get('question_text'),
                 question_type: type,
-                points: 1
+                points: 1,
+                difficulty: formData.get('difficulty') || undefined,
+                category: formData.get('category') || undefined
             };
             if (type === 'multiple_choice') {
-                const options = [
+                payload.options = [
                     formData.get('option_1'),
                     formData.get('option_2'),
                     formData.get('option_3'),
                     formData.get('option_4')
                 ];
-                payload.options = options;
                 payload.correct_answer = formData.get('correct_option');
             } else {
                 payload.correct_answer = formData.get('short_answer');
             }
-            const curId = formData.get('curriculum_id');
-            if (curId) payload.curriculum_id = curId;
             try {
-                const res = await fetch('/api/cbt/questions', {
+                const res = await fetch('/api/cbt/bank-questions', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -797,7 +780,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
                 });
                 const json = await res.json();
                 if (json && json.success) {
-                    alert('문제가 등록되었습니다.');
+                    alert('문제가 전역 문제은행에 등록되었습니다. 원하는 회차·시험을 선택한 뒤 \'선택 문제 시험에 추가\'로 편성하세요.');
                     closeBankQuestionModal();
                     form.reset();
                     await loadQuestionBank();
@@ -854,12 +837,12 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
 
         async function importSelectedQuestions() {
             if (!mgmtExamId) {
-                alert('먼저 시험을 선택해 주세요.');
+                alert('먼저 회차와 시험을 선택한 뒤, 추가할 시험을 선택해 주세요.');
                 return;
             }
             const checkboxes = Array.from(document.querySelectorAll('.bank-question-checkbox'));
-            const selectedIds = checkboxes.filter(cb => cb.checked).map(cb => parseInt(cb.value, 10)).filter(v => !Number.isNaN(v));
-            if (!selectedIds.length) {
+            const selectedBankIds = checkboxes.filter(cb => cb.checked).map(cb => parseInt(cb.value, 10)).filter(v => !Number.isNaN(v));
+            if (!selectedBankIds.length) {
                 alert('가져올 문제를 선택해 주세요.');
                 return;
             }
@@ -870,7 +853,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
                         'Content-Type': 'application/json',
                         'Authorization': 'Bearer ' + token
                     },
-                    body: JSON.stringify({ question_ids: selectedIds })
+                    body: JSON.stringify({ question_bank_ids: selectedBankIds })
                 });
                 const json = await res.json();
                 if (json && json.success) {
