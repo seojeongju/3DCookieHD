@@ -576,7 +576,7 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                 params.set('global', '1');
                 if (keyword) params.set('keyword', keyword);
                 const token = localStorage.getItem('token');
-                const res = await fetch(`/api/cbt/question-bank?${params.toString()}`, {
+                const res = await fetch(\`/api/cbt/question-bank?\${params.toString()}\`, {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
                 const json = await res.json();
@@ -587,21 +587,21 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                     if (importBtn) importBtn.disabled = true;
                     return;
                 }
-                listEl.innerHTML = globalBankQuestions.map(q => `
+                listEl.innerHTML = globalBankQuestions.map(q => \`
                     <label class="flex items-start gap-2 px-2 py-1.5 rounded-lg hover:bg-indigo-50/60 cursor-pointer">
-                        <input type="checkbox" class="mt-0.5 global-bank-checkbox" value="${q.id}">
+                        <input type="checkbox" class="mt-0.5 global-bank-checkbox" value="\${q.id}">
                         <div class="flex-1 min-w-0">
                             <div class="flex flex-wrap items-center gap-1 mb-0.5">
-                                <span class="px-1.5 py-0.5 rounded bg-slate-100 text-[10px] font-bold text-slate-600 uppercase">#${q.id}</span>
-                                <span class="px-1.5 py-0.5 rounded bg-gray-100 text-[10px] font-bold text-gray-600">${(q.question_type || '').replace('_', ' ')}</span>
-                                ${q.difficulty ? '<span class="px-1.5 py-0.5 rounded bg-blue-50 text-[10px] font-bold text-blue-600">' + (q.difficulty === 'high' ? '상' : q.difficulty === 'low' ? '하' : '중') + '</span>' : ''}
-                                ${q.category ? '<span class="px-1.5 py-0.5 rounded bg-violet-50 text-[10px] font-bold text-violet-700">' + String(q.category || '').replace(/</g, '&lt;') + '</span>' : ''}
+                                <span class="px-1.5 py-0.5 rounded bg-slate-100 text-[10px] font-bold text-slate-600 uppercase">#\${q.id}</span>
+                                <span class="px-1.5 py-0.5 rounded bg-gray-100 text-[10px] font-bold text-gray-600">\${(q.question_type || '').replace('_', ' ')}</span>
+                                \${q.difficulty ? '<span class="px-1.5 py-0.5 rounded bg-blue-50 text-[10px] font-bold text-blue-600">' + (q.difficulty === 'high' ? '상' : q.difficulty === 'low' ? '하' : '중') + '</span>' : ''}
+                                \${q.category ? '<span class="px-1.5 py-0.5 rounded bg-violet-50 text-[10px] font-bold text-violet-700">' + String(q.category || '').replace(/</g, '&lt;') + '</span>' : ''}
                             </div>
-                            <div class="text-[11px] text-slate-700 line-clamp-2">${String(q.question_text || '').replace(/</g, '&lt;')}</div>
+                            <div class="text-[11px] text-slate-700 line-clamp-2">\${String(q.question_text || '').replace(/</g, '&lt;')}</div>
                         </div>
                     </label>
-                `).join('');
-                if (countEl) countEl.textContent = `총 ${globalBankQuestions.length}문항`;
+                \`).join('');
+                if (countEl) countEl.textContent = \`총 \${globalBankQuestions.length}문항\`;
                 if (importBtn) importBtn.disabled = false;
             } catch (e) {
                 console.error(e);
@@ -631,7 +631,7 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
             }
             try {
                 const token = localStorage.getItem('token');
-                const res = await fetch(`/api/cbt/exams/${selectedExamId}/import-questions`, {
+                const res = await fetch(\`/api/cbt/exams/\${selectedExamId}/import-questions\`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
