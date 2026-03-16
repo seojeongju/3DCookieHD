@@ -159,6 +159,10 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
                     <label class="block text-sm font-bold text-gray-700 mb-1">설명</label>
                     <textarea id="postLectureDesc" rows="3" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500" placeholder="설문 안내 문구">수고하셨습니다. 오늘 교육 프로그램에 대한 전반적인 부분을 객관적으로 파악하고, 향후 교육의 기초 자료로 활용하고자 설문을 진행합니다. 더 나은 교육을 위해 솔직한 평가 부탁드립니다.</textarea>
                 </div>
+                <div id="postLectureSubjectListBlock" class="hidden">
+                    <label class="block text-sm font-bold text-gray-700 mb-1">해당교과목 리스트</label>
+                    <div id="postLectureSubjectList" class="p-3 bg-slate-50 rounded-lg text-sm text-gray-700 border border-slate-200 min-h-[2.5rem]">-</div>
+                </div>
                 <div id="postLectureTeacherBlock" class="hidden">
                     <label class="block text-sm font-bold text-gray-700 mb-1">담당 선생</label>
                     <select id="postLectureTeacherId" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500">
@@ -603,6 +607,11 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
         }
 
         function loadLectureSchedule(date) {
+            var subjectListBlock = document.getElementById('postLectureSubjectListBlock');
+            var subjectListEl = document.getElementById('postLectureSubjectList');
+            if (subjectListBlock) subjectListBlock.classList.add('hidden');
+            if (subjectListEl) subjectListEl.textContent = '-';
+
             if (!isHrd || !courseId || !date) return;
             var box = document.getElementById('postLectureSubjectInstructor');
             var listEl = document.getElementById('postLectureScheduleList');
@@ -612,14 +621,30 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
             fetch('/api/hrd/training-logs/daily-schedule?courseId=' + encodeURIComponent(courseId) + '&date=' + encodeURIComponent(date), { headers: { 'Authorization': 'Bearer ' + (token || '') } })
                 .then(function(r) { return r.json(); })
                 .then(function(res) {
-                    if (!res || !res.success || !Array.isArray(res.data)) { listEl.innerHTML = '해당 일자에 등록된 시간표가 없습니다.'; return; }
+                    if (!res || !res.success || !Array.isArray(res.data)) {
+                        listEl.innerHTML = '해당 일자에 등록된 시간표가 없습니다.';
+                        return;
+                    }
                     var rows = res.data.filter(function(r) { return !r.is_excluded; });
-                    if (rows.length === 0) { listEl.innerHTML = '해당 일자에 등록된 강의가 없습니다.'; return; }
+                    if (rows.length === 0) {
+                        listEl.innerHTML = '해당 일자에 등록된 강의가 없습니다.';
+                        return;
+                    }
                     listEl.innerHTML = rows.map(function(r) {
                         var sub = (r.subject_name || '-').split('<').join('&lt;').split('>').join('&gt;');
                         var inst = (r.instructor_name || '-').split('<').join('&lt;').split('>').join('&gt;');
                         return '<div class="py-1">' + (r.period_number ? r.period_number + '교시 ' : '') + '과목: ' + sub + ' / 담당강사: ' + inst + '</div>';
                     }).join('');
+
+                    // 해당교과목 리스트 (담당 선생 위에 표시)
+                    if (subjectListBlock) subjectListBlock.classList.remove('hidden');
+                    if (subjectListEl) {
+                        subjectListEl.innerHTML = rows.map(function(r) {
+                            var sub = (r.subject_name || '-').split('<').join('&lt;').split('>').join('&gt;');
+                            var inst = (r.instructor_name || '-').split('<').join('&lt;').split('>').join('&gt;');
+                            return '<div class="py-1.5 border-b border-slate-200 last:border-0">' + sub + ' <span class="text-slate-500">/ ' + inst + '</span></div>';
+                        }).join('');
+                    }
                 })
                 .catch(function() { listEl.textContent = '시간표를 불러오지 못했습니다.'; });
         }
