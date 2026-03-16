@@ -221,4 +221,63 @@ app.get('/access-stats', authMiddleware, requireAdmin, async (c) => {
     }
 });
 
+/** 접속 사용자 목록: user_id·ip_address 기준 구분, 기간 필터 지원 */
+app.get('/visitors', authMiddleware, requireAdmin, async (c) => {
+    try {
+        const { DB } = c.env;
+        const fromQ = c.req.query('from')?.trim();
+        const toQ = c.req.query('to')?.trim();
+        const useRange = fromQ && toQ && isValidDate(fromQ) && isValidDate(toQ) && fromQ <= toQ;
+        const maxDays = 90;
+        let rangeFrom: string | null = null;
+        let rangeTo: string | null = null;
+        if (useRange) {
+            const from = new Date(fromQ!);
+            const to = new Date(toQ!);
+            const days = Math.ceil((to.getTime() - from.getTime()) / (24 * 60 * 60 * 1000)) + 1;
+            if (days > maxDays) {
+                const adjust = new Date(from);
+                adjust.setDate(adjust.getDate() + maxDays - 1);
+                rangeTo = adjust.toISOString().slice(0, 10);
+                rangeFrom = fromQ!;
+            } else {
+                rangeFrom = fromQ!;
+                rangeTo = toQ!;
+            }
+        }
+        const dateFilter = useRange && rangeFrom && rangeTo
+            ? ` date(w.timestamp) BETWEEN ? AND ? `
+            : ` w.timestamp >= date('now', '-6 days') `;
+        const bindRange = useRange && rangeFrom && rangeTo ? [rangeFrom, rangeTo] : [];
+
+        const visitorsResult = await DB.prepare(`
+            SELECT w.user_id as userId, w.ip_address as ipAddress,
+                   count(*) as pv,
+                   max(w.timestamp) as lastVisit,
+                   u.email as email,
+                   u.role as role
+            FROM website_visits w
+            LEFT JOIN users u ON w.user_id = u.id
+            WHERE ${dateFilter}
+            GROUP BY w.user_id, w.ip_address
+            ORDER BY pv DESC
+            LIMIT 200
+        `).bind(...bindRange).all<{ userId: number | null; ipAddress: string | null; pv: number; lastVisit: string | null; email: string | null; role: string | null }>();
+
+        const visitors = (visitorsResult.results ?? []).map(row => ({
+            userId: row.userId,
+            email: row.email ?? null,
+            role: row.role ?? null,
+            ipAddress: row.ipAddress ?? null,
+            pv: row.pv ?? 0,
+            lastVisit: row.lastVisit ?? null,
+        }));
+
+        return c.json({ success: true, data: { visitors, rangeFrom, rangeTo } });
+    } catch (e) {
+        console.error('Analytics visitors error:', e);
+        return c.json({ success: false, error: 'Failed to fetch visitors' }, 500);
+    }
+});
+
 export default app;

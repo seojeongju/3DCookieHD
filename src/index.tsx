@@ -143,7 +143,7 @@ import { navigationHtml } from './views/components/navigation';
 import { homeHtml } from './views/home';
 import { layoutHtml } from './views/components/layout';
 import { resetPasswordHtml } from './views/reset_password';
-
+import { getSeoHead, PUBLIC_PATHS } from './utils/seo';
 
 const app = new Hono<{ Bindings: Bindings }>();
 
@@ -172,6 +172,51 @@ app.get('/favicon.ico', (c) => {
         }
     });
 });
+
+// robots.txt (네이버·구글 등 검색엔진 크롤러 안내)
+app.get('/robots.txt', (c) => {
+    const origin = new URL(c.req.url).origin;
+    const body = [
+        'User-agent: *',
+        'Allow: /',
+        'Disallow: /admin',
+        'Disallow: /admin/',
+        'Disallow: /teacher',
+        'Disallow: /teacher/',
+        'Disallow: /student',
+        'Disallow: /student/',
+        'Disallow: /api/',
+        'Sitemap: ' + origin + '/sitemap.xml',
+        ''
+    ].join('\n');
+    return new Response(body, {
+        headers: {
+            'Content-Type': 'text/plain; charset=utf-8',
+            'Cache-Control': 'public, max-age=86400'
+        }
+    });
+});
+
+// sitemap.xml (검색엔진용 URL 목록)
+app.get('/sitemap.xml', (c) => {
+    const origin = new URL(c.req.url).origin;
+    const today = new Date().toISOString().slice(0, 10);
+    const urls = PUBLIC_PATHS.map((path) => {
+        const loc = path === '/' ? origin + '/' : origin + path;
+        return `  <url>\n    <loc>${escapeXml(loc)}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>${path === '/' ? '1.0' : '0.8'}</priority>\n  </url>`;
+    }).join('\n');
+    const xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + urls + '\n</urlset>';
+    return new Response(xml, {
+        headers: {
+            'Content-Type': 'application/xml; charset=utf-8',
+            'Cache-Control': 'public, max-age=86400'
+        }
+    });
+});
+
+function escapeXml(s: string): string {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
 
 // ============================================
 // API 라우트
@@ -506,7 +551,13 @@ app.get('/api', (c) => {
 // 메인 페이지
 // ============================================
 app.get('/', (c) => {
-    return c.html(layoutHtml('와우쓰리디홍대센터 - 4차산업 3D프린팅 교육 전문', homeHtml, 'home'));
+    const origin = new URL(c.req.url).origin;
+    const seoHead = getSeoHead(origin, {
+        title: '와우쓰리디홍대센터 - 4차산업 3D프린팅 교육 전문',
+        description: '4차산업 3D프린팅 교육 전문. 와우쓰리디홍대센터에서 3D 모델링·프린팅 국비지원 과정, 실무 교육, NCS 기반 커리큘럼을 만나보세요. 홍대·구미·전주.',
+        path: '/',
+    });
+    return c.html(layoutHtml('와우쓰리디홍대센터 - 4차산업 3D프린팅 교육 전문', homeHtml, 'home', seoHead));
 });
 
 // ============================================

@@ -1,6 +1,6 @@
 /**
  * 사이트 접속정보 페이지 (관리자 전용)
- * /api/analytics/access-stats 기반 PV·UV, 일별 추이, 역할/시간대/요일별, 인기 페이지, Referrer
+ * /api/analytics/access-stats 기반 페이지뷰·순 방문자, 일별 추이, 역할/시간대/요일별, 인기 페이지, 유입 경로
  */
 import { hrdSidebar } from './components/hrd_sidebar';
 
@@ -67,38 +67,38 @@ export const adminAnalyticsHtml = (sidebar = hrdSidebar('analytics')) => `
                     <!-- 요약 카드: 기본(오늘/주간/월간) -->
                     <div id="defaultCards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
                         <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                            <div class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">오늘 PV</div>
+                            <div class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">오늘 페이지뷰</div>
                             <div class="text-2xl font-black text-gray-800" id="stat-today-pv">-</div>
                         </div>
                         <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                            <div class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">오늘 UV</div>
+                            <div class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">오늘 순 방문자</div>
                             <div class="text-2xl font-black text-indigo-600" id="stat-today-uv">-</div>
                         </div>
                         <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                            <div class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">최근 7일 PV</div>
+                            <div class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">최근 7일 페이지뷰</div>
                             <div class="text-2xl font-black text-gray-800" id="stat-week-pv">-</div>
                         </div>
                         <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                            <div class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">최근 7일 UV</div>
+                            <div class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">최근 7일 순 방문자</div>
                             <div class="text-2xl font-black text-indigo-600" id="stat-week-uv">-</div>
                         </div>
                         <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                            <div class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">이번 달 PV</div>
+                            <div class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">이번 달 페이지뷰</div>
                             <div class="text-2xl font-black text-gray-800" id="stat-month-pv">-</div>
                         </div>
                         <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                            <div class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">이번 달 UV</div>
+                            <div class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">이번 달 순 방문자</div>
                             <div class="text-2xl font-black text-indigo-600" id="stat-month-uv">-</div>
                         </div>
                     </div>
                     <!-- 요약 카드: 선택 기간 (기간 필터 사용 시) -->
                     <div id="rangeCards" class="hidden grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="bg-white p-5 rounded-2xl shadow-sm border border-indigo-100">
-                            <div class="text-xs text-indigo-600 font-bold uppercase tracking-wider mb-1">선택 기간 PV</div>
+                            <div class="text-xs text-indigo-600 font-bold uppercase tracking-wider mb-1">선택 기간 페이지뷰</div>
                             <div class="text-2xl font-black text-gray-800" id="stat-range-pv">-</div>
                         </div>
                         <div class="bg-white p-5 rounded-2xl shadow-sm border border-indigo-100">
-                            <div class="text-xs text-indigo-600 font-bold uppercase tracking-wider mb-1">선택 기간 UV</div>
+                            <div class="text-xs text-indigo-600 font-bold uppercase tracking-wider mb-1">선택 기간 순 방문자</div>
                             <div class="text-2xl font-black text-indigo-600" id="stat-range-uv">-</div>
                         </div>
                     </div>
@@ -144,8 +144,8 @@ export const adminAnalyticsHtml = (sidebar = hrdSidebar('analytics')) => `
                                     <tr class="bg-gray-50/50">
                                         <th class="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">순위</th>
                                         <th class="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">경로</th>
-                                        <th class="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">PV</th>
-                                        <th class="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">UV</th>
+                                        <th class="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">페이지뷰</th>
+                                        <th class="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">순 방문자</th>
                                     </tr>
                                 </thead>
                                 <tbody id="topPagesBody" class="divide-y divide-gray-50">
@@ -155,12 +155,36 @@ export const adminAnalyticsHtml = (sidebar = hrdSidebar('analytics')) => `
                         </div>
                     </div>
 
-                    <!-- 유입 경로 (Referrer) 상위 10 -->
+                    <!-- 유입 경로 상위 10 -->
                     <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
-                        <h3 class="text-lg font-black text-gray-800 mb-4 tracking-tight">유입 경로 (Referrer) 상위 10</h3>
+                        <h3 class="text-lg font-black text-gray-800 mb-4 tracking-tight">유입 경로 상위 10</h3>
                         <ul id="topReferrersList" class="space-y-2 text-sm text-gray-600">
                             <li class="text-gray-400">로딩 중...</li>
                         </ul>
+                    </div>
+
+                    <!-- 접속 사용자 (사용자 ID·IP 구분) -->
+                    <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div class="px-8 py-6 border-b border-gray-50">
+                            <h3 class="text-lg font-black text-gray-800 tracking-tight">접속 사용자</h3>
+                            <p class="text-sm text-gray-500 mt-1">사용자 ID(로그인) 또는 IP 주소(비로그인)별 접속 현황. 기간 필터와 동일하게 적용됩니다.</p>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-gray-50/50">
+                                        <th class="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">구분</th>
+                                        <th class="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">사용자 / IP 주소</th>
+                                        <th class="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">역할</th>
+                                        <th class="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">페이지뷰</th>
+                                        <th class="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">마지막 접속</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="visitorsBody" class="divide-y divide-gray-50">
+                                    <tr><td colspan="5" class="px-6 py-8 text-center text-gray-400">데이터를 불러오고 있습니다...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </main>
@@ -273,8 +297,8 @@ export const adminAnalyticsHtml = (sidebar = hrdSidebar('analytics')) => `
                     data: {
                         labels,
                         datasets: [
-                            { label: 'PV', data: dailyTrend.map(t => t.pv ?? 0), backgroundColor: 'rgba(99, 102, 241, 0.6)', borderRadius: 4 },
-                            { label: 'UV', data: dailyTrend.map(t => t.uv ?? 0), backgroundColor: 'rgba(16, 185, 129, 0.6)', borderRadius: 4 }
+                            { label: '페이지뷰', data: dailyTrend.map(t => t.pv ?? 0), backgroundColor: 'rgba(99, 102, 241, 0.6)', borderRadius: 4 },
+                            { label: '순 방문자', data: dailyTrend.map(t => t.uv ?? 0), backgroundColor: 'rgba(16, 185, 129, 0.6)', borderRadius: 4 }
                         ]
                     },
                     options: {
@@ -342,10 +366,52 @@ export const adminAnalyticsHtml = (sidebar = hrdSidebar('analytics')) => `
                 } else {
                     refEl.innerHTML = refs.map((r, i) => '<li class="flex items-center gap-2"><span class="w-6 h-6 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center text-xs font-bold">' + (i + 1) + '</span><span class="truncate flex-1" title="' + (r.referrer || '').replace(/"/g, '&quot;') + '">' + (r.referrer || '-').replace(/</g, '&lt;').substring(0, 80) + (r.referrer && r.referrer.length > 80 ? '…' : '') + '</span><span class="font-bold text-indigo-600">' + (r.count || 0).toLocaleString() + '</span></li>').join('');
                 }
+
+                loadVisitors();
             } catch (e) {
                 console.error('loadAccessStats error:', e);
                 document.getElementById('stat-today-pv').textContent = '오류';
                 document.getElementById('topPagesBody').innerHTML = '<tr><td colspan="4" class="px-6 py-8 text-center text-red-500">데이터 로드 실패</td></tr>';
+                document.getElementById('visitorsBody').innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-red-500">데이터 로드 실패</td></tr>';
+            }
+        }
+
+        async function loadVisitors() {
+            const tbody = document.getElementById('visitorsBody');
+            try {
+                const fromEl = document.getElementById('filterFrom');
+                const toEl = document.getElementById('filterTo');
+                let url = '/api/analytics/visitors';
+                if (fromEl && toEl && fromEl.value && toEl.value) {
+                    url += '?from=' + encodeURIComponent(fromEl.value) + '&to=' + encodeURIComponent(toEl.value);
+                }
+                const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+                if (res.status === 401) return;
+                const result = await res.json();
+                if (!result.success) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-gray-400">접속 사용자 데이터를 불러올 수 없습니다.</td></tr>';
+                    return;
+                }
+                const visitors = result.data.visitors || [];
+                function esc(s) { return (s ?? '').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
+                function fmtDate(iso) {
+                    if (!iso) return '-';
+                    const d = new Date(iso);
+                    return isNaN(d.getTime()) ? iso : d.toLocaleString('ko-KR', { dateStyle: 'short', timeStyle: 'short' });
+                }
+                if (visitors.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-gray-400">해당 기간 접속 사용자가 없습니다.</td></tr>';
+                } else {
+                    tbody.innerHTML = visitors.map(function(v) {
+                        var kind = v.userId != null ? '로그인' : '비로그인(IP)';
+                        var who = v.userId != null ? (v.email || ('사용자#' + v.userId)) : (v.ipAddress || '-');
+                        var role = (v.role || '-');
+                        return '<tr class="hover:bg-gray-50"><td class="px-6 py-4"><span class="px-2.5 py-1 rounded-lg text-xs font-bold ' + (v.userId != null ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-600') + '">' + esc(kind) + '</span></td><td class="px-6 py-4 text-gray-800 font-medium">' + esc(who) + '</td><td class="px-6 py-4 text-center text-gray-600">' + esc(role) + '</td><td class="px-6 py-4 text-center font-black text-indigo-600">' + (v.pv ?? 0).toLocaleString() + '</td><td class="px-6 py-4 text-sm text-gray-500">' + esc(fmtDate(v.lastVisit)) + '</td></tr>';
+                    }).join('');
+                }
+            } catch (e) {
+                console.error('loadVisitors error:', e);
+                tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-red-500">접속 사용자 데이터 로드 실패</td></tr>';
             }
         }
     </script>
