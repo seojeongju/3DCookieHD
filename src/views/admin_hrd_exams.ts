@@ -514,8 +514,8 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
                 const curSel = document.getElementById('bankCurriculumFilter');
                 if (curSel) curSel.innerHTML = '<option value=\"\">전체 과목</option>';
                 if (examSelect) examSelect.innerHTML = '<option value=\"\">시험 선택</option>';
-                document.getElementById('bankList')!.innerHTML = '<div class=\"text-center py-10 text-gray-400 text-xs\">회차를 선택해 주세요.</div>';
-                document.getElementById('examQuestionList')!.innerHTML = '<div class=\"text-center py-10 text-gray-400 text-xs\">시험을 선택해 주세요.</div>';
+                const bankListEl = document.getElementById('bankList'); if (bankListEl) bankListEl.innerHTML = '<div class=\"text-center py-10 text-gray-400 text-xs\">회차를 선택해 주세요.</div>';
+                const examListEl = document.getElementById('examQuestionList'); if (examListEl) examListEl.innerHTML = '<div class=\"text-center py-10 text-gray-400 text-xs\">시험을 선택해 주세요.</div>';
                 document.getElementById('importBtn')?.setAttribute('disabled', 'true');
                 return;
             }
@@ -541,10 +541,10 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
                 const exams = json && json.success && Array.isArray(json.data) ? json.data : (Array.isArray(json) ? json : []);
                 if (!exams.length) {
                     examSelect.innerHTML = '<option value=\"\">시험 없음</option>';
-                    document.getElementById('examQuestionList')!.innerHTML = '<div class=\"text-center py-10 text-gray-400 text-xs\">선택된 회차에 등록된 시험이 없습니다.</div>';
+                    const examListEl2 = document.getElementById('examQuestionList'); if (examListEl2) examListEl2.innerHTML = '<div class=\"text-center py-10 text-gray-400 text-xs\">선택된 회차에 등록된 시험이 없습니다.</div>';
                     return;
                 }
-                examSelect.innerHTML = '<option value=\"\">시험 선택</option>' + exams.map((e: any) =>
+                examSelect.innerHTML = '<option value=\"\">시험 선택</option>' + exams.map((e) =>
                     \`<option value=\"\${e.id}\">\${e.title}</option>\`
                 ).join('');
             } catch (e) {
@@ -596,7 +596,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
                     return;
                 }
                 const subjectName = (cid) => (mgmtSubjects.find((s) => s.id === cid) || {}).name || '';
-                listEl.innerHTML = bankQuestions.map((q: any, idx: number) => \`
+                listEl.innerHTML = bankQuestions.map((q, idx) => \`
                     <label class=\"flex items-start gap-2 px-2 py-1.5 rounded-lg hover:bg-indigo-50/60 cursor-pointer\">
                         <input type=\"checkbox\" class=\"mt-0.5 bank-question-checkbox\" value=\"\${q.id}\">
                         <div class=\"flex-1 min-w-0\">
@@ -641,7 +641,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
                     return;
                 }
                 const subjectName = (cid) => (mgmtSubjects.find((s) => s.id === cid) || {}).name || '';
-                listEl.innerHTML = examQuestions.map((q: any, idx: number) => \`
+                listEl.innerHTML = examQuestions.map((q, idx) => \`
                     <div class=\"border border-slate-100 rounded-xl px-3 py-2 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)] flex gap-2 items-start\">
                         <div class=\"flex flex-col gap-0.5 shrink-0\">
                             <button type=\"button\" onclick=\"moveQuestionUp(\${q.id}, \${idx})\" \${idx === 0 ? 'disabled' : ''} class=\"p-1 text-gray-400 hover:text-indigo-600 rounded disabled:opacity-30 disabled:cursor-not-allowed\" title=\"위로\"><i class=\"fas fa-chevron-up text-[10px]\"></i></button>
