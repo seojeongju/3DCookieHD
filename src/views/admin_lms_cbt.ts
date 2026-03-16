@@ -49,13 +49,19 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div class="flex justify-between items-center">
                 <h2 class="text-xl font-bold text-gray-800">CBT / 시험 관리</h2>
-                <div class="flex gap-2">
-                    <button onclick="openExamModal()" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center shadow-sm">
-                        <i class="fas fa-plus mr-2"></i> 시험 생성
+                <div class="relative" id="createPreAssessmentWrap">
+                    <button type="button" onclick="toggleCreatePreAssessmentMenu()" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center shadow-sm">
+                        <i class="fas fa-plus mr-2"></i> 사전평가생성
+                        <i class="fas fa-chevron-down ml-2 text-sm opacity-80"></i>
                     </button>
-                    <button onclick="openQuestionModal()" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition flex items-center shadow-sm">
-                        <i class="fas fa-question-circle mr-2"></i> 문제 등록
-                    </button>
+                    <div id="createPreAssessmentMenu" class="hidden absolute right-0 mt-1 w-48 bg-white rounded-lg border border-gray-200 shadow-lg py-1 z-50">
+                        <button type="button" onclick="closeCreatePreAssessmentMenu(); openExamModal();" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center">
+                            <i class="fas fa-clipboard-list mr-2 text-purple-500"></i> 시험 추가
+                        </button>
+                        <button type="button" onclick="closeCreatePreAssessmentMenu(); openQuestionModal();" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center">
+                            <i class="fas fa-question-circle mr-2 text-indigo-500"></i> 문제 추가
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -67,17 +73,17 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
         <!-- 탭 메뉴 -->
         <div class="flex border-b border-gray-200 mb-6">
             <button onclick="switchTab('exams')" id="tab-exams" class="tab-btn active px-6 py-3 text-gray-500 hover:text-gray-700 focus:outline-none">
-                시험 목록
+                사전평가목록
             </button>
             <button onclick="switchTab('questions')" id="tab-questions" class="tab-btn px-6 py-3 text-gray-500 hover:text-gray-700 focus:outline-none">
-                문제 은행
+                사전평가생성
             </button>
             <button onclick="switchTab('results')" id="tab-results" class="tab-btn px-6 py-3 text-gray-500 hover:text-gray-700 focus:outline-none">
                 결과 분석
             </button>
         </div>
 
-        <!-- 시험 목록 탭 -->
+        <!-- 사전평가목록 탭 -->
         <div id="content-exams" class="tab-content">
             <div class="bg-white rounded-lg shadow overflow-hidden">
                 <table class="min-w-full divide-y divide-gray-200">
@@ -98,7 +104,7 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
             </div>
         </div>
 
-        <!-- 문제 은행 탭 -->
+        <!-- 사전평가생성 탭 -->
         <div id="content-questions" class="tab-content hidden">
             <div class="bg-white rounded-lg shadow p-4 mb-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
                 <div class="flex gap-4 flex-wrap">
@@ -371,6 +377,21 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
             document.getElementById('content-' + tabName).classList.remove('hidden');
             if (tabName === 'results') loadResults();
         }
+
+        function toggleCreatePreAssessmentMenu() {
+            const menu = document.getElementById('createPreAssessmentMenu');
+            if (!menu) return;
+            menu.classList.toggle('hidden');
+        }
+        function closeCreatePreAssessmentMenu() {
+            const menu = document.getElementById('createPreAssessmentMenu');
+            if (menu) menu.classList.add('hidden');
+        }
+        document.addEventListener('click', function(e) {
+            const wrap = document.getElementById('createPreAssessmentWrap');
+            const menu = document.getElementById('createPreAssessmentMenu');
+            if (wrap && menu && !wrap.contains(e.target)) closeCreatePreAssessmentMenu();
+        });
 
         function openExamModal() {
             document.getElementById('examIdInput').value = '';

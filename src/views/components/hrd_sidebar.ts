@@ -107,7 +107,7 @@ export const hrdSidebar = (activeMenu: string, options?: HrdSidebarOptions) => {
         <a href="/admin/students" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'students' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
              ${activeMenu === 'students' ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
             <i class="fas fa-user-graduate w-6 text-lg ${activeMenu === 'students' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
-            <span class="font-medium text-[14px]">훈련생 관리</span>
+            <span class="font-medium text-[14px]">수강생관리</span>
         </a>
 
         <a href="/admin/attendance" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'attendance' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
@@ -131,19 +131,19 @@ export const hrdSidebar = (activeMenu: string, options?: HrdSidebarOptions) => {
         <a href="/admin/counseling" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'counseling' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
              ${activeMenu === 'counseling' ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
             <i class="fas fa-comment-medical w-6 text-lg ${activeMenu === 'counseling' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
-            <span class="font-medium text-[14px]">상담 일지</span>
+            <span class="font-medium text-[14px]">상담관리</span>
         </a>
 
         <a href="/admin/exams" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'exams' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
              ${activeMenu === 'exams' ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
             <i class="fas fa-file-signature w-6 text-lg ${activeMenu === 'exams' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
-            <span class="font-medium text-[14px]">시험/문제 관리</span>
+            <span class="font-medium text-[14px]">사전평가관리</span>
         </a>
 
         <a href="/admin/grades" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'grades' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
              ${activeMenu === 'grades' ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
             <i class="fas fa-chart-line w-6 text-lg ${activeMenu === 'grades' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
-            <span class="font-medium text-[14px]">성적/채점 관리</span>
+            <span class="font-medium text-[14px]">성적관리</span>
         </a>
 
         <a href="/admin/surveys" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'surveys' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">

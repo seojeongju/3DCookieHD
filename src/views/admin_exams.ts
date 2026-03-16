@@ -6,7 +6,7 @@ export const adminExamsHtml = (sidebar = hrdSidebar('exams')) => `
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>시험/문제 관리 - 와우쓰리디홍대센터</title>
+    <title>사전평가관리 - 와우쓰리디홍대센터</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
 </head>
@@ -20,7 +20,7 @@ export const adminExamsHtml = (sidebar = hrdSidebar('exams')) => `
         <main class="flex-1 overflow-y-auto bg-gray-50">
             <header class="bg-white shadow-sm sticky top-0 z-10">
                 <div class="px-8 py-4 flex justify-between items-center">
-                    <h1 class="text-2xl font-bold text-gray-800">시험/문제 관리</h1>
+                    <h1 class="text-2xl font-bold text-gray-800">사전평가관리</h1>
                     <div class="flex items-center space-x-4">
                         <span class="px-3 py-1 bg-blue-100 text-blue-600 text-xs font-bold rounded-full">LMS</span>
                         <a href="/" class="text-gray-500 hover:text-primary-600 transition"><i class="fas fa-external-link-alt mr-1"></i> 사이트 바로가기</a>
