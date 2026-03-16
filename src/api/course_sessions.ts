@@ -364,7 +364,8 @@ app.get('/', authMiddleware, requireRole('admin', 'teacher', 'instructor'), asyn
         .all() as { results: Record<string, unknown>[] };
     }
 
-    const list = applyEffectiveStatusToList((rows.results || []) as { status: string; training_start_date?: string; training_end_date?: string }[]);
+    // 관리자 수동 변경 상태 통일: 표시는 DB status 그대로 사용 (종합대시보드와 동일)
+    const list = rows.results || [];
     return c.json({
       success: true,
       data: list,
