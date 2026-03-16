@@ -219,6 +219,12 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                             </div>
                         </div>
                         <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">NCS 능력단위</label>
+                            <select name="ncs_ability_unit" id="ncsAbilityUnitSelect" class="w-full border rounded-lg px-3 py-2">
+                                <option value="">선택 안 함</option>
+                            </select>
+                        </div>
+                        <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">질문 내용</label>
                             <textarea name="question_text" required rows="3" class="w-full border rounded-lg px-3 py-2" placeholder="문제를 입력하세요"></textarea>
                         </div>
@@ -284,8 +290,25 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
             document.getElementById('examModal').classList.remove('hidden');
         }
 
-        function openQuestionModal() {
+        async function openQuestionModal() {
             document.getElementById('questionModal').classList.remove('hidden');
+            const selectEl = document.getElementById('ncsAbilityUnitSelect');
+            if (selectEl) {
+                selectEl.innerHTML = '<option value="">선택 안 함</option>';
+                try {
+                    const token = localStorage.getItem('token');
+                    const res = await fetch(\`/api/cbt/course-ability-units?course_id=\${courseId}\`, { headers: { 'Authorization': 'Bearer ' + token } });
+                    const json = await res.json();
+                    if (json.success && Array.isArray(json.data)) {
+                        json.data.forEach(function(u) {
+                            const opt = document.createElement('option');
+                            opt.value = (u.code || '') + '::' + (u.name || '');
+                            opt.textContent = (u.name || u.code || '');
+                            selectEl.appendChild(opt);
+                        });
+                    }
+                } catch (e) { console.error('NCS 능력단위 목록 로드 실패:', e); }
+            }
         }
 
         function closeModal(id) {
@@ -356,9 +379,10 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                     list.innerHTML = result.data.map(q => \`
                         <div class="bg-white border rounded-lg p-4 hover:shadow-md transition">
                             <div class="flex justify-between items-start mb-2">
-                                <div class="flex gap-2">
+                                <div class="flex gap-2 flex-wrap">
                                     <span class="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded">\${getQuestionTypeName(q.question_type)}</span>
                                     <span class="px-2 py-0.5 bg-blue-50 text-blue-600 text-xs rounded">\${getDifficultyName(q.difficulty)}</span>
+                                    \${q.ncs_ability_unit_name ? \`<span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs rounded" title="NCS 능력단위">\${q.ncs_ability_unit_name}</span>\` : ''}
                                 </div>
                                 <button class="text-gray-400 hover:text-red-500"><i class="fas fa-trash"></i></button>
                             </div>
@@ -438,12 +462,22 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
             const formData = new FormData(e.target);
             const type = formData.get('question_type');
             
+            const ncsVal = formData.get('ncs_ability_unit');
+            let ncsCode = '', ncsName = '';
+            if (ncsVal && String(ncsVal).includes('::')) {
+                const parts = String(ncsVal).split('::');
+                ncsCode = (parts[0] || '').trim();
+                ncsName = (parts[1] || '').trim();
+            }
             let data = {
+                course_id: courseId,
                 question_text: formData.get('question_text'),
                 question_type: type,
                 difficulty: formData.get('difficulty'),
                 explanation: formData.get('explanation'),
-                category: 'general' // 임시 카테고리
+                category: 'general',
+                ncs_ability_unit_code: ncsCode || undefined,
+                ncs_ability_unit_name: ncsName || undefined
             };
 
             if (type === 'multiple_choice') {

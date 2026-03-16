@@ -136,6 +136,80 @@ cbt.delete('/exams/:id', authMiddleware, async (c) => {
 });
 
 // ============================================================
+// /api/cbt/course-ability-units  - 해당 과정(회차)에 포함된 NCS 능력단위 목록
+// ============================================================
+cbt.get('/course-ability-units', authMiddleware, async (c) => {
+    try {
+        const courseIdParam = c.req.query('course_id');
+        if (!courseIdParam) {
+            return errorResponse(c, 'course_id 파라미터가 필요합니다', 400);
+        }
+        const sessionId = parseInt(String(courseIdParam), 10);
+        if (isNaN(sessionId)) {
+            return successResponse(c, []);
+        }
+
+        const session: any = await c.env.DB.prepare(
+            'SELECT approved_course_id FROM course_sessions WHERE id = ?'
+        ).bind(sessionId).first();
+        if (!session?.approved_course_id) {
+            return successResponse(c, []);
+        }
+
+        const reg: any = await c.env.DB.prepare(
+            'SELECT id FROM ncs_approved_registrations WHERE approved_course_id = ? LIMIT 1'
+        ).bind(session.approved_course_id).first();
+        if (!reg?.id) {
+            return successResponse(c, []);
+        }
+
+        const { results: curriculumRows } = await c.env.DB.prepare(
+            'SELECT id, ability_units_json FROM ncs_approved_curriculum WHERE registration_id = ? ORDER BY sort_order ASC, id ASC'
+        ).bind(reg.id).all() as { results: { id: number; ability_units_json?: string }[] };
+
+        type UnitEntry = { code: string; name: string };
+        const map = new Map<string, string>();
+
+        for (const row of curriculumRows || []) {
+            if (!row.ability_units_json) continue;
+            try {
+                const parsed = JSON.parse(row.ability_units_json) as (string | { code?: string; name?: string })[];
+                if (!Array.isArray(parsed)) continue;
+                for (const u of parsed) {
+                    const code = typeof u === 'string' ? u : (u?.code || '');
+                    if (!code) continue;
+                    const name = typeof u === 'object' && u?.name ? String(u.name).trim() : '';
+                    if (!map.has(code)) {
+                        map.set(code, name || '');
+                    }
+                }
+            } catch (_) {
+                /* ignore */
+            }
+        }
+
+        const codes = [...map.keys()];
+        if (codes.length === 0) {
+            return successResponse(c, []);
+        }
+
+        for (const code of codes) {
+            if (map.get(code)) continue;
+            const unit: any = await c.env.DB.prepare('SELECT name FROM ncs_units WHERE code = ?').bind(code).first();
+            if (unit?.name) {
+                map.set(code, String(unit.name).trim());
+            }
+        }
+
+        const list = codes.map((code) => ({ code, name: map.get(code) || code }));
+        return successResponse(c, list);
+    } catch (e: any) {
+        console.error('GET /api/cbt/course-ability-units error:', e);
+        return errorResponse(c, e.message, 500);
+    }
+});
+
+// ============================================================
 // /api/cbt/questions  - exam_questions 테이블 활용
 // ============================================================
 
@@ -149,6 +223,7 @@ cbt.get('/questions', authMiddleware, async (c) => {
             SELECT 
                 eq.id, eq.exam_id, eq.question_text, eq.question_type,
                 eq.options, eq.correct_answer, eq.points, eq.order_index,
+                eq.ncs_ability_unit_code, eq.ncs_ability_unit_name,
                 e.title as exam_title, e.course_id
             FROM exam_questions eq
             JOIN exams e ON eq.exam_id = e.id
@@ -187,7 +262,9 @@ cbt.post('/questions', authMiddleware, async (c) => {
             question_type,  // multiple_choice | short_answer | essay
             options,        // 객관식 보기 (JSON 배열 or 문자열)
             correct_answer,
-            points = 1
+            points = 1,
+            ncs_ability_unit_code,
+            ncs_ability_unit_name
         } = body;
 
         if (!question_text) {
@@ -234,8 +311,8 @@ cbt.post('/questions', authMiddleware, async (c) => {
 
         const result = await c.env.DB.prepare(`
             INSERT INTO exam_questions 
-                (exam_id, question_text, question_type, options, correct_answer, points, order_index)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+                (exam_id, question_text, question_type, options, correct_answer, points, order_index, ncs_ability_unit_code, ncs_ability_unit_name)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
             targetExamId,
             question_text,
@@ -243,7 +320,9 @@ cbt.post('/questions', authMiddleware, async (c) => {
             optionsStr,
             correct_answer || null,
             points,
-            nextOrder
+            nextOrder,
+            ncs_ability_unit_code || null,
+            ncs_ability_unit_name || null
         ).run();
 
         const questionId = result.meta.last_row_id;
