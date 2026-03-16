@@ -490,11 +490,11 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
         }
 
         async function onMgmtSessionChange() {
-            const select = document.getElementById('mgmtSessionSelect') as HTMLSelectElement | null;
+            const select = document.getElementById('mgmtSessionSelect');
             mgmtSessionId = select?.value || '';
             const examSelect = document.getElementById('mgmtExamSelect');
             mgmtExamId = '';
-            const cbtLink = document.getElementById('mgmtCbtLink') as HTMLAnchorElement | null;
+            const cbtLink = document.getElementById('mgmtCbtLink');
             const addExamBtn = document.getElementById('mgmtAddExamBtn');
             if (cbtLink) {
                 if (mgmtSessionId) {
@@ -516,7 +516,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
                 if (examSelect) examSelect.innerHTML = '<option value=\"\">시험 선택</option>';
                 document.getElementById('bankList')!.innerHTML = '<div class=\"text-center py-10 text-gray-400 text-xs\">회차를 선택해 주세요.</div>';
                 document.getElementById('examQuestionList')!.innerHTML = '<div class=\"text-center py-10 text-gray-400 text-xs\">시험을 선택해 주세요.</div>';
-                (document.getElementById('importBtn') as HTMLButtonElement | null)?.setAttribute('disabled', 'true');
+                document.getElementById('importBtn')?.setAttribute('disabled', 'true');
                 return;
             }
             try {
@@ -553,7 +553,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
         }
 
         async function onMgmtExamChange() {
-            const select = document.getElementById('mgmtExamSelect') as HTMLSelectElement | null;
+            const select = document.getElementById('mgmtExamSelect');
             mgmtExamId = select?.value || '';
             await loadExamQuestions();
             const label = document.getElementById('examInfoLabel');
@@ -567,7 +567,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
         async function loadQuestionBank() {
             const listEl = document.getElementById('bankList');
             const countEl = document.getElementById('bankCountLabel');
-            const importBtn = document.getElementById('importBtn') as HTMLButtonElement | null;
+            const importBtn = document.getElementById('importBtn');
             if (!listEl) return;
             if (!mgmtSessionId) {
                 listEl.innerHTML = '<div class=\"text-center py-10 text-gray-400 text-xs\">회차를 먼저 선택해 주세요.</div>';
@@ -575,9 +575,9 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
                 if (importBtn) importBtn.disabled = true;
                 return;
             }
-            const typeVal = (document.getElementById('bankTypeFilter') as HTMLSelectElement | null)?.value || '';
-            const curriculumVal = (document.getElementById('bankCurriculumFilter') as HTMLSelectElement | null)?.value || '';
-            const keyword = (document.getElementById('bankKeywordInput') as HTMLInputElement | null)?.value || '';
+            const typeVal = document.getElementById('bankTypeFilter')?.value || '';
+            const curriculumVal = document.getElementById('bankCurriculumFilter')?.value || '';
+            const keyword = document.getElementById('bankKeywordInput')?.value || '';
             try {
                 const params = new URLSearchParams();
                 params.set('course_id', mgmtSessionId);
@@ -670,7 +670,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
                 alert('먼저 시험을 선택해 주세요.');
                 return;
             }
-            const checkboxes = Array.from(document.querySelectorAll('.bank-question-checkbox')) as HTMLInputElement[];
+            const checkboxes = Array.from(document.querySelectorAll('.bank-question-checkbox'));
             const selectedIds = checkboxes.filter(cb => cb.checked).map(cb => parseInt(cb.value, 10)).filter(v => !Number.isNaN(v));
             if (!selectedIds.length) {
                 alert('가져올 문제를 선택해 주세요.');
@@ -752,14 +752,14 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
         }
         async function handleCreateExam(e) {
             e.preventDefault();
-            const form = e.target as HTMLFormElement;
+            const form = e.target;
             const fd = new FormData(form);
-            const title = fd.get('title') as string;
-            const type = fd.get('type') as string;
+            const title = String(fd.get('title') || '');
+            const type = String(fd.get('type') || '');
             const time_limit_minutes = parseInt(String(fd.get('time_limit_minutes')), 10) || 60;
-            const start_time = (fd.get('start_time') as string) || null;
-            const end_time = (fd.get('end_time') as string) || null;
-            const description = (fd.get('description') as string) || null;
+            const start_time = (fd.get('start_time') && String(fd.get('start_time'))) || null;
+            const end_time = (fd.get('end_time') && String(fd.get('end_time'))) || null;
+            const description = (fd.get('description') && String(fd.get('description'))) || null;
             if (!title?.trim()) {
                 alert('시험명을 입력해 주세요.');
                 return;
@@ -793,7 +793,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
                     await loadMgmtExams();
                     const newId = json.data?.id;
                     if (newId) {
-                        const examSelect = document.getElementById('mgmtExamSelect') as HTMLSelectElement | null;
+                        const examSelect = document.getElementById('mgmtExamSelect');
                         if (examSelect) {
                             examSelect.value = String(newId);
                             mgmtExamId = String(newId);
