@@ -102,17 +102,20 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
         <div id="content-questions" class="tab-content hidden">
             <div class="bg-white rounded-lg shadow p-4 mb-6 flex justify-between items-center">
                 <div class="flex gap-4">
-                    <select id="questionTypeFilter" class="border rounded-lg px-3 py-2 text-sm">
+                    <select id="questionTypeFilter" class="border rounded-lg px-3 py-2 text-sm" onchange="applyQuestionFilters()">
                         <option value="">전체 유형</option>
                         <option value="multiple_choice">객관식</option>
                         <option value="short_answer">단답형</option>
                         <option value="essay">서술형</option>
                     </select>
-                    <select id="difficultyFilter" class="border rounded-lg px-3 py-2 text-sm">
+                    <select id="difficultyFilter" class="border rounded-lg px-3 py-2 text-sm" onchange="applyQuestionFilters()">
                         <option value="">전체 난이도</option>
                         <option value="high">상</option>
                         <option value="medium">중</option>
                         <option value="low">하</option>
+                    </select>
+                    <select id="ncsUnitFilter" class="border rounded-lg px-3 py-2 text-sm min-w-[180px]" onchange="applyQuestionFilters()">
+                        <option value="">전체 NCS 능력단위</option>
                     </select>
                 </div>
                 <div class="flex gap-2">
@@ -366,35 +369,78 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
             }
         }
 
+        let allQuestions = [];
+        function applyQuestionFilters() {
+            const typeVal = (document.getElementById('questionTypeFilter') || {}).value || '';
+            const diffVal = (document.getElementById('difficultyFilter') || {}).value || '';
+            const ncsVal = (document.getElementById('ncsUnitFilter') || {}).value || '';
+            const filtered = allQuestions.filter(q => {
+                if (typeVal && q.question_type !== typeVal) return false;
+                if (diffVal && q.difficulty !== diffVal) return false;
+                if (ncsVal && (q.ncs_ability_unit_name || '') !== ncsVal) return false;
+                return true;
+            });
+            renderQuestionList(filtered);
+        }
+        function renderQuestionList(questions) {
+            const list = document.getElementById('questionList');
+            if (!list) return;
+            if (questions.length === 0) {
+                list.innerHTML = '<div class="text-center py-12 text-gray-500">조건에 맞는 문제가 없습니다.</div>';
+                return;
+            }
+            list.innerHTML = questions.map(q => \`
+                <div class="bg-white border border-slate-200/60 rounded-2xl p-4 shadow-sm hover:shadow-md transition bento-card" data-question-id="\${q.id}">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="flex gap-2 flex-wrap">
+                            <span class="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded">\${getQuestionTypeName(q.question_type)}</span>
+                            \${(q.difficulty && getDifficultyName(q.difficulty)) ? \`<span class="px-2 py-0.5 bg-blue-50 text-blue-600 text-xs rounded">\${getDifficultyName(q.difficulty)}</span>\` : ''}
+                            \${(q.ncs_ability_unit_name && String(q.ncs_ability_unit_name) !== 'undefined') ? \`<span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs rounded" title="NCS 능력단위">\${escapeHtml(q.ncs_ability_unit_name)}</span>\` : ''}
+                        </div>
+                        <div class="flex gap-1">
+                            <button type="button" onclick="deleteQuestion(\${q.id})" class="p-2 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50" title="삭제"><i class="fas fa-trash text-sm"></i></button>
+                        </div>
+                    </div>
+                    <p class="text-gray-800 font-medium mb-2">\${escapeHtml(q.question_text)}</p>
+                    \${renderQuestionContent(q)}
+                </div>
+            \`).join('');
+        }
+        function escapeHtml(s) {
+            if (s == null) return '';
+            const div = document.createElement('div');
+            div.textContent = s;
+            return div.innerHTML;
+        }
         async function loadQuestions() {
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch(\`/api/cbt/questions?course_id=\${courseId}\`, { // 실제로는 category 등으로 필터링
+                const response = await fetch(\`/api/cbt/questions?course_id=\${courseId}\`, {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
                 const result = await response.json();
-                
-                const list = document.getElementById('questionList');
-                if (result.success && result.data.length > 0) {
-                    list.innerHTML = result.data.map(q => \`
-                        <div class="bg-white border rounded-lg p-4 hover:shadow-md transition">
-                            <div class="flex justify-between items-start mb-2">
-                                <div class="flex gap-2 flex-wrap">
-                                    <span class="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded">\${getQuestionTypeName(q.question_type)}</span>
-                                    <span class="px-2 py-0.5 bg-blue-50 text-blue-600 text-xs rounded">\${getDifficultyName(q.difficulty)}</span>
-                                    \${q.ncs_ability_unit_name ? \`<span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs rounded" title="NCS 능력단위">\${q.ncs_ability_unit_name}</span>\` : ''}
-                                </div>
-                                <button class="text-gray-400 hover:text-red-500"><i class="fas fa-trash"></i></button>
-                            </div>
-                            <p class="text-gray-800 font-medium mb-2">\${q.question_text}</p>
-                            \${renderQuestionContent(q)}
-                        </div>
-                    \`).join('');
-                } else {
-                    list.innerHTML = '<div class="text-center py-12 text-gray-500">등록된 문제가 없습니다.</div>';
+                allQuestions = (result.success && result.data) ? result.data : [];
+                const ncsSelect = document.getElementById('ncsUnitFilter');
+                if (ncsSelect) {
+                    const opts = [...new Set(allQuestions.map(q => q.ncs_ability_unit_name).filter(Boolean))].filter(n => String(n) !== 'undefined').sort();
+                    ncsSelect.innerHTML = '<option value="">전체 NCS 능력단위</option>' + opts.map(n => \`<option value="\${escapeHtml(n)}">\${escapeHtml(n)}</option>\`).join('');
                 }
+                applyQuestionFilters();
             } catch (error) {
                 console.error('Error:', error);
+                document.getElementById('questionList').innerHTML = '<div class="text-center py-12 text-red-500">문제 목록을 불러오지 못했습니다.</div>';
+            }
+        }
+        async function deleteQuestion(id) {
+            if (!confirm('이 문제를 삭제할까요?')) return;
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(\`/api/cbt/questions/\${id}\`, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
+                const json = await res.json();
+                if (json.success) { loadQuestions(); } else { alert('삭제 실패: ' + (json.error || '알 수 없음')); }
+            } catch (e) {
+                console.error(e);
+                alert('삭제 중 오류가 발생했습니다.');
             }
         }
 
@@ -409,8 +455,9 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
         }
 
         function getDifficultyName(diff) {
+            if (diff == null || diff === '') return '';
             const diffs = { low: '하', medium: '중', high: '상' };
-            return diffs[diff] || diff;
+            return diffs[diff] || String(diff);
         }
 
         function renderQuestionContent(q) {
