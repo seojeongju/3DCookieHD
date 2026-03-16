@@ -438,18 +438,43 @@ cbt.post('/questions', authMiddleware, async (c) => {
     }
 });
 
-// PATCH /api/cbt/questions/:id  - 문제 수정 (순서 등)
+// PATCH /api/cbt/questions/:id  - 문제 수정 (내용 또는 순서)
+// body에 question_text 있으면 내용 수정, order_index만 있으면 순서만 수정
 cbt.patch('/questions/:id', authMiddleware, async (c) => {
     try {
         const id = c.req.param('id');
-        const body = await c.req.json() as { order_index?: number };
-        const orderIndex = body?.order_index;
-        if (orderIndex == null || typeof orderIndex !== 'number') {
-            return errorResponse(c, 'order_index(숫자)가 필요합니다', 400);
+        const body = await c.req.json() as {
+            order_index?: number;
+            question_text?: string;
+            question_type?: string;
+            options?: string | string[];
+            correct_answer?: string | null;
+            points?: number;
+        };
+        if (body.question_text != null) {
+            const optionsStr = Array.isArray(body.options)
+                ? JSON.stringify(body.options)
+                : (typeof body.options === 'string' ? body.options : null);
+            await c.env.DB.prepare(`
+                UPDATE exam_questions SET question_text = ?, question_type = ?, options = ?, correct_answer = ?, points = ?
+                WHERE id = ?
+            `).bind(
+                body.question_text,
+                body.question_type || 'multiple_choice',
+                optionsStr,
+                body.correct_answer ?? null,
+                body.points ?? 1,
+                id
+            ).run();
+            return successResponse(c, { id }, '수정되었습니다');
         }
-        await c.env.DB.prepare('UPDATE exam_questions SET order_index = ? WHERE id = ?')
-            .bind(Math.max(0, orderIndex), id).run();
-        return successResponse(c, { id, order_index: orderIndex }, '수정되었습니다');
+        const orderIndex = body?.order_index;
+        if (orderIndex != null && typeof orderIndex === 'number') {
+            await c.env.DB.prepare('UPDATE exam_questions SET order_index = ? WHERE id = ?')
+                .bind(Math.max(0, orderIndex), id).run();
+            return successResponse(c, { id, order_index: orderIndex }, '수정되었습니다');
+        }
+        return errorResponse(c, 'question_text 또는 order_index가 필요합니다', 400);
     } catch (e: any) {
         console.error('PATCH /api/cbt/questions/:id error:', e);
         return errorResponse(c, e.message, 500);

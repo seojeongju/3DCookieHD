@@ -195,6 +195,9 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
                                                 <option value="short_answer">단답형</option>
                                                 <option value="essay">서술형</option>
                                             </select>
+                                            <button type="button" id="bankCreateQuestionBtn" onclick="openBankQuestionModal()" class="inline-flex items-center px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 text-[11px] font-bold hover:bg-emerald-100 disabled:opacity-40 disabled:cursor-not-allowed">
+                                                <i class="fas fa-plus-circle mr-1.5 text-[10px]"></i> 문제 등록
+                                            </button>
                                         </div>
                                     </div>
                                     <div class="flex items-center bg-gray-50 rounded-xl px-3 py-2 border border-gray-200 mb-3">
@@ -274,6 +277,65 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
                 <div class="flex justify-end gap-2 pt-2">
                     <button type="button" onclick="closeAddExamModal()" class="px-4 py-2 rounded-xl border border-gray-200 text-gray-600 text-sm font-bold hover:bg-gray-50">취소</button>
                     <button type="submit" class="px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700">생성</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 문제 등록 모달 (통합 시험/CBT 문제은행 전용) -->
+    <div id="bankQuestionModal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl border border-slate-200/60 max-h-[90vh] overflow-y-auto">
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                <h3 class="font-black text-gray-800 text-lg">문제 등록</h3>
+                <button type="button" onclick="closeBankQuestionModal()" class="p-2 text-gray-400 hover:text-gray-600 rounded-lg"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="bankQuestionForm" onsubmit="handleBankSaveQuestion(event)" class="p-6 space-y-4 text-sm">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 mb-1">문제 유형</label>
+                        <select name="question_type" id="bankQuestionType" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm">
+                            <option value="multiple_choice">객관식</option>
+                            <option value="short_answer">단답형</option>
+                            <option value="essay">서술형</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 mb-1">배정 과목 (선택)</label>
+                        <select name="curriculum_id" id="bankQuestionCurriculum" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm">
+                            <option value="">선택 안 함</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-1">질문 내용</label>
+                    <textarea name="question_text" id="bankQuestionText" rows="3" required class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" placeholder="문제를 입력하세요"></textarea>
+                </div>
+                <div id="bankOptionsArea" class="space-y-2">
+                    <label class="block text-xs font-bold text-gray-600 mb-1">객관식 보기 (정답에 체크)</label>
+                    <div class="flex items-center gap-2">
+                        <input type="radio" name="correct_option" value="1" class="text-indigo-600">
+                        <input type="text" name="option_1" placeholder="보기 1" class="flex-1 border border-gray-200 rounded-xl px-3 py-1.5 text-sm">
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input type="radio" name="correct_option" value="2" class="text-indigo-600">
+                        <input type="text" name="option_2" placeholder="보기 2" class="flex-1 border border-gray-200 rounded-xl px-3 py-1.5 text-sm">
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input type="radio" name="correct_option" value="3" class="text-indigo-600">
+                        <input type="text" name="option_3" placeholder="보기 3" class="flex-1 border border-gray-200 rounded-xl px-3 py-1.5 text-sm">
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input type="radio" name="correct_option" value="4" class="text-indigo-600">
+                        <input type="text" name="option_4" placeholder="보기 4" class="flex-1 border border-gray-200 rounded-xl px-3 py-1.5 text-sm">
+                    </div>
+                </div>
+                <div id="bankAnswerArea" class="hidden">
+                    <label class="block text-xs font-bold text-gray-600 mb-1">정답</label>
+                    <input type="text" name="short_answer" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" placeholder="정답을 입력하세요">
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeBankQuestionModal()" class="px-4 py-2 rounded-xl border border-gray-200 text-gray-600 text-sm font-bold hover:bg-gray-50">취소</button>
+                    <button type="submit" class="px-4 py-2 rounded-xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700">등록하기</button>
                 </div>
             </form>
         </div>
@@ -473,20 +535,35 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
             if (!select) return;
             const uniqueSessions = [];
             const seen = new Set();
+            // 상태 라벨 매핑 (HRD 화면들 공통 규칙)
+            const statusMap = {
+                recruiting: '모집중',
+                in_progress: '진행중',
+                completed: '종료',
+                always_open: '상시모집',
+                closed: '마감'
+            };
             (allData || []).forEach(c => {
                 const sid = c.session_id;
                 if (sid != null && !seen.has(sid)) {
                     seen.add(sid);
-                    uniqueSessions.push({ id: sid, title: c.title || \`회차 \${sid}\` });
+                    uniqueSessions.push({
+                        id: sid,
+                        title: c.title || \`회차 \${sid}\`,
+                        status: c.status,
+                        status_label: c.status_label
+                    });
                 }
             });
             if (uniqueSessions.length === 0) {
                 select.innerHTML = '<option value=\"\">회차 없음</option>';
                 return;
             }
-            select.innerHTML = '<option value=\"\">회차 선택</option>' + uniqueSessions.map(s =>
-                \`<option value=\"\${s.id}\">\${s.title} (ID: \${s.id})</option>\`
-            ).join('');
+            select.innerHTML = '<option value=\"\">회차 선택</option>' + uniqueSessions.map(s => {
+                const label = s.status_label || statusMap[String(s.status)] || '';
+                const statusText = label ? \` (\${label})\` : '';
+                return \`<option value=\"\${s.id}\">\${s.title}\${statusText} (ID: \${s.id})</option>\`;
+            }).join('');
         }
 
         async function onMgmtSessionChange() {
@@ -496,6 +573,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
             mgmtExamId = '';
             const cbtLink = document.getElementById('mgmtCbtLink');
             const addExamBtn = document.getElementById('mgmtAddExamBtn');
+            const bankCreateBtn = document.getElementById('bankCreateQuestionBtn');
             if (cbtLink) {
                 if (mgmtSessionId) {
                     cbtLink.href = '/admin/courses/' + mgmtSessionId + '/lms/cbt';
@@ -508,6 +586,9 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
             if (addExamBtn) {
                 if (mgmtSessionId) addExamBtn.classList.remove('hidden');
                 else addExamBtn.classList.add('hidden');
+            }
+            if (bankCreateBtn) {
+                bankCreateBtn.disabled = !mgmtSessionId;
             }
             if (!mgmtSessionId) {
                 mgmtSubjects = [];
@@ -620,6 +701,112 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
                 listEl.innerHTML = '<div class=\"text-center py-10 text-red-400 text-xs\">문제은행을 불러오지 못했습니다.</div>';
                 if (countEl) countEl.textContent = '';
                 if (importBtn) importBtn.disabled = true;
+            }
+        }
+
+        function openBankQuestionModal() {
+            if (!mgmtSessionId) {
+                alert('먼저 회차를 선택해 주세요.');
+                return;
+            }
+            const modal = document.getElementById('bankQuestionModal');
+            const typeSelect = document.getElementById('bankQuestionType');
+            const subjectSelect = document.getElementById('bankQuestionCurriculum');
+            const textArea = document.getElementById('bankQuestionText');
+            if (typeSelect) typeSelect.value = 'multiple_choice';
+            if (textArea) textArea.value = '';
+            if (subjectSelect) {
+                subjectSelect.innerHTML = '<option value=\"\">선택 안 함</option>' + (mgmtSubjects || []).map(function (s) {
+                    return '<option value=\"' + s.id + '\">' + String(s.name || ('과목 ' + s.id)).replace(/</g, '&lt;') + '</option>';
+                }).join('');
+            }
+            // 보기/정답 영역 초기화
+            ['option_1','option_2','option_3','option_4'].forEach(function(name, idx) {
+                const el = document.querySelector('input[name=\"' + name + '\"]');
+                if (el) el.value = '';
+                const radio = document.querySelector('input[name=\"correct_option\"][value=\"' + (idx + 1) + '\"]');
+                if (radio) radio.checked = idx === 0;
+            });
+            const shortAns = document.querySelector('input[name=\"short_answer\"]');
+            if (shortAns) shortAns.value = '';
+            const optArea = document.getElementById('bankOptionsArea');
+            const ansArea = document.getElementById('bankAnswerArea');
+            if (optArea && ansArea) {
+                optArea.classList.remove('hidden');
+                ansArea.classList.add('hidden');
+            }
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closeBankQuestionModal() {
+            const modal = document.getElementById('bankQuestionModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        document.getElementById('bankQuestionType')?.addEventListener('change', function (e) {
+            const val = e.target.value;
+            const optArea = document.getElementById('bankOptionsArea');
+            const ansArea = document.getElementById('bankAnswerArea');
+            if (!optArea || !ansArea) return;
+            if (val === 'multiple_choice') {
+                optArea.classList.remove('hidden');
+                ansArea.classList.add('hidden');
+            } else {
+                optArea.classList.add('hidden');
+                ansArea.classList.remove('hidden');
+            }
+        });
+
+        async function handleBankSaveQuestion(e) {
+            e.preventDefault();
+            if (!mgmtSessionId) {
+                alert('회차가 선택되지 않았습니다.');
+                return;
+            }
+            const form = e.target;
+            const formData = new FormData(form);
+            const type = formData.get('question_type') || 'multiple_choice';
+            const payload = {
+                course_id: mgmtSessionId,
+                question_text: formData.get('question_text'),
+                question_type: type,
+                points: 1
+            };
+            if (type === 'multiple_choice') {
+                const options = [
+                    formData.get('option_1'),
+                    formData.get('option_2'),
+                    formData.get('option_3'),
+                    formData.get('option_4')
+                ];
+                payload.options = options;
+                payload.correct_answer = formData.get('correct_option');
+            } else {
+                payload.correct_answer = formData.get('short_answer');
+            }
+            const curId = formData.get('curriculum_id');
+            if (curId) payload.curriculum_id = curId;
+            try {
+                const res = await fetch('/api/cbt/questions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify(payload)
+                });
+                const json = await res.json();
+                if (json && json.success) {
+                    alert('문제가 등록되었습니다.');
+                    closeBankQuestionModal();
+                    form.reset();
+                    await loadQuestionBank();
+                } else {
+                    alert('등록 실패: ' + (json && (json.error || json.message) || '알 수 없는 오류'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('등록 중 오류가 발생했습니다.');
             }
         }
 

@@ -241,15 +241,16 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
         </div>
     </div>
 
-    <!-- 문제 등록 모달 -->
+    <!-- 문제 등록/수정 모달 -->
     <div id="questionModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
             <div class="p-6 border-b border-gray-200 flex justify-between items-center">
-                <h3 class="text-xl font-bold text-gray-800">문제 등록</h3>
+                <h3 class="text-xl font-bold text-gray-800" id="questionModalTitle">문제 등록</h3>
                 <button onclick="closeModal('questionModal')" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times"></i></button>
             </div>
             <div class="p-6">
                 <form id="questionForm" onsubmit="handleSaveQuestion(event)">
+                    <input type="hidden" name="question_id" id="questionIdInput" value="">
                     <div class="space-y-4">
                         <div class="grid grid-cols-2 gap-4">
                             <div>
@@ -277,7 +278,7 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">질문 내용</label>
-                            <textarea name="question_text" required rows="3" class="w-full border rounded-lg px-3 py-2" placeholder="문제를 입력하세요"></textarea>
+                            <textarea name="question_text" id="questionFormText" required rows="3" class="w-full border rounded-lg px-3 py-2" placeholder="문제를 입력하세요"></textarea>
                         </div>
                         
                         <!-- 객관식 보기 영역 -->
@@ -314,7 +315,7 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                     </div>
                     <div class="mt-6 flex justify-end space-x-3">
                         <button type="button" onclick="closeModal('questionModal')" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">취소</button>
-                        <button type="submit" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">등록하기</button>
+                        <button type="submit" id="questionSubmitBtn" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">등록하기</button>
                     </div>
                 </form>
             </div>
@@ -376,6 +377,11 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
         }
 
         async function openQuestionModal() {
+            document.getElementById('questionIdInput').value = '';
+            document.getElementById('questionModalTitle').textContent = '문제 등록';
+            document.getElementById('questionSubmitBtn').textContent = '등록하기';
+            document.getElementById('questionForm').reset();
+            toggleOptionsField();
             document.getElementById('questionModal').classList.remove('hidden');
             const selectEl = document.getElementById('ncsAbilityUnitSelect');
             if (selectEl) {
@@ -394,6 +400,49 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                     }
                 } catch (e) { console.error('NCS 능력단위 목록 로드 실패:', e); }
             }
+        }
+        function openEditQuestion(questionId) {
+            const q = allQuestions.find(function(x) { return x.id === parseInt(String(questionId), 10); });
+            if (!q) return;
+            document.getElementById('questionIdInput').value = q.id;
+            document.getElementById('questionModalTitle').textContent = '문제 수정';
+            document.getElementById('questionSubmitBtn').textContent = '수정하기';
+            document.getElementById('questionType').value = q.question_type || 'multiple_choice';
+            document.querySelector('select[name="difficulty"]').value = q.difficulty || 'medium';
+            document.getElementById('questionFormText').value = q.question_text || '';
+            if (q.question_type === 'multiple_choice') {
+                const opts = (function() { try { return JSON.parse(q.options || '[]'); } catch (_) { return []; } })();
+                document.querySelector('input[name="option_1"]').value = opts[0] || '';
+                document.querySelector('input[name="option_2"]').value = opts[1] || '';
+                document.querySelector('input[name="option_3"]').value = opts[2] || '';
+                document.querySelector('input[name="option_4"]').value = opts[3] || '';
+                const correctNum = parseInt(String(q.correct_answer), 10);
+                const radio = document.querySelector('input[name="correct_option"][value="' + (isNaN(correctNum) ? '1' : Math.max(1, Math.min(4, correctNum))) + '"]');
+                if (radio) radio.checked = true;
+            } else {
+                document.querySelector('input[name="correct_answer_text"]').value = q.correct_answer || '';
+            }
+            toggleOptionsField();
+            const ncsSelect = document.getElementById('ncsAbilityUnitSelect');
+            if (ncsSelect) {
+                ncsSelect.innerHTML = '<option value="">선택 안 함</option>';
+                const ncsVal = (q.ncs_ability_unit_code || '') + '::' + (q.ncs_ability_unit_name || '');
+                if (q.ncs_ability_unit_name || q.ncs_ability_unit_code) {
+                    const opt = document.createElement('option');
+                    opt.value = ncsVal.trim() ? ncsVal : '';
+                    opt.textContent = q.ncs_ability_unit_name || q.ncs_ability_unit_code || '';
+                    opt.selected = true;
+                    ncsSelect.appendChild(opt);
+                }
+                const otherOpts = [...new Set(allQuestions.map(function(x) { return (x.ncs_ability_unit_name || ''); }).filter(Boolean))].filter(function(n) { return n !== (q.ncs_ability_unit_name || ''); }).sort();
+                otherOpts.forEach(function(n) {
+                    const o = document.createElement('option');
+                    o.textContent = n;
+                    o.value = n;
+                    ncsSelect.appendChild(o);
+                });
+            }
+            document.getElementById('questionModal').classList.remove('hidden');
         }
 
         function closeModal(id) {
@@ -488,6 +537,7 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                             \${(q.ncs_ability_unit_name && String(q.ncs_ability_unit_name) !== 'undefined') ? \`<span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs rounded" title="NCS 능력단위">\${escapeHtml(q.ncs_ability_unit_name)}</span>\` : ''}
                         </div>
                         <div class="flex gap-1">
+                            <button type="button" onclick="openEditQuestion(\${q.id})" class="p-2 text-gray-400 hover:text-blue-500 rounded-lg hover:bg-blue-50" title="수정"><i class="fas fa-pen text-sm"></i></button>
                             <button type="button" onclick="deleteQuestion(\${q.id})" class="p-2 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50" title="삭제"><i class="fas fa-trash text-sm"></i></button>
                         </div>
                     </div>
@@ -692,25 +742,14 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
             e.preventDefault();
             const formData = new FormData(e.target);
             const type = formData.get('question_type');
-            
-            const ncsVal = formData.get('ncs_ability_unit');
-            let ncsCode = '', ncsName = '';
-            if (ncsVal && String(ncsVal).includes('::')) {
-                const parts = String(ncsVal).split('::');
-                ncsCode = (parts[0] || '').trim();
-                ncsName = (parts[1] || '').trim();
-            }
+            const questionId = (document.getElementById('questionIdInput') || {}).value;
+            const isEdit = questionId && String(questionId).trim() !== '';
+
             let data = {
-                course_id: courseId,
                 question_text: formData.get('question_text'),
                 question_type: type,
-                difficulty: formData.get('difficulty'),
-                explanation: formData.get('explanation'),
-                category: 'general',
-                ncs_ability_unit_code: ncsCode || undefined,
-                ncs_ability_unit_name: ncsName || undefined
+                points: 1
             };
-
             if (type === 'multiple_choice') {
                 const options = [
                     formData.get('option_1'),
@@ -718,16 +757,34 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                     formData.get('option_3'),
                     formData.get('option_4')
                 ];
-                data.options = JSON.stringify(options);
+                data.options = options;
                 data.correct_answer = formData.get('correct_option');
             } else {
                 data.correct_answer = formData.get('correct_answer_text');
             }
 
+            if (!isEdit) {
+                const ncsVal = formData.get('ncs_ability_unit');
+                let ncsCode = '', ncsName = '';
+                if (ncsVal && String(ncsVal).includes('::')) {
+                    const parts = String(ncsVal).split('::');
+                    ncsCode = (parts[0] || '').trim();
+                    ncsName = (parts[1] || '').trim();
+                }
+                data.course_id = courseId;
+                data.difficulty = formData.get('difficulty');
+                data.explanation = formData.get('explanation');
+                data.category = 'general';
+                data.ncs_ability_unit_code = ncsCode || undefined;
+                data.ncs_ability_unit_name = ncsName || undefined;
+            }
+
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch('/api/cbt/questions', {
-                    method: 'POST',
+                const url = isEdit ? \`/api/cbt/questions/\${questionId}\` : '/api/cbt/questions';
+                const method = isEdit ? 'PATCH' : 'POST';
+                const response = await fetch(url, {
+                    method: method,
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': 'Bearer ' + token
@@ -736,8 +793,11 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                 });
                 const result = await response.json();
                 if (result.success) {
-                    alert('문제가 등록되었습니다.');
+                    alert(isEdit ? '문제가 수정되었습니다.' : '문제가 등록되었습니다.');
                     closeModal('questionModal');
+                    document.getElementById('questionIdInput').value = '';
+                    document.getElementById('questionModalTitle').textContent = '문제 등록';
+                    document.getElementById('questionSubmitBtn').textContent = '등록하기';
                     loadQuestions();
                     e.target.reset();
                 } else {
