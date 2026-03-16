@@ -279,7 +279,7 @@ app.get('/:id', authMiddleware, async (c) => {
         const surveyId = parseInt(id, 10);
         const survey: any = await DB.prepare(`
             SELECT 
-                s.id, s.course_id, s.session_id, s.type, s.title, s.description, s.start_date, s.end_date, s.status, s.teacher_id, s.created_at, s.updated_at,
+                s.id, s.course_id, s.session_id, s.type, s.title, s.description, s.start_date, s.end_date, s.status, s.teacher_id, s.subject_name, s.created_at, s.updated_at,
                 c.title as course_title, c.teacher_id as course_teacher_id, 
                 u.name as teacher_name
             FROM surveys s
@@ -305,7 +305,7 @@ app.get('/:id', authMiddleware, async (c) => {
                 const sessionNameSuffix = session.session_name ? ` - ${session.session_name}` : '';
                 survey.course_title = `${courseName} (${sessionNum}회차)${sessionNameSuffix}`.trim();
                 if (!survey.teacher_name) survey.teacher_name = session.session_instructor_name || session.approved_instructor_name;
-                survey.subject_title = courseName;
+                survey.subject_title = (survey.type === 'post_lecture' && survey.subject_name) ? survey.subject_name : courseName;
             }
         }
         if (!survey.teacher_name && survey.course_teacher_id) {

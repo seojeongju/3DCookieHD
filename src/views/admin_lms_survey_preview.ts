@@ -92,7 +92,7 @@ export const adminLmsSurveyPreviewHtml = (sidebar: string = hrdSidebar('courses'
                         descArea.textContent = '수고하셨습니다. 오늘 교육 프로그램에 대한 전반적인 부분을 객관적으로 파악하고, 향후 교육의 기초 자료로 활용하고자 설문을 진행합니다. 더 나은 교육을 위해 솔직한 평가 부탁드립니다.';
                     }
                     document.getElementById('preview-course').textContent = s.course_title || '-';
-                    document.getElementById('preview-subject').textContent = s.subject_title || s.course_title || '-';
+                    document.getElementById('preview-subject').textContent = (s.type === 'post_lecture' && s.subject_name) ? s.subject_name : (s.subject_title || s.course_title || '-');
                     document.getElementById('preview-teacher').textContent = '담당교사 : ' + (s.teacher_name || '-');
                     var d = s.created_at ? new Date(s.created_at) : new Date();
                     var y = d.getFullYear(); var m = String(d.getMonth() + 1).padStart(2, '0'); var day = String(d.getDate()).padStart(2, '0');
