@@ -11,6 +11,8 @@ export type Bindings = {
   NCS_API_KEY?: string;
   /** NCS 기준정보조회 API base URL (선택). 미설정 시 api.data.go.kr/openapi/15128213/v1 사용 */
   NCS_CLASSIFICATION_API_BASE?: string;
+  /** 카카오맵 JavaScript 키 (오시는길 페이지). 미설정 시 site_settings.kakao_map_appkey 사용 */
+  KAKAO_MAP_APPKEY?: string;
 };
 
 export type Variables = {

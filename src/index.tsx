@@ -473,7 +473,14 @@ app.get('/portfolios', (c) => c.html(portfoliosListHtml));
 app.get('/posts', (c) => c.html(postsListHtml));
 app.get('/prototype-gallery', (c) => c.html(prototypeGalleryHtml));
 app.get('/schedule', (c) => c.html(scheduleHtml));
-app.get('/locations', (c) => c.html(locationsHtml({ kakaoMapAppKey: (c.env as any).KAKAO_MAP_APPKEY })));
+app.get('/locations', async (c) => {
+    let appKey = (c.env.KAKAO_MAP_APPKEY && typeof c.env.KAKAO_MAP_APPKEY === 'string') ? c.env.KAKAO_MAP_APPKEY.trim() : '';
+    if (!appKey) {
+        const row = await c.env.DB.prepare('SELECT value FROM site_settings WHERE key = ?').bind('kakao_map_appkey').first<{ value: string }>();
+        if (row?.value) appKey = String(row.value).trim();
+    }
+    return c.html(locationsHtml({ kakaoMapAppKey: appKey }));
+});
 app.get('/education-performance', (c) => c.html(educationPerformanceHtml()));
 app.get('/achievements', (c) => c.html(achievementsHtml));
 app.get('/reviews', (c) => c.html(reviewsListHtml));

@@ -53,6 +53,24 @@ export const adminSettingsHtml = (sidebarHtml?: string) => `
                                 </div>
                             </div>
 
+                            <!-- 카카오맵 JavaScript 키 (오시는길 페이지) -->
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-start pt-6 border-t border-slate-100">
+                                <div>
+                                    <label class="block text-sm font-bold text-slate-700 mb-1">카카오맵 JavaScript 키</label>
+                                    <p class="text-xs text-slate-500 leading-relaxed">오시는길(/locations) 페이지 지도 표시용. 카카오 개발자 콘솔에서 JavaScript 키를 발급받고, 웹 플랫폼에 사이트 도메인을 등록하세요.</p>
+                                </div>
+                                <div class="md:col-span-2">
+                                    <div class="relative group">
+                                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                            <i class="fas fa-map-marked-alt text-slate-400 group-focus-within:text-indigo-500 transition-colors"></i>
+                                        </div>
+                                        <input type="text" id="kakaoMapAppkeyInput" autocomplete="off"
+                                            class="w-full pl-11 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white transition-all outline-none font-mono text-sm text-slate-800"
+                                            placeholder="예: a1b2c3d4e5f6g7h8i9j0...">
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="pt-6 border-t border-slate-100 flex justify-end">
                                 <button onclick="saveSettings()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-2xl font-black text-sm tracking-widest transition-all shadow-lg shadow-indigo-200 flex items-center gap-2 group">
                                     <i class="fas fa-save group-hover:scale-110 transition-transform"></i>
@@ -83,12 +101,18 @@ export const adminSettingsHtml = (sidebarHtml?: string) => `
     <script>
         async function fetchSettings() {
             try {
-                const res = await fetch('/api/settings/institution_name', {
-                    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
-                });
-                const result = await res.json();
-                if (result.success) {
-                    document.getElementById('institutionNameInput').value = result.data;
+                const token = 'Bearer ' + localStorage.getItem('token');
+                const [instRes, kakaoRes] = await Promise.all([
+                    fetch('/api/settings/institution_name', { headers: { 'Authorization': token } }),
+                    fetch('/api/settings/kakao_map_appkey', { headers: { 'Authorization': token } })
+                ]);
+                const instResult = await instRes.json();
+                if (instResult.success && instResult.data != null) {
+                    document.getElementById('institutionNameInput').value = instResult.data;
+                }
+                const kakaoResult = await kakaoRes.json();
+                if (kakaoResult.success && kakaoResult.data != null) {
+                    document.getElementById('kakaoMapAppkeyInput').value = kakaoResult.data;
                 }
             } catch (e) {
                 console.error('Failed to fetch settings:', e);
@@ -96,28 +120,20 @@ export const adminSettingsHtml = (sidebarHtml?: string) => `
         }
 
         async function saveSettings() {
-            const value = document.getElementById('institutionNameInput').value.trim();
-            if (!value) {
+            const institutionName = document.getElementById('institutionNameInput').value.trim();
+            const kakaoMapAppkey = document.getElementById('kakaoMapAppkeyInput').value.trim();
+            if (!institutionName) {
                 alert('훈련기관명을 입력해주세요.');
                 return;
             }
 
             try {
-                const res = await fetch('/api/settings', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + localStorage.getItem('token')
-                    },
-                    body: JSON.stringify({ key: 'institution_name', value: value })
-                });
-                const result = await res.json();
-                if (result.success) {
-                    alert('설정이 저장되었습니다.');
-                    location.reload();
-                } else {
-                    alert('저장 실패: ' + result.error);
-                }
+                const token = 'Bearer ' + localStorage.getItem('token');
+                const headers = { 'Content-Type': 'application/json', 'Authorization': token };
+                await fetch('/api/settings', { method: 'POST', headers, body: JSON.stringify({ key: 'institution_name', value: institutionName }) });
+                await fetch('/api/settings', { method: 'POST', headers, body: JSON.stringify({ key: 'kakao_map_appkey', value: kakaoMapAppkey }) });
+                alert('설정이 저장되었습니다.');
+                location.reload();
             } catch (e) {
                 alert('오류가 발생했습니다.');
             }
