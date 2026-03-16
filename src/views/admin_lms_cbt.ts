@@ -187,24 +187,25 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
         </div>
     </div>
 
-    <!-- 시험 생성 모달 -->
+    <!-- 시험 생성/수정 모달 -->
     <div id="examModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4">
             <div class="p-6 border-b border-gray-200 flex justify-between items-center">
-                <h3 class="text-xl font-bold text-gray-800">시험 생성</h3>
+                <h3 class="text-xl font-bold text-gray-800" id="examModalTitle">시험 생성</h3>
                 <button onclick="closeModal('examModal')" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times"></i></button>
             </div>
             <div class="p-6">
                 <form id="examForm" onsubmit="handleSaveExam(event)">
+                    <input type="hidden" name="exam_id" id="examIdInput" value="">
                     <div class="space-y-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">시험명</label>
-                            <input type="text" name="title" required class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500">
+                            <input type="text" name="title" id="examFormTitle" required class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500">
                         </div>
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">시험 유형</label>
-                                <select name="type" class="w-full border rounded-lg px-3 py-2">
+                                <select name="type" id="examFormType" class="w-full border rounded-lg px-3 py-2">
                                     <option value="midterm">중간평가</option>
                                     <option value="final">기말평가</option>
                                     <option value="mock">모의고사</option>
@@ -213,27 +214,27 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">제한 시간 (분)</label>
-                                <input type="number" name="time_limit_minutes" value="60" class="w-full border rounded-lg px-3 py-2">
+                                <input type="number" name="time_limit_minutes" id="examFormTimeLimit" value="60" class="w-full border rounded-lg px-3 py-2">
                             </div>
                         </div>
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">시작 일시</label>
-                                <input type="datetime-local" name="start_time" required class="w-full border rounded-lg px-3 py-2">
+                                <input type="datetime-local" name="start_time" id="examFormStartTime" required class="w-full border rounded-lg px-3 py-2">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">종료 일시</label>
-                                <input type="datetime-local" name="end_time" required class="w-full border rounded-lg px-3 py-2">
+                                <input type="datetime-local" name="end_time" id="examFormEndTime" required class="w-full border rounded-lg px-3 py-2">
                             </div>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">설명</label>
-                            <textarea name="description" rows="3" class="w-full border rounded-lg px-3 py-2"></textarea>
+                            <textarea name="description" id="examFormDescription" rows="3" class="w-full border rounded-lg px-3 py-2"></textarea>
                         </div>
                     </div>
                     <div class="mt-6 flex justify-end space-x-3">
                         <button type="button" onclick="closeModal('examModal')" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">취소</button>
-                        <button type="submit" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">생성하기</button>
+                        <button type="submit" id="examSubmitBtn" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">생성하기</button>
                     </div>
                 </form>
             </div>
@@ -340,7 +341,38 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
         }
 
         function openExamModal() {
+            document.getElementById('examIdInput').value = '';
+            document.getElementById('examModalTitle').textContent = '시험 생성';
+            document.getElementById('examSubmitBtn').textContent = '생성하기';
+            document.getElementById('examForm').reset();
+            document.getElementById('examFormTimeLimit').value = '60';
             document.getElementById('examModal').classList.remove('hidden');
+        }
+        function openEditExam(examId) {
+            const exam = examListCache.find(function(e) { return e.id === parseInt(String(examId), 10); });
+            if (!exam) return;
+            document.getElementById('examIdInput').value = exam.id;
+            document.getElementById('examModalTitle').textContent = '시험 수정';
+            document.getElementById('examSubmitBtn').textContent = '수정하기';
+            document.getElementById('examFormTitle').value = exam.title || '';
+            document.getElementById('examFormType').value = exam.type || 'practice';
+            document.getElementById('examFormTimeLimit').value = exam.time_limit_minutes != null ? exam.time_limit_minutes : 60;
+            document.getElementById('examFormStartTime').value = toDatetimeLocal(exam.start_time);
+            document.getElementById('examFormEndTime').value = toDatetimeLocal(exam.end_time);
+            document.getElementById('examFormDescription').value = exam.description || '';
+            document.getElementById('examModal').classList.remove('hidden');
+        }
+        async function deleteExam(examId) {
+            if (!confirm('이 시험을 삭제할까요? (해당 시험의 모든 문제도 함께 삭제됩니다.)')) return;
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(\`/api/cbt/exams/\${examId}\`, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
+                const json = await res.json();
+                if (json.success) { loadExams(); } else { alert('삭제 실패: ' + (json.error || '알 수 없음')); }
+            } catch (e) {
+                console.error(e);
+                alert('삭제 중 오류가 발생했습니다.');
+            }
         }
 
         async function openQuestionModal() {
@@ -381,6 +413,14 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
 
 
 
+        let examListCache = [];
+        function toDatetimeLocal(val) {
+            if (!val) return '';
+            const d = new Date(val);
+            const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), day = String(d.getDate()).padStart(2, '0');
+            const h = String(d.getHours()).padStart(2, '0'), min = String(d.getMinutes()).padStart(2, '0');
+            return y + '-' + m + '-' + day + 'T' + h + ':' + min;
+        }
         async function loadExams() {
             try {
                 const token = localStorage.getItem('token');
@@ -388,10 +428,10 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
                 const result = await response.json();
-                
+                examListCache = (result.success && Array.isArray(result.data)) ? result.data : [];
                 const tbody = document.getElementById('examListBody');
-                if (result.success && result.data.length > 0) {
-                    tbody.innerHTML = result.data.map(exam => \`
+                if (examListCache.length > 0) {
+                    tbody.innerHTML = examListCache.map(exam => \`
                         <tr class="hover:bg-gray-50">
                             <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">\${exam.title}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">\${getExamTypeName(exam.type)}</td>
@@ -406,8 +446,8 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <button class="text-blue-600 hover:text-blue-900 mr-3">수정</button>
-                                <button class="text-red-600 hover:text-red-900">삭제</button>
+                                <button type="button" onclick="openEditExam(\${exam.id})" class="text-blue-600 hover:text-blue-900 mr-3">수정</button>
+                                <button type="button" onclick="deleteExam(\${exam.id})" class="text-red-600 hover:text-red-900">삭제</button>
                             </td>
                         </tr>
                     \`).join('');
@@ -613,13 +653,18 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
             e.preventDefault();
             const formData = new FormData(e.target);
             const data = Object.fromEntries(formData.entries());
+            const examId = (document.getElementById('examIdInput') || {}).value;
+            const isEdit = examId && String(examId).trim() !== '';
+
             data.course_id = courseId;
-            data.is_active = 1; // 기본 활성화
+            data.is_active = 1;
 
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch('/api/cbt/exams', {
-                    method: 'POST',
+                const url = isEdit ? \`/api/cbt/exams/\${examId}\` : '/api/cbt/exams';
+                const method = isEdit ? 'PUT' : 'POST';
+                const response = await fetch(url, {
+                    method: method,
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': 'Bearer ' + token
@@ -628,8 +673,11 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                 });
                 const result = await response.json();
                 if (result.success) {
-                    alert('시험이 생성되었습니다.');
+                    alert(isEdit ? '시험이 수정되었습니다.' : '시험이 생성되었습니다.');
                     closeModal('examModal');
+                    document.getElementById('examIdInput').value = '';
+                    document.getElementById('examModalTitle').textContent = '시험 생성';
+                    document.getElementById('examSubmitBtn').textContent = '생성하기';
                     loadExams();
                 } else {
                     alert('오류: ' + result.error);

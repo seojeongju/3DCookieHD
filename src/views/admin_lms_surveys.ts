@@ -49,9 +49,6 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
                     <button type="button" id="btnPostLectureSurvey" class="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition flex items-center shadow-sm">
                         <i class="fas fa-clipboard-list mr-2"></i> 강의 후 설문지 생성
                     </button>
-                    <button onclick="openCreateModal('diagnosis')" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center shadow-sm">
-                        <i class="fas fa-chart-radar mr-2"></i> 역량 진단 생성
-                    </button>
                     <button onclick="openCreateModal('survey')" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center shadow-sm">
                         <i class="fas fa-poll mr-2"></i> 일반 설문 생성
                     </button>

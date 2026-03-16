@@ -223,11 +223,11 @@ cbt.get('/questions', authMiddleware, async (c) => {
         const courseIdParam = c.req.query('course_id');
         const type = c.req.query('type');   // multiple_choice | short_answer | essay
 
+        // 기본 컬럼만 사용 (마이그레이션 0086/0087 미적용 DB 호환)
         let sql = `
             SELECT 
                 eq.id, eq.exam_id, eq.question_text, eq.question_type,
                 eq.options, eq.correct_answer, eq.points, eq.order_index,
-                eq.ncs_ability_unit_code, eq.ncs_ability_unit_name, eq.curriculum_id,
                 e.title as exam_title, e.course_id
             FROM exam_questions eq
             JOIN exams e ON eq.exam_id = e.id
