@@ -212,6 +212,11 @@ export const hrdSidebar = (activeMenu: string, options?: HrdSidebarOptions) => {
             <i class="fas fa-university w-6 text-lg ${activeMenu === 'partner-universities' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
             <span class="font-medium text-[14px]">협력대학 관리</span>
         </a>
+        <a data-role="admin-only" href="/admin/education-performance" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'education-performance' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
+             ${activeMenu === 'education-performance' ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
+            <i class="fas fa-chart-line w-6 text-lg ${activeMenu === 'education-performance' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
+            <span class="font-medium text-[14px]">교육실적 관리</span>
+        </a>
         <a data-role="admin-only" href="/admin/jobs" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'jobs' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
              ${activeMenu === 'jobs' ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
             <i class="fas fa-briefcase w-6 text-lg ${activeMenu === 'jobs' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>

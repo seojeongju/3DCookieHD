@@ -38,7 +38,7 @@ export const navigationHtml = (activeMenu = '') => `
 
                     <!-- 센터소개 -->
                     <div class="relative group">
-                        <button class="px-3 py-2 ${['greeting', 'photos', 'facilities', 'locations'].includes(activeMenu) ? 'text-primary-600 font-bold' : 'text-gray-600 font-medium'} hover:text-primary-600 text-sm flex items-center transition-colors">
+                        <button class="px-3 py-2 ${['greeting', 'photos', 'facilities', 'locations', 'education-performance'].includes(activeMenu) ? 'text-primary-600 font-bold' : 'text-gray-600 font-medium'} hover:text-primary-600 text-sm flex items-center transition-colors">
                             센터소개
                             <i class="fas fa-chevron-down ml-1 text-[10px] text-gray-400"></i>
                         </button>
@@ -46,6 +46,7 @@ export const navigationHtml = (activeMenu = '') => `
                             <div class="py-1">
                                 <a href="/greeting" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">인사말</a>
                                 <a href="/education-photos" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">교육사진</a>
+                                <a href="/education-performance" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">교육실적</a>
                                 <!-- 시설안내: 현재 비노출 (필요 시 hidden 제거) -->
                                 <a href="/facilities" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">시설안내</a>
                                 <a href="/locations" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">오시는길</a>
@@ -141,6 +142,7 @@ export const navigationHtml = (activeMenu = '') => `
                 <div class="px-2 py-1 mt-2 text-[11px] font-bold text-gray-400 uppercase tracking-wider">센터소개</div>
                 <a href="/greeting" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">인사말</a>
                 <a href="/education-photos" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">교육사진</a>
+                <a href="/education-performance" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">교육실적</a>
                 <a href="/locations" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">오시는길</a>
                 <div class="px-2 py-1 mt-2 text-[11px] font-bold text-gray-400 uppercase tracking-wider">게시판</div>
                 <a href="/posts?category=notice" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">공지사항</a>

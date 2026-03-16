@@ -36,6 +36,7 @@ import progress from './api/progress';
 import attendance_qr from './api/attendance_qr';
 import upload from './api/upload';
 import partnerUniversities from './api/partner_universities';
+import educationPerformance from './api/education_performance';
 import { setupApi } from './api/setup';
 import analytics from './api/analytics';
 import { adminDashboardHtml } from './views/admin';
@@ -122,6 +123,7 @@ import { adminReviewsListHtml } from './views/admin_reviews';
 import { adminPostsListHtml } from './views/admin_posts';
 import { adminInquiriesHtml } from './views/admin_inquiries';
 import { adminPartnerUniversitiesHtml } from './views/admin_partner_universities';
+import { adminEducationPerformanceHtml } from './views/admin_education_performance';
 // import { adminPortfoliosHtml } from './views/admin_portfolios'; // 게시판 관리에서 통합 관리
 import { portfoliosListHtml } from './views/portfolios';
 import { postsListHtml } from './views/posts';
@@ -132,6 +134,7 @@ import { adminEducationGalleryHtml } from './views/admin_education_gallery';
 import { adminPortfolioGalleryHtml } from './views/admin_portfolio_gallery';
 import { scheduleHtml } from './views/schedule';
 import { locationsHtml } from './views/locations';
+import { educationPerformanceHtml } from './views/education_performance';
 import { coursesListHtml } from './views/courses';
 import { courseSessionsListHtml, courseSessionDetailHtml } from './views/course_sessions_public';
 import { achievementsHtml } from './views/achievements';
@@ -228,6 +231,7 @@ app.route('/api/users', users);
 
 // 협력대학 API (공개 GET + 관리자 CRUD)
 app.route('/api/partner-universities', partnerUniversities);
+app.route('/api/education-performance', educationPerformance);
 
 // HRD 행정 API
 app.route('/api/hrd', hrd);
@@ -305,6 +309,7 @@ app.get('/admin/courses/sessions/:sessionId/timetable/print', (c) => c.html(admi
 app.get('/admin/courses/sessions/:sessionId/syllabus', (c) => c.html(adminSyllabusHtml(c.req.param('sessionId'))));
 app.get('/admin/courses/copy', (c) => c.html(adminCoursesCopyHtml()));
 app.get('/admin/partner-universities', (c) => c.html(adminPartnerUniversitiesHtml));
+app.get('/admin/education-performance', (c) => c.html(adminEducationPerformanceHtml));
 app.get('/admin/users', (c) => c.html(adminUsersHtml())); // 회원관리 - 역할 및 권한 관리
 app.get('/admin/hrd', (c) => c.html(adminHrdHtml()));
 app.get('/admin/personnel', (c) => c.html(adminHrdPersonnelHtml()));
@@ -424,6 +429,7 @@ app.get('/posts', (c) => c.html(postsListHtml));
 app.get('/prototype-gallery', (c) => c.html(prototypeGalleryHtml));
 app.get('/schedule', (c) => c.html(scheduleHtml));
 app.get('/locations', (c) => c.html(locationsHtml({ kakaoMapAppKey: (c.env as any).KAKAO_MAP_APPKEY })));
+app.get('/education-performance', (c) => c.html(educationPerformanceHtml()));
 app.get('/achievements', (c) => c.html(achievementsHtml));
 app.get('/reviews', (c) => c.html(reviewsListHtml));
 
