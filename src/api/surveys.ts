@@ -90,7 +90,8 @@ app.get('/', authMiddleware, async (c) => {
             status: s.status,
             response_count: s.response_count || 0,
             total_target: totalTarget,
-            created_at: s.created_at
+            created_at: s.created_at,
+            subject_name: s.subject_name || null
         }));
 
         return successResponse(c, list);
@@ -548,7 +549,7 @@ app.post('/', authMiddleware, async (c) => {
         const user = c.get('user');
         const { DB } = c.env;
         const body = await c.req.json();
-        const { course_id, session_id, type, title, description, start_date, end_date, status, questions, teacher_id: body_teacher_id } = body;
+        const { course_id, session_id, type, title, description, start_date, end_date, status, questions, teacher_id: body_teacher_id, subject_name: body_subject_name } = body;
 
         if (user.role !== 'admin' && user.role !== 'teacher') {
             return errorResponse(c, '권한이 없습니다', 403);
@@ -570,8 +571,8 @@ app.post('/', authMiddleware, async (c) => {
             : (questions && Array.isArray(questions) ? questions : []);
 
         const result = await DB.prepare(`
-            INSERT INTO surveys (course_id, session_id, type, title, description, start_date, end_date, status, teacher_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO surveys (course_id, session_id, type, title, description, start_date, end_date, status, teacher_id, subject_name)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
             course_id || null,
             session_id || null,
@@ -581,7 +582,8 @@ app.post('/', authMiddleware, async (c) => {
             start_date || null,
             end_date || null,
             status || 'active',
-            teacher_id || null
+            teacher_id || null,
+            type === 'post_lecture' ? (body_subject_name != null ? String(body_subject_name).trim() : null) : null
         ).run();
 
         const surveyId = result.meta.last_row_id;
@@ -619,7 +621,7 @@ app.put('/:id', authMiddleware, async (c) => {
         const { DB } = c.env;
         const id = c.req.param('id');
         const body = await c.req.json();
-        const { course_id, session_id, type, title, description, start_date, end_date, status, questions, teacher_id: body_teacher_id } = body;
+        const { course_id, session_id, type, title, description, start_date, end_date, status, questions, teacher_id: body_teacher_id, subject_name: body_subject_name } = body;
 
         const survey: any = await DB.prepare(`
             SELECT s.*, c.teacher_id as course_teacher_id
@@ -656,6 +658,9 @@ app.put('/:id', authMiddleware, async (c) => {
         }
 
         const updated_description = description !== undefined ? description : survey.description;
+        const updated_subject_name = body_subject_name !== undefined
+            ? (body_subject_name != null ? String(body_subject_name).trim() : null)
+            : survey.subject_name;
 
         await DB.prepare(`
             UPDATE surveys 
@@ -668,6 +673,7 @@ app.put('/:id', authMiddleware, async (c) => {
                 end_date = ?, 
                 status = ?, 
                 teacher_id = ?, 
+                subject_name = ?,
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
         `).bind(
@@ -680,6 +686,7 @@ app.put('/:id', authMiddleware, async (c) => {
             updated_end_date || null,
             updated_status,
             final_teacher_id,
+            updated_subject_name || null,
             parseInt(id, 10)
         ).run();
 
