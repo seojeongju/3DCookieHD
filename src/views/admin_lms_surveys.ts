@@ -150,7 +150,8 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
                 </div>
                 <div>
                     <label class="block text-sm font-bold text-gray-700 mb-1">설명</label>
-                    <textarea id="postLectureDesc" rows="3" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500" placeholder="설문 안내 문구">수고하셨습니다. 오늘 교육 프로그램에 대한 전반적인 부분을 객관적으로 파악하고, 향후 교육의 기초 자료로 활용하고자 설문을 진행합니다. 더 나은 교육을 위해 솔직한 평가 부탁드립니다.</textarea>
+                    <textarea id="postLectureDesc" rows="3" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500" placeholder="설문 안내 문구">수고하셨습니다.
+이 설문지는 오늘 배운 교과목에 대한 전반적인 사항을 객관적으로 파악하고, 이를 토대로 앞으로 교육을 하는데 기초 자료로 활용하고자 하는 것이 목적입니다. 여러분의 솔직하고 진지한 평가가 차후 보다 나은 교육으로 반영될 것입니다.</textarea>
                 </div>
                 <div id="postLectureSubjectListBlock">
                     <label class="block text-sm font-bold text-gray-700 mb-1">해당교과목 선택 <span class="text-amber-600 font-normal">(해당 과정의 교과목 전체 중 설문을 받을 교과목을 선택하세요)</span></label>
@@ -562,7 +563,7 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
                 idEl.value = '';
                 titleEl.textContent = '강의 후 설문지 생성';
                 document.getElementById('postLectureTitle').value = '강의 후 설문지';
-                document.getElementById('postLectureDesc').value = '수고하셨습니다. 오늘 교육 프로그램에 대한 전반적인 부분을 객관적으로 파악하고, 향후 교육의 기초 자료로 활용하고자 설문을 진행합니다. 더 나은 교육을 위해 솔직한 평가 부탁드립니다.';
+                document.getElementById('postLectureDesc').value = '수고하셨습니다.\n이 설문지는 오늘 배운 교과목에 대한 전반적인 사항을 객관적으로 파악하고, 이를 토대로 앞으로 교육을 하는데 기초 자료로 활용하고자 하는 것이 목적입니다. 여러분의 솔직하고 진지한 평가가 차후 보다 나은 교육으로 반영될 것입니다.';
                 var today = new Date();
                 var startDate = today.toISOString().split('T')[0];
                 var endDate = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
