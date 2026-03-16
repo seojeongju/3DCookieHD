@@ -779,7 +779,41 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
                         'Content-Type': 'application/json',
                         'Authorization': 'Bearer ' + token
                     },
-                    b                const subjectName = (cid) => (mgmtSubjects.find((s) => s.id === cid) || {}).name || '';
+                    body: JSON.stringify(payload)
+                });
+                const json = await res.json();
+                if (json && json.success) {
+                    alert('문제가 전역 문제은행에 등록되었습니다. 원하는 회차·시험을 선택한 뒤 \'선택 문제 시험에 추가\'로 편성하세요.');
+                    closeBankQuestionModal();
+                    form.reset();
+                    await loadQuestionBank();
+                } else {
+                    alert('등록 실패: ' + (json && (json.error || json.message) || '알 수 없는 오류'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('등록 중 오류가 발생했습니다.');
+            }
+        }
+
+        async function loadExamQuestions() {
+            const listEl = document.getElementById('examQuestionList');
+            if (!listEl) return;
+            if (!mgmtExamId) {
+                listEl.innerHTML = '<div class=\"text-center py-10 text-gray-400 text-xs\">시험을 선택해 주세요.</div>';
+                return;
+            }
+            try {
+                const res = await fetch(\`/api/cbt/questions?exam_id=\${mgmtExamId}\`, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const json = await res.json();
+                examQuestions = json && json.success && Array.isArray(json.data) ? json.data : (Array.isArray(json) ? json : []);
+                if (!examQuestions.length) {
+                    listEl.innerHTML = '<div class=\"text-center py-10 text-gray-400 text-xs\">아직 편성된 문제가 없습니다. 좌측 문제은행에서 문제를 추가해 보세요.</div>';
+                    return;
+                }
+                const subjectName = (cid) => (mgmtSubjects.find((s) => s.id === cid) || {}).name || '';
                 listEl.innerHTML = examQuestions.map((q, idx) => \`
                     <div class="border border-slate-100 rounded-xl px-3 py-2 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)] flex gap-2 items-start">
                         <div class="flex flex-col gap-0.5 shrink-0">
@@ -789,27 +823,13 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
                         <div class="text-[11px] font-mono text-slate-400 pt-0.5 shrink-0">\${idx + 1}.</div>
                         <div class="flex-1 min-w-0">
                             <div class="flex flex-wrap items-center gap-1 mb-0.5">
-                                <span class="px-1.5 py-0.5 rounded bg-gray-100 text-[10px] font-bold text-gray-600">\${(q.question_type || '').replace('_', ' ')}</span>
-                                \${q.curriculum_id && subjectName(q.curriculum_id) ? \`<span class="px-1.5 py-0.5 rounded bg-violet-50 text-[10px] font-bold text-violet-700">\${\(subjectName(q.curriculum_id) || '').replace(/</g, '&lt;')}\</span>\` : ''}
-                                \${q.ncs_ability_unit_name ? \`<span class="px-1.5 py-0.5 rounded bg-amber-50 text-[10px] font-bold text-amber-700" title="NCS 능력단위">\${q.ncs_ability_unit_name}</span>\` : ''}
+                                <span class="px-1.5 py-0.5 rounded bg-gray-100 text-[10px] font-bold text-gray-600">\${String(q.question_type || '').replace('_', ' ')}</span>
+                                \${q.curriculum_id && subjectName(q.curriculum_id) ? \`<span class="px-1.5 py-0.5 rounded bg-violet-50 text-[10px] font-bold text-violet-700">\${String(subjectName(q.curriculum_id) || '').replace(/</g, '&lt;')}</span>\` : ''}
+                                \${q.ncs_ability_unit_name ? \`<span class="px-1.5 py-0.5 rounded bg-amber-50 text-[10px] font-bold text-amber-700" title="NCS 능력단위">\${String(q.ncs_ability_unit_name || '').replace(/</g, '&lt;')}</span>\` : ''}
                             </div>
                             <div class="text-[11px] text-slate-800 line-clamp-2">\${String(q.question_text || '').replace(/</g, '&lt;')}</div>
                         </div>
                         <button type="button" onclick="removeQuestionFromExam(\${q.id})" class="shrink-0 p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50" title="시험에서 제거"><i class="fas fa-times text-[10px]"></i></button>
-                    </div>
-                \`).join('');��"><i class="fas fa-chevron-up text-[10px]"></i></button>
-                            <button type="button" onclick="moveQuestionDown(${q.id}, ${idx})" ${idx === examQuestions.length - 1 ? 'disabled' : ''} class="p-1 text-gray-400 hover:text-indigo-600 rounded disabled:opacity-30 disabled:cursor-not-allowed" title="아래로"><i class="fas fa-chevron-down text-[10px]"></i></button>
-                        </div>
-                        <div class="text-[11px] font-mono text-slate-400 pt-0.5 shrink-0">${idx + 1}.</div>
-                        <div class="flex-1 min-w-0">
-                            <div class="flex flex-wrap items-center gap-1 mb-0.5">
-                                <span class="px-1.5 py-0.5 rounded bg-gray-100 text-[10px] font-bold text-gray-600">${(q.question_type || '').replace('_', ' ')}</span>
-                                ${q.curriculum_id && subjectName(q.curriculum_id) ? `<span class="px-1.5 py-0.5 rounded bg-violet-50 text-[10px] font-bold text-violet-700">${(subjectName(q.curriculum_id) || '').replace(/</g, '&lt;')}</span>` : ''}
-                                ${q.ncs_ability_unit_name ? `<span class="px-1.5 py-0.5 rounded bg-amber-50 text-[10px] font-bold text-amber-700" title="NCS 능력단위">${q.ncs_ability_unit_name}</span>` : ''}
-                            </div>
-                            <div class="text-[11px] text-slate-800 line-clamp-2">${String(q.question_text || '').replace(/</g, '&lt;')}</div>
-                        </div>
-                        <button type="button" onclick="removeQuestionFromExam(${q.id})" class="shrink-0 p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50" title="시험에서 제거"><i class="fas fa-times text-[10px]"></i></button>
                     </div>
                 \`).join('');
             } catch (e) {
