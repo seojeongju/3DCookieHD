@@ -514,7 +514,10 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
                         <span class="px-3 py-1 rounded-lg bg-slate-50 text-slate-600 text-xs font-black ring-1 ring-slate-200/50 shadow-sm">\${c.avg_score != null ? c.avg_score : 0}점</span>
                     </td>
                     <td class="px-8 py-5 text-right whitespace-nowrap align-top space-x-2">
-                        \${(c.session_id != null) ? '<a href="/admin/courses/' + c.session_id + '/lms/cbt" class="inline-flex items-center px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-700 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm whitespace-nowrap">시험 관리</a><a href="/admin/courses/' + c.session_id + '/lms/cbt?tab=results" class="inline-flex items-center px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-700 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-all shadow-sm whitespace-nowrap">결과</a>' : '<span class="inline-flex items-center px-4 py-2 bg-gray-100 border border-gray-200 rounded-xl text-xs font-medium text-gray-400 cursor-not-allowed whitespace-nowrap">회차 없음</span>'}
+                        \${(c.session_id != null) 
+                            ? \`<a href="/admin/courses/\${c.session_id}/lms/cbt" class="inline-flex items-center px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-700 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm whitespace-nowrap">시험 관리</a>
+                               <a href="/admin/courses/\${c.session_id}/lms/cbt?tab=results" class="inline-flex items-center px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-700 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-all shadow-sm whitespace-nowrap">결과</a>\` 
+                            : \`<span class="inline-flex items-center px-4 py-2 bg-gray-100 border border-gray-200 rounded-xl text-xs font-medium text-gray-400 cursor-not-allowed whitespace-nowrap">회차 없음</span>\`}
                     </td>
                 </tr>
             \`).join('');
@@ -812,21 +815,21 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
                 }
                 const subjectName = (cid) => (mgmtSubjects.find((s) => s.id === cid) || {}).name || '';
                 listEl.innerHTML = examQuestions.map((q, idx) => \`
-                    <div class=\"border border-slate-100 rounded-xl px-3 py-2 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)] flex gap-2 items-start\">
-                        <div class=\"flex flex-col gap-0.5 shrink-0\">
-                            <button type=\"button\" onclick=\"moveQuestionUp(\${q.id}, \${idx})\" \${idx === 0 ? 'disabled' : ''} class=\"p-1 text-gray-400 hover:text-indigo-600 rounded disabled:opacity-30 disabled:cursor-not-allowed\" title=\"위로\"><i class=\"fas fa-chevron-up text-[10px]\"></i></button>
-                            <button type=\"button\" onclick=\"moveQuestionDown(\${q.id}, \${idx})\" \${idx === examQuestions.length - 1 ? 'disabled' : ''} class=\"p-1 text-gray-400 hover:text-indigo-600 rounded disabled:opacity-30 disabled:cursor-not-allowed\" title=\"아래로\"><i class=\"fas fa-chevron-down text-[10px]\"></i></button>
+                    <div class="border border-slate-100 rounded-xl px-3 py-2 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)] flex gap-2 items-start">
+                        <div class="flex flex-col gap-0.5 shrink-0">
+                            <button type="button" onclick="moveQuestionUp(\${q.id}, \${idx})" \${idx === 0 ? 'disabled' : ''} class="p-1 text-gray-400 hover:text-indigo-600 rounded disabled:opacity-30 disabled:cursor-not-allowed" title="위로"><i class="fas fa-chevron-up text-[10px]"></i></button>
+                            <button type="button" onclick="moveQuestionDown(\${q.id}, \${idx})" \${idx === examQuestions.length - 1 ? 'disabled' : ''} class="p-1 text-gray-400 hover:text-indigo-600 rounded disabled:opacity-30 disabled:cursor-not-allowed" title="아래로"><i class="fas fa-chevron-down text-[10px]"></i></button>
                         </div>
-                        <div class=\"text-[11px] font-mono text-slate-400 pt-0.5 shrink-0\">\${idx + 1}.</div>
-                        <div class=\"flex-1 min-w-0\">
-                            <div class=\"flex flex-wrap items-center gap-1 mb-0.5\">
-                                <span class=\"px-1.5 py-0.5 rounded bg-gray-100 text-[10px] font-bold text-gray-600\">\${(q.question_type || '').replace('_', ' ')}</span>
-                                \${q.curriculum_id && subjectName(q.curriculum_id) ? '<span class=\"px-1.5 py-0.5 rounded bg-violet-50 text-[10px] font-bold text-violet-700\">' + (subjectName(q.curriculum_id) || '').replace(/</g, '&lt;') + '</span>' : ''}
-                                \${q.ncs_ability_unit_name ? \`<span class=\"px-1.5 py-0.5 rounded bg-amber-50 text-[10px] font-bold text-amber-700\" title=\"NCS 능력단위\">\${q.ncs_ability_unit_name}</span>\` : ''}
+                        <div class="text-[11px] font-mono text-slate-400 pt-0.5 shrink-0">\${idx + 1}.</div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex flex-wrap items-center gap-1 mb-0.5">
+                                <span class="px-1.5 py-0.5 rounded bg-gray-100 text-[10px] font-bold text-gray-600">\${(q.question_type || '').replace('_', ' ')}</span>
+                                \${q.curriculum_id && subjectName(q.curriculum_id) ? \`<span class="px-1.5 py-0.5 rounded bg-violet-50 text-[10px] font-bold text-violet-700">\${(subjectName(q.curriculum_id) || '').replace(/</g, '&lt;')}</span>\` : ''}
+                                \${q.ncs_ability_unit_name ? \`<span class="px-1.5 py-0.5 rounded bg-amber-50 text-[10px] font-bold text-amber-700" title="NCS 능력단위">\${q.ncs_ability_unit_name}</span>\` : ''}
                             </div>
-                            <div class=\"text-[11px] text-slate-800 line-clamp-2\">\${q.question_text}</div>
+                            <div class="text-[11px] text-slate-800 line-clamp-2">\${String(q.question_text || '').replace(/</g, '&lt;')}</div>
                         </div>
-                        <button type=\"button\" onclick=\"removeQuestionFromExam(\${q.id})\" class=\"shrink-0 p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50\" title=\"시험에서 제거\"><i class=\"fas fa-times text-[10px]\"></i></button>
+                        <button type="button" onclick="removeQuestionFromExam(\${q.id})" class="shrink-0 p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50" title="시험에서 제거"><i class="fas fa-times text-[10px]"></i></button>
                     </div>
                 \`).join('');
             } catch (e) {

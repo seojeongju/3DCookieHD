@@ -117,8 +117,8 @@ export const adminExamsHtml = (sidebar = hrdSidebar('exams')) => `
                             </span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <button onclick="location.href='/admin/exams/' + \${exam.id} + '/results'" class="text-green-600 hover:text-green-900 mr-3" title="응시 현황 및 채점"><i class="fas fa-chart-bar"></i></button>
-                            <button onclick="location.href='/admin/exams/' + \${exam.id} + '/edit'" class="text-blue-600 hover:text-blue-900"><i class="fas fa-edit"></i></button>
+                            <button onclick="location.href='/admin/exams/\${exam.id}/results'" class="text-green-600 hover:text-green-900 mr-3" title="응시 현황 및 채점"><i class="fas fa-chart-bar"></i></button>
+                            <button onclick="location.href='/admin/exams/\${exam.id}/edit'" class="text-blue-600 hover:text-blue-900"><i class="fas fa-edit"></i></button>
                             <button onclick="deleteExam(\${exam.id})" class="text-red-600 hover:text-red-900 ml-3"><i class="fas fa-trash"></i></button>
                         </td>
                     </tr>

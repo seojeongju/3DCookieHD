@@ -423,15 +423,23 @@ cbt.post('/bank-questions', authMiddleware, async (c) => {
             : (typeof options === 'string' ? options : null);
 
         await c.env.DB.prepare(`
-            INSERT INTO question_bank (question_text, question_type, options, correct_answer, difficulty, category, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            INSERT INTO question_bank (
+                question_text, question_type, options, correct_answer, 
+                difficulty, category, points, ncs_ability_unit_code, 
+                ncs_ability_unit_name, curriculum_id, created_at, updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         `).bind(
             question_text,
             question_type,
             optionsStr,
             correct_answer ?? null,
             difficulty ?? null,
-            category ?? null
+            category ?? null,
+            points,
+            ncs_ability_unit_code ?? null,
+            ncs_ability_unit_name ?? null,
+            curriculum_id ?? null
         ).run();
 
         const row: any = await c.env.DB.prepare('SELECT id FROM question_bank ORDER BY id DESC LIMIT 1').first();
@@ -499,13 +507,23 @@ cbt.post('/questions', authMiddleware, async (c) => {
 
         // 1) 전역 문제은행(question_bank)에 먼저 등록 → LMS에서 만든 문제도 문제은행에 자동 반영
         await c.env.DB.prepare(`
-            INSERT INTO question_bank (question_text, question_type, options, correct_answer, difficulty, category, created_at, updated_at)
-            VALUES (?, ?, ?, ?, NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            INSERT INTO question_bank (
+                question_text, question_type, options, correct_answer, 
+                difficulty, category, points, ncs_ability_unit_code, 
+                ncs_ability_unit_name, curriculum_id, created_at, updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         `).bind(
             question_text,
             question_type || 'multiple_choice',
             optionsStr,
-            correct_answer || null
+            correct_answer || null,
+            null, // difficulty
+            null, // category
+            points,
+            ncs_ability_unit_code || null,
+            ncs_ability_unit_name || null,
+            curriculum_id || null
         ).run();
 
         const bankRow: any = await c.env.DB.prepare('SELECT id FROM question_bank ORDER BY id DESC LIMIT 1').first();
@@ -643,7 +661,8 @@ cbt.post('/exams/:id/import-questions', authMiddleware, async (c) => {
         if (questionBankIds.length > 0) {
             for (const bankId of questionBankIds) {
                 const row: any = await c.env.DB.prepare(
-                    `SELECT id, question_text, question_type, options, correct_answer FROM question_bank WHERE id = ?`
+                    `SELECT id, question_text, question_type, options, correct_answer, points, ncs_ability_unit_code, ncs_ability_unit_name, curriculum_id 
+                     FROM question_bank WHERE id = ?`
                 ).bind(bankId).first();
 
                 if (!row) continue;
@@ -660,11 +679,11 @@ cbt.post('/exams/:id/import-questions', authMiddleware, async (c) => {
                     row.question_type,
                     row.options ?? null,
                     row.correct_answer ?? null,
-                    1,
+                    row.points ?? 1,
                     nextOrder++,
-                    null,
-                    null,
-                    body.target_curriculum_id ?? null,
+                    row.ncs_ability_unit_code || null,
+                    row.ncs_ability_unit_name || null,
+                    body.target_curriculum_id ?? row.curriculum_id ?? null,
                     targetCourseId,
                     targetExamId
                 ).run();
