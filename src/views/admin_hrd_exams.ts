@@ -783,7 +783,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
                 });
                 const json = await res.json();
                 if (json && json.success) {
-                    alert('문제가 전역 문제은행에 등록되었습니다. 원하는 회차·시험을 선택한 뒤 \'선택 문제 시험에 추가\'로 편성하세요.');
+                    alert('문제가 전역 문제은행에 등록되었습니다. 원하는 회차·시험을 선택한 뒤 "선택 문제 시험에 추가"로 편성하세요.');
                     closeBankQuestionModal();
                     form.reset();
                     await loadQuestionBank();
@@ -824,8 +824,16 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
                         <div class="flex-1 min-w-0">
                             <div class="flex flex-wrap items-center gap-1 mb-0.5">
                                 <span class="px-1.5 py-0.5 rounded bg-gray-100 text-[10px] font-bold text-gray-600">\${String(q.question_type || '').replace('_', ' ')}</span>
-                                \${q.curriculum_id && subjectName(q.curriculum_id) ? \`<span class="px-1.5 py-0.5 rounded bg-violet-50 text-[10px] font-bold text-violet-700">\${String(subjectName(q.curriculum_id) || '').replace(/</g, '&lt;')}</span>\` : ''}
-                                \${q.ncs_ability_unit_name ? \`<span class="px-1.5 py-0.5 rounded bg-amber-50 text-[10px] font-bold text-amber-700" title="NCS 능력단위">\${String(q.ncs_ability_unit_name || '').replace(/</g, '&lt;')}</span>\` : ''}
+                                \${q.curriculum_id && subjectName(q.curriculum_id)
+                                    ? '<span class="px-1.5 py-0.5 rounded bg-violet-50 text-[10px] font-bold text-violet-700">' +
+                                      String(subjectName(q.curriculum_id) || '').replace(/</g, '&lt;') +
+                                      '</span>'
+                                    : ''}
+                                \${q.ncs_ability_unit_name
+                                    ? '<span class="px-1.5 py-0.5 rounded bg-amber-50 text-[10px] font-bold text-amber-700" title="NCS 능력단위">' +
+                                      String(q.ncs_ability_unit_name || '').replace(/</g, '&lt;') +
+                                      '</span>'
+                                    : ''}
                             </div>
                             <div class="text-[11px] text-slate-800 line-clamp-2">\${String(q.question_text || '').replace(/</g, '&lt;')}</div>
                         </div>
