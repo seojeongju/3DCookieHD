@@ -155,8 +155,127 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
                             <div class="order-1 sm:order-2 flex items-center p-1.5 bg-white rounded-2xl border border-gray-100 shadow-sm" id="paginationControls"></div>
                         </div>
                     </div>
+
+                    <!-- 시험/문제 구성 관리 -->
+                    <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div class="px-8 py-6 border-b border-gray-50 bg-white/60 backdrop-blur-md">
+                            <div class="flex flex-wrap justify-between items-center gap-4">
+                                <div>
+                                    <h3 class="font-black text-gray-800 text-lg uppercase tracking-tight">시험·문제 구성</h3>
+                                    <p class="text-xs text-gray-500 mt-1">회차와 시험을 선택한 뒤, 좌측 문제은행에서 문제를 가져와 우측 시험에 편성할 수 있습니다.</p>
+                                </div>
+                                <div class="flex flex-wrap gap-3 items-center">
+                                    <select id="mgmtSessionSelect" class="bg-gray-50 border border-gray-200 text-xs font-bold text-gray-600 rounded-xl px-3 py-2 min-w-[180px]" onchange="onMgmtSessionChange()">
+                                        <option value="">회차 선택</option>
+                                    </select>
+                                    <select id="mgmtExamSelect" class="bg-gray-50 border border-gray-200 text-xs font-bold text-gray-600 rounded-xl px-3 py-2 min-w-[180px]" onchange="onMgmtExamChange()">
+                                        <option value="">시험 선택</option>
+                                    </select>
+                                    <button type="button" id="mgmtAddExamBtn" class="hidden inline-flex items-center px-3 py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 transition" onclick="openAddExamModal()">시험 추가</button>
+                                    <a id="mgmtCbtLink" href="#" class="hidden text-xs font-bold text-indigo-600 hover:text-indigo-800 px-3 py-2 rounded-xl hover:bg-indigo-50 transition">이 회차에서 문제 등록</a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="px-8 py-6 bg-gray-50/60">
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <!-- 문제은행 -->
+                                <div class="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-4 flex flex-col">
+                                    <div class="flex justify-between items-center mb-3">
+                                        <div>
+                                            <div class="text-xs font-black text-slate-500 uppercase tracking-widest">문제은행</div>
+                                            <div class="text-[11px] text-slate-400 mt-0.5">선택한 회차의 모든 시험·사전평가에서 생성된 문제 목록입니다.</div>
+                                        </div>
+                                        <div class="flex items-center gap-2 flex-wrap">
+                                            <select id="bankCurriculumFilter" class="border border-gray-200 rounded-xl text-[11px] px-2.5 py-1.5 text-gray-600 min-w-[120px]" onchange="loadQuestionBank()">
+                                                <option value="">전체 과목</option>
+                                            </select>
+                                            <select id="bankTypeFilter" class="border border-gray-200 rounded-xl text-[11px] px-2.5 py-1.5 text-gray-600" onchange="loadQuestionBank()">
+                                                <option value="">전체 유형</option>
+                                                <option value="multiple_choice">객관식</option>
+                                                <option value="short_answer">단답형</option>
+                                                <option value="essay">서술형</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center bg-gray-50 rounded-xl px-3 py-2 border border-gray-200 mb-3">
+                                        <i class="fas fa-search text-gray-400 mr-2 text-xs"></i>
+                                        <input id="bankKeywordInput" type="text" placeholder="문제 내용 검색" class="bg-transparent border-none outline-none text-xs w-full" onkeydown="if(event.key==='Enter'){loadQuestionBank();}">
+                                    </div>
+                                    <div id="bankList" class="flex-1 min-h-[160px] max-h-80 overflow-y-auto custom-scrollbar text-xs text-slate-600 space-y-2">
+                                        <div class="text-center py-10 text-gray-400 text-xs">회차와 시험을 먼저 선택해 주세요.</div>
+                                    </div>
+                                    <div class="mt-3 flex justify-between items-center">
+                                        <div class="text-[11px] text-slate-400" id="bankCountLabel"></div>
+                                        <button type="button" onclick="importSelectedQuestions()" class="inline-flex items-center px-3 py-1.5 rounded-xl bg-indigo-600 text-white text-[11px] font-bold hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed" id="importBtn" disabled>
+                                            선택 문제 시험에 추가
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- 선택 시험의 문제 구성 -->
+                                <div class="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-4 flex flex-col">
+                                    <div class="flex justify-between items-center mb-3">
+                                        <div>
+                                            <div class="text-xs font-black text-slate-500 uppercase tracking-widest">선택된 시험의 문제 목록</div>
+                                            <div class="text-[11px] text-slate-400 mt-0.5" id="examInfoLabel">시험을 선택하면 이 영역에 문제가 표시됩니다.</div>
+                                        </div>
+                                    </div>
+                                    <div id="examQuestionList" class="flex-1 min-h-[160px] max-h-80 overflow-y-auto custom-scrollbar text-xs text-slate-600 space-y-2">
+                                        <div class="text-center py-10 text-gray-400 text-xs">시험을 선택해 주세요.</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </main>
+        </div>
+    </div>
+
+    <!-- 시험 추가 모달 -->
+    <div id="addExamModal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md border border-slate-200/60">
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                <h3 class="font-black text-gray-800 text-lg">시험 추가</h3>
+                <button type="button" onclick="closeAddExamModal()" class="p-2 text-gray-400 hover:text-gray-600 rounded-lg"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="addExamForm" onsubmit="handleCreateExam(event)" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-1">시험명</label>
+                    <input type="text" name="title" required class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500" placeholder="예: 사전평가">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-1">시험 유형</label>
+                    <select name="type" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20">
+                        <option value="practice">연습문제</option>
+                        <option value="mock">모의고사</option>
+                        <option value="midterm">중간평가</option>
+                        <option value="final">기말평가</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-1">제한 시간 (분)</label>
+                    <input type="number" name="time_limit_minutes" value="60" min="1" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 mb-1">시작 일시</label>
+                        <input type="datetime-local" name="start_time" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 mb-1">종료 일시</label>
+                        <input type="datetime-local" name="end_time" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-1">설명 (선택)</label>
+                    <textarea name="description" rows="2" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20" placeholder="시험 안내 등"></textarea>
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeAddExamModal()" class="px-4 py-2 rounded-xl border border-gray-200 text-gray-600 text-sm font-bold hover:bg-gray-50">취소</button>
+                    <button type="submit" class="px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700">생성</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -181,6 +300,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
                     allData = result.data || [];
                     updateStats(allData);
                     applyFilters();
+                    initExamMgmtSelectors();
                 }
             } catch (e) {
                 console.error(e);
@@ -320,8 +440,8 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
                     <td class="px-6 py-5 text-center whitespace-nowrap align-top">
                         <span class="px-3 py-1 rounded-lg bg-slate-50 text-slate-600 text-xs font-black ring-1 ring-slate-200/50 shadow-sm">\${c.avg_score != null ? c.avg_score : 0}점</span>
                     </td>
-                    <td class="px-8 py-5 text-right whitespace-nowrap align-top">
-                        \${(c.session_id != null) ? '<a href="/admin/courses/' + c.session_id + '/lms/cbt" class="inline-flex items-center px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-700 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm hover:shadow-md active:scale-95 transform whitespace-nowrap">시험 관리 <i class="fas fa-arrow-right ml-2 text-[9px] opacity-50 group-hover:opacity-100"></i></a>' : '<span class="inline-flex items-center px-4 py-2 bg-gray-100 border border-gray-200 rounded-xl text-xs font-medium text-gray-400 cursor-not-allowed whitespace-nowrap">회차 없음</span>'}
+                    <td class="px-8 py-5 text-right whitespace-nowrap align-top space-x-2">
+                        \${(c.session_id != null) ? '<a href="/admin/courses/' + c.session_id + '/lms/cbt" class="inline-flex items-center px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-700 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm whitespace-nowrap">시험 관리</a><a href="/admin/courses/' + c.session_id + '/lms/cbt?tab=results" class="inline-flex items-center px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-700 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-all shadow-sm whitespace-nowrap">결과</a>' : '<span class="inline-flex items-center px-4 py-2 bg-gray-100 border border-gray-200 rounded-xl text-xs font-medium text-gray-400 cursor-not-allowed whitespace-nowrap">회차 없음</span>'}
                     </td>
                 </tr>
             \`).join('');
@@ -336,6 +456,357 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
                 html += \`<button onclick="goToPage(\${Math.min(totalPages, currentPage + 1)})" \${currentPage === totalPages ? 'disabled' : ''} class="w-10 h-10 flex items-center justify-center rounded-xl \${currentPage === totalPages ? 'text-gray-200 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50 hover:text-indigo-600'}"><i class="fas fa-chevron-right text-[11px]"></i></button>\`;
                 controlsEl.innerHTML = html;
             } else if (controlsEl) controlsEl.innerHTML = '';
+        }
+
+        // ============================
+        // 시험/문제 구성 관리 영역
+        // ============================
+
+        let mgmtSessionId = '';
+        let mgmtExamId = '';
+        let bankQuestions = [];
+        let examQuestions = [];
+        let mgmtSubjects = [];
+
+        function initExamMgmtSelectors() {
+            const select = document.getElementById('mgmtSessionSelect');
+            if (!select) return;
+            const uniqueSessions = [];
+            const seen = new Set();
+            (allData || []).forEach(c => {
+                const sid = c.session_id;
+                if (sid != null && !seen.has(sid)) {
+                    seen.add(sid);
+                    uniqueSessions.push({ id: sid, title: c.title || \`회차 \${sid}\` });
+                }
+            });
+            if (uniqueSessions.length === 0) {
+                select.innerHTML = '<option value=\"\">회차 없음</option>';
+                return;
+            }
+            select.innerHTML = '<option value=\"\">회차 선택</option>' + uniqueSessions.map(s =>
+                \`<option value=\"\${s.id}\">\${s.title} (ID: \${s.id})</option>\`
+            ).join('');
+        }
+
+        async function onMgmtSessionChange() {
+            const select = document.getElementById('mgmtSessionSelect') as HTMLSelectElement | null;
+            mgmtSessionId = select?.value || '';
+            const examSelect = document.getElementById('mgmtExamSelect');
+            mgmtExamId = '';
+            const cbtLink = document.getElementById('mgmtCbtLink') as HTMLAnchorElement | null;
+            const addExamBtn = document.getElementById('mgmtAddExamBtn');
+            if (cbtLink) {
+                if (mgmtSessionId) {
+                    cbtLink.href = '/admin/courses/' + mgmtSessionId + '/lms/cbt';
+                    cbtLink.classList.remove('hidden');
+                } else {
+                    cbtLink.href = '#';
+                    cbtLink.classList.add('hidden');
+                }
+            }
+            if (addExamBtn) {
+                if (mgmtSessionId) addExamBtn.classList.remove('hidden');
+                else addExamBtn.classList.add('hidden');
+            }
+            if (!mgmtSessionId) {
+                mgmtSubjects = [];
+                const curSel = document.getElementById('bankCurriculumFilter');
+                if (curSel) curSel.innerHTML = '<option value=\"\">전체 과목</option>';
+                if (examSelect) examSelect.innerHTML = '<option value=\"\">시험 선택</option>';
+                document.getElementById('bankList')!.innerHTML = '<div class=\"text-center py-10 text-gray-400 text-xs\">회차를 선택해 주세요.</div>';
+                document.getElementById('examQuestionList')!.innerHTML = '<div class=\"text-center py-10 text-gray-400 text-xs\">시험을 선택해 주세요.</div>';
+                (document.getElementById('importBtn') as HTMLButtonElement | null)?.setAttribute('disabled', 'true');
+                return;
+            }
+            try {
+                const subRes = await fetch('/api/ncs/approved/syllabus/session/' + mgmtSessionId + '/subjects', { headers: { 'Authorization': 'Bearer ' + token } });
+                const subJson = await subRes.json();
+                mgmtSubjects = (subJson?.data?.subjects || []).map((s) => ({ id: s.id, name: s.name || ('과목 ' + s.id) }));
+                const curSel = document.getElementById('bankCurriculumFilter');
+                if (curSel) curSel.innerHTML = '<option value=\"\">전체 과목</option>' + mgmtSubjects.map((s) => '<option value=\"' + s.id + '\">' + (s.name || '').replace(/"/g, '&quot;') + '</option>').join('');
+            } catch (_) { mgmtSubjects = []; }
+            await loadMgmtExams();
+            await loadQuestionBank();
+        }
+
+        async function loadMgmtExams() {
+            const examSelect = document.getElementById('mgmtExamSelect');
+            if (!examSelect || !mgmtSessionId) return;
+            try {
+                const res = await fetch(\`/api/cbt/exams?course_id=\${mgmtSessionId}\`, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const json = await res.json();
+                const exams = json && json.success && Array.isArray(json.data) ? json.data : (Array.isArray(json) ? json : []);
+                if (!exams.length) {
+                    examSelect.innerHTML = '<option value=\"\">시험 없음</option>';
+                    document.getElementById('examQuestionList')!.innerHTML = '<div class=\"text-center py-10 text-gray-400 text-xs\">선택된 회차에 등록된 시험이 없습니다.</div>';
+                    return;
+                }
+                examSelect.innerHTML = '<option value=\"\">시험 선택</option>' + exams.map((e: any) =>
+                    \`<option value=\"\${e.id}\">\${e.title}</option>\`
+                ).join('');
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function onMgmtExamChange() {
+            const select = document.getElementById('mgmtExamSelect') as HTMLSelectElement | null;
+            mgmtExamId = select?.value || '';
+            await loadExamQuestions();
+            const label = document.getElementById('examInfoLabel');
+            if (label) {
+                label.textContent = mgmtExamId
+                    ? \`시험 ID \${mgmtExamId}에 편성된 문제 목록입니다.\`
+                    : '시험을 선택하면 이 영역에 문제가 표시됩니다.';
+            }
+        }
+
+        async function loadQuestionBank() {
+            const listEl = document.getElementById('bankList');
+            const countEl = document.getElementById('bankCountLabel');
+            const importBtn = document.getElementById('importBtn') as HTMLButtonElement | null;
+            if (!listEl) return;
+            if (!mgmtSessionId) {
+                listEl.innerHTML = '<div class=\"text-center py-10 text-gray-400 text-xs\">회차를 먼저 선택해 주세요.</div>';
+                if (countEl) countEl.textContent = '';
+                if (importBtn) importBtn.disabled = true;
+                return;
+            }
+            const typeVal = (document.getElementById('bankTypeFilter') as HTMLSelectElement | null)?.value || '';
+            const curriculumVal = (document.getElementById('bankCurriculumFilter') as HTMLSelectElement | null)?.value || '';
+            const keyword = (document.getElementById('bankKeywordInput') as HTMLInputElement | null)?.value || '';
+            try {
+                const params = new URLSearchParams();
+                params.set('course_id', mgmtSessionId);
+                if (curriculumVal) params.set('curriculum_id', curriculumVal);
+                if (typeVal) params.set('type', typeVal);
+                if (keyword) params.set('keyword', keyword);
+                const res = await fetch(\`/api/cbt/question-bank?\${params.toString()}\`, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const json = await res.json();
+                bankQuestions = json && json.success && Array.isArray(json.data) ? json.data : (Array.isArray(json) ? json : []);
+                if (!bankQuestions.length) {
+                    listEl.innerHTML = '<div class=\"text-center py-10 text-gray-400 text-xs\">조건에 맞는 문제가 없습니다.</div>';
+                    if (countEl) countEl.textContent = '';
+                    if (importBtn) importBtn.disabled = true;
+                    return;
+                }
+                const subjectName = (cid) => (mgmtSubjects.find((s) => s.id === cid) || {}).name || '';
+                listEl.innerHTML = bankQuestions.map((q: any, idx: number) => \`
+                    <label class=\"flex items-start gap-2 px-2 py-1.5 rounded-lg hover:bg-indigo-50/60 cursor-pointer\">
+                        <input type=\"checkbox\" class=\"mt-0.5 bank-question-checkbox\" value=\"\${q.id}\">
+                        <div class=\"flex-1 min-w-0\">
+                            <div class=\"flex flex-wrap items-center gap-1 mb-0.5\">
+                                <span class=\"px-1.5 py-0.5 rounded bg-slate-100 text-[10px] font-bold text-slate-600 uppercase\">#\${q.id}</span>
+                                <span class=\"px-1.5 py-0.5 rounded bg-gray-100 text-[10px] font-bold text-gray-600\">\${(q.question_type || '').replace('_', ' ')}</span>
+                                \${q.curriculum_id && subjectName(q.curriculum_id) ? '<span class=\"px-1.5 py-0.5 rounded bg-violet-50 text-[10px] font-bold text-violet-700\">' + (subjectName(q.curriculum_id) || '').replace(/</g, '&lt;') + '</span>' : ''}
+                                \${q.ncs_ability_unit_name ? \`<span class=\"px-1.5 py-0.5 rounded bg-amber-50 text-[10px] font-bold text-amber-700\" title=\"NCS 능력단위\">\${q.ncs_ability_unit_name}</span>\` : ''}
+                            </div>
+                            <div class=\"text-[11px] text-slate-700 line-clamp-2\">\${q.question_text}</div>
+                            <div class=\"text-[10px] text-slate-400 mt-0.5\">
+                                \${(q.course_title || '') && (q.exam_title || '') ? \`\${q.course_title} · \${q.exam_title}\` : (q.exam_title || '')}
+                            </div>
+                        </div>
+                    </label>
+                \`).join('');
+                if (countEl) countEl.textContent = \`총 \${bankQuestions.length}문항\`;
+                if (importBtn) importBtn.disabled = !mgmtExamId;
+            } catch (e) {
+                console.error(e);
+                listEl.innerHTML = '<div class=\"text-center py-10 text-red-400 text-xs\">문제은행을 불러오지 못했습니다.</div>';
+                if (countEl) countEl.textContent = '';
+                if (importBtn) importBtn.disabled = true;
+            }
+        }
+
+        async function loadExamQuestions() {
+            const listEl = document.getElementById('examQuestionList');
+            if (!listEl) return;
+            if (!mgmtExamId) {
+                listEl.innerHTML = '<div class=\"text-center py-10 text-gray-400 text-xs\">시험을 선택해 주세요.</div>';
+                return;
+            }
+            try {
+                const res = await fetch(\`/api/cbt/questions?exam_id=\${mgmtExamId}\`, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const json = await res.json();
+                examQuestions = json && json.success && Array.isArray(json.data) ? json.data : (Array.isArray(json) ? json : []);
+                if (!examQuestions.length) {
+                    listEl.innerHTML = '<div class=\"text-center py-10 text-gray-400 text-xs\">아직 편성된 문제가 없습니다. 좌측 문제은행에서 문제를 추가해 보세요.</div>';
+                    return;
+                }
+                const subjectName = (cid) => (mgmtSubjects.find((s) => s.id === cid) || {}).name || '';
+                listEl.innerHTML = examQuestions.map((q: any, idx: number) => \`
+                    <div class=\"border border-slate-100 rounded-xl px-3 py-2 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)] flex gap-2 items-start\">
+                        <div class=\"flex flex-col gap-0.5 shrink-0\">
+                            <button type=\"button\" onclick=\"moveQuestionUp(\${q.id}, \${idx})\" \${idx === 0 ? 'disabled' : ''} class=\"p-1 text-gray-400 hover:text-indigo-600 rounded disabled:opacity-30 disabled:cursor-not-allowed\" title=\"위로\"><i class=\"fas fa-chevron-up text-[10px]\"></i></button>
+                            <button type=\"button\" onclick=\"moveQuestionDown(\${q.id}, \${idx})\" \${idx === examQuestions.length - 1 ? 'disabled' : ''} class=\"p-1 text-gray-400 hover:text-indigo-600 rounded disabled:opacity-30 disabled:cursor-not-allowed\" title=\"아래로\"><i class=\"fas fa-chevron-down text-[10px]\"></i></button>
+                        </div>
+                        <div class=\"text-[11px] font-mono text-slate-400 pt-0.5 shrink-0\">\${idx + 1}.</div>
+                        <div class=\"flex-1 min-w-0\">
+                            <div class=\"flex flex-wrap items-center gap-1 mb-0.5\">
+                                <span class=\"px-1.5 py-0.5 rounded bg-gray-100 text-[10px] font-bold text-gray-600\">\${(q.question_type || '').replace('_', ' ')}</span>
+                                \${q.curriculum_id && subjectName(q.curriculum_id) ? '<span class=\"px-1.5 py-0.5 rounded bg-violet-50 text-[10px] font-bold text-violet-700\">' + (subjectName(q.curriculum_id) || '').replace(/</g, '&lt;') + '</span>' : ''}
+                                \${q.ncs_ability_unit_name ? \`<span class=\"px-1.5 py-0.5 rounded bg-amber-50 text-[10px] font-bold text-amber-700\" title=\"NCS 능력단위\">\${q.ncs_ability_unit_name}</span>\` : ''}
+                            </div>
+                            <div class=\"text-[11px] text-slate-800 line-clamp-2\">\${q.question_text}</div>
+                        </div>
+                        <button type=\"button\" onclick=\"removeQuestionFromExam(\${q.id})\" class=\"shrink-0 p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50\" title=\"시험에서 제거\"><i class=\"fas fa-times text-[10px]\"></i></button>
+                    </div>
+                \`).join('');
+            } catch (e) {
+                console.error(e);
+                listEl.innerHTML = '<div class=\"text-center py-10 text-red-400 text-xs\">시험 문제를 불러오지 못했습니다.</div>';
+            }
+        }
+
+        async function importSelectedQuestions() {
+            if (!mgmtExamId) {
+                alert('먼저 시험을 선택해 주세요.');
+                return;
+            }
+            const checkboxes = Array.from(document.querySelectorAll('.bank-question-checkbox')) as HTMLInputElement[];
+            const selectedIds = checkboxes.filter(cb => cb.checked).map(cb => parseInt(cb.value, 10)).filter(v => !Number.isNaN(v));
+            if (!selectedIds.length) {
+                alert('가져올 문제를 선택해 주세요.');
+                return;
+            }
+            try {
+                const res = await fetch(\`/api/cbt/exams/\${mgmtExamId}/import-questions\`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({ question_ids: selectedIds })
+                });
+                const json = await res.json();
+                if (json && json.success) {
+                    alert('선택한 문제가 시험에 추가되었습니다.');
+                    checkboxes.forEach(cb => { cb.checked = false; });
+                    await loadExamQuestions();
+                } else {
+                    alert('문제 추가 실패: ' + (json.error || '알 수 없는 오류'));
+                }
+            } catch (e) {
+                console.error(e);
+                alert('문제 추가 중 오류가 발생했습니다.');
+            }
+        }
+
+        async function moveQuestionUp(questionId, index) {
+            if (index <= 0 || !examQuestions.length) return;
+            const curr = examQuestions[index];
+            const prev = examQuestions[index - 1];
+            if (!curr || !prev) return;
+            try {
+                await fetch(\`/api/cbt/questions/\${questionId}\`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ order_index: prev.order_index }) });
+                await fetch(\`/api/cbt/questions/\${prev.id}\`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ order_index: curr.order_index }) });
+                await loadExamQuestions();
+            } catch (e) { console.error(e); alert('순서 변경 중 오류가 발생했습니다.'); }
+        }
+        async function moveQuestionDown(questionId, index) {
+            if (index >= examQuestions.length - 1 || !examQuestions.length) return;
+            const curr = examQuestions[index];
+            const next = examQuestions[index + 1];
+            if (!curr || !next) return;
+            try {
+                await fetch(\`/api/cbt/questions/\${questionId}\`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ order_index: next.order_index }) });
+                await fetch(\`/api/cbt/questions/\${next.id}\`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ order_index: curr.order_index }) });
+                await loadExamQuestions();
+            } catch (e) { console.error(e); alert('순서 변경 중 오류가 발생했습니다.'); }
+        }
+        async function removeQuestionFromExam(questionId) {
+            if (!confirm('이 문제를 시험에서 제거할까요? (문제 자체는 삭제되지 않고, 이 시험에서만 빠집니다.)')) return;
+            try {
+                const res = await fetch(\`/api/cbt/questions/\${questionId}\`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const json = await res.json();
+                if (json && json.success) {
+                    await loadExamQuestions();
+                } else {
+                    alert('제거 실패: ' + (json.error || '알 수 없는 오류'));
+                }
+            } catch (e) {
+                console.error(e);
+                alert('제거 중 오류가 발생했습니다.');
+            }
+        }
+
+        function openAddExamModal() {
+            if (!mgmtSessionId) {
+                alert('먼저 회차를 선택해 주세요.');
+                return;
+            }
+            document.getElementById('addExamModal')?.classList.remove('hidden');
+        }
+        function closeAddExamModal() {
+            document.getElementById('addExamModal')?.classList.add('hidden');
+        }
+        async function handleCreateExam(e) {
+            e.preventDefault();
+            const form = e.target as HTMLFormElement;
+            const fd = new FormData(form);
+            const title = fd.get('title') as string;
+            const type = fd.get('type') as string;
+            const time_limit_minutes = parseInt(String(fd.get('time_limit_minutes')), 10) || 60;
+            const start_time = (fd.get('start_time') as string) || null;
+            const end_time = (fd.get('end_time') as string) || null;
+            const description = (fd.get('description') as string) || null;
+            if (!title?.trim()) {
+                alert('시험명을 입력해 주세요.');
+                return;
+            }
+            if (!mgmtSessionId) {
+                alert('회차가 선택되지 않았습니다.');
+                return;
+            }
+            try {
+                const res = await fetch('/api/cbt/exams', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({
+                        course_id: mgmtSessionId,
+                        title: title.trim(),
+                        type: type || 'practice',
+                        time_limit_minutes,
+                        start_time,
+                        end_time,
+                        description,
+                        is_active: 1
+                    })
+                });
+                const json = await res.json();
+                if (json && json.success) {
+                    closeAddExamModal();
+                    form.reset();
+                    await loadMgmtExams();
+                    const newId = json.data?.id;
+                    if (newId) {
+                        const examSelect = document.getElementById('mgmtExamSelect') as HTMLSelectElement | null;
+                        if (examSelect) {
+                            examSelect.value = String(newId);
+                            mgmtExamId = String(newId);
+                            onMgmtExamChange();
+                        }
+                    }
+                } else {
+                    alert('시험 생성 실패: ' + (json.error || '알 수 없는 오류'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('시험 생성 중 오류가 발생했습니다.');
+            }
         }
     </script>
 </body>

@@ -133,9 +133,56 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
 
         <!-- 결과 분석 탭 -->
         <div id="content-results" class="tab-content hidden">
-            <div class="bg-white rounded-lg shadow p-8 text-center">
-                <i class="fas fa-chart-pie text-4xl text-gray-300 mb-4"></i>
-                <p class="text-gray-500">아직 진행된 시험이 없습니다.</p>
+            <div class="space-y-6">
+                <div class="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                        <h3 class="font-bold text-gray-800">시험별 응시 현황</h3>
+                        <button type="button" onclick="loadResults()" class="text-xs text-indigo-600 hover:text-indigo-800 font-medium"><i class="fas fa-sync-alt mr-1"></i> 새로고침</button>
+                    </div>
+                    <div id="resultsSummaryTableWrap" class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">시험명</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">유형</th>
+                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">응시 수</th>
+                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">평균 점수</th>
+                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">만점</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">상세</th>
+                                </tr>
+                            </thead>
+                            <tbody id="resultsSummaryBody" class="bg-white divide-y divide-gray-200">
+                                <tr><td colspan="6" class="px-6 py-8 text-center text-gray-500">불러오는 중...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div id="resultsDetailSection" class="hidden bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                        <h3 class="font-bold text-gray-800" id="resultsDetailTitle">시험 상세</h3>
+                        <button type="button" onclick="closeResultsDetail()" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div class="p-6 space-y-6">
+                        <div>
+                            <h4 class="text-sm font-bold text-gray-700 mb-2">제출 목록</h4>
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full text-sm">
+                                    <thead class="bg-gray-50"><tr><th class="px-3 py-2 text-left text-xs text-gray-500">이름</th><th class="px-3 py-2 text-right text-xs text-gray-500">점수</th><th class="px-3 py-2 text-right text-xs text-gray-500">제출 일시</th></tr></thead>
+                                    <tbody id="resultsDetailSubmissions"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-bold text-gray-700 mb-2">문제별 정답률</h4>
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full text-sm">
+                                    <thead class="bg-gray-50"><tr><th class="px-3 py-2 text-left text-xs text-gray-500">#</th><th class="px-3 py-2 text-left text-xs text-gray-500">문제</th><th class="px-3 py-2 text-center text-xs text-gray-500">정답/응시</th><th class="px-3 py-2 text-center text-xs text-gray-500">정답률</th></tr></thead>
+                                    <tbody id="resultsDetailQuestionStats"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -279,6 +326,8 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
         document.addEventListener('DOMContentLoaded', () => {
             loadExams();
             loadQuestions();
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('tab') === 'results') switchTab('results');
         });
 
         function switchTab(tabName) {
@@ -287,6 +336,7 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
             
             document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
             document.getElementById('content-' + tabName).classList.remove('hidden');
+            if (tabName === 'results') loadResults();
         }
 
         function openExamModal() {
@@ -442,6 +492,92 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                 console.error(e);
                 alert('삭제 중 오류가 발생했습니다.');
             }
+        }
+
+        async function loadResults() {
+            const tbody = document.getElementById('resultsSummaryBody');
+            if (!tbody) return;
+            tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-gray-500">불러오는 중...</td></tr>';
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(\`/api/cbt/results?course_id=\${courseId}\`, { headers: { 'Authorization': 'Bearer ' + token } });
+                const json = await res.json();
+                const exams = (json.success && json.data && json.data.exams) ? json.data.exams : [];
+                if (!exams.length) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-12 text-center text-gray-500">등록된 시험이 없습니다.</td></tr>';
+                    return;
+                }
+                const typeNames = { midterm: '중간', final: '기말', mock: '모의', practice: '연습' };
+                tbody.innerHTML = exams.map(e => \`
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 font-medium text-gray-900">\${e.title || '-'}</td>
+                        <td class="px-6 py-4 text-sm text-gray-500">\${typeNames[e.type] || e.type}</td>
+                        <td class="px-6 py-4 text-center text-sm text-gray-600">\${e.submission_count}명</td>
+                        <td class="px-6 py-4 text-center text-sm text-gray-600">\${e.submission_count ? (e.avg_score != null ? e.avg_score + '점' : '-') : '-'}</td>
+                        <td class="px-6 py-4 text-center text-sm text-gray-500">\${e.max_score}점</td>
+                        <td class="px-6 py-4 text-right">
+                            <button type="button" onclick="openResultsDetail(\${e.id})" class="text-indigo-600 hover:text-indigo-800 text-sm font-medium">상세</button>
+                        </td>
+                    </tr>
+                \`).join('');
+            } catch (e) {
+                console.error(e);
+                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-12 text-center text-red-500">결과를 불러오지 못했습니다.</td></tr>';
+            }
+        }
+        function openResultsDetail(examId) {
+            document.getElementById('resultsDetailSection').classList.remove('hidden');
+            loadResultsDetail(examId);
+        }
+        async function loadResultsDetail(examId) {
+            const titleEl = document.getElementById('resultsDetailTitle');
+            const subTbody = document.getElementById('resultsDetailSubmissions');
+            const statTbody = document.getElementById('resultsDetailQuestionStats');
+            if (!subTbody || !statTbody) return;
+            subTbody.innerHTML = '<tr><td colspan="3" class="px-3 py-4 text-center text-gray-500">불러오는 중...</td></tr>';
+            statTbody.innerHTML = '';
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(\`/api/cbt/exams/\${examId}/results\`, { headers: { 'Authorization': 'Bearer ' + token } });
+                const json = await res.json();
+                if (!json.success || !json.data) {
+                    subTbody.innerHTML = '<tr><td colspan="3" class="px-3 py-4 text-center text-red-500">데이터를 불러오지 못했습니다.</td></tr>';
+                    return;
+                }
+                const d = json.data;
+                if (titleEl) titleEl.textContent = (d.exam && d.exam.title) ? d.exam.title + ' 상세' : '시험 상세';
+                const subs = d.submissions || [];
+                if (!subs.length) {
+                    subTbody.innerHTML = '<tr><td colspan="3" class="px-3 py-4 text-center text-gray-500">제출된 답안이 없습니다.</td></tr>';
+                } else {
+                    subTbody.innerHTML = subs.map(s => \`
+                        <tr class="border-t border-gray-100">
+                            <td class="px-3 py-2">\${s.student_name || '이름 없음'}</td>
+                            <td class="px-3 py-2 text-right">\${s.total_score != null ? s.total_score + '점' : '-'}</td>
+                            <td class="px-3 py-2 text-right text-gray-500">\${s.submitted_at ? new Date(s.submitted_at).toLocaleString() : '-'}</td>
+                        </tr>
+                    \`).join('');
+                }
+                const stats = d.question_stats || [];
+                if (!stats.length) {
+                    statTbody.innerHTML = '<tr><td colspan="4" class="px-3 py-4 text-center text-gray-500">문제가 없습니다.</td></tr>';
+                } else {
+                    statTbody.innerHTML = stats.map((q, i) => \`
+                        <tr class="border-t border-gray-100">
+                            <td class="px-3 py-2 text-gray-500">\${q.order_index != null ? q.order_index + 1 : i + 1}</td>
+                            <td class="px-3 py-2 max-w-xs truncate">\${q.question_text || '-'}</td>
+                            <td class="px-3 py-2 text-center">\${q.correct_count}/\${q.total_answered}</td>
+                            <td class="px-3 py-2 text-center">\${q.correct_rate != null ? q.correct_rate + '%' : '-'}</td>
+                        </tr>
+                    \`).join('');
+                }
+            } catch (e) {
+                console.error(e);
+                subTbody.innerHTML = '<tr><td colspan="3" class="px-3 py-4 text-center text-red-500">오류가 발생했습니다.</td></tr>';
+            }
+        }
+        function closeResultsDetail() {
+            document.getElementById('resultsDetailSection').classList.add('hidden');
         }
 
         function getExamTypeName(type) {

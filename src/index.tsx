@@ -1484,11 +1484,7 @@ app.get('/admin/courses', (c) => {
 // 관리자 - 훈련생 관리 페이지 (161번 라인으로 이동됨 - adminHrdStudentsHtml 사용)
 
 
-// 관리자 - 시험/문제 관리 페이지
-app.get('/admin/exams', (c) => {
-    return c.html(adminExamsHtml());
-});
-
+// 관리자 - 시험/문제 관리: /admin/exams 는 상단에서 adminHrdExamsHtml() 로 등록됨
 app.get('/admin/exams/create', (c) => {
     return c.html(adminExamCreateHtml);
 });

@@ -213,9 +213,13 @@ cbt.get('/course-ability-units', authMiddleware, async (c) => {
 // /api/cbt/questions  - exam_questions 테이블 활용
 // ============================================================
 
-// GET /api/cbt/questions?course_id=xxx  - 과정별 문제 목록 조회 (xxx = 회차 ID 또는 과정 ID)
+// GET /api/cbt/questions
+// - ?exam_id=XXX           : 특정 시험에 속한 문제 목록
+// - ?course_id=XXX         : 과정(또는 회차) 기준 문제 목록 (xxx = 회차 ID 또는 과정 ID)
+// - ?type=multiple_choice  : 문제 유형 필터
 cbt.get('/questions', authMiddleware, async (c) => {
     try {
+        const examIdParam = c.req.query('exam_id');
         const courseIdParam = c.req.query('course_id');
         const type = c.req.query('type');   // multiple_choice | short_answer | essay
 
@@ -223,19 +227,28 @@ cbt.get('/questions', authMiddleware, async (c) => {
             SELECT 
                 eq.id, eq.exam_id, eq.question_text, eq.question_type,
                 eq.options, eq.correct_answer, eq.points, eq.order_index,
-                eq.ncs_ability_unit_code, eq.ncs_ability_unit_name,
+                eq.ncs_ability_unit_code, eq.ncs_ability_unit_name, eq.curriculum_id,
                 e.title as exam_title, e.course_id
             FROM exam_questions eq
             JOIN exams e ON eq.exam_id = e.id
             WHERE 1=1
         `;
         const params: any[] = [];
-        const courseId = courseIdParam ? await resolveSessionToLmsCourseId(c.env.DB, courseIdParam) : null;
 
-        if (courseId != null) {
-            sql += ' AND e.course_id = ?';
-            params.push(courseId);
+        if (examIdParam) {
+            const examId = parseInt(String(examIdParam), 10);
+            if (!Number.isNaN(examId)) {
+                sql += ' AND eq.exam_id = ?';
+                params.push(examId);
+            }
+        } else if (courseIdParam) {
+            const courseId = await resolveSessionToLmsCourseId(c.env.DB, courseIdParam);
+            if (courseId != null) {
+                sql += ' AND e.course_id = ?';
+                params.push(courseId);
+            }
         }
+
         if (type) {
             sql += ' AND eq.question_type = ?';
             params.push(type);
@@ -247,6 +260,92 @@ cbt.get('/questions', authMiddleware, async (c) => {
         return successResponse(c, results || []);
     } catch (e: any) {
         console.error('GET /api/cbt/questions error:', e);
+        return errorResponse(c, e.message, 500);
+    }
+});
+
+// ============================================================
+// /api/cbt/question-bank  - 재사용 가능한 문제은행 조회
+// ============================================================
+
+cbt.get('/question-bank', authMiddleware, async (c) => {
+    try {
+        const courseIdParam = c.req.query('course_id');          // 출처 과정/회차 기준
+        const examIdParam = c.req.query('exam_id');              // 출처 시험 기준
+        const curriculumIdParam = c.req.query('curriculum_id');  // 과목(교과목) 기준
+        const type = c.req.query('type');
+        const difficulty = c.req.query('difficulty');
+        const ncsUnitCode = c.req.query('ncs_unit_code');
+        const keyword = c.req.query('keyword');
+
+        let sql = `
+            SELECT
+                eq.id,
+                eq.exam_id,
+                eq.question_text,
+                eq.question_type,
+                eq.options,
+                eq.correct_answer,
+                eq.points,
+                eq.order_index,
+                eq.ncs_ability_unit_code,
+                eq.ncs_ability_unit_name,
+                eq.curriculum_id,
+                eq.source_course_id,
+                eq.source_exam_id,
+                e.title AS exam_title,
+                e.course_id,
+                c.title AS course_title
+            FROM exam_questions eq
+            JOIN exams e ON eq.exam_id = e.id
+            LEFT JOIN courses c ON e.course_id = c.id
+            WHERE 1=1
+        `;
+        const params: any[] = [];
+
+        if (examIdParam) {
+            const examId = parseInt(String(examIdParam), 10);
+            if (!Number.isNaN(examId)) {
+                sql += ' AND eq.exam_id = ?';
+                params.push(examId);
+            }
+        }
+
+        if (courseIdParam) {
+            const resolvedCourseId = await resolveSessionToLmsCourseId(c.env.DB, courseIdParam);
+            if (resolvedCourseId != null) {
+                sql += ' AND e.course_id = ?';
+                params.push(resolvedCourseId);
+            }
+        }
+
+        if (curriculumIdParam) {
+            const cid = parseInt(String(curriculumIdParam), 10);
+            if (!Number.isNaN(cid)) {
+                sql += ' AND eq.curriculum_id = ?';
+                params.push(cid);
+            }
+        }
+        if (type) {
+            sql += ' AND eq.question_type = ?';
+            params.push(type);
+        }
+        // difficulty는 exam_questions에 컬럼이 없어 필터 생략 (필요 시 컬럼 추가 후 연동)
+        if (ncsUnitCode) {
+            sql += ' AND eq.ncs_ability_unit_code = ?';
+            params.push(ncsUnitCode);
+        }
+        if (keyword) {
+            sql += ' AND eq.question_text LIKE ?';
+            params.push(`%${keyword}%`);
+        }
+
+        sql += ' ORDER BY e.course_id ASC, e.id ASC, eq.order_index ASC, eq.id ASC';
+
+        const { results } = await c.env.DB.prepare(sql).bind(...params).all();
+        return successResponse(c, results || []);
+    } catch (e: any) {
+        console.error('GET /api/cbt/question-bank error:', e);
         return errorResponse(c, e.message, 500);
     }
 });
@@ -264,7 +363,10 @@ cbt.post('/questions', authMiddleware, async (c) => {
             correct_answer,
             points = 1,
             ncs_ability_unit_code,
-            ncs_ability_unit_name
+            ncs_ability_unit_name,
+            curriculum_id,
+            source_course_id,
+            source_exam_id
         } = body;
 
         if (!question_text) {
@@ -311,8 +413,8 @@ cbt.post('/questions', authMiddleware, async (c) => {
 
         const result = await c.env.DB.prepare(`
             INSERT INTO exam_questions 
-                (exam_id, question_text, question_type, options, correct_answer, points, order_index, ncs_ability_unit_code, ncs_ability_unit_name)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (exam_id, question_text, question_type, options, correct_answer, points, order_index, ncs_ability_unit_code, ncs_ability_unit_name, curriculum_id, source_course_id, source_exam_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
             targetExamId,
             question_text,
@@ -322,13 +424,34 @@ cbt.post('/questions', authMiddleware, async (c) => {
             points,
             nextOrder,
             ncs_ability_unit_code || null,
-            ncs_ability_unit_name || null
+            ncs_ability_unit_name || null,
+            curriculum_id || null,
+            source_course_id || null,
+            source_exam_id || null
         ).run();
 
         const questionId = result.meta.last_row_id;
         return successResponse(c, { id: questionId, exam_id: targetExamId }, '문제가 등록되었습니다');
     } catch (e: any) {
         console.error('POST /api/cbt/questions error:', e);
+        return errorResponse(c, e.message, 500);
+    }
+});
+
+// PATCH /api/cbt/questions/:id  - 문제 수정 (순서 등)
+cbt.patch('/questions/:id', authMiddleware, async (c) => {
+    try {
+        const id = c.req.param('id');
+        const body = await c.req.json() as { order_index?: number };
+        const orderIndex = body?.order_index;
+        if (orderIndex == null || typeof orderIndex !== 'number') {
+            return errorResponse(c, 'order_index(숫자)가 필요합니다', 400);
+        }
+        await c.env.DB.prepare('UPDATE exam_questions SET order_index = ? WHERE id = ?')
+            .bind(Math.max(0, orderIndex), id).run();
+        return successResponse(c, { id, order_index: orderIndex }, '수정되었습니다');
+    } catch (e: any) {
+        console.error('PATCH /api/cbt/questions/:id error:', e);
         return errorResponse(c, e.message, 500);
     }
 });
@@ -341,6 +464,202 @@ cbt.delete('/questions/:id', authMiddleware, async (c) => {
         return successResponse(c, { id }, '문제가 삭제되었습니다');
     } catch (e: any) {
         console.error('DELETE /api/cbt/questions/:id error:', e);
+        return errorResponse(c, e.message, 500);
+    }
+});
+
+// ============================================================
+// /api/cbt/exams/:id/import-questions  - 다른 시험/과정의 문제를 복사하여 편성
+// ============================================================
+
+cbt.post('/exams/:id/import-questions', authMiddleware, async (c) => {
+    try {
+        const examIdParam = c.req.param('id');
+        const targetExamId = parseInt(String(examIdParam), 10);
+        if (Number.isNaN(targetExamId)) {
+            return errorResponse(c, '유효한 시험 ID가 아닙니다', 400);
+        }
+
+        const body = await c.req.json() as {
+            question_ids: number[] | string[];
+            target_curriculum_id?: number;
+        };
+
+        const idsRaw = body.question_ids || [];
+        const questionIds = (Array.isArray(idsRaw) ? idsRaw : [])
+            .map((v) => parseInt(String(v), 10))
+            .filter((v) => !Number.isNaN(v));
+
+        if (questionIds.length === 0) {
+            return errorResponse(c, 'question_ids 배열이 필요합니다', 400);
+        }
+
+        const { results: rows } = await c.env.DB.prepare(
+            `SELECT id, exam_id, question_text, question_type, options, correct_answer, points,
+                    ncs_ability_unit_code, ncs_ability_unit_name, curriculum_id, source_course_id, source_exam_id
+             FROM exam_questions
+             WHERE id IN (${questionIds.map(() => '?').join(',')})`
+        ).bind(...questionIds).all() as {
+            results: {
+                id: number;
+                exam_id: number;
+                question_text: string;
+                question_type: string;
+                options?: string | null;
+                correct_answer?: string | null;
+                points?: number | null;
+                ncs_ability_unit_code?: string | null;
+                ncs_ability_unit_name?: string | null;
+                curriculum_id?: number | null;
+                source_course_id?: number | null;
+                source_exam_id?: number | null;
+            }[];
+        };
+
+        if (!rows || rows.length === 0) {
+            return errorResponse(c, '선택한 문제를 찾을 수 없습니다', 404);
+        }
+
+        // 타겟 시험의 LMS 과정 ID 조회 (출처 기록에 활용)
+        const targetExam: any = await c.env.DB.prepare(
+            'SELECT id, course_id FROM exams WHERE id = ?'
+        ).bind(targetExamId).first();
+
+        if (!targetExam) {
+            return errorResponse(c, '대상 시험을 찾을 수 없습니다', 404);
+        }
+
+        const targetCourseId: number | null = targetExam.course_id ?? null;
+
+        const maxOrderRow: any = await c.env.DB.prepare(
+            'SELECT MAX(order_index) as max_idx FROM exam_questions WHERE exam_id = ?'
+        ).bind(targetExamId).first();
+        let nextOrder: number = ((maxOrderRow?.max_idx) || 0) + 1;
+
+        const insertedIds: number[] = [];
+
+        for (const row of rows) {
+            const result = await c.env.DB.prepare(
+                `INSERT INTO exam_questions
+                    (exam_id, question_text, question_type, options, correct_answer, points, order_index,
+                     ncs_ability_unit_code, ncs_ability_unit_name, curriculum_id, source_course_id, source_exam_id)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+            ).bind(
+                targetExamId,
+                row.question_text,
+                row.question_type,
+                row.options || null,
+                row.correct_answer || null,
+                row.points ?? 1,
+                nextOrder++,
+                row.ncs_ability_unit_code || null,
+                row.ncs_ability_unit_name || null,
+                body.target_curriculum_id ?? row.curriculum_id ?? null,
+                row.source_course_id ?? targetCourseId,
+                row.source_exam_id ?? row.exam_id
+            ).run();
+
+            insertedIds.push(result.meta.last_row_id);
+        }
+
+        return successResponse(c, { exam_id: targetExamId, question_ids: insertedIds }, '문제가 시험에 추가되었습니다');
+    } catch (e: any) {
+        console.error('POST /api/cbt/exams/:id/import-questions error:', e);
+        return errorResponse(c, e.message, 500);
+    }
+});
+
+// ============================================================
+// /api/cbt/results  - 과정별 시험 결과 요약 (응시 수, 평균 점수)
+// ============================================================
+cbt.get('/results', authMiddleware, async (c) => {
+    try {
+        const courseIdParam = c.req.query('course_id');
+        if (!courseIdParam) return errorResponse(c, 'course_id 파라미터가 필요합니다', 400);
+        const courseId = await resolveSessionToLmsCourseId(c.env.DB, courseIdParam);
+        if (courseId == null) return successResponse(c, { exams: [] });
+
+        const { results: exams } = await c.env.DB.prepare(`
+            SELECT id, title, type, time_limit_minutes
+            FROM exams WHERE course_id = ? ORDER BY created_at DESC
+        `).bind(courseId).all() as { results: { id: number; title: string; type: string; time_limit_minutes?: number }[] };
+
+        const list: { id: number; title: string; type: string; time_limit_minutes?: number; submission_count: number; avg_score: number | null; max_score: number }[] = [];
+
+        for (const exam of exams || []) {
+            const stat: any = await c.env.DB.prepare(`
+                SELECT COUNT(*) as cnt, AVG(total_score) as avg_score
+                FROM exam_submissions WHERE exam_id = ? AND status IN ('submitted', 'graded')
+            `).bind(exam.id).first();
+            const maxRow: any = await c.env.DB.prepare(
+                'SELECT COALESCE(SUM(points), 0) as total FROM exam_questions WHERE exam_id = ?'
+            ).bind(exam.id).first();
+            list.push({
+                id: exam.id,
+                title: exam.title,
+                type: exam.type,
+                time_limit_minutes: exam.time_limit_minutes,
+                submission_count: stat?.cnt ?? 0,
+                avg_score: stat?.avg_score != null ? Math.round(stat.avg_score * 10) / 10 : null,
+                max_score: maxRow?.total ?? 0
+            });
+        }
+        return successResponse(c, { exams: list });
+    } catch (e: any) {
+        console.error('GET /api/cbt/results error:', e);
+        return errorResponse(c, e.message, 500);
+    }
+});
+
+// ============================================================
+// /api/cbt/exams/:examId/results  - 시험별 상세 결과 (제출 목록, 문제별 정답률)
+// ============================================================
+cbt.get('/exams/:examId/results', authMiddleware, async (c) => {
+    try {
+        const examId = parseInt(c.req.param('examId'), 10);
+        if (Number.isNaN(examId)) return errorResponse(c, '유효한 시험 ID가 아닙니다', 400);
+
+        const exam: any = await c.env.DB.prepare(
+            'SELECT id, title, type, course_id FROM exams WHERE id = ?'
+        ).bind(examId).first();
+        if (!exam) return errorResponse(c, '시험을 찾을 수 없습니다', 404);
+
+        const { results: submissions } = await c.env.DB.prepare(`
+            SELECT es.id, es.student_id, es.total_score, es.submitted_at, es.status,
+                   u.name as student_name
+            FROM exam_submissions es
+            LEFT JOIN users u ON u.id = es.student_id
+            WHERE es.exam_id = ? ORDER BY es.submitted_at DESC
+        `).bind(examId).all() as { results: { id: number; student_id: number; total_score?: number | null; submitted_at?: string | null; status: string; student_name?: string | null }[] };
+
+        const { results: questionRows } = await c.env.DB.prepare(`
+            SELECT eq.id as question_id, eq.order_index, eq.question_text, eq.points,
+                   (SELECT COUNT(*) FROM exam_answers ea
+                    INNER JOIN exam_submissions es ON es.id = ea.submission_id AND es.status IN ('submitted','graded')
+                    WHERE ea.question_id = eq.id) as total_answered,
+                   (SELECT COALESCE(SUM(ea.is_correct), 0) FROM exam_answers ea
+                    INNER JOIN exam_submissions es ON es.id = ea.submission_id AND es.status IN ('submitted','graded')
+                    WHERE ea.question_id = eq.id) as correct_count
+            FROM exam_questions eq WHERE eq.exam_id = ? ORDER BY eq.order_index ASC, eq.id ASC
+        `).bind(examId).all() as { results: { question_id: number; order_index: number; question_text: string; points: number; total_answered: number; correct_count: number }[] };
+
+        const question_stats = (questionRows || []).map((q) => ({
+            question_id: q.question_id,
+            order_index: q.order_index,
+            question_text: (q.question_text || '').substring(0, 80) + ((q.question_text || '').length > 80 ? '…' : ''),
+            points: q.points,
+            total_answered: q.total_answered,
+            correct_count: q.correct_count,
+            correct_rate: q.total_answered > 0 ? Math.round((q.correct_count / q.total_answered) * 100) : null
+        }));
+
+        return successResponse(c, {
+            exam: { id: exam.id, title: exam.title, type: exam.type },
+            submissions: submissions || [],
+            question_stats
+        });
+    } catch (e: any) {
+        console.error('GET /api/cbt/exams/:examId/results error:', e);
         return errorResponse(c, e.message, 500);
     }
 });
