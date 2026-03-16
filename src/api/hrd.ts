@@ -2568,6 +2568,32 @@ app.get('/training-logs/daily-schedule', authMiddleware, async (c) => {
     }
 });
 
+/**
+ * 해당 회차(session)의 교과목 전체 리스트 (날짜 무관, 시간표에 등록된 교과목+담당강사 distinct)
+ * 강의 후 설문지 등에서 "해당 과정의 교과목 전체" 선택용
+ */
+app.get('/training-logs/session-subjects', authMiddleware, async (c) => {
+    try {
+        const courseId = c.req.query('courseId'); // session_id
+        if (!courseId) return errorResponse(c, 'courseId(session_id) is required', 400);
+
+        const query = `
+            SELECT DISTINCT
+                c.name as subject_name,
+                u.name as instructor_name
+            FROM session_timetable st
+            LEFT JOIN ncs_approved_curriculum c ON st.subject_id = c.id
+            LEFT JOIN users u ON st.instructor_id = u.id
+            WHERE st.session_id = ? AND (st.is_excluded IS NULL OR st.is_excluded = 0)
+            ORDER BY c.name ASC, u.name ASC
+        `;
+        const { results } = await c.env.DB.prepare(query).bind(courseId).all();
+        return c.json({ success: true, data: results || [] });
+    } catch (e: any) {
+        return errorResponse(c, e.message, 500);
+    }
+});
+
 // 훈련 일지 요약 정보 조회 — 교육운영관리 회차(course_sessions) 전체 목록 + 상태 필터
 app.get('/training-logs/summary', authMiddleware, async (c) => {
     try {

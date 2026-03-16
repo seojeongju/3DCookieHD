@@ -144,10 +144,6 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
             </div>
             <form id="postLectureForm" class="p-6 space-y-4">
                 <input type="hidden" id="postLectureSurveyId" value="">
-                <div id="postLectureLectureDateBlock" class="space-y-2">
-                    <label class="block text-sm font-bold text-gray-700">교육일 (날짜 선택 시 해당 일자의 교과목을 선택할 수 있습니다)</label>
-                    <input type="date" id="postLectureDate" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500">
-                </div>
                 <div>
                     <label class="block text-sm font-bold text-gray-700 mb-1">제목</label>
                     <input type="text" id="postLectureTitle" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500" value="강의 후 설문지" placeholder="강의 후 설문지">
@@ -157,9 +153,15 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
                     <textarea id="postLectureDesc" rows="3" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500" placeholder="설문 안내 문구">수고하셨습니다. 오늘 교육 프로그램에 대한 전반적인 부분을 객관적으로 파악하고, 향후 교육의 기초 자료로 활용하고자 설문을 진행합니다. 더 나은 교육을 위해 솔직한 평가 부탁드립니다.</textarea>
                 </div>
                 <div id="postLectureSubjectListBlock">
-                    <label class="block text-sm font-bold text-gray-700 mb-1">해당교과목 선택 <span class="text-amber-600 font-normal">(해당 설문을 받을 교과목을 선택하세요)</span></label>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">해당교과목 선택 <span class="text-amber-600 font-normal">(해당 과정의 교과목 전체 중 설문을 받을 교과목을 선택하세요)</span></label>
                     <input type="hidden" id="postLectureSubjectName" value="">
-                    <div id="postLectureSubjectList" class="rounded-lg border border-slate-200 overflow-hidden max-h-[220px] overflow-y-auto custom-scrollbar">교육일을 선택하면 해당 일자의 교과목이 표시됩니다.</div>
+                    <div id="postLectureSubjectSelectWrap" class="relative">
+                        <button type="button" id="postLectureSubjectTrigger" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-white text-left flex items-center justify-between gap-2 hover:border-amber-400 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition">
+                            <span id="postLectureSubjectTriggerText" class="text-sm text-gray-500 truncate flex-1">선택하세요</span>
+                            <i class="fas fa-chevron-down text-slate-400 text-xs shrink-0 transition-transform post-lecture-subject-chevron"></i>
+                        </button>
+                        <div id="postLectureSubjectList" class="absolute top-full left-0 right-0 mt-1 rounded-lg border border-slate-200 bg-white shadow-lg z-20 max-h-[220px] overflow-y-auto custom-scrollbar hidden">불러오는 중...</div>
+                    </div>
                 </div>
                 <div id="postLectureTeacherBlock" class="hidden">
                     <label class="block text-sm font-bold text-gray-700 mb-1">담당 선생</label>
@@ -308,8 +310,6 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
                  var delBtn = e.target && e.target.closest && e.target.closest('.btn-delete-survey');
                  if (delBtn) { deleteSurvey(parseInt(delBtn.getAttribute('data-id'), 10)); }
              });
-             var lectureDateEl = document.getElementById('postLectureDate');
-             if (lectureDateEl) lectureDateEl.addEventListener('change', function() { loadLectureSchedule(this.value); });
              var postForm = document.getElementById('postLectureForm');
              if (postForm) postForm.addEventListener('submit', function(e) { e.preventDefault(); savePostLectureSurvey(); });
         });
@@ -553,12 +553,10 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
             
             var idEl = document.getElementById('postLectureSurveyId');
             var titleEl = document.getElementById('postLectureModalTitle');
-            var block = document.getElementById('postLectureLectureDateBlock');
-            if (block) block.style.display = isHrd ? 'block' : 'none';
             var subjectListBlock = document.getElementById('postLectureSubjectListBlock');
             if (subjectListBlock) subjectListBlock.style.display = isHrd ? 'block' : 'none';
             var subjectListEl = document.getElementById('postLectureSubjectList');
-            if (subjectListEl && isHrd) subjectListEl.textContent = '교육일을 선택하면 해당 일자의 교과목이 표시됩니다.';
+            if (subjectListEl && isHrd) document.getElementById('postLectureSubjectTriggerText').textContent = '불러오는 중...';
             showPostLectureTeacherBlock();
             if (!isEdit) {
                 idEl.value = '';
@@ -570,10 +568,9 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
                 var endDate = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
                 document.getElementById('postLectureStartDate').value = startDate;
                 document.getElementById('postLectureEndDate').value = endDate;
-                document.getElementById('postLectureDate').value = startDate;
                 var subInput = document.getElementById('postLectureSubjectName');
                 if (subInput) subInput.value = '';
-                if (isHrd && startDate) loadLectureSchedule(startDate);
+                if (isHrd && courseId) loadSessionSubjects();
                 var sel = document.getElementById('postLectureTeacherId');
                 if (sel) sel.value = '';
                 // 기본 문항 렌더링
@@ -595,7 +592,6 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
                         document.getElementById('postLectureDesc').value = s.description || '';
                         document.getElementById('postLectureStartDate').value = (s.start_date || '').split('T')[0];
                         document.getElementById('postLectureEndDate').value = (s.end_date || '').split('T')[0];
-                        document.getElementById('postLectureDate').value = (s.start_date || '').split('T')[0];
                         var subInput = document.getElementById('postLectureSubjectName');
                         if (subInput) subInput.value = s.subject_name || '';
                         if (s.teacher_id) {
@@ -605,8 +601,8 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
                                 else pendingPostLectureTeacherId = s.teacher_id;
                             }
                         }
-                        if (isHrd && s.start_date) {
-                            loadLectureSchedule((s.start_date || '').split('T')[0]);
+                        if (isHrd && courseId) {
+                            loadSessionSubjects();
                             pendingPostLectureSubjectName = s.subject_name || '';
                         }
                         // 기존 문항이 있으면 로드, 없으면 기본 문항
@@ -618,29 +614,34 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
             document.getElementById('postLectureModal').classList.remove('hidden');
         }
 
-        function loadLectureSchedule(date) {
+        /** 해당 과정(회차)의 교과목 전체 리스트 로드 (날짜 무관) */
+        function loadSessionSubjects() {
             var subjectListBlock = document.getElementById('postLectureSubjectListBlock');
             var subjectListEl = document.getElementById('postLectureSubjectList');
             var subjectNameInput = document.getElementById('postLectureSubjectName');
+            var triggerBtn = document.getElementById('postLectureSubjectTrigger');
+            var triggerText = document.getElementById('postLectureSubjectTriggerText');
             if (subjectNameInput) subjectNameInput.value = '';
+            if (triggerText) { triggerText.textContent = '불러오는 중...'; triggerText.classList.remove('text-gray-800'); triggerText.classList.add('text-gray-500'); }
 
-            if (!isHrd || !courseId || !date) {
-                if (subjectListEl) subjectListEl.textContent = '교육일을 선택하면 해당 일자의 교과목이 표시됩니다.';
+            if (!isHrd || !courseId) {
+                if (triggerText) triggerText.textContent = '선택하세요';
                 return;
             }
-            if (subjectListEl) subjectListEl.textContent = '불러오는 중...';
-            if (subjectListBlock) subjectListBlock.style.display = 'block';
+            if (subjectListEl) subjectListEl.classList.add('hidden');
             var token = localStorage.getItem('token');
-            fetch('/api/hrd/training-logs/daily-schedule?courseId=' + encodeURIComponent(courseId) + '&date=' + encodeURIComponent(date), { headers: { 'Authorization': 'Bearer ' + (token || '') } })
+            fetch('/api/hrd/training-logs/session-subjects?courseId=' + encodeURIComponent(courseId), { headers: { 'Authorization': 'Bearer ' + (token || '') } })
                 .then(function(r) { return r.json(); })
                 .then(function(res) {
                     if (!res || !res.success || !Array.isArray(res.data)) {
-                        if (subjectListEl) subjectListEl.innerHTML = '<div class="p-4 text-slate-500 text-sm text-center">해당 일자에 등록된 강의가 없습니다.</div>';
+                        if (subjectListEl) { subjectListEl.innerHTML = '<div class="p-4 text-slate-500 text-sm text-center">등록된 교과목이 없습니다.</div>'; subjectListEl.classList.add('hidden'); }
+                        if (triggerText) triggerText.textContent = '등록된 교과목이 없습니다.';
                         return;
                     }
-                    var rows = res.data.filter(function(r) { return !r.is_excluded; });
+                    var rows = res.data;
                     if (rows.length === 0) {
-                        if (subjectListEl) subjectListEl.innerHTML = '<div class="p-4 text-slate-500 text-sm text-center">해당 일자에 등록된 강의가 없습니다.</div>';
+                        if (subjectListEl) { subjectListEl.innerHTML = '<div class="p-4 text-slate-500 text-sm text-center">등록된 교과목이 없습니다.</div>'; subjectListEl.classList.add('hidden'); }
+                        if (triggerText) triggerText.textContent = '등록된 교과목이 없습니다.';
                         return;
                     }
                     if (subjectListEl) {
@@ -655,8 +656,32 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
                                 '<span class="flex-1 text-sm font-medium text-gray-800">' + sub + (inst ? ' <span class="text-slate-500 font-normal">/ ' + inst + '</span>' : '') + '</span>' +
                                 '</button>';
                         }).join('');
+                        subjectListEl.classList.add('hidden');
+
+                        function closeSubjectDropdown() {
+                            subjectListEl.classList.add('hidden');
+                            if (triggerBtn && triggerBtn.querySelector('.post-lecture-subject-chevron')) triggerBtn.querySelector('.post-lecture-subject-chevron').classList.remove('rotate-180');
+                        }
+                        if (triggerBtn) {
+                            triggerBtn.onclick = function(e) {
+                                e.stopPropagation();
+                                if (subjectListEl.classList.contains('hidden')) {
+                                    subjectListEl.classList.remove('hidden');
+                                    if (triggerBtn.querySelector('.post-lecture-subject-chevron')) triggerBtn.querySelector('.post-lecture-subject-chevron').classList.add('rotate-180');
+                                    setTimeout(function() {
+                                        document.addEventListener('click', function docClose() {
+                                            closeSubjectDropdown();
+                                            document.removeEventListener('click', docClose);
+                                        }, 1);
+                                    }, 0);
+                                } else {
+                                    closeSubjectDropdown();
+                                }
+                            };
+                        }
                         subjectListEl.querySelectorAll('.post-lecture-subject-item').forEach(function(btn, idx) {
-                            btn.addEventListener('click', function() {
+                            btn.addEventListener('click', function(e) {
+                                e.stopPropagation();
                                 subjectListEl.querySelectorAll('.post-lecture-subject-item').forEach(function(b) {
                                     b.classList.remove('bg-amber-50', 'border-l-amber-500');
                                     b.classList.add('border-l-transparent');
@@ -668,6 +693,9 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
                                 var icon = btn.querySelector('.subject-item-check');
                                 if (icon) icon.classList.remove('opacity-0');
                                 if (subjectNameInput) subjectNameInput.value = (btn.getAttribute('data-subject') || '').trim();
+                                var label = (btn.getAttribute('data-label') || '').trim();
+                                if (triggerText) { triggerText.textContent = label || '선택하세요'; triggerText.classList.remove('text-gray-500'); triggerText.classList.add('text-gray-800'); }
+                                closeSubjectDropdown();
                             });
                         });
                         if (pendingPostLectureSubjectName && subjectListEl) {
@@ -675,13 +703,16 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
                                 if ((b.getAttribute('data-subject') || '').trim() === pendingPostLectureSubjectName) { b.click(); }
                             });
                             pendingPostLectureSubjectName = null;
-                        } else if (subjectNameInput && rows.length > 0 && (rows[0].subject_name || '').trim()) {
-                            subjectNameInput.value = (rows[0].subject_name || '').trim();
+                        } else if (rows.length > 0 && (rows[0].subject_name || '').trim()) {
+                            var firstLabel = (rows[0].subject_name || '').trim() + ((rows[0].instructor_name || '').trim() ? ' / ' + (rows[0].instructor_name || '').trim() : '');
+                            if (subjectNameInput) subjectNameInput.value = (rows[0].subject_name || '').trim();
+                            if (triggerText) { triggerText.textContent = firstLabel; triggerText.classList.remove('text-gray-500'); triggerText.classList.add('text-gray-800'); }
                         }
                     }
                 })
                 .catch(function() {
-                    if (subjectListEl) subjectListEl.innerHTML = '<div class="p-4 text-slate-500 text-sm text-center">시간표를 불러오지 못했습니다.</div>';
+                    if (subjectListEl) { subjectListEl.innerHTML = '<div class="p-4 text-slate-500 text-sm text-center">교과목 목록을 불러오지 못했습니다.</div>'; subjectListEl.classList.add('hidden'); }
+                    if (triggerText) triggerText.textContent = '교과목 목록을 불러오지 못했습니다.';
                 });
         }
 
