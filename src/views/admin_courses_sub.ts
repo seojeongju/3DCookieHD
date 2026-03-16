@@ -711,6 +711,9 @@ export const adminCoursesSessionsHtml = () =>
                 <span id="sessionsSummary" class="text-[10px] text-slate-400">Loading...</span>
             </div>
             <div class="flex items-center gap-2">
+                <button type="button" id="sessionsBtnSyncStatus" class="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-500 text-white rounded text-xs font-bold hover:bg-amber-600 transition" title="개강일·종료일 기준으로 모집중/훈련중/종료 자동 반영">
+                    <i class="fas fa-calendar-check"></i> 상태 동기화
+                </button>
                 <a href="/admin/courses/sessions/enrollments" class="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-600 text-white rounded text-xs font-bold hover:bg-emerald-700 transition">
                     <i class="fas fa-user-plus"></i> 수강생 등록
                 </a>

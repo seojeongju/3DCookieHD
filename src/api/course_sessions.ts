@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import type { Bindings } from '../types';
 import { authMiddleware, requireAdmin, requireRole } from '../middleware/auth';
+import { applyEffectiveStatus, applyEffectiveStatusToList, getEffectiveSessionStatus } from '../utils/course_session_status';
 
 const STATUS_VALUES = ['recruiting', 'in_progress', 'completed', 'always_open', 'closed'] as const;
 
@@ -91,17 +92,25 @@ app.get('/me/enrollments', authMiddleware, async (c) => {
         ORDER BY s.training_start_date DESC
     `).bind(user.userId).all();
 
-    const data = (rows.results || []).map((r: any) => ({
-      ...r,
-      course_title: (r.course_name || '') + (r.session_number ? ` (${r.session_number}회차)` : ''),
-      course_thumbnail: r.course_list_image_url || r.main_slide_image_url || '/static/course_placeholder.svg',
-      course_category: r.category_name || '국비지원',
-      enrolled_at: r.enrolled_at,
-      course_id: r.approved_course_id, // Compatible binding
-      session_id: r.id, // Actual Session ID
-      has_access_code: !!(r.access_code && r.access_code.trim().length > 0),
-      access_code: undefined // Hide sensitive data
-    }));
+    const data = (rows.results || []).map((r: any) => {
+      const effectiveStatus = getEffectiveSessionStatus({
+        status: r.status,
+        training_start_date: r.training_start_date,
+        training_end_date: r.training_end_date,
+      });
+      return {
+        ...r,
+        status: effectiveStatus,
+        course_title: (r.course_name || '') + (r.session_number ? ` (${r.session_number}회차)` : ''),
+        course_thumbnail: r.course_list_image_url || r.main_slide_image_url || '/static/course_placeholder.svg',
+        course_category: r.category_name || '국비지원',
+        enrolled_at: r.enrolled_at,
+        course_id: r.approved_course_id,
+        session_id: r.id,
+        has_access_code: !!(r.access_code && r.access_code.trim().length > 0),
+        access_code: undefined,
+      };
+    });
 
     return c.json({ success: true, data });
   } catch (e) {
@@ -180,9 +189,10 @@ app.get('/public', async (c) => {
       LIMIT ? OFFSET ?
     `).bind(...params).all();
 
+    const list = applyEffectiveStatusToList((rows.results || []) as { status: string; training_start_date?: string; training_end_date?: string }[]);
     return c.json({
       success: true,
-      data: rows.results || [],
+      data: list,
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
     });
   } catch (e) {
@@ -255,6 +265,9 @@ app.get('/public/:id', async (c) => {
       }
     }
     if (!row) return c.json({ success: false, error: '회차를 찾을 수 없습니다' }, 404);
+    if (row && typeof (row as any).training_start_date !== 'undefined') {
+      (row as any).status = getEffectiveSessionStatus(row as any);
+    }
     return c.json({ success: true, data: row });
   } catch (e) {
     console.error('course-sessions public get:', e);
@@ -351,7 +364,7 @@ app.get('/', authMiddleware, requireRole('admin', 'teacher', 'instructor'), asyn
         .all() as { results: Record<string, unknown>[] };
     }
 
-    const list = (rows.results || []) as Record<string, unknown>[];
+    const list = applyEffectiveStatusToList((rows.results || []) as { status: string; training_start_date?: string; training_end_date?: string }[]);
     return c.json({
       success: true,
       data: list,
@@ -360,6 +373,37 @@ app.get('/', authMiddleware, requireRole('admin', 'teacher', 'instructor'), asyn
   } catch (e) {
     console.error('course-sessions list:', e);
     return c.json({ success: false, error: '목록 조회 실패' }, 500);
+  }
+});
+
+/**
+ * POST /api/course-sessions/sync-status
+ * 개강일·종료일 기준으로 회차 상태를 DB에 일괄 반영 (관리자 전용)
+ * - 오늘 < 개강일 → recruiting, 개강일~종료일 → in_progress, 종료일 지남 → completed
+ */
+app.post('/sync-status', authMiddleware, requireAdmin, async (c) => {
+  try {
+    const { DB } = c.env;
+    const result = await DB.prepare(`
+      UPDATE course_sessions SET status = CASE
+        WHEN status = 'closed' THEN 'closed'
+        WHEN status = 'always_open' AND training_end_date IS NOT NULL AND TRIM(COALESCE(training_end_date,'')) <> '' AND date(training_end_date) < date('now') THEN 'completed'
+        WHEN status = 'always_open' THEN 'always_open'
+        WHEN training_start_date IS NOT NULL AND TRIM(COALESCE(training_start_date,'')) <> '' AND date(training_start_date) > date('now') THEN 'recruiting'
+        WHEN training_end_date IS NOT NULL AND TRIM(COALESCE(training_end_date,'')) <> '' AND date(training_end_date) < date('now') THEN 'completed'
+        WHEN (training_start_date IS NULL OR TRIM(COALESCE(training_start_date,'')) = '' OR date(training_start_date) <= date('now'))
+             AND (training_end_date IS NULL OR TRIM(COALESCE(training_end_date,'')) = '' OR date(training_end_date) >= date('now')) THEN 'in_progress'
+        ELSE status
+      END
+    `).run();
+    return c.json({
+      success: true,
+      message: '회차 상태가 개강일·종료일 기준으로 동기화되었습니다.',
+      meta: { changes: result.meta?.changes ?? 0 },
+    });
+  } catch (e) {
+    console.error('course-sessions sync-status:', e);
+    return c.json({ success: false, error: '상태 동기화 실패' }, 500);
   }
 });
 

@@ -125,7 +125,7 @@ export function locationsHtml(options?: { kakaoMapAppKey?: string }) {
                                 <li class="flex items-start">
                                     <span class="font-bold w-20 flex-shrink-0 text-green-600"><i class="fas fa-subway"></i> 지하철</span>
                                     <div>
-                                        <p><span class="inline-block px-2 py-0.5 bg-green-100 text-green-800 text-xs font-bold rounded mr-1">2호선</span> 홍대입구역 9번 출구 (도보 5분)</p>
+                                        <p><span class="inline-block px-2 py-0.5 bg-green-100 text-green-800 text-xs font-bold rounded mr-1">6호선</span> 상수역 2번 출구 전방 50m</p>
                                     </div>
                                 </li>
                                 <li class="flex items-start">
@@ -284,15 +284,35 @@ export function locationsHtml(options?: { kakaoMapAppKey?: string }) {
             var kakao = window.kakao;
             if (!kakao || !kakao.maps) return;
             var container = el;
-            var options = { center: new kakao.maps.LatLng(c.lat, c.lng), level: 3 };
-            var map = new kakao.maps.Map(container, options);
-            var markerPosition = new kakao.maps.LatLng(c.lat, c.lng);
-            var marker = new kakao.maps.Marker({ position: markerPosition });
-            marker.setMap(map);
-            var iw = new kakao.maps.InfoWindow({ content: '<div style="padding:8px 10px;font-size:13px;font-weight:bold;white-space:nowrap;">' + c.name + '</div>' });
-            iw.open(map, marker);
-            locationMaps[centerId] = { map: map, marker: marker };
-            ph.style.display = 'none';
+            var geocoder = kakao.maps.services && new kakao.maps.services.Geocoder();
+            if (geocoder) {
+                geocoder.addressSearch(c.address, function(result, status) {
+                    var coords;
+                    if (status === kakao.maps.services.Status.OK && result && result[0]) {
+                        coords = new kakao.maps.LatLng(result[0].y, result[0].x);
+                    } else {
+                        coords = new kakao.maps.LatLng(c.lat, c.lng);
+                    }
+                    var options = { center: coords, level: 3 };
+                    var map = new kakao.maps.Map(container, options);
+                    var marker = new kakao.maps.Marker({ position: coords });
+                    marker.setMap(map);
+                    var iw = new kakao.maps.InfoWindow({ content: '<div style="padding:8px 10px;font-size:13px;font-weight:bold;white-space:nowrap;">' + c.name + '</div>' });
+                    iw.open(map, marker);
+                    locationMaps[centerId] = { map: map, marker: marker };
+                    ph.style.display = 'none';
+                });
+            } else {
+                var options = { center: new kakao.maps.LatLng(c.lat, c.lng), level: 3 };
+                var map = new kakao.maps.Map(container, options);
+                var markerPosition = new kakao.maps.LatLng(c.lat, c.lng);
+                var marker = new kakao.maps.Marker({ position: markerPosition });
+                marker.setMap(map);
+                var iw = new kakao.maps.InfoWindow({ content: '<div style="padding:8px 10px;font-size:13px;font-weight:bold;white-space:nowrap;">' + c.name + '</div>' });
+                iw.open(map, marker);
+                locationMaps[centerId] = { map: map, marker: marker };
+                ph.style.display = 'none';
+            }
         }
 
         (function loadKakaoMap() {
@@ -300,7 +320,7 @@ export function locationsHtml(options?: { kakaoMapAppKey?: string }) {
             var appkey = (meta && meta.getAttribute('content')) ? meta.getAttribute('content').trim() : '';
             if (!appkey) return;
             var s = document.createElement('script');
-            s.src = 'https://dapi.kakao.com/v2/maps/sdk.js?appkey=' + encodeURIComponent(appkey) + '&autoload=false';
+            s.src = 'https://dapi.kakao.com/v2/maps/sdk.js?appkey=' + encodeURIComponent(appkey) + '&autoload=false&libraries=services';
             s.async = true;
             s.onload = function() {
                 if (typeof window.kakao === 'undefined' || !window.kakao.maps) {

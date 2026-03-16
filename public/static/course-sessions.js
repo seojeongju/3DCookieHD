@@ -265,6 +265,28 @@
     var btnRefresh = document.getElementById('sessionsBtnRefresh');
     if (btnRefresh) btnRefresh.addEventListener('click', function () { loadStats(); loadSessionsList(); });
 
+    var btnSyncStatus = document.getElementById('sessionsBtnSyncStatus');
+    if (btnSyncStatus) {
+        btnSyncStatus.addEventListener('click', function () {
+            if (!confirm('개강일·종료일 기준으로 회차 상태(모집중/훈련중/종료)를 DB에 반영합니다. 진행할까요?')) return;
+            btnSyncStatus.disabled = true;
+            var token = localStorage.getItem('token');
+            fetch('/api/course-sessions/sync-status', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token } })
+                .then(function (r) { return r.json(); })
+                .then(function (json) {
+                    if (json.success) {
+                        alert(json.message || '상태가 동기화되었습니다.');
+                        loadStats();
+                        loadSessionsList();
+                    } else {
+                        alert(json.error || '동기화에 실패했습니다.');
+                    }
+                })
+                .catch(function () { alert('동기화 요청 중 오류가 발생했습니다.'); })
+                .finally(function () { btnSyncStatus.disabled = false; });
+        });
+    }
+
     loadCategories().then(function () {
         loadStats();
         loadSessionsList();

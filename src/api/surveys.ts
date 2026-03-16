@@ -100,6 +100,59 @@ app.get('/', authMiddleware, async (c) => {
     }
 });
 
+/**
+ * GET /api/surveys/summary
+ * 과정/회차별 설문 요약: 평균 만족도(5점 척도 rating 문항만 집계)
+ */
+app.get('/summary', authMiddleware, async (c) => {
+    try {
+        const user = c.get('user');
+        if (user.role !== 'admin' && user.role !== 'teacher') {
+            return errorResponse(c, '권한이 없습니다', 403);
+        }
+        const courseId = c.req.query('course_id') ? parseInt(c.req.query('course_id')!, 10) : null;
+        const sessionId = c.req.query('session_id') ? parseInt(c.req.query('session_id')!, 10) : null;
+        if (!courseId && !sessionId) {
+            return errorResponse(c, 'course_id 또는 session_id가 필요합니다', 400);
+        }
+
+        const { DB } = c.env;
+        let whereClause = '1=1';
+        const params: (number | string)[] = [];
+        if (sessionId) {
+            whereClause = 's.session_id = ?';
+            params.push(sessionId);
+        } else if (courseId) {
+            whereClause = 's.course_id = ?';
+            params.push(courseId);
+        }
+
+        if (user.role === 'teacher') {
+            if (sessionId) {
+                const session: any = await DB.prepare('SELECT id FROM course_sessions WHERE id = ?').bind(sessionId).first();
+                if (!session) return successResponse(c, { average_satisfaction: 0 });
+            } else if (courseId) {
+                const course: any = await DB.prepare('SELECT teacher_id FROM courses WHERE id = ?').bind(courseId).first();
+                if (!course || course.teacher_id !== user.userId) return successResponse(c, { average_satisfaction: 0 });
+            }
+        }
+
+        const row = await DB.prepare(`
+            SELECT AVG(CAST(sa.answer_value AS REAL)) as avg_rating
+            FROM survey_answers sa
+            INNER JOIN survey_questions sq ON sa.question_id = sq.id AND sq.question_type = 'rating'
+            INNER JOIN surveys s ON sq.survey_id = s.id
+            WHERE ${whereClause} AND sa.answer_value IS NOT NULL AND TRIM(sa.answer_value) <> ''
+        `).bind(...params).first<{ avg_rating: number | null }>();
+
+        const average_satisfaction = row?.avg_rating != null && !isNaN(Number(row.avg_rating)) ? Math.round(Number(row.avg_rating) * 10) / 10 : 0;
+        return successResponse(c, { average_satisfaction });
+    } catch (e: any) {
+        console.error('Error surveys summary:', e);
+        return errorResponse(c, e.message, 500);
+    }
+});
+
 // GET /api/surveys/teacher - Get surveys for teacher's assigned courses
 app.get('/teacher', authMiddleware, async (c) => {
     try {

@@ -319,6 +319,43 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
             return null;
         }
 
+        function getSummaryApiUrl() {
+            if (!courseId) return null;
+            if (isHrd) return '/api/surveys/summary?session_id=' + encodeURIComponent(courseId);
+            return '/api/surveys/summary?course_id=' + encodeURIComponent(courseId);
+        }
+
+        function loadSatisfactionSummary() {
+            var url = getSummaryApiUrl();
+            if (!url) return;
+            var token = localStorage.getItem('token');
+            if (!token) return;
+            fetch(url, { headers: { 'Authorization': 'Bearer ' + token } })
+                .then(function(r) { return r.json(); })
+                .then(function(res) {
+                    var avg = (res && res.success && res.data && typeof res.data.average_satisfaction === 'number') ? res.data.average_satisfaction : 0;
+                    var el = document.getElementById('stat-satisfaction');
+                    var starsEl = document.getElementById('stat-stars');
+                    if (el) el.textContent = avg.toFixed(1);
+                    if (starsEl) {
+                        var full = Math.floor(avg);
+                        var half = avg - full >= 0.5 ? 1 : 0;
+                        var empty = 5 - full - half;
+                        var html = '';
+                        for (var i = 0; i < full; i++) html += '<i class="fas fa-star text-yellow-400"></i>';
+                        if (half) html += '<i class="fas fa-star-half-alt text-yellow-400"></i>';
+                        for (var i = 0; i < empty; i++) html += '<i class="far fa-star text-yellow-400"></i>';
+                        starsEl.innerHTML = html || '<span class="text-gray-400 text-sm">응답 없음</span>';
+                    }
+                })
+                .catch(function() {
+                    var el = document.getElementById('stat-satisfaction');
+                    var starsEl = document.getElementById('stat-stars');
+                    if (el) el.textContent = '0.0';
+                    if (starsEl) starsEl.innerHTML = '<span class="text-gray-400 text-sm">-</span>';
+                });
+        }
+
         function loadSurveys() {
             const tbody = document.getElementById('surveyList');
             const url = getSurveysApiUrl();
@@ -334,8 +371,9 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
                     else { surveys = Array.isArray(res.data) ? res.data : []; }
                     renderSurveyList();
                     updateStats();
+                    loadSatisfactionSummary();
                 })
-                .catch(function() { surveys = []; renderSurveyList(); updateStats(); });
+                .catch(function() { surveys = []; renderSurveyList(); updateStats(); loadSatisfactionSummary(); });
         }
 
         function renderSurveyList() {
@@ -396,8 +434,8 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
             rate = Math.min(100, rate);
             document.getElementById('stat-progress').textContent = rate + '%';
             document.getElementById('stat-progress-bar').style.width = rate + '%';
-            document.getElementById('stat-satisfaction').textContent = '5.0';
-            document.getElementById('stat-stars').innerHTML = '<i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>';
+            document.getElementById('stat-satisfaction').textContent = '0.0';
+            document.getElementById('stat-stars').innerHTML = '<span class="text-gray-400 text-sm">불러오는 중...</span>';
         }
 
         function showPostLectureTeacherBlock() {
