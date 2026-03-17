@@ -970,8 +970,8 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
             }
         }
 
-        let ncsSubjectsList: { id: number; name: string }[] = [];
-        function escapeHtml(s: string) { if (!s) return ''; return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+        let ncsSubjectsList = [];
+        function escapeHtml(s) { if (!s) return ''; return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
         async function loadNcsSubjectsList() {
             try {
                 const res = await fetch('/api/cbt/ncs-subjects', { headers: { 'Authorization': 'Bearer ' + token } });
@@ -1049,7 +1049,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                 showNotifyModal('오류', '과목 추가 중 오류가 발생했습니다.', 'error');
             }
         }
-        async function deleteNcsSubject(id: number) {
+        async function deleteNcsSubject(id) {
             if (!(await showConfirmModal('과목 삭제', '이 과목을 삭제할까요? 해당 분류를 쓰는 문제의 분류는 \'선택 안 함\'으로 바뀝니다.'))) return;
             try {
                 const res = await fetch('/api/cbt/ncs-subjects/' + id, {
