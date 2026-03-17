@@ -412,10 +412,11 @@ cbt.post('/bank-questions', authMiddleware, async (c) => {
             difficulty?: string;
             category?: string | null;
             curriculum_id?: number | null;
+            ncs_subject_id?: number | null;
             ncs_ability_unit_code?: string | null;
             ncs_ability_unit_name?: string | null;
         };
-        const { question_text, question_type = 'multiple_choice', options, correct_answer, points = 1, difficulty, category, curriculum_id, ncs_ability_unit_code, ncs_ability_unit_name } = body;
+        const { question_text, question_type = 'multiple_choice', options, correct_answer, points = 1, difficulty, category, curriculum_id, ncs_subject_id, ncs_ability_unit_code, ncs_ability_unit_name } = body;
         if (!question_text || typeof question_text !== 'string') {
             return errorResponse(c, 'question_text는 필수입니다', 400);
         }
@@ -427,9 +428,9 @@ cbt.post('/bank-questions', authMiddleware, async (c) => {
             INSERT INTO question_bank (
                 question_text, question_type, options, correct_answer, 
                 difficulty, category, points, ncs_ability_unit_code, 
-                ncs_ability_unit_name, curriculum_id, created_at, updated_at
+                ncs_ability_unit_name, curriculum_id, ncs_subject_id, created_at, updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         `).bind(
             question_text,
             question_type,
@@ -440,7 +441,8 @@ cbt.post('/bank-questions', authMiddleware, async (c) => {
             points,
             ncs_ability_unit_code ?? null,
             ncs_ability_unit_name ?? null,
-            curriculum_id ?? null
+            curriculum_id ?? null,
+            ncs_subject_id ?? null
         ).run();
 
         const row: any = await c.env.DB.prepare('SELECT id FROM question_bank ORDER BY id DESC LIMIT 1').first();
@@ -452,7 +454,7 @@ cbt.post('/bank-questions', authMiddleware, async (c) => {
     }
 });
 
-// GET /api/cbt/ncs-curriculum-list  - 과정등록 시 설정된 NCS 교과목 전체 목록 (문제은행 분류 등에서 사용)
+// GET /api/cbt/ncs-curriculum-list  - 과정등록 시 설정된 NCS 교과목 전체 목록 (레거시/참고용)
 cbt.get('/ncs-curriculum-list', authMiddleware, async (c) => {
     try {
         const { results } = await c.env.DB.prepare(`
@@ -467,13 +469,61 @@ cbt.get('/ncs-curriculum-list', authMiddleware, async (c) => {
     }
 });
 
+// ========== 문제은행 분류용 NCS 교과목 전용 (중복 없음, 관리자 추가/삭제) ==========
+// GET /api/cbt/ncs-subjects  - 문제은행 분류용 교과목 목록
+cbt.get('/ncs-subjects', authMiddleware, async (c) => {
+    try {
+        const { results } = await c.env.DB.prepare(`
+            SELECT id, name, sort_order FROM question_bank_ncs_subjects
+            ORDER BY sort_order ASC, name ASC, id ASC
+        `).all() as { results: { id: number; name: string; sort_order?: number }[] };
+        const list = (results || []).map((r) => ({ id: r.id, name: r.name || '' }));
+        return successResponse(c, list);
+    } catch (e: any) {
+        console.error('GET /api/cbt/ncs-subjects error:', e);
+        return successResponse(c, []);
+    }
+});
+
+// POST /api/cbt/ncs-subjects  - 과목 추가 (body: name)
+cbt.post('/ncs-subjects', authMiddleware, async (c) => {
+    try {
+        const body = await c.req.json() as { name?: string };
+        const name = body.name != null ? String(body.name).trim() : '';
+        if (!name) return errorResponse(c, '과목명이 필요합니다', 400);
+        await c.env.DB.prepare(`
+            INSERT INTO question_bank_ncs_subjects (name, sort_order) VALUES (?, (SELECT COALESCE(MAX(sort_order),0)+1 FROM question_bank_ncs_subjects))
+        `).bind(name).run();
+        const row: any = await c.env.DB.prepare('SELECT id, name FROM question_bank_ncs_subjects ORDER BY id DESC LIMIT 1').first();
+        return successResponse(c, row || { id: null, name }, '과목이 추가되었습니다');
+    } catch (e: any) {
+        if (e.message && e.message.includes('UNIQUE')) return errorResponse(c, '이미 같은 이름의 과목이 있습니다', 400);
+        console.error('POST /api/cbt/ncs-subjects error:', e);
+        return errorResponse(c, e.message, 500);
+    }
+});
+
+// DELETE /api/cbt/ncs-subjects/:id  - 과목 삭제
+cbt.delete('/ncs-subjects/:id', authMiddleware, async (c) => {
+    try {
+        const id = parseInt(c.req.param('id'), 10);
+        if (Number.isNaN(id)) return errorResponse(c, '유효한 ID가 아닙니다', 400);
+        await c.env.DB.prepare('UPDATE question_bank SET ncs_subject_id = NULL WHERE ncs_subject_id = ?').bind(id).run();
+        await c.env.DB.prepare('DELETE FROM question_bank_ncs_subjects WHERE id = ?').bind(id).run();
+        return successResponse(c, { id }, '과목이 삭제되었습니다');
+    } catch (e: any) {
+        console.error('DELETE /api/cbt/ncs-subjects/:id error:', e);
+        return errorResponse(c, e.message, 500);
+    }
+});
+
 // GET /api/cbt/bank-questions/:id  - 문제은행 단건 조회 (수정용)
 cbt.get('/bank-questions/:id', authMiddleware, async (c) => {
     try {
         const id = parseInt(c.req.param('id'), 10);
         if (Number.isNaN(id)) return errorResponse(c, '유효한 ID가 아닙니다', 400);
         const row: any = await c.env.DB.prepare(
-            'SELECT id, question_text, question_type, options, correct_answer, difficulty, category, points, curriculum_id FROM question_bank WHERE id = ?'
+            'SELECT id, question_text, question_type, options, correct_answer, difficulty, category, points, curriculum_id, ncs_subject_id FROM question_bank WHERE id = ?'
         ).bind(id).first();
         if (!row) return errorResponse(c, '문제를 찾을 수 없습니다', 404);
         return successResponse(c, row);
@@ -496,6 +546,7 @@ cbt.patch('/bank-questions/:id', authMiddleware, async (c) => {
             difficulty?: string;
             category?: string | null;
             curriculum_id?: number | null;
+            ncs_subject_id?: number | null;
         };
         const row: any = await c.env.DB.prepare('SELECT id FROM question_bank WHERE id = ?').bind(id).first();
         if (!row) return errorResponse(c, '문제를 찾을 수 없습니다', 404);
@@ -508,6 +559,7 @@ cbt.patch('/bank-questions/:id', authMiddleware, async (c) => {
         const difficulty = body.difficulty !== undefined ? body.difficulty : null;
         const category = body.category !== undefined ? body.category : null;
         const curriculum_id = body.curriculum_id !== undefined ? body.curriculum_id : null;
+        const ncs_subject_id = body.ncs_subject_id !== undefined ? body.ncs_subject_id : null;
         await c.env.DB.prepare(`
             UPDATE question_bank SET
                 question_text = COALESCE(?, question_text),
@@ -517,9 +569,10 @@ cbt.patch('/bank-questions/:id', authMiddleware, async (c) => {
                 difficulty = COALESCE(?, difficulty),
                 category = COALESCE(?, category),
                 curriculum_id = COALESCE(?, curriculum_id),
+                ncs_subject_id = COALESCE(?, ncs_subject_id),
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
-        `).bind(question_text, question_type, optionsStr, correct_answer, difficulty, category, curriculum_id, id).run();
+        `).bind(question_text, question_type, optionsStr, correct_answer, difficulty, category, curriculum_id, ncs_subject_id, id).run();
         return successResponse(c, { id }, '문제가 수정되었습니다');
     } catch (e: any) {
         console.error('PATCH /api/cbt/bank-questions/:id error:', e);

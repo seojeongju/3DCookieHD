@@ -350,8 +350,11 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                     </div>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-gray-600 mb-1">분류 (선택) – NCS교과목</label>
-                    <select name="bank_question_curriculum_id" id="bankQuestionCategory" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm">
+                    <div class="flex items-center justify-between gap-2 mb-1">
+                        <label class="block text-xs font-bold text-gray-600">분류 (선택) – NCS교과목</label>
+                        <button type="button" onclick="openNcsSubjectsModal()" class="text-xs font-bold text-indigo-600 hover:text-indigo-800">과목 관리</button>
+                    </div>
+                    <select name="bank_question_ncs_subject_id" id="bankQuestionCategory" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm">
                         <option value="">선택 안 함</option>
                     </select>
                 </div>
@@ -387,6 +390,27 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                     <button type="submit" id="bankQuestionSubmitBtn" class="px-4 py-2 rounded-xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700">등록하기</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- NCS 교과목 관리 모달 (추가/삭제) -->
+    <div id="ncsSubjectsModal" class="fixed inset-0 z-[55] hidden flex items-center justify-center p-4" aria-modal="true" role="dialog">
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeNcsSubjectsModal()"></div>
+        <div class="relative w-full max-w-md rounded-[2.5rem] border border-slate-200/60 bg-white/95 shadow-xl shadow-slate-200/50 backdrop-blur-md overflow-hidden">
+            <div class="p-6 border-b border-slate-200/60">
+                <h3 class="text-lg font-black tracking-tight text-slate-800">NCS 교과목 관리</h3>
+                <p class="text-xs text-slate-500 mt-1">문제은행 분류에 사용할 과목을 추가·삭제합니다.</p>
+            </div>
+            <div class="p-6 max-h-80 overflow-y-auto custom-scrollbar space-y-2" id="ncsSubjectsListContainer">
+                <!-- 목록 동적 생성 -->
+            </div>
+            <div class="p-6 border-t border-slate-200/60 flex gap-2">
+                <input type="text" id="ncsSubjectNameInput" placeholder="과목명 입력" class="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm" />
+                <button type="button" onclick="addNcsSubject()" class="px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700">추가</button>
+            </div>
+            <div class="p-4 flex justify-end border-t border-slate-200/60">
+                <button type="button" onclick="closeNcsSubjectsModal()" class="px-4 py-2 rounded-xl border border-gray-200 text-gray-600 text-sm font-bold hover:bg-gray-50">닫기</button>
+            </div>
         </div>
     </div>
 
@@ -881,7 +905,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
             const difficultyVal = document.getElementById('bankDifficultyFilter')?.value || '';
             const keyword = document.getElementById('bankKeywordInput')?.value || '';
             try {
-                loadNcsCurriculumList();
+                loadNcsSubjectsList();
                 const params = new URLSearchParams();
                 params.set('global', '1');
                 if (typeVal) params.set('type', typeVal);
@@ -941,22 +965,91 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
             }
         }
 
-        let ncsCurriculumList = [];
-        async function loadNcsCurriculumList() {
+        let ncsSubjectsList: { id: number; name: string }[] = [];
+        function escapeHtml(s: string) { if (!s) return ''; return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+        async function loadNcsSubjectsList() {
             try {
-                const res = await fetch('/api/cbt/ncs-curriculum-list', { headers: { 'Authorization': 'Bearer ' + token } });
+                const res = await fetch('/api/cbt/ncs-subjects', { headers: { 'Authorization': 'Bearer ' + token } });
                 const json = await res.json();
-                ncsCurriculumList = (json && json.success && Array.isArray(json.data)) ? json.data : [];
+                ncsSubjectsList = (json && json.success && Array.isArray(json.data)) ? json.data : [];
                 const sel = document.getElementById('bankQuestionCategory');
                 if (!sel) return;
                 sel.innerHTML = '<option value="">선택 안 함</option>';
-                ncsCurriculumList.forEach(function(item) {
+                ncsSubjectsList.forEach(function(item) {
                     const opt = document.createElement('option');
                     opt.value = String(item.id);
                     opt.textContent = item.name || ('교과목 #' + item.id);
                     sel.appendChild(opt);
                 });
-            } catch (e) { console.error(e); ncsCurriculumList = []; }
+            } catch (e) { console.error(e); ncsSubjectsList = []; }
+        }
+        function openNcsSubjectsModal() {
+            const modal = document.getElementById('ncsSubjectsModal');
+            if (modal) {
+                renderNcsSubjectsList();
+                modal.classList.remove('hidden');
+                const inp = document.getElementById('ncsSubjectNameInput');
+                if (inp) (inp as HTMLInputElement).value = '';
+            }
+        }
+        function closeNcsSubjectsModal() {
+            const modal = document.getElementById('ncsSubjectsModal');
+            if (modal) modal.classList.add('hidden');
+        }
+        function renderNcsSubjectsList() {
+            const container = document.getElementById('ncsSubjectsListContainer');
+            if (!container) return;
+            if (ncsSubjectsList.length === 0) {
+                container.innerHTML = '<p class="text-sm text-slate-500 text-center py-4">등록된 과목이 없습니다. 아래에서 추가하세요.</p>';
+                return;
+            }
+            container.innerHTML = ncsSubjectsList.map(function(item) {
+                return '<div class="flex items-center justify-between gap-2 py-2 px-3 rounded-xl border border-slate-200/60 bg-slate-50/50"><span class="text-sm text-slate-800">' + escapeHtml(item.name) + '</span><button type="button" onclick="deleteNcsSubject(' + item.id + ')" class="text-xs font-bold text-red-600 hover:text-red-800">삭제</button></div>';
+            }).join('');
+        }
+        async function addNcsSubject() {
+            const inp = document.getElementById('ncsSubjectNameInput') as HTMLInputElement | null;
+            const name = inp && inp.value ? inp.value.trim() : '';
+            if (!name) { showNotifyModal('입력 필요', '과목명을 입력하세요.', 'warning'); return; }
+            try {
+                const res = await fetch('/api/cbt/ncs-subjects', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({ name: name })
+                });
+                const json = await res.json();
+                if (json && json.success) {
+                    inp!.value = '';
+                    await loadNcsSubjectsList();
+                    renderNcsSubjectsList();
+                    showNotifyModal('추가 완료', '과목이 추가되었습니다.', 'success');
+                } else {
+                    showNotifyModal('추가 실패', (json && (json.error || json.message)) || '과목 추가에 실패했습니다.', 'error');
+                }
+            } catch (e) {
+                console.error(e);
+                showNotifyModal('오류', '과목 추가 중 오류가 발생했습니다.', 'error');
+            }
+        }
+        async function deleteNcsSubject(id: number) {
+            if (!(await showConfirmModal('과목 삭제', '이 과목을 삭제할까요? 해당 분류를 쓰는 문제의 분류는 \'선택 안 함\'으로 바뀝니다.'))) return;
+            try {
+                const res = await fetch('/api/cbt/ncs-subjects/' + id, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const json = await res.json();
+                if (json && json.success) {
+                    await loadNcsSubjectsList();
+                    renderNcsSubjectsList();
+                    showNotifyModal('삭제 완료', '과목이 삭제되었습니다.', 'success');
+                } else {
+                    showNotifyModal('삭제 실패', (json && (json.error || json.message)) || '삭제에 실패했습니다.', 'error');
+                }
+            } catch (e) {
+                console.error(e);
+                showNotifyModal('오류', '삭제 중 오류가 발생했습니다.', 'error');
+            }
         }
 
         function openBankQuestionModal() {
@@ -1017,7 +1110,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                 const difficultySelect = document.getElementById('bankQuestionDifficulty');
                 if (typeSelect) typeSelect.value = q.question_type || 'multiple_choice';
                 if (textArea) textArea.value = q.question_text || '';
-                if (categoryInput) categoryInput.value = (q.curriculum_id != null && q.curriculum_id !== '') ? String(q.curriculum_id) : '';
+                if (categoryInput) categoryInput.value = (q.ncs_subject_id != null && q.ncs_subject_id !== '') ? String(q.ncs_subject_id) : ((q.curriculum_id != null && q.curriculum_id !== '') ? String(q.curriculum_id) : '');
                 if (difficultySelect) difficultySelect.value = q.difficulty || '';
                 const optArr = (typeof q.options === 'string' ? (function(){ try { return JSON.parse(q.options); } catch(_){ return []; } })() : (Array.isArray(q.options) ? q.options : []));
                 const correctVal = q.correct_answer != null ? String(q.correct_answer) : '1';
@@ -1103,17 +1196,17 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
             const editId = formData.get('bank_question_id');
             const isEdit = editId && String(editId).trim() !== '';
             const type = formData.get('question_type') || 'multiple_choice';
-            const curriculumIdRaw = formData.get('bank_question_curriculum_id');
-            const curriculumId = curriculumIdRaw && String(curriculumIdRaw).trim() ? parseInt(String(curriculumIdRaw).trim(), 10) : undefined;
+            const ncsSubjectIdRaw = formData.get('bank_question_ncs_subject_id');
+            const ncsSubjectId = ncsSubjectIdRaw && String(ncsSubjectIdRaw).trim() ? parseInt(String(ncsSubjectIdRaw).trim(), 10) : undefined;
             const categorySel = document.getElementById('bankQuestionCategory');
-            const categoryText = (categorySel && categorySel.options[categorySel.selectedIndex] && curriculumId) ? categorySel.options[categorySel.selectedIndex].text : '';
+            const categoryText = (categorySel && categorySel.options[categorySel.selectedIndex] && ncsSubjectId) ? categorySel.options[categorySel.selectedIndex].text : '';
             const payload = {
                 question_text: formData.get('question_text'),
                 question_type: type,
                 points: 1,
                 difficulty: formData.get('difficulty') || undefined,
-                category: curriculumId ? (categoryText || undefined) : undefined,
-                curriculum_id: curriculumId || undefined
+                category: ncsSubjectId ? (categoryText || undefined) : undefined,
+                ncs_subject_id: ncsSubjectId || undefined
             };
             if (type === 'multiple_choice') {
                 payload.options = [
