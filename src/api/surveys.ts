@@ -443,13 +443,37 @@ app.get('/:id/results', authMiddleware, async (c) => {
         const user = c.get('user');
 
         const survey: any = await DB.prepare(`
-            SELECT s.*, c.title as course_title, c.teacher_id as course_teacher_id
+            SELECT s.*, c.title as course_title, c.teacher_id as course_teacher_id, u.name as teacher_name
             FROM surveys s
             LEFT JOIN courses c ON s.course_id = c.id
+            LEFT JOIN users u ON s.teacher_id = u.id
             WHERE s.id = ?
         `).bind(id).first();
 
         if (!survey) return notFoundResponse(c, 'Survey not found');
+
+        if (survey.session_id) {
+            const session: any = await DB.prepare(`
+                SELECT cs.session_number, cs.session_name, ac.name as approved_course_name,
+                    cs.instructor_name as session_instructor_name, ac.instructor_name as approved_instructor_name
+                FROM course_sessions cs
+                LEFT JOIN approved_courses ac ON cs.approved_course_id = ac.id
+                WHERE cs.id = ?
+            `).bind(survey.session_id).first();
+            if (session) {
+                const courseName = session.approved_course_name || '';
+                const sessionNum = session.session_number != null ? session.session_number : 1;
+                const sessionNameSuffix = session.session_name ? ` - ${session.session_name}` : '';
+                survey.course_title = `${courseName} (${sessionNum}회차)${sessionNameSuffix}`.trim();
+                if (!survey.teacher_name) survey.teacher_name = session.session_instructor_name || session.approved_instructor_name;
+                survey.subject_title = (survey.type === 'post_lecture' && survey.subject_name) ? survey.subject_name : courseName;
+            }
+        }
+        if (!survey.teacher_name && survey.course_teacher_id) {
+            const courseTeacher: any = await DB.prepare('SELECT name FROM users WHERE id = ?').bind(survey.course_teacher_id).first();
+            if (courseTeacher) survey.teacher_name = courseTeacher.name;
+        }
+        if (!survey.subject_title) survey.subject_title = survey.subject_name || survey.course_title || '';
 
         const effectiveTeacherId = survey.teacher_id != null ? survey.teacher_id : survey.course_teacher_id;
         if (user.role === 'teacher' && effectiveTeacherId != null && effectiveTeacherId !== user.userId) {

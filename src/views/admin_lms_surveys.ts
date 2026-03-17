@@ -181,14 +181,18 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
                     </div>
                 </div>
 
-                <!-- 문항 편집 섹션 -->
+                <!-- 설문 문항 편집 섹션: 문항 정보 표시 + 추가/수정/삭제 -->
                 <div class="border-t pt-4 mt-2">
-                    <div class="flex justify-between items-center mb-3">
+                    <div class="flex justify-between items-center mb-2">
                         <label class="block text-sm font-bold text-gray-700">설문 문항 편집</label>
                         <button type="button" onclick="addPostLectureQuestion()" class="text-xs bg-amber-100 text-amber-700 px-3 py-1.5 rounded-lg hover:bg-amber-200 font-bold"><i class="fas fa-plus mr-1"></i>문항 추가</button>
                     </div>
+                    <p id="postLectureQuestionSummary" class="text-xs text-gray-500 mb-3">총 0개 문항 · 문항 내용과 척도(문항 유형)를 수정할 수 있으며, 휴지통 아이콘으로 삭제할 수 있습니다.</p>
                     <div id="postLectureQuestions" class="space-y-3">
                         <!-- 문항들이 동적으로 로드됨 -->
+                    </div>
+                    <div id="postLectureQuestionsEmpty" class="hidden py-6 text-center text-gray-400 text-sm border border-dashed border-gray-200 rounded-xl bg-gray-50/50">
+                        등록된 문항이 없습니다. 위 <strong>문항 추가</strong> 버튼으로 추가하세요.
                     </div>
                 </div>
 
@@ -495,6 +499,18 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
             { question_text: '전반적인 교육 소감을 구체적으로 작성하여 주시기 바랍니다.', question_type: 'text' }
         ];
 
+        function updatePostLectureQuestionSummary() {
+            var container = document.getElementById('postLectureQuestions');
+            var summaryEl = document.getElementById('postLectureQuestionSummary');
+            var emptyEl = document.getElementById('postLectureQuestionsEmpty');
+            if (!container) return;
+            var count = container.querySelectorAll('.post-lecture-q-item').length;
+            if (summaryEl) summaryEl.textContent = '총 ' + count + '개 문항 · 문항 내용과 척도(문항 유형)를 수정할 수 있으며, 휴지통 아이콘으로 삭제할 수 있습니다.';
+            if (emptyEl) {
+                if (count === 0) emptyEl.classList.remove('hidden'); else emptyEl.classList.add('hidden');
+            }
+        }
+
         function renderPostLectureQuestions(questions) {
             var container = document.getElementById('postLectureQuestions');
             if (!container) return;
@@ -502,21 +518,24 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
             (questions || []).forEach(function(q, idx) {
                 container.appendChild(buildPostLectureQuestionEl(q.question_text, q.question_type, idx));
             });
+            updatePostLectureQuestionSummary();
         }
 
         function buildPostLectureQuestionEl(text, type, idx) {
             var div = document.createElement('div');
-            div.className = 'bg-gray-50 border border-gray-200 rounded-lg p-3 flex gap-2 items-start post-lecture-q-item';
+            div.className = 'bg-gray-50 border border-gray-200 rounded-xl p-4 flex gap-3 items-start post-lecture-q-item bento-card';
             div.innerHTML =
-                '<span class="text-xs font-bold text-gray-400 pt-2 min-w-[1.75rem] text-right">' + (idx + 1) + '.</span>' +
-                '<div class="flex-1 space-y-1">' +
-                '<input type="text" name="pl_q_text" value="' + (text || '').replace(/"/g, '&quot;') + '" class="w-full px-3 py-1.5 border rounded-lg text-sm focus:ring-2 focus:ring-amber-500" placeholder="문항 내용">' +
-                '<select name="pl_q_type" class="px-2 py-1 border rounded text-xs text-gray-600">' +
+                '<span class="post-lecture-q-num text-sm font-bold text-gray-500 pt-1 min-w-[2rem] text-right">' + (idx + 1) + '.</span>' +
+                '<div class="flex-1 space-y-2">' +
+                '<label class="block text-xs font-bold text-gray-600">문항 내용</label>' +
+                '<input type="text" name="pl_q_text" value="' + (text || '').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500" placeholder="예: 교육과정에 대해 전반적으로 만족한다.">' +
+                '<label class="block text-xs font-bold text-gray-600 mt-2">문항 유형(척도)</label>' +
+                '<select name="pl_q_type" class="px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-700 focus:ring-2 focus:ring-amber-500">' +
                 '<option value="rating"' + (type === 'rating' ? ' selected' : '') + '>5점 척도</option>' +
                 '<option value="text"' + (type === 'text' ? ' selected' : '') + '>서술형</option>' +
                 '<option value="choice"' + (type === 'choice' ? ' selected' : '') + '>객관식</option>' +
                 '</select></div>' +
-                '<button type="button" onclick="removePostLectureQuestion(this)" class="mt-1 text-gray-300 hover:text-red-500 flex-shrink-0"><i class="fas fa-trash"></i></button>';
+                '<button type="button" onclick="removePostLectureQuestion(this)" class="mt-1 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg flex-shrink-0 transition" title="문항 삭제"><i class="fas fa-trash text-sm"></i></button>';
             return div;
         }
 
@@ -525,21 +544,23 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
             if (!container) return;
             var idx = container.querySelectorAll('.post-lecture-q-item').length;
             container.appendChild(buildPostLectureQuestionEl('', 'rating', idx));
-            // 번호 갱신
             reindexPostLectureQuestions();
+            updatePostLectureQuestionSummary();
         }
 
         function removePostLectureQuestion(btn) {
+            if (!confirm('이 문항을 삭제할까요?')) return;
             var item = btn.closest('.post-lecture-q-item');
             if (item) item.remove();
             reindexPostLectureQuestions();
+            updatePostLectureQuestionSummary();
         }
 
         function reindexPostLectureQuestions() {
             var container = document.getElementById('postLectureQuestions');
             if (!container) return;
             container.querySelectorAll('.post-lecture-q-item').forEach(function(el, i) {
-                var numEl = el.querySelector('span');
+                var numEl = el.querySelector('span.post-lecture-q-num');
                 if (numEl) numEl.textContent = (i + 1) + '.';
             });
         }
