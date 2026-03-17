@@ -1282,18 +1282,19 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
             const listEl = document.getElementById('examQuestionList');
             if (!listEl) return;
             if (!mgmtExamId) {
-                listEl.innerHTML = '<div class=\"flex flex-col items-center justify-center py-16 text-slate-400 text-center px-4\"><i class=\"fas fa-inbox text-4xl mb-3 opacity-50\"></i><p class=\"text-xs font-medium\">회차·시험을 선택하면<br>편성된 문제가 여기 표시됩니다.</p></div>';
+                listEl.innerHTML = "<div class=\\"flex flex-col items-center justify-center py-16 text-slate-400 text-center px-4\\"><i class=\\"fas fa-inbox text-4xl mb-3 opacity-50\\"></i><p class=\\"text-xs font-medium\\">\uD68C\uCC28 \uC2DC\uD5D8\uC744 \uC120\uD0DD\uD558\uBA74 \uD504\uB9B4\uC131\uB41C \uBB38\uC81C\uAC00 \uC5EC\uAE30 \uD45C\uC2DC\uB429\uB2C8\uB2E4.</p></div>";
                 return;
             }
-            listEl.innerHTML = '<div class=\"flex flex-col items-center justify-center py-16 text-slate-400\"><i class=\"fas fa-spinner fa-spin text-2xl mb-3\"></i><span class=\"text-xs font-medium\">불러오는 중...</span></div>';
+            listEl.innerHTML = "<div class=\\"flex flex-col items-center justify-center py-16 text-slate-400\\"><i class=\\"fas fa-spinner fa-spin text-2xl mb-3\\"></i><span class=\\"text-xs font-medium\\">\uBD88\uB7EC\uC624\uB294 \uC911...</span></div>";
             try {
-                const res = await fetch(\`/api/cbt/questions?exam_id=\${mgmtExamId}\`, {
+                const examApiUrl = "/api/cbt/questions?exam_id=" + mgmtExamId;
+                const res = await fetch(examApiUrl, {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
                 const json = await res.json();
                 examQuestions = json && json.success && Array.isArray(json.data) ? json.data : (Array.isArray(json) ? json : []);
                 if (!examQuestions.length) {
-                    listEl.innerHTML = '<div class=\"flex flex-col items-center justify-center py-16 text-center px-4\"><i class=\"fas fa-clipboard-list text-4xl text-indigo-200 mb-3\"></i><p class=\"text-xs font-medium text-slate-500\">아직 편성된 문제가 없습니다.</p><p class=\"text-[11px] text-slate-400 mt-1\">좌측 문제은행에서 선택 후 &quot;선택 문제 추가&quot;를 누르세요.</p></div>';
+                    listEl.innerHTML = "<div class=\\"flex flex-col items-center justify-center py-16 text-center px-4\\"><i class=\\"fas fa-clipboard-list text-4xl text-indigo-200 mb-3\\"></i><p class=\\"text-xs font-medium text-slate-500\\">\uC544\uC9C1 \uD504\uB9B4\uC131\uB41C \uBB38\uC81C\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.</p><p class=\\"text-[11px] text-slate-400 mt-1\\">\uC88C\uCE21 \uBB38\uC81C\uC740\uD559\uC5D0\uC11C \uC120\uD0DD \uD6C4 \uC120\uD0DD \uBB38\uC81C \uCD94\uAC00\uB97C \uB20C\uB974\uC138\uC694.</p></div>";
                     return;
                 }
                 const subjectName = (cid) => (mgmtSubjects.find((s) => s.id === cid) || {}).name || '';
@@ -1325,7 +1326,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                 \`).join('');
             } catch (e) {
                 console.error(e);
-                listEl.innerHTML = '<div class=\"flex flex-col items-center justify-center py-16 text-center px-4\"><i class=\"fas fa-exclamation-circle text-4xl text-red-300 mb-3\"></i><p class=\"text-xs font-medium text-red-500\">시험 문제를 불러오지 못했습니다.</p></div>';
+                listEl.innerHTML = "<div class=\\"flex flex-col items-center justify-center py-16 text-center px-4\\"><i class=\\"fas fa-exclamation-circle text-4xl text-red-300 mb-3\\"></i><p class=\\"text-xs font-medium text-red-500\\">\uC2DC\uD5D8 \uBB38\uC81C\uB97C \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.</p></div>";
             }
         }
 

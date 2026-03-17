@@ -385,7 +385,10 @@ app.get('/admin/ncs/approved/:step', (c) => {
     return c.redirect('/admin/courses/approved');
 });
 app.get('/admin/exams', (c) => c.html(adminHrdExamsHtml()));
-app.get('/admin/exams/question-bank', (c) => c.html(adminHrdExamsHtml(hrdSidebar('exams-question-bank'), { questionBankOnly: true })));
+app.get('/admin/exams/question-bank', (c) => {
+    c.header('Cache-Control', 'no-cache, no-store, must-revalidate');
+    return c.html(adminHrdExamsHtml(hrdSidebar('exams-question-bank'), { questionBankOnly: true }));
+});
 app.get('/admin/exams/:id/results', (c) => c.html(adminExamResultsHtml()));
 app.get('/admin/grades', (c) => c.html(adminHrdGradesHtml()));
 app.get('/admin/ncs-eval', (c) => c.html(adminHrdNcsEvalHtml()));
