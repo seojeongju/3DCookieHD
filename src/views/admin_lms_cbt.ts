@@ -887,7 +887,7 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                             <button type="button" onclick="openResultsDetail(\${e.id})" class="text-indigo-600 hover:text-indigo-800 text-sm font-medium">상세</button>
                         </td>
                         <td class="px-6 py-4 text-right">
-                            <button type="button" onclick="deleteExam(\${e.id}, '\${String(e.title || '').replace(/</g, '&lt;').replace(/'/g, '&#39;')}')" class="text-red-600 hover:text-red-800 text-sm font-medium" title="시험 삭제"><i class="fas fa-trash-alt"></i></button>
+                            <button type="button" onclick="deleteExamFromResultsList(this)" data-exam-id="\${e.id}" data-exam-title="\${escapeHtml(e.title || '').replace(/"/g, '&quot;')}" class="text-red-600 hover:text-red-800 text-sm font-medium" title="시험 삭제"><i class="fas fa-trash-alt"></i> 삭제</button>
                         </td>
                     </tr>
                 \`).join('');
@@ -896,7 +896,13 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                 tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-12 text-center text-red-500">결과를 불러오지 못했습니다.</td></tr>';
             }
         }
-        async function deleteExam(examId, examTitle) {
+        function deleteExamFromResultsList(btn) {
+            const id = parseInt(btn.getAttribute('data-exam-id'), 10);
+            const title = (btn.getAttribute('data-exam-title') || '').replace(/&quot;/g, '"');
+            if (Number.isNaN(id)) return;
+            deleteExamFromResults(id, title);
+        }
+        async function deleteExamFromResults(examId, examTitle) {
             if (!confirm('시험 \"' + (examTitle || '') + '\"을(를) 삭제하시겠습니까?\\n제출 기록과 문항이 모두 삭제되며 복구할 수 없습니다.')) return;
             try {
                 const token = localStorage.getItem('token');
