@@ -3,6 +3,7 @@ import type { Bindings } from '../types';
 import { successResponse, errorResponse, notFoundResponse } from '../utils/response';
 import { authMiddleware } from '../middleware/auth';
 import { getAll, execute } from '../utils/database';
+import { resolveSessionToLmsCourseId } from '../utils/sessionCourseResolution';
 
 const exams = new Hono<{ Bindings: Bindings }>();
 
@@ -198,7 +199,7 @@ exams.get('/student/pre-assessment-combined', async (c) => {
             if (Number.isNaN(courseId)) return errorResponse(c, '유효한 course_id가 아닙니다', 400);
         }
 
-        const { results: exams } = await c.env.DB.prepare(`
+        const sqlExams = `
             SELECT e.id, e.title, e.time_limit_minutes, e.course_id
             FROM exams e
             WHERE e.course_id = ? AND e.type = 'practice' AND e.is_active = 1
@@ -210,7 +211,17 @@ exams.get('/student/pre-assessment-combined', async (c) => {
                 WHERE cse.user_id = ? AND cse.status IN ('approved', 'enrolled') AND cs.lms_course_id IS NOT NULL
             )
             ORDER BY e.created_at ASC
-        `).bind(courseId, userId, userId).all() as { results: { id: number; title: string; time_limit_minutes?: number; course_id: number }[] };
+        `;
+        let { results: exams } = await c.env.DB.prepare(sqlExams).bind(courseId, userId, userId).all() as { results: { id: number; title: string; time_limit_minutes?: number; course_id: number }[] };
+        // course_id로 시험이 없으면 파라미터를 회차(session) ID로 해석해 LMS 과정 ID로 재조회
+        if ((!exams || exams.length === 0) && courseIdParam && !sessionIdParam) {
+            const resolved = await resolveSessionToLmsCourseId(c.env.DB, courseIdParam);
+            if (resolved != null && resolved !== courseId) {
+                courseId = resolved;
+                const next = await c.env.DB.prepare(sqlExams).bind(courseId, userId, userId).all() as { results: { id: number; title: string; time_limit_minutes?: number; course_id: number }[] };
+                exams = next.results || [];
+            }
+        }
 
         const courseRow: any = await c.env.DB.prepare('SELECT title FROM courses WHERE id = ?').bind(courseId).first();
         const course_title = courseRow?.title || '';
