@@ -620,6 +620,68 @@ cbt.delete('/questions/:id', authMiddleware, async (c) => {
 });
 
 // ============================================================
+// NCS 과정별 평가용 문제 풀 (문제은행 → NCS평가관리 등록)
+// ============================================================
+
+// GET /api/cbt/ncs-course-questions?course_id= 또는 ?session_id=  - 해당 과정의 NCS평가용 문제 목록
+cbt.get('/ncs-course-questions', authMiddleware, async (c) => {
+    try {
+        const courseIdParam = c.req.query('course_id') ?? c.req.query('session_id');
+        if (!courseIdParam) return errorResponse(c, 'course_id 또는 session_id가 필요합니다', 400);
+        const courseId = await resolveSessionToLmsCourseId(c.env.DB, courseIdParam);
+        if (courseId == null) return successResponse(c, []);
+
+        const { results } = await c.env.DB.prepare(`
+            SELECT n.id, n.course_id, n.question_bank_id, n.order_index, n.created_at,
+                   q.question_text, q.question_type, q.options, q.correct_answer, q.difficulty, q.category
+            FROM ncs_course_questions n
+            JOIN question_bank q ON q.id = n.question_bank_id
+            WHERE n.course_id = ?
+            ORDER BY n.order_index ASC, n.id ASC
+        `).bind(courseId).all() as { results: any[] };
+        return successResponse(c, results || []);
+    } catch (e: any) {
+        console.error('GET /api/cbt/ncs-course-questions error:', e);
+        return errorResponse(c, e.message, 500);
+    }
+});
+
+// POST /api/cbt/ncs-course-questions  - 문제은행 문제를 해당 회차 NCS평가에 등록 (body: session_id, question_bank_ids)
+cbt.post('/ncs-course-questions', authMiddleware, async (c) => {
+    try {
+        const body = await c.req.json() as { session_id?: string | number; question_bank_ids?: number[] };
+        const sessionId = body.session_id != null ? String(body.session_id) : null;
+        if (!sessionId) return errorResponse(c, 'session_id가 필요합니다', 400);
+        const courseId = await resolveSessionToLmsCourseId(c.env.DB, sessionId);
+        if (courseId == null) return errorResponse(c, '해당 회차를 찾을 수 없습니다', 404);
+
+        const raw = body.question_bank_ids || [];
+        const questionBankIds = (Array.isArray(raw) ? raw : []).map((v) => parseInt(String(v), 10)).filter((v) => !Number.isNaN(v));
+        if (questionBankIds.length === 0) return errorResponse(c, 'question_bank_ids 배열이 필요합니다', 400);
+
+        const maxOrder: any = await c.env.DB.prepare('SELECT MAX(order_index) as mx FROM ncs_course_questions WHERE course_id = ?').bind(courseId).first();
+        let nextOrder = ((maxOrder?.mx) ?? 0) + 1;
+        const inserted: number[] = [];
+
+        for (const bankId of questionBankIds) {
+            const exists = await c.env.DB.prepare('SELECT id FROM ncs_course_questions WHERE course_id = ? AND question_bank_id = ?').bind(courseId, bankId).first();
+            if (exists) continue;
+            const row: any = await c.env.DB.prepare('SELECT id FROM question_bank WHERE id = ?').bind(bankId).first();
+            if (!row) continue;
+            await c.env.DB.prepare(
+                'INSERT INTO ncs_course_questions (course_id, question_bank_id, order_index) VALUES (?, ?, ?)'
+            ).bind(courseId, bankId, nextOrder++).run();
+            const last: any = await c.env.DB.prepare('SELECT id FROM ncs_course_questions WHERE course_id = ? AND question_bank_id = ? ORDER BY id DESC LIMIT 1').bind(courseId, bankId).first();
+            if (last?.id) inserted.push(last.id);
+        }
+        return successResponse(c, { course_id: courseId, inserted_count: inserted.length }, '선택한 문제가 NCS평가에 등록되었습니다.');
+    } catch (e: any) {
+        console.error('POST /api/cbt/ncs-course-questions error:', e);
+        return errorResponse(c, e.message, 500);
+    }
+});
+
+// ============================================================
 // /api/cbt/exams/:id/import-questions  - 다른 시험/과정의 문제를 복사하여 편성
 // ============================================================
 

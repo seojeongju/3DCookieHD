@@ -170,6 +170,13 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                                     <p class="text-xs text-gray-500 mt-1">회차와 시험을 선택한 뒤, 좌측 문제은행에서 문제를 가져와 우측 시험에 편성할 수 있습니다.</p>
                                 </div>
                                 <div class="flex flex-wrap gap-3 items-center">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs font-bold text-gray-500">추가 유형</span>
+                                        <div class="flex bg-gray-100 p-0.5 rounded-lg">
+                                            <button type="button" id="addTypePre" onclick="setAddTargetType('pre')" class="add-type-btn px-3 py-1.5 rounded-md text-xs font-bold transition bg-white text-indigo-600 shadow-sm" data-type="pre">사전평가</button>
+                                            <button type="button" id="addTypeNcs" onclick="setAddTargetType('ncs')" class="add-type-btn px-3 py-1.5 rounded-md text-xs font-bold transition text-gray-500 hover:text-gray-700" data-type="ncs">NCS평가</button>
+                                        </div>
+                                    </div>
                                     <select id="mgmtSessionSelect" class="bg-gray-50 border border-gray-200 text-xs font-bold text-gray-600 rounded-xl px-3 py-2 min-w-[180px]" onchange="onMgmtSessionChange()">
                                         <option value="">회차 선택</option>
                                     </select>
@@ -218,21 +225,22 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                                     <div class="mt-3 flex justify-between items-center">
                                         <div class="text-[11px] text-slate-400" id="bankCountLabel"></div>
                                         <button type="button" onclick="importSelectedQuestions()" class="inline-flex items-center px-3 py-1.5 rounded-xl bg-indigo-600 text-white text-[11px] font-bold hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed" id="importBtn" disabled>
-                                            선택 문제 시험에 추가
+                                            <span id="importBtnLabel">선택 문제 시험에 추가</span>
                                         </button>
                                     </div>
                                 </div>
 
-                                <!-- 선택 시험의 문제 구성 -->
+                                <!-- 우측: 사전평가 시 시험 문제 목록 / NCS평가 시 NCS 문제 목록 -->
                                 <div class="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-4 flex flex-col">
                                     <div class="flex justify-between items-center mb-3">
                                         <div>
-                                            <div class="text-xs font-black text-slate-500 uppercase tracking-widest">선택된 시험의 문제 목록</div>
+                                            <div class="text-xs font-black text-slate-500 uppercase tracking-widest" id="rightPanelTitle">선택된 시험의 문제 목록</div>
                                             <div class="text-[11px] text-slate-400 mt-0.5" id="examInfoLabel">시험을 선택하면 이 영역에 문제가 표시됩니다.</div>
                                         </div>
+                                        <a id="rightPanelLink" href="#" class="hidden text-[11px] font-bold text-indigo-600 hover:text-indigo-800">NCS평가관리에서 보기</a>
                                     </div>
                                     <div id="examQuestionList" class="flex-1 min-h-[160px] max-h-80 overflow-y-auto custom-scrollbar text-xs text-slate-600 space-y-2">
-                                        <div class="text-center py-10 text-gray-400 text-xs">시험을 선택해 주세요.</div>
+                                        <div class="text-center py-10 text-gray-400 text-xs">회차·시험을 선택하면 이 영역에 문제가 표시됩니다.</div>
                                     </div>
                                 </div>
                             </div>
@@ -320,7 +328,11 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-gray-600 mb-1">분류 (선택)</label>
-                    <input type="text" name="category" id="bankQuestionCategory" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" placeholder="예: 3D모델링, 실기">
+                    <select name="category" id="bankQuestionCategory" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm">
+                        <option value="">선택 안 함</option>
+                        <option value="사전평가">사전평가</option>
+                        <option value="NCS평가">NCS평가</option>
+                    </select>
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-gray-600 mb-1">질문 내용</label>
@@ -603,9 +615,44 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
 
         let mgmtSessionId = '';
         let mgmtExamId = '';
+        let addTargetType = 'pre'; // 'pre' = 사전평가(시험에 추가), 'ncs' = NCS평가(해당 회차 NCS평가관리에 등록)
         let bankQuestions = [];
         let examQuestions = [];
         let mgmtSubjects = [];
+
+        function setAddTargetType(type) {
+            addTargetType = type;
+            document.querySelectorAll('.add-type-btn').forEach(btn => {
+                const isActive = (btn.getAttribute('data-type') === type);
+                btn.classList.toggle('bg-white', isActive);
+                btn.classList.toggle('text-indigo-600', isActive);
+                btn.classList.toggle('shadow-sm', isActive);
+                btn.classList.toggle('text-gray-500', !isActive);
+            });
+            const examSelect = document.getElementById('mgmtExamSelect');
+            const titleEl = document.getElementById('rightPanelTitle');
+            const labelEl = document.getElementById('examInfoLabel');
+            const linkEl = document.getElementById('rightPanelLink');
+            const importLabel = document.getElementById('importBtnLabel');
+            const importBtn = document.getElementById('importBtn');
+            if (type === 'ncs') {
+                if (examSelect) examSelect.style.display = 'none';
+                if (titleEl) titleEl.textContent = '이 회차의 NCS평가용 문제 목록';
+                if (labelEl) labelEl.textContent = '문제은행에서 \"NCS평가에 추가\"한 문제가 여기 표시됩니다.';
+                if (linkEl) { linkEl.href = mgmtSessionId ? '/admin/courses/' + mgmtSessionId + '/lms/ncs-eval' : '#'; linkEl.classList.remove('hidden'); }
+                if (importLabel) importLabel.textContent = '선택 문제 NCS평가에 추가';
+                if (importBtn) { importBtn.disabled = !mgmtSessionId; }
+                if (mgmtSessionId) loadNcsCourseQuestions();
+            } else {
+                if (examSelect) examSelect.style.display = '';
+                if (titleEl) titleEl.textContent = '선택된 시험의 문제 목록';
+                if (labelEl) labelEl.textContent = '시험을 선택하면 이 영역에 문제가 표시됩니다.';
+                if (linkEl) linkEl.classList.add('hidden');
+                if (importLabel) importLabel.textContent = '선택 문제 시험에 추가';
+                if (importBtn) { importBtn.disabled = !mgmtExamId; }
+                if (mgmtExamId) loadExamQuestions();
+            }
+        }
 
         function initExamMgmtSelectors() {
             const select = document.getElementById('mgmtSessionSelect');
@@ -667,8 +714,9 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
             if (!mgmtSessionId) {
                 mgmtSubjects = [];
                 if (examSelect) examSelect.innerHTML = '<option value=\"\">시험 선택</option>';
-                const examListEl = document.getElementById('examQuestionList'); if (examListEl) examListEl.innerHTML = '<div class=\"text-center py-10 text-gray-400 text-xs\">시험을 선택해 주세요.</div>';
+                const examListEl = document.getElementById('examQuestionList'); if (examListEl) examListEl.innerHTML = '<div class=\"text-center py-10 text-gray-400 text-xs\">회차를 선택해 주세요.</div>';
                 document.getElementById('importBtn')?.setAttribute('disabled', 'true');
+                const linkEl = document.getElementById('rightPanelLink'); if (linkEl) linkEl.href = '#';
                 await loadQuestionBank();
                 return;
             }
@@ -678,6 +726,11 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                 mgmtSubjects = (subJson?.data?.subjects || []).map((s) => ({ id: s.id, name: s.name || ('과목 ' + s.id) }));
             } catch (_) { mgmtSubjects = []; }
             await loadMgmtExams();
+            if (addTargetType === 'ncs') {
+                await loadNcsCourseQuestions();
+                const linkEl = document.getElementById('rightPanelLink'); if (linkEl) { linkEl.href = '/admin/courses/' + mgmtSessionId + '/lms/ncs-eval'; linkEl.classList.remove('hidden'); }
+                document.getElementById('importBtn').disabled = false;
+            }
             await loadQuestionBank();
         }
 
@@ -712,6 +765,35 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                 label.textContent = mgmtExamId
                     ? \`시험 ID \${mgmtExamId}에 편성된 문제 목록입니다.\`
                     : '시험을 선택하면 이 영역에 문제가 표시됩니다.';
+            }
+            const importBtn = document.getElementById('importBtn');
+            if (importBtn && addTargetType === 'pre') importBtn.disabled = !mgmtExamId;
+        }
+
+        async function loadNcsCourseQuestions() {
+            const listEl = document.getElementById('examQuestionList');
+            if (!listEl || !mgmtSessionId) return;
+            listEl.innerHTML = '<div class=\"text-center py-10 text-gray-400 text-xs\">불러오는 중...</div>';
+            try {
+                const res = await fetch(\`/api/cbt/ncs-course-questions?session_id=\${mgmtSessionId}\`, { headers: { 'Authorization': 'Bearer ' + token } });
+                const json = await res.json();
+                const list = (json && json.success && Array.isArray(json.data)) ? json.data : [];
+                if (list.length === 0) {
+                    listEl.innerHTML = '<div class=\"text-center py-10 text-gray-400 text-xs\">이 회차에 NCS평가용 문제가 없습니다. 좌측에서 선택 후 \"선택 문제 NCS평가에 추가\"를 누르세요.</div>';
+                    return;
+                }
+                listEl.innerHTML = list.map((q, idx) => \`
+                    <div class="flex items-center justify-between gap-2 px-3 py-2 rounded-lg hover:bg-slate-50 border border-slate-100">
+                        <div class="flex-1 min-w-0">
+                            <span class="px-1.5 py-0.5 rounded bg-slate-100 text-[10px] font-bold text-slate-600">\${idx + 1}</span>
+                            <span class="px-1.5 py-0.5 rounded bg-gray-100 text-[10px] font-bold text-gray-600">\${(q.question_type || '').replace('_', ' ')}</span>
+                            <span class="text-slate-700 line-clamp-2">\${String(q.question_text || '').replace(/</g, '&lt;').substring(0, 80)}\${(q.question_text || '').length > 80 ? '...' : ''}</span>
+                        </div>
+                    </div>
+                \`).join('');
+            } catch (e) {
+                console.error(e);
+                listEl.innerHTML = '<div class=\"text-center py-10 text-red-400 text-xs\">NCS평가 문제 목록을 불러오지 못했습니다.</div>';
             }
         }
 
@@ -757,7 +839,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                     </label>
                 \`).join('');
                 if (countEl) countEl.textContent = \`총 \${bankQuestions.length}문항\`;
-                if (importBtn) importBtn.disabled = !mgmtExamId;
+                if (importBtn) importBtn.disabled = addTargetType === 'ncs' ? !mgmtSessionId : !mgmtExamId;
             } catch (e) {
                 console.error(e);
                 listEl.innerHTML = '<div class=\"text-center py-10 text-red-400 text-xs\">문제은행을 불러오지 못했습니다.</div>';
@@ -910,14 +992,39 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
         }
 
         async function importSelectedQuestions() {
-            if (!mgmtExamId) {
-                showNotifyModal('안내', '먼저 회차와 시험을 선택한 뒤, 추가할 시험을 선택해 주세요.', 'info');
-                return;
-            }
             const checkboxes = Array.from(document.querySelectorAll('.bank-question-checkbox'));
             const selectedBankIds = checkboxes.filter(cb => cb.checked).map(cb => parseInt(cb.value, 10)).filter(v => !Number.isNaN(v));
             if (!selectedBankIds.length) {
                 showNotifyModal('안내', '가져올 문제를 선택해 주세요.', 'info');
+                return;
+            }
+            if (addTargetType === 'ncs') {
+                if (!mgmtSessionId) {
+                    showNotifyModal('안내', '회차를 선택한 뒤 NCS평가에 추가해 주세요.', 'info');
+                    return;
+                }
+                try {
+                    const res = await fetch('/api/cbt/ncs-course-questions', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                        body: JSON.stringify({ session_id: mgmtSessionId, question_bank_ids: selectedBankIds })
+                    });
+                    const json = await res.json();
+                    if (json && json.success) {
+                        showNotifyModal('추가 완료', '선택한 문제가 이 회차의 NCS평가관리에 등록되었습니다. NCS평가관리 페이지에서 확인하세요.', 'success');
+                        checkboxes.forEach(cb => { cb.checked = false; });
+                        await loadNcsCourseQuestions();
+                    } else {
+                        showNotifyModal('추가 실패', json.error || '알 수 없는 오류', 'error');
+                    }
+                } catch (e) {
+                    console.error(e);
+                    showNotifyModal('오류', '문제 추가 중 오류가 발생했습니다.', 'error');
+                }
+                return;
+            }
+            if (!mgmtExamId) {
+                showNotifyModal('안내', '먼저 회차와 시험을 선택한 뒤, 추가할 시험을 선택해 주세요.', 'info');
                 return;
             }
             try {
