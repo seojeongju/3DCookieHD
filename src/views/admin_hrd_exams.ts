@@ -890,7 +890,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                     <div class="bento-card flex items-start gap-3 p-3 rounded-2xl border border-slate-200/60 bg-white hover:border-slate-300/60 transition-all shadow-sm">
                         <span class="shrink-0 w-6 h-6 flex items-center justify-center rounded-lg bg-amber-50 text-amber-700 text-[10px] font-bold">\${idx + 1}</span>
                         <span class="shrink-0 px-2 py-0.5 rounded-lg bg-slate-100 text-[10px] font-bold text-slate-600">\${getQuestionTypeLabel(q.question_type)}</span>
-                        <p class="flex-1 min-w-0 text-xs text-slate-700 line-clamp-2 leading-relaxed">\${String(q.question_text || '').replace(/</g, '&lt;')}</p>
+                        <p class="flex-1 min-w-0 text-xs text-slate-700 line-clamp-2 leading-relaxed">\${String(q.question_text || '').replace(new RegExp('<', 'g'), '&lt;')}</p>
                     </div>
                 \`).join('');
             } catch (e) {
@@ -929,7 +929,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                     return;
                 }
                 listEl.innerHTML = bankQuestions.map((q) => {
-                    const category = (q.category || q.course_title || '').toString().replace(/</g, '&lt;');
+                    const category = (q.category || q.course_title || '').toString().replace(new RegExp('<', 'g'), '&lt;');
                     const isNcsSubject = category === 'NCS교과목';
                     const isPre = category === '사전평가';
                     const isNcs = category === 'NCS평가';
@@ -951,9 +951,9 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                                 <span class=\"px-2 py-0.5 rounded-lg bg-slate-100 text-[10px] font-bold text-slate-600\">#\${q.id}</span>
                                 <span class=\"px-2 py-0.5 rounded-lg bg-slate-100 text-[10px] font-bold text-slate-600\">\${getQuestionTypeLabel(q.question_type)}</span>
                                 \${q.difficulty ? '<span class=\"px-2 py-0.5 rounded-lg bg-blue-50 text-[10px] font-bold text-blue-600\">' + (q.difficulty === 'high' ? '상' : q.difficulty === 'low' ? '하' : '중') + '</span>' : ''}
-                                \${q.ncs_ability_unit_name ? '<span class=\"px-2 py-0.5 rounded-lg bg-amber-50/80 text-[10px] font-bold text-amber-700\" title=\"NCS 능력단위\">' + String(q.ncs_ability_unit_name).replace(/</g, '&lt;') + '</span>' : ''}
+                                \${q.ncs_ability_unit_name ? '<span class=\"px-2 py-0.5 rounded-lg bg-amber-50/80 text-[10px] font-bold text-amber-700\" title=\"NCS 능력단위\">' + String(q.ncs_ability_unit_name).replace(new RegExp('<', 'g'), '&lt;') + '</span>' : ''}
                             </div>
-                            <p class=\"text-xs text-slate-700 line-clamp-2 leading-relaxed\">\${String(q.question_text || '').replace(/</g, '&lt;')}</p>
+                            <p class=\"text-xs text-slate-700 line-clamp-2 leading-relaxed\">\${String(q.question_text || '').replace(new RegExp('<', 'g'), '&lt;')}</p>
                         </div>
                         <div class=\"flex items-center gap-1 shrink-0\" onclick=\"event.stopPropagation()\">
                             <button type=\"button\" onclick=\"event.stopPropagation(); openEditBankQuestion(\${q.id})\" class=\"px-2.5 py-1 rounded-lg border border-slate-200 text-slate-600 text-[11px] font-bold hover:bg-slate-50\">수정</button>
@@ -972,7 +972,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
         }
 
         let ncsSubjectsList = [];
-        function escapeHtml(s) { if (!s) return ''; return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+        function escapeHtml(s) { if (!s) return ''; return String(s).replace(new RegExp('&', 'g'), '&amp;').replace(new RegExp('<', 'g'), '&lt;').replace(new RegExp('>', 'g'), '&gt;').replace(new RegExp('"', 'g'), '&quot;'); }
         async function loadNcsSubjectsList() {
             try {
                 const res = await fetch('/api/cbt/ncs-subjects', { headers: { 'Authorization': 'Bearer ' + token } });
@@ -1310,16 +1310,16 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                                 <span class="px-2 py-0.5 rounded-lg bg-slate-100 text-[10px] font-bold text-slate-600">\${getQuestionTypeLabel(q.question_type)}</span>
                                 \${q.curriculum_id && subjectName(q.curriculum_id)
                                     ? '<span class="px-2 py-0.5 rounded-lg bg-violet-50 text-[10px] font-bold text-violet-700">' +
-                                      String(subjectName(q.curriculum_id) || '').replace(/</g, '&lt;') +
+                                      String(subjectName(q.curriculum_id) || '').replace(new RegExp('<', 'g'), '&lt;') +
                                       '</span>'
                                     : ''}
                                 \${q.ncs_ability_unit_name
                                     ? '<span class="px-2 py-0.5 rounded-lg bg-amber-50 text-[10px] font-bold text-amber-700" title="NCS 능력단위">' +
-                                      String(q.ncs_ability_unit_name || '').replace(/</g, '&lt;') +
+                                      String(q.ncs_ability_unit_name || '').replace(new RegExp('<', 'g'), '&lt;') +
                                       '</span>'
                                     : ''}
                             </div>
-                            <p class="text-xs text-slate-700 line-clamp-2 leading-relaxed">\${String(q.question_text || '').replace(/</g, '&lt;')}</p>
+                            <p class="text-xs text-slate-700 line-clamp-2 leading-relaxed">\${String(q.question_text || '').replace(new RegExp('<', 'g'), '&lt;')}</p>
                         </div>
                         <button type="button" onclick="removeQuestionFromExam(\${q.id})" class="shrink-0 p-2 text-slate-400 hover:text-red-500 rounded-xl hover:bg-red-50 transition" title="시험에서 제거"><i class="fas fa-times text-xs"></i></button>
                     </div>
