@@ -1,7 +1,11 @@
 
 import { hrdSidebar } from './components/hrd_sidebar';
 
-export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
+export type AdminHrdExamsOptions = { questionBankOnly?: boolean };
+
+export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: AdminHrdExamsOptions) => {
+    const questionBankOnly = options?.questionBankOnly === true;
+    return `
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -31,14 +35,14 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
         <div class="flex-1 flex flex-col overflow-hidden bg-gray-50">
             <!-- 헤더 -->
             <div class="bg-white border-b border-gray-200 flex-shrink-0">
-                <div class="px-8 py-6">
-                    <div class="flex justify-between items-center">
+                <div class="px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+                    <div class="flex justify-between items-center flex-wrap gap-3">
                         <div>
-                            <h1 class="text-2xl font-bold text-gray-800 tracking-tight">통합 시험/CBT 현황</h1>
-                            <p class="text-gray-500 mt-1 text-sm">모든 교육 과정의 시험 등록 현황 및 학생들의 응시율/평균 점수를 관리합니다.</p>
+                            <h1 class="text-xl sm:text-2xl font-bold text-gray-800 tracking-tight">${questionBankOnly ? '시험·문제 구성' : '통합 시험/CBT 현황'}</h1>
+                            <p class="text-gray-500 mt-1 text-sm">${questionBankOnly ? '회차와 시험을 선택한 뒤, 문제은행에서 문제를 가져와 시험에 편성할 수 있습니다.' : '모든 교육 과정의 시험 등록 현황 및 학생들의 응시율/평균 점수를 관리합니다.'}</p>
                         </div>
                         <div class="flex items-center gap-3">
-                            <button onclick="loadExamSummary()" class="p-2.5 bg-white border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 hover:text-indigo-600 transition-all shadow-sm">
+                            <button onclick="loadExamSummary()" class="p-2.5 bg-white border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 hover:text-indigo-600 transition-all shadow-sm" title="새로고침">
                                 <i class="fas fa-sync-alt"></i>
                             </button>
                         </div>
@@ -49,8 +53,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
             <!-- 메인 컨텐츠 -->
             <main class="flex-1 overflow-y-auto p-6 custom-scrollbar">
                 <div class="max-w-7xl mx-auto space-y-6">
-                    
-                    <!-- 요약 통계 카드 -->
+                    ${questionBankOnly ? '' : `<!-- 요약 통계 카드 -->
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                         <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center group hover:shadow-md transition-all duration-300">
                             <div class="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-500 mr-4 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300">
@@ -155,6 +158,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
                             <div class="order-1 sm:order-2 flex items-center p-1.5 bg-white rounded-2xl border border-gray-100 shadow-sm" id="paginationControls"></div>
                         </div>
                     </div>
+                    `}
 
                     <!-- 시험/문제 구성 관리 -->
                     <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
@@ -351,12 +355,69 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
         </div>
     </div>
 
+    <!-- 커스텀 알림 모달 (글래스/벤토 스타일) -->
+    <div id="notifyModal" class="fixed inset-0 z-[60] hidden items-center justify-center p-4" aria-modal="true" role="dialog">
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeNotifyModal()"></div>
+        <div class="relative w-full max-w-md rounded-[2.5rem] border border-slate-200/60 bg-white/95 shadow-xl shadow-slate-200/50 backdrop-blur-md overflow-hidden animate-notify-in">
+            <div id="notifyModalIconWrap" class="flex justify-center pt-8 pb-2">
+                <div id="notifyModalIcon" class="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl"></div>
+            </div>
+            <div class="px-8 pb-2 text-center">
+                <h3 id="notifyModalTitle" class="text-lg font-black text-gray-800 tracking-tight"></h3>
+            </div>
+            <div class="px-8 pb-6">
+                <p id="notifyModalMessage" class="text-sm text-slate-600 leading-relaxed text-center"></p>
+            </div>
+            <div class="px-8 pb-8 flex justify-center">
+                <button type="button" onclick="closeNotifyModal()" id="notifyModalConfirm" class="px-8 py-3 rounded-2xl text-sm font-bold text-white shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98]">
+                    확인
+                </button>
+            </div>
+        </div>
+    </div>
+    <style>
+        @keyframes notify-in {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .animate-notify-in { animation: notify-in 0.2s ease-out; }
+        #notifyModal.flex { display: flex !important; }
+    </style>
+
     <script>
         let allData = [];
         let filteredData = [];
         let currentPage = 1;
         const itemsPerPage = 10;
         const token = localStorage.getItem('token');
+
+        function showNotifyModal(title, message, type) {
+            type = type || 'info';
+            const wrap = document.getElementById('notifyModal');
+            const iconEl = document.getElementById('notifyModalIcon');
+            const iconWrap = document.getElementById('notifyModalIconWrap');
+            const titleEl = document.getElementById('notifyModalTitle');
+            const msgEl = document.getElementById('notifyModalMessage');
+            const btnEl = document.getElementById('notifyModalConfirm');
+            if (!wrap || !iconEl || !titleEl || !msgEl || !btnEl) return;
+            titleEl.textContent = title || '알림';
+            msgEl.textContent = message || '';
+            const styles = {
+                success: { icon: 'fa-circle-check', bg: 'bg-emerald-500', iconBg: 'bg-emerald-50 text-emerald-600', btn: 'bg-emerald-600 hover:bg-emerald-700' },
+                error: { icon: 'fa-circle-exclamation', bg: 'bg-red-500', iconBg: 'bg-red-50 text-red-600', btn: 'bg-red-600 hover:bg-red-700' },
+                info: { icon: 'fa-circle-info', bg: 'bg-indigo-500', iconBg: 'bg-indigo-50 text-indigo-600', btn: 'bg-indigo-600 hover:bg-indigo-700' }
+            };
+            const s = styles[type] || styles.info;
+            iconEl.className = 'w-14 h-14 rounded-2xl flex items-center justify-center text-2xl ' + s.iconBg;
+            iconEl.innerHTML = '<i class="fas ' + s.icon + '"></i>';
+            btnEl.className = 'px-8 py-3 rounded-2xl text-sm font-bold text-white shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98] ' + s.btn;
+            wrap.classList.remove('hidden');
+            wrap.classList.add('flex');
+        }
+        function closeNotifyModal() {
+            const wrap = document.getElementById('notifyModal');
+            if (wrap) { wrap.classList.add('hidden'); wrap.classList.remove('flex'); }
+        }
 
         document.addEventListener('DOMContentLoaded', () => {
             loadExamSummary();
@@ -783,16 +844,16 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
                 });
                 const json = await res.json();
                 if (json && json.success) {
-                    alert('문제가 전역 문제은행에 등록되었습니다. 원하는 회차·시험을 선택한 뒤 "선택 문제 시험에 추가"로 편성하세요.');
+                    showNotifyModal('등록 완료', '문제가 전역 문제은행에 등록되었습니다. 원하는 회차·시험을 선택한 뒤 "선택 문제 시험에 추가"로 편성하세요.', 'success');
                     closeBankQuestionModal();
                     form.reset();
                     await loadQuestionBank();
                 } else {
-                    alert('등록 실패: ' + (json && (json.error || json.message) || '알 수 없는 오류'));
+                    showNotifyModal('등록 실패', (json && (json.error || json.message)) || '알 수 없는 오류', 'error');
                 }
             } catch (err) {
                 console.error(err);
-                alert('등록 중 오류가 발생했습니다.');
+                showNotifyModal('오류', '등록 중 오류가 발생했습니다.', 'error');
             }
         }
 
@@ -848,13 +909,13 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
 
         async function importSelectedQuestions() {
             if (!mgmtExamId) {
-                alert('먼저 회차와 시험을 선택한 뒤, 추가할 시험을 선택해 주세요.');
+                showNotifyModal('안내', '먼저 회차와 시험을 선택한 뒤, 추가할 시험을 선택해 주세요.', 'info');
                 return;
             }
             const checkboxes = Array.from(document.querySelectorAll('.bank-question-checkbox'));
             const selectedBankIds = checkboxes.filter(cb => cb.checked).map(cb => parseInt(cb.value, 10)).filter(v => !Number.isNaN(v));
             if (!selectedBankIds.length) {
-                alert('가져올 문제를 선택해 주세요.');
+                showNotifyModal('안내', '가져올 문제를 선택해 주세요.', 'info');
                 return;
             }
             try {
@@ -868,15 +929,15 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
                 });
                 const json = await res.json();
                 if (json && json.success) {
-                    alert('선택한 문제가 시험에 추가되었습니다.');
+                    showNotifyModal('추가 완료', '선택한 문제가 시험에 추가되었습니다.', 'success');
                     checkboxes.forEach(cb => { cb.checked = false; });
                     await loadExamQuestions();
                 } else {
-                    alert('문제 추가 실패: ' + (json.error || '알 수 없는 오류'));
+                    showNotifyModal('추가 실패', json.error || '알 수 없는 오류', 'error');
                 }
             } catch (e) {
                 console.error(e);
-                alert('문제 추가 중 오류가 발생했습니다.');
+                showNotifyModal('오류', '문제 추가 중 오류가 발생했습니다.', 'error');
             }
         }
 
@@ -889,7 +950,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
                 await fetch(\`/api/cbt/questions/\${questionId}\`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ order_index: prev.order_index }) });
                 await fetch(\`/api/cbt/questions/\${prev.id}\`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ order_index: curr.order_index }) });
                 await loadExamQuestions();
-            } catch (e) { console.error(e); alert('순서 변경 중 오류가 발생했습니다.'); }
+            } catch (e) { console.error(e); showNotifyModal('오류', '순서 변경 중 오류가 발생했습니다.', 'error'); }
         }
         async function moveQuestionDown(questionId, index) {
             if (index >= examQuestions.length - 1 || !examQuestions.length) return;
@@ -900,7 +961,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
                 await fetch(\`/api/cbt/questions/\${questionId}\`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ order_index: next.order_index }) });
                 await fetch(\`/api/cbt/questions/\${next.id}\`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ order_index: curr.order_index }) });
                 await loadExamQuestions();
-            } catch (e) { console.error(e); alert('순서 변경 중 오류가 발생했습니다.'); }
+            } catch (e) { console.error(e); showNotifyModal('오류', '순서 변경 중 오류가 발생했습니다.', 'error'); }
         }
         async function removeQuestionFromExam(questionId) {
             if (!confirm('이 문제를 시험에서 제거할까요? (문제 자체는 삭제되지 않고, 이 시험에서만 빠집니다.)')) return;
@@ -913,17 +974,17 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
                 if (json && json.success) {
                     await loadExamQuestions();
                 } else {
-                    alert('제거 실패: ' + (json.error || '알 수 없는 오류'));
+                    showNotifyModal('제거 실패', json.error || '알 수 없는 오류', 'error');
                 }
             } catch (e) {
                 console.error(e);
-                alert('제거 중 오류가 발생했습니다.');
+                showNotifyModal('오류', '제거 중 오류가 발생했습니다.', 'error');
             }
         }
 
         function openAddExamModal() {
             if (!mgmtSessionId) {
-                alert('먼저 회차를 선택해 주세요.');
+                showNotifyModal('안내', '먼저 회차를 선택해 주세요.', 'info');
                 return;
             }
             document.getElementById('addExamModal')?.classList.remove('hidden');
@@ -942,11 +1003,11 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
             const end_time = (fd.get('end_time') && String(fd.get('end_time'))) || null;
             const description = (fd.get('description') && String(fd.get('description'))) || null;
             if (!title?.trim()) {
-                alert('시험명을 입력해 주세요.');
+                showNotifyModal('안내', '시험명을 입력해 주세요.', 'info');
                 return;
             }
             if (!mgmtSessionId) {
-                alert('회차가 선택되지 않았습니다.');
+                showNotifyModal('안내', '회차가 선택되지 않았습니다.', 'info');
                 return;
             }
             try {
@@ -982,14 +1043,15 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams')) => `
                         }
                     }
                 } else {
-                    alert('시험 생성 실패: ' + (json.error || '알 수 없는 오류'));
+                    showNotifyModal('생성 실패', json.error || '알 수 없는 오류', 'error');
                 }
             } catch (err) {
                 console.error(err);
-                alert('시험 생성 중 오류가 발생했습니다.');
+                showNotifyModal('오류', '시험 생성 중 오류가 발생했습니다.', 'error');
             }
         }
     </script>
 </body>
 </html>
 `;
+};
