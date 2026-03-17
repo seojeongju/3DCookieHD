@@ -1181,7 +1181,8 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
         function handleBankPdfUpload(input) {
             if (!input.files || !input.files[0]) return;
             const file = input.files[0];
-            showNotifyModal('AI 문제 생성 (PDF)', \"PDF 파일 '\" + file.name + \"'을 분석하여 문제를 생성합니다. (현재는 데모 기능으로 실제 분석은 수행되지 않습니다.)\", 'info');
+            var _pdfMsg = 'PDF 파일 [' + file.name + ']을 분석하여 문제를 생성합니다. (현재는 데모 기능으로 실제 분석은 수행되지 않습니다.)';
+            showNotifyModal('AI 문제 생성 (PDF)', _pdfMsg, 'info');
             input.value = '';
             // TODO: 실제 파일 업로드 및 AI 분석 API 호출 후 전역 문제은행에 등록
             // const formData = new FormData(); formData.append('file', file);
