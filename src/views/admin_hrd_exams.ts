@@ -836,7 +836,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
             try {
                 const subRes = await fetch('/api/ncs/approved/syllabus/session/' + mgmtSessionId + '/subjects', { headers: { 'Authorization': 'Bearer ' + token } });
                 const subJson = await subRes.json();
-                mgmtSubjects = (subJson?.data?.subjects || []).map((s) => ({ id: s.id, name: s.name || ('과목 ' + s.id) }));
+                mgmtSubjects = (subJson?.data?.subjects || []).map((s) => ({ id: s.id, name: s.name || ("\uACFC\uBAA9 " + s.id) }));
             } catch (_) { mgmtSubjects = []; }
             await loadMgmtExams();
             if (addTargetType === 'ncs') {
@@ -850,7 +850,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
         async function loadMgmtExams() {
             if (!mgmtSessionId) return;
             try {
-                const res = await fetch(\`/api/cbt/exams?course_id=\${mgmtSessionId}\`, {
+                const res = await fetch('/api/cbt/exams?course_id=' + mgmtSessionId, {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
                 const json = await res.json();
@@ -984,7 +984,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                     ncsSubjectsList.forEach(function(item) {
                         const opt = document.createElement('option');
                         opt.value = String(item.id);
-                        opt.textContent = item.name || ('교과목 #' + item.id);
+                        opt.textContent = item.name || ("\uAD50\uACFC\uBAA9 #" + item.id);
                         sel.appendChild(opt);
                     });
                 }
@@ -995,7 +995,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                     ncsSubjectsList.forEach(function(item) {
                         const opt = document.createElement('option');
                         opt.value = String(item.id);
-                        opt.textContent = item.name || ('교과목 #' + item.id);
+                        opt.textContent = item.name || ("\uAD50\uACFC\uBAA9 #" + item.id);
                         filterSel.appendChild(opt);
                     });
                     if (prevVal) filterSel.value = prevVal;
@@ -1051,7 +1051,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
             }
         }
         async function deleteNcsSubject(id) {
-            if (!(await showConfirmModal('과목 삭제', '이 과목을 삭제할까요? 해당 분류를 쓰는 문제의 분류는 \'선택 안 함\'으로 바뀝니다.'))) return;
+            if (!(await showConfirmModal("\uACFC\uBAA9 \uC0AD\uC81C", "\uC774 \uACFC\uBAA9\uC744 \uC0AD\uC81C\uD560\uAE4C\uC694? \uD574\uB2F9 \uBD84\uB958\uB97C \uC4F0\uB294 \uBB38\uC81C\uC758 \uBD84\uB958\uB294 [\uC120\uD0DD \uC548 \uD568]\uC73C\uB85C \uBC14\uACFC\uB2E4."))) return;
             try {
                 const res = await fetch('/api/cbt/ncs-subjects/' + id, {
                     method: 'DELETE',
