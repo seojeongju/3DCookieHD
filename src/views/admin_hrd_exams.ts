@@ -1007,7 +1007,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                 renderNcsSubjectsList();
                 modal.classList.remove('hidden');
                 const inp = document.getElementById('ncsSubjectNameInput');
-                if (inp) (inp as HTMLInputElement).value = '';
+                if (inp) inp.value = '';
             }
         }
         function closeNcsSubjectsModal() {
@@ -1026,7 +1026,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
             }).join('');
         }
         async function addNcsSubject() {
-            const inp = document.getElementById('ncsSubjectNameInput') as HTMLInputElement | null;
+            const inp = document.getElementById('ncsSubjectNameInput');
             const name = inp && inp.value ? inp.value.trim() : '';
             if (!name) { showNotifyModal('입력 필요', '과목명을 입력하세요.', 'warning'); return; }
             try {
@@ -1037,7 +1037,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                 });
                 const json = await res.json();
                 if (json && json.success) {
-                    inp!.value = '';
+                    if (inp) inp.value = '';
                     await loadNcsSubjectsList();
                     renderNcsSubjectsList();
                     showNotifyModal('추가 완료', '과목이 추가되었습니다.', 'success');
