@@ -83,13 +83,15 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                         <tr>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">번호</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">문제 내용</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">분류</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">유형</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">난이도</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">소속 시험</th>
                             <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-28">관리</th>
                         </tr>
                     </thead>
                     <tbody id="preAssessmentQuestionListBody" class="bg-white divide-y divide-gray-200">
-                        <tr><td colspan="5" class="px-6 py-12 text-center text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i> 로딩중...</td></tr>
+                        <tr><td colspan="7" class="px-6 py-12 text-center text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i> 로딩중...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -797,17 +799,22 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
             const tbody = document.getElementById('preAssessmentQuestionListBody');
             if (!tbody) return;
             if (allQuestions.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-12 text-center text-gray-500">등록된 사전평가 문제가 없습니다.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-12 text-center text-gray-500">등록된 사전평가 문제가 없습니다.</td></tr>';
                 return;
             }
+            const difficultyLabel = (d) => (d === 'high' ? '상' : d === 'medium' ? '중' : d === 'low' ? '하' : '-');
             tbody.innerHTML = allQuestions.map(function(q, idx) {
                 const text = (q.question_text || '').replace(/</g, '&lt;').substring(0, 80) + ((q.question_text || '').length > 80 ? '...' : '');
                 const typeLabel = typeof getQuestionTypeName === 'function' ? getQuestionTypeName(q.question_type) : (q.question_type === 'multiple_choice' ? '객관식' : q.question_type === 'short_answer' ? '단답형' : '서술형');
+                const categoryLabel = (q.category || '-').replace(/</g, '&lt;');
+                const diffLabel = difficultyLabel(q.difficulty);
                 const examTitle = (q.exam_title || '-').replace(/</g, '&lt;');
                 return \`<tr class="hover:bg-gray-50">
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">\${idx + 1}</td>
                     <td class="px-6 py-4 text-sm text-gray-900">\${text}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">\${categoryLabel}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">\${typeLabel}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">\${diffLabel}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">\${examTitle}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <button type="button" onclick="openEditQuestion(\${q.id})" class="text-blue-600 hover:text-blue-900 mr-3">수정</button>
@@ -835,7 +842,7 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                 console.error('Error:', error);
                 document.getElementById('questionList').innerHTML = '<div class="text-center py-12 text-red-500">문제 목록을 불러오지 못했습니다.</div>';
                 const preBody = document.getElementById('preAssessmentQuestionListBody');
-                if (preBody) preBody.innerHTML = '<tr><td colspan="5" class="px-6 py-12 text-center text-red-500">문제 목록을 불러오지 못했습니다.</td></tr>';
+                if (preBody) preBody.innerHTML = '<tr><td colspan="7" class="px-6 py-12 text-center text-red-500">문제 목록을 불러오지 못했습니다.</td></tr>';
             }
         }
         async function deleteQuestion(id) {

@@ -223,14 +223,17 @@ cbt.get('/questions', authMiddleware, async (c) => {
         const courseIdParam = c.req.query('course_id');
         const type = c.req.query('type');   // multiple_choice | short_answer | essay
 
-        // 기본 컬럼만 사용 (마이그레이션 0086/0087 미적용 DB 호환)
         let sql = `
             SELECT 
                 eq.id, eq.exam_id, eq.question_text, eq.question_type,
                 eq.options, eq.correct_answer, eq.points, eq.order_index,
-                e.title as exam_title, e.course_id
+                e.title as exam_title, e.course_id,
+                qb.difficulty,
+                COALESCE(qb.category, ns.name) as category
             FROM exam_questions eq
             JOIN exams e ON eq.exam_id = e.id
+            LEFT JOIN question_bank qb ON qb.id = eq.question_bank_id
+            LEFT JOIN question_bank_ncs_subjects ns ON ns.id = qb.ncs_subject_id
             WHERE 1=1
         `;
         const params: any[] = [];
@@ -822,9 +825,11 @@ cbt.get('/ncs-course-questions', authMiddleware, async (c) => {
 
         const { results } = await c.env.DB.prepare(`
             SELECT n.id, n.course_id, n.question_bank_id, n.order_index, n.created_at,
-                   q.question_text, q.question_type, q.options, q.correct_answer, q.difficulty, q.category
+                   q.question_text, q.question_type, q.options, q.correct_answer, q.difficulty,
+                   COALESCE(q.category, ns.name) as category
             FROM ncs_course_questions n
             JOIN question_bank q ON q.id = n.question_bank_id
+            LEFT JOIN question_bank_ncs_subjects ns ON ns.id = q.ncs_subject_id
             WHERE n.course_id = ?
             ORDER BY n.order_index ASC, n.id ASC
         `).bind(courseId).all() as { results: any[] };

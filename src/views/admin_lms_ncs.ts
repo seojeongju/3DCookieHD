@@ -221,11 +221,15 @@ export const adminLmsNcsHtml = (sidebar: string = hrdSidebar('courses')) => `
                     listEl.innerHTML = '<div class="p-6 text-center text-gray-400 text-xs">등록된 NCS평가용 문제가 없습니다.<br>문제은행 페이지에서 이 회차를 선택 후 NCS평가에 추가하세요.</div>';
                     return;
                 }
+                const diffLabel = (d) => (d === 'high' ? '상' : d === 'medium' ? '중' : d === 'low' ? '하' : '-');
+                const typeLabel = (t) => (t === 'multiple_choice' ? '객관식' : t === 'short_answer' ? '단답형' : t === 'essay' ? '서술형' : (t || '').replace('_', ' '));
                 listEl.innerHTML = list.map((q, idx) => \`
                     <div class="px-3 py-2.5 hover:bg-slate-50 rounded-lg border border-transparent hover:border-slate-100 transition">
                         <div class="flex items-start gap-2">
                             <span class="shrink-0 px-1.5 py-0.5 rounded bg-slate-100 text-[10px] font-bold text-slate-600">\${idx + 1}</span>
-                            <span class="shrink-0 px-1.5 py-0.5 rounded bg-gray-100 text-[10px] font-bold text-gray-600">\${(q.question_type || '').replace('_', ' ')}</span>
+                            <span class="shrink-0 px-1.5 py-0.5 rounded bg-indigo-50 text-[10px] font-medium text-indigo-700" title="분류">\${String(q.category || '-').replace(/</g, '&lt;')}</span>
+                            <span class="shrink-0 px-1.5 py-0.5 rounded bg-gray-100 text-[10px] font-bold text-gray-600" title="문제유형">\${typeLabel(q.question_type)}</span>
+                            <span class="shrink-0 px-1.5 py-0.5 rounded bg-amber-50 text-[10px] font-medium text-amber-700" title="난이도">\${diffLabel(q.difficulty)}</span>
                             <p class="text-[11px] text-slate-700 line-clamp-2 flex-1 min-w-0">\${String(q.question_text || '').replace(/</g, '&lt;')}</p>
                         </div>
                     </div>
