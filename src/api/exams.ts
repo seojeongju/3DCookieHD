@@ -164,6 +164,67 @@ exams.get('/student/exams', async (c) => {
     }
 });
 
+// GET /api/exams/student/pre-assessment-combined?course_id= - 과정별 사전평가(연습) 통합 조회 (한 번에 여러 시험 문항 응시용)
+exams.get('/student/pre-assessment-combined', async (c) => {
+    try {
+        const courseIdParam = c.req.query('course_id');
+        if (!courseIdParam) return errorResponse(c, 'course_id 파라미터가 필요합니다', 400);
+
+        let userId: number | null = null;
+        const authHeader = c.req.header('Authorization');
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            try {
+                const { verifyToken } = await import('../utils/jwt');
+                const payload = await verifyToken(authHeader.substring(7));
+                if (payload) userId = payload.userId;
+            } catch (_) {}
+        }
+        if (!userId) return errorResponse(c, '로그인이 필요합니다', 401);
+
+        const courseId = parseInt(String(courseIdParam), 10);
+        if (Number.isNaN(courseId)) return errorResponse(c, '유효한 course_id가 아닙니다', 400);
+
+        const { results: exams } = await c.env.DB.prepare(`
+            SELECT e.id, e.title, e.time_limit_minutes, e.course_id
+            FROM exams e
+            WHERE e.course_id = ? AND e.type = 'practice' AND e.is_active = 1
+            AND e.course_id IN (
+                SELECT course_id FROM enrollments WHERE user_id = ? AND status = 'approved'
+                UNION
+                SELECT cs.course_id FROM course_session_enrollments cse
+                JOIN course_sessions cs ON cse.session_id = cs.id
+                WHERE cse.user_id = ? AND cse.status = 'approved'
+            )
+            ORDER BY e.created_at ASC
+        `).bind(courseId, userId, userId).all() as { results: { id: number; title: string; time_limit_minutes?: number; course_id: number }[] };
+
+        const courseRow: any = await c.env.DB.prepare('SELECT title FROM courses WHERE id = ?').bind(courseId).first();
+        const course_title = courseRow?.title || '';
+
+        const out: { id: number; title: string; time_limit_minutes?: number; questions: any[] }[] = [];
+        for (const exam of exams || []) {
+            const { results: questions } = await c.env.DB.prepare(`
+                SELECT id, question_text, question_type, options, points, order_index
+                FROM exam_questions WHERE exam_id = ? ORDER BY order_index ASC
+            `).bind(exam.id).all() as { results: any[] };
+            const parsed = (questions || []).map((q: any) => ({
+                ...q,
+                options: q.options ? JSON.parse(q.options as string) : []
+            }));
+            out.push({
+                id: exam.id,
+                title: exam.title,
+                time_limit_minutes: exam.time_limit_minutes,
+                questions: parsed
+            });
+        }
+        return successResponse(c, { exams: out, course_title });
+    } catch (e: any) {
+        console.error('GET /api/exams/student/pre-assessment-combined error:', e);
+        return errorResponse(c, e.message, 500);
+    }
+});
+
 // GET /api/exams/:id - Get exam details with questions
 exams.get('/:id', authMiddleware, async (c) => {
     const id = c.req.param('id');

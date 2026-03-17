@@ -155,6 +155,10 @@ export const studentDashboardHtml = () => `
                                             <span class="w-8 h-8 rounded-lg bg-slate-100 text-slate-400 flex items-center justify-center flex-shrink-0 group-hover:bg-slate-200 group-hover:text-slate-600 transition-colors"><i class="fas fa-book-open text-[10px]"></i></span>
                                             <span>나의 시험</span>
                                         </button>
+                                        <button onclick="switchTab('preAssessment')" id="btn-preAssessment" class="nav-side-btn w-full text-left px-3.5 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 flex items-center gap-3 group text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+                                            <span class="w-8 h-8 rounded-lg bg-slate-100 text-slate-400 flex items-center justify-center flex-shrink-0 group-hover:bg-slate-200 group-hover:text-slate-600 transition-colors"><i class="fas fa-clipboard-list text-[10px]"></i></span>
+                                            <span>사전평가</span>
+                                        </button>
                                         <button onclick="switchTab('grades')" id="btn-grades" class="nav-side-btn w-full text-left px-3.5 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 flex items-center gap-3 group text-slate-600 hover:bg-slate-50 hover:text-slate-900">
                                             <span class="w-8 h-8 rounded-lg bg-slate-100 text-slate-400 flex items-center justify-center flex-shrink-0 group-hover:bg-slate-200 group-hover:text-slate-600 transition-colors"><i class="fas fa-chart-line text-[10px]"></i></span>
                                             <span>성적/결과</span>
@@ -359,8 +363,8 @@ export const studentDashboardHtml = () => `
             window.logout();
         }
 
-        var tabLabels = { dashboard: '종합 대시보드', exams: '진행 중인 시험', lectures: '수강 중인 강의', grades: '성적/결과', ncs: 'NCS 평가', surveys: '설문/평가', portfolio: '포트폴리오', employment: '취업 성과', profile: '수강생 정보' };
-        var tabIcons = { dashboard: 'fa-th-large', exams: 'fa-edit', lectures: 'fa-video', grades: 'fa-history', ncs: 'fa-certificate', surveys: 'fa-poll', portfolio: 'fa-image', employment: 'fa-user-tie', profile: 'fa-user-edit' };
+        var tabLabels = { dashboard: '종합 대시보드', exams: '진행 중인 시험', preAssessment: '사전평가', lectures: '수강 중인 강의', grades: '성적/결과', ncs: 'NCS 평가', surveys: '설문/평가', portfolio: '포트폴리오', employment: '취업 성과', profile: '수강생 정보' };
+        var tabIcons = { dashboard: 'fa-th-large', exams: 'fa-edit', preAssessment: 'fa-clipboard-list', lectures: 'fa-video', grades: 'fa-history', ncs: 'fa-certificate', surveys: 'fa-poll', portfolio: 'fa-image', employment: 'fa-user-tie', profile: 'fa-user-edit' };
 
         function switchTab(tab) {
             var iconEl = document.getElementById('contentTitleIcon');
@@ -373,7 +377,7 @@ export const studentDashboardHtml = () => `
             var iconBase = 'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ';
             var iconInactive = iconBase + 'bg-slate-100 text-slate-400 group-hover:bg-slate-200 group-hover:text-slate-600 ';
             var iconActive = iconBase + 'bg-sky-100 text-sky-600 ';
-            ['dashboard', 'lectures', 'exams', 'grades', 'surveys', 'portfolio', 'ncs', 'employment', 'profile'].forEach(t => {
+            ['dashboard', 'lectures', 'exams', 'preAssessment', 'grades', 'surveys', 'portfolio', 'ncs', 'employment', 'profile'].forEach(t => {
                 const btn = document.getElementById('btn-' + t);
                 if (btn) {
                     var isActive = t === tab;
@@ -388,6 +392,7 @@ export const studentDashboardHtml = () => `
 
             if (tab === 'dashboard') loadDashboard();
             else if (tab === 'exams') loadExams();
+            else if (tab === 'preAssessment') loadPreAssessment();
             else if (tab === 'lectures') loadLectures();
             else if (tab === 'grades') loadGrades();
             else if (tab === 'ncs') loadNcsStatus();
@@ -729,6 +734,60 @@ export const studentDashboardHtml = () => `
             } catch (e) {
                 console.error(e);
                 document.getElementById('contentArea').innerHTML = '<div class="text-center py-12 text-red-500 font-bold">목록을 불러오는데 실패했습니다.</div>';
+            }
+        }
+
+        async function loadPreAssessment() {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/exams', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const exams = await response.json();
+                const examList = Array.isArray(exams) ? exams : (exams.data || []);
+                const preExams = examList.filter(e => e.type === 'practice' && e.is_active);
+                const container = document.getElementById('contentArea');
+                if (preExams.length === 0) {
+                    container.innerHTML = \`
+                        <div class="bento-card bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200 p-12 text-center">
+                            <i class="fas fa-clipboard-list text-5xl text-slate-300 mb-4"></i>
+                            <p class="font-bold text-slate-500">진행 중인 사전평가가 없습니다.</p>
+                        </div>
+                    \`;
+                    return;
+                }
+                var byCourse = {};
+                preExams.forEach(function(e) {
+                    var cid = e.course_id || 0;
+                    if (!byCourse[cid]) byCourse[cid] = { course_id: cid, course_title: e.course_title || '일반', exams: [] };
+                    byCourse[cid].exams.push(e);
+                });
+                var groups = Object.keys(byCourse).map(function(k) { return byCourse[k]; });
+                container.innerHTML = '<div class="space-y-6">' + groups.map(function(g) {
+                    var totalMin = g.exams.reduce(function(sum, e) { return sum + ((e.time_limit_minutes || e.time_limit) || 0); }, 0);
+                    var courseId = g.course_id;
+                    var examCount = g.exams.length;
+                    var label = examCount > 1 ? '사전평가 (' + examCount + '개 시험)' : '사전평가';
+                    return \`
+                    <div class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm hover:border-sky-200 transition flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="px-2 py-0.5 bg-amber-50 text-amber-600 text-[10px] font-black rounded-full uppercase tracking-widest">\${label}</span>
+                                <span class="px-2 py-0.5 bg-sky-50 text-sky-600 text-[10px] font-black rounded-full uppercase tracking-widest">\${(g.course_title || '').replace(/</g, '&lt;')}</span>
+                                <span class="text-[10px] text-slate-400 font-bold"><i class="far fa-clock mr-1"></i> \${totalMin}분</span>
+                            </div>
+                            <h3 class="text-lg font-black text-slate-800 tracking-tight">\${examCount > 1 ? '한 번에 응시하기' : (g.exams[0] && g.exams[0].title) || '사전평가'}</h3>
+                            <p class="text-sm text-slate-600 mt-1">\${examCount > 1 ? '이 과정의 사전평가 ' + examCount + '개 시험을 한 번에 응시합니다.' : (g.exams[0] && g.exams[0].description) || '설명 없음'}</p>
+                        </div>
+                        <button onclick="location.href='/student/pre-assessment/take?course_id=' + encodeURIComponent(courseId)" class="px-6 py-3.5 bg-sky-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition shadow-lg shadow-sky-100 whitespace-nowrap flex items-center gap-2">
+                            <i class="fas fa-pen-fancy"></i> 응시하기
+                        </button>
+                    </div>
+                    \`;
+                }).join('') + '</div>';
+            } catch (e) {
+                console.error(e);
+                document.getElementById('contentArea').innerHTML = '<div class="text-center py-12 text-red-500 font-bold">사전평가 목록을 불러오는데 실패했습니다.</div>';
             }
         }
 

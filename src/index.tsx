@@ -101,6 +101,7 @@ import { adminLmsQrAttendanceHtml } from './views/admin_lms_qr_attendance';
 import { adminExamsHtml, adminExamCreateHtml, adminExamEditHtml } from './views/admin_exams';
 import { adminExamResultsHtml } from './views/admin_exam_results';
 import { studentExamHtml } from './views/student_exam';
+import { studentPreAssessmentTakeHtml } from './views/student_pre_assessment_take';
 import { studentDashboardHtml } from './views/student_dashboard';
 import { studentClassroomHtml } from './views/student_classroom';
 import { teacherDashboardHtml } from './views/teacher_dashboard';
@@ -1501,6 +1502,11 @@ app.get('/admin/exams/:id/edit', (c) => {
 // 학생 - 시험 응시 페이지
 app.get('/student/exam/:id', (c) => {
     return c.html(studentExamHtml);
+});
+
+// 학생 - 통합 사전평가 응시 (과정별 여러 시험 한 번에)
+app.get('/student/pre-assessment/take', (c) => {
+    return c.html(studentPreAssessmentTakeHtml);
 });
 
 // 학생 - 나의 강의실 (대시보드)
