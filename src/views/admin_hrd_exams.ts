@@ -474,6 +474,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
     </style>
 
     <script>
+        /* question-bank script v2 */
         let allData = [];
         let filteredData = [];
         let currentPage = 1;
@@ -1255,7 +1256,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                     showNotifyModal(isEdit ? '수정 완료' : '등록 완료', _msg, 'success');
                     closeBankQuestionModal();
                     form.reset();
-                    const idEl = document.getElementById('bankQuestionId');
+                    const idEl = document.getElementById("bankQuestionId");
                     if (idEl) idEl.value = '';
                     await loadQuestionBank();
                 } else {
