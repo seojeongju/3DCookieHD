@@ -693,6 +693,44 @@ cbt.delete('/questions/:id', authMiddleware, async (c) => {
 // NCS 과정별 평가용 문제 풀 (문제은행 → NCS평가관리 등록)
 // ============================================================
 
+// GET /api/cbt/ncs-available-for-student  - 수강 중인 회차 중 NCS 평가 문제가 있는 목록 (학생용)
+cbt.get('/ncs-available-for-student', authMiddleware, async (c) => {
+    try {
+        const user = c.get('user') as { id: number };
+        if (!user?.id) return errorResponse(c, '로그인이 필요합니다', 401);
+        const { results: enrollments } = await c.env.DB.prepare(`
+            SELECT e.session_id, s.session_number, s.session_name, s.lms_course_id, a.name as course_name
+            FROM course_session_enrollments e
+            JOIN course_sessions s ON s.id = e.session_id
+            JOIN approved_courses a ON a.id = s.approved_course_id
+            WHERE e.user_id = ? AND e.status = 'approved'
+        `).bind(user.id).all() as { results: any[] };
+        const list: { session_id: number; session_name: string; course_title: string; question_count: number }[] = [];
+        for (const row of enrollments || []) {
+            const courseId = row.lms_course_id != null && row.lms_course_id > 0
+                ? row.lms_course_id
+                : await resolveSessionToLmsCourseId(c.env.DB, row.session_id);
+            if (courseId == null) continue;
+            const countRow: any = await c.env.DB.prepare(
+                'SELECT COUNT(*) as cnt FROM ncs_course_questions WHERE course_id = ?'
+            ).bind(courseId).first();
+            const questionCount = Number(countRow?.cnt ?? 0);
+            if (questionCount === 0) continue;
+            const sessionName = [row.session_number, '회차', row.session_name].filter(Boolean).join(' ');
+            list.push({
+                session_id: row.session_id,
+                session_name: sessionName || String(row.session_id),
+                course_title: row.course_name || '',
+                question_count: questionCount
+            });
+        }
+        return successResponse(c, list);
+    } catch (e: any) {
+        console.error('GET /api/cbt/ncs-available-for-student error:', e);
+        return errorResponse(c, e.message, 500);
+    }
+});
+
 // GET /api/cbt/ncs-course-questions?course_id= 또는 ?session_id=  - 해당 과정의 NCS평가용 문제 목록
 cbt.get('/ncs-course-questions', authMiddleware, async (c) => {
     try {
@@ -712,6 +750,41 @@ cbt.get('/ncs-course-questions', authMiddleware, async (c) => {
         return successResponse(c, results || []);
     } catch (e: any) {
         console.error('GET /api/cbt/ncs-course-questions error:', e);
+        return errorResponse(c, e.message, 500);
+    }
+});
+
+// POST /api/cbt/ncs-submit  - NCS 평가 답안 제출 및 채점 (학생용, body: session_id, answers: { [ncs_question_id]: answer })
+cbt.post('/ncs-submit', authMiddleware, async (c) => {
+    try {
+        const body = await c.req.json() as { session_id: string | number; answers: Record<string, string | number> };
+        const sessionId = body.session_id != null ? String(body.session_id) : null;
+        const answers = body.answers && typeof body.answers === 'object' ? body.answers : {};
+        if (!sessionId) return errorResponse(c, 'session_id가 필요합니다', 400);
+        const courseId = await resolveSessionToLmsCourseId(c.env.DB, sessionId);
+        if (courseId == null) return errorResponse(c, '해당 회차를 찾을 수 없습니다', 404);
+        const { results: rows } = await c.env.DB.prepare(`
+            SELECT n.id, q.correct_answer, q.question_type
+            FROM ncs_course_questions n
+            JOIN question_bank q ON q.id = n.question_bank_id
+            WHERE n.course_id = ?
+            ORDER BY n.order_index ASC, n.id ASC
+        `).bind(courseId).all() as { results: any[] };
+        let score = 0;
+        const total = (rows || []).length;
+        for (const row of rows || []) {
+            const key = String(row.id);
+            const studentAnswer = answers[key] != null ? String(answers[key]).trim() : '';
+            const correct = row.correct_answer != null ? String(row.correct_answer).trim() : '';
+            if (row.question_type === 'multiple_choice') {
+                if (studentAnswer === correct) score += 1;
+            } else if (row.question_type === 'short_answer' || row.question_type === 'essay') {
+                if (studentAnswer.toLowerCase() === correct.toLowerCase()) score += 1;
+            }
+        }
+        return successResponse(c, { score, total, correct_count: score });
+    } catch (e: any) {
+        console.error('POST /api/cbt/ncs-submit error:', e);
         return errorResponse(c, e.message, 500);
     }
 });

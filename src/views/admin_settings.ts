@@ -71,6 +71,25 @@ export const adminSettingsHtml = (sidebarHtml?: string) => `
                                 </div>
                             </div>
 
+                            <!-- OpenAI API 키 (AI 문제 생성 등) -->
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-start pt-6 border-t border-slate-100">
+                                <div>
+                                    <label class="block text-sm font-bold text-slate-700 mb-1">OpenAI API 키</label>
+                                    <p class="text-xs text-slate-500 leading-relaxed">문제은행의 AI 문제 생성(PDF) 기능에 사용됩니다. OpenAI 플랫폼에서 API 키를 발급받아 입력하세요. 새 키를 입력하면 기존 키를 대체합니다.</p>
+                                </div>
+                                <div class="md:col-span-2 space-y-2">
+                                    <p id="openaiKeyStatus" class="text-xs text-slate-500 hidden"><span class="font-medium text-slate-600">현재 설정됨</span> (마지막 4자: <span id="openaiKeyMasked" class="font-mono"></span>)</p>
+                                    <div class="relative group">
+                                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                            <i class="fas fa-key text-slate-400 group-focus-within:text-indigo-500 transition-colors"></i>
+                                        </div>
+                                        <input type="password" id="openaiApiKeyInput" autocomplete="off"
+                                            class="w-full pl-11 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white transition-all outline-none font-mono text-sm text-slate-800"
+                                            placeholder="새 키를 입력하면 기존 키를 대체합니다 (비워두면 유지)">
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="pt-6 border-t border-slate-100 flex justify-end">
                                 <button onclick="saveSettings()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-2xl font-black text-sm tracking-widest transition-all shadow-lg shadow-indigo-200 flex items-center gap-2 group">
                                     <i class="fas fa-save group-hover:scale-110 transition-transform"></i>
@@ -102,9 +121,10 @@ export const adminSettingsHtml = (sidebarHtml?: string) => `
         async function fetchSettings() {
             try {
                 const token = 'Bearer ' + localStorage.getItem('token');
-                const [instRes, kakaoRes] = await Promise.all([
+                const [instRes, kakaoRes, openaiRes] = await Promise.all([
                     fetch('/api/settings/institution_name', { headers: { 'Authorization': token } }),
-                    fetch('/api/settings/kakao_map_appkey', { headers: { 'Authorization': token } })
+                    fetch('/api/settings/kakao_map_appkey', { headers: { 'Authorization': token } }),
+                    fetch('/api/settings/openai_api_key', { headers: { 'Authorization': token } })
                 ]);
                 const instResult = await instRes.json();
                 if (instResult.success && instResult.data != null) {
@@ -114,6 +134,14 @@ export const adminSettingsHtml = (sidebarHtml?: string) => `
                 if (kakaoResult.success && kakaoResult.data != null) {
                     document.getElementById('kakaoMapAppkeyInput').value = kakaoResult.data;
                 }
+                const openaiResult = await openaiRes.json();
+                if (openaiResult.success && openaiResult.data != null) {
+                    const data = openaiResult.data;
+                    if (typeof data === 'object' && data.masked && data.value) {
+                        document.getElementById('openaiKeyStatus').classList.remove('hidden');
+                        document.getElementById('openaiKeyMasked').textContent = data.value.slice(-4);
+                    }
+                }
             } catch (e) {
                 console.error('Failed to fetch settings:', e);
             }
@@ -122,6 +150,7 @@ export const adminSettingsHtml = (sidebarHtml?: string) => `
         async function saveSettings() {
             const institutionName = document.getElementById('institutionNameInput').value.trim();
             const kakaoMapAppkey = document.getElementById('kakaoMapAppkeyInput').value.trim();
+            const openaiApiKey = document.getElementById('openaiApiKeyInput').value.trim();
             if (!institutionName) {
                 alert('훈련기관명을 입력해주세요.');
                 return;
@@ -132,6 +161,9 @@ export const adminSettingsHtml = (sidebarHtml?: string) => `
                 const headers = { 'Content-Type': 'application/json', 'Authorization': token };
                 await fetch('/api/settings', { method: 'POST', headers, body: JSON.stringify({ key: 'institution_name', value: institutionName }) });
                 await fetch('/api/settings', { method: 'POST', headers, body: JSON.stringify({ key: 'kakao_map_appkey', value: kakaoMapAppkey }) });
+                if (openaiApiKey) {
+                    await fetch('/api/settings', { method: 'POST', headers, body: JSON.stringify({ key: 'openai_api_key', value: openaiApiKey }) });
+                }
                 alert('설정이 저장되었습니다.');
                 location.reload();
             } catch (e) {

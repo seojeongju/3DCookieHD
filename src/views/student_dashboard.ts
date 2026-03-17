@@ -794,17 +794,41 @@ export const studentDashboardHtml = () => `
             try {
                 const user = JSON.parse(localStorage.getItem('user'));
                 const container = document.getElementById('contentArea');
+                const token = 'Bearer ' + localStorage.getItem('token');
                 
-                // 1. Fetch My Results
-                const resResults = await fetch('/api/ncs/my-results?studentId=' + user.id);
+                const [resResults, resPlans, resNcsAvailable] = await Promise.all([
+                    fetch('/api/ncs/my-results?studentId=' + user.id),
+                    fetch('/api/ncs/my-plans?studentId=' + user.id),
+                    fetch('/api/cbt/ncs-available-for-student', { headers: { 'Authorization': token } })
+                ]);
                 const dataResults = await resResults.json();
-                
-                // 2. Fetch Active Plans (for evidence upload)
-                const resPlans = await fetch('/api/ncs/my-plans?studentId=' + user.id);
                 const dataPlans = await resPlans.json();
+                const ncsAvailableJson = await resNcsAvailable.json();
+                const ncsAvailableList = (ncsAvailableJson && ncsAvailableJson.success && Array.isArray(ncsAvailableJson.data)) ? ncsAvailableJson.data : [];
 
                 let html = \`
                     <div class="space-y-8">
+                \`;
+                if (ncsAvailableList.length > 0) {
+                    html += \`
+                        <section>
+                            <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                <span class="w-1 h-5 bg-amber-500 rounded"></span> NCS 평가 문제 풀기
+                            </h3>
+                            <div class="grid grid-cols-1 gap-4">
+                    \`;
+                    ncsAvailableList.forEach(function(item) {
+                        var safeName = (item.session_name || '').replace(/</g, '&lt;');
+                        var safeTitle = (item.course_title || '').replace(/</g, '&lt;');
+                        html += '<div class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm hover:border-amber-200 transition flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">';
+                        html += '<div class="flex-1"><div class="flex items-center gap-2 mb-1"><span class="px-2 py-0.5 bg-amber-50 text-amber-700 text-[10px] font-black rounded-full uppercase tracking-widest">' + safeTitle + '</span></div>';
+                        html += '<h3 class="text-lg font-black text-slate-800 tracking-tight">' + safeName + '</h3><p class="text-sm text-slate-600 mt-1">' + (item.question_count || 0) + '문항</p></div>';
+                        html += '<button type="button" onclick="openNcsExam(' + item.session_id + ')" class="px-6 py-3.5 bg-amber-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition shadow-lg shadow-amber-100 whitespace-nowrap flex items-center gap-2"><i class="fas fa-pen-fancy"></i> 응시하기</button>';
+                        html += '</div>';
+                    });
+                    html += '</div></section>';
+                }
+                html += \`
                         <section>
                             <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
                                 <span class="w-1 h-5 bg-sky-600 rounded"></span> 평가 결과 및 이수 현황
@@ -1031,6 +1055,82 @@ export const studentDashboardHtml = () => `
 
         function closeUploadModal() { document.getElementById('uploadModal').classList.add('hidden'); }
 
+        async function openNcsExam(sessionId) {
+            const container = document.getElementById('contentArea');
+            container.innerHTML = '<div class="text-center py-12"><i class="fas fa-spinner fa-spin text-3xl text-amber-500"></i><p class="mt-4 text-slate-500 font-bold">NCS 평가 문제를 불러오는 중...</p></div>';
+            const token = localStorage.getItem('token');
+            if (!token) { container.innerHTML = '<div class="text-center text-red-500">로그인이 필요합니다.</div>'; return; }
+            try {
+                const res = await fetch('/api/cbt/ncs-course-questions?session_id=' + sessionId, { headers: { 'Authorization': 'Bearer ' + token } });
+                const json = await res.json();
+                const questions = (json && json.success && Array.isArray(json.data)) ? json.data : (Array.isArray(json) ? json : []);
+                if (questions.length === 0) {
+                    container.innerHTML = '<div class="bento-card bg-slate-50 rounded-[2rem] p-8 text-center"><p class="font-bold text-slate-500">이 회차에 NCS 평가 문제가 없습니다.</p><button type="button" onclick="loadNcsStatus()" class="mt-4 px-4 py-2 bg-amber-500 text-white rounded-xl font-bold">목록으로</button></div>';
+                    return;
+                }
+                var html = '<button type="button" onclick="loadNcsStatus()" class="mb-6 inline-flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-200 transition"><i class="fas fa-arrow-left"></i> 목록으로</button>';
+                html += '<div class="bento-card bg-white rounded-[2rem] border border-slate-200/60 shadow-sm overflow-hidden"><div class="px-6 py-4 border-b border-slate-100 bg-amber-50/50"><h3 class="text-lg font-black text-slate-800">NCS 평가</h3><p class="text-xs text-slate-500 mt-1">총 ' + questions.length + '문항</p></div>';
+                html += '<form id="ncsExamForm" onsubmit="event.preventDefault(); submitNcsExam(' + sessionId + ')" class="p-6 space-y-6">';
+                questions.forEach(function(q, idx) {
+                    var safeText = String(q.question_text || '').replace(/</g, '&lt;');
+                    html += '<div class="border border-slate-100 rounded-2xl p-5 bg-slate-50/50"><p class="font-bold text-slate-800 mb-3">' + (idx + 1) + '. ' + safeText + '</p>';
+                    if (q.question_type === 'multiple_choice' && q.options) {
+                        var opts = typeof q.options === 'string' ? (function(){ try { return JSON.parse(q.options); } catch(e){ return []; } })() : (Array.isArray(q.options) ? q.options : []);
+                        opts.forEach(function(opt, i) {
+                            var optVal = (i + 1);
+                            var optText = String(opt != null ? opt : '').replace(/</g, '&lt;');
+                            html += '<label class="flex items-center gap-3 py-2 cursor-pointer"><input type="radio" name="ncs_' + q.id + '" value="' + optVal + '" class="text-amber-600"> <span>' + optText + '</span></label>';
+                        });
+                    } else {
+                        html += '<input type="text" name="ncs_' + q.id + '" class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500/20" placeholder="답을 입력하세요">';
+                    }
+                    html += '</div>';
+                });
+                html += '<div class="pt-4"><button type="submit" class="w-full py-4 bg-amber-500 text-white font-black rounded-2xl hover:bg-slate-900 transition shadow-lg uppercase text-xs tracking-widest"><i class="fas fa-paper-plane mr-2"></i> 제출하기</button></div></form></div>';
+                container.innerHTML = html;
+            } catch (e) {
+                console.error(e);
+                container.innerHTML = '<div class="text-center text-red-500">문제를 불러오는데 실패했습니다.</div><button type="button" onclick="loadNcsStatus()" class="mt-4 px-4 py-2 bg-slate-200 rounded-xl font-bold">목록으로</button>';
+            }
+        }
+
+        async function submitNcsExam(sessionId) {
+            const form = document.getElementById('ncsExamForm');
+            const container = document.getElementById('contentArea');
+            if (!form) return;
+            var answers = {};
+            var inputs = form.querySelectorAll('input[name^="ncs_"]');
+            inputs.forEach(function(inp) {
+                if (inp.type === 'radio') { if (inp.checked) answers[inp.name.replace('ncs_', '')] = inp.value; }
+                else if (inp.name && inp.name.startsWith('ncs_')) answers[inp.name.replace('ncs_', '')] = inp.value || '';
+            });
+            try {
+                const res = await fetch('/api/cbt/ncs-submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+                    body: JSON.stringify({ session_id: sessionId, answers: answers })
+                });
+                const json = await res.json();
+                if (json && json.success && json.data) {
+                    var d = json.data;
+                    var total = d.total || 0;
+                    var score = d.score != null ? d.score : d.correct_count || 0;
+                    var pct = total > 0 ? Math.round((score / total) * 100) : 0;
+                    container.innerHTML = '<div class="bento-card bg-white rounded-[2rem] p-8 border border-slate-200/60 shadow-sm text-center">' +
+                        '<div class="w-16 h-16 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto mb-4"><i class="fas fa-check-double text-2xl"></i></div>' +
+                        '<h3 class="text-xl font-black text-slate-800">제출 완료</h3>' +
+                        '<p class="text-3xl font-black text-amber-600 mt-2">' + score + ' / ' + total + ' (' + pct + '%)</p>' +
+                        '<p class="text-sm text-slate-500 mt-2">NCS 평가가 제출되었습니다.</p>' +
+                        '<button type="button" onclick="loadNcsStatus()" class="mt-6 px-6 py-3 bg-amber-500 text-white rounded-2xl font-bold">목록으로</button></div>';
+                } else {
+                    container.innerHTML = '<div class="text-center text-red-500">' + (json && json.error ? json.error : '제출에 실패했습니다.') + '</div><button type="button" onclick="loadNcsStatus()" class="mt-4 px-4 py-2 bg-slate-200 rounded-xl font-bold">목록으로</button>';
+                }
+            } catch (e) {
+                console.error(e);
+                container.innerHTML = '<div class="text-center text-red-500">제출 중 오류가 발생했습니다.</div><button type="button" onclick="loadNcsStatus()" class="mt-4 px-4 py-2 bg-slate-200 rounded-xl font-bold">목록으로</button>';
+            }
+        }
+
         // --- 포트폴리오 기능 ---
         let myEnrollments = [];
 
@@ -1232,48 +1332,77 @@ export const studentDashboardHtml = () => `
 
         async function loadStudentSurveys() {
             const container = document.getElementById('contentArea');
-            container.innerHTML = '<div class="text-center py-12"><i class="fas fa-spinner fa-spin text-3xl text-sky-500"></i><p class="mt-4 text-slate-500 font-bold">설문 목록을 불러오는 중...</p></div>';
+            container.innerHTML = '<div class="text-center py-12"><i class="fas fa-spinner fa-spin text-3xl text-sky-500"></i><p class="mt-4 text-slate-500 font-bold">설문·사전평가 목록을 불러오는 중...</p></div>';
 
             try {
                 const token = localStorage.getItem('token');
                 if (!token) { container.innerHTML = '<div class="text-center text-red-500">로그인이 필요합니다.</div>'; return; }
-                const res = await fetch('/api/surveys/my-pending', { headers: { 'Authorization': 'Bearer ' + token } });
-                const json = await res.json();
+                const [survRes, examRes] = await Promise.all([
+                    fetch('/api/surveys/my-pending', { headers: { 'Authorization': 'Bearer ' + token } }),
+                    fetch('/api/exams', { headers: { 'Authorization': 'Bearer ' + token } })
+                ]);
+                const json = await survRes.json();
                 const surveys = (json && json.success && Array.isArray(json.data)) ? json.data : [];
+                const examJson = await examRes.json();
+                const examList = Array.isArray(examJson) ? examJson : (examJson.data || []);
+                const preExams = examList.filter(function(e) { return e.is_active; });
 
-                if (surveys.length === 0) {
-                    container.innerHTML = '<div class="bento-card bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200 p-12 text-center"><i class="fas fa-poll text-5xl text-slate-300 mb-4"></i><p class="font-bold text-slate-500">진행 중인 설문이 없습니다.</p></div>';
+                if (surveys.length === 0 && preExams.length === 0) {
+                    container.innerHTML = '<div class="bento-card bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200 p-12 text-center"><i class="fas fa-poll text-5xl text-slate-300 mb-4"></i><p class="font-bold text-slate-500">진행 중인 설문·사전평가가 없습니다.</p></div>';
                     return;
                 }
 
-                const startStr = function(s) { return (s.start_date || '').split('T')[0]; };
-                const endStr = function(s) { return (s.end_date || '').split('T')[0]; };
-                const courseTitle = function(s) { return s.course_title || '-'; };
-                const typeLabel = function(s) { return s.type === 'diagnosis' ? '역량진단' : (s.type === 'post_lecture' ? '강의후설문' : '설문조사'); };
-                const typeClass = function(s) { return s.type === 'diagnosis' ? 'bg-purple-50 text-purple-600' : 'bg-sky-50 text-sky-600'; };
+                var html = '<div class="space-y-10">';
 
-                container.innerHTML = '<div class="space-y-6">' + surveys.map(function(s) {
-                    var isPending = (s.response_status || '') === 'pending';
-                    var badgeClass = isPending ? 'bg-orange-100 text-orange-700' : 'bg-emerald-100 text-emerald-700';
-                    var statusText = isPending ? '미참여' : '완료됨';
-                    var btnClass = isPending ? 'px-6 py-3 bg-sky-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 shadow-lg shadow-sky-100 cursor-pointer' : 'px-6 py-3 bg-slate-100 text-slate-400 rounded-2xl font-black text-[10px] uppercase cursor-not-allowed';
-                    var safeTitle = String(s.title || '-').replace(new RegExp('<', 'g'), '&lt;').replace(/"/g, '&quot;');
-                    var safeCourse = String(courseTitle(s)).replace(new RegExp('<', 'g'), '&lt;').replace(/"/g, '&quot;');
-                    return '<div class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm hover:border-sky-200 transition">' +
-                        '<div class="flex flex-col md:flex-row justify-between items-center gap-4">' +
-                        '<div class="flex-1">' +
-                        '<div class="flex items-center gap-2 mb-2">' +
-                        '<span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] font-black rounded-full uppercase tracking-widest">' + safeCourse + '</span>' +
-                        '<span class="px-2 py-0.5 ' + typeClass(s) + ' text-[10px] font-black rounded-full uppercase tracking-widest">' + typeLabel(s) + '</span>' +
-                        '</div>' +
-                        '<h3 class="text-lg font-black text-slate-800 tracking-tight">' + safeTitle + '</h3>' +
-                        '<p class="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-wider"><i class="far fa-calendar-alt mr-1"></i> ' + startStr(s) + ' ~ ' + endStr(s) + '</p>' +
-                        '</div>' +
-                        '<div class="flex items-center gap-4">' +
-                        '<span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ' + badgeClass + '">' + statusText + '</span>' +
-                        (isPending ? '<button type="button" onclick="openSurveyForm(' + s.id + ')" class="' + btnClass + '">참여하기</button>' : '<span class="' + btnClass + '">완료</span>') +
-                        '</div></div></div>';
-                }).join('') + '</div>';
+                if (preExams.length > 0) {
+                    html += '<section><h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><i class="fas fa-clipboard-list text-indigo-500"></i> 사전평가</h3><div class="space-y-4">';
+                    preExams.forEach(function(exam) {
+                        var safeTitle = String(exam.title || '').replace(/</g, '&lt;');
+                        var safeDesc = String(exam.description || '설명 없음').replace(/</g, '&lt;');
+                        var courseTitle = (exam.course_title || '일반').replace(/</g, '&lt;');
+                        var timeMin = exam.time_limit_minutes || exam.time_limit || 0;
+                        html += '<div class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm hover:border-indigo-200 transition flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">';
+                        html += '<div class="flex-1"><div class="flex items-center gap-2 mb-1"><span class="px-2 py-0.5 bg-indigo-50 text-indigo-600 text-[10px] font-black rounded-full uppercase tracking-widest">' + courseTitle + '</span><span class="text-[10px] text-slate-400 font-bold"><i class="far fa-clock mr-1"></i> ' + timeMin + '분</span></div>';
+                        html += '<h3 class="text-lg font-black text-slate-800 tracking-tight">' + safeTitle + '</h3><p class="text-sm text-slate-600 mt-1">' + safeDesc + '</p></div>';
+                        html += '<a href="/student/exam/' + exam.id + '" class="px-6 py-3.5 bg-indigo-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition shadow-lg shadow-indigo-100 whitespace-nowrap flex items-center gap-2"><i class="fas fa-pen-fancy"></i> 시험 보기</a>';
+                        html += '</div>';
+                    });
+                    html += '</div></section>';
+                }
+
+                if (surveys.length > 0) {
+                    html += '<section><h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><i class="fas fa-poll text-sky-500"></i> 설문</h3><div class="space-y-4">';
+                    const startStr = function(s) { return (s.start_date || '').split('T')[0]; };
+                    const endStr = function(s) { return (s.end_date || '').split('T')[0]; };
+                    const courseTitle = function(s) { return s.course_title || '-'; };
+                    const typeLabel = function(s) { return s.type === 'diagnosis' ? '역량진단' : (s.type === 'post_lecture' ? '강의후설문' : '설문조사'); };
+                    const typeClass = function(s) { return s.type === 'diagnosis' ? 'bg-purple-50 text-purple-600' : 'bg-sky-50 text-sky-600'; };
+                    surveys.forEach(function(s) {
+                        var isPending = (s.response_status || '') === 'pending';
+                        var badgeClass = isPending ? 'bg-orange-100 text-orange-700' : 'bg-emerald-100 text-emerald-700';
+                        var statusText = isPending ? '미참여' : '완료됨';
+                        var btnClass = isPending ? 'px-6 py-3 bg-sky-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 shadow-lg shadow-sky-100 cursor-pointer' : 'px-6 py-3 bg-slate-100 text-slate-400 rounded-2xl font-black text-[10px] uppercase cursor-not-allowed';
+                        var safeTitle = String(s.title || '-').replace(new RegExp('<', 'g'), '&lt;').replace(/"/g, '&quot;');
+                        var safeCourse = String(courseTitle(s)).replace(new RegExp('<', 'g'), '&lt;').replace(/"/g, '&quot;');
+                        html += '<div class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm hover:border-sky-200 transition">' +
+                            '<div class="flex flex-col md:flex-row justify-between items-center gap-4">' +
+                            '<div class="flex-1">' +
+                            '<div class="flex items-center gap-2 mb-2">' +
+                            '<span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] font-black rounded-full uppercase tracking-widest">' + safeCourse + '</span>' +
+                            '<span class="px-2 py-0.5 ' + typeClass(s) + ' text-[10px] font-black rounded-full uppercase tracking-widest">' + typeLabel(s) + '</span>' +
+                            '</div>' +
+                            '<h3 class="text-lg font-black text-slate-800 tracking-tight">' + safeTitle + '</h3>' +
+                            '<p class="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-wider"><i class="far fa-calendar-alt mr-1"></i> ' + startStr(s) + ' ~ ' + endStr(s) + '</p>' +
+                            '</div>' +
+                            '<div class="flex items-center gap-4">' +
+                            '<span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ' + badgeClass + '">' + statusText + '</span>' +
+                            (isPending ? '<button type="button" onclick="openSurveyForm(' + s.id + ')" class="' + btnClass + '">참여하기</button>' : '<span class="' + btnClass + '">완료</span>') +
+                            '</div></div></div>';
+                    });
+                    html += '</div></section>';
+                }
+                html += '</div>';
+                container.innerHTML = html;
             } catch (e) {
                 console.error(e);
                 container.innerHTML = '<div class="text-center text-red-500">목록을 불러오는데 실패했습니다.</div>';

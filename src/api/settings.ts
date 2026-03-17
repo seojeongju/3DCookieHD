@@ -18,13 +18,22 @@ settings.get('/', authMiddleware, requireAdmin, async (c) => {
     }
 });
 
+// 민감 키 목록: 조회 시 값 대신 마스킹된 문자열 반환 (API 키 등)
+const SENSITIVE_KEYS = ['openai_api_key'];
+
 // 특정 설정 조회 (public용 가능하게 하려면 authMiddleware 뺄 수 있음)
 settings.get('/:key', async (c) => {
     try {
         const key = c.req.param('key');
         const result = await getOne(c.env.DB, 'SELECT value FROM site_settings WHERE key = ?', [key]) as any;
         if (!result) return errorResponse(c, '설정을 찾을 수 없습니다.', 404);
-        return successResponse(c, result.value);
+        let value = result.value;
+        if (SENSITIVE_KEYS.includes(key) && value && typeof value === 'string') {
+            const len = value.length;
+            value = len >= 4 ? '••••••••••••' + value.slice(-4) : '••••';
+            return successResponse(c, { masked: true, value });
+        }
+        return successResponse(c, value);
     } catch (error) {
         console.error('Get setting error:', error);
         return errorResponse(c, '설정 정보를 불러오는 중 오류가 발생했습니다.');

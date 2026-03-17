@@ -353,8 +353,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                     <label class="block text-xs font-bold text-gray-600 mb-1">분류 (선택)</label>
                     <select name="category" id="bankQuestionCategory" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm">
                         <option value="">선택 안 함</option>
-                        <option value="사전평가">사전평가</option>
-                        <option value="NCS평가">NCS평가</option>
+                        <option value="NCS교과목">NCS교과목</option>
                     </select>
                 </div>
                 <div>
@@ -901,13 +900,16 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                 }
                 listEl.innerHTML = bankQuestions.map((q) => {
                     const category = (q.category || q.course_title || '').toString().replace(/</g, '&lt;');
+                    const isNcsSubject = category === 'NCS교과목';
                     const isPre = category === '사전평가';
                     const isNcs = category === 'NCS평가';
-                    const categoryBadge = isPre
-                        ? '<span class=\"px-2 py-0.5 rounded-lg bg-indigo-50 text-[10px] font-bold text-indigo-700\" title=\"분류\">사전평가</span>'
-                        : isNcs
-                            ? '<span class=\"px-2 py-0.5 rounded-lg bg-amber-50 text-[10px] font-bold text-amber-700\" title=\"분류\">NCS평가</span>'
-                            : (category ? '<span class=\"px-2 py-0.5 rounded-lg bg-violet-50 text-[10px] font-bold text-violet-600\">' + category + '</span>' : '<span class=\"px-2 py-0.5 rounded-lg bg-slate-100 text-[10px] font-bold text-slate-400\">미분류</span>');
+                    const categoryBadge = isNcsSubject
+                        ? '<span class=\"px-2 py-0.5 rounded-lg bg-amber-50 text-[10px] font-bold text-amber-700\" title=\"분류\">NCS교과목</span>'
+                        : isPre
+                            ? '<span class=\"px-2 py-0.5 rounded-lg bg-indigo-50 text-[10px] font-bold text-indigo-700\" title=\"분류\">사전평가</span>'
+                            : isNcs
+                                ? '<span class=\"px-2 py-0.5 rounded-lg bg-amber-50 text-[10px] font-bold text-amber-700\" title=\"분류\">NCS평가</span>'
+                                : (category ? '<span class=\"px-2 py-0.5 rounded-lg bg-violet-50 text-[10px] font-bold text-violet-600\">' + category + '</span>' : '<span class=\"px-2 py-0.5 rounded-lg bg-slate-100 text-[10px] font-bold text-slate-400\">미분류</span>');
                     return \`<label class=\"bento-card flex items-start gap-3 p-3 rounded-2xl border border-slate-200/60 bg-white hover:border-slate-300/60 cursor-pointer transition-all shadow-sm\">
                         <input type=\"checkbox\" class=\"mt-1 bank-question-checkbox shrink-0 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500/20\" value=\"\${q.id}\">
                         <div class=\"flex-1 min-w-0\">
