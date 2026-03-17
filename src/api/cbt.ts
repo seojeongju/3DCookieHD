@@ -452,13 +452,28 @@ cbt.post('/bank-questions', authMiddleware, async (c) => {
     }
 });
 
+// GET /api/cbt/ncs-curriculum-list  - 과정등록 시 설정된 NCS 교과목 전체 목록 (문제은행 분류 등에서 사용)
+cbt.get('/ncs-curriculum-list', authMiddleware, async (c) => {
+    try {
+        const { results } = await c.env.DB.prepare(`
+            SELECT id, name FROM ncs_approved_curriculum
+            ORDER BY registration_id ASC, sort_order ASC, id ASC
+        `).all() as { results: { id: number; name: string }[] };
+        const list = (results || []).map((r) => ({ id: r.id, name: r.name || '' }));
+        return successResponse(c, list);
+    } catch (e: any) {
+        console.error('GET /api/cbt/ncs-curriculum-list error:', e);
+        return errorResponse(c, e.message, 500);
+    }
+});
+
 // GET /api/cbt/bank-questions/:id  - 문제은행 단건 조회 (수정용)
 cbt.get('/bank-questions/:id', authMiddleware, async (c) => {
     try {
         const id = parseInt(c.req.param('id'), 10);
         if (Number.isNaN(id)) return errorResponse(c, '유효한 ID가 아닙니다', 400);
         const row: any = await c.env.DB.prepare(
-            'SELECT id, question_text, question_type, options, correct_answer, difficulty, category, points FROM question_bank WHERE id = ?'
+            'SELECT id, question_text, question_type, options, correct_answer, difficulty, category, points, curriculum_id FROM question_bank WHERE id = ?'
         ).bind(id).first();
         if (!row) return errorResponse(c, '문제를 찾을 수 없습니다', 404);
         return successResponse(c, row);
@@ -480,6 +495,7 @@ cbt.patch('/bank-questions/:id', authMiddleware, async (c) => {
             correct_answer?: string | null;
             difficulty?: string;
             category?: string | null;
+            curriculum_id?: number | null;
         };
         const row: any = await c.env.DB.prepare('SELECT id FROM question_bank WHERE id = ?').bind(id).first();
         if (!row) return errorResponse(c, '문제를 찾을 수 없습니다', 404);
@@ -491,6 +507,7 @@ cbt.patch('/bank-questions/:id', authMiddleware, async (c) => {
         const correct_answer = body.correct_answer !== undefined ? body.correct_answer : null;
         const difficulty = body.difficulty !== undefined ? body.difficulty : null;
         const category = body.category !== undefined ? body.category : null;
+        const curriculum_id = body.curriculum_id !== undefined ? body.curriculum_id : null;
         await c.env.DB.prepare(`
             UPDATE question_bank SET
                 question_text = COALESCE(?, question_text),
@@ -499,9 +516,10 @@ cbt.patch('/bank-questions/:id', authMiddleware, async (c) => {
                 correct_answer = COALESCE(?, correct_answer),
                 difficulty = COALESCE(?, difficulty),
                 category = COALESCE(?, category),
+                curriculum_id = COALESCE(?, curriculum_id),
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
-        `).bind(question_text, question_type, optionsStr, correct_answer, difficulty, category, id).run();
+        `).bind(question_text, question_type, optionsStr, correct_answer, difficulty, category, curriculum_id, id).run();
         return successResponse(c, { id }, '문제가 수정되었습니다');
     } catch (e: any) {
         console.error('PATCH /api/cbt/bank-questions/:id error:', e);

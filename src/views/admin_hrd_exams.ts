@@ -350,10 +350,9 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                     </div>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-gray-600 mb-1">분류 (선택)</label>
-                    <select name="category" id="bankQuestionCategory" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm">
+                    <label class="block text-xs font-bold text-gray-600 mb-1">분류 (선택) – NCS교과목</label>
+                    <select name="bank_question_curriculum_id" id="bankQuestionCategory" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm">
                         <option value="">선택 안 함</option>
-                        <option value="NCS교과목">NCS교과목</option>
                     </select>
                 </div>
                 <div>
@@ -882,6 +881,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
             const difficultyVal = document.getElementById('bankDifficultyFilter')?.value || '';
             const keyword = document.getElementById('bankKeywordInput')?.value || '';
             try {
+                loadNcsCurriculumList();
                 const params = new URLSearchParams();
                 params.set('global', '1');
                 if (typeVal) params.set('type', typeVal);
@@ -903,13 +903,16 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                     const isNcsSubject = category === 'NCS교과목';
                     const isPre = category === '사전평가';
                     const isNcs = category === 'NCS평가';
-                    const categoryBadge = isNcsSubject
-                        ? '<span class=\"px-2 py-0.5 rounded-lg bg-amber-50 text-[10px] font-bold text-amber-700\" title=\"분류\">NCS교과목</span>'
-                        : isPre
-                            ? '<span class=\"px-2 py-0.5 rounded-lg bg-indigo-50 text-[10px] font-bold text-indigo-700\" title=\"분류\">사전평가</span>'
-                            : isNcs
-                                ? '<span class=\"px-2 py-0.5 rounded-lg bg-amber-50 text-[10px] font-bold text-amber-700\" title=\"분류\">NCS평가</span>'
-                                : (category ? '<span class=\"px-2 py-0.5 rounded-lg bg-violet-50 text-[10px] font-bold text-violet-600\">' + category + '</span>' : '<span class=\"px-2 py-0.5 rounded-lg bg-slate-100 text-[10px] font-bold text-slate-400\">미분류</span>');
+                    const isNcsSubjectName = category && category !== '사전평가' && category !== 'NCS평가';
+                    const categoryBadge = isNcsSubjectName
+                        ? '<span class=\"px-2 py-0.5 rounded-lg bg-amber-50 text-[10px] font-bold text-amber-700\" title=\"NCS교과목\">' + category + '</span>'
+                        : isNcsSubject
+                            ? '<span class=\"px-2 py-0.5 rounded-lg bg-amber-50 text-[10px] font-bold text-amber-700\" title=\"분류\">NCS교과목</span>'
+                            : isPre
+                                ? '<span class=\"px-2 py-0.5 rounded-lg bg-indigo-50 text-[10px] font-bold text-indigo-700\" title=\"분류\">사전평가</span>'
+                                : isNcs
+                                    ? '<span class=\"px-2 py-0.5 rounded-lg bg-amber-50 text-[10px] font-bold text-amber-700\" title=\"분류\">NCS평가</span>'
+                                    : (category ? '<span class=\"px-2 py-0.5 rounded-lg bg-violet-50 text-[10px] font-bold text-violet-600\">' + category + '</span>' : '<span class=\"px-2 py-0.5 rounded-lg bg-slate-100 text-[10px] font-bold text-slate-400\">미분류</span>');
                     return \`<label class=\"bento-card flex items-start gap-3 p-3 rounded-2xl border border-slate-200/60 bg-white hover:border-slate-300/60 cursor-pointer transition-all shadow-sm\">
                         <input type=\"checkbox\" class=\"mt-1 bank-question-checkbox shrink-0 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500/20\" value=\"\${q.id}\">
                         <div class=\"flex-1 min-w-0\">
@@ -936,6 +939,24 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                 if (countEl) countEl.textContent = '';
                 if (importBtn) importBtn.disabled = true;
             }
+        }
+
+        let ncsCurriculumList = [];
+        async function loadNcsCurriculumList() {
+            try {
+                const res = await fetch('/api/cbt/ncs-curriculum-list', { headers: { 'Authorization': 'Bearer ' + token } });
+                const json = await res.json();
+                ncsCurriculumList = (json && json.success && Array.isArray(json.data)) ? json.data : [];
+                const sel = document.getElementById('bankQuestionCategory');
+                if (!sel) return;
+                sel.innerHTML = '<option value="">선택 안 함</option>';
+                ncsCurriculumList.forEach(function(item) {
+                    const opt = document.createElement('option');
+                    opt.value = String(item.id);
+                    opt.textContent = item.name || ('교과목 #' + item.id);
+                    sel.appendChild(opt);
+                });
+            } catch (e) { console.error(e); ncsCurriculumList = []; }
         }
 
         function openBankQuestionModal() {
@@ -996,7 +1017,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                 const difficultySelect = document.getElementById('bankQuestionDifficulty');
                 if (typeSelect) typeSelect.value = q.question_type || 'multiple_choice';
                 if (textArea) textArea.value = q.question_text || '';
-                if (categoryInput) categoryInput.value = q.category || '';
+                if (categoryInput) categoryInput.value = (q.curriculum_id != null && q.curriculum_id !== '') ? String(q.curriculum_id) : '';
                 if (difficultySelect) difficultySelect.value = q.difficulty || '';
                 const optArr = (typeof q.options === 'string' ? (function(){ try { return JSON.parse(q.options); } catch(_){ return []; } })() : (Array.isArray(q.options) ? q.options : []));
                 const correctVal = q.correct_answer != null ? String(q.correct_answer) : '1';
@@ -1082,12 +1103,17 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
             const editId = formData.get('bank_question_id');
             const isEdit = editId && String(editId).trim() !== '';
             const type = formData.get('question_type') || 'multiple_choice';
+            const curriculumIdRaw = formData.get('bank_question_curriculum_id');
+            const curriculumId = curriculumIdRaw && String(curriculumIdRaw).trim() ? parseInt(String(curriculumIdRaw).trim(), 10) : undefined;
+            const categorySel = document.getElementById('bankQuestionCategory');
+            const categoryText = (categorySel && categorySel.options[categorySel.selectedIndex] && curriculumId) ? categorySel.options[categorySel.selectedIndex].text : '';
             const payload = {
                 question_text: formData.get('question_text'),
                 question_type: type,
                 points: 1,
                 difficulty: formData.get('difficulty') || undefined,
-                category: formData.get('category') || undefined
+                category: curriculumId ? (categoryText || undefined) : undefined,
+                curriculum_id: curriculumId || undefined
             };
             if (type === 'multiple_choice') {
                 payload.options = [
