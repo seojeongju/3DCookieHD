@@ -212,14 +212,16 @@ app.get('/teacher', authMiddleware, async (c) => {
 // GET /api/surveys/my-pending (For Students) — course_id 과정 + session_id(회차) 과정 모두 포함
 app.get('/my-pending', authMiddleware, async (c) => {
     try {
-        const user = c.get('user');
-        const allowedRoles = ['student', 'instructor'];
-        if (!user?.userId || !allowedRoles.includes(user.role || '')) {
+        const user = c.get('user') as { userId?: number; id?: number; role?: string } | undefined;
+        const uid = user?.userId ?? user?.id;
+        const role = (user?.role ?? '').toLowerCase();
+        const allowedRoles = ['student', 'instructor', 'teacher'];
+        if (uid == null || uid === 0 || !allowedRoles.includes(role)) {
             return errorResponse(c, '학생 권한이 필요합니다', 403);
         }
 
         const { DB } = c.env;
-        const studentId = user.userId;
+        const studentId = uid;
 
         // 1) course_id 기준: enrollments로 수강 중인 과정의 활성 설문
         const { results: byCourse } = await DB.prepare(`
