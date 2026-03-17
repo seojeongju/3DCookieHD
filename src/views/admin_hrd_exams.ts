@@ -1214,12 +1214,13 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
             if (frm) frm.reset();
             var el = document.getElementById("bankQuestionId");
             if (el) el.value = "";
-            var t = edit ? "수정 완료" : "등록 완료";
-            var m = edit ? "문제가 수정되었습니다." : "문제가 전역 문제은행에 등록되었습니다. 원하는 회차 시험을 선택한 뒤 [선택 문제 시험에 추가]로 편성하세요.";
-            showNotifyModal(t, m, "success");
+            var title = edit ? "\uC218\uC815 \uC644\uB8CC" : "\uB4F1\uB85D \uC644\uB8CC";
+            var body = edit ? "\uBB38\uC81C\uAC00 \uC218\uC815\uB418\uC5C8\uC2B5\uB2C8\uB2E4." : "\uBB38\uC81C\uAC00 \uC804\uC5ED \uBB38\uC81C\uC740\uD559\uC5D0 \uB4F1\uB85D\uB418\uC5C8\uC2B5\uB2C8\uB2E4. \uC6D0\uD558\uB294 \uD68C\uCC28 \uC2DC\uD5D8\uC744 \uC120\uD0DD\uD55C \uB4A4 [\uC120\uD0DD \uBB38\uC81C \uC2DC\uD5D8\uC5D0 \uCD94\uAC00] \uB85C \uD3EC\uC131\uD558\uC138\uC694.";
+            showNotifyModal(title, body, "success");
         }
         function _onBankSaveFail(edit, errMsg) {
-            showNotifyModal(edit ? "수정 실패" : "등록 실패", errMsg || "알 수 없는 오류", "error");
+            var title = edit ? "\uC218\uC815 \uC2E4\uD328" : "\uB4F1\uB85D \uC2E4\uD328";
+            showNotifyModal(title, errMsg || "\uC54C \uC218 \uC5C6\uB294 \uC624\uB958", "error");
         }
         async function handleBankSaveQuestion(e) {
             e.preventDefault();
@@ -1271,7 +1272,9 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                 }
             } catch (err) {
                 console.error(err);
-                showNotifyModal("오류", (isEdit ? "수정" : "등록") + " 중 오류가 발생했습니다.", "error");
+                var errTitle = "\uC624\uB958";
+                var errBody = (isEdit ? "\uC218\uC815" : "\uB4F1\uB85D") + " \uC911 \uC624\uB958\uAC00 \uBC1C\uC0DD\uD588\uC2B5\uB2C8\uB2E4.";
+                showNotifyModal(errTitle, errBody, "error");
             }
         }
 
