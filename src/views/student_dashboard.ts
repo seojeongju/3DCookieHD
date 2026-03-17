@@ -1364,43 +1364,21 @@ export const studentDashboardHtml = () => `
 
         async function loadStudentSurveys() {
             const container = document.getElementById('contentArea');
-            container.innerHTML = '<div class="text-center py-12"><i class="fas fa-spinner fa-spin text-3xl text-sky-500"></i><p class="mt-4 text-slate-500 font-bold">설문·사전평가 목록을 불러오는 중...</p></div>';
+            container.innerHTML = '<div class="text-center py-12"><i class="fas fa-spinner fa-spin text-3xl text-sky-500"></i><p class="mt-4 text-slate-500 font-bold">설문 목록을 불러오는 중...</p></div>';
 
             try {
                 const token = localStorage.getItem('token');
                 if (!token) { container.innerHTML = '<div class="text-center text-red-500">로그인이 필요합니다.</div>'; return; }
-                const [survRes, examRes] = await Promise.all([
-                    fetch('/api/surveys/my-pending', { headers: { 'Authorization': 'Bearer ' + token } }),
-                    fetch('/api/exams', { headers: { 'Authorization': 'Bearer ' + token } })
-                ]);
+                const survRes = await fetch('/api/surveys/my-pending', { headers: { 'Authorization': 'Bearer ' + token } });
                 const json = await survRes.json();
                 const surveys = (json && json.success && Array.isArray(json.data)) ? json.data : [];
-                const examJson = await examRes.json();
-                const examList = Array.isArray(examJson) ? examJson : (examJson.data || []);
-                const preExams = examList.filter(function(e) { return e.is_active; });
 
-                if (surveys.length === 0 && preExams.length === 0) {
-                    container.innerHTML = '<div class="bento-card bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200 p-12 text-center"><i class="fas fa-poll text-5xl text-slate-300 mb-4"></i><p class="font-bold text-slate-500">진행 중인 설문·사전평가가 없습니다.</p></div>';
+                if (surveys.length === 0) {
+                    container.innerHTML = '<div class="bento-card bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200 p-12 text-center"><i class="fas fa-poll text-5xl text-slate-300 mb-4"></i><p class="font-bold text-slate-500">진행 중인 설문이 없습니다.</p><p class="text-sm text-slate-400 mt-2">LMS 설문관리에서 배정된 설문이 여기에 표시됩니다.</p></div>';
                     return;
                 }
 
                 var html = '<div class="space-y-10">';
-
-                if (preExams.length > 0) {
-                    html += '<section><h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><i class="fas fa-clipboard-list text-indigo-500"></i> 사전평가</h3><div class="space-y-4">';
-                    preExams.forEach(function(exam) {
-                        var safeTitle = String(exam.title || '').replace(/</g, '&lt;');
-                        var safeDesc = String(exam.description || '설명 없음').replace(/</g, '&lt;');
-                        var courseTitle = (exam.course_title || '일반').replace(/</g, '&lt;');
-                        var timeMin = exam.time_limit_minutes || exam.time_limit || 0;
-                        html += '<div class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm hover:border-indigo-200 transition flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">';
-                        html += '<div class="flex-1"><div class="flex items-center gap-2 mb-1"><span class="px-2 py-0.5 bg-indigo-50 text-indigo-600 text-[10px] font-black rounded-full uppercase tracking-widest">' + courseTitle + '</span><span class="text-[10px] text-slate-400 font-bold"><i class="far fa-clock mr-1"></i> ' + timeMin + '분</span></div>';
-                        html += '<h3 class="text-lg font-black text-slate-800 tracking-tight">' + safeTitle + '</h3><p class="text-sm text-slate-600 mt-1">' + safeDesc + '</p></div>';
-                        html += '<a href="/student/exam/' + exam.id + '" class="px-6 py-3.5 bg-indigo-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition shadow-lg shadow-indigo-100 whitespace-nowrap flex items-center gap-2"><i class="fas fa-pen-fancy"></i> 시험 보기</a>';
-                        html += '</div>';
-                    });
-                    html += '</div></section>';
-                }
 
                 if (surveys.length > 0) {
                     html += '<section><h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><i class="fas fa-poll text-sky-500"></i> 설문</h3><div class="space-y-4">';

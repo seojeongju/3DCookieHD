@@ -53,6 +53,7 @@ export const studentPreAssessmentTakeHtml = `
     <script>
         const params = new URLSearchParams(window.location.search);
         const courseId = params.get('course_id');
+        const sessionId = params.get('session_id');
         let examData = null;
         let questionToExam = {};
         let timeLeft = 0;
@@ -60,7 +61,7 @@ export const studentPreAssessmentTakeHtml = `
 
         document.addEventListener('DOMContentLoaded', function() {
             checkLogin();
-            if (courseId) loadCombinedExam(); else showError('course_id가 없습니다.');
+            if (courseId || sessionId) loadCombinedExam(); else showError('course_id 또는 session_id가 필요합니다.');
         });
 
         function checkLogin() {
@@ -72,16 +73,21 @@ export const studentPreAssessmentTakeHtml = `
 
         function showError(msg) {
             document.getElementById('examTitle').textContent = '오류';
-            document.getElementById('questionsList').innerHTML = '<div class="bg-red-50 border border-red-200 rounded-xl p-6 text-red-700">' + msg + '</div>';
+            document.getElementById('questionsList').innerHTML = '<div class="bg-red-50 border border-red-200 rounded-xl p-6 text-red-700">' + msg + '<p class="mt-4"><a href="/student" class="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-200 transition"><i class="fas fa-arrow-left"></i> 학생 대시보드로 돌아가기</a></p></div>';
         }
 
         async function loadCombinedExam() {
             try {
                 const token = localStorage.getItem('token');
-                const res = await fetch('/api/exams/student/pre-assessment-combined?course_id=' + encodeURIComponent(courseId), {
+                var query = courseId ? ('course_id=' + encodeURIComponent(courseId)) : ('session_id=' + encodeURIComponent(sessionId));
+                const res = await fetch('/api/exams/student/pre-assessment-combined?' + query, {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
-                const json = await res.json();
+                const json = await res.json().catch(function() { return {}; });
+                if (!res.ok) {
+                    showError(json.message || json.error || ('서버 오류 (' + res.status + '). 잠시 후 다시 시도하거나 관리자에게 문의하세요.'));
+                    return;
+                }
                 const data = json.success && json.data ? json.data : json;
                 if (!data || !data.exams || data.exams.length === 0) {
                     showError('진행 중인 사전평가가 없거나 접근 권한이 없습니다.');
