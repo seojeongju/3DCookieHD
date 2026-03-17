@@ -213,7 +213,8 @@ app.get('/teacher', authMiddleware, async (c) => {
 app.get('/my-pending', authMiddleware, async (c) => {
     try {
         const user = c.get('user');
-        if (user.role !== 'student') {
+        const allowedRoles = ['student', 'instructor'];
+        if (!user?.userId || !allowedRoles.includes(user.role || '')) {
             return errorResponse(c, '학생 권한이 필요합니다', 403);
         }
 

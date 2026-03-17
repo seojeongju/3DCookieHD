@@ -780,15 +780,15 @@ cbt.delete('/questions/:id', authMiddleware, async (c) => {
 // GET /api/cbt/ncs-available-for-student  - 수강 중인 회차 중 NCS 평가 문제가 있는 목록 (학생용)
 cbt.get('/ncs-available-for-student', authMiddleware, async (c) => {
     try {
-        const user = c.get('user') as { id: number };
-        if (!user?.id) return errorResponse(c, '로그인이 필요합니다', 401);
+        const user = c.get('user') as { userId: number };
+        if (user?.userId == null) return errorResponse(c, '로그인이 필요합니다', 401);
         const { results: enrollments } = await c.env.DB.prepare(`
             SELECT e.session_id, s.session_number, s.session_name, s.lms_course_id, a.name as course_name
             FROM course_session_enrollments e
             JOIN course_sessions s ON s.id = e.session_id
             JOIN approved_courses a ON a.id = s.approved_course_id
             WHERE e.user_id = ? AND e.status = 'approved'
-        `).bind(user.id).all() as { results: any[] };
+        `).bind(user.userId).all() as { results: any[] };
         const list: { session_id: number; session_name: string; course_title: string; question_count: number }[] = [];
         for (const row of enrollments || []) {
             const courseId = row.lms_course_id != null && row.lms_course_id > 0
