@@ -1182,4 +1182,27 @@ cbt.get('/exams/:examId/results', authMiddleware, async (c) => {
     }
 });
 
+// DELETE /api/cbt/submissions/:id - 관리자: 시험 제출(응시 기록) 삭제
+cbt.delete('/submissions/:id', authMiddleware, async (c) => {
+    try {
+        const user = c.get('user') as { role?: string } | undefined;
+        const role = (user?.role ?? '').toLowerCase();
+        if (role !== 'admin' && role !== 'teacher') {
+            return errorResponse(c, '관리자 또는 강사만 삭제할 수 있습니다', 403);
+        }
+        const id = parseInt(c.req.param('id'), 10);
+        if (Number.isNaN(id)) return errorResponse(c, '유효한 제출 ID가 아닙니다', 400);
+
+        const submission: any = await c.env.DB.prepare('SELECT id, exam_id FROM exam_submissions WHERE id = ?').bind(id).first();
+        if (!submission) return errorResponse(c, '제출 기록을 찾을 수 없습니다', 404);
+
+        await c.env.DB.prepare('DELETE FROM exam_answers WHERE submission_id = ?').bind(id).run();
+        await c.env.DB.prepare('DELETE FROM exam_submissions WHERE id = ?').bind(id).run();
+        return successResponse(c, { id }, '제출 기록이 삭제되었습니다');
+    } catch (e: any) {
+        console.error('DELETE /api/cbt/submissions/:id error:', e);
+        return errorResponse(c, e.message, 500);
+    }
+});
+
 export default cbt;

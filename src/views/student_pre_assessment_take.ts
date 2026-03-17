@@ -200,7 +200,7 @@ export const studentPreAssessmentTakeHtml = `
                 }
                 const totalMinutes = data.exams.reduce(function(sum, e) { return sum + (e.time_limit_minutes || e.time_limit || 0); }, 0);
                 document.getElementById('examTitle').textContent = '사전평가 - ' + (data.course_title || '');
-                document.getElementById('examDescription').textContent = '이 과정의 사전평가 ' + data.exams.length + '개 시험을 한 번에 응시합니다.';
+                document.getElementById('examDescription').textContent = '';
                 document.getElementById('questionCount').textContent = allQuestions.length;
                 document.getElementById('timeLimit').textContent = totalMinutes || 60;
                 timeLeft = (totalMinutes || 60) * 60;

@@ -193,7 +193,7 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                             <h4 class="text-sm font-bold text-gray-700 mb-2">제출 목록</h4>
                             <div class="overflow-x-auto">
                                 <table class="min-w-full text-sm">
-                                    <thead class="bg-gray-50"><tr><th class="px-3 py-2 text-left text-xs text-gray-500">이름</th><th class="px-3 py-2 text-right text-xs text-gray-500">점수</th><th class="px-3 py-2 text-right text-xs text-gray-500">제출 일시</th></tr></thead>
+                                    <thead class="bg-gray-50"><tr><th class="px-3 py-2 text-left text-xs text-gray-500">이름</th><th class="px-3 py-2 text-right text-xs text-gray-500">점수</th><th class="px-3 py-2 text-right text-xs text-gray-500">제출 일시</th><th class="px-3 py-2 text-right text-xs text-gray-500 w-20">삭제</th></tr></thead>
                                     <tbody id="resultsDetailSubmissions"></tbody>
                                 </table>
                             </div>
@@ -892,36 +892,58 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                 tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-12 text-center text-red-500">결과를 불러오지 못했습니다.</td></tr>';
             }
         }
+        let currentResultsExamId = null;
         function openResultsDetail(examId) {
+            currentResultsExamId = examId;
             document.getElementById('resultsDetailSection').classList.remove('hidden');
             loadResultsDetail(examId);
+        }
+        async function deleteSubmission(submissionId, examId) {
+            if (!confirm('이 응시 기록을 삭제하시겠습니까? 삭제 후에는 복구할 수 없습니다.')) return;
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(\`/api/cbt/submissions/\${submissionId}\`, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
+                const json = await res.json();
+                if (json.success) {
+                    loadResultsDetail(examId);
+                    if (currentResultsExamId === examId) loadResults();
+                } else {
+                    alert(json.message || '삭제에 실패했습니다.');
+                }
+            } catch (e) {
+                console.error(e);
+                alert('삭제 중 오류가 발생했습니다.');
+            }
         }
         async function loadResultsDetail(examId) {
             const titleEl = document.getElementById('resultsDetailTitle');
             const subTbody = document.getElementById('resultsDetailSubmissions');
             const statTbody = document.getElementById('resultsDetailQuestionStats');
             if (!subTbody || !statTbody) return;
-            subTbody.innerHTML = '<tr><td colspan="3" class="px-3 py-4 text-center text-gray-500">불러오는 중...</td></tr>';
+            subTbody.innerHTML = '<tr><td colspan="4" class="px-3 py-4 text-center text-gray-500">불러오는 중...</td></tr>';
             statTbody.innerHTML = '';
             try {
                 const token = localStorage.getItem('token');
                 const res = await fetch(\`/api/cbt/exams/\${examId}/results\`, { headers: { 'Authorization': 'Bearer ' + token } });
                 const json = await res.json();
                 if (!json.success || !json.data) {
-                    subTbody.innerHTML = '<tr><td colspan="3" class="px-3 py-4 text-center text-red-500">데이터를 불러오지 못했습니다.</td></tr>';
+                    subTbody.innerHTML = '<tr><td colspan="4" class="px-3 py-4 text-center text-red-500">데이터를 불러오지 못했습니다.</td></tr>';
                     return;
                 }
                 const d = json.data;
                 if (titleEl) titleEl.textContent = (d.exam && d.exam.title) ? d.exam.title + ' 상세' : '시험 상세';
                 const subs = d.submissions || [];
                 if (!subs.length) {
-                    subTbody.innerHTML = '<tr><td colspan="3" class="px-3 py-4 text-center text-gray-500">제출된 답안이 없습니다.</td></tr>';
+                    subTbody.innerHTML = '<tr><td colspan="4" class="px-3 py-4 text-center text-gray-500">제출된 답안이 없습니다.</td></tr>';
                 } else {
                     subTbody.innerHTML = subs.map(s => \`
-                        <tr class="border-t border-gray-100">
+                        <tr class="border-t border-gray-100 hover:bg-gray-50">
                             <td class="px-3 py-2">\${s.student_name || '이름 없음'}</td>
                             <td class="px-3 py-2 text-right">\${s.total_score != null ? s.total_score + '점' : '-'}</td>
                             <td class="px-3 py-2 text-right text-gray-500">\${s.submitted_at ? new Date(s.submitted_at).toLocaleString() : '-'}</td>
+                            <td class="px-3 py-2 text-right">
+                                <button type="button" onclick="deleteSubmission(\${s.id}, \${examId})" class="text-red-600 hover:text-red-800 text-xs font-medium" title="응시 기록 삭제"><i class="fas fa-trash-alt"></i></button>
+                            </td>
                         </tr>
                     \`).join('');
                 }
@@ -940,7 +962,7 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                 }
             } catch (e) {
                 console.error(e);
-                subTbody.innerHTML = '<tr><td colspan="3" class="px-3 py-4 text-center text-red-500">오류가 발생했습니다.</td></tr>';
+                subTbody.innerHTML = '<tr><td colspan="4" class="px-3 py-4 text-center text-red-500">오류가 발생했습니다.</td></tr>';
             }
         }
         function closeResultsDetail() {
