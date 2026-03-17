@@ -452,6 +452,76 @@ cbt.post('/bank-questions', authMiddleware, async (c) => {
     }
 });
 
+// GET /api/cbt/bank-questions/:id  - 문제은행 단건 조회 (수정용)
+cbt.get('/bank-questions/:id', authMiddleware, async (c) => {
+    try {
+        const id = parseInt(c.req.param('id'), 10);
+        if (Number.isNaN(id)) return errorResponse(c, '유효한 ID가 아닙니다', 400);
+        const row: any = await c.env.DB.prepare(
+            'SELECT id, question_text, question_type, options, correct_answer, difficulty, category, points FROM question_bank WHERE id = ?'
+        ).bind(id).first();
+        if (!row) return errorResponse(c, '문제를 찾을 수 없습니다', 404);
+        return successResponse(c, row);
+    } catch (e: any) {
+        console.error('GET /api/cbt/bank-questions/:id error:', e);
+        return errorResponse(c, e.message, 500);
+    }
+});
+
+// PATCH /api/cbt/bank-questions/:id  - 문제은행 수정
+cbt.patch('/bank-questions/:id', authMiddleware, async (c) => {
+    try {
+        const id = parseInt(c.req.param('id'), 10);
+        if (Number.isNaN(id)) return errorResponse(c, '유효한 ID가 아닙니다', 400);
+        const body = await c.req.json() as {
+            question_text?: string;
+            question_type?: string;
+            options?: string | string[] | null;
+            correct_answer?: string | null;
+            difficulty?: string;
+            category?: string | null;
+        };
+        const row: any = await c.env.DB.prepare('SELECT id FROM question_bank WHERE id = ?').bind(id).first();
+        if (!row) return errorResponse(c, '문제를 찾을 수 없습니다', 404);
+        const question_text = body.question_text != null ? body.question_text : null;
+        const question_type = body.question_type != null ? body.question_type : null;
+        const optionsStr = body.options != null
+            ? (Array.isArray(body.options) ? JSON.stringify(body.options) : (typeof body.options === 'string' ? body.options : null))
+            : null;
+        const correct_answer = body.correct_answer !== undefined ? body.correct_answer : null;
+        const difficulty = body.difficulty !== undefined ? body.difficulty : null;
+        const category = body.category !== undefined ? body.category : null;
+        await c.env.DB.prepare(`
+            UPDATE question_bank SET
+                question_text = COALESCE(?, question_text),
+                question_type = COALESCE(?, question_type),
+                options = COALESCE(?, options),
+                correct_answer = COALESCE(?, correct_answer),
+                difficulty = COALESCE(?, difficulty),
+                category = COALESCE(?, category),
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        `).bind(question_text, question_type, optionsStr, correct_answer, difficulty, category, id).run();
+        return successResponse(c, { id }, '문제가 수정되었습니다');
+    } catch (e: any) {
+        console.error('PATCH /api/cbt/bank-questions/:id error:', e);
+        return errorResponse(c, e.message, 500);
+    }
+});
+
+// DELETE /api/cbt/bank-questions/:id  - 문제은행 삭제
+cbt.delete('/bank-questions/:id', authMiddleware, async (c) => {
+    try {
+        const id = parseInt(c.req.param('id'), 10);
+        if (Number.isNaN(id)) return errorResponse(c, '유효한 ID가 아닙니다', 400);
+        await c.env.DB.prepare('DELETE FROM question_bank WHERE id = ?').bind(id).run();
+        return successResponse(c, { id }, '문제가 삭제되었습니다');
+    } catch (e: any) {
+        console.error('DELETE /api/cbt/bank-questions/:id error:', e);
+        return errorResponse(c, e.message, 500);
+    }
+});
+
 // POST /api/cbt/questions  - 문제 등록
 cbt.post('/questions', authMiddleware, async (c) => {
     try {
