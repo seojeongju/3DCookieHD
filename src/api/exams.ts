@@ -46,10 +46,10 @@ exams.get('/', async (c) => {
             query += ` AND e.course_id IN (
                 SELECT course_id FROM enrollments WHERE user_id = ? AND status = 'approved'
                 UNION
-                SELECT cs.course_id 
+                SELECT cs.lms_course_id 
                 FROM course_session_enrollments cse
                 JOIN course_sessions cs ON cse.session_id = cs.id
-                WHERE cse.user_id = ? AND cse.status = 'approved'
+                WHERE cse.user_id = ? AND cse.status IN ('approved', 'enrolled') AND cs.lms_course_id IS NOT NULL
             )`;
             params.push(userId, userId);
         }
@@ -187,11 +187,11 @@ exams.get('/student/pre-assessment-combined', async (c) => {
             const sessionId = parseInt(String(sessionIdParam), 10);
             if (Number.isNaN(sessionId)) return errorResponse(c, '유효한 session_id가 아닙니다', 400);
             const row: any = await c.env.DB.prepare(`
-                SELECT cs.course_id FROM course_sessions cs
+                SELECT cs.lms_course_id AS course_id FROM course_sessions cs
                 INNER JOIN course_session_enrollments cse ON cse.session_id = cs.id AND cse.user_id = ? AND cse.status IN ('approved', 'enrolled')
                 WHERE cs.id = ?
             `).bind(userId, sessionId).first();
-            if (!row || row.course_id == null) return errorResponse(c, '해당 회차에 대한 수강 권한이 없습니다', 403);
+            if (!row || row.course_id == null) return errorResponse(c, '해당 회차에 대한 수강 권한이 없거나 회차에 연결된 과정이 없습니다', 403);
             courseId = row.course_id;
         } else {
             courseId = parseInt(String(courseIdParam), 10);
@@ -205,9 +205,9 @@ exams.get('/student/pre-assessment-combined', async (c) => {
             AND e.course_id IN (
                 SELECT course_id FROM enrollments WHERE user_id = ? AND status = 'approved'
                 UNION
-                SELECT cs.course_id FROM course_session_enrollments cse
+                SELECT cs.lms_course_id FROM course_session_enrollments cse
                 JOIN course_sessions cs ON cse.session_id = cs.id
-                WHERE cse.user_id = ? AND cse.status = 'approved'
+                WHERE cse.user_id = ? AND cse.status IN ('approved', 'enrolled') AND cs.lms_course_id IS NOT NULL
             )
             ORDER BY e.created_at ASC
         `).bind(courseId, userId, userId).all() as { results: { id: number; title: string; time_limit_minutes?: number; course_id: number }[] };
