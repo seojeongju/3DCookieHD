@@ -48,7 +48,7 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
     <div class="bg-white border-b border-gray-200">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div class="flex justify-between items-center">
-                <h2 class="text-xl font-bold text-gray-800">CBT / 시험 관리</h2>
+                <h2 class="text-xl font-bold text-gray-800">사전평가관리</h2>
                 <button type="button" onclick="openQuestionModal()" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center shadow-sm">
                     <i class="fas fa-plus mr-2"></i> 문제 추가
                 </button>
@@ -62,10 +62,10 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
         <!-- 탭 메뉴 -->
         <div class="flex border-b border-gray-200 mb-6">
             <button onclick="switchTab('exams')" id="tab-exams" class="tab-btn active px-6 py-3 text-gray-500 hover:text-gray-700 focus:outline-none">
-                사전평가목록
+                평가문항
             </button>
             <button onclick="switchTab('questions')" id="tab-questions" class="tab-btn px-6 py-3 text-gray-500 hover:text-gray-700 focus:outline-none">
-                사전평가생성
+                평가문항생성
             </button>
             <button onclick="switchTab('results')" id="tab-results" class="tab-btn px-6 py-3 text-gray-500 hover:text-gray-700 focus:outline-none">
                 결과 분석
@@ -169,6 +169,7 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                             <thead class="bg-gray-50">
                                 <tr>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">시험명</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">분류명</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">유형</th>
                                     <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">응시 수</th>
                                     <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">평균 점수</th>
@@ -177,7 +178,7 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                                 </tr>
                             </thead>
                             <tbody id="resultsSummaryBody" class="bg-white divide-y divide-gray-200">
-                                <tr><td colspan="6" class="px-6 py-8 text-center text-gray-500">불러오는 중...</td></tr>
+                                <tr><td colspan="7" class="px-6 py-8 text-center text-gray-500">불러오는 중...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -861,20 +862,22 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
         async function loadResults() {
             const tbody = document.getElementById('resultsSummaryBody');
             if (!tbody) return;
-            tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-gray-500">불러오는 중...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-8 text-center text-gray-500">불러오는 중...</td></tr>';
             try {
                 const token = localStorage.getItem('token');
                 const res = await fetch(\`/api/cbt/results?course_id=\${courseId}\`, { headers: { 'Authorization': 'Bearer ' + token } });
                 const json = await res.json();
                 const exams = (json.success && json.data && json.data.exams) ? json.data.exams : [];
                 if (!exams.length) {
-                    tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-12 text-center text-gray-500">등록된 시험이 없습니다.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-12 text-center text-gray-500">등록된 시험이 없습니다.</td></tr>';
                     return;
                 }
                 const typeNames = { midterm: '중간', final: '기말', mock: '모의', practice: '연습' };
+                const escapeHtml = (s) => { if (s == null) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
                 tbody.innerHTML = exams.map(e => \`
                     <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4 font-medium text-gray-900">\${e.title || '-'}</td>
+                        <td class="px-6 py-4 font-medium text-gray-900">\${escapeHtml(e.title || '-')}</td>
+                        <td class="px-6 py-4 text-sm text-gray-600">\${escapeHtml(e.category != null ? e.category : '-')}</td>
                         <td class="px-6 py-4 text-sm text-gray-500">\${typeNames[e.type] || e.type}</td>
                         <td class="px-6 py-4 text-center text-sm text-gray-600">\${e.submission_count}명</td>
                         <td class="px-6 py-4 text-center text-sm text-gray-600">\${e.submission_count ? (e.avg_score != null ? e.avg_score + '점' : '-') : '-'}</td>
@@ -886,7 +889,7 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                 \`).join('');
             } catch (e) {
                 console.error(e);
-                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-12 text-center text-red-500">결과를 불러오지 못했습니다.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-12 text-center text-red-500">결과를 불러오지 못했습니다.</td></tr>';
             }
         }
         function openResultsDetail(examId) {

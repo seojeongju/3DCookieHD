@@ -1081,7 +1081,25 @@ cbt.get('/results', authMiddleware, async (c) => {
             FROM exams WHERE course_id = ? ORDER BY created_at DESC
         `).bind(courseId).all() as { results: { id: number; title: string; type: string; time_limit_minutes?: number }[] };
 
-        const list: { id: number; title: string; type: string; time_limit_minutes?: number; submission_count: number; avg_score: number | null; max_score: number }[] = [];
+        const { results: categoryRows } = await c.env.DB.prepare(`
+            SELECT eq.exam_id, COALESCE(qb.category, ns.name) as category
+            FROM exam_questions eq
+            LEFT JOIN question_bank qb ON qb.id = eq.question_bank_id
+            LEFT JOIN question_bank_ncs_subjects ns ON ns.id = qb.ncs_subject_id
+            WHERE eq.exam_id IN (SELECT id FROM exams WHERE course_id = ?)
+            AND (qb.category IS NOT NULL OR ns.name IS NOT NULL)
+        `).bind(courseId).all() as { results: { exam_id: number; category: string | null }[] };
+
+        const categoriesByExamId: Record<number, string[]> = {};
+        for (const row of categoryRows || []) {
+            if (row.category && row.exam_id != null) {
+                if (!categoriesByExamId[row.exam_id]) categoriesByExamId[row.exam_id] = [];
+                if (!categoriesByExamId[row.exam_id].includes(row.category))
+                    categoriesByExamId[row.exam_id].push(row.category);
+            }
+        }
+
+        const list: { id: number; title: string; type: string; time_limit_minutes?: number; submission_count: number; avg_score: number | null; max_score: number; category: string }[] = [];
 
         for (const exam of exams || []) {
             const stat: any = await c.env.DB.prepare(`
@@ -1091,6 +1109,8 @@ cbt.get('/results', authMiddleware, async (c) => {
             const maxRow: any = await c.env.DB.prepare(
                 'SELECT COALESCE(SUM(points), 0) as total FROM exam_questions WHERE exam_id = ?'
             ).bind(exam.id).first();
+            const categoryLabel = (categoriesByExamId[exam.id] && categoriesByExamId[exam.id].length)
+                ? categoriesByExamId[exam.id].join(', ') : '-';
             list.push({
                 id: exam.id,
                 title: exam.title,
@@ -1098,7 +1118,8 @@ cbt.get('/results', authMiddleware, async (c) => {
                 time_limit_minutes: exam.time_limit_minutes,
                 submission_count: stat?.cnt ?? 0,
                 avg_score: stat?.avg_score != null ? Math.round(stat.avg_score * 10) / 10 : null,
-                max_score: maxRow?.total ?? 0
+                max_score: maxRow?.total ?? 0,
+                category: categoryLabel
             });
         }
         return successResponse(c, { exams: list });
