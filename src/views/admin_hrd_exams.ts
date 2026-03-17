@@ -1250,7 +1250,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                 });
                 const json = await res.json();
                 if (json && json.success) {
-                    showNotifyModal(isEdit ? '수정 완료' : '등록 완료', isEdit ? '문제가 수정되었습니다.' : '문제가 전역 문제은행에 등록되었습니다. 원하는 회차·시험을 선택한 뒤 \\"선택 문제 시험에 추가\\"로 편성하세요.', 'success');
+                    showNotifyModal(isEdit ? '수정 완료' : '등록 완료', isEdit ? '문제가 수정되었습니다.' : '문제가 전역 문제은행에 등록되었습니다. 원하는 회차·시험을 선택한 뒤 ' + '\"선택 문제 시험에 추가\"' + '로 편성하세요.', 'success');
                     closeBankQuestionModal();
                     form.reset();
                     const idEl = document.getElementById('bankQuestionId');
