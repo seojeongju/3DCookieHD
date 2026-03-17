@@ -1209,6 +1209,18 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
             }
         });
 
+        function _onBankSaveSuccess(edit, frm) {
+            closeBankQuestionModal();
+            if (frm) frm.reset();
+            var el = document.getElementById("bankQuestionId");
+            if (el) el.value = "";
+            var t = edit ? "수정 완료" : "등록 완료";
+            var m = edit ? "문제가 수정되었습니다." : "문제가 전역 문제은행에 등록되었습니다. 원하는 회차 시험을 선택한 뒤 [선택 문제 시험에 추가]로 편성하세요.";
+            showNotifyModal(t, m, "success");
+        }
+        function _onBankSaveFail(edit, errMsg) {
+            showNotifyModal(edit ? "수정 실패" : "등록 실패", errMsg || "알 수 없는 오류", "error");
+        }
         async function handleBankSaveQuestion(e) {
             e.preventDefault();
             const form = e.target;
@@ -1252,15 +1264,10 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                 });
                 const json = await res.json();
                 if (json && json.success) {
-                    var _msg = isEdit ? "문제가 수정되었습니다." : "문제가 전역 문제은행에 등록되었습니다. 원하는 회차 시험을 선택한 뒤 [선택 문제 시험에 추가]로 편성하세요.";
-                    showNotifyModal(isEdit ? "수정 완료" : "등록 완료", _msg, "success");
-                    closeBankQuestionModal();
-                    form.reset();
-                    var _idEl = document.getElementById("bankQuestionId");
-                    if (_idEl) _idEl.value = "";
+                    _onBankSaveSuccess(isEdit, form);
                     await loadQuestionBank();
                 } else {
-                    showNotifyModal(isEdit ? "수정 실패" : "등록 실패", (json && (json.error || json.message)) || "알 수 없는 오류", "error");
+                    _onBankSaveFail(isEdit, json && (json.error || json.message));
                 }
             } catch (err) {
                 console.error(err);
