@@ -194,8 +194,8 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                                     </select>
                                 </div>
                                 <button type="button" id="mgmtAddExamBtn" class="hidden inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 transition shadow-sm" onclick="openAddExamModal()"><i class="fas fa-plus"></i> 시험 추가</button>
-                                <a id="mgmtCbtLink" href="#" class="hidden inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-indigo-200 text-indigo-700 text-xs font-bold hover:bg-indigo-50 transition" target="_blank">이 회차 사전평가 관리 <i class="fas fa-external-link-alt text-[10px]"></i></a>
-                                <a id="rightPanelLink" href="#" class="hidden inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-amber-200 text-amber-700 text-xs font-bold hover:bg-amber-50 transition" target="_blank">NCS평가관리에서 보기 <i class="fas fa-external-link-alt text-[10px]"></i></a>
+                                <a id="mgmtCbtLink" href="#" class="hidden inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-indigo-200 text-indigo-700 text-xs font-bold hover:bg-indigo-50 transition">이 회차 사전평가 관리</a>
+                                <a id="rightPanelLink" href="#" class="hidden inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-amber-200 text-amber-700 text-xs font-bold hover:bg-amber-50 transition">NCS평가관리에서 보기</a>
                             </div>
                         </div>
                         <div class="p-6 sm:p-8">
@@ -208,9 +208,15 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                                                 <h4 class="font-black text-slate-800 text-sm uppercase tracking-tight flex items-center gap-2"><i class="fas fa-database text-indigo-500"></i> 문제은행 (전역)</h4>
                                                 <p class="text-[11px] text-slate-500 mt-0.5">문제를 등록·검색한 뒤 체크하여 우측으로 편성하세요.</p>
                                             </div>
-                                            <button type="button" id="bankCreateQuestionBtn" onclick="openBankQuestionModal()" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-500 text-white text-xs font-bold hover:bg-emerald-600 transition shadow-sm hover:shadow">
-                                                <i class="fas fa-plus"></i> 문제 등록
-                                            </button>
+                                            <div class="inline-flex items-center gap-2">
+                                                <button type="button" onclick="document.getElementById('bankPdfUploadInput').click()" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-green-600 text-white text-xs font-bold hover:bg-green-700 transition shadow-sm hover:shadow">
+                                                    <i class="fas fa-file-pdf"></i> AI 문제 생성 (PDF)
+                                                </button>
+                                                <input type="file" id="bankPdfUploadInput" accept=".pdf" class="hidden" onchange="handleBankPdfUpload(this)">
+                                                <button type="button" id="bankCreateQuestionBtn" onclick="openBankQuestionModal()" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-500 text-white text-xs font-bold hover:bg-emerald-600 transition shadow-sm hover:shadow">
+                                                    <i class="fas fa-plus"></i> 문제 등록
+                                                </button>
+                                            </div>
                                         </div>
                                         <div class="flex flex-wrap items-center gap-2 mt-3">
                                             <div class="flex-1 min-w-[140px] flex items-center bg-white rounded-xl px-3 py-2 border border-slate-200 focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-400 transition">
@@ -406,6 +412,32 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
             </div>
         </div>
     </div>
+
+    <!-- 확인 모달 (확인/취소, 글래스/벤토 스타일) -->
+    <div id="confirmModal" class="fixed inset-0 z-[61] hidden items-center justify-center p-4" aria-modal="true" role="dialog">
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="resolveConfirmModal(false)"></div>
+        <div class="relative w-full max-w-md rounded-[2.5rem] border border-slate-200/60 bg-white/95 shadow-xl shadow-slate-200/50 backdrop-blur-md overflow-hidden animate-notify-in">
+            <div class="flex justify-center pt-8 pb-2">
+                <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl bg-indigo-50 text-indigo-600">
+                    <i class="fas fa-circle-question"></i>
+                </div>
+            </div>
+            <div class="px-8 pb-2 text-center">
+                <h3 id="confirmModalTitle" class="text-lg font-black text-gray-800 tracking-tight">확인</h3>
+            </div>
+            <div class="px-8 pb-6">
+                <p id="confirmModalMessage" class="text-sm text-slate-600 leading-relaxed text-center"></p>
+            </div>
+            <div class="px-8 pb-8 flex justify-center gap-3">
+                <button type="button" id="confirmModalCancel" onclick="resolveConfirmModal(false)" class="px-6 py-3 rounded-2xl text-sm font-bold border border-slate-200 text-slate-600 bg-white hover:bg-slate-50 transition-all shadow-sm">
+                    취소
+                </button>
+                <button type="button" id="confirmModalOk" onclick="resolveConfirmModal(true)" class="px-6 py-3 rounded-2xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98]">
+                    확인
+                </button>
+            </div>
+        </div>
+    </div>
     <style>
         @keyframes notify-in {
             from { opacity: 0; transform: scale(0.95); }
@@ -413,6 +445,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
         }
         .animate-notify-in { animation: notify-in 0.2s ease-out; }
         #notifyModal.flex { display: flex !important; }
+        #confirmModal.flex { display: flex !important; }
     </style>
 
     <script>
@@ -448,6 +481,29 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
         function closeNotifyModal() {
             const wrap = document.getElementById('notifyModal');
             if (wrap) { wrap.classList.add('hidden'); wrap.classList.remove('flex'); }
+        }
+
+        let confirmModalResolve = null;
+        function showConfirmModal(title, message) {
+            const wrap = document.getElementById('confirmModal');
+            const titleEl = document.getElementById('confirmModalTitle');
+            const msgEl = document.getElementById('confirmModalMessage');
+            if (!wrap || !titleEl || !msgEl) return Promise.resolve(false);
+            titleEl.textContent = title || '확인';
+            msgEl.textContent = message || '';
+            wrap.classList.remove('hidden');
+            wrap.classList.add('flex');
+            return new Promise(function (resolve) {
+                confirmModalResolve = resolve;
+            });
+        }
+        function resolveConfirmModal(ok) {
+            const wrap = document.getElementById('confirmModal');
+            if (wrap) { wrap.classList.add('hidden'); wrap.classList.remove('flex'); }
+            if (typeof confirmModalResolve === 'function') {
+                confirmModalResolve(!!ok);
+                confirmModalResolve = null;
+            }
         }
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -969,7 +1025,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
         }
 
         async function deleteBankQuestion(questionId) {
-            if (!confirm('이 문제를 삭제할까요?')) return;
+            if (!(await showConfirmModal('문제 삭제', '이 문제를 삭제할까요?'))) return;
             try {
                 const res = await fetch('/api/cbt/bank-questions/' + questionId, {
                     method: 'DELETE',
@@ -986,6 +1042,16 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                 console.error(err);
                 showNotifyModal('오류', '삭제 중 오류가 발생했습니다.', 'error');
             }
+        }
+
+        function handleBankPdfUpload(input) {
+            if (!input.files || !input.files[0]) return;
+            const file = input.files[0];
+            showNotifyModal('AI 문제 생성 (PDF)', \"PDF 파일 '\" + file.name + \"'을 분석하여 문제를 생성합니다. (현재는 데모 기능으로 실제 분석은 수행되지 않습니다.)\", 'info');
+            input.value = '';
+            // TODO: 실제 파일 업로드 및 AI 분석 API 호출 후 전역 문제은행에 등록
+            // const formData = new FormData(); formData.append('file', file);
+            // fetch('/api/cbt/ai-generate-bank', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token }, body: formData }).then(...).then(() => loadQuestionBank());
         }
 
         function closeBankQuestionModal() {
@@ -1193,7 +1259,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
             } catch (e) { console.error(e); showNotifyModal('오류', '순서 변경 중 오류가 발생했습니다.', 'error'); }
         }
         async function removeQuestionFromExam(questionId) {
-            if (!confirm('이 문제를 시험에서 제거할까요? (문제 자체는 삭제되지 않고, 이 시험에서만 빠집니다.)')) return;
+            if (!(await showConfirmModal('시험에서 제거', '이 문제를 시험에서 제거할까요? (문제 자체는 삭제되지 않고, 이 시험에서만 빠집니다.)'))) return;
             try {
                 const res = await fetch(\`/api/cbt/questions/\${questionId}\`, {
                     method: 'DELETE',

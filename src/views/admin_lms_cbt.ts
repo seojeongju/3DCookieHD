@@ -116,10 +116,6 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                     </select>
                 </div>
                 <div class="flex gap-2 flex-wrap">
-                    <button onclick="document.getElementById('pdfUploadInput').click()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm flex items-center">
-                        <i class="fas fa-file-pdf mr-2"></i> AI 문제 생성 (PDF)
-                    </button>
-                    <input type="file" id="pdfUploadInput" accept=".pdf" class="hidden" onchange="handlePdfUpload(this)">
                     <button type="button" onclick="openGlobalBankPanel()" class="px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 border border-indigo-100 text-sm flex items-center">
                         <i class="fas fa-database mr-2"></i> 전역 문제은행에서 추가
                     </button>
@@ -1085,16 +1081,6 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
             }
         }
 
-        function handlePdfUpload(input) {
-            if (input.files && input.files[0]) {
-                const file = input.files[0];
-                alert(\`PDF 파일 '\${file.name}'을 분석하여 문제를 생성합니다.\\n(현재는 데모 기능으로 실제 분석은 수행되지 않습니다.)\`);
-                // TODO: 실제 파일 업로드 및 AI 분석 API 호출
-                // const formData = new FormData();
-                // formData.append('file', file);
-                // fetch('/api/cbt/ai-generate', { method: 'POST', body: formData }) ...
-            }
-        }
     </script>
             </div>
         </div>
