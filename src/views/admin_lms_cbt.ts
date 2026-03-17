@@ -711,7 +711,7 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
                 const result = await response.json();
-                allQuestions = (result.success && result.data) ? result.data : [];
+                allQuestions = (result.success && Array.isArray(result.data)) ? result.data : [];
                 const ncsSelect = document.getElementById('ncsUnitFilter');
                 if (ncsSelect) {
                     const opts = [...new Set(allQuestions.map(q => q.ncs_ability_unit_name).filter(Boolean))].filter(n => String(n) !== 'undefined').sort();

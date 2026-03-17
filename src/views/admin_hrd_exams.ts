@@ -160,7 +160,8 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                     </div>
                     `}
 
-                    <!-- 시험/문제 구성 관리 -->
+                    ${questionBankOnly ? `
+                    <!-- 시험/문제 구성 관리 (문제은행 전용 페이지에서만 표시) -->
                     <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
                         <div class="px-8 py-6 border-b border-gray-50 bg-white/60 backdrop-blur-md">
                             <div class="flex flex-wrap justify-between items-center gap-4">
@@ -237,6 +238,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                             </div>
                         </div>
                     </div>
+                    ` : ''}
                 </div>
             </main>
         </div>

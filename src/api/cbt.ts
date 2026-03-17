@@ -243,10 +243,11 @@ cbt.get('/questions', authMiddleware, async (c) => {
             }
         } else if (courseIdParam) {
             const courseId = await resolveSessionToLmsCourseId(c.env.DB, courseIdParam);
-            if (courseId != null) {
-                sql += ' AND e.course_id = ?';
-                params.push(courseId);
+            if (courseId == null) {
+                return successResponse(c, []);
             }
+            sql += ' AND e.course_id = ?';
+            params.push(courseId);
         }
 
         if (type) {
@@ -254,7 +255,7 @@ cbt.get('/questions', authMiddleware, async (c) => {
             params.push(type);
         }
 
-        sql += ' ORDER BY eq.id DESC';
+        sql += ' ORDER BY eq.order_index ASC, eq.id ASC';
 
         const { results } = await c.env.DB.prepare(sql).bind(...params).all();
         return successResponse(c, results || []);
@@ -657,17 +658,30 @@ cbt.post('/exams/:id/import-questions', authMiddleware, async (c) => {
         let nextOrder: number = ((maxOrderRow?.max_idx) || 0) + 1;
         const insertedIds: number[] = [];
 
-        // 1) 전역 문제은행(question_bank) ID로 추가
+        // 1) 전역 문제은행(question_bank) ID로 추가 (기본 컬럼만 조회해 0088 미적용 DB 호환)
         if (questionBankIds.length > 0) {
             for (const bankId of questionBankIds) {
                 const row: any = await c.env.DB.prepare(
-                    `SELECT id, question_text, question_type, options, correct_answer, points, ncs_ability_unit_code, ncs_ability_unit_name, curriculum_id 
-                     FROM question_bank WHERE id = ?`
+                    `SELECT id, question_text, question_type, options, correct_answer FROM question_bank WHERE id = ?`
                 ).bind(bankId).first();
 
                 if (!row) continue;
 
-                await c.env.DB.prepare(
+                // 0088 추가 컬럼은 선택적 조회 (있으면 사용, 없으면 null/1)
+                let points = 1, ncsCode: string | null = null, ncsName: string | null = null, curriculumId: number | null = null;
+                try {
+                    const ext: any = await c.env.DB.prepare(
+                        `SELECT points, ncs_ability_unit_code, ncs_ability_unit_name, curriculum_id FROM question_bank WHERE id = ?`
+                    ).bind(bankId).first();
+                    if (ext) {
+                        points = ext.points ?? 1;
+                        ncsCode = ext.ncs_ability_unit_code ?? null;
+                        ncsName = ext.ncs_ability_unit_name ?? null;
+                        curriculumId = ext.curriculum_id ?? null;
+                    }
+                } catch (_) { /* 0088 미적용 시 무시 */ }
+
+                const result = await c.env.DB.prepare(
                     `INSERT INTO exam_questions
                         (exam_id, question_bank_id, question_text, question_type, options, correct_answer, points, order_index,
                          ncs_ability_unit_code, ncs_ability_unit_name, curriculum_id, source_course_id, source_exam_id)
@@ -679,17 +693,17 @@ cbt.post('/exams/:id/import-questions', authMiddleware, async (c) => {
                     row.question_type,
                     row.options ?? null,
                     row.correct_answer ?? null,
-                    row.points ?? 1,
+                    points,
                     nextOrder++,
-                    row.ncs_ability_unit_code || null,
-                    row.ncs_ability_unit_name || null,
-                    body.target_curriculum_id ?? row.curriculum_id ?? null,
+                    ncsCode,
+                    ncsName,
+                    body.target_curriculum_id ?? curriculumId,
                     targetCourseId,
                     targetExamId
                 ).run();
 
-                const lastRow: any = await c.env.DB.prepare('SELECT id FROM exam_questions ORDER BY id DESC LIMIT 1').first();
-                if (lastRow?.id) insertedIds.push(lastRow.id);
+                const lastId = result.meta?.last_row_id;
+                if (lastId != null) insertedIds.push(Number(lastId));
             }
             return successResponse(c, { exam_id: targetExamId, question_ids: insertedIds }, '문제가 시험에 추가되었습니다');
         }
