@@ -193,12 +193,6 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                                         <option value="">회차 선택</option>
                                     </select>
                                 </div>
-                                <div id="examSelectWrap" class="flex items-center gap-2">
-                                    <label class="text-[11px] font-bold text-slate-500 whitespace-nowrap">시험</label>
-                                    <select id="mgmtExamSelect" class="bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 px-4 py-2.5 min-w-[180px] focus:ring-2 focus:ring-indigo-500/20 outline-none transition" onchange="onMgmtExamChange()">
-                                        <option value="">시험 선택</option>
-                                    </select>
-                                </div>
                                 <button type="button" id="mgmtAddExamBtn" class="hidden inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 transition shadow-sm" onclick="openAddExamModal()"><i class="fas fa-plus"></i> 시험 추가</button>
                                 <a id="mgmtCbtLink" href="#" class="hidden inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-indigo-200 text-indigo-700 text-xs font-bold hover:bg-indigo-50 transition" target="_blank">이 회차 사전평가 관리 <i class="fas fa-external-link-alt text-[10px]"></i></a>
                                 <a id="rightPanelLink" href="#" class="hidden inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-amber-200 text-amber-700 text-xs font-bold hover:bg-amber-50 transition" target="_blank">NCS평가관리에서 보기 <i class="fas fa-external-link-alt text-[10px]"></i></a>
@@ -255,13 +249,13 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                                 <!-- 우측: 편성 결과 카드 -->
                                 <div class="bg-white rounded-[2.5rem] border border-slate-200/60 shadow-sm flex flex-col overflow-hidden bento-card min-h-[420px]">
                                     <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex-shrink-0">
-                                        <h4 class="font-black text-slate-800 text-sm uppercase tracking-tight flex items-center gap-2" id="rightPanelTitle"><i class="fas fa-list-check text-indigo-500"></i> 선택된 시험의 문제 목록</h4>
-                                        <p class="text-[11px] text-slate-500 mt-0.5" id="examInfoLabel">시험을 선택하면 이 영역에 문제가 표시됩니다.</p>
+                                        <h4 class="font-black text-slate-800 text-sm uppercase tracking-tight flex items-center gap-2" id="rightPanelTitle"><i class="fas fa-list-check text-indigo-500"></i> 이 회차 사전평가 문제</h4>
+                                        <p class="text-[11px] text-slate-500 mt-0.5" id="examInfoLabel">회차를 선택하면 이 회차의 사전평가 문제가 표시됩니다.</p>
                                     </div>
                                     <div id="examQuestionList" class="flex-1 min-h-[240px] max-h-[380px] overflow-y-auto custom-scrollbar p-4 space-y-3">
                                         <div class="flex flex-col items-center justify-center py-16 text-slate-400 text-center px-4">
                                             <i class="fas fa-inbox text-4xl mb-3 opacity-50"></i>
-                                            <p class="text-xs font-medium">회차·시험을 선택하면<br>편성된 문제가 여기 표시됩니다.</p>
+                                            <p class="text-xs font-medium">회차를 선택하면<br>편성된 문제가 여기 표시됩니다.</p>
                                         </div>
                                     </div>
                                 </div>
@@ -652,8 +646,6 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                 btn.classList.toggle('border', isActive);
                 btn.classList.toggle('text-slate-500', !isActive);
             });
-            const examSelectWrap = document.getElementById('examSelectWrap');
-            const examSelect = document.getElementById('mgmtExamSelect');
             const titleEl = document.getElementById('rightPanelTitle');
             const labelEl = document.getElementById('examInfoLabel');
             const linkEl = document.getElementById('rightPanelLink');
@@ -661,8 +653,6 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
             const importLabel = document.getElementById('importBtnLabel');
             const importBtn = document.getElementById('importBtn');
             if (type === 'ncs') {
-                if (examSelectWrap) examSelectWrap.style.display = 'none';
-                if (examSelect) examSelect.style.display = 'none';
                 if (titleEl) titleEl.innerHTML = '<i class=\"fas fa-certificate text-amber-500\"></i> 이 회차의 NCS평가용 문제';
                 if (labelEl) labelEl.textContent = '문제은행에서 NCS평가로 추가한 문제가 여기 표시됩니다.';
                 if (linkEl) { linkEl.href = mgmtSessionId ? '/admin/courses/' + mgmtSessionId + '/lms/ncs-eval' : '#'; linkEl.classList.remove('hidden'); }
@@ -671,10 +661,8 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                 if (importBtn) { importBtn.disabled = !mgmtSessionId; }
                 if (mgmtSessionId) loadNcsCourseQuestions();
             } else {
-                if (examSelectWrap) examSelectWrap.style.display = 'flex';
-                if (examSelect) examSelect.style.display = '';
-                if (titleEl) titleEl.innerHTML = '<i class=\"fas fa-list-check text-indigo-500\"></i> 선택된 시험의 문제 목록';
-                if (labelEl) labelEl.textContent = '시험을 선택하면 이 영역에 문제가 표시됩니다.';
+                if (titleEl) titleEl.innerHTML = '<i class=\"fas fa-list-check text-indigo-500\"></i> 이 회차 사전평가 문제';
+                if (labelEl) labelEl.textContent = '회차를 선택하면 이 회차의 사전평가 문제가 표시됩니다.';
                 if (linkEl) linkEl.classList.add('hidden');
                 if (cbtLinkEl && mgmtSessionId) cbtLinkEl.classList.remove('hidden');
                 if (importLabel) importLabel.textContent = '선택 문제 추가';
@@ -722,7 +710,6 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
         async function onMgmtSessionChange() {
             const select = document.getElementById('mgmtSessionSelect');
             mgmtSessionId = select?.value || '';
-            const examSelect = document.getElementById('mgmtExamSelect');
             mgmtExamId = '';
             const cbtLink = document.getElementById('mgmtCbtLink');
             const addExamBtn = document.getElementById('mgmtAddExamBtn');
@@ -748,8 +735,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
             }
             if (!mgmtSessionId) {
                 mgmtSubjects = [];
-                if (examSelect) examSelect.innerHTML = '<option value=\"\">시험 선택</option>';
-                const examListEl = document.getElementById('examQuestionList'); if (examListEl) examListEl.innerHTML = '<div class=\"flex flex-col items-center justify-center py-16 text-slate-400 text-center px-4\"><i class=\"fas fa-inbox text-4xl mb-3 opacity-50\"></i><p class=\"text-xs font-medium\">회차·시험을 선택하면<br>편성된 문제가 여기 표시됩니다.</p></div>';
+                const examListEl = document.getElementById('examQuestionList'); if (examListEl) examListEl.innerHTML = '<div class=\"flex flex-col items-center justify-center py-16 text-slate-400 text-center px-4\"><i class=\"fas fa-inbox text-4xl mb-3 opacity-50\"></i><p class=\"text-xs font-medium\">회차를 선택하면<br>편성된 문제가 여기 표시됩니다.</p></div>';
                 document.getElementById('importBtn')?.setAttribute('disabled', 'true');
                 const linkEl = document.getElementById('rightPanelLink'); if (linkEl) linkEl.href = '#';
                 await loadQuestionBank();
@@ -770,8 +756,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
         }
 
         async function loadMgmtExams() {
-            const examSelect = document.getElementById('mgmtExamSelect');
-            if (!examSelect || !mgmtSessionId) return;
+            if (!mgmtSessionId) return;
             try {
                 const res = await fetch(\`/api/cbt/exams?course_id=\${mgmtSessionId}\`, {
                     headers: { 'Authorization': 'Bearer ' + token }
@@ -779,30 +764,22 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                 const json = await res.json();
                 const exams = json && json.success && Array.isArray(json.data) ? json.data : (Array.isArray(json) ? json : []);
                 if (!exams.length) {
-                    examSelect.innerHTML = '<option value=\"\">시험 없음</option>';
-                    const examListEl2 = document.getElementById('examQuestionList'); if (examListEl2) examListEl2.innerHTML = '<div class=\"flex flex-col items-center justify-center py-16 text-center px-4\"><i class=\"fas fa-clipboard-list text-4xl text-slate-300 mb-3\"></i><p class=\"text-xs font-medium text-slate-500\">선택된 회차에 등록된 시험이 없습니다.</p><p class=\"text-[11px] text-slate-400 mt-1\">시험 추가 버튼으로 시험을 만든 뒤 문제를 편성하세요.</p></div>';
+                    mgmtExamId = '';
+                    const examListEl2 = document.getElementById('examQuestionList');
+                    if (examListEl2) examListEl2.innerHTML = '<div class=\"flex flex-col items-center justify-center py-16 text-center px-4\"><i class=\"fas fa-clipboard-list text-4xl text-slate-300 mb-3\"></i><p class=\"text-xs font-medium text-slate-500\">선택된 회차에 시험이 없습니다.</p><p class=\"text-[11px] text-slate-400 mt-1\">시험 추가 버튼으로 시험을 만든 뒤 문제를 편성하세요.</p></div>';
+                    const importBtn = document.getElementById('importBtn');
+                    if (importBtn && addTargetType === 'pre') importBtn.disabled = true;
                     return;
                 }
-                examSelect.innerHTML = '<option value=\"\">시험 선택</option>' + exams.map((e) =>
-                    \`<option value=\"\${e.id}\">\${e.title}</option>\`
-                ).join('');
+                mgmtExamId = String(exams[0].id);
+                if (addTargetType === 'pre') {
+                    await loadExamQuestions();
+                    const importBtn = document.getElementById('importBtn');
+                    if (importBtn) importBtn.disabled = false;
+                }
             } catch (e) {
                 console.error(e);
             }
-        }
-
-        async function onMgmtExamChange() {
-            const select = document.getElementById('mgmtExamSelect');
-            mgmtExamId = select?.value || '';
-            await loadExamQuestions();
-            const label = document.getElementById('examInfoLabel');
-            if (label) {
-                label.textContent = mgmtExamId
-                    ? \`시험 ID \${mgmtExamId}에 편성된 문제 목록입니다.\`
-                    : '시험을 선택하면 이 영역에 문제가 표시됩니다.';
-            }
-            const importBtn = document.getElementById('importBtn');
-            if (importBtn && addTargetType === 'pre') importBtn.disabled = !mgmtExamId;
         }
 
         async function loadNcsCourseQuestions() {
@@ -1058,7 +1035,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                 return;
             }
             if (!mgmtExamId) {
-                showNotifyModal('안내', '먼저 회차와 시험을 선택한 뒤, 추가할 시험을 선택해 주세요.', 'info');
+                showNotifyModal('안내', '회차를 선택해 주세요. 해당 회차에 시험이 없으면 시험 추가 버튼으로 먼저 시험을 만드세요.', 'info');
                 return;
             }
             try {
@@ -1176,15 +1153,6 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                     closeAddExamModal();
                     form.reset();
                     await loadMgmtExams();
-                    const newId = json.data?.id;
-                    if (newId) {
-                        const examSelect = document.getElementById('mgmtExamSelect');
-                        if (examSelect) {
-                            examSelect.value = String(newId);
-                            mgmtExamId = String(newId);
-                            onMgmtExamChange();
-                        }
-                    }
                 } else {
                     showNotifyModal('생성 실패', json.error || '알 수 없는 오류', 'error');
                 }
