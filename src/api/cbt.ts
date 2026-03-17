@@ -285,44 +285,54 @@ cbt.get('/question-bank', authMiddleware, async (c) => {
         const useGlobalBank = globalParam === '1' || !courseIdParam;
 
         if (useGlobalBank) {
-            // 전역 문제은행: question_bank 테이블 (0088 컬럼은 선택적)
+            // 전역 문제은행: question_bank + ncs_subject 과목명 보강
+            const ncsSubjectIdParam = c.req.query('ncs_subject_id');
             let sql = `
-                SELECT id, question_text, question_type, options, correct_answer,
-                    difficulty, category, created_at
-                FROM question_bank
+                SELECT qb.id, qb.question_text, qb.question_type, qb.options, qb.correct_answer,
+                    qb.difficulty, qb.category, qb.points, qb.ncs_subject_id, qb.created_at,
+                    ns.name AS ncs_subject_name
+                FROM question_bank qb
+                LEFT JOIN question_bank_ncs_subjects ns ON ns.id = qb.ncs_subject_id
                 WHERE 1=1
             `;
             const params: any[] = [];
             if (type) {
-                sql += ' AND question_type = ?';
+                sql += ' AND qb.question_type = ?';
                 params.push(type);
             }
             if (difficulty) {
-                sql += ' AND difficulty = ?';
+                sql += ' AND qb.difficulty = ?';
                 params.push(difficulty);
             }
             if (curriculumIdParam) {
                 const cid = parseInt(String(curriculumIdParam), 10);
                 if (!Number.isNaN(cid)) {
-                    sql += ' AND curriculum_id = ?';
+                    sql += ' AND qb.curriculum_id = ?';
                     params.push(cid);
                 }
             }
+            if (ncsSubjectIdParam) {
+                const sid = parseInt(String(ncsSubjectIdParam), 10);
+                if (!Number.isNaN(sid)) {
+                    sql += ' AND qb.ncs_subject_id = ?';
+                    params.push(sid);
+                }
+            }
             if (ncsUnitCode) {
-                sql += ' AND ncs_ability_unit_code = ?';
+                sql += ' AND qb.ncs_ability_unit_code = ?';
                 params.push(ncsUnitCode);
             }
             if (keyword) {
-                sql += ' AND question_text LIKE ?';
+                sql += ' AND qb.question_text LIKE ?';
                 params.push(`%${keyword}%`);
             }
-            sql += ' ORDER BY id DESC';
+            sql += ' ORDER BY qb.id DESC';
             const { results } = await c.env.DB.prepare(sql).bind(...params).all();
             const rows = (results || []).map((r: any) => ({
                 ...r,
                 points: r.points ?? 1,
                 exam_title: null,
-                course_title: r.category || null,
+                course_title: r.category || r.ncs_subject_name || null,
                 order_index: 0
             }));
             return successResponse(c, rows);

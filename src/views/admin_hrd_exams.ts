@@ -235,6 +235,9 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                                                 <option value="medium">중</option>
                                                 <option value="high">상</option>
                                             </select>
+                                            <select id="bankCategoryFilter" class="bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 px-3 py-2 focus:ring-2 focus:ring-indigo-500/20 outline-none" onchange="loadQuestionBank()">
+                                                <option value="">전체 분류</option>
+                                            </select>
                                         </div>
                                     </div>
                                     <div id="bankList" class="flex-1 min-h-[240px] max-h-[380px] overflow-y-auto custom-scrollbar p-4 space-y-3">
@@ -904,13 +907,15 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
             const typeVal = document.getElementById('bankTypeFilter')?.value || '';
             const difficultyVal = document.getElementById('bankDifficultyFilter')?.value || '';
             const keyword = document.getElementById('bankKeywordInput')?.value || '';
+            const categoryVal = document.getElementById('bankCategoryFilter')?.value || '';
             try {
-                loadNcsSubjectsList();
+                await loadNcsSubjectsList();
                 const params = new URLSearchParams();
                 params.set('global', '1');
                 if (typeVal) params.set('type', typeVal);
                 if (difficultyVal) params.set('difficulty', difficultyVal);
                 if (keyword) params.set('keyword', keyword);
+                if (categoryVal) params.set('ncs_subject_id', categoryVal);
                 const res = await fetch(\`/api/cbt/question-bank?\${params.toString()}\`, {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
@@ -973,14 +978,27 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                 const json = await res.json();
                 ncsSubjectsList = (json && json.success && Array.isArray(json.data)) ? json.data : [];
                 const sel = document.getElementById('bankQuestionCategory');
-                if (!sel) return;
-                sel.innerHTML = '<option value="">선택 안 함</option>';
-                ncsSubjectsList.forEach(function(item) {
-                    const opt = document.createElement('option');
-                    opt.value = String(item.id);
-                    opt.textContent = item.name || ('교과목 #' + item.id);
-                    sel.appendChild(opt);
-                });
+                if (sel) {
+                    sel.innerHTML = '<option value="">선택 안 함</option>';
+                    ncsSubjectsList.forEach(function(item) {
+                        const opt = document.createElement('option');
+                        opt.value = String(item.id);
+                        opt.textContent = item.name || ('교과목 #' + item.id);
+                        sel.appendChild(opt);
+                    });
+                }
+                const filterSel = document.getElementById('bankCategoryFilter');
+                if (filterSel) {
+                    const prevVal = filterSel.value;
+                    filterSel.innerHTML = '<option value="">전체 분류</option>';
+                    ncsSubjectsList.forEach(function(item) {
+                        const opt = document.createElement('option');
+                        opt.value = String(item.id);
+                        opt.textContent = item.name || ('교과목 #' + item.id);
+                        filterSel.appendChild(opt);
+                    });
+                    if (prevVal) filterSel.value = prevVal;
+                }
             } catch (e) { console.error(e); ncsSubjectsList = []; }
         }
         function openNcsSubjectsModal() {
