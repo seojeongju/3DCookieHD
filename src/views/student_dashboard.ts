@@ -595,10 +595,14 @@ export const studentDashboardHtml = () => `
                             var title = (g.exams[0] && g.exams[0].title) || '사전평가';
                             var desc = (g.exams[0] && g.exams[0].description) || '';
                             var cid = g.course_id;
-                            html += '<div class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm hover:border-sky-200 transition flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"><div class="flex-1"><div class="flex items-center gap-2 mb-1"><span class="px-2 py-0.5 bg-amber-50 text-amber-600 text-[10px] font-black rounded-full uppercase tracking-widest">' + label + '</span><span class="px-2 py-0.5 bg-sky-50 text-sky-600 text-[10px] font-black rounded-full uppercase tracking-widest">' + (g.course_title || '일반').replace(/</g, '&lt;') + '</span><span class="text-[10px] text-slate-400 font-bold"><i class="far fa-clock mr-1"></i> ' + totalMin + '분</span></div><h3 class="text-lg font-black text-slate-800 tracking-tight">' + (title || '').replace(/</g, '&lt;') + '</h3><p class="text-sm text-slate-600 mt-1">' + (desc || '').replace(/</g, '&lt;') + '</p></div><button type="button" onclick="location.href=&#39;/student/pre-assessment/take?course_id=' + cid + '&#39;" class="px-6 py-3.5 bg-sky-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition shadow-lg shadow-sky-100 whitespace-nowrap flex items-center gap-2"><i class="fas fa-pen-fancy"></i> 응시하기</button></div>';
+                            var preSubmitted = g.exams.some(function(e) { return e.has_submitted; });
+                            var preBtn = preSubmitted ? '<span class="px-6 py-3.5 bg-slate-100 text-slate-400 rounded-2xl font-black text-[10px] uppercase cursor-default flex items-center gap-2"><i class="fas fa-check-circle"></i> 응시완료</span>' : '<button type="button" onclick="location.href=&#39;/student/pre-assessment/take?course_id=' + cid + '&#39;" class="px-6 py-3.5 bg-sky-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition shadow-lg shadow-sky-100 whitespace-nowrap flex items-center gap-2"><i class="fas fa-pen-fancy"></i> 응시하기</button>';
+                            html += '<div class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm hover:border-sky-200 transition flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"><div class="flex-1"><div class="flex items-center gap-2 mb-1"><span class="px-2 py-0.5 bg-amber-50 text-amber-600 text-[10px] font-black rounded-full uppercase tracking-widest">' + label + '</span><span class="px-2 py-0.5 bg-sky-50 text-sky-600 text-[10px] font-black rounded-full uppercase tracking-widest">' + (g.course_title || '일반').replace(/</g, '&lt;') + '</span><span class="text-[10px] text-slate-400 font-bold"><i class="far fa-clock mr-1"></i> ' + totalMin + '분</span>' + (preSubmitted ? '<span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-black rounded-full uppercase tracking-widest">응시완료</span>' : '') + '</div><h3 class="text-lg font-black text-slate-800 tracking-tight">' + (title || '').replace(/</g, '&lt;') + '</h3><p class="text-sm text-slate-600 mt-1">' + (desc || '').replace(/</g, '&lt;') + '</p></div>' + preBtn + '</div>';
                         } else {
                             var exam = item.exam;
-                            html += '<div class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm hover:border-sky-200 transition flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"><div class="flex-1"><div class="flex items-center gap-2 mb-1"><span class="px-2 py-0.5 bg-sky-50 text-sky-600 text-[10px] font-black rounded-full uppercase tracking-widest">' + (exam.course_title || '일반') + '</span><span class="text-[10px] text-slate-400 font-bold"><i class="far fa-clock mr-1"></i> ' + (exam.time_limit_minutes || exam.time_limit || 0) + '분</span></div><h3 class="text-lg font-black text-slate-800 tracking-tight">' + (exam.title || '') + '</h3><p class="text-sm text-slate-600 mt-1">' + (exam.description || '설명 없음') + '</p></div><button type="button" onclick="location.href=&#39;/student/exam/' + exam.id + '&#39;" class="px-6 py-3.5 bg-sky-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition shadow-lg shadow-sky-100 whitespace-nowrap flex items-center gap-2"><i class="fas fa-pen-fancy"></i> 응시하기</button></div>';
+                            var examSubmitted = exam.has_submitted;
+                            var examBtn = examSubmitted ? '<span class="px-6 py-3.5 bg-slate-100 text-slate-400 rounded-2xl font-black text-[10px] uppercase cursor-default flex items-center gap-2"><i class="fas fa-check-circle"></i> 응시완료</span>' : '<button type="button" onclick="location.href=&#39;/student/exam/' + exam.id + '&#39;" class="px-6 py-3.5 bg-sky-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition shadow-lg shadow-sky-100 whitespace-nowrap flex items-center gap-2"><i class="fas fa-pen-fancy"></i> 응시하기</button>';
+                            html += '<div class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm hover:border-sky-200 transition flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"><div class="flex-1"><div class="flex items-center gap-2 mb-1"><span class="px-2 py-0.5 bg-sky-50 text-sky-600 text-[10px] font-black rounded-full uppercase tracking-widest">' + (exam.course_title || '일반') + '</span><span class="text-[10px] text-slate-400 font-bold"><i class="far fa-clock mr-1"></i> ' + (exam.time_limit_minutes || exam.time_limit || 0) + '분</span>' + (examSubmitted ? '<span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-black rounded-full uppercase tracking-widest">응시완료</span>' : '') + '</div><h3 class="text-lg font-black text-slate-800 tracking-tight">' + (exam.title || '') + '</h3><p class="text-sm text-slate-600 mt-1">' + (exam.description || '설명 없음') + '</p></div>' + examBtn + '</div>';
                         }
                     });
                     html += '</div><div class="mt-4 flex justify-end"><button type="button" onclick="switchTab(&#39;preAssessment&#39;)" class="text-sky-600 hover:text-slate-900 font-black text-[10px] uppercase tracking-widest flex items-center gap-1">사전평가 전체보기 <i class="fas fa-chevron-right"></i></button></div>';
@@ -741,6 +745,7 @@ export const studentDashboardHtml = () => `
                     var courseId = g.course_id;
                     var examCount = g.exams.length;
                     var label = examCount > 1 ? '사전평가 (' + examCount + '개 시험)' : '사전평가';
+                    var preSubmitted = g.exams.some(function(e) { return e.has_submitted; });
                     return \`
                     <div class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm hover:border-sky-200 transition flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <div class="flex-1">
@@ -748,13 +753,12 @@ export const studentDashboardHtml = () => `
                                 <span class="px-2 py-0.5 bg-amber-50 text-amber-600 text-[10px] font-black rounded-full uppercase tracking-widest">\${label}</span>
                                 <span class="px-2 py-0.5 bg-sky-50 text-sky-600 text-[10px] font-black rounded-full uppercase tracking-widest">\${(g.course_title || '').replace(/</g, '&lt;')}</span>
                                 <span class="text-[10px] text-slate-400 font-bold"><i class="far fa-clock mr-1"></i> \${totalMin}분</span>
+                                \${preSubmitted ? '<span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-black rounded-full uppercase tracking-widest">응시완료</span>' : ''}
                             </div>
                             <h3 class="text-lg font-black text-slate-800 tracking-tight">\${(g.exams[0] && g.exams[0].title) || '사전평가'}</h3>
                             <p class="text-sm text-slate-600 mt-1">\${(g.exams[0] && g.exams[0].description) || ''}</p>
                         </div>
-                        <button onclick="location.href='/student/pre-assessment/take?course_id=\${courseId}'" class="px-6 py-3.5 bg-sky-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition shadow-lg shadow-sky-100 whitespace-nowrap flex items-center gap-2">
-                            <i class="fas fa-pen-fancy"></i> 응시하기
-                        </button>
+                        \${preSubmitted ? '<span class="px-6 py-3.5 bg-slate-100 text-slate-400 rounded-2xl font-black text-[10px] uppercase cursor-default flex items-center gap-2"><i class="fas fa-check-circle"></i> 응시완료</span>' : '<button onclick="location.href=\\'/student/pre-assessment/take?course_id=' + courseId + '\\'" class="px-6 py-3.5 bg-sky-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition shadow-lg shadow-sky-100 whitespace-nowrap flex items-center gap-2"><i class="fas fa-pen-fancy"></i> 응시하기</button>'}
                     </div>
                     \`;
                 }).join('') + '</div>';
@@ -852,10 +856,15 @@ export const studentDashboardHtml = () => `
                     ncsAvailableList.forEach(function(item) {
                         var safeName = (item.session_name || '').replace(/</g, '&lt;');
                         var safeTitle = (item.course_title || '').replace(/</g, '&lt;');
+                        var ncsSubmitted = item.has_submitted === true;
                         html += '<div class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm hover:border-amber-200 transition flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">';
-                        html += '<div class="flex-1"><div class="flex items-center gap-2 mb-1"><span class="px-2 py-0.5 bg-amber-50 text-amber-700 text-[10px] font-black rounded-full uppercase tracking-widest">' + safeTitle + '</span></div>';
+                        html += '<div class="flex-1"><div class="flex items-center gap-2 mb-1"><span class="px-2 py-0.5 bg-amber-50 text-amber-700 text-[10px] font-black rounded-full uppercase tracking-widest">' + safeTitle + '</span>' + (ncsSubmitted ? '<span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-black rounded-full uppercase tracking-widest">응시완료</span>' : '') + '</div>';
                         html += '<h3 class="text-lg font-black text-slate-800 tracking-tight">' + safeName + '</h3><p class="text-sm text-slate-600 mt-1">' + (item.question_count || 0) + '문항</p></div>';
-                        html += '<button type="button" onclick="openNcsExam(' + item.session_id + ')" class="px-6 py-3.5 bg-amber-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition shadow-lg shadow-amber-100 whitespace-nowrap flex items-center gap-2"><i class="fas fa-pen-fancy"></i> 응시하기</button>';
+                        if (ncsSubmitted) {
+                            html += '<span class="px-6 py-3.5 bg-slate-100 text-slate-400 rounded-2xl font-black text-[10px] uppercase cursor-default flex items-center gap-2"><i class="fas fa-check-circle"></i> 응시완료</span>';
+                        } else {
+                            html += '<button type="button" onclick="openNcsExam(' + item.session_id + ')" class="px-6 py-3.5 bg-amber-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition shadow-lg shadow-amber-100 whitespace-nowrap flex items-center gap-2"><i class="fas fa-pen-fancy"></i> 응시하기</button>';
+                        }
                         html += '</div>';
                     });
                     html += '</div></section>';
@@ -1390,7 +1399,7 @@ export const studentDashboardHtml = () => `
                     surveys.forEach(function(s) {
                         var isPending = (s.response_status || '') === 'pending';
                         var badgeClass = isPending ? 'bg-orange-100 text-orange-700' : 'bg-emerald-100 text-emerald-700';
-                        var statusText = isPending ? '미참여' : '완료됨';
+                        var statusText = isPending ? '미참여' : '응시완료';
                         var btnClass = isPending ? 'px-6 py-3 bg-sky-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 shadow-lg shadow-sky-100 cursor-pointer' : 'px-6 py-3 bg-slate-100 text-slate-400 rounded-2xl font-black text-[10px] uppercase cursor-not-allowed';
                         var safeTitle = String(s.title || '-').replace(new RegExp('<', 'g'), '&lt;').replace(/"/g, '&quot;');
                         var safeCourse = String(courseTitle(s)).replace(new RegExp('<', 'g'), '&lt;').replace(/"/g, '&quot;');
@@ -1406,7 +1415,7 @@ export const studentDashboardHtml = () => `
                             '</div>' +
                             '<div class="flex items-center gap-4">' +
                             '<span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ' + badgeClass + '">' + statusText + '</span>' +
-                            (isPending ? '<button type="button" onclick="openSurveyForm(' + s.id + ')" class="' + btnClass + '">참여하기</button>' : '<span class="' + btnClass + '">완료</span>') +
+                            (isPending ? '<button type="button" onclick="openSurveyForm(' + s.id + ')" class="' + btnClass + '">참여하기</button>' : '<span class="' + btnClass + '"><i class="fas fa-check-circle mr-1"></i> 응시완료</span>') +
                             '</div></div></div>';
                     });
                     html += '</div></section>';

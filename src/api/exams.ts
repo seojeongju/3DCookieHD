@@ -33,6 +33,11 @@ exams.get('/', async (c) => {
 
         let query = `
             SELECT e.*, c.title as course_title, c.teacher_id
+        `;
+        if (userRole === 'student' && userId) {
+            query += ` , (SELECT 1 FROM exam_submissions WHERE exam_id = e.id AND student_id = ? LIMIT 1) as has_submitted`;
+        }
+        query += `
             FROM exams e 
             LEFT JOIN courses c ON e.course_id = c.id 
             WHERE 1=1
@@ -57,7 +62,8 @@ exams.get('/', async (c) => {
 
         query += ' ORDER BY e.created_at DESC';
 
-        const { results } = await c.env.DB.prepare(query).bind(...params).all();
+        const bindParams = userRole === 'student' && userId ? [userId, ...params] : params;
+        const { results } = await c.env.DB.prepare(query).bind(...bindParams).all();
         return successResponse(c, results || []);
     } catch (e: any) {
         return errorResponse(c, e.message, 500);

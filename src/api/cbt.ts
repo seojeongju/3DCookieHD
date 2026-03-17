@@ -120,15 +120,21 @@ cbt.put('/exams/:id', authMiddleware, async (c) => {
     }
 });
 
-// DELETE /api/cbt/exams/:id  - 시험 삭제
+// DELETE /api/cbt/exams/:id  - 시험 삭제 (제출·답안 → 문항 → 시험 순)
 cbt.delete('/exams/:id', authMiddleware, async (c) => {
     try {
         const id = c.req.param('id');
-        await c.env.DB.batch([
-            c.env.DB.prepare('DELETE FROM exam_questions WHERE exam_id = ?').bind(id),
-            c.env.DB.prepare('DELETE FROM exams WHERE id = ?').bind(id),
-        ]);
-        return successResponse(c, { id }, '시험이 삭제되었습니다');
+        const examId = parseInt(id, 10);
+        if (Number.isNaN(examId)) return errorResponse(c, '유효한 시험 ID가 아닙니다', 400);
+        const { results: subIds } = await c.env.DB.prepare('SELECT id FROM exam_submissions WHERE exam_id = ?').bind(examId).all() as { results: { id: number }[] };
+        const submissionIds = (subIds || []).map((s: { id: number }) => s.id);
+        for (const subId of submissionIds) {
+            await c.env.DB.prepare('DELETE FROM exam_answers WHERE submission_id = ?').bind(subId).run();
+        }
+        await c.env.DB.prepare('DELETE FROM exam_submissions WHERE exam_id = ?').bind(examId).run();
+        await c.env.DB.prepare('DELETE FROM exam_questions WHERE exam_id = ?').bind(examId).run();
+        await c.env.DB.prepare('DELETE FROM exams WHERE id = ?').bind(examId).run();
+        return successResponse(c, { id: examId }, '시험이 삭제되었습니다');
     } catch (e: any) {
         console.error('DELETE /api/cbt/exams/:id error:', e);
         return errorResponse(c, e.message, 500);
@@ -789,7 +795,7 @@ cbt.get('/ncs-available-for-student', authMiddleware, async (c) => {
             JOIN approved_courses a ON a.id = s.approved_course_id
             WHERE e.user_id = ? AND e.status = 'approved'
         `).bind(user.userId).all() as { results: any[] };
-        const list: { session_id: number; session_name: string; course_title: string; question_count: number }[] = [];
+        const list: { session_id: number; session_name: string; course_title: string; question_count: number; has_submitted?: boolean }[] = [];
         for (const row of enrollments || []) {
             const courseId = row.lms_course_id != null && row.lms_course_id > 0
                 ? row.lms_course_id
@@ -800,12 +806,20 @@ cbt.get('/ncs-available-for-student', authMiddleware, async (c) => {
             ).bind(courseId).first();
             const questionCount = Number(countRow?.cnt ?? 0);
             if (questionCount === 0) continue;
+            let hasSubmitted = false;
+            try {
+                const sub: any = await c.env.DB.prepare(
+                    'SELECT 1 FROM ncs_cbt_submissions WHERE session_id = ? AND user_id = ? LIMIT 1'
+                ).bind(row.session_id, user.userId).first();
+                hasSubmitted = !!sub;
+            } catch (_) {}
             const sessionName = [row.session_number, '회차', row.session_name].filter(Boolean).join(' ');
             list.push({
                 session_id: row.session_id,
                 session_name: sessionName || String(row.session_id),
                 course_title: row.course_name || '',
-                question_count: questionCount
+                question_count: questionCount,
+                has_submitted: hasSubmitted
             });
         }
         return successResponse(c, list);
@@ -867,6 +881,14 @@ cbt.post('/ncs-submit', authMiddleware, async (c) => {
             } else if (row.question_type === 'short_answer' || row.question_type === 'essay') {
                 if (studentAnswer.toLowerCase() === correct.toLowerCase()) score += 1;
             }
+        }
+        const user = c.get('user') as { userId: number };
+        if (user?.userId != null) {
+            try {
+                await c.env.DB.prepare(
+                    'INSERT OR REPLACE INTO ncs_cbt_submissions (session_id, user_id, submitted_at) VALUES (?, ?, datetime(\'now\'))'
+                ).bind(sessionId, user.userId).run();
+            } catch (_) {}
         }
         return successResponse(c, { score, total, correct_count: score });
     } catch (e: any) {

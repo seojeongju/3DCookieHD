@@ -175,10 +175,11 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                                     <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">평균 점수</th>
                                     <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">만점</th>
                                     <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">상세</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase w-20">삭제</th>
                                 </tr>
                             </thead>
                             <tbody id="resultsSummaryBody" class="bg-white divide-y divide-gray-200">
-                                <tr><td colspan="7" class="px-6 py-8 text-center text-gray-500">불러오는 중...</td></tr>
+                                <tr><td colspan="8" class="px-6 py-8 text-center text-gray-500">불러오는 중...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -862,14 +863,14 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
         async function loadResults() {
             const tbody = document.getElementById('resultsSummaryBody');
             if (!tbody) return;
-            tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-8 text-center text-gray-500">불러오는 중...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-8 text-center text-gray-500">불러오는 중...</td></tr>';
             try {
                 const token = localStorage.getItem('token');
                 const res = await fetch(\`/api/cbt/results?course_id=\${courseId}\`, { headers: { 'Authorization': 'Bearer ' + token } });
                 const json = await res.json();
                 const exams = (json.success && json.data && json.data.exams) ? json.data.exams : [];
                 if (!exams.length) {
-                    tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-12 text-center text-gray-500">등록된 시험이 없습니다.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-12 text-center text-gray-500">등록된 시험이 없습니다.</td></tr>';
                     return;
                 }
                 const typeNames = { midterm: '중간', final: '기말', mock: '모의', practice: '연습' };
@@ -885,11 +886,35 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                         <td class="px-6 py-4 text-right">
                             <button type="button" onclick="openResultsDetail(\${e.id})" class="text-indigo-600 hover:text-indigo-800 text-sm font-medium">상세</button>
                         </td>
+                        <td class="px-6 py-4 text-right">
+                            <button type="button" onclick="deleteExam(\${e.id}, '\${String(e.title || '').replace(/</g, '&lt;').replace(/'/g, '&#39;')}')" class="text-red-600 hover:text-red-800 text-sm font-medium" title="시험 삭제"><i class="fas fa-trash-alt"></i></button>
+                        </td>
                     </tr>
                 \`).join('');
             } catch (e) {
                 console.error(e);
-                tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-12 text-center text-red-500">결과를 불러오지 못했습니다.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-12 text-center text-red-500">결과를 불러오지 못했습니다.</td></tr>';
+            }
+        }
+        async function deleteExam(examId, examTitle) {
+            if (!confirm('시험 \"' + (examTitle || '') + '\"을(를) 삭제하시겠습니까?\\n제출 기록과 문항이 모두 삭제되며 복구할 수 없습니다.')) return;
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(\`/api/cbt/exams/\${examId}\`, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
+                const json = await res.json();
+                if (json.success) {
+                    if (currentResultsExamId === examId) {
+                        document.getElementById('resultsDetailSection').classList.add('hidden');
+                        currentResultsExamId = null;
+                    }
+                    loadResults();
+                    loadExams();
+                } else {
+                    alert(json.message || '시험 삭제에 실패했습니다.');
+                }
+            } catch (e) {
+                console.error(e);
+                alert('삭제 중 오류가 발생했습니다.');
             }
         }
         let currentResultsExamId = null;
