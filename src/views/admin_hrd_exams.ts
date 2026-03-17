@@ -28,21 +28,32 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
         }
       }
     </script>
+    ${questionBankOnly ? `
+    <style>
+      .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+      .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+      .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+      .bento-card { transition: all 0.25s ease; }
+      .bento-card:hover { box-shadow: 0 12px 24px -8px rgb(0 0 0 / 0.08); border-color: rgb(148 163 184 / 0.4); }
+      .question-bank-dots { background-image: radial-gradient(circle, #cbd5e1 1px, transparent 1px); background-size: 20px 20px; }
+    </style>
+    ` : ''}
 </head>
-<body class="bg-gray-50 font-sans">
+<body class="${questionBankOnly ? 'bg-slate-50 font-sans text-slate-900 antialiased' : 'bg-gray-50 font-sans'}">
     <div class="flex h-screen overflow-hidden">
         ${sidebar}
         <div class="flex-1 flex flex-col overflow-hidden bg-gray-50">
             <!-- 헤더 -->
-            <div class="bg-white border-b border-gray-200 flex-shrink-0">
+            <div class="${questionBankOnly ? 'bg-white/80 backdrop-blur-md border-b border-slate-200/60' : 'bg-white border-b border-gray-200'} flex-shrink-0">
                 <div class="px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
                     <div class="flex justify-between items-center flex-wrap gap-3">
                         <div>
-                            <h1 class="text-xl sm:text-2xl font-bold text-gray-800 tracking-tight">${questionBankOnly ? '문제은행' : '통합 시험/CBT 현황'}</h1>
-                            <p class="text-gray-500 mt-1 text-sm">${questionBankOnly ? '전역 문제은행에서 문제를 등록·관리하고, 회차를 선택해 사전평가 또는 NCS평가로 편성할 수 있습니다.' : '모든 교육 과정의 시험 등록 현황 및 학생들의 응시율/평균 점수를 관리합니다.'}</p>
+                            <h1 class="${questionBankOnly ? 'text-xl sm:text-2xl font-black text-slate-800 tracking-tight' : 'text-xl sm:text-2xl font-bold text-gray-800 tracking-tight'}">${questionBankOnly ? '문제은행' : '통합 시험/CBT 현황'}</h1>
+                            <p class="${questionBankOnly ? 'text-slate-500 mt-1 text-sm' : 'text-gray-500 mt-1 text-sm'}">${questionBankOnly ? '전역 문제은행에서 문제를 등록·관리하고, 회차를 선택해 사전평가 또는 NCS평가로 편성할 수 있습니다.' : '모든 교육 과정의 시험 등록 현황 및 학생들의 응시율/평균 점수를 관리합니다.'}</p>
                         </div>
                         <div class="flex items-center gap-3">
-                            <button onclick="loadExamSummary()" class="p-2.5 bg-white border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 hover:text-indigo-600 transition-all shadow-sm" title="새로고침">
+                            <button onclick="loadExamSummary()" class="p-2.5 bg-white border border-slate-200 rounded-2xl text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-all shadow-sm hover:shadow" title="새로고침">
                                 <i class="fas fa-sync-alt"></i>
                             </button>
                         </div>
@@ -51,7 +62,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
             </div>
 
             <!-- 메인 컨텐츠 -->
-            <main class="flex-1 overflow-y-auto p-6 custom-scrollbar">
+            <main class="flex-1 overflow-y-auto p-6 custom-scrollbar ${questionBankOnly ? 'question-bank-dots' : ''}">
                 <div class="max-w-7xl mx-auto space-y-6">
                     ${questionBankOnly ? '' : `<!-- 요약 통계 카드 -->
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -161,86 +172,97 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                     `}
 
                     ${questionBankOnly ? `
-                    <!-- 문제은행: 등록 및 회차별 편성 -->
-                    <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-                        <div class="px-8 py-6 border-b border-gray-50 bg-white/60 backdrop-blur-md">
-                            <div class="flex flex-wrap justify-between items-center gap-4">
-                                <div>
-                                    <h3 class="font-black text-gray-800 text-lg uppercase tracking-tight">문제 등록 및 과정 편성</h3>
-                                    <p class="text-xs text-gray-500 mt-1">좌측에서 문제를 등록·검색하고, 회차를 선택한 뒤 추가 유형(사전평가/NCS평가)에 맞춰 우측으로 편성할 수 있습니다.</p>
-                                </div>
-                                <div class="flex flex-wrap gap-3 items-center">
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-xs font-bold text-gray-500">추가 유형</span>
-                                        <div class="flex bg-gray-100 p-0.5 rounded-lg">
-                                            <button type="button" id="addTypePre" onclick="setAddTargetType('pre')" class="add-type-btn px-3 py-1.5 rounded-md text-xs font-bold transition bg-white text-indigo-600 shadow-sm" data-type="pre">사전평가</button>
-                                            <button type="button" id="addTypeNcs" onclick="setAddTargetType('ncs')" class="add-type-btn px-3 py-1.5 rounded-md text-xs font-bold transition text-gray-500 hover:text-gray-700" data-type="ncs">NCS평가</button>
-                                        </div>
+                    <!-- 문제은행: 벤토 그리드 스타일 -->
+                    <div class="bg-white rounded-[2.5rem] shadow-sm border border-slate-200/60 overflow-hidden bento-card">
+                        <!-- 상단: 편성 설정 (글래스) -->
+                        <div class="px-6 sm:px-8 py-5 border-b border-slate-100 bg-white/80 backdrop-blur-md">
+                            <h3 class="font-black text-slate-800 text-base sm:text-lg uppercase tracking-tight mb-1">편성 설정</h3>
+                            <p class="text-xs text-slate-500 mb-4">추가 유형과 회차를 선택한 뒤, 좌측 문제을 선택해 우측으로 추가하세요.</p>
+                            <div class="flex flex-wrap items-center gap-3 sm:gap-4">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">추가 유형</span>
+                                    <div class="flex bg-slate-100 p-1 rounded-xl">
+                                        <button type="button" id="addTypePre" onclick="setAddTargetType('pre')" class="add-type-btn px-4 py-2 rounded-lg text-xs font-bold transition bg-white text-indigo-600 shadow-sm border border-slate-200/60" data-type="pre"><i class="fas fa-clipboard-list mr-1.5 opacity-70"></i>사전평가</button>
+                                        <button type="button" id="addTypeNcs" onclick="setAddTargetType('ncs')" class="add-type-btn px-4 py-2 rounded-lg text-xs font-bold transition text-slate-500 hover:text-slate-700" data-type="ncs"><i class="fas fa-certificate mr-1.5 opacity-70"></i>NCS평가</button>
                                     </div>
-                                    <select id="mgmtSessionSelect" class="bg-gray-50 border border-gray-200 text-xs font-bold text-gray-600 rounded-xl px-3 py-2 min-w-[180px]" onchange="onMgmtSessionChange()">
+                                </div>
+                                <div class="h-6 w-px bg-slate-200 hidden sm:block"></div>
+                                <div class="flex items-center gap-2">
+                                    <label class="text-[11px] font-bold text-slate-500 whitespace-nowrap">회차</label>
+                                    <select id="mgmtSessionSelect" class="bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 px-4 py-2.5 min-w-[200px] focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 outline-none transition" onchange="onMgmtSessionChange()">
                                         <option value="">회차 선택</option>
                                     </select>
-                                    <select id="mgmtExamSelect" class="bg-gray-50 border border-gray-200 text-xs font-bold text-gray-600 rounded-xl px-3 py-2 min-w-[180px]" onchange="onMgmtExamChange()">
+                                </div>
+                                <div id="examSelectWrap" class="flex items-center gap-2">
+                                    <label class="text-[11px] font-bold text-slate-500 whitespace-nowrap">시험</label>
+                                    <select id="mgmtExamSelect" class="bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 px-4 py-2.5 min-w-[180px] focus:ring-2 focus:ring-indigo-500/20 outline-none transition" onchange="onMgmtExamChange()">
                                         <option value="">시험 선택</option>
                                     </select>
-                                    <button type="button" id="mgmtAddExamBtn" class="hidden inline-flex items-center px-3 py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 transition" onclick="openAddExamModal()">시험 추가</button>
-                                    <a id="mgmtCbtLink" href="#" class="hidden text-xs font-bold text-indigo-600 hover:text-indigo-800 px-3 py-2 rounded-xl hover:bg-indigo-50 transition">이 회차에서 문제 등록</a>
                                 </div>
+                                <button type="button" id="mgmtAddExamBtn" class="hidden inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 transition shadow-sm" onclick="openAddExamModal()"><i class="fas fa-plus"></i> 시험 추가</button>
+                                <a id="mgmtCbtLink" href="#" class="hidden inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-indigo-200 text-indigo-700 text-xs font-bold hover:bg-indigo-50 transition" target="_blank">이 회차 사전평가 관리 <i class="fas fa-external-link-alt text-[10px]"></i></a>
+                                <a id="rightPanelLink" href="#" class="hidden inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-amber-200 text-amber-700 text-xs font-bold hover:bg-amber-50 transition" target="_blank">NCS평가관리에서 보기 <i class="fas fa-external-link-alt text-[10px]"></i></a>
                             </div>
                         </div>
-                        <div class="px-8 py-6 bg-gray-50/60">
-                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                <!-- 문제은행 -->
-                                <div class="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-4 flex flex-col">
-                                    <div class="flex justify-between items-center mb-3">
-                                        <div>
-                                            <div class="text-xs font-black text-slate-500 uppercase tracking-widest">문제은행 (전역)</div>
-                                            <div class="text-[11px] text-slate-400 mt-0.5">과정 무관 전체 문제 풀. 등록 후 회차·시험을 선택해 우측 시험에 추가할 수 있습니다.</div>
+                        <div class="p-6 sm:p-8">
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+                                <!-- 좌측: 문제은행 카드 -->
+                                <div class="bg-white rounded-[2.5rem] border border-slate-200/60 shadow-sm flex flex-col overflow-hidden bento-card min-h-[420px]">
+                                    <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex-shrink-0">
+                                        <div class="flex flex-wrap items-center justify-between gap-3">
+                                            <div>
+                                                <h4 class="font-black text-slate-800 text-sm uppercase tracking-tight flex items-center gap-2"><i class="fas fa-database text-indigo-500"></i> 문제은행 (전역)</h4>
+                                                <p class="text-[11px] text-slate-500 mt-0.5">문제를 등록·검색한 뒤 체크하여 우측으로 편성하세요.</p>
+                                            </div>
+                                            <button type="button" id="bankCreateQuestionBtn" onclick="openBankQuestionModal()" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-500 text-white text-xs font-bold hover:bg-emerald-600 transition shadow-sm hover:shadow">
+                                                <i class="fas fa-plus"></i> 문제 등록
+                                            </button>
                                         </div>
-                                        <div class="flex items-center gap-2 flex-wrap">
-                                            <select id="bankTypeFilter" class="border border-gray-200 rounded-xl text-[11px] px-2.5 py-1.5 text-gray-600" onchange="loadQuestionBank()">
+                                        <div class="flex flex-wrap items-center gap-2 mt-3">
+                                            <div class="flex-1 min-w-[140px] flex items-center bg-white rounded-xl px-3 py-2 border border-slate-200 focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-400 transition">
+                                                <i class="fas fa-search text-slate-400 mr-2 text-xs"></i>
+                                                <input id="bankKeywordInput" type="text" placeholder="문제 내용 검색" class="bg-transparent border-none outline-none text-xs w-full placeholder:text-slate-400" onkeydown="if(event.key==='Enter'){loadQuestionBank();}">
+                                            </div>
+                                            <select id="bankTypeFilter" class="bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 px-3 py-2 focus:ring-2 focus:ring-indigo-500/20 outline-none" onchange="loadQuestionBank()">
                                                 <option value="">전체 유형</option>
                                                 <option value="multiple_choice">객관식</option>
                                                 <option value="short_answer">단답형</option>
                                                 <option value="essay">서술형</option>
                                             </select>
-                                            <select id="bankDifficultyFilter" class="border border-gray-200 rounded-xl text-[11px] px-2.5 py-1.5 text-gray-600" onchange="loadQuestionBank()">
-                                                <option value="">전체 난이도</option>
+                                            <select id="bankDifficultyFilter" class="bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 px-3 py-2 focus:ring-2 focus:ring-indigo-500/20 outline-none" onchange="loadQuestionBank()">
+                                                <option value="">난이도</option>
                                                 <option value="low">하</option>
                                                 <option value="medium">중</option>
                                                 <option value="high">상</option>
                                             </select>
-                                            <button type="button" id="bankCreateQuestionBtn" onclick="openBankQuestionModal()" class="inline-flex items-center px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 text-[11px] font-bold hover:bg-emerald-100">
-                                                <i class="fas fa-plus-circle mr-1.5 text-[10px]"></i> 문제 등록
-                                            </button>
                                         </div>
                                     </div>
-                                    <div class="flex items-center bg-gray-50 rounded-xl px-3 py-2 border border-gray-200 mb-3">
-                                        <i class="fas fa-search text-gray-400 mr-2 text-xs"></i>
-                                        <input id="bankKeywordInput" type="text" placeholder="문제 내용 검색" class="bg-transparent border-none outline-none text-xs w-full" onkeydown="if(event.key==='Enter'){loadQuestionBank();}">
+                                    <div id="bankList" class="flex-1 min-h-[240px] max-h-[380px] overflow-y-auto custom-scrollbar p-4 space-y-3">
+                                        <div class="flex flex-col items-center justify-center py-16 text-slate-400">
+                                            <i class="fas fa-spinner fa-spin text-2xl mb-3"></i>
+                                            <span class="text-xs font-medium">불러오는 중...</span>
+                                        </div>
                                     </div>
-                                    <div id="bankList" class="flex-1 min-h-[160px] max-h-80 overflow-y-auto custom-scrollbar text-xs text-slate-600 space-y-2">
-                                        <div class="text-center py-10 text-gray-400 text-xs">불러오는 중...</div>
-                                    </div>
-                                    <div class="mt-3 flex justify-between items-center">
-                                        <div class="text-[11px] text-slate-400" id="bankCountLabel"></div>
-                                        <button type="button" onclick="importSelectedQuestions()" class="inline-flex items-center px-3 py-1.5 rounded-xl bg-indigo-600 text-white text-[11px] font-bold hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed" id="importBtn" disabled>
-                                            <span id="importBtnLabel">선택 문제 시험에 추가</span>
+                                    <div class="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between gap-3 flex-shrink-0">
+                                        <span class="text-xs text-slate-500 font-medium" id="bankCountLabel"></span>
+                                        <button type="button" onclick="importSelectedQuestions()" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm" id="importBtn" disabled>
+                                            <i class="fas fa-arrow-right"></i>
+                                            <span id="importBtnLabel">선택 문제 추가</span>
                                         </button>
                                     </div>
                                 </div>
 
-                                <!-- 우측: 사전평가 시 시험 문제 목록 / NCS평가 시 NCS 문제 목록 -->
-                                <div class="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-4 flex flex-col">
-                                    <div class="flex justify-between items-center mb-3">
-                                        <div>
-                                            <div class="text-xs font-black text-slate-500 uppercase tracking-widest" id="rightPanelTitle">선택된 시험의 문제 목록</div>
-                                            <div class="text-[11px] text-slate-400 mt-0.5" id="examInfoLabel">시험을 선택하면 이 영역에 문제가 표시됩니다.</div>
-                                        </div>
-                                        <a id="rightPanelLink" href="#" class="hidden text-[11px] font-bold text-indigo-600 hover:text-indigo-800">NCS평가관리에서 보기</a>
+                                <!-- 우측: 편성 결과 카드 -->
+                                <div class="bg-white rounded-[2.5rem] border border-slate-200/60 shadow-sm flex flex-col overflow-hidden bento-card min-h-[420px]">
+                                    <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex-shrink-0">
+                                        <h4 class="font-black text-slate-800 text-sm uppercase tracking-tight flex items-center gap-2" id="rightPanelTitle"><i class="fas fa-list-check text-indigo-500"></i> 선택된 시험의 문제 목록</h4>
+                                        <p class="text-[11px] text-slate-500 mt-0.5" id="examInfoLabel">시험을 선택하면 이 영역에 문제가 표시됩니다.</p>
                                     </div>
-                                    <div id="examQuestionList" class="flex-1 min-h-[160px] max-h-80 overflow-y-auto custom-scrollbar text-xs text-slate-600 space-y-2">
-                                        <div class="text-center py-10 text-gray-400 text-xs">회차·시험을 선택하면 이 영역에 문제가 표시됩니다.</div>
+                                    <div id="examQuestionList" class="flex-1 min-h-[240px] max-h-[380px] overflow-y-auto custom-scrollbar p-4 space-y-3">
+                                        <div class="flex flex-col items-center justify-center py-16 text-slate-400 text-center px-4">
+                                            <i class="fas fa-inbox text-4xl mb-3 opacity-50"></i>
+                                            <p class="text-xs font-medium">회차·시험을 선택하면<br>편성된 문제가 여기 표시됩니다.</p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -627,28 +649,35 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                 btn.classList.toggle('bg-white', isActive);
                 btn.classList.toggle('text-indigo-600', isActive);
                 btn.classList.toggle('shadow-sm', isActive);
-                btn.classList.toggle('text-gray-500', !isActive);
+                btn.classList.toggle('border', isActive);
+                btn.classList.toggle('text-slate-500', !isActive);
             });
+            const examSelectWrap = document.getElementById('examSelectWrap');
             const examSelect = document.getElementById('mgmtExamSelect');
             const titleEl = document.getElementById('rightPanelTitle');
             const labelEl = document.getElementById('examInfoLabel');
             const linkEl = document.getElementById('rightPanelLink');
+            const cbtLinkEl = document.getElementById('mgmtCbtLink');
             const importLabel = document.getElementById('importBtnLabel');
             const importBtn = document.getElementById('importBtn');
             if (type === 'ncs') {
+                if (examSelectWrap) examSelectWrap.style.display = 'none';
                 if (examSelect) examSelect.style.display = 'none';
-                if (titleEl) titleEl.textContent = '이 회차의 NCS평가용 문제 목록';
-                if (labelEl) labelEl.textContent = '문제은행에서 \"NCS평가에 추가\"한 문제가 여기 표시됩니다.';
+                if (titleEl) titleEl.innerHTML = '<i class=\"fas fa-certificate text-amber-500\"></i> 이 회차의 NCS평가용 문제';
+                if (labelEl) labelEl.textContent = '문제은행에서 NCS평가로 추가한 문제가 여기 표시됩니다.';
                 if (linkEl) { linkEl.href = mgmtSessionId ? '/admin/courses/' + mgmtSessionId + '/lms/ncs-eval' : '#'; linkEl.classList.remove('hidden'); }
+                if (cbtLinkEl) cbtLinkEl.classList.add('hidden');
                 if (importLabel) importLabel.textContent = '선택 문제 NCS평가에 추가';
                 if (importBtn) { importBtn.disabled = !mgmtSessionId; }
                 if (mgmtSessionId) loadNcsCourseQuestions();
             } else {
+                if (examSelectWrap) examSelectWrap.style.display = 'flex';
                 if (examSelect) examSelect.style.display = '';
-                if (titleEl) titleEl.textContent = '선택된 시험의 문제 목록';
+                if (titleEl) titleEl.innerHTML = '<i class=\"fas fa-list-check text-indigo-500\"></i> 선택된 시험의 문제 목록';
                 if (labelEl) labelEl.textContent = '시험을 선택하면 이 영역에 문제가 표시됩니다.';
                 if (linkEl) linkEl.classList.add('hidden');
-                if (importLabel) importLabel.textContent = '선택 문제 시험에 추가';
+                if (cbtLinkEl && mgmtSessionId) cbtLinkEl.classList.remove('hidden');
+                if (importLabel) importLabel.textContent = '선택 문제 추가';
                 if (importBtn) { importBtn.disabled = !mgmtExamId; }
                 if (mgmtExamId) loadExamQuestions();
             }
@@ -701,12 +730,18 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
             if (cbtLink) {
                 if (mgmtSessionId) {
                     cbtLink.href = '/admin/courses/' + mgmtSessionId + '/lms/cbt';
-                    cbtLink.classList.remove('hidden');
+                    if (addTargetType === 'pre') cbtLink.classList.remove('hidden');
+                    else cbtLink.classList.add('hidden');
                 } else {
                     cbtLink.href = '#';
                     cbtLink.classList.add('hidden');
                 }
             }
+            const rightPanelLinkEl = document.getElementById('rightPanelLink');
+            if (rightPanelLinkEl && mgmtSessionId && addTargetType === 'ncs') {
+                rightPanelLinkEl.href = '/admin/courses/' + mgmtSessionId + '/lms/ncs-eval';
+                rightPanelLinkEl.classList.remove('hidden');
+            } else if (rightPanelLinkEl && !mgmtSessionId) rightPanelLinkEl.classList.add('hidden');
             if (addExamBtn) {
                 if (mgmtSessionId) addExamBtn.classList.remove('hidden');
                 else addExamBtn.classList.add('hidden');
@@ -714,7 +749,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
             if (!mgmtSessionId) {
                 mgmtSubjects = [];
                 if (examSelect) examSelect.innerHTML = '<option value=\"\">시험 선택</option>';
-                const examListEl = document.getElementById('examQuestionList'); if (examListEl) examListEl.innerHTML = '<div class=\"text-center py-10 text-gray-400 text-xs\">회차를 선택해 주세요.</div>';
+                const examListEl = document.getElementById('examQuestionList'); if (examListEl) examListEl.innerHTML = '<div class=\"flex flex-col items-center justify-center py-16 text-slate-400 text-center px-4\"><i class=\"fas fa-inbox text-4xl mb-3 opacity-50\"></i><p class=\"text-xs font-medium\">회차·시험을 선택하면<br>편성된 문제가 여기 표시됩니다.</p></div>';
                 document.getElementById('importBtn')?.setAttribute('disabled', 'true');
                 const linkEl = document.getElementById('rightPanelLink'); if (linkEl) linkEl.href = '#';
                 await loadQuestionBank();
@@ -745,7 +780,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                 const exams = json && json.success && Array.isArray(json.data) ? json.data : (Array.isArray(json) ? json : []);
                 if (!exams.length) {
                     examSelect.innerHTML = '<option value=\"\">시험 없음</option>';
-                    const examListEl2 = document.getElementById('examQuestionList'); if (examListEl2) examListEl2.innerHTML = '<div class=\"text-center py-10 text-gray-400 text-xs\">선택된 회차에 등록된 시험이 없습니다.</div>';
+                    const examListEl2 = document.getElementById('examQuestionList'); if (examListEl2) examListEl2.innerHTML = '<div class=\"flex flex-col items-center justify-center py-16 text-center px-4\"><i class=\"fas fa-clipboard-list text-4xl text-slate-300 mb-3\"></i><p class=\"text-xs font-medium text-slate-500\">선택된 회차에 등록된 시험이 없습니다.</p><p class=\"text-[11px] text-slate-400 mt-1\">시험 추가 버튼으로 시험을 만든 뒤 문제를 편성하세요.</p></div>';
                     return;
                 }
                 examSelect.innerHTML = '<option value=\"\">시험 선택</option>' + exams.map((e) =>
@@ -773,27 +808,25 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
         async function loadNcsCourseQuestions() {
             const listEl = document.getElementById('examQuestionList');
             if (!listEl || !mgmtSessionId) return;
-            listEl.innerHTML = '<div class=\"text-center py-10 text-gray-400 text-xs\">불러오는 중...</div>';
+            listEl.innerHTML = '<div class=\"flex flex-col items-center justify-center py-16 text-slate-400\"><i class=\"fas fa-spinner fa-spin text-2xl mb-3\"></i><span class=\"text-xs font-medium\">불러오는 중...</span></div>';
             try {
                 const res = await fetch(\`/api/cbt/ncs-course-questions?session_id=\${mgmtSessionId}\`, { headers: { 'Authorization': 'Bearer ' + token } });
                 const json = await res.json();
                 const list = (json && json.success && Array.isArray(json.data)) ? json.data : [];
                 if (list.length === 0) {
-                    listEl.innerHTML = '<div class=\"text-center py-10 text-gray-400 text-xs\">이 회차에 NCS평가용 문제가 없습니다. 좌측에서 선택 후 \"선택 문제 NCS평가에 추가\"를 누르세요.</div>';
+                    listEl.innerHTML = '<div class=\"flex flex-col items-center justify-center py-16 text-center px-4\"><i class=\"fas fa-certificate text-4xl text-amber-200 mb-3\"></i><p class=\"text-xs font-medium text-slate-500\">이 회차에 NCS평가용 문제가 없습니다.</p><p class=\"text-[11px] text-slate-400 mt-1\">좌측에서 문제를 선택한 뒤 &quot;선택 문제 NCS평가에 추가&quot;를 누르세요.</p></div>';
                     return;
                 }
                 listEl.innerHTML = list.map((q, idx) => \`
-                    <div class="flex items-center justify-between gap-2 px-3 py-2 rounded-lg hover:bg-slate-50 border border-slate-100">
-                        <div class="flex-1 min-w-0">
-                            <span class="px-1.5 py-0.5 rounded bg-slate-100 text-[10px] font-bold text-slate-600">\${idx + 1}</span>
-                            <span class="px-1.5 py-0.5 rounded bg-gray-100 text-[10px] font-bold text-gray-600">\${(q.question_type || '').replace('_', ' ')}</span>
-                            <span class="text-slate-700 line-clamp-2">\${String(q.question_text || '').replace(/</g, '&lt;').substring(0, 80)}\${(q.question_text || '').length > 80 ? '...' : ''}</span>
-                        </div>
+                    <div class="bento-card flex items-start gap-3 p-3 rounded-2xl border border-slate-200/60 bg-white hover:border-slate-300/60 transition-all shadow-sm">
+                        <span class="shrink-0 w-6 h-6 flex items-center justify-center rounded-lg bg-amber-50 text-amber-700 text-[10px] font-bold">\${idx + 1}</span>
+                        <span class="shrink-0 px-2 py-0.5 rounded-lg bg-slate-100 text-[10px] font-bold text-slate-600">\${(q.question_type || '').replace('_', ' ')}</span>
+                        <p class="flex-1 min-w-0 text-xs text-slate-700 line-clamp-2 leading-relaxed">\${String(q.question_text || '').replace(/</g, '&lt;')}</p>
                     </div>
                 \`).join('');
             } catch (e) {
                 console.error(e);
-                listEl.innerHTML = '<div class=\"text-center py-10 text-red-400 text-xs\">NCS평가 문제 목록을 불러오지 못했습니다.</div>';
+                listEl.innerHTML = '<div class=\"flex flex-col items-center justify-center py-16 text-center px-4\"><i class=\"fas fa-exclamation-circle text-4xl text-red-300 mb-3\"></i><p class=\"text-xs font-medium text-red-500\">NCS평가 문제 목록을 불러오지 못했습니다.</p></div>';
             }
         }
 
@@ -802,7 +835,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
             const countEl = document.getElementById('bankCountLabel');
             const importBtn = document.getElementById('importBtn');
             if (!listEl) return;
-            listEl.innerHTML = '<div class=\"text-center py-10 text-gray-400 text-xs\">불러오는 중...</div>';
+            listEl.innerHTML = '<div class=\"flex flex-col items-center justify-center py-16 text-slate-400\"><i class=\"fas fa-spinner fa-spin text-2xl mb-3\"></i><span class=\"text-xs font-medium\">불러오는 중...</span></div>';
             const typeVal = document.getElementById('bankTypeFilter')?.value || '';
             const difficultyVal = document.getElementById('bankDifficultyFilter')?.value || '';
             const keyword = document.getElementById('bankKeywordInput')?.value || '';
@@ -818,23 +851,23 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                 const json = await res.json();
                 bankQuestions = json && json.success && Array.isArray(json.data) ? json.data : (Array.isArray(json) ? json : []);
                 if (!bankQuestions.length) {
-                    listEl.innerHTML = '<div class=\"text-center py-10 text-gray-400 text-xs\">조건에 맞는 문제가 없습니다. 문제 등록 버튼으로 추가해 보세요.</div>';
+                    listEl.innerHTML = '<div class=\"flex flex-col items-center justify-center py-16 text-center px-4\"><i class=\"fas fa-inbox text-4xl text-slate-300 mb-3\"></i><p class=\"text-xs font-medium text-slate-500\">조건에 맞는 문제가 없습니다.</p><p class=\"text-[11px] text-slate-400 mt-1\">문제 등록 버튼으로 새 문제를 추가해 보세요.</p></div>';
                     if (countEl) countEl.textContent = '';
                     if (importBtn) importBtn.disabled = true;
                     return;
                 }
                 listEl.innerHTML = bankQuestions.map((q) => \`
-                    <label class=\"flex items-start gap-2 px-2 py-1.5 rounded-lg hover:bg-indigo-50/60 cursor-pointer\">
-                        <input type=\"checkbox\" class=\"mt-0.5 bank-question-checkbox\" value=\"\${q.id}\">
+                    <label class=\"bento-card flex items-start gap-3 p-3 rounded-2xl border border-slate-200/60 bg-white hover:border-slate-300/60 cursor-pointer transition-all shadow-sm\">
+                        <input type=\"checkbox\" class=\"mt-1 bank-question-checkbox shrink-0 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500/20\" value=\"\${q.id}\">
                         <div class=\"flex-1 min-w-0\">
-                            <div class=\"flex flex-wrap items-center gap-1 mb-0.5\">
-                                <span class=\"px-1.5 py-0.5 rounded bg-slate-100 text-[10px] font-bold text-slate-600 uppercase\">#\${q.id}</span>
-                                <span class=\"px-1.5 py-0.5 rounded bg-gray-100 text-[10px] font-bold text-gray-600\">\${(q.question_type || '').replace('_', ' ')}</span>
-                                \${q.difficulty ? '<span class=\"px-1.5 py-0.5 rounded bg-blue-50 text-[10px] font-bold text-blue-600\">' + (q.difficulty === 'high' ? '상' : q.difficulty === 'low' ? '하' : '중') + '</span>' : ''}
-                                \${(q.category || q.course_title) ? '<span class=\"px-1.5 py-0.5 rounded bg-violet-50 text-[10px] font-bold text-violet-700\">' + String(q.category || q.course_title || '').replace(/</g, '&lt;') + '</span>' : ''}
-                                \${q.ncs_ability_unit_name ? '<span class=\"px-1.5 py-0.5 rounded bg-amber-50 text-[10px] font-bold text-amber-700\" title=\"NCS 능력단위\">' + String(q.ncs_ability_unit_name).replace(/</g, '&lt;') + '</span>' : ''}
+                            <div class=\"flex flex-wrap items-center gap-1.5 mb-1.5\">
+                                <span class=\"px-2 py-0.5 rounded-lg bg-slate-100 text-[10px] font-bold text-slate-600\">#\${q.id}</span>
+                                <span class=\"px-2 py-0.5 rounded-lg bg-slate-100 text-[10px] font-bold text-slate-600\">\${(q.question_type || '').replace('_', ' ')}</span>
+                                \${q.difficulty ? '<span class=\"px-2 py-0.5 rounded-lg bg-blue-50 text-[10px] font-bold text-blue-600\">' + (q.difficulty === 'high' ? '상' : q.difficulty === 'low' ? '하' : '중') + '</span>' : ''}
+                                \${(q.category || q.course_title) ? '<span class=\"px-2 py-0.5 rounded-lg bg-violet-50 text-[10px] font-bold text-violet-700\">' + String(q.category || q.course_title || '').replace(/</g, '&lt;') + '</span>' : ''}
+                                \${q.ncs_ability_unit_name ? '<span class=\"px-2 py-0.5 rounded-lg bg-amber-50 text-[10px] font-bold text-amber-700\" title=\"NCS 능력단위\">' + String(q.ncs_ability_unit_name).replace(/</g, '&lt;') + '</span>' : ''}
                             </div>
-                            <div class=\"text-[11px] text-slate-700 line-clamp-2\">\${String(q.question_text || '').replace(/</g, '&lt;')}</div>
+                            <p class=\"text-xs text-slate-700 line-clamp-2 leading-relaxed\">\${String(q.question_text || '').replace(/</g, '&lt;')}</p>
                         </div>
                     </label>
                 \`).join('');
@@ -945,9 +978,10 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
             const listEl = document.getElementById('examQuestionList');
             if (!listEl) return;
             if (!mgmtExamId) {
-                listEl.innerHTML = '<div class=\"text-center py-10 text-gray-400 text-xs\">시험을 선택해 주세요.</div>';
+                listEl.innerHTML = '<div class=\"flex flex-col items-center justify-center py-16 text-slate-400 text-center px-4\"><i class=\"fas fa-inbox text-4xl mb-3 opacity-50\"></i><p class=\"text-xs font-medium\">회차·시험을 선택하면<br>편성된 문제가 여기 표시됩니다.</p></div>';
                 return;
             }
+            listEl.innerHTML = '<div class=\"flex flex-col items-center justify-center py-16 text-slate-400\"><i class=\"fas fa-spinner fa-spin text-2xl mb-3\"></i><span class=\"text-xs font-medium\">불러오는 중...</span></div>';
             try {
                 const res = await fetch(\`/api/cbt/questions?exam_id=\${mgmtExamId}\`, {
                     headers: { 'Authorization': 'Bearer ' + token }
@@ -955,39 +989,39 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                 const json = await res.json();
                 examQuestions = json && json.success && Array.isArray(json.data) ? json.data : (Array.isArray(json) ? json : []);
                 if (!examQuestions.length) {
-                    listEl.innerHTML = '<div class=\"text-center py-10 text-gray-400 text-xs\">아직 편성된 문제가 없습니다. 좌측 문제은행에서 문제를 추가해 보세요.</div>';
+                    listEl.innerHTML = '<div class=\"flex flex-col items-center justify-center py-16 text-center px-4\"><i class=\"fas fa-clipboard-list text-4xl text-indigo-200 mb-3\"></i><p class=\"text-xs font-medium text-slate-500\">아직 편성된 문제가 없습니다.</p><p class=\"text-[11px] text-slate-400 mt-1\">좌측 문제은행에서 선택 후 &quot;선택 문제 추가&quot;를 누르세요.</p></div>';
                     return;
                 }
                 const subjectName = (cid) => (mgmtSubjects.find((s) => s.id === cid) || {}).name || '';
                 listEl.innerHTML = examQuestions.map((q, idx) => \`
-                    <div class="border border-slate-100 rounded-xl px-3 py-2 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)] flex gap-2 items-start">
+                    <div class="bento-card flex items-start gap-3 p-3 rounded-2xl border border-slate-200/60 bg-white hover:border-slate-300/60 transition-all shadow-sm">
                         <div class="flex flex-col gap-0.5 shrink-0">
-                            <button type="button" onclick="moveQuestionUp(\${q.id}, \${idx})" \${idx === 0 ? 'disabled' : ''} class="p-1 text-gray-400 hover:text-indigo-600 rounded disabled:opacity-30 disabled:cursor-not-allowed" title="위로"><i class="fas fa-chevron-up text-[10px]"></i></button>
-                            <button type="button" onclick="moveQuestionDown(\${q.id}, \${idx})" \${idx === examQuestions.length - 1 ? 'disabled' : ''} class="p-1 text-gray-400 hover:text-indigo-600 rounded disabled:opacity-30 disabled:cursor-not-allowed" title="아래로"><i class="fas fa-chevron-down text-[10px]"></i></button>
+                            <button type="button" onclick="moveQuestionUp(\${q.id}, \${idx})" \${idx === 0 ? 'disabled' : ''} class="p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-indigo-50 disabled:opacity-30 disabled:cursor-not-allowed transition" title="위로"><i class="fas fa-chevron-up text-[10px]"></i></button>
+                            <button type="button" onclick="moveQuestionDown(\${q.id}, \${idx})" \${idx === examQuestions.length - 1 ? 'disabled' : ''} class="p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-indigo-50 disabled:opacity-30 disabled:cursor-not-allowed transition" title="아래로"><i class="fas fa-chevron-down text-[10px]"></i></button>
                         </div>
-                        <div class="text-[11px] font-mono text-slate-400 pt-0.5 shrink-0">\${idx + 1}.</div>
+                        <span class="shrink-0 w-6 h-6 flex items-center justify-center rounded-lg bg-indigo-50 text-indigo-700 text-[10px] font-bold">\${idx + 1}</span>
                         <div class="flex-1 min-w-0">
-                            <div class="flex flex-wrap items-center gap-1 mb-0.5">
-                                <span class="px-1.5 py-0.5 rounded bg-gray-100 text-[10px] font-bold text-gray-600">\${String(q.question_type || '').replace('_', ' ')}</span>
+                            <div class="flex flex-wrap items-center gap-1.5 mb-1">
+                                <span class="px-2 py-0.5 rounded-lg bg-slate-100 text-[10px] font-bold text-slate-600">\${String(q.question_type || '').replace('_', ' ')}</span>
                                 \${q.curriculum_id && subjectName(q.curriculum_id)
-                                    ? '<span class="px-1.5 py-0.5 rounded bg-violet-50 text-[10px] font-bold text-violet-700">' +
+                                    ? '<span class="px-2 py-0.5 rounded-lg bg-violet-50 text-[10px] font-bold text-violet-700">' +
                                       String(subjectName(q.curriculum_id) || '').replace(/</g, '&lt;') +
                                       '</span>'
                                     : ''}
                                 \${q.ncs_ability_unit_name
-                                    ? '<span class="px-1.5 py-0.5 rounded bg-amber-50 text-[10px] font-bold text-amber-700" title="NCS 능력단위">' +
+                                    ? '<span class="px-2 py-0.5 rounded-lg bg-amber-50 text-[10px] font-bold text-amber-700" title="NCS 능력단위">' +
                                       String(q.ncs_ability_unit_name || '').replace(/</g, '&lt;') +
                                       '</span>'
                                     : ''}
                             </div>
-                            <div class="text-[11px] text-slate-800 line-clamp-2">\${String(q.question_text || '').replace(/</g, '&lt;')}</div>
+                            <p class="text-xs text-slate-700 line-clamp-2 leading-relaxed">\${String(q.question_text || '').replace(/</g, '&lt;')}</p>
                         </div>
-                        <button type="button" onclick="removeQuestionFromExam(\${q.id})" class="shrink-0 p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50" title="시험에서 제거"><i class="fas fa-times text-[10px]"></i></button>
+                        <button type="button" onclick="removeQuestionFromExam(\${q.id})" class="shrink-0 p-2 text-slate-400 hover:text-red-500 rounded-xl hover:bg-red-50 transition" title="시험에서 제거"><i class="fas fa-times text-xs"></i></button>
                     </div>
                 \`).join('');
             } catch (e) {
                 console.error(e);
-                listEl.innerHTML = '<div class=\"text-center py-10 text-red-400 text-xs\">시험 문제를 불러오지 못했습니다.</div>';
+                listEl.innerHTML = '<div class=\"flex flex-col items-center justify-center py-16 text-center px-4\"><i class=\"fas fa-exclamation-circle text-4xl text-red-300 mb-3\"></i><p class=\"text-xs font-medium text-red-500\">시험 문제를 불러오지 못했습니다.</p></div>';
             }
         }
 
