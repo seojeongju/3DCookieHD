@@ -11,7 +11,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>통합 시험/CBT 관리 - 교육행정 시스템</title>
+    <title>${questionBankOnly ? '문제은행 - 교육행정 시스템' : '통합 시험/CBT 관리 - 교육행정 시스템'}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <script>
@@ -38,8 +38,8 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                 <div class="px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
                     <div class="flex justify-between items-center flex-wrap gap-3">
                         <div>
-                            <h1 class="text-xl sm:text-2xl font-bold text-gray-800 tracking-tight">${questionBankOnly ? '시험·문제 구성' : '통합 시험/CBT 현황'}</h1>
-                            <p class="text-gray-500 mt-1 text-sm">${questionBankOnly ? '회차와 시험을 선택한 뒤, 문제은행에서 문제를 가져와 시험에 편성할 수 있습니다.' : '모든 교육 과정의 시험 등록 현황 및 학생들의 응시율/평균 점수를 관리합니다.'}</p>
+                            <h1 class="text-xl sm:text-2xl font-bold text-gray-800 tracking-tight">${questionBankOnly ? '문제은행' : '통합 시험/CBT 현황'}</h1>
+                            <p class="text-gray-500 mt-1 text-sm">${questionBankOnly ? '전역 문제은행에서 문제를 등록·관리하고, 회차를 선택해 사전평가 또는 NCS평가로 편성할 수 있습니다.' : '모든 교육 과정의 시험 등록 현황 및 학생들의 응시율/평균 점수를 관리합니다.'}</p>
                         </div>
                         <div class="flex items-center gap-3">
                             <button onclick="loadExamSummary()" class="p-2.5 bg-white border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 hover:text-indigo-600 transition-all shadow-sm" title="새로고침">
@@ -161,13 +161,13 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                     `}
 
                     ${questionBankOnly ? `
-                    <!-- 시험/문제 구성 관리 (문제은행 전용 페이지에서만 표시) -->
+                    <!-- 문제은행: 등록 및 회차별 편성 -->
                     <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
                         <div class="px-8 py-6 border-b border-gray-50 bg-white/60 backdrop-blur-md">
                             <div class="flex flex-wrap justify-between items-center gap-4">
                                 <div>
-                                    <h3 class="font-black text-gray-800 text-lg uppercase tracking-tight">시험·문제 구성</h3>
-                                    <p class="text-xs text-gray-500 mt-1">회차와 시험을 선택한 뒤, 좌측 문제은행에서 문제를 가져와 우측 시험에 편성할 수 있습니다.</p>
+                                    <h3 class="font-black text-gray-800 text-lg uppercase tracking-tight">문제 등록 및 과정 편성</h3>
+                                    <p class="text-xs text-gray-500 mt-1">좌측에서 문제를 등록·검색하고, 회차를 선택한 뒤 추가 유형(사전평가/NCS평가)에 맞춰 우측으로 편성할 수 있습니다.</p>
                                 </div>
                                 <div class="flex flex-wrap gap-3 items-center">
                                     <div class="flex items-center gap-2">
@@ -299,7 +299,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
         </div>
     </div>
 
-    <!-- 문제 등록 모달 (통합 시험/CBT 문제은행 전용) -->
+    <!-- 문제 등록 모달 (문제은행 전용) -->
     <div id="bankQuestionModal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl border border-slate-200/60 max-h-[90vh] overflow-y-auto">
             <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
