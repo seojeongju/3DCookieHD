@@ -49,20 +49,9 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div class="flex justify-between items-center">
                 <h2 class="text-xl font-bold text-gray-800">CBT / 시험 관리</h2>
-                <div class="relative" id="createPreAssessmentWrap">
-                    <button type="button" onclick="toggleCreatePreAssessmentMenu()" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center shadow-sm">
-                        <i class="fas fa-plus mr-2"></i> 사전평가생성
-                        <i class="fas fa-chevron-down ml-2 text-sm opacity-80"></i>
-                    </button>
-                    <div id="createPreAssessmentMenu" class="hidden absolute right-0 mt-1 w-48 bg-white rounded-lg border border-gray-200 shadow-lg py-1 z-50">
-                        <button type="button" onclick="closeCreatePreAssessmentMenu(); openExamModal();" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center">
-                            <i class="fas fa-clipboard-list mr-2 text-purple-500"></i> 시험 추가
-                        </button>
-                        <button type="button" onclick="closeCreatePreAssessmentMenu(); openQuestionModal();" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center">
-                            <i class="fas fa-question-circle mr-2 text-indigo-500"></i> 문제 추가
-                        </button>
-                    </div>
-                </div>
+                <button type="button" onclick="openQuestionModal()" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center shadow-sm">
+                    <i class="fas fa-plus mr-2"></i> 문제 추가
+                </button>
             </div>
         </div>
     </div>
@@ -83,22 +72,24 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
             </button>
         </div>
 
-        <!-- 사전평가목록 탭 -->
+        <!-- 사전평가목록 탭: 문제은행·사전평가생성에서 온 문제 통합 목록 -->
         <div id="content-exams" class="tab-content">
             <div class="bg-white rounded-lg shadow overflow-hidden">
+                <div class="px-4 py-3 border-b border-gray-200 bg-gray-50 text-sm text-gray-600">
+                    이 과정의 모든 사전평가 문제입니다. (문제은행에서 가져온 문제 + 사전평가생성에서 만든 문제)
+                </div>
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">시험명</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">유형</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">응시 기간</th>
-                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">제한시간</th>
-                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">상태</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">관리</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">번호</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">문제 내용</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">유형</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">소속 시험</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-28">관리</th>
                         </tr>
                     </thead>
-                    <tbody id="examListBody" class="bg-white divide-y divide-gray-200">
-                        <tr><td colspan="6" class="px-6 py-12 text-center text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i> 로딩중...</td></tr>
+                    <tbody id="preAssessmentQuestionListBody" class="bg-white divide-y divide-gray-200">
+                        <tr><td colspan="5" class="px-6 py-12 text-center text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i> 로딩중...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -267,6 +258,16 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                             <label class="block text-sm font-medium text-gray-700 mb-1">설명</label>
                             <textarea name="description" id="examFormDescription" rows="3" class="w-full border rounded-lg px-3 py-2"></textarea>
                         </div>
+                        <!-- 시험 수정 시: 시험 문제 목록 (편집/삭제/추가) -->
+                        <div id="examModalQuestionsSection" class="hidden border-t border-gray-200 pt-4 mt-4">
+                            <div class="flex justify-between items-center mb-3">
+                                <label class="block text-sm font-medium text-gray-700">시험 문제</label>
+                                <button type="button" onclick="openAddQuestionFromExamModal()" class="text-xs px-3 py-1.5 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200">+ 문제 추가</button>
+                            </div>
+                            <div id="examModalQuestionsList" class="max-h-64 overflow-y-auto border border-gray-200 rounded-lg divide-y divide-gray-100 bg-gray-50/50 text-sm">
+                                <div class="px-4 py-6 text-center text-gray-500">불러오는 중...</div>
+                            </div>
+                        </div>
                     </div>
                     <div class="mt-6 flex justify-end space-x-3">
                         <button type="button" onclick="closeModal('examModal')" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">취소</button>
@@ -287,6 +288,7 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
             <div class="p-6">
                 <form id="questionForm" onsubmit="handleSaveQuestion(event)">
                     <input type="hidden" name="question_id" id="questionIdInput" value="">
+                    <input type="hidden" id="questionFormExamId" value="">
                     <div class="space-y-4">
                         <div class="grid grid-cols-2 gap-4">
                             <div>
@@ -378,20 +380,8 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
             if (tabName === 'results') loadResults();
         }
 
-        function toggleCreatePreAssessmentMenu() {
-            const menu = document.getElementById('createPreAssessmentMenu');
-            if (!menu) return;
-            menu.classList.toggle('hidden');
-        }
-        function closeCreatePreAssessmentMenu() {
-            const menu = document.getElementById('createPreAssessmentMenu');
-            if (menu) menu.classList.add('hidden');
-        }
-        document.addEventListener('click', function(e) {
-            const wrap = document.getElementById('createPreAssessmentWrap');
-            const menu = document.getElementById('createPreAssessmentMenu');
-            if (wrap && menu && !wrap.contains(e.target)) closeCreatePreAssessmentMenu();
-        });
+        let currentExamIdForModal = null;
+        let examModalQuestionsCache = [];
 
         function openExamModal() {
             document.getElementById('examIdInput').value = '';
@@ -399,6 +389,10 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
             document.getElementById('examSubmitBtn').textContent = '생성하기';
             document.getElementById('examForm').reset();
             document.getElementById('examFormTimeLimit').value = '60';
+            document.getElementById('examModalQuestionsSection').classList.add('hidden');
+            currentExamIdForModal = null;
+            var examIdEl = document.getElementById('questionFormExamId');
+            if (examIdEl) examIdEl.value = '';
             document.getElementById('examModal').classList.remove('hidden');
         }
         function openEditExam(examId) {
@@ -413,7 +407,101 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
             document.getElementById('examFormStartTime').value = toDatetimeLocal(exam.start_time);
             document.getElementById('examFormEndTime').value = toDatetimeLocal(exam.end_time);
             document.getElementById('examFormDescription').value = exam.description || '';
+            currentExamIdForModal = exam.id;
+            document.getElementById('examModalQuestionsSection').classList.remove('hidden');
+            document.getElementById('examModalQuestionsList').innerHTML = '<div class="px-4 py-6 text-center text-gray-500">불러오는 중...</div>';
             document.getElementById('examModal').classList.remove('hidden');
+            loadExamModalQuestions(exam.id);
+        }
+        async function loadExamModalQuestions(examId) {
+            const listEl = document.getElementById('examModalQuestionsList');
+            if (!listEl) return;
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(\`/api/cbt/questions?exam_id=\${examId}\`, { headers: { 'Authorization': 'Bearer ' + token } });
+                const json = await res.json();
+                const list = (json.success && Array.isArray(json.data)) ? json.data : [];
+                examModalQuestionsCache = list;
+                if (list.length === 0) {
+                    listEl.innerHTML = '<div class="px-4 py-6 text-center text-gray-500">등록된 문제가 없습니다. 아래 "문제 추가"로 추가하세요.</div>';
+                    return;
+                }
+                listEl.innerHTML = list.map(function(q, idx) {
+                    const text = (q.question_text || '').replace(/</g, '&lt;').substring(0, 60) + ((q.question_text || '').length > 60 ? '...' : '');
+                    const typeLabel = (q.question_type === 'multiple_choice' ? '객관식' : q.question_type === 'short_answer' ? '단답형' : '서술형');
+                    return \`<div class="flex items-center justify-between gap-2 px-4 py-3 hover:bg-white/60">
+                        <div class="flex-1 min-w-0">
+                            <span class="text-gray-500 font-mono text-xs mr-2">\${idx + 1}.</span>
+                            <span class="text-gray-800">\${text}</span>
+                            <span class="ml-2 px-1.5 py-0.5 rounded bg-gray-200 text-xs text-gray-600">\${typeLabel}</span>
+                        </div>
+                        <div class="flex items-center gap-1 shrink-0">
+                            <button type="button" onclick="openEditQuestionWithData(\${q.id})" class="px-2 py-1 text-xs text-indigo-600 hover:bg-indigo-50 rounded">수정</button>
+                            <button type="button" onclick="deleteQuestionFromExamModal(\${q.id})" class="px-2 py-1 text-xs text-red-600 hover:bg-red-50 rounded">삭제</button>
+                        </div>
+                    </div>\`;
+                }).join('');
+            } catch (e) {
+                console.error(e);
+                listEl.innerHTML = '<div class="px-4 py-6 text-center text-red-500">문제 목록을 불러오지 못했습니다.</div>';
+            }
+        }
+        function openEditQuestionWithData(questionId) {
+            const q = examModalQuestionsCache.find(function(x) { return x.id === parseInt(String(questionId), 10); });
+            if (!q) return;
+            document.getElementById('questionIdInput').value = q.id;
+            document.getElementById('questionModalTitle').textContent = '문제 수정';
+            document.getElementById('questionSubmitBtn').textContent = '수정하기';
+            document.getElementById('questionType').value = q.question_type || 'multiple_choice';
+            var diffEl = document.querySelector('#questionForm select[name="difficulty"]');
+            if (diffEl) diffEl.value = q.difficulty || 'medium';
+            document.getElementById('questionFormText').value = q.question_text || '';
+            if (q.question_type === 'multiple_choice') {
+                var opts = [];
+                try { opts = JSON.parse(q.options || '[]'); } catch (_) {}
+                document.querySelector('input[name="option_1"]').value = opts[0] || '';
+                document.querySelector('input[name="option_2"]').value = opts[1] || '';
+                document.querySelector('input[name="option_3"]').value = opts[2] || '';
+                document.querySelector('input[name="option_4"]').value = opts[3] || '';
+                var correctNum = parseInt(String(q.correct_answer), 10);
+                var radio = document.querySelector('input[name="correct_option"][value="' + (isNaN(correctNum) ? '1' : Math.max(1, Math.min(4, correctNum))) + '"]');
+                if (radio) radio.checked = true;
+            } else {
+                var ansEl = document.querySelector('input[name="correct_answer_text"]');
+                if (ansEl) ansEl.value = q.correct_answer || '';
+            }
+            toggleOptionsField();
+            var ncsSelect = document.getElementById('ncsAbilityUnitSelect');
+            if (ncsSelect) {
+                ncsSelect.innerHTML = '<option value="">선택 안 함</option>';
+                var ncsVal = (q.ncs_ability_unit_code || '') + '::' + (q.ncs_ability_unit_name || '');
+                if (q.ncs_ability_unit_name || q.ncs_ability_unit_code) {
+                    var opt = document.createElement('option');
+                    opt.value = ncsVal.trim() ? ncsVal : '';
+                    opt.textContent = q.ncs_ability_unit_name || q.ncs_ability_unit_code || '';
+                    opt.selected = true;
+                    ncsSelect.appendChild(opt);
+                }
+            }
+            document.getElementById('questionFormExamId').value = '';
+            document.getElementById('questionModal').classList.remove('hidden');
+        }
+        async function deleteQuestionFromExamModal(questionId) {
+            if (!confirm('이 문제를 삭제할까요?')) return;
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(\`/api/cbt/questions/\${questionId}\`, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
+                const json = await res.json();
+                if (json.success && currentExamIdForModal) loadExamModalQuestions(currentExamIdForModal);
+                else if (!json.success) alert('삭제 실패: ' + (json.error || '알 수 없음'));
+            } catch (e) { console.error(e); alert('삭제 중 오류가 발생했습니다.'); }
+        }
+        function openAddQuestionFromExamModal() {
+            if (!currentExamIdForModal) return;
+            openQuestionModal().then(function() {
+                var el = document.getElementById('questionFormExamId');
+                if (el) el.value = currentExamIdForModal;
+            });
         }
         async function deleteExam(examId) {
             if (!confirm('이 시험을 삭제할까요? (해당 시험의 모든 문제도 함께 삭제됩니다.)')) return;
@@ -433,6 +521,8 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
             document.getElementById('questionModalTitle').textContent = '문제 등록';
             document.getElementById('questionSubmitBtn').textContent = '등록하기';
             document.getElementById('questionForm').reset();
+            var qExamId = document.getElementById('questionFormExamId');
+            if (qExamId) qExamId.value = '';
             toggleOptionsField();
             document.getElementById('questionModal').classList.remove('hidden');
             const selectEl = document.getElementById('ncsAbilityUnitSelect');
@@ -499,6 +589,7 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
 
         function closeModal(id) {
             document.getElementById(id).classList.add('hidden');
+            if (id === 'examModal') currentExamIdForModal = null;
         }
 
         function toggleOptionsField() {
@@ -531,6 +622,7 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                 const result = await response.json();
                 examListCache = (result.success && Array.isArray(result.data)) ? result.data : [];
                 const tbody = document.getElementById('examListBody');
+                if (tbody) {
                 if (examListCache.length > 0) {
                     tbody.innerHTML = examListCache.map(exam => \`
                         <tr class="hover:bg-gray-50">
@@ -554,6 +646,7 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                     \`).join('');
                 } else {
                     tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-12 text-center text-gray-500">등록된 시험이 없습니다.</td></tr>';
+                }
                 }
             } catch (error) {
                 console.error('Error:', error);
@@ -704,6 +797,29 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
             div.textContent = s;
             return div.innerHTML;
         }
+        function renderPreAssessmentQuestionList() {
+            const tbody = document.getElementById('preAssessmentQuestionListBody');
+            if (!tbody) return;
+            if (allQuestions.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-12 text-center text-gray-500">등록된 사전평가 문제가 없습니다.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = allQuestions.map(function(q, idx) {
+                const text = (q.question_text || '').replace(/</g, '&lt;').substring(0, 80) + ((q.question_text || '').length > 80 ? '...' : '');
+                const typeLabel = typeof getQuestionTypeName === 'function' ? getQuestionTypeName(q.question_type) : (q.question_type === 'multiple_choice' ? '객관식' : q.question_type === 'short_answer' ? '단답형' : '서술형');
+                const examTitle = (q.exam_title || '-').replace(/</g, '&lt;');
+                return \`<tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">\${idx + 1}</td>
+                    <td class="px-6 py-4 text-sm text-gray-900">\${text}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">\${typeLabel}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">\${examTitle}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button type="button" onclick="openEditQuestion(\${q.id})" class="text-blue-600 hover:text-blue-900 mr-3">수정</button>
+                        <button type="button" onclick="deleteQuestion(\${q.id})" class="text-red-600 hover:text-red-900">삭제</button>
+                    </td>
+                </tr>\`;
+            }).join('');
+        }
         async function loadQuestions() {
             try {
                 const token = localStorage.getItem('token');
@@ -718,9 +834,12 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                     ncsSelect.innerHTML = '<option value="">전체 NCS 능력단위</option>' + opts.map(n => \`<option value="\${escapeHtml(n)}">\${escapeHtml(n)}</option>\`).join('');
                 }
                 applyQuestionFilters();
+                renderPreAssessmentQuestionList();
             } catch (error) {
                 console.error('Error:', error);
                 document.getElementById('questionList').innerHTML = '<div class="text-center py-12 text-red-500">문제 목록을 불러오지 못했습니다.</div>';
+                const preBody = document.getElementById('preAssessmentQuestionListBody');
+                if (preBody) preBody.innerHTML = '<tr><td colspan="5" class="px-6 py-12 text-center text-red-500">문제 목록을 불러오지 못했습니다.</td></tr>';
             }
         }
         async function deleteQuestion(id) {
@@ -924,6 +1043,8 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                     ncsName = (parts[1] || '').trim();
                 }
                 data.course_id = courseId;
+                const examIdForNew = (document.getElementById('questionFormExamId') || {}).value;
+                if (examIdForNew && String(examIdForNew).trim()) data.exam_id = parseInt(String(examIdForNew), 10);
                 data.difficulty = formData.get('difficulty');
                 data.explanation = formData.get('explanation');
                 data.category = 'general';
@@ -950,7 +1071,10 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                     document.getElementById('questionIdInput').value = '';
                     document.getElementById('questionModalTitle').textContent = '문제 등록';
                     document.getElementById('questionSubmitBtn').textContent = '등록하기';
+                    var examIdInput = document.getElementById('questionFormExamId');
+                    if (examIdInput) examIdInput.value = '';
                     loadQuestions();
+                    if (currentExamIdForModal) loadExamModalQuestions(currentExamIdForModal);
                     e.target.reset();
                 } else {
                     alert('오류: ' + result.error);
