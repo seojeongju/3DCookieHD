@@ -604,6 +604,15 @@ cbt.delete('/bank-questions/:id', authMiddleware, async (c) => {
     try {
         const id = parseInt(c.req.param('id'), 10);
         if (Number.isNaN(id)) return errorResponse(c, '유효한 ID가 아닙니다', 400);
+
+        // Check if the question is assigned to any exam
+        const isAssignedToExam = await c.env.DB.prepare('SELECT 1 FROM exam_questions WHERE question_bank_id = ? LIMIT 1').bind(id).first();
+        const isAssignedToNcs = await c.env.DB.prepare('SELECT 1 FROM ncs_course_questions WHERE question_bank_id = ? LIMIT 1').bind(id).first();
+
+        if (isAssignedToExam || isAssignedToNcs) {
+            return errorResponse(c, '이미 배정된 문제입니다. 삭제할수 없습니다.', 400);
+        }
+
         await c.env.DB.prepare('DELETE FROM question_bank WHERE id = ?').bind(id).run();
         return successResponse(c, { id }, '문제가 삭제되었습니다');
     } catch (e: any) {
