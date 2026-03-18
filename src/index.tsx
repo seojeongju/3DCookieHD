@@ -774,8 +774,8 @@ app.get('/privacy', (c) => {
                                                         <h2 class="text-2xl font-bold text-gray-800 mb-4">6. 개인정보 보호책임자</h2>
                                                         <div class="bg-gray-50 p-6 rounded-lg">
                                                             <p class="text-gray-600 mb-2"><strong>담당부서:</strong> 고객지원팀</p>
-                                                            <p class="text-gray-600 mb-2"><strong>전화:</strong> 02-1234-5678</p>
-                                                            <p class="text-gray-600"><strong>이메일:</strong> privacy@wow3dcookie.kr</p>
+                                                            <p class="text-gray-600 mb-2"><strong>전화:</strong> 02-3144-3137</p>
+                                                            <p class="text-gray-600"><strong>이메일:</strong> 3dcookiehd.co.kr</p>
                                                         </div>
                                                     </section>
                                                 </div>
