@@ -765,8 +765,6 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                 if (cbtLinkEl) cbtLinkEl.classList.add('hidden');
                 if (importLabel) importLabel.textContent = '선택 문제 NCS평가에 추가';
                 if (importBtn) updateImportBtnStatus();
-                const filterSel = document.getElementById('bankCategoryFilter');
-                if (filterSel) filterSel.value = 'CAT_NCS';
                 loadNcsCourseQuestions();
                 await loadQuestionBank();
             } else {
@@ -776,8 +774,6 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                 if (cbtLinkEl && mgmtSessionId) cbtLinkEl.classList.remove('hidden');
                 if (importLabel) importLabel.textContent = '선택 문제 추가';
                 if (importBtn) updateImportBtnStatus();
-                const filterSel = document.getElementById('bankCategoryFilter');
-                if (filterSel) filterSel.value = 'CAT_PRE';
                 loadExamQuestions();
                 await loadQuestionBank();
             }
@@ -941,11 +937,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                 if (typeVal) params.set('type', typeVal);
                 if (difficultyVal) params.set('difficulty', difficultyVal);
                 if (keyword) params.set('keyword', keyword);
-                if (categoryVal === 'CAT_PRE') {
-                    params.set('category', '사전평가');
-                } else if (categoryVal === 'CAT_NCS') {
-                    params.set('category', 'NCS');
-                } else if (categoryVal) {
+                if (categoryVal) {
                     params.set('ncs_subject_id', categoryVal);
                 }
                 const res = await fetch(\`/api/cbt/question-bank?\${params.toString()}\`, {
@@ -1022,9 +1014,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                 const filterSel = document.getElementById('bankCategoryFilter');
                 if (filterSel) {
                     const prevVal = filterSel.value;
-                    filterSel.innerHTML = '<option value=\"\">전체 문제 (분류 없음)</option>' +
-                                      '<option value=\"CAT_PRE\">사전평가 분류 문제만</option>' +
-                                      '<option value=\"CAT_NCS\">NCS평가 분류 문제만</option>';
+                    filterSel.innerHTML = '<option value=\"\">전체 분류</option>';
                     ncsSubjectsList.forEach(function(item) {
                         const opt = document.createElement('option');
                         opt.value = String(item.id);
@@ -1032,10 +1022,6 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                         filterSel.appendChild(opt);
                     });
                     if (prevVal) filterSel.value = prevVal;
-                    else {
-                        // 초기 로드 시 탭에 맞춰 기본값 설정
-                        filterSel.value = (addTargetType === 'ncs' ? 'CAT_NCS' : 'CAT_PRE');
-                    }
                 }
             } catch (e) { console.error(e); ncsSubjectsList = []; }
         }
