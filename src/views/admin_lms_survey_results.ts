@@ -11,8 +11,8 @@ export const adminLmsSurveyResultsHtml = (sidebar: string = hrdSidebar('courses'
     <title>강의후 설문 조사 결과 - 와우쓰리디</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
     <style>
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
@@ -177,7 +177,7 @@ export const adminLmsSurveyResultsHtml = (sidebar: string = hrdSidebar('courses'
                             var chartId = 'chart_' + sec.start + '_' + i;
                             sectionsHtml += '<div class="border border-slate-200/60 rounded-xl p-3 flex flex-col gap-2 bento-card">';
                             sectionsHtml += '<p class="font-bold text-slate-800 text-xs leading-tight" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">' + (i + 1) + '. ' + escapeHtml(q.question_text) + '</p>';
-                            sectionsHtml += '<div class="flex items-center justify-center"><canvas id="' + chartId + '" class="print-chart" width="140" height="140"></canvas></div>';
+                            sectionsHtml += '<div class="flex items-center justify-center w-[140px] h-[140px] mx-auto"><canvas id="' + chartId + '" class="print-chart" width="140" height="140"></canvas></div>';
                             sectionsHtml += '</div>';
                         });
                         sectionsHtml += '</div></div>';
@@ -192,9 +192,24 @@ export const adminLmsSurveyResultsHtml = (sidebar: string = hrdSidebar('courses'
                     }
 
                     var chartColorsOrder = [RATING_COLORS[4], RATING_COLORS[3], RATING_COLORS[2], RATING_COLORS[1], RATING_COLORS[0]];
-                    if (typeof Chart !== 'undefined' && Chart.registry && Chart.registry.getPlugin('datalabels') === undefined) {
-                        Chart.register(ChartDataLabels);
-                    }
+                    try {
+                        if (typeof Chart !== 'undefined' && typeof ChartDataLabels !== 'undefined') {
+                            Chart.register(ChartDataLabels);
+                        }
+                    } catch (e) { console.warn('ChartDataLabels register skip', e); }
+                    var datalabelsOpt = {
+                        color: '#1e293b',
+                        font: { size: 10, weight: 'bold' },
+                        formatter: function(val, ctx) {
+                            var t = ctx.dataset.data.reduce(function(a, b) { return a + b; }, 0);
+                            var pct = t > 0 ? ((val / t) * 100).toFixed(0) : '0';
+                            var lbl = ctx.chart.data.labels[ctx.dataIndex] || '';
+                            return val > 0 ? lbl + ' ' + pct + '%' : '';
+                        },
+                        display: function(ctx) { return ctx.dataset.data[ctx.dataIndex] > 0; },
+                        anchor: 'center',
+                        align: 'center'
+                    };
                     sections.forEach(function(sec) {
                         var items = ratingQuestions.slice(sec.start, sec.end);
                         items.forEach(function(q, i) {
@@ -205,34 +220,41 @@ export const adminLmsSurveyResultsHtml = (sidebar: string = hrdSidebar('courses'
                             var values = [5,4,3,2,1].map(function(k) { return dist[k] || 0; });
                             var labels = [5,4,3,2,1].map(function(k) { return scaleLabels[k] || ''; });
                             var total = values.reduce(function(a,b) { return a + b; }, 0);
-                            var ch = new Chart(canvas.getContext('2d'), {
-                                type: 'pie',
-                                data: {
-                                    labels: labels,
-                                    datasets: [{ data: values, backgroundColor: chartColorsOrder, borderColor: '#fff', borderWidth: 2 }]
-                                },
-                                options: {
-                                    responsive: true,
-                                    maintainAspectRatio: true,
-                                    plugins: {
-                                        legend: { display: false },
-                                        datalabels: {
-                                            color: '#1e293b',
-                                            font: { size: 10, weight: 'bold' },
-                                            formatter: function(val, ctx) {
-                                                var t = ctx.dataset.data.reduce(function(a, b) { return a + b; }, 0);
-                                                var pct = t > 0 ? ((val / t) * 100).toFixed(0) : '0';
-                                                var lbl = ctx.chart.data.labels[ctx.dataIndex] || '';
-                                                return val > 0 ? lbl + ' ' + pct + '%' : '';
-                                            },
-                                            display: function(ctx) { return ctx.dataset.data[ctx.dataIndex] > 0; },
-                                            anchor: 'center',
-                                            align: 'center'
-                                        }
-                                    }
-                                }
-                            });
-                            resultCharts.push(ch);
+                            var isZero = total === 0;
+                            var chartValues = isZero ? [1] : values;
+                            var chartLabels = isZero ? ['응답 없음'] : labels;
+                            var chartColors = isZero ? ['#e2e8f0'] : chartColorsOrder;
+                            var opts = {
+                                responsive: true,
+                                maintainAspectRatio: true,
+                                plugins: { legend: { display: false } }
+                            };
+                            if (typeof ChartDataLabels !== 'undefined' && !isZero) {
+                                opts.plugins.datalabels = datalabelsOpt;
+                            }
+                            try {
+                                var ch = new Chart(canvas.getContext('2d'), {
+                                    type: 'pie',
+                                    data: {
+                                        labels: chartLabels,
+                                        datasets: [{ data: chartValues, backgroundColor: chartColors, borderColor: '#fff', borderWidth: 2 }]
+                                    },
+                                    options: opts
+                                });
+                                resultCharts.push(ch);
+                            } catch (err) {
+                                console.error('Chart init error', err);
+                                try {
+                                    new Chart(canvas.getContext('2d'), {
+                                        type: 'pie',
+                                        data: {
+                                            labels: chartLabels,
+                                            datasets: [{ data: chartValues, backgroundColor: chartColors, borderColor: '#fff', borderWidth: 2 }]
+                                        },
+                                        options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } } }
+                                    });
+                                } catch (e2) {}
+                            }
                         });
                     });
                 })
