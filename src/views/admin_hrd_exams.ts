@@ -1356,7 +1356,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
         }
 
         async function importSelectedQuestions() {
-            const checkboxes = Array.from(document.querySelectorAll('.bank-question-checkbox:checked')) as HTMLInputElement[];
+            const checkboxes = Array.from(document.querySelectorAll('.bank-question-checkbox:checked'));
             const selectedBankIds = checkboxes.map(cb => parseInt(cb.value, 10)).filter(v => !Number.isNaN(v));
             if (selectedBankIds.length === 0) return;
 
@@ -1393,7 +1393,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                     return;
                 }
                 try {
-                    const sessSelect = document.getElementById('mgmtSessionSelect') as HTMLSelectElement;
+                    const sessSelect = document.getElementById('mgmtSessionSelect');
                     const sessTitle = sessSelect.options[sessSelect.selectedIndex]?.text?.split('(ID:')[0]?.trim() || '사전평가';
                     const createRes = await fetch('/api/exams', {
                         method: 'POST',
