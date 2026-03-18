@@ -765,7 +765,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                 if (cbtLinkEl) cbtLinkEl.classList.add('hidden');
                 if (importLabel) importLabel.textContent = '선택 문제 NCS평가에 추가';
                 if (importBtn) updateImportBtnStatus();
-                if (mgmtSessionId) loadNcsCourseQuestions();
+                loadNcsCourseQuestions();
                 await loadQuestionBank();
             } else {
                 if (titleEl) titleEl.innerHTML = '<i class=\"fas fa-list-check text-indigo-500\"></i> 이 회차 사전평가 문제';
@@ -774,7 +774,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                 if (cbtLinkEl && mgmtSessionId) cbtLinkEl.classList.remove('hidden');
                 if (importLabel) importLabel.textContent = '선택 문제 추가';
                 if (importBtn) updateImportBtnStatus();
-                if (mgmtExamId) loadExamQuestions();
+                loadExamQuestions();
                 await loadQuestionBank();
             }
         }
@@ -893,7 +893,11 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
 
         async function loadNcsCourseQuestions() {
             const listEl = document.getElementById('examQuestionList');
-            if (!listEl || !mgmtSessionId) return;
+            if (!listEl) return;
+            if (!mgmtSessionId) {
+                listEl.innerHTML = '<div class=\"flex flex-col items-center justify-center py-16 text-slate-400 text-center px-4\"><i class=\"fas fa-inbox text-4xl mb-3 opacity-50\"></i><p class=\"text-xs font-medium\">회차를 선택하면 편성된 문제가 표시됩니다.</p></div>';
+                return;
+            }
             listEl.innerHTML = '<div class=\"flex flex-col items-center justify-center py-16 text-slate-400\"><i class=\"fas fa-spinner fa-spin text-2xl mb-3\"></i><span class=\"text-xs font-medium\">불러오는 중...</span></div>';
             try {
                 const res = await fetch(\`/api/cbt/ncs-course-questions?session_id=\${mgmtSessionId}\`, { headers: { 'Authorization': 'Bearer ' + token } });
@@ -1303,10 +1307,10 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
             const listEl = document.getElementById('examQuestionList');
             if (!listEl) return;
             if (!mgmtExamId) {
-                listEl.innerHTML = "<div class=\\"flex flex-col items-center justify-center py-16 text-slate-400 text-center px-4\\"><i class=\\"fas fa-inbox text-4xl mb-3 opacity-50\\"></i><p class=\\"text-xs font-medium\\">\uD68C\uCC28 \uC2DC\uD5D8\uC744 \uC120\uD0DD\uD558\uBA74 \uD504\uB9B4\uC131\uB41C \uBB38\uC81C\uAC00 \uC5EC\uAE30 \uD45C\uC2DC\uB429\uB2C8\uB2E4.</p></div>";
+                listEl.innerHTML = '<div class=\"flex flex-col items-center justify-center py-16 text-slate-400 text-center px-4\"><i class=\"fas fa-clipboard-list text-4xl text-slate-300 mb-3\"></i><p class=\"text-xs font-medium text-slate-500\">편성된 문제가 없습니다.</p><p class=\"text-[11px] text-slate-400 mt-1\">왼쪽의 문제은행에서 문제를 선택하여 추가하세요.</p></div>';
                 return;
             }
-            listEl.innerHTML = "<div class=\\"flex flex-col items-center justify-center py-16 text-slate-400\\"><i class=\\"fas fa-spinner fa-spin text-2xl mb-3\\"></i><span class=\\"text-xs font-medium\\">\uBD88\uB7EC\uC624\uB294 \uC911...</span></div>";
+            listEl.innerHTML = '<div class=\"flex flex-col items-center justify-center py-16 text-slate-400\"><i class=\"fas fa-spinner fa-spin text-2xl mb-3\"></i><span class=\"text-xs font-medium\">불러오는 중...</span></div>';
             try {
                 const examApiUrl = "/api/cbt/questions?exam_id=" + mgmtExamId;
                 const res = await fetch(examApiUrl, {
