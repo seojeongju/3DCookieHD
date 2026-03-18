@@ -22,7 +22,20 @@ export const adminLmsInstructorEvalResultsHtml = (sidebar: string = hrdSidebar('
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         .custom-scrollbar::-webkit-scrollbar{width:4px}.custom-scrollbar::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:2px}
-        @media print{ body *{visibility:hidden} .results-print-area,.results-print-area *{visibility:visible} .results-print-area{position:absolute;left:0;top:0;width:100%} .print-hide{display:none!important} }
+        .tab-btn{ padding:0.75rem 1.5rem; font-weight:700; border-radius:1rem; transition:all 0.2s; }
+        .tab-btn.active{ background:#4f46e5; color:#fff; }
+        .tab-btn:not(.active){ background:#f1f5f9; color:#64748b; }
+        .tab-btn:not(.active):hover{ background:#e2e8f0; }
+        .tab-panel{ display:none; }
+        .tab-panel.active{ display:block; }
+        @media print{
+            body *{visibility:hidden}
+            .results-print-area,.results-print-area *{visibility:visible}
+            .results-print-area{position:absolute;left:0;top:0;width:100%}
+            .print-hide{display:none!important}
+            .tab-panel{display:none!important}
+            .tab-panel.print-this{display:block!important;visibility:visible}
+        }
     </style>
 </head>
 <body class="bg-slate-50">
@@ -34,7 +47,10 @@ export const adminLmsInstructorEvalResultsHtml = (sidebar: string = hrdSidebar('
                 <div class="max-w-4xl mx-auto">
                     <div class="print-hide flex items-center justify-between mb-6">
                         <a href="#" id="backLink" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-slate-700 font-bold text-sm hover:bg-slate-50"> <i class="fas fa-arrow-left"></i> 목록으로 </a>
-                        <button type="button" onclick="window.print()" class="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700"> <i class="fas fa-print"></i> 인쇄 </button>
+                        <div class="flex items-center gap-2">
+                            <button type="button" id="printAdminBtn" class="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-100 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-200 print-hide"> <i class="fas fa-print"></i> 원장평가 인쇄 </button>
+                            <button type="button" id="printSelfBtn" class="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-100 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-200 print-hide"> <i class="fas fa-print"></i> 강사평가 인쇄 </button>
+                        </div>
                     </div>
                     <div class="bg-white rounded-[2.5rem] border border-slate-200/60 shadow-sm overflow-hidden">
                         <div class="p-6 md:p-10">
@@ -46,7 +62,14 @@ export const adminLmsInstructorEvalResultsHtml = (sidebar: string = hrdSidebar('
                                 </tbody></table>
                             </div>
                             <div id="loading" class="py-12 text-center text-slate-400"><i class="fas fa-spinner fa-spin mr-2"></i> 불러오는 중...</div>
-                            <div id="content" class="hidden space-y-8"></div>
+                            <div id="content" class="hidden">
+                                <div class="print-hide flex gap-2 mb-6">
+                                    <button type="button" class="tab-btn active" data-tab="admin">원장평가</button>
+                                    <button type="button" class="tab-btn" data-tab="self">강사평가</button>
+                                </div>
+                                <div id="tab-admin" class="tab-panel active" data-tab="admin"></div>
+                                <div id="tab-self" class="tab-panel" data-tab="self"></div>
+                            </div>
                             <div id="empty" class="hidden py-12 text-center text-slate-500">저장된 평가 결과가 없습니다.</div>
                             <div id="error" class="hidden py-12 text-center text-red-500 font-bold"></div>
                         </div>
@@ -98,44 +121,66 @@ export const adminLmsInstructorEvalResultsHtml = (sidebar: string = hrdSidebar('
                 var keys = Object.keys(bySubjectInstructor).sort(function(a,b){ var sa = a.split('\t')[0], sb = b.split('\t')[0]; if(sa!==sb) return sa.localeCompare(sb); return a.localeCompare(b); });
 
                 var questionLabels = ${JSON.stringify(QUESTION_LABELS)};
-                var html = '';
+                function renderBlock(typ, row, instructorName, courseTitle, courseDates){
+                    var ev = typ==='admin' ? row.admin : row.self;
+                    var label = typ==='admin' ? '원장(관리자) 평가' : '담당강사(본인) 평가';
+                    var out = '';
+                    if(!ev){ out += '<div class="border border-slate-200 rounded-xl overflow-hidden"><div class="bg-slate-50 px-4 py-3 font-bold text-slate-600">' + label + '</div><div class="p-4 text-sm text-slate-500">미작성</div></div>'; return out; }
+                    out += '<div class="border border-slate-200 rounded-xl overflow-hidden">';
+                    out += '<div class="bg-slate-50 px-4 py-3 font-bold text-slate-700 border-b border-slate-200">' + label + ' 결과표</div>';
+                    out += '<div class="p-4">';
+                    out += '<table class="w-full border border-slate-200 rounded-xl overflow-hidden text-sm mb-4"><tbody>';
+                    out += '<tr class="border-b border-slate-200"><td class="bg-slate-50 py-2 px-4 font-bold text-slate-600 w-28">과정명</td><td class="py-2 px-4 text-slate-800">' + esc(courseTitle) + '</td><td colspan="2" class="bg-slate-50 py-2 px-4 font-bold text-slate-600 text-center border-l border-slate-200 w-32">결재</td></tr>';
+                    out += '<tr class="border-b border-slate-200"><td class="bg-slate-50 py-2 px-4 font-bold text-slate-600">과정 일자</td><td class="py-2 px-4 text-slate-800">' + esc(courseDates) + '</td><td class="bg-slate-50 py-1 px-2 text-center text-slate-600 border-l border-slate-200 w-16">원장</td><td class="bg-slate-50 py-1 px-2 text-center text-slate-600 w-16">담당</td></tr>';
+                    out += '<tr class="border-b border-slate-200"><td class="bg-slate-50 py-2 px-4 font-bold text-slate-600">교과목</td><td class="py-2 px-4 text-slate-800">' + esc(row.subject_name) + '</td><td class="py-2 px-2 border-l border-slate-200"></td><td class="py-2 px-2"></td></tr>';
+                    out += '<tr class="border-b border-slate-200"><td class="bg-slate-50 py-2 px-4 font-bold text-slate-600">담당강사</td><td class="py-2 px-4 text-slate-800">' + esc(instructorName) + '</td><td class="py-2 px-2 border-l border-slate-200"></td><td class="py-2 px-2"></td></tr>';
+                    out += '<tr class="border-b border-slate-200"><td class="bg-slate-50 py-2 px-4 font-bold text-slate-600">평가자</td><td class="py-2 px-4 text-slate-800">' + (typ==='admin' ? '원장(관리자)' : '담당강사(본인)') + '</td><td class="py-2 px-2 border-l border-slate-200"></td><td class="py-2 px-2"></td></tr>';
+                    out += '<tr><td class="bg-slate-50 py-2 px-4 font-bold text-slate-600">성명</td><td class="py-2 px-4 text-slate-800">' + esc(ev.evaluator_name) + '</td><td class="py-2 px-2 border-l border-slate-200"></td><td class="py-2 px-2"></td></tr>';
+                    out += '</tbody></table>';
+                    var scoreText = ev.total_score != null ? (ev.total_score + '/75점') : '-';
+                    out += '<p class="text-sm font-bold text-slate-700 mb-2">75점 만점 / 총점 <span class="text-slate-800">' + scoreText + '</span></p>';
+                    out += '<table class="w-full text-xs border border-slate-200 rounded-lg overflow-hidden"><thead><tr class="bg-slate-50"><th class="text-left py-2 px-3 font-bold text-slate-600">문항</th><th class="text-center w-10">점수</th></tr></thead><tbody>';
+                    for(var i=1;i<=15;i++){
+                        var v = ev['q'+i];
+                        var qLabel = questionLabels[i-1] || '';
+                        out += '<tr class="border-t border-slate-100"><td class="py-1.5 px-3 text-slate-700">'+i+'. '+qLabel+'</td><td class="text-center font-bold">'+(v!=null?v:'-')+'</td></tr>';
+                    }
+                    out += '</tbody></table>';
+                    if(ev.suggestions && ev.suggestions.trim()) out += '<p class="mt-3 text-sm text-slate-600"><span class="font-bold">건의사항:</span> ' + esc(ev.suggestions) + '</p>';
+                    out += '</div></div>';
+                    return out;
+                }
+                var adminHtml = '', selfHtml = '';
                 keys.forEach(function(key){
                     var row = bySubjectInstructor[key];
                     var instructorName = row.instructor_name || (row.admin && row.admin.instructor_name) || (row.self && row.self.instructor_name) || '-';
-                    html += '<div class="border border-slate-200 rounded-2xl overflow-hidden mb-8">';
-                    html += '<div class="bg-slate-100 px-4 py-3 font-bold text-slate-700 border-b border-slate-200">' + esc(row.subject_name) + ' · 담당강사 ' + esc(instructorName) + '</div>';
-                    html += '<div class="p-4 space-y-8">';
-
-                    ['admin','self'].forEach(function(typ){
-                        var ev = typ==='admin' ? row.admin : row.self;
-                        var label = typ==='admin' ? '원장(관리자) 평가' : '담당강사(본인) 평가';
-                        if(!ev){ html += '<div class="border border-slate-200 rounded-xl overflow-hidden"><div class="bg-slate-50 px-4 py-3 font-bold text-slate-600">' + label + '</div><div class="p-4 text-sm text-slate-500">미작성</div></div>'; return; }
-                        html += '<div class="border border-slate-200 rounded-xl overflow-hidden">';
-                        html += '<div class="bg-slate-50 px-4 py-3 font-bold text-slate-700 border-b border-slate-200">' + label + ' 결과표</div>';
-                        html += '<div class="p-4">';
-                        html += '<table class="w-full border border-slate-200 rounded-xl overflow-hidden text-sm mb-4"><tbody>';
-                        html += '<tr class="border-b border-slate-200"><td class="bg-slate-50 py-2 px-4 font-bold text-slate-600 w-28">과정명</td><td class="py-2 px-4 text-slate-800">' + esc(courseTitle) + '</td><td colspan="2" class="bg-slate-50 py-2 px-4 font-bold text-slate-600 text-center border-l border-slate-200 w-32">결재</td></tr>';
-                        html += '<tr class="border-b border-slate-200"><td class="bg-slate-50 py-2 px-4 font-bold text-slate-600">과정 일자</td><td class="py-2 px-4 text-slate-800">' + esc(courseDates) + '</td><td class="bg-slate-50 py-1 px-2 text-center text-slate-600 border-l border-slate-200 w-16">원장</td><td class="bg-slate-50 py-1 px-2 text-center text-slate-600 w-16">담당</td></tr>';
-                        html += '<tr class="border-b border-slate-200"><td class="bg-slate-50 py-2 px-4 font-bold text-slate-600">교과목</td><td class="py-2 px-4 text-slate-800">' + esc(row.subject_name) + '</td><td class="py-2 px-2 border-l border-slate-200"></td><td class="py-2 px-2"></td></tr>';
-                        html += '<tr class="border-b border-slate-200"><td class="bg-slate-50 py-2 px-4 font-bold text-slate-600">담당강사</td><td class="py-2 px-4 text-slate-800">' + esc(instructorName) + '</td><td class="py-2 px-2 border-l border-slate-200"></td><td class="py-2 px-2"></td></tr>';
-                        html += '<tr class="border-b border-slate-200"><td class="bg-slate-50 py-2 px-4 font-bold text-slate-600">평가자</td><td class="py-2 px-4 text-slate-800">' + (typ==='admin' ? '원장(관리자)' : '담당강사(본인)') + '</td><td class="py-2 px-2 border-l border-slate-200"></td><td class="py-2 px-2"></td></tr>';
-                        html += '<tr><td class="bg-slate-50 py-2 px-4 font-bold text-slate-600">성명</td><td class="py-2 px-4 text-slate-800">' + esc(ev.evaluator_name) + '</td><td class="py-2 px-2 border-l border-slate-200"></td><td class="py-2 px-2"></td></tr>';
-                        html += '</tbody></table>';
-                        var scoreText = ev.total_score != null ? (ev.total_score + '/75점') : '-';
-                        html += '<p class="text-sm font-bold text-slate-700 mb-2">75점 만점 / 총점 <span class="text-slate-800">' + scoreText + '</span></p>';
-                        html += '<table class="w-full text-xs border border-slate-200 rounded-lg overflow-hidden"><thead><tr class="bg-slate-50"><th class="text-left py-2 px-3 font-bold text-slate-600">문항</th><th class="text-center w-10">점수</th></tr></thead><tbody>';
-                        for(var i=1;i<=15;i++){
-                            var v = ev['q'+i];
-                            var qLabel = questionLabels[i-1] || '';
-                            html += '<tr class="border-t border-slate-100"><td class="py-1.5 px-3 text-slate-700">'+i+'. '+qLabel+'</td><td class="text-center font-bold">'+(v!=null?v:'-')+'</td></tr>';
-                        }
-                        html += '</tbody></table>';
-                        if(ev.suggestions && ev.suggestions.trim()) html += '<p class="mt-3 text-sm text-slate-600"><span class="font-bold">건의사항:</span> ' + esc(ev.suggestions) + '</p>';
-                        html += '</div></div>';
-                    });
-                    html += '</div></div>';
+                    adminHtml += '<div class="border border-slate-200 rounded-2xl overflow-hidden mb-8"><div class="bg-slate-100 px-4 py-3 font-bold text-slate-700 border-b border-slate-200">' + esc(row.subject_name) + ' · 담당강사 ' + esc(instructorName) + '</div><div class="p-4 space-y-8">' + renderBlock('admin', row, instructorName, courseTitle, courseDates) + '</div></div>';
+                    selfHtml += '<div class="border border-slate-200 rounded-2xl overflow-hidden mb-8"><div class="bg-slate-100 px-4 py-3 font-bold text-slate-700 border-b border-slate-200">' + esc(row.subject_name) + ' · 담당강사 ' + esc(instructorName) + '</div><div class="p-4 space-y-8">' + renderBlock('self', row, instructorName, courseTitle, courseDates) + '</div></div>';
                 });
-                document.getElementById('content').innerHTML = html;
+                document.getElementById('tab-admin').innerHTML = adminHtml;
+                document.getElementById('tab-self').innerHTML = selfHtml;
+
+                document.querySelectorAll('.tab-btn').forEach(function(btn){
+                    btn.addEventListener('click', function(){
+                        var t = this.getAttribute('data-tab');
+                        document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+                        document.querySelectorAll('.tab-panel').forEach(function(p){ p.classList.remove('active'); });
+                        this.classList.add('active');
+                        document.getElementById('tab-'+t).classList.add('active');
+                    });
+                });
+                document.getElementById('printAdminBtn').addEventListener('click', function(){
+                    document.getElementById('tab-admin').classList.add('print-this');
+                    document.getElementById('tab-self').classList.remove('print-this');
+                    window.print();
+                    document.getElementById('tab-admin').classList.remove('print-this');
+                });
+                document.getElementById('printSelfBtn').addEventListener('click', function(){
+                    document.getElementById('tab-self').classList.add('print-this');
+                    document.getElementById('tab-admin').classList.remove('print-this');
+                    window.print();
+                    document.getElementById('tab-self').classList.remove('print-this');
+                });
             }).catch(function(){ document.getElementById('loading').classList.add('hidden'); document.getElementById('error').classList.remove('hidden'); document.getElementById('error').textContent='요청 실패'; });
         })();
     </script>
