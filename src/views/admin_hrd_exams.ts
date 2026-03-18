@@ -532,8 +532,23 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
             }
         }
 
+        function updateImportBtnStatus() {
+            const importBtn = document.getElementById('importBtn');
+            if (!importBtn) return;
+            const hasTarget = addTargetType === 'ncs' ? !!mgmtSessionId : !!mgmtExamId;
+            const checkboxes = document.querySelectorAll('.bank-question-checkbox:checked');
+            const hasSelection = checkboxes.length > 0;
+            importBtn.disabled = !(hasTarget && hasSelection);
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             loadExamSummary();
+            // 문제은행 체크박스 변경 감지 (위임)
+            document.getElementById('bankList')?.addEventListener('change', (e) => {
+                if (e.target.classList.contains('bank-question-checkbox')) {
+                    updateImportBtnStatus();
+                }
+            });
         });
 
         async function loadExamSummary() {
@@ -828,7 +843,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
             if (!mgmtSessionId) {
                 mgmtSubjects = [];
                 const examListEl = document.getElementById('examQuestionList'); if (examListEl) examListEl.innerHTML = '<div class=\"flex flex-col items-center justify-center py-16 text-slate-400 text-center px-4\"><i class=\"fas fa-inbox text-4xl mb-3 opacity-50\"></i><p class=\"text-xs font-medium\">회차를 선택하면<br>편성된 문제가 여기 표시됩니다.</p></div>';
-                document.getElementById('importBtn')?.setAttribute('disabled', 'true');
+                updateImportBtnStatus();
                 const linkEl = document.getElementById('rightPanelLink'); if (linkEl) linkEl.href = '#';
                 await loadQuestionBank();
                 return;
@@ -842,7 +857,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
             if (addTargetType === 'ncs') {
                 await loadNcsCourseQuestions();
                 const linkEl = document.getElementById('rightPanelLink'); if (linkEl) { linkEl.href = '/admin/courses/' + mgmtSessionId + '/lms/ncs-eval'; linkEl.classList.remove('hidden'); }
-                document.getElementById('importBtn').disabled = false;
+                updateImportBtnStatus();
             }
             await loadQuestionBank();
         }
@@ -860,14 +875,14 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                     const examListEl2 = document.getElementById('examQuestionList');
                     if (examListEl2) examListEl2.innerHTML = '<div class=\"flex flex-col items-center justify-center py-16 text-center px-4\"><i class=\"fas fa-clipboard-list text-4xl text-slate-300 mb-3\"></i><p class=\"text-xs font-medium text-slate-500\">선택된 회차에 시험이 없습니다.</p><p class=\"text-[11px] text-slate-400 mt-1\">시험 추가 버튼으로 시험을 만든 뒤 문제를 편성하세요.</p></div>';
                     const importBtn = document.getElementById('importBtn');
-                    if (importBtn && addTargetType === 'pre') importBtn.disabled = true;
+                    updateImportBtnStatus();
                     return;
                 }
                 mgmtExamId = String(exams[0].id);
                 if (addTargetType === 'pre') {
                     await loadExamQuestions();
                     const importBtn = document.getElementById('importBtn');
-                    if (importBtn) importBtn.disabled = false;
+                    updateImportBtnStatus();
                 }
             } catch (e) {
                 console.error(e);
@@ -925,7 +940,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                 if (!bankQuestions.length) {
                     listEl.innerHTML = '<div class=\"flex flex-col items-center justify-center py-16 text-center px-4\"><i class=\"fas fa-inbox text-4xl text-slate-300 mb-3\"></i><p class=\"text-xs font-medium text-slate-500\">조건에 맞는 문제가 없습니다.</p><p class=\"text-[11px] text-slate-400 mt-1\">문제 등록 버튼으로 새 문제를 추가해 보세요.</p></div>';
                     if (countEl) countEl.textContent = '';
-                    if (importBtn) importBtn.disabled = true;
+                    updateImportBtnStatus();
                     return;
                 }
                 listEl.innerHTML = bankQuestions.map((q) => {
@@ -962,12 +977,12 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                     </label>\`;
                 }).join('');
                 if (countEl) countEl.textContent = \`총 \${bankQuestions.length}문항\`;
-                if (importBtn) importBtn.disabled = addTargetType === 'ncs' ? !mgmtSessionId : !mgmtExamId;
+                updateImportBtnStatus();
             } catch (e) {
                 console.error(e);
                 listEl.innerHTML = '<div class=\"text-center py-10 text-red-400 text-xs\">문제은행을 불러오지 못했습니다.</div>';
                 if (countEl) countEl.textContent = '';
-                if (importBtn) importBtn.disabled = true;
+                updateImportBtnStatus();
             }
         }
 
@@ -1333,10 +1348,6 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
         async function importSelectedQuestions() {
             const checkboxes = Array.from(document.querySelectorAll('.bank-question-checkbox'));
             const selectedBankIds = checkboxes.filter(cb => cb.checked).map(cb => parseInt(cb.value, 10)).filter(v => !Number.isNaN(v));
-            if (!selectedBankIds.length) {
-                showNotifyModal('안내', '가져올 문제를 선택해 주세요.', 'info');
-                return;
-            }
             if (addTargetType === 'ncs') {
                 if (!mgmtSessionId) {
                     showNotifyModal('안내', '회차를 선택한 뒤 NCS평가에 추가해 주세요.', 'info');
@@ -1352,6 +1363,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                     if (json && json.success) {
                         showNotifyModal('추가 완료', '선택한 문제가 이 회차의 NCS평가관리에 등록되었습니다. NCS평가관리 페이지에서 확인하세요.', 'success');
                         checkboxes.forEach(cb => { cb.checked = false; });
+                        updateImportBtnStatus();
                         await loadNcsCourseQuestions();
                     } else {
                         showNotifyModal('추가 실패', json.error || '알 수 없는 오류', 'error');
@@ -1379,6 +1391,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                 if (json && json.success) {
                     showNotifyModal('추가 완료', '선택한 문제가 시험에 추가되었습니다.', 'success');
                     checkboxes.forEach(cb => { cb.checked = false; });
+                    updateImportBtnStatus();
                     await loadExamQuestions();
                 } else {
                     showNotifyModal('추가 실패', json.error || '알 수 없는 오류', 'error');

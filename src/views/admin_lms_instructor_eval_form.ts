@@ -112,20 +112,22 @@ export const adminLmsInstructorEvalFormHtml = (sidebar: string = hrdSidebar('cou
             var token = localStorage.getItem('token');
             var isTeacher = window.location.pathname.indexOf('/teacher') >= 0;
             var basePath = (isTeacher ? '/teacher/courses/' : '/admin/courses/') + courseId + '/lms';
-            var qs = window.location.search || '';
+            var qsParams = new URLSearchParams(window.location.search);
+            qsParams.delete('subject'); qsParams.delete('evaluator'); qsParams.delete('instructor_id');
+            var cleanQs = qsParams.toString() ? '?' + qsParams.toString() : '';
 
             document.getElementById('sessionId').value = courseId;
             document.getElementById('subjectName').value = subject;
             document.getElementById('evaluatorType').value = evaluator;
             document.getElementById('instructorId').value = instructorId;
-            document.getElementById('backLink').href = basePath + '/instructor-eval' + qs;
+            document.getElementById('backLink').href = basePath + '/instructor-eval' + cleanQs;
             document.getElementById('formTitle').textContent = evaluator === 'admin' ? '수업평가 (평가자: 원장/관리자)' : '수업평가 (평가자: 본인)';
             document.getElementById('formSub').textContent = subject || '-';
             document.getElementById('subjectDisplay').textContent = subject || '-';
             document.getElementById('evaluatorLabel').textContent = evaluator === 'admin' ? '원장(관리자) / 와우쓰리디(WOW3D) 홍대센터' : '담당강사(본인) / 와우쓰리디(WOW3D) 홍대센터';
 
             function fmtDate(s){ if(!s) return ''; var d = (s+'').split('T')[0]; return d ? d.replace(/-/g,'.') : ''; }
-            fetch('/api/courses/'+courseId+(qs?'?'+qs.substring(1):''), { headers: { 'Authorization': 'Bearer '+token } })
+            fetch('/api/courses/'+courseId+cleanQs, { headers: { 'Authorization': 'Bearer '+token } })
                 .then(function(r){ return r.json(); })
                 .then(function(res){
                     if(res&&res.success&&res.data){
@@ -197,7 +199,7 @@ export const adminLmsInstructorEvalFormHtml = (sidebar: string = hrdSidebar('cou
                 fetch('/api/instructor-eval', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer '+token }, body: JSON.stringify(payload) })
                     .then(function(r){ return r.json(); })
                     .then(function(res){
-                        if(res&&res.success){ alert(res.message || '저장되었습니다.'); window.location.href = basePath + '/instructor-eval' + qs; }
+                        if(res&&res.success){ alert(res.message || '저장되었습니다.'); window.location.href = basePath + '/instructor-eval' + cleanQs; }
                         else { alert(res&&res.error ? res.error : '저장에 실패했습니다.'); btn.disabled = false; btn.textContent = '저장'; }
                     })
                     .catch(function(){ alert('요청 실패'); btn.disabled = false; btn.textContent = '저장'; });

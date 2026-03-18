@@ -16,7 +16,7 @@ app.get('/subjects', authMiddleware, async (c) => {
         const { DB } = c.env;
         const query = `
             SELECT DISTINCT
-                c.name as subject_name,
+                COALESCE(c.name, '(교과목명 없음)') as subject_name,
                 st.instructor_id as instructor_id,
                 u.name as instructor_name
             FROM session_timetable st
@@ -51,12 +51,12 @@ app.get('/list', authMiddleware, async (c) => {
 
         const { DB } = c.env;
         const subjectsQuery = `
-            SELECT DISTINCT c.name as subject_name, st.instructor_id as instructor_id, u.name as instructor_name
+            SELECT DISTINCT COALESCE(c.name, '(교과목명 없음)') as subject_name, st.instructor_id as instructor_id, u.name as instructor_name
             FROM session_timetable st
             LEFT JOIN ncs_approved_curriculum c ON st.subject_id = c.id
             LEFT JOIN users u ON st.instructor_id = u.id
             WHERE st.session_id = ? AND (st.is_excluded IS NULL OR st.is_excluded = 0)
-            ORDER BY c.name ASC
+            ORDER BY subject_name ASC
         `;
         const sessionIdNum = sessionId ? parseInt(String(sessionId), 10) : null;
         const { results: subjectRows } = await DB.prepare(subjectsQuery).bind(sessionId).all();

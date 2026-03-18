@@ -66,11 +66,14 @@ export const adminLmsInstructorEvalHtml = (sidebar: string = hrdSidebar('courses
             var token = localStorage.getItem('token');
             var isTeacher = window.location.pathname.indexOf('/teacher') >= 0;
             var basePath = isTeacher ? '/teacher/courses/'+courseId+'/lms' : '/admin/courses/'+courseId+'/lms';
-            var qs = window.location.search || '';
+            var qsParams = new URLSearchParams(window.location.search);
+            qsParams.delete('subject'); qsParams.delete('evaluator'); qsParams.delete('instructor_id');
+            var cleanQs = qsParams.toString() ? '?' + qsParams.toString() : '';
+            var qsAmp = qsParams.toString() ? '&' + qsParams.toString() : '';
 
             if(!courseId || !token){ document.getElementById('loading').classList.add('hidden'); document.getElementById('error').classList.remove('hidden'); document.getElementById('error').textContent='권한이 없거나 과정 정보가 없습니다.'; return; }
 
-            document.getElementById('resultsLink').href = basePath + '/instructor-eval/results' + qs;
+            document.getElementById('resultsLink').href = basePath + '/instructor-eval/results' + cleanQs;
 
             if (isTeacher) {
                 var th = document.getElementById('adminEvalTh');
@@ -87,7 +90,7 @@ export const adminLmsInstructorEvalHtml = (sidebar: string = hrdSidebar('courses
                     if(!res||!res.success){ document.getElementById('error').classList.remove('hidden'); document.getElementById('error').textContent = res&&res.error ? res.error : '목록을 불러오지 못했습니다.'; return; }
                     var list = res.data||[];
                     document.getElementById('content').classList.remove('hidden');
-                    fetch('/api/courses/'+courseId+(qs?'?'+qs.substring(1):''), { headers: { 'Authorization': 'Bearer '+token } })
+                    fetch('/api/courses/'+courseId+cleanQs, { headers: { 'Authorization': 'Bearer '+token } })
                         .then(function(r2){ return r2.json(); })
                         .then(function(cRes){
                             if(cRes&&cRes.success&&cRes.data){ document.getElementById('courseTitle').textContent = cRes.data.title||'-'; document.getElementById('courseSub').textContent = (cRes.data.start_date||'').split('T')[0]+' ~ '+(cRes.data.end_date||'').split('T')[0]; }
@@ -103,13 +106,13 @@ export const adminLmsInstructorEvalHtml = (sidebar: string = hrdSidebar('courses
                         var adminDone = row.admin_done; var selfDone = row.self_done;
                         var adminCell = row.can_admin
                             ? (adminDone
-                                ? '<span class="text-green-600 text-xs font-bold mr-2">평가완료</span><a href="'+basePath+'/instructor-eval/form?subject='+subject+'&evaluator=admin&instructor_id='+(row.instructor_id||'')+qs+'" class="text-indigo-600 hover:underline font-bold text-xs">수정</a>'
-                                : '<a href="'+basePath+'/instructor-eval/form?subject='+subject+'&evaluator=admin&instructor_id='+(row.instructor_id||'')+qs+'" class="inline-flex items-center px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700">원장 평가하기</a>')
+                                ? '<span class="text-green-600 text-xs font-bold mr-2">평가완료</span><a href="'+basePath+'/instructor-eval/form?subject='+subject+'&evaluator=admin&instructor_id='+(row.instructor_id||'')+qsAmp+'" class="text-indigo-600 hover:underline font-bold text-xs">수정</a>'
+                                : '<a href="'+basePath+'/instructor-eval/form?subject='+subject+'&evaluator=admin&instructor_id='+(row.instructor_id||'')+qsAmp+'" class="inline-flex items-center px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700">원장 평가하기</a>')
                             : '-';
                         var selfCell = row.can_self
                             ? (selfDone
-                                ? '<span class="text-green-600 text-xs font-bold mr-2">평가완료</span><a href="'+basePath+'/instructor-eval/form?subject='+subject+'&evaluator=self&instructor_id='+(row.instructor_id||'')+qs+'" class="text-amber-600 hover:underline font-bold text-xs">수정</a>'
-                                : '<a href="'+basePath+'/instructor-eval/form?subject='+subject+'&evaluator=self&instructor_id='+(row.instructor_id||'')+qs+'" class="inline-flex items-center px-3 py-1.5 bg-amber-600 text-white rounded-lg text-xs font-bold hover:bg-amber-700">본인 평가하기</a>')
+                                ? '<span class="text-green-600 text-xs font-bold mr-2">평가완료</span><a href="'+basePath+'/instructor-eval/form?subject='+subject+'&evaluator=self&instructor_id='+(row.instructor_id||'')+qsAmp+'" class="text-amber-600 hover:underline font-bold text-xs">수정</a>'
+                                : '<a href="'+basePath+'/instructor-eval/form?subject='+subject+'&evaluator=self&instructor_id='+(row.instructor_id||'')+qsAmp+'" class="inline-flex items-center px-3 py-1.5 bg-amber-600 text-white rounded-lg text-xs font-bold hover:bg-amber-700">본인 평가하기</a>')
                             : '-';
                         var adminTdHtml = isTeacher ? '' : ('<td class="py-4 px-4 text-center">'+adminCell+'</td>');
                         return '<tr class="border-b border-slate-100 hover:bg-slate-50/50"><td class="py-4 px-4 font-medium text-slate-800">'+esc(row.subject_name)+'</td><td class="py-4 px-4 text-slate-600">'+name+'</td>'+adminTdHtml+'<td class="py-4 px-4 text-center">'+selfCell+'</td></tr>';

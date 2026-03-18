@@ -89,9 +89,11 @@ export const adminLmsInstructorEvalResultsHtml = (sidebar: string = hrdSidebar('
             var token = localStorage.getItem('token');
             var isTeacher = window.location.pathname.indexOf('/teacher') >= 0;
             var basePath = (isTeacher ? '/teacher/courses/' : '/admin/courses/') + courseId + '/lms';
-            var qs = window.location.search || '';
+            var qsParams = new URLSearchParams(window.location.search);
+            qsParams.delete('subject'); qsParams.delete('evaluator'); qsParams.delete('instructor_id');
+            var cleanQs = qsParams.toString() ? '?' + qsParams.toString() : '';
 
-            document.getElementById('backLink').href = basePath + '/instructor-eval' + qs;
+            document.getElementById('backLink').href = basePath + '/instructor-eval' + cleanQs;
 
             if(!courseId || !token){ document.getElementById('loading').classList.add('hidden'); document.getElementById('error').classList.remove('hidden'); document.getElementById('error').textContent='권한이 없습니다.'; return; }
 
@@ -99,7 +101,7 @@ export const adminLmsInstructorEvalResultsHtml = (sidebar: string = hrdSidebar('
             function esc(s){ if(s==null) return ''; return (s+'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
             Promise.all([
-                fetch('/api/courses/'+courseId+(qs?'?'+qs.substring(1):''), { headers: { 'Authorization': 'Bearer '+token } }).then(function(r){ return r.json(); }),
+                fetch('/api/courses/'+courseId+cleanQs, { headers: { 'Authorization': 'Bearer '+token } }).then(function(r){ return r.json(); }),
                 fetch('/api/instructor-eval/results?session_id='+encodeURIComponent(courseId), { headers: { 'Authorization': 'Bearer '+token } }).then(function(r){ return r.json(); })
             ]).then(function(results){
                 var courseRes = results[0], evalRes = results[1];
