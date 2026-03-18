@@ -141,8 +141,8 @@ export const adminLmsInstructorEvalResultsHtml = (sidebar: string = hrdSidebar('
                     out += '<tr class="border-b border-slate-200"><td class="bg-slate-50 py-2 px-4 font-bold text-slate-600">평가자</td><td class="py-2 px-4 text-slate-800">' + (typ==='admin' ? '원장(관리자)' : '담당강사(본인)') + '</td><td class="py-2 px-2 border-l border-slate-200"></td><td class="py-2 px-2"></td></tr>';
                     out += '<tr><td class="bg-slate-50 py-2 px-4 font-bold text-slate-600">성명</td><td class="py-2 px-4 text-slate-800">' + esc(ev.evaluator_name) + '</td><td class="py-2 px-2 border-l border-slate-200"></td><td class="py-2 px-2"></td></tr>';
                     out += '</tbody></table>';
-                    var scoreDisplay = ev.total_score != null ? (ev.total_score + '/75점') : '-';
-                    out += '<p class="text-sm font-bold text-slate-700 mb-2">75점 만점 · 총점 <span class="text-slate-800">' + scoreDisplay + '</span></p>';
+                    var scoreDisplay = ev.total_score != null ? (ev.total_score + ' / 75점 만점') : '-';
+                    out += '<p class="text-sm font-bold text-slate-700 mb-2 text-right">총점 <span class="text-indigo-700">' + scoreDisplay + '</span></p>';
                     out += '<table class="w-full text-xs border border-slate-200 rounded-lg overflow-hidden"><thead><tr class="bg-slate-50"><th class="text-left py-2 px-3 font-bold text-slate-600">문항</th><th class="text-center w-10">점수</th></tr></thead><tbody>';
                     for(var i=1;i<=15;i++){
                         var v = ev['q'+i];
