@@ -369,7 +369,13 @@ exams.post('/', authMiddleware, async (c) => {
     try {
         const user = c.get('user');
         const body = await c.req.json();
-        const { title, course_id, description, time_limit, questions, type } = body;
+        let { title, course_id, description, time_limit, questions, type } = body;
+        
+        // 만약 세션 ID가 전달되었다면 과정 ID로 해소
+        const resolvedCourseId = await resolveSessionToLmsCourseId(c.env.DB, course_id);
+        if (resolvedCourseId != null) {
+            course_id = resolvedCourseId;
+        }
 
         // 강사는 본인이 담당하는 과정에만 시험 생성 가능
         if (user.role === 'teacher' && course_id) {
