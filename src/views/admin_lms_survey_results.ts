@@ -12,6 +12,7 @@ export const adminLmsSurveyResultsHtml = (sidebar: string = hrdSidebar('courses'
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
     <style>
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
@@ -23,7 +24,7 @@ export const adminLmsSurveyResultsHtml = (sidebar: string = hrdSidebar('courses'
             .results-print-area, .results-print-area * { visibility: visible; }
             .results-print-area { position: absolute; left: 0; top: 0; width: 100%; }
             .print-no { display: none !important; }
-            .results-print-area .print-chart canvas { max-width: 100px !important; max-height: 100px !important; }
+            .results-print-area .print-chart canvas { max-width: 140px !important; max-height: 140px !important; }
         }
     </style>
 </head>
@@ -173,25 +174,11 @@ export const adminLmsSurveyResultsHtml = (sidebar: string = hrdSidebar('courses'
                         sectionsHtml += '<div class="p-4 md:p-5 bg-white grid grid-cols-1 md:grid-cols-2 gap-4">';
                         items.forEach(function(q, i) {
                             var dist = q.distribution || {};
-                            var values = [5,4,3,2,1].map(function(k) { return dist[k] || 0; });
-                            var total = values.reduce(function(a,b) { return a + b; }, 0);
                             var chartId = 'chart_' + sec.start + '_' + i;
                             sectionsHtml += '<div class="border border-slate-200/60 rounded-xl p-3 flex flex-col gap-2 bento-card">';
                             sectionsHtml += '<p class="font-bold text-slate-800 text-xs leading-tight" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">' + (i + 1) + '. ' + escapeHtml(q.question_text) + '</p>';
-                            sectionsHtml += '<div class="flex items-center gap-3 flex-1 min-h-0">';
-                            sectionsHtml += '<div class="flex-shrink-0 w-[100px] h-[100px] flex items-center justify-center"><canvas id="' + chartId + '" class="print-chart max-w-[100px] max-h-[100px]" width="100" height="100"></canvas></div>';
-                            sectionsHtml += '<div class="flex-1 min-w-0 flex flex-col justify-center gap-0.5 text-xs">';
-                            if (total > 0) {
-                                [5,4,3,2,1].forEach(function(k, idx) {
-                                    var v = dist[k] || 0;
-                                    var pct = ((v / total) * 100).toFixed(0);
-                                    var color = RATING_COLORS[4-idx];
-                                    sectionsHtml += '<div class="flex items-center gap-2 py-0.5"><span class="chart-legend-dot" style="background:' + color + '"></span><span class="text-slate-600 truncate">' + (scaleLabels[k] || '') + '</span><span class="font-semibold text-slate-800 flex-shrink-0">' + pct + '%</span></div>';
-                                });
-                            } else {
-                                sectionsHtml += '<p class="text-slate-400">응답 없음</p>';
-                            }
-                            sectionsHtml += '</div></div></div>';
+                            sectionsHtml += '<div class="flex items-center justify-center"><canvas id="' + chartId + '" class="print-chart" width="140" height="140"></canvas></div>';
+                            sectionsHtml += '</div>';
                         });
                         sectionsHtml += '</div></div>';
                     });
@@ -205,6 +192,9 @@ export const adminLmsSurveyResultsHtml = (sidebar: string = hrdSidebar('courses'
                     }
 
                     var chartColorsOrder = [RATING_COLORS[4], RATING_COLORS[3], RATING_COLORS[2], RATING_COLORS[1], RATING_COLORS[0]];
+                    if (typeof Chart !== 'undefined' && Chart.registry && Chart.registry.getPlugin('datalabels') === undefined) {
+                        Chart.register(ChartDataLabels);
+                    }
                     sections.forEach(function(sec) {
                         var items = ratingQuestions.slice(sec.start, sec.end);
                         items.forEach(function(q, i) {
@@ -214,17 +204,32 @@ export const adminLmsSurveyResultsHtml = (sidebar: string = hrdSidebar('courses'
                             var dist = q.distribution || {};
                             var values = [5,4,3,2,1].map(function(k) { return dist[k] || 0; });
                             var labels = [5,4,3,2,1].map(function(k) { return scaleLabels[k] || ''; });
+                            var total = values.reduce(function(a,b) { return a + b; }, 0);
                             var ch = new Chart(canvas.getContext('2d'), {
-                                type: 'doughnut',
+                                type: 'pie',
                                 data: {
                                     labels: labels,
-                                    datasets: [{ data: values, backgroundColor: chartColorsOrder, borderColor: '#fff', borderWidth: 1.5 }]
+                                    datasets: [{ data: values, backgroundColor: chartColorsOrder, borderColor: '#fff', borderWidth: 2 }]
                                 },
                                 options: {
                                     responsive: true,
                                     maintainAspectRatio: true,
-                                    plugins: { legend: { display: false } },
-                                    cutout: '58%'
+                                    plugins: {
+                                        legend: { display: false },
+                                        datalabels: {
+                                            color: '#1e293b',
+                                            font: { size: 10, weight: 'bold' },
+                                            formatter: function(val, ctx) {
+                                                var t = ctx.dataset.data.reduce(function(a, b) { return a + b; }, 0);
+                                                var pct = t > 0 ? ((val / t) * 100).toFixed(0) : '0';
+                                                var lbl = ctx.chart.data.labels[ctx.dataIndex] || '';
+                                                return val > 0 ? lbl + ' ' + pct + '%' : '';
+                                            },
+                                            display: function(ctx) { return ctx.dataset.data[ctx.dataIndex] > 0; },
+                                            anchor: 'center',
+                                            align: 'center'
+                                        }
+                                    }
                                 }
                             });
                             resultCharts.push(ch);
