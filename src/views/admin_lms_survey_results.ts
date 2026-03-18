@@ -17,12 +17,13 @@ export const adminLmsSurveyResultsHtml = (sidebar: string = hrdSidebar('courses'
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
         .bento-card { transition: box-shadow 0.2s, transform 0.2s; }
         .bento-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+        .chart-legend-dot { width: 10px; height: 10px; border-radius: 9999px; flex-shrink: 0; }
         @media print {
             body * { visibility: hidden; }
             .results-print-area, .results-print-area * { visibility: visible; }
             .results-print-area { position: absolute; left: 0; top: 0; width: 100%; }
             .print-no { display: none !important; }
-            .results-print-area .print-chart canvas { max-height: 260px !important; }
+            .results-print-area .print-chart canvas { max-width: 100px !important; max-height: 100px !important; }
         }
     </style>
 </head>
@@ -169,23 +170,23 @@ export const adminLmsSurveyResultsHtml = (sidebar: string = hrdSidebar('courses'
                         var actualCount = items.length;
                         sectionsHtml += '<div class="border border-slate-200 rounded-2xl overflow-hidden bento-card">';
                         sectionsHtml += '<div class="bg-slate-100 px-4 py-3 font-bold text-slate-700 text-sm border-b border-slate-200">' + sec.title + ' (' + actualCount + '문항)</div>';
-                        sectionsHtml += '<div class="p-4 md:p-6 bg-white space-y-6">';
+                        sectionsHtml += '<div class="p-4 md:p-5 bg-white grid grid-cols-1 md:grid-cols-2 gap-4">';
                         items.forEach(function(q, i) {
                             var dist = q.distribution || {};
-                            var labels = [5,4,3,2,1].map(function(k) { return (scaleLabels[k] || ''); });
                             var values = [5,4,3,2,1].map(function(k) { return dist[k] || 0; });
                             var total = values.reduce(function(a,b) { return a + b; }, 0);
                             var chartId = 'chart_' + sec.start + '_' + i;
-                            sectionsHtml += '<div class="border border-slate-100 rounded-xl p-4 flex flex-col md:flex-row md:items-center gap-4">';
-                            sectionsHtml += '<p class="font-bold text-slate-800 text-sm flex-shrink-0 md:w-1/2">' + (i + 1) + '번 문항: ' + escapeHtml(q.question_text) + '</p>';
-                            sectionsHtml += '<div class="flex items-center gap-4 flex-wrap">';
-                            sectionsHtml += '<div class="flex-shrink-0"><canvas id="' + chartId + '" class="print-chart" width="200" height="200"></canvas></div>';
-                            sectionsHtml += '<div class="text-sm">';
+                            sectionsHtml += '<div class="border border-slate-200/60 rounded-xl p-3 flex flex-col gap-2 bento-card">';
+                            sectionsHtml += '<p class="font-bold text-slate-800 text-xs leading-tight" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">' + (i + 1) + '. ' + escapeHtml(q.question_text) + '</p>';
+                            sectionsHtml += '<div class="flex items-center gap-3 flex-1 min-h-0">';
+                            sectionsHtml += '<div class="flex-shrink-0 w-[100px] h-[100px] flex items-center justify-center"><canvas id="' + chartId + '" class="print-chart max-w-[100px] max-h-[100px]" width="100" height="100"></canvas></div>';
+                            sectionsHtml += '<div class="flex-1 min-w-0 flex flex-col justify-center gap-0.5 text-xs">';
                             if (total > 0) {
                                 [5,4,3,2,1].forEach(function(k, idx) {
                                     var v = dist[k] || 0;
                                     var pct = ((v / total) * 100).toFixed(0);
-                                    sectionsHtml += '<div class="flex items-center gap-2 py-0.5"><span class="w-3 h-3 rounded-full flex-shrink-0" style="background:' + RATING_COLORS[4-idx] + '"></span><span>' + (scaleLabels[k] || '') + ' ' + pct + '%</span></div>';
+                                    var color = RATING_COLORS[4-idx];
+                                    sectionsHtml += '<div class="flex items-center gap-2 py-0.5"><span class="chart-legend-dot" style="background:' + color + '"></span><span class="text-slate-600 truncate">' + (scaleLabels[k] || '') + '</span><span class="font-semibold text-slate-800 flex-shrink-0">' + pct + '%</span></div>';
                                 });
                             } else {
                                 sectionsHtml += '<p class="text-slate-400">응답 없음</p>';
@@ -203,6 +204,7 @@ export const adminLmsSurveyResultsHtml = (sidebar: string = hrdSidebar('courses'
                         document.getElementById('resultCommentsList').innerHTML = allTexts.length ? allTexts.map(function(t) { return '<div class="p-2 border-b border-slate-100 last:border-0">' + escapeHtml(t) + '</div>'; }).join('') : '<p class="text-slate-400">응답 없음</p>';
                     }
 
+                    var chartColorsOrder = [RATING_COLORS[4], RATING_COLORS[3], RATING_COLORS[2], RATING_COLORS[1], RATING_COLORS[0]];
                     sections.forEach(function(sec) {
                         var items = ratingQuestions.slice(sec.start, sec.end);
                         items.forEach(function(q, i) {
@@ -216,13 +218,13 @@ export const adminLmsSurveyResultsHtml = (sidebar: string = hrdSidebar('courses'
                                 type: 'doughnut',
                                 data: {
                                     labels: labels,
-                                    datasets: [{ data: values, backgroundColor: RATING_COLORS, borderColor: '#fff', borderWidth: 2 }]
+                                    datasets: [{ data: values, backgroundColor: chartColorsOrder, borderColor: '#fff', borderWidth: 1.5 }]
                                 },
                                 options: {
                                     responsive: true,
                                     maintainAspectRatio: true,
                                     plugins: { legend: { display: false } },
-                                    cutout: '55%'
+                                    cutout: '58%'
                                 }
                             });
                             resultCharts.push(ch);
