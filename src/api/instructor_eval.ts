@@ -58,6 +58,7 @@ app.get('/list', authMiddleware, async (c) => {
             WHERE st.session_id = ? AND (st.is_excluded IS NULL OR st.is_excluded = 0)
             ORDER BY c.name ASC
         `;
+        const sessionIdNum = sessionId ? parseInt(String(sessionId), 10) : null;
         const { results: subjectRows } = await DB.prepare(subjectsQuery).bind(sessionId).all();
         let subjects = (subjectRows || []).map((r: any) => ({
             subject_name: r.subject_name || '',
@@ -65,24 +66,23 @@ app.get('/list', authMiddleware, async (c) => {
             instructor_name: r.instructor_name || '-',
         }));
         if (user.role === 'teacher') {
-            subjects = subjects.filter((s: any) => s.instructor_id === user.userId);
+            subjects = subjects.filter((s: any) => s.instructor_id == user.userId || String(s.instructor_id) === String(user.userId));
         }
 
         const evalRows = await DB.prepare(`
             SELECT id, subject_name, instructor_id, evaluator_type, evaluator_id, total_score, created_at
             FROM instructor_competency_evaluations
             WHERE session_id = ?
-        `).bind(sessionId).all();
+        `).bind(sessionIdNum ?? sessionId).all();
         const evals = (evalRows.results || []) as any[];
 
-        const norm = (v: any) => (v == null || v === '') ? null : Number(v);
         const sameSubject = (a: string, b: string) => (a || '').trim() === (b || '').trim();
+        const sameId = (a: any, b: any) => (a != null && b != null) && (String(a).trim() === String(b).trim() || a == b);
         const list = subjects.map((s: any) => {
-            const sInstructorId = norm(s.instructor_id);
-            const adminEval = evals.find((e: any) => sameSubject(e.subject_name, s.subject_name) && e.evaluator_type === 'admin' && (norm(e.instructor_id) === sInstructorId || (norm(e.instructor_id) == null && sInstructorId == null)));
-            const selfEval = evals.find((e: any) => sameSubject(e.subject_name, s.subject_name) && e.evaluator_type === 'self' && norm(e.evaluator_id) === sInstructorId);
+            const adminEval = evals.find((e: any) => sameSubject(e.subject_name, s.subject_name) && e.evaluator_type === 'admin' && (sameId(e.instructor_id, s.instructor_id) || (e.instructor_id == null && s.instructor_id == null)));
+            const selfEval = evals.find((e: any) => sameSubject(e.subject_name, s.subject_name) && e.evaluator_type === 'self' && sameId(e.evaluator_id, s.instructor_id));
             const canAdmin = user.role === 'admin';
-            const canSelf = user.role === 'admin' || (user.role === 'teacher' && s.instructor_id === user.userId);
+            const canSelf = user.role === 'admin' || (user.role === 'teacher' && sameId(s.instructor_id, user.userId));
             return {
                 subject_name: s.subject_name,
                 instructor_id: s.instructor_id,
