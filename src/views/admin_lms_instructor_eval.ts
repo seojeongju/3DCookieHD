@@ -43,7 +43,7 @@ export const adminLmsInstructorEvalHtml = (sidebar: string = hrdSidebar('courses
                                             <tr class="border-b border-slate-200 bg-slate-50">
                                                 <th class="text-left py-3 px-4 font-bold text-slate-600">교과목</th>
                                                 <th class="text-left py-3 px-4 font-bold text-slate-600">담당 강사</th>
-                                                <th class="text-center py-3 px-4 font-bold text-slate-600">원장(관리자) 평가</th>
+                                                <th id="adminEvalTh" class="text-center py-3 px-4 font-bold text-slate-600">원장(관리자) 평가</th>
                                                 <th class="text-center py-3 px-4 font-bold text-slate-600">담당강사(본인) 평가</th>
                                             </tr>
                                         </thead>
@@ -71,6 +71,11 @@ export const adminLmsInstructorEvalHtml = (sidebar: string = hrdSidebar('courses
             if(!courseId || !token){ document.getElementById('loading').classList.add('hidden'); document.getElementById('error').classList.remove('hidden'); document.getElementById('error').textContent='권한이 없거나 과정 정보가 없습니다.'; return; }
 
             document.getElementById('resultsLink').href = basePath + '/instructor-eval/results' + qs;
+
+            if (isTeacher) {
+                var th = document.getElementById('adminEvalTh');
+                if(th) th.classList.add('hidden');
+            }
 
             function enc(s){ return encodeURIComponent(s||''); }
             function esc(s){ if(s==null)return''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -106,7 +111,8 @@ export const adminLmsInstructorEvalHtml = (sidebar: string = hrdSidebar('courses
                                 ? '<span class="text-green-600 text-xs font-bold mr-2">평가완료</span><a href="'+basePath+'/instructor-eval/form?subject='+subject+'&evaluator=self&instructor_id='+(row.instructor_id||'')+qs+'" class="text-amber-600 hover:underline font-bold text-xs">수정</a>'
                                 : '<a href="'+basePath+'/instructor-eval/form?subject='+subject+'&evaluator=self&instructor_id='+(row.instructor_id||'')+qs+'" class="inline-flex items-center px-3 py-1.5 bg-amber-600 text-white rounded-lg text-xs font-bold hover:bg-amber-700">본인 평가하기</a>')
                             : '-';
-                        return '<tr class="border-b border-slate-100 hover:bg-slate-50/50"><td class="py-4 px-4 font-medium text-slate-800">'+esc(row.subject_name)+'</td><td class="py-4 px-4 text-slate-600">'+name+'</td><td class="py-4 px-4 text-center">'+adminCell+'</td><td class="py-4 px-4 text-center">'+selfCell+'</td></tr>';
+                        var adminTdHtml = isTeacher ? '' : ('<td class="py-4 px-4 text-center">'+adminCell+'</td>');
+                        return '<tr class="border-b border-slate-100 hover:bg-slate-50/50"><td class="py-4 px-4 font-medium text-slate-800">'+esc(row.subject_name)+'</td><td class="py-4 px-4 text-slate-600">'+name+'</td>'+adminTdHtml+'<td class="py-4 px-4 text-center">'+selfCell+'</td></tr>';
                     }).join('');
                 })
                 .catch(function(){ document.getElementById('loading').classList.add('hidden'); document.getElementById('error').classList.remove('hidden'); document.getElementById('error').textContent='요청 실패'; });
