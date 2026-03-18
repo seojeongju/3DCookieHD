@@ -1,6 +1,8 @@
-fix: Step 5 cross-card event bug fix
+fix: Step 5 cross-card event bug complete rewrite
 
-- wireEvents() double-binding prevention: form._step5Wired guard added
-- cloneNode replaced with direct DOM element creation to prevent selected option carryover
-- Save/Next button double listener prevention: btnSave5._step5Bound guard added
-- isTeaching flag-based explicit separation of teaching/evaluation containers
+- initStep5._running flag prevents concurrent/double execution
+- Replaced form-level event delegation with per-button direct addEventListener
+  via wireMethodButtons() - eliminates cross-card contamination entirely
+- makeMethodRow() creates new rows with direct listeners (no cloneNode)
+- stale DOM check after async wait prevents operating on detached elements
+- saveEvaluation scoped to ncsStep5Form instead of document querySelectorAll

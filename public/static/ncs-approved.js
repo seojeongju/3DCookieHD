@@ -2794,15 +2794,20 @@
     }
 
     function initStep5() {
+        // 동시 실행 방지: 이미 실행 중이면 중복 호출 무시
+        if (initStep5._running) return;
+        initStep5._running = true;
+
         var regInput = document.getElementById('ncsApprovedRegIdStep5');
         var regId = (regInput && regInput.value) ? regInput.value.trim() : '';
         var noReg = document.getElementById('ncsStep5NoReg');
         var form = document.getElementById('ncsStep5Form');
 
-        if (!form) return;
+        if (!form) { initStep5._running = false; return; }
         if (!regId) {
             if (noReg) noReg.classList.remove('hidden');
             form.classList.add('hidden');
+            initStep5._running = false;
             return;
         }
         if (noReg) noReg.classList.add('hidden');
@@ -2952,85 +2957,99 @@
                 '</div>';
         }
 
-        function wireEvents(container) {
-            // Guard: 이미 이벤트가 등록된 컨테이너에 중복 바인딩 방지
-            if (container._step5Wired) return;
-            container._step5Wired = true;
+        // 교수학습방법/평가방법 +/- 버튼 리스너를 각 method-item에 직접 바인딩
+        // (이벤트 delegation 대신 직접 attachment - 중복 바인딩 문제 없음)
+        function makeMethodRow(isTeaching) {
+            var cls = isTeaching ? 't-method-sel' : 'e-method-sel';
+            var plusCls = isTeaching ? 't-method-plus' : 'e-method-plus';
+            var minusCls = isTeaching ? 't-method-minus' : 'e-method-minus';
+            var opts = isTeaching
+                ? ['강의법','문답법','토의법','문제해결법','구안법','탐구학습','협동학습','개별지도 교수법','목표도달학습','문제중심학습','기타','혼합형']
+                : ['포트폴리오','문제해결 시나리오','서술형 시험','논술형 시험','사례연구','평가자 질문','평가자 체크리스트','피 평가자 체크리스트','일지/저널','역할연기','구두발표','작업장평가','기타','혼합형'];
+            var placeholder = isTeaching ? ':: 교수학습방법 선택 ::' : ':: 평가방법 선택 ::';
 
-            // +/- 버튼으로 교수학습방법/평가방법 행 추가/삭제
-            function addMethodRow(container, isTeaching) {
-                var sel = isTeaching ? 'teaching' : 'evaluation';
-                var cls = isTeaching ? 't-method-sel' : 'e-method-sel';
-                var plusCls = isTeaching ? 't-method-plus' : 'e-method-plus';
-                var minusCls = isTeaching ? 't-method-minus' : 'e-method-minus';
-                var opts = isTeaching
-                    ? ['강의법','문답법','토의법','문제해결법','구안법','탐구학습','협동학습','개별지도 교수법','목표도달학습','문제중심학습','기타','혼합형']
-                    : ['포트폴리오','문제해결 시나리오','서술형 시험','논술형 시험','사례연구','평가자 질문','평가자 체크리스트','피 평가자 체크리스트','일지/저널','역할연기','구두발표','작업장평가','기타','혼합형'];
-                var placeholder = isTeaching ? ':: 교수학습방법 선택 ::' : ':: 평가방법 선택 ::';
+            var row = document.createElement('div');
+            row.className = 'method-item flex gap-2';
 
-                var row = document.createElement('div');
-                row.className = 'method-item flex gap-2';
+            var select = document.createElement('select');
+            select.className = cls + ' flex-1 px-5 py-3 border border-slate-200 rounded-2xl text-sm bg-white font-bold text-slate-700 shadow-sm';
+            var emptyOpt = document.createElement('option');
+            emptyOpt.value = '';
+            emptyOpt.textContent = placeholder;
+            select.appendChild(emptyOpt);
+            opts.forEach(function(opt) {
+                var o = document.createElement('option');
+                o.value = opt;
+                o.textContent = opt;
+                select.appendChild(o);
+            });
 
-                var select = document.createElement('select');
-                select.className = cls + ' flex-1 px-5 py-3 border border-slate-200 rounded-2xl text-sm bg-white font-bold text-slate-700 shadow-sm';
-                var emptyOpt = document.createElement('option');
-                emptyOpt.value = '';
-                emptyOpt.textContent = placeholder;
-                select.appendChild(emptyOpt);
-                opts.forEach(function(opt) {
-                    var o = document.createElement('option');
-                    o.value = opt;
-                    o.textContent = opt;
-                    select.appendChild(o);
+            var btnPlus = document.createElement('button');
+            btnPlus.type = 'button';
+            btnPlus.className = plusCls + ' w-11 h-11 flex items-center justify-center bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-100 transition-all';
+            btnPlus.innerHTML = '<i class="fas fa-plus"></i>';
+
+            var btnMinus = document.createElement('button');
+            btnMinus.type = 'button';
+            btnMinus.className = minusCls + ' w-11 h-11 flex items-center justify-center bg-red-50 text-red-600 rounded-2xl hover:bg-red-100 transition-all';
+            btnMinus.innerHTML = '<i class="fas fa-minus"></i>';
+
+            // +/- 리스너를 row에 직접 달기 (delegation 불필요)
+            btnPlus.addEventListener('click', function(e) {
+                e.stopPropagation();
+                var container = btnPlus.closest(isTeaching ? '.t-methods-container' : '.e-methods-container');
+                if (container) container.appendChild(makeMethodRow(isTeaching));
+            });
+            btnMinus.addEventListener('click', function(e) {
+                e.stopPropagation();
+                var container = btnMinus.closest(isTeaching ? '.t-methods-container' : '.e-methods-container');
+                if (!container) return;
+                var rows = container.querySelectorAll('.method-item');
+                if (rows.length > 1) {
+                    row.remove();
+                } else {
+                    select.value = '';
+                }
+            });
+
+            row.appendChild(select);
+            row.appendChild(btnPlus);
+            row.appendChild(btnMinus);
+            return row;
+        }
+
+        // 렌더링된 section 내 모든 .method-item에 +/- 리스너 부착
+        function wireMethodButtons(section) {
+            if (!section) return;
+            section.querySelectorAll('.t-methods-container, .e-methods-container').forEach(function(mc) {
+                var isTeaching = mc.classList.contains('t-methods-container');
+                mc.querySelectorAll('.method-item').forEach(function(row) {
+                    var sel = row.querySelector('select');
+                    var plus = row.querySelector(isTeaching ? '.t-method-plus' : '.e-method-plus');
+                    var minus = row.querySelector(isTeaching ? '.t-method-minus' : '.e-method-minus');
+                    if (plus && !plus._wired) {
+                        plus._wired = true;
+                        plus.addEventListener('click', function(e) {
+                            e.stopPropagation();
+                            var container = plus.closest(isTeaching ? '.t-methods-container' : '.e-methods-container');
+                            if (container) container.appendChild(makeMethodRow(isTeaching));
+                        });
+                    }
+                    if (minus && !minus._wired) {
+                        minus._wired = true;
+                        minus.addEventListener('click', function(e) {
+                            e.stopPropagation();
+                            var container = minus.closest(isTeaching ? '.t-methods-container' : '.e-methods-container');
+                            if (!container) return;
+                            var rows = container.querySelectorAll('.method-item');
+                            if (rows.length > 1) {
+                                row.remove();
+                            } else {
+                                if (sel) sel.value = '';
+                            }
+                        });
+                    }
                 });
-
-                var btnPlus = document.createElement('button');
-                btnPlus.type = 'button';
-                btnPlus.className = plusCls + ' w-11 h-11 flex items-center justify-center bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-100 transition-all';
-                btnPlus.innerHTML = '<i class="fas fa-plus"></i>';
-
-                var btnMinus = document.createElement('button');
-                btnMinus.type = 'button';
-                btnMinus.className = minusCls + ' w-11 h-11 flex items-center justify-center bg-red-50 text-red-600 rounded-2xl hover:bg-red-100 transition-all';
-                btnMinus.innerHTML = '<i class="fas fa-minus"></i>';
-
-                row.appendChild(select);
-                row.appendChild(btnPlus);
-                row.appendChild(btnMinus);
-                return row;
-            }
-
-            container.addEventListener('click', function (e) {
-                var target = e.target;
-                var btnPlus = target.closest ? target.closest('.t-method-plus, .e-method-plus') : null;
-                var btnMinus = target.closest ? target.closest('.t-method-minus, .e-method-minus') : null;
-
-                if (btnPlus) {
-                    var isTeaching = btnPlus.classList.contains('t-method-plus');
-                    var methodsContainer = btnPlus.closest(isTeaching ? '.t-methods-container' : '.e-methods-container');
-                    if (methodsContainer) {
-                        methodsContainer.appendChild(addMethodRow(methodsContainer, isTeaching));
-                    }
-                    e.stopPropagation();
-                    return;
-                }
-
-                if (btnMinus) {
-                    var isTeaching = btnMinus.classList.contains('t-method-minus');
-                    var methodsContainer = btnMinus.closest(isTeaching ? '.t-methods-container' : '.e-methods-container');
-                    if (methodsContainer) {
-                        var rows = methodsContainer.querySelectorAll('.method-item');
-                        if (rows.length > 1) {
-                            var rowEl = btnMinus.closest('.method-item');
-                            if (rowEl) rowEl.remove();
-                        } else if (rows.length === 1) {
-                            var selEl = rows[0].querySelector('select');
-                            if (selEl) selEl.value = '';
-                        }
-                    }
-                    e.stopPropagation();
-                    return;
-                }
             });
         }
 
@@ -3059,6 +3078,8 @@
             instructors = allInstructors;
             return Promise.resolve();
         }).then(function () {
+            // form이 아직 DOM에 있는지 확인 (다른 step으로 이동했을 수 있음)
+            if (!document.getElementById('ncsStep5Form')) { initStep5._running = false; return; }
 
             var secLib = document.getElementById('sectionNcsLib');
             var secMajor = document.getElementById('sectionNcsMajor');
@@ -3072,19 +3093,23 @@
             });
             var nonItems = curriculum.filter(function (it) { return it.type === 'non_ncs'; });
 
-            if (secLib) secLib.innerHTML = libItems.length ? libItems.map(renderSubjectCard).join('') : '<p class="text-center text-slate-400 py-8 text-sm">등록된 교과목이 없습니다.</p>';
-            if (secMajor) secMajor.innerHTML = majorItems.length ? majorItems.map(renderSubjectCard).join('') : '<p class="text-center text-slate-400 py-8 text-sm">등록된 교과목이 없습니다.</p>';
-            if (secNon) secNon.innerHTML = nonItems.length ? nonItems.map(renderSubjectCard).join('') : '<p class="text-center text-slate-400 py-8 text-sm">등록된 교과목이 없습니다.</p>';
+            if (secLib) { secLib.innerHTML = libItems.length ? libItems.map(renderSubjectCard).join('') : '<p class="text-center text-slate-400 py-8 text-sm">등록된 교과목이 없습니다.</p>'; wireMethodButtons(secLib); }
+            if (secMajor) { secMajor.innerHTML = majorItems.length ? majorItems.map(renderSubjectCard).join('') : '<p class="text-center text-slate-400 py-8 text-sm">등록된 교과목이 없습니다.</p>'; wireMethodButtons(secMajor); }
+            if (secNon) { secNon.innerHTML = nonItems.length ? nonItems.map(renderSubjectCard).join('') : '<p class="text-center text-slate-400 py-8 text-sm">등록된 교과목이 없습니다.</p>'; wireMethodButtons(secNon); }
 
-            wireEvents(form);
+            initStep5._running = false;
         }).catch(function (err) {
             console.error(err);
+            initStep5._running = false;
             alert('정보를 불러오는데 실패했습니다.');
         });
 
         function saveEvaluation(redirectToNext) {
             var items = [];
-            document.querySelectorAll('.curriculum-card').forEach(function (card) {
+            // form 스코프로 한정 (document 전체 대신)
+            var formEl = document.getElementById('ncsStep5Form');
+            if (!formEl) return;
+            formEl.querySelectorAll('.curriculum-card').forEach(function (card) {
                 var id = parseInt(card.getAttribute('data-id'), 10);
                 var instructorsSelected = [];
                 card.querySelectorAll('.ins-cb:checked').forEach(function (cb) { instructorsSelected.push(parseInt(cb.value, 10)); });
