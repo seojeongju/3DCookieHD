@@ -33,9 +33,16 @@ export const adminLmsInstructorEvalResultsHtml = (sidebar: string = hrdSidebar('
             .results-print-area,.results-print-area *{visibility:visible}
             .results-print-area{position:absolute;left:0;top:0;width:100%}
             .print-hide{display:none!important}
-            .tab-panel{display:none!important}
-            .tab-panel.print-this{display:block!important;visibility:visible}
+            .eval-subject-panel{display:none!important}
+            .eval-subject-panel.print-this{display:block!important;visibility:visible}
+            .eval-subject-panel.print-this .tab-panel.active{display:block!important;visibility:visible}
+            .eval-subject-panel.print-this .tab-panel:not(.active){display:none!important}
         }
+        .eval-subject-btn{ padding:0.5rem 1rem; font-size:0.875rem; font-weight:700; border-radius:0.75rem; border:1px solid #e2e8f0; background:#fff; color:#64748b; transition:all 0.2s; white-space:nowrap; }
+        .eval-subject-btn.active{ background:#e2e8f0; color:#0f172a; border-color:#cbd5e1; }
+        .eval-subject-btn:hover:not(.active){ background:#f8fafc; }
+        .eval-subject-panel{ display:none; }
+        .eval-subject-panel.active{ display:block; }
     </style>
 </head>
 <body class="bg-slate-50">
@@ -63,12 +70,11 @@ export const adminLmsInstructorEvalResultsHtml = (sidebar: string = hrdSidebar('
                             </div>
                             <div id="loading" class="py-12 text-center text-slate-400"><i class="fas fa-spinner fa-spin mr-2"></i> 불러오는 중...</div>
                             <div id="content" class="hidden">
-                                <div class="print-hide flex gap-2 mb-6">
-                                    <button type="button" class="tab-btn active" data-tab="admin">원장평가</button>
-                                    <button type="button" class="tab-btn" data-tab="self">강사평가</button>
+                                <div class="print-hide mb-6">
+                                    <h3 class="text-sm font-bold text-slate-700 mb-2">과목 선택</h3>
+                                    <div id="subjectTabs" class="flex flex-wrap gap-2"></div>
                                 </div>
-                                <div id="tab-admin" class="tab-panel active" data-tab="admin"></div>
-                                <div id="tab-self" class="tab-panel" data-tab="self"></div>
+                                <div id="subjectContentAreas"></div>
                             </div>
                             <div id="empty" class="hidden py-12 text-center text-slate-500">저장된 평가 결과가 없습니다.</div>
                             <div id="error" class="hidden py-12 text-center text-red-500 font-bold"></div>
@@ -148,36 +154,100 @@ export const adminLmsInstructorEvalResultsHtml = (sidebar: string = hrdSidebar('
                     out += '</div></div>';
                     return out;
                 }
-                var adminHtml = '', selfHtml = '';
-                keys.forEach(function(key){
+                var subjectTabsHtml = '';
+                var subjectContentHtml = '';
+
+                keys.forEach(function(key, idx){
                     var row = bySubjectInstructor[key];
                     var instructorName = row.instructor_name || (row.admin && row.admin.instructor_name) || (row.self && row.self.instructor_name) || '-';
-                    adminHtml += '<div class="border border-slate-200 rounded-2xl overflow-hidden mb-8"><div class="bg-slate-100 px-4 py-3 font-bold text-slate-700 border-b border-slate-200">' + esc(row.subject_name) + ' · 담당강사 ' + esc(instructorName) + '</div><div class="p-4 space-y-8">' + renderBlock('admin', row, instructorName, courseTitle, courseDates) + '</div></div>';
-                    selfHtml += '<div class="border border-slate-200 rounded-2xl overflow-hidden mb-8"><div class="bg-slate-100 px-4 py-3 font-bold text-slate-700 border-b border-slate-200">' + esc(row.subject_name) + ' · 담당강사 ' + esc(instructorName) + '</div><div class="p-4 space-y-8">' + renderBlock('self', row, instructorName, courseTitle, courseDates) + '</div></div>';
-                });
-                document.getElementById('tab-admin').innerHTML = adminHtml;
-                document.getElementById('tab-self').innerHTML = selfHtml;
+                    var safeId = 'subj-' + idx;
+                    
+                    var isActive = idx === 0 ? 'active' : '';
+                    subjectTabsHtml += '<button type="button" class="eval-subject-btn ' + isActive + '" data-target="' + safeId + '">' + esc(row.subject_name) + ' (' + esc(instructorName) + ')</button>';
+                    
+                    subjectContentHtml += '<div id="' + safeId + '" class="eval-subject-panel ' + isActive + '">';
+                    subjectContentHtml += '<div class="print-hide flex gap-2 mb-6">';
+                    subjectContentHtml += '<button type="button" class="tab-btn active" data-subj="' + safeId + '" data-tab="admin">원장평가</button>';
+                    subjectContentHtml += '<button type="button" class="tab-btn" data-subj="' + safeId + '" data-tab="self">강사평가</button>';
+                    subjectContentHtml += '</div>';
+                    
+                    subjectContentHtml += '<div id="' + safeId + '-admin" class="tab-panel active" data-tab="admin">';
+                    subjectContentHtml += '<div class="border border-slate-200 rounded-2xl overflow-hidden mb-8"><div class="bg-slate-100 px-4 py-3 font-bold text-slate-700 border-b border-slate-200">' + esc(row.subject_name) + ' · 담당강사 ' + esc(instructorName) + '</div><div class="p-4 space-y-8">' + renderBlock('admin', row, instructorName, courseTitle, courseDates) + '</div></div>';
+                    subjectContentHtml += '</div>';
 
+                    subjectContentHtml += '<div id="' + safeId + '-self" class="tab-panel" data-tab="self">';
+                    subjectContentHtml += '<div class="border border-slate-200 rounded-2xl overflow-hidden mb-8"><div class="bg-slate-100 px-4 py-3 font-bold text-slate-700 border-b border-slate-200">' + esc(row.subject_name) + ' · 담당강사 ' + esc(instructorName) + '</div><div class="p-4 space-y-8">' + renderBlock('self', row, instructorName, courseTitle, courseDates) + '</div></div>';
+                    subjectContentHtml += '</div>';
+                    
+                    subjectContentHtml += '</div>';
+                });
+                
+                document.getElementById('subjectTabs').innerHTML = subjectTabsHtml;
+                document.getElementById('subjectContentAreas').innerHTML = subjectContentHtml;
+
+                // 과목 전환 탭 이벤트
+                document.querySelectorAll('.eval-subject-btn').forEach(function(btn){
+                    btn.addEventListener('click', function(){
+                        var targetId = this.getAttribute('data-target');
+                        document.querySelectorAll('.eval-subject-btn').forEach(function(b){ b.classList.remove('active'); });
+                        document.querySelectorAll('.eval-subject-panel').forEach(function(p){ p.classList.remove('active'); });
+                        this.classList.add('active');
+                        document.getElementById(targetId).classList.add('active');
+                    });
+                });
+
+                // 하위 탭 (원장 / 강사) 이벤트
                 document.querySelectorAll('.tab-btn').forEach(function(btn){
                     btn.addEventListener('click', function(){
                         var t = this.getAttribute('data-tab');
-                        document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
-                        document.querySelectorAll('.tab-panel').forEach(function(p){ p.classList.remove('active'); });
+                        var subj = this.getAttribute('data-subj');
+                        
+                        // 해당 과목(subj) 내의 탭 버튼들만 on/off
+                        var parentPanel = document.getElementById(subj);
+                        parentPanel.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+                        parentPanel.querySelectorAll('.tab-panel').forEach(function(p){ p.classList.remove('active'); });
+                        
                         this.classList.add('active');
-                        document.getElementById('tab-'+t).classList.add('active');
+                        document.getElementById(subj + '-' + t).classList.add('active');
                     });
                 });
+
                 document.getElementById('printAdminBtn').addEventListener('click', function(){
-                    document.getElementById('tab-admin').classList.add('print-this');
-                    document.getElementById('tab-self').classList.remove('print-this');
+                    // 현재 활성화된 과목 패널 찾기
+                    var activeSubjPanel = document.querySelector('.eval-subject-panel.active');
+                    if(!activeSubjPanel) return;
+                    
+                    // 해당 과목 패널의 원장 탭 활성화 후 인쇄
+                    activeSubjPanel.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+                    activeSubjPanel.querySelectorAll('.tab-panel').forEach(function(p){ p.classList.remove('active'); });
+                    
+                    var adminBtn = activeSubjPanel.querySelector('.tab-btn[data-tab="admin"]');
+                    if(adminBtn) adminBtn.classList.add('active');
+                    var adminPanel = activeSubjPanel.querySelector('.tab-panel[data-tab="admin"]');
+                    if(adminPanel) adminPanel.classList.add('active');
+
+                    activeSubjPanel.classList.add('print-this');
                     window.print();
-                    document.getElementById('tab-admin').classList.remove('print-this');
+                    activeSubjPanel.classList.remove('print-this');
                 });
+                
                 document.getElementById('printSelfBtn').addEventListener('click', function(){
-                    document.getElementById('tab-self').classList.add('print-this');
-                    document.getElementById('tab-admin').classList.remove('print-this');
+                    // 현재 활성화된 과목 패널 찾기
+                    var activeSubjPanel = document.querySelector('.eval-subject-panel.active');
+                    if(!activeSubjPanel) return;
+                    
+                    // 해당 과목 패널의 강사 탭 활성화 후 인쇄
+                    activeSubjPanel.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+                    activeSubjPanel.querySelectorAll('.tab-panel').forEach(function(p){ p.classList.remove('active'); });
+                    
+                    var selfBtn = activeSubjPanel.querySelector('.tab-btn[data-tab="self"]');
+                    if(selfBtn) selfBtn.classList.add('active');
+                    var selfPanel = activeSubjPanel.querySelector('.tab-panel[data-tab="self"]');
+                    if(selfPanel) selfPanel.classList.add('active');
+
+                    activeSubjPanel.classList.add('print-this');
                     window.print();
-                    document.getElementById('tab-self').classList.remove('print-this');
+                    activeSubjPanel.classList.remove('print-this');
                 });
             }).catch(function(){ document.getElementById('loading').classList.add('hidden'); document.getElementById('error').classList.remove('hidden'); document.getElementById('error').textContent='요청 실패'; });
         })();
