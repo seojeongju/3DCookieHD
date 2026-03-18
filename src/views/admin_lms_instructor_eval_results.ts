@@ -37,6 +37,9 @@ export const adminLmsInstructorEvalResultsHtml = (sidebar: string = hrdSidebar('
             .eval-subject-panel.print-this{display:block!important;visibility:visible}
             .eval-subject-panel.print-this .tab-panel.active{display:block!important;visibility:visible}
             .eval-subject-panel.print-this .tab-panel:not(.active){display:none!important}
+            .accordion-btn { display: none !important; }
+            .accordion-content { border: none !important; padding: 0 !important; margin: 0 !important; }
+            .accordion-item { margin: 0 !important; }
         }
         .accordion-btn { w-full; text-align:left; padding:1.25rem 1.5rem; background:#f8fafc; border:1px solid #e2e8f0; border-radius:1rem; font-weight:700; color:#334155; display:flex; justify-content:space-between; align-items:center; transition:all 0.2s; cursor:pointer;}
         .accordion-btn:hover { background:#f1f5f9; border-color:#cbd5e1; }
