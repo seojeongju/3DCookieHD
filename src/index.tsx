@@ -31,6 +31,7 @@ import ncs from './api/ncs';
 import dashboard from './api/dashboard';
 import portfolios from './api/portfolios';
 import surveys from './api/surveys';
+import instructorEval from './api/instructor_eval';
 import assignments from './api/assignments';
 import progress from './api/progress';
 import attendance_qr from './api/attendance_qr';
@@ -92,6 +93,10 @@ import { adminLmsGradesHtml } from './views/admin_lms_grades';
 import { adminLmsCbtHtml } from './views/admin_lms_cbt';
 import { adminLmsSurveysHtml } from './views/admin_lms_surveys';
 import { adminLmsSurveyPreviewHtml } from './views/admin_lms_survey_preview';
+import { adminLmsInstructorEvalHtml } from './views/admin_lms_instructor_eval';
+import { adminLmsInstructorEvalFormHtml } from './views/admin_lms_instructor_eval_form';
+import { adminLmsInstructorEvalResultsHtml } from './views/admin_lms_instructor_eval_results';
+import { adminInstructorEvalEntryHtml } from './views/admin_instructor_eval_entry';
 import { adminLmsSurveyResultsHtml } from './views/admin_lms_survey_results';
 import { adminScheduleHtml } from './views/admin_schedule';
 import { adminLmsAssignmentsHtml } from './views/admin_lms_assignments';
@@ -232,6 +237,7 @@ app.route('/api/course-categories', courseCategories);
 app.route('/api/approved-courses', approvedCourses);
 app.route('/api/course-sessions', courseSessions);
 app.route('/api/surveys', surveys);
+app.route('/api/instructor-eval', instructorEval);
 app.route('/api/assignments', assignments);
 app.route('/api/progress', progress);
 app.route('/api/attendance-qr', attendance_qr);
@@ -401,6 +407,7 @@ app.get('/admin/prototype-gallery', (c) => c.html(adminPrototypeGalleryHtml(hrdS
 app.get('/admin/education-gallery', (c) => c.html(adminEducationGalleryHtml(hrdSidebar('education-gallery'))));
 app.get('/admin/portfolio-gallery', (c) => c.html(adminPortfolioGalleryHtml(hrdSidebar('portfolio-gallery'))));
 app.get('/admin/inquiries', (c) => c.html(adminInquiriesHtml(hrdSidebar('inquiries'))));
+app.get('/admin/instructor-eval', (c) => c.html(adminInstructorEvalEntryHtml()));
 
 // 과정별 LMS 상세 관리 (LMS Dashboard & Inner Pages)
 app.get('/admin/courses/:id/lms', (c) => c.html(adminLmsDashboardHtml()));
@@ -417,6 +424,9 @@ app.get('/admin/courses/:id/lms/counseling', (c) => c.html(adminHrdCounselingHtm
 app.get('/admin/courses/:id/lms/surveys/:surveyId/preview', (c) => c.html(adminLmsSurveyPreviewHtml()));
 app.get('/admin/courses/:id/lms/surveys/:surveyId/results', (c) => c.html(adminLmsSurveyResultsHtml()));
 app.get('/admin/courses/:id/lms/surveys', (c) => c.html(adminLmsSurveysHtml()));
+app.get('/admin/courses/:id/lms/instructor-eval/form', (c) => c.html(adminLmsInstructorEvalFormHtml()));
+app.get('/admin/courses/:id/lms/instructor-eval/results', (c) => c.html(adminLmsInstructorEvalResultsHtml()));
+app.get('/admin/courses/:id/lms/instructor-eval', (c) => c.html(adminLmsInstructorEvalHtml()));
 app.get('/admin/courses/:id/lms/assignments', (c) => c.html(adminLmsAssignmentsHtml()));
 app.get('/admin/courses/:id/lms/qr-attendance', (c) => c.html(adminLmsQrAttendanceHtml()));
 
@@ -459,6 +469,9 @@ app.get('/teacher/courses/:id/lms/grades', (c) => c.html(adminLmsGradesHtml(teac
 app.get('/teacher/courses/:id/lms/surveys/:surveyId/preview', (c) => c.html(adminLmsSurveyPreviewHtml(teacherSidebar('courses', 'surveys'))));
 app.get('/teacher/courses/:id/lms/surveys/:surveyId/results', (c) => c.html(adminLmsSurveyResultsHtml(teacherSidebar('courses', 'surveys'))));
 app.get('/teacher/courses/:id/lms/surveys', (c) => c.html(adminLmsSurveysHtml(teacherSidebar('courses', 'surveys'))));
+app.get('/teacher/courses/:id/lms/instructor-eval/form', (c) => c.html(adminLmsInstructorEvalFormHtml(teacherSidebar('courses', 'instructor-eval'))));
+app.get('/teacher/courses/:id/lms/instructor-eval/results', (c) => c.html(adminLmsInstructorEvalResultsHtml(teacherSidebar('courses', 'instructor-eval'))));
+app.get('/teacher/courses/:id/lms/instructor-eval', (c) => c.html(adminLmsInstructorEvalHtml(teacherSidebar('courses', 'instructor-eval'))));
 app.get('/teacher/courses/:id/lms/assignments', (c) => c.html(adminLmsAssignmentsHtml(teacherSidebar('courses', 'assignments'))));
 app.get('/teacher/courses/:id/lms/qr-attendance', (c) => c.html(adminLmsQrAttendanceHtml(teacherSidebar('courses', 'attendance'))));
 
