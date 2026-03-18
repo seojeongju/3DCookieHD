@@ -12,10 +12,7 @@ export const footerHtml = () => `
                     실무 중심의 커리큘럼과 최신 장비로 여러분의 꿈을 지원합니다.
                 </p>
                 <div class="flex space-x-4">
-                    <a href="#" class="text-gray-400 hover:text-white transition"><i class="fab fa-facebook-f"></i></a>
-                    <a href="#" class="text-gray-400 hover:text-white transition"><i class="fab fa-instagram"></i></a>
-                    <a href="#" class="text-gray-400 hover:text-white transition"><i class="fab fa-youtube"></i></a>
-                    <a href="#" class="text-gray-400 hover:text-white transition"><i class="fab fa-blog"></i></a>
+                    <a href="https://blog.naver.com/wow3d16" target="_blank" class="text-gray-400 hover:text-white transition"><i class="fab fa-blog"></i></a>
                 </div>
             </div>
 
@@ -69,8 +66,8 @@ export const footerHtml = () => `
                 <p class="mt-2">&copy; 2025 3D Cookie Hongdae Center. All rights reserved.</p>
             </div>
             <div class="flex space-x-6 whitespace-nowrap">
-                <a href="#" class="hover:text-white transition">이용약관</a>
-                <a href="#" class="hover:text-white transition">개인정보처리방침</a>
+                <a href="/terms" class="hover:text-white transition">이용약관</a>
+                <a href="/privacy" class="hover:text-white transition">개인정보처리방침</a>
                 <a href="/admin" class="hover:text-white transition">관리자 로그인</a>
             </div>
         </div>
