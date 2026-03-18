@@ -57,10 +57,6 @@ export const adminLmsInstructorEvalResultsHtml = (sidebar: string = hrdSidebar('
                 <div class="max-w-4xl mx-auto">
                     <div class="print-hide flex items-center justify-between mb-6">
                         <a href="#" id="backLink" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-slate-700 font-bold text-sm hover:bg-slate-50"> <i class="fas fa-arrow-left"></i> 목록으로 </a>
-                        <div class="flex items-center gap-2">
-                            <button type="button" id="printAdminBtn" class="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-100 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-200 print-hide"> <i class="fas fa-print"></i> 원장평가 인쇄 </button>
-                            <button type="button" id="printSelfBtn" class="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-100 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-200 print-hide"> <i class="fas fa-print"></i> 강사평가 인쇄 </button>
-                        </div>
                     </div>
                     <div class="bg-white rounded-[2.5rem] border border-slate-200/60 shadow-sm overflow-hidden">
                         <div class="p-6 md:p-10">
@@ -167,9 +163,12 @@ export const adminLmsInstructorEvalResultsHtml = (sidebar: string = hrdSidebar('
                     subjectContentHtml += '<div id="' + safeId + '" class="accordion-content ' + isOpen + '">';
                     subjectContentHtml += '<div class="eval-subject-panel active">'; // always active inside open accordion
                     
-                    subjectContentHtml += '<div class="print-hide flex gap-2 mb-6">';
+                    subjectContentHtml += '<div class="print-hide flex items-center justify-between mb-6">';
+                    subjectContentHtml += '<div class="flex gap-2">';
                     subjectContentHtml += '<button type="button" class="tab-btn active" data-subj="' + safeId + '" data-tab="admin">원장평가</button>';
                     subjectContentHtml += '<button type="button" class="tab-btn" data-subj="' + safeId + '" data-tab="self">강사평가</button>';
+                    subjectContentHtml += '</div>';
+                    subjectContentHtml += '<button type="button" class="print-local-btn inline-flex items-center gap-2 px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg font-bold text-sm hover:bg-slate-200" data-subj="' + safeId + '"><i class="fas fa-print"></i> 현재 탭 인쇄</button>';
                     subjectContentHtml += '</div>';
                     
                     subjectContentHtml += '<div id="' + safeId + '-admin" class="tab-panel active" data-tab="admin">';
@@ -218,44 +217,16 @@ export const adminLmsInstructorEvalResultsHtml = (sidebar: string = hrdSidebar('
                     });
                 });
 
-                document.getElementById('printAdminBtn').addEventListener('click', function(){
-                    // 현재 활성화(열려있는) 아코디언 찾기
-                    var activeContent = document.querySelector('.accordion-content.open');
-                    if(!activeContent) { alert('인쇄할 과목을 먼저 선택해 펼쳐주세요.'); return; }
-                    var activeSubjPanel = activeContent.querySelector('.eval-subject-panel');
-                    
-                    // 해당 과목 패널의 원장 탭 활성화 후 인쇄
-                    activeSubjPanel.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
-                    activeSubjPanel.querySelectorAll('.tab-panel').forEach(function(p){ p.classList.remove('active'); });
-                    
-                    var adminBtn = activeSubjPanel.querySelector('.tab-btn[data-tab="admin"]');
-                    if(adminBtn) adminBtn.classList.add('active');
-                    var adminPanel = activeSubjPanel.querySelector('.tab-panel[data-tab="admin"]');
-                    if(adminPanel) adminPanel.classList.add('active');
-
-                    activeSubjPanel.classList.add('print-this');
-                    window.print();
-                    activeSubjPanel.classList.remove('print-this');
-                });
-                
-                document.getElementById('printSelfBtn').addEventListener('click', function(){
-                    // 현재 활성화(열려있는) 아코디언 찾기
-                    var activeContent = document.querySelector('.accordion-content.open');
-                    if(!activeContent) { alert('인쇄할 과목을 먼저 선택해 펼쳐주세요.'); return; }
-                    var activeSubjPanel = activeContent.querySelector('.eval-subject-panel');
-                    
-                    // 해당 과목 패널의 강사 탭 활성화 후 인쇄
-                    activeSubjPanel.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
-                    activeSubjPanel.querySelectorAll('.tab-panel').forEach(function(p){ p.classList.remove('active'); });
-                    
-                    var selfBtn = activeSubjPanel.querySelector('.tab-btn[data-tab="self"]');
-                    if(selfBtn) selfBtn.classList.add('active');
-                    var selfPanel = activeSubjPanel.querySelector('.tab-panel[data-tab="self"]');
-                    if(selfPanel) selfPanel.classList.add('active');
-
-                    activeSubjPanel.classList.add('print-this');
-                    window.print();
-                    activeSubjPanel.classList.remove('print-this');
+                document.querySelectorAll('.print-local-btn').forEach(function(btn){
+                    btn.addEventListener('click', function(){
+                        var subj = this.getAttribute('data-subj');
+                        var activeSubjPanel = document.getElementById(subj).querySelector('.eval-subject-panel');
+                        if(activeSubjPanel) {
+                            activeSubjPanel.classList.add('print-this');
+                            window.print();
+                            activeSubjPanel.classList.remove('print-this');
+                        }
+                    });
                 });
             }).catch(function(){ document.getElementById('loading').classList.add('hidden'); document.getElementById('error').classList.remove('hidden'); document.getElementById('error').textContent='요청 실패'; });
         })();
