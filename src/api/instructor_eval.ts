@@ -76,9 +76,9 @@ app.get('/list', authMiddleware, async (c) => {
         const evals = (evalRows.results || []) as any[];
 
         const list = subjects.map((s: any) => {
-            // 동일 교과목에 강사가 여러 명일 때: 원장/본인 모두 해당 담당강사(instructor_id) 기준으로 매칭
-            const adminEval = evals.find((e: any) => e.subject_name === s.subject_name && e.evaluator_type === 'admin' && (e.instructor_id === s.instructor_id || (e.instructor_id == null && s.instructor_id == null)));
-            const selfEval = evals.find((e: any) => e.subject_name === s.subject_name && e.evaluator_type === 'self' && e.evaluator_id === s.instructor_id);
+            // 동일 교과목에 강사가 여러 명일 때: 원장/본인 모두 해당 담당강사(instructor_id) 기준으로 매칭 (타입 혼동 방지로 == 사용)
+            const adminEval = evals.find((e: any) => e.subject_name === s.subject_name && e.evaluator_type === 'admin' && (e.instructor_id == s.instructor_id || (e.instructor_id == null && s.instructor_id == null)));
+            const selfEval = evals.find((e: any) => e.subject_name === s.subject_name && e.evaluator_type === 'self' && e.evaluator_id == s.instructor_id);
             const canAdmin = user.role === 'admin';
             const canSelf = user.role === 'admin' || (user.role === 'teacher' && s.instructor_id === user.userId);
             return {

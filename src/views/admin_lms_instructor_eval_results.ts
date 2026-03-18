@@ -69,67 +69,74 @@ export const adminLmsInstructorEvalResultsHtml = (sidebar: string = hrdSidebar('
             if(!courseId || !token){ document.getElementById('loading').classList.add('hidden'); document.getElementById('error').classList.remove('hidden'); document.getElementById('error').textContent='권한이 없습니다.'; return; }
 
             function fmtDate(s){ if(!s) return ''; var d = (s+'').split('T')[0]; return d ? d.replace(/-/g,'.') : ''; }
-            fetch('/api/courses/'+courseId+(qs?'?'+qs.substring(1):''), { headers: { 'Authorization': 'Bearer '+token } })
-                .then(function(r){ return r.json(); })
-                .then(function(res){
-                    if(res&&res.success&&res.data){
-                        var d = res.data;
-                        document.getElementById('courseTitle').textContent = d.title||'-';
-                        document.getElementById('courseDates').textContent = (fmtDate(d.start_date) && fmtDate(d.end_date)) ? (fmtDate(d.start_date)+' ~ '+fmtDate(d.end_date)) : '-';
-                    }
-                })
-                .catch(function(){});
+            function esc(s){ if(s==null) return ''; return (s+'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-            fetch('/api/instructor-eval/results?session_id='+encodeURIComponent(courseId), { headers: { 'Authorization': 'Bearer '+token } })
-                .then(function(r){ return r.json(); })
-                .then(function(res){
-                    document.getElementById('loading').classList.add('hidden');
-                    if(!res||!res.success){ document.getElementById('error').classList.remove('hidden'); document.getElementById('error').textContent = res&&res.error ? res.error : '불러오기 실패'; return; }
-                    var evals = res.data||[];
-                    if(evals.length===0){ document.getElementById('empty').classList.remove('hidden'); return; }
-                    document.getElementById('content').classList.remove('hidden');
+            Promise.all([
+                fetch('/api/courses/'+courseId+(qs?'?'+qs.substring(1):''), { headers: { 'Authorization': 'Bearer '+token } }).then(function(r){ return r.json(); }),
+                fetch('/api/instructor-eval/results?session_id='+encodeURIComponent(courseId), { headers: { 'Authorization': 'Bearer '+token } }).then(function(r){ return r.json(); })
+            ]).then(function(results){
+                var courseRes = results[0], evalRes = results[1];
+                var courseTitle = '-', courseDates = '-';
+                if(courseRes&&courseRes.success&&courseRes.data){ var d = courseRes.data; courseTitle = d.title||'-'; courseDates = (fmtDate(d.start_date)&&fmtDate(d.end_date)) ? (fmtDate(d.start_date)+' ~ '+fmtDate(d.end_date)) : '-'; }
+                document.getElementById('courseTitle').textContent = courseTitle;
+                document.getElementById('courseDates').textContent = courseDates;
 
-                    var bySubjectInstructor = {};
-                    evals.forEach(function(e){
-                        var key = (e.subject_name || '') + '\t' + (e.instructor_id != null ? e.instructor_id : '');
-                        if(!bySubjectInstructor[key]) bySubjectInstructor[key] = { subject_name: e.subject_name, instructor_id: e.instructor_id, instructor_name: null, admin: null, self: null };
-                        if(e.evaluator_type==='admin') bySubjectInstructor[key].admin = e;
-                        else bySubjectInstructor[key].self = e;
-                        if(e.instructor_name) bySubjectInstructor[key].instructor_name = e.instructor_name;
-                    });
-                    var keys = Object.keys(bySubjectInstructor).sort(function(a,b){ var sa = a.split('\t')[0], sb = b.split('\t')[0]; if(sa!==sb) return sa.localeCompare(sb); return a.localeCompare(b); });
+                document.getElementById('loading').classList.add('hidden');
+                if(!evalRes||!evalRes.success){ document.getElementById('error').classList.remove('hidden'); document.getElementById('error').textContent = evalRes&&evalRes.error ? evalRes.error : '불러오기 실패'; return; }
+                var evals = evalRes.data||[];
+                if(evals.length===0){ document.getElementById('empty').classList.remove('hidden'); return; }
+                document.getElementById('content').classList.remove('hidden');
 
-                    var questionLabels = ${JSON.stringify(QUESTION_LABELS)};
-                    var html = '';
-                    keys.forEach(function(key){
-                        var row = bySubjectInstructor[key];
-                        var instructorName = row.instructor_name || (row.admin && row.admin.instructor_name) || (row.self && row.self.instructor_name) || '-';
-                        html += '<div class="border border-slate-200 rounded-2xl overflow-hidden">';
-                        html += '<div class="bg-slate-100 px-4 py-3 font-bold text-slate-700 border-b border-slate-200">' + (row.subject_name||'').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>';
-                        html += '<div class="px-4 py-2 border-b border-slate-100 text-sm text-slate-600"><span class="font-bold text-slate-700">담당강사:</span> ' + (instructorName+'').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>';
-                        html += '<div class="p-4 space-y-6">';
+                var bySubjectInstructor = {};
+                evals.forEach(function(e){
+                    var key = (e.subject_name || '') + '\t' + (e.instructor_id != null ? e.instructor_id : '');
+                    if(!bySubjectInstructor[key]) bySubjectInstructor[key] = { subject_name: e.subject_name, instructor_id: e.instructor_id, instructor_name: null, admin: null, self: null };
+                    if(e.evaluator_type==='admin') bySubjectInstructor[key].admin = e;
+                    else bySubjectInstructor[key].self = e;
+                    if(e.instructor_name) bySubjectInstructor[key].instructor_name = e.instructor_name;
+                });
+                var keys = Object.keys(bySubjectInstructor).sort(function(a,b){ var sa = a.split('\t')[0], sb = b.split('\t')[0]; if(sa!==sb) return sa.localeCompare(sb); return a.localeCompare(b); });
 
-                        ['admin','self'].forEach(function(typ){
-                            var ev = typ==='admin' ? row.admin : row.self;
-                            var label = typ==='admin' ? '원장(관리자) 평가' : '담당강사(본인) 평가';
-                            if(!ev){ html += '<div class="text-sm text-slate-500">' + label + ': 미작성</div>'; return; }
-                            html += '<div class="border border-slate-100 rounded-xl p-4">';
-                            html += '<p class="font-bold text-slate-700 mb-2">' + label + ' <span class="text-slate-500 font-normal">(' + (ev.evaluator_name||'') + ', 총 ' + (ev.total_score!=null ? ev.total_score : '-') + '점)</span></p>';
-                            html += '<table class="w-full text-xs border border-slate-200 rounded-lg overflow-hidden"><thead><tr class="bg-slate-50"><th class="text-left py-2 px-3 font-bold text-slate-600">문항</th><th class="text-center w-10">점수</th></tr></thead><tbody>';
-                            for(var i=1;i<=15;i++){
-                                var v = ev['q'+i];
-                                var qLabel = questionLabels[i-1] || '';
-                                html += '<tr class="border-t border-slate-100"><td class="py-1.5 px-3 text-slate-700">'+i+'. '+qLabel+'</td><td class="text-center font-bold">'+(v!=null?v:'-')+'</td></tr>';
-                            }
-                            html += '</tbody></table>';
-                            if(ev.suggestions && ev.suggestions.trim()) html += '<p class="mt-3 text-sm text-slate-600"><span class="font-bold">건의사항:</span> ' + (ev.suggestions+'').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</p>';
-                            html += '</div>';
-                        });
+                var questionLabels = ${JSON.stringify(QUESTION_LABELS)};
+                var html = '';
+                keys.forEach(function(key){
+                    var row = bySubjectInstructor[key];
+                    var instructorName = row.instructor_name || (row.admin && row.admin.instructor_name) || (row.self && row.self.instructor_name) || '-';
+                    html += '<div class="border border-slate-200 rounded-2xl overflow-hidden mb-8">';
+                    html += '<div class="bg-slate-100 px-4 py-3 font-bold text-slate-700 border-b border-slate-200">' + esc(row.subject_name) + ' · 담당강사 ' + esc(instructorName) + '</div>';
+                    html += '<div class="p-4 space-y-8">';
+
+                    ['admin','self'].forEach(function(typ){
+                        var ev = typ==='admin' ? row.admin : row.self;
+                        var label = typ==='admin' ? '원장(관리자) 평가' : '담당강사(본인) 평가';
+                        if(!ev){ html += '<div class="border border-slate-200 rounded-xl overflow-hidden"><div class="bg-slate-50 px-4 py-3 font-bold text-slate-600">' + label + '</div><div class="p-4 text-sm text-slate-500">미작성</div></div>'; return; }
+                        html += '<div class="border border-slate-200 rounded-xl overflow-hidden">';
+                        html += '<div class="bg-slate-50 px-4 py-3 font-bold text-slate-700 border-b border-slate-200">' + label + ' 결과표</div>';
+                        html += '<div class="p-4">';
+                        html += '<table class="w-full border border-slate-200 rounded-xl overflow-hidden text-sm mb-4"><tbody>';
+                        html += '<tr class="border-b border-slate-200"><td class="bg-slate-50 py-2 px-4 font-bold text-slate-600 w-28">과정명</td><td class="py-2 px-4 text-slate-800">' + esc(courseTitle) + '</td><td colspan="2" class="bg-slate-50 py-2 px-4 font-bold text-slate-600 text-center border-l border-slate-200 w-32">결재</td></tr>';
+                        html += '<tr class="border-b border-slate-200"><td class="bg-slate-50 py-2 px-4 font-bold text-slate-600">과정 일자</td><td class="py-2 px-4 text-slate-800">' + esc(courseDates) + '</td><td class="bg-slate-50 py-1 px-2 text-center text-slate-600 border-l border-slate-200 w-16">원장</td><td class="bg-slate-50 py-1 px-2 text-center text-slate-600 w-16">담당</td></tr>';
+                        html += '<tr class="border-b border-slate-200"><td class="bg-slate-50 py-2 px-4 font-bold text-slate-600">교과목</td><td class="py-2 px-4 text-slate-800">' + esc(row.subject_name) + '</td><td class="py-2 px-2 border-l border-slate-200"></td><td class="py-2 px-2"></td></tr>';
+                        html += '<tr class="border-b border-slate-200"><td class="bg-slate-50 py-2 px-4 font-bold text-slate-600">담당강사</td><td class="py-2 px-4 text-slate-800">' + esc(instructorName) + '</td><td class="py-2 px-2 border-l border-slate-200"></td><td class="py-2 px-2"></td></tr>';
+                        html += '<tr class="border-b border-slate-200"><td class="bg-slate-50 py-2 px-4 font-bold text-slate-600">평가자</td><td class="py-2 px-4 text-slate-800">' + (typ==='admin' ? '원장(관리자)' : '담당강사(본인)') + '</td><td class="py-2 px-2 border-l border-slate-200"></td><td class="py-2 px-2"></td></tr>';
+                        html += '<tr><td class="bg-slate-50 py-2 px-4 font-bold text-slate-600">성명</td><td class="py-2 px-4 text-slate-800">' + esc(ev.evaluator_name) + '</td><td class="py-2 px-2 border-l border-slate-200"></td><td class="py-2 px-2"></td></tr>';
+                        html += '</tbody></table>';
+                        var scoreText = ev.total_score != null ? (ev.total_score + '/75점') : '-';
+                        html += '<p class="text-sm font-bold text-slate-700 mb-2">75점 만점 / 총점 <span class="text-slate-800">' + scoreText + '</span></p>';
+                        html += '<table class="w-full text-xs border border-slate-200 rounded-lg overflow-hidden"><thead><tr class="bg-slate-50"><th class="text-left py-2 px-3 font-bold text-slate-600">문항</th><th class="text-center w-10">점수</th></tr></thead><tbody>';
+                        for(var i=1;i<=15;i++){
+                            var v = ev['q'+i];
+                            var qLabel = questionLabels[i-1] || '';
+                            html += '<tr class="border-t border-slate-100"><td class="py-1.5 px-3 text-slate-700">'+i+'. '+qLabel+'</td><td class="text-center font-bold">'+(v!=null?v:'-')+'</td></tr>';
+                        }
+                        html += '</tbody></table>';
+                        if(ev.suggestions && ev.suggestions.trim()) html += '<p class="mt-3 text-sm text-slate-600"><span class="font-bold">건의사항:</span> ' + esc(ev.suggestions) + '</p>';
                         html += '</div></div>';
                     });
-                    document.getElementById('content').innerHTML = html;
-                })
-                .catch(function(){ document.getElementById('loading').classList.add('hidden'); document.getElementById('error').classList.remove('hidden'); document.getElementById('error').textContent='요청 실패'; });
+                    html += '</div></div>';
+                });
+                document.getElementById('content').innerHTML = html;
+            }).catch(function(){ document.getElementById('loading').classList.add('hidden'); document.getElementById('error').classList.remove('hidden'); document.getElementById('error').textContent='요청 실패'; });
         })();
     </script>
 </body>
