@@ -2582,6 +2582,15 @@ app.post('/approved/registrations/:id/generate-curriculum-from-training', authMi
         }
 
         // 3. Save to curriculum table (replace all existing)
+        // Backup evaluation data before DELETE so Step 5 selections are not lost
+        const { results: existingEvalData } = await c.env.DB.prepare(
+            'SELECT name, main_instructor_ids_json, evaluator_id, teaching_methods_json, evaluation_methods_json, textbook_ids_json, material_ids_json FROM ncs_approved_curriculum WHERE registration_id = ?'
+        ).bind(id).all() as { results: any[] };
+        const evalBackupMap = new Map<string, any>();
+        for (const row of (existingEvalData || [])) {
+            if (row.name) evalBackupMap.set(String(row.name).trim(), row);
+        }
+
         await c.env.DB.prepare('DELETE FROM ncs_approved_curriculum WHERE registration_id = ?').bind(id).run();
 
         for (let i = 0; i < curriculumItems.length; i++) {
@@ -2590,10 +2599,21 @@ app.post('/approved/registrations/:id/generate-curriculum-from-training', authMi
             const unitsJson = JSON.stringify(it.units);
             const objectivesJson = JSON.stringify(it.objectives);
 
+            // Restore eval data if this curriculum item existed before (match by name)
+            const prevEval = evalBackupMap.get(it.name.trim());
+
             await c.env.DB.prepare(
-                `INSERT INTO ncs_approved_curriculum (registration_id, type, name, classification, ability_units_json, units_json, objectives_json, sort_order)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-            ).bind(id, it.type, it.name, it.classification, abilityUnitsJson, unitsJson, objectivesJson, i).run();
+                `INSERT INTO ncs_approved_curriculum (registration_id, type, name, classification, ability_units_json, units_json, objectives_json, sort_order, main_instructor_ids_json, evaluator_id, teaching_methods_json, evaluation_methods_json, textbook_ids_json, material_ids_json)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+            ).bind(
+                id, it.type, it.name, it.classification, abilityUnitsJson, unitsJson, objectivesJson, i,
+                prevEval?.main_instructor_ids_json ?? null,
+                prevEval?.evaluator_id ?? null,
+                prevEval?.teaching_methods_json ?? null,
+                prevEval?.evaluation_methods_json ?? null,
+                prevEval?.textbook_ids_json ?? null,
+                prevEval?.material_ids_json ?? null
+            ).run();
         }
 
         // 4. Return the generated curriculum
@@ -2650,6 +2670,15 @@ app.put('/approved/registrations/:id/curriculum', authMiddleware, requireAdmin, 
         const items = Array.isArray(body.items) ? body.items : [];
         console.log('[DEBUG] Curriculum PUT - Received items:', items.length);
 
+        // Backup evaluation data before DELETE so Step 5 selections are not lost
+        const { results: existingEvalRows } = await c.env.DB.prepare(
+            'SELECT name, main_instructor_ids_json, evaluator_id, teaching_methods_json, evaluation_methods_json, textbook_ids_json, material_ids_json FROM ncs_approved_curriculum WHERE registration_id = ?'
+        ).bind(id).all() as { results: any[] };
+        const evalMap = new Map<string, any>();
+        for (const row of (existingEvalRows || [])) {
+            if (row.name) evalMap.set(String(row.name).trim(), row);
+        }
+
         await c.env.DB.prepare('DELETE FROM ncs_approved_curriculum WHERE registration_id = ?').bind(id).run();
         for (let i = 0; i < items.length; i++) {
             const it = items[i];
@@ -2662,10 +2691,22 @@ app.put('/approved/registrations/:id/curriculum', authMiddleware, requireAdmin, 
             const objectivesJson = it.objectives && Array.isArray(it.objectives) ? JSON.stringify(it.objectives) : null;
             const jobName = (it.job_name || '').trim() || null;
             console.log('[DEBUG] Inserting curriculum:', { type, name, jobName, hasAbilityUnits: !!abilityUnitsJson });
+
+            // Restore previously saved eval data if the curriculum item name matches
+            const prevEval = evalMap.get(name);
+
             await c.env.DB.prepare(
-                `INSERT INTO ncs_approved_curriculum (registration_id, type, name, job_name, classification, ability_units_json, units_json, objectives_json, sort_order)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-            ).bind(id, type, name, jobName, classification, abilityUnitsJson, unitsJson, objectivesJson, i).run();
+                `INSERT INTO ncs_approved_curriculum (registration_id, type, name, job_name, classification, ability_units_json, units_json, objectives_json, sort_order, main_instructor_ids_json, evaluator_id, teaching_methods_json, evaluation_methods_json, textbook_ids_json, material_ids_json)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+            ).bind(
+                id, type, name, jobName, classification, abilityUnitsJson, unitsJson, objectivesJson, i,
+                prevEval?.main_instructor_ids_json ?? null,
+                prevEval?.evaluator_id ?? null,
+                prevEval?.teaching_methods_json ?? null,
+                prevEval?.evaluation_methods_json ?? null,
+                prevEval?.textbook_ids_json ?? null,
+                prevEval?.material_ids_json ?? null
+            ).run();
         }
         const { results } = await c.env.DB.prepare(
             'SELECT * FROM ncs_approved_curriculum WHERE registration_id = ? ORDER BY sort_order ASC, id ASC'
