@@ -110,6 +110,30 @@ function initAdminSidebar() {
     if (logoutBtn) {
         logoutBtn.addEventListener('click', function () { window.logout(); });
     }
+
+    var accordionToggles = document.querySelectorAll('.sidebar-accordion-toggle');
+    for (var k = 0; k < accordionToggles.length; k++) {
+        accordionToggles[k].addEventListener('click', function() {
+            var isOpen = this.classList.contains('open');
+            var content = this.nextElementSibling;
+            var chevron = this.querySelector('.chevron-icon');
+            
+            if (isOpen) {
+                this.classList.remove('open');
+                this.setAttribute('aria-expanded', 'false');
+                content.classList.remove('max-h-[1000px]', 'opacity-100', 'mt-1');
+                content.classList.add('max-h-0', 'opacity-0');
+                if (chevron) chevron.classList.remove('rotate-180');
+            } else {
+                this.classList.add('open');
+                this.setAttribute('aria-expanded', 'true');
+                content.classList.remove('max-h-0', 'opacity-0');
+                content.classList.add('max-h-[1000px]', 'opacity-100', 'mt-1');
+                if (chevron) chevron.classList.add('rotate-180');
+            }
+        });
+    }
+
     var courseSelector = document.getElementById('sidebarActiveCourseSelector');
     var token = localStorage.getItem('token');
     if (courseSelector && token) {

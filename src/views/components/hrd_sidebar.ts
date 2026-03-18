@@ -73,35 +73,44 @@ export const hrdSidebar = (activeMenu: string, options?: HrdSidebarOptions) => {
             <span class="text-[11px] font-bold text-slate-500 uppercase tracking-widest opacity-70">교육·과정</span>
         </div>
         <div class="space-y-1">
-        <a href="/admin/courses" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${(activeMenu === 'courses' || activeMenu === 'courses-register') ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
-                ${(activeMenu === 'courses' || activeMenu === 'courses-register') ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
-                <i class="fas fa-graduation-cap w-6 text-lg ${(activeMenu === 'courses' || activeMenu === 'courses-register') ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
-                <span class="font-medium text-[14px]">교육운영 관리</span>
-            </a>
-            <a data-role="admin-only" href="/admin/courses/register" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'courses-register' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
-                <i class="fas fa-plus-circle w-6 text-sm ${activeMenu === 'courses-register' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
-                <span class="font-medium text-[13px]">일반과정등록</span>
-            </a>
-            <a data-role="admin-only" href="/admin/courses/categories" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'courses-categories' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
-                <i class="fas fa-tags w-6 text-sm ${activeMenu === 'courses-categories' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
-                <span class="font-medium text-[13px]">과정분류관리</span>
-            </a>
-            <a data-role="admin-only" href="/admin/courses/approved" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'courses-approved' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
-                <i class="fas fa-check-double w-6 text-sm ${activeMenu === 'courses-approved' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
-                <span class="font-medium text-[13px]">승인받은 과정</span>
-            </a>
-            <a data-role="admin-only" href="/admin/courses/sessions" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'courses-sessions' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
-                <i class="fas fa-calendar-plus w-6 text-sm ${activeMenu === 'courses-sessions' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
-                <span class="font-medium text-[13px]">회차별 과정개설</span>
-            </a>
-            <a data-role="admin-only" href="/admin/courses/sessions/enrollments" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'courses-session-enrollments' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
-                <i class="fas fa-user-plus w-6 text-sm ${activeMenu === 'courses-session-enrollments' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
-                <span class="font-medium text-[13px]">수강생 등록</span>
-            </a>
-            <a data-role="admin-only" href="/admin/courses/copy" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'courses-copy' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
-                <i class="fas fa-copy w-6 text-sm ${activeMenu === 'courses-copy' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
-                <span class="font-medium text-[13px]">회차별 과정복사</span>
-            </a>
+            <button type="button" class="sidebar-accordion-toggle flex items-center justify-between w-full px-4 py-3 rounded-xl transition-all duration-300 ${(activeMenu.startsWith('courses')) ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow open' : 'hover:bg-slate-800/50 hover:text-white'} group relative cursor-pointer" aria-expanded="${activeMenu.startsWith('courses')}">
+                <div class="flex items-center">
+                    ${(activeMenu.startsWith('courses')) ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
+                    <i class="fas fa-graduation-cap w-6 text-lg ${(activeMenu.startsWith('courses')) ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
+                    <span class="font-medium text-[14px]">교육운영 관리</span>
+                </div>
+                <i class="fas fa-chevron-down text-xs text-slate-500 transition-transform duration-200 chevron-icon ${(activeMenu.startsWith('courses')) ? 'rotate-180' : ''}"></i>
+            </button>
+            <div class="sidebar-submenu-content overflow-hidden transition-all duration-300 ${(activeMenu.startsWith('courses')) ? 'max-h-[1000px] opacity-100 mt-1' : 'max-h-0 opacity-0'}">
+                <a href="/admin/courses" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'courses' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
+                    <i class="fas fa-list w-6 text-sm ${activeMenu === 'courses' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
+                    <span class="font-medium text-[13px]">교육운영 목록</span>
+                </a>
+                <a data-role="admin-only" href="/admin/courses/register" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'courses-register' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
+                    <i class="fas fa-plus-circle w-6 text-sm ${activeMenu === 'courses-register' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
+                    <span class="font-medium text-[13px]">일반과정등록</span>
+                </a>
+                <a data-role="admin-only" href="/admin/courses/categories" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'courses-categories' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
+                    <i class="fas fa-tags w-6 text-sm ${activeMenu === 'courses-categories' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
+                    <span class="font-medium text-[13px]">과정분류관리</span>
+                </a>
+                <a data-role="admin-only" href="/admin/courses/approved" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'courses-approved' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
+                    <i class="fas fa-check-double w-6 text-sm ${activeMenu === 'courses-approved' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
+                    <span class="font-medium text-[13px]">승인받은 과정</span>
+                </a>
+                <a data-role="admin-only" href="/admin/courses/sessions" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'courses-sessions' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
+                    <i class="fas fa-calendar-plus w-6 text-sm ${activeMenu === 'courses-sessions' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
+                    <span class="font-medium text-[13px]">회차별 과정개설</span>
+                </a>
+                <a data-role="admin-only" href="/admin/courses/sessions/enrollments" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'courses-session-enrollments' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
+                    <i class="fas fa-user-plus w-6 text-sm ${activeMenu === 'courses-session-enrollments' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
+                    <span class="font-medium text-[13px]">수강생 등록</span>
+                </a>
+                <a data-role="admin-only" href="/admin/courses/copy" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'courses-copy' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
+                    <i class="fas fa-copy w-6 text-sm ${activeMenu === 'courses-copy' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
+                    <span class="font-medium text-[13px]">회차별 과정복사</span>
+                </a>
+            </div>
         </div>
 
         <a href="/admin/students" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'students' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
@@ -135,15 +144,24 @@ export const hrdSidebar = (activeMenu: string, options?: HrdSidebarOptions) => {
         </a>
 
         <div class="space-y-1">
-        <a href="/admin/exams" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${(activeMenu === 'exams' || activeMenu === 'exams-question-bank') ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
-             ${(activeMenu === 'exams' || activeMenu === 'exams-question-bank') ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
-            <i class="fas fa-file-signature w-6 text-lg ${(activeMenu === 'exams' || activeMenu === 'exams-question-bank') ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
-            <span class="font-medium text-[14px]">사전평가관리</span>
-        </a>
-            <a href="/admin/exams/question-bank" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'exams-question-bank' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
-                <i class="fas fa-database w-6 text-sm ${activeMenu === 'exams-question-bank' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
-                <span class="font-medium text-[13px]">문제은행</span>
-            </a>
+            <button type="button" class="sidebar-accordion-toggle flex items-center justify-between w-full px-4 py-3 rounded-xl transition-all duration-300 ${(activeMenu.startsWith('exams')) ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow open' : 'hover:bg-slate-800/50 hover:text-white'} group relative cursor-pointer" aria-expanded="${activeMenu.startsWith('exams')}">
+                <div class="flex items-center">
+                    ${(activeMenu.startsWith('exams')) ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
+                    <i class="fas fa-file-signature w-6 text-lg ${(activeMenu.startsWith('exams')) ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
+                    <span class="font-medium text-[14px]">사전평가관리</span>
+                </div>
+                <i class="fas fa-chevron-down text-xs text-slate-500 transition-transform duration-200 chevron-icon ${(activeMenu.startsWith('exams')) ? 'rotate-180' : ''}"></i>
+            </button>
+            <div class="sidebar-submenu-content overflow-hidden transition-all duration-300 ${(activeMenu.startsWith('exams')) ? 'max-h-[1000px] opacity-100 mt-1' : 'max-h-0 opacity-0'}">
+                <a href="/admin/exams" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'exams' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
+                    <i class="fas fa-list w-6 text-sm ${activeMenu === 'exams' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
+                    <span class="font-medium text-[13px]">사전평가 목록</span>
+                </a>
+                <a href="/admin/exams/question-bank" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'exams-question-bank' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
+                    <i class="fas fa-database w-6 text-sm ${activeMenu === 'exams-question-bank' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
+                    <span class="font-medium text-[13px]">문제은행</span>
+                </a>
+            </div>
         </div>
 
         <a href="/admin/ncs-eval" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'ncs-eval' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
@@ -194,15 +212,24 @@ export const hrdSidebar = (activeMenu: string, options?: HrdSidebarOptions) => {
             <span class="font-medium text-[14px]">훈련시설 관리</span>
         </a>
         <div data-role="admin-only" class="space-y-1">
-            <a href="/admin/items" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'items' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
-                ${activeMenu === 'items' ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
-                <i class="fas fa-boxes-stacked w-6 text-lg ${activeMenu === 'items' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
-                <span class="font-medium text-[14px]">물품 관리</span>
-            </a>
-            <a href="/admin/items/transactions" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'items-transactions' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
-                 <i class="fas fa-exchange-alt w-6 text-sm ${activeMenu === 'items-transactions' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
-                 <span class="font-medium text-[13px]">입/출고 이력</span>
-            </a>
+            <button type="button" class="sidebar-accordion-toggle flex items-center justify-between w-full px-4 py-3 rounded-xl transition-all duration-300 ${(activeMenu.startsWith('items')) ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow open' : 'hover:bg-slate-800/50 hover:text-white'} group relative cursor-pointer" aria-expanded="${activeMenu.startsWith('items')}">
+                <div class="flex items-center">
+                    ${(activeMenu.startsWith('items')) ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
+                    <i class="fas fa-boxes-stacked w-6 text-lg ${(activeMenu.startsWith('items')) ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
+                    <span class="font-medium text-[14px]">물품 관리</span>
+                </div>
+                <i class="fas fa-chevron-down text-xs text-slate-500 transition-transform duration-200 chevron-icon ${(activeMenu.startsWith('items')) ? 'rotate-180' : ''}"></i>
+            </button>
+            <div class="sidebar-submenu-content overflow-hidden transition-all duration-300 ${(activeMenu.startsWith('items')) ? 'max-h-[1000px] opacity-100 mt-1' : 'max-h-0 opacity-0'}">
+                <a href="/admin/items" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'items' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
+                    <i class="fas fa-list w-6 text-sm ${activeMenu === 'items' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
+                    <span class="font-medium text-[13px]">물품 목록</span>
+                </a>
+                <a href="/admin/items/transactions" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'items-transactions' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
+                     <i class="fas fa-exchange-alt w-6 text-sm ${activeMenu === 'items-transactions' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
+                     <span class="font-medium text-[13px]">입/출고 이력</span>
+                </a>
+            </div>
         </div>
 
         <!-- 콘텐츠·커뮤니티 -->
