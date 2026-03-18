@@ -38,11 +38,14 @@ export const adminLmsInstructorEvalResultsHtml = (sidebar: string = hrdSidebar('
             .eval-subject-panel.print-this .tab-panel.active{display:block!important;visibility:visible}
             .eval-subject-panel.print-this .tab-panel:not(.active){display:none!important}
         }
-        .eval-subject-btn{ padding:0.5rem 1rem; font-size:0.875rem; font-weight:700; border-radius:0.75rem; border:1px solid #e2e8f0; background:#fff; color:#64748b; transition:all 0.2s; white-space:nowrap; }
-        .eval-subject-btn.active{ background:#e2e8f0; color:#0f172a; border-color:#cbd5e1; }
-        .eval-subject-btn:hover:not(.active){ background:#f8fafc; }
-        .eval-subject-panel{ display:none; }
-        .eval-subject-panel.active{ display:block; }
+        .accordion-btn { w-full; text-align:left; padding:1.25rem 1.5rem; background:#f8fafc; border:1px solid #e2e8f0; border-radius:1rem; font-weight:700; color:#334155; display:flex; justify-content:space-between; align-items:center; transition:all 0.2s; cursor:pointer;}
+        .accordion-btn:hover { background:#f1f5f9; border-color:#cbd5e1; }
+        .accordion-btn.open { background:#e2e8f0; border-color:#cbd5e1; border-bottom-left-radius:0; border-bottom-right-radius:0; color:#0f172a; border-bottom-color:transparent; }
+        .accordion-btn .icon { transition:transform 0.2s; }
+        .accordion-btn.open .icon { transform:rotate(180deg); }
+        .accordion-content { display:none; border:1px solid #cbd5e1; border-top:none; border-bottom-left-radius:1rem; border-bottom-right-radius:1rem; padding:1.5rem; background:#fff; margin-bottom:1rem; }
+        .accordion-content.open { display:block; }
+        .eval-subject-panel{ display:block; } /* accordion wraps this */
     </style>
 </head>
 <body class="bg-slate-50">
@@ -70,11 +73,7 @@ export const adminLmsInstructorEvalResultsHtml = (sidebar: string = hrdSidebar('
                             </div>
                             <div id="loading" class="py-12 text-center text-slate-400"><i class="fas fa-spinner fa-spin mr-2"></i> 불러오는 중...</div>
                             <div id="content" class="hidden">
-                                <div class="print-hide mb-6">
-                                    <h3 class="text-sm font-bold text-slate-700 mb-2">과목 선택</h3>
-                                    <div id="subjectTabs" class="flex flex-wrap gap-2"></div>
-                                </div>
-                                <div id="subjectContentAreas"></div>
+                                <div id="subjectContentAreas" class="space-y-4"></div>
                             </div>
                             <div id="empty" class="hidden py-12 text-center text-slate-500">저장된 평가 결과가 없습니다.</div>
                             <div id="error" class="hidden py-12 text-center text-red-500 font-bold"></div>
@@ -153,7 +152,6 @@ export const adminLmsInstructorEvalResultsHtml = (sidebar: string = hrdSidebar('
                     out += '</div></div>';
                     return out;
                 }
-                var subjectTabsHtml = '';
                 var subjectContentHtml = '';
 
                 keys.forEach(function(key, idx){
@@ -161,10 +159,14 @@ export const adminLmsInstructorEvalResultsHtml = (sidebar: string = hrdSidebar('
                     var instructorName = row.instructor_name || (row.admin && row.admin.instructor_name) || (row.self && row.self.instructor_name) || '-';
                     var safeId = 'subj-' + idx;
                     
-                    var isActive = idx === 0 ? 'active' : '';
-                    subjectTabsHtml += '<button type="button" class="eval-subject-btn ' + isActive + '" data-target="' + safeId + '">' + esc(row.subject_name) + ' (' + esc(instructorName) + ')</button>';
+                    var isOpen = idx === 0 ? 'open' : '';
                     
-                    subjectContentHtml += '<div id="' + safeId + '" class="eval-subject-panel ' + isActive + '">';
+                    subjectContentHtml += '<div class="accordion-item" data-id="' + safeId + '">';
+                    subjectContentHtml += '<button type="button" class="accordion-btn ' + isOpen + ' w-full text-left" data-target="' + safeId + '"><span>' + esc(row.subject_name) + ' (' + esc(instructorName) + ')</span><i class="fas fa-chevron-down icon"></i></button>';
+                    
+                    subjectContentHtml += '<div id="' + safeId + '" class="accordion-content ' + isOpen + '">';
+                    subjectContentHtml += '<div class="eval-subject-panel active">'; // always active inside open accordion
+                    
                     subjectContentHtml += '<div class="print-hide flex gap-2 mb-6">';
                     subjectContentHtml += '<button type="button" class="tab-btn active" data-subj="' + safeId + '" data-tab="admin">원장평가</button>';
                     subjectContentHtml += '<button type="button" class="tab-btn" data-subj="' + safeId + '" data-tab="self">강사평가</button>';
@@ -178,20 +180,25 @@ export const adminLmsInstructorEvalResultsHtml = (sidebar: string = hrdSidebar('
                     subjectContentHtml += '<div class="border border-slate-200 rounded-2xl overflow-hidden mb-8"><div class="bg-slate-100 px-4 py-3 font-bold text-slate-700 border-b border-slate-200">' + esc(row.subject_name) + ' · 담당강사 ' + esc(instructorName) + '</div><div class="p-4 space-y-8">' + renderBlock('self', row, instructorName, courseTitle, courseDates) + '</div></div>';
                     subjectContentHtml += '</div>';
                     
-                    subjectContentHtml += '</div>';
+                    subjectContentHtml += '</div>'; // eval-subject-panel
+                    subjectContentHtml += '</div>'; // accordion-content
+                    subjectContentHtml += '</div>'; // accordion-item
                 });
                 
-                document.getElementById('subjectTabs').innerHTML = subjectTabsHtml;
                 document.getElementById('subjectContentAreas').innerHTML = subjectContentHtml;
 
-                // 과목 전환 탭 이벤트
-                document.querySelectorAll('.eval-subject-btn').forEach(function(btn){
+                // 아코디언 토글 이벤트
+                document.querySelectorAll('.accordion-btn').forEach(function(btn){
                     btn.addEventListener('click', function(){
                         var targetId = this.getAttribute('data-target');
-                        document.querySelectorAll('.eval-subject-btn').forEach(function(b){ b.classList.remove('active'); });
-                        document.querySelectorAll('.eval-subject-panel').forEach(function(p){ p.classList.remove('active'); });
-                        this.classList.add('active');
-                        document.getElementById(targetId).classList.add('active');
+                        var content = document.getElementById(targetId);
+                        
+                        // 아코디언은 여러 개 열어둘 수도 있지만, 이전에 작성된 활성화 로직 유지 차원에서 열린 탭 닫기 후 현재 탭만 토글
+                        document.querySelectorAll('.accordion-btn').forEach(function(b){ if(b !== btn) b.classList.remove('open'); });
+                        document.querySelectorAll('.accordion-content').forEach(function(c){ if(c !== content) c.classList.remove('open'); });
+                        
+                        this.classList.toggle('open');
+                        content.classList.toggle('open');
                     });
                 });
 
@@ -212,9 +219,10 @@ export const adminLmsInstructorEvalResultsHtml = (sidebar: string = hrdSidebar('
                 });
 
                 document.getElementById('printAdminBtn').addEventListener('click', function(){
-                    // 현재 활성화된 과목 패널 찾기
-                    var activeSubjPanel = document.querySelector('.eval-subject-panel.active');
-                    if(!activeSubjPanel) return;
+                    // 현재 활성화(열려있는) 아코디언 찾기
+                    var activeContent = document.querySelector('.accordion-content.open');
+                    if(!activeContent) { alert('인쇄할 과목을 먼저 선택해 펼쳐주세요.'); return; }
+                    var activeSubjPanel = activeContent.querySelector('.eval-subject-panel');
                     
                     // 해당 과목 패널의 원장 탭 활성화 후 인쇄
                     activeSubjPanel.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
@@ -231,9 +239,10 @@ export const adminLmsInstructorEvalResultsHtml = (sidebar: string = hrdSidebar('
                 });
                 
                 document.getElementById('printSelfBtn').addEventListener('click', function(){
-                    // 현재 활성화된 과목 패널 찾기
-                    var activeSubjPanel = document.querySelector('.eval-subject-panel.active');
-                    if(!activeSubjPanel) return;
+                    // 현재 활성화(열려있는) 아코디언 찾기
+                    var activeContent = document.querySelector('.accordion-content.open');
+                    if(!activeContent) { alert('인쇄할 과목을 먼저 선택해 펼쳐주세요.'); return; }
+                    var activeSubjPanel = activeContent.querySelector('.eval-subject-panel');
                     
                     // 해당 과목 패널의 강사 탭 활성화 후 인쇄
                     activeSubjPanel.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
