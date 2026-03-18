@@ -369,7 +369,7 @@ exams.post('/', authMiddleware, async (c) => {
     try {
         const user = c.get('user');
         const body = await c.req.json();
-        const { title, course_id, description, time_limit, questions } = body;
+        const { title, course_id, description, time_limit, questions, type } = body;
 
         // 강사는 본인이 담당하는 과정에만 시험 생성 가능
         if (user.role === 'teacher' && course_id) {
@@ -381,9 +381,9 @@ exams.post('/', authMiddleware, async (c) => {
 
         // exams 테이블 사용, time_limit_minutes 사용
         const result = await c.env.DB.prepare(`
-            INSERT INTO exams (course_id, title, description, time_limit_minutes, is_active)
-            VALUES (?, ?, ?, ?, 1)
-        `).bind(course_id, title, description, time_limit).run();
+            INSERT INTO exams (course_id, title, description, time_limit_minutes, type, is_active)
+            VALUES (?, ?, ?, ?, ?, 1)
+        `).bind(course_id, title, description, time_limit, type || 'practice').run();
 
         const examId = result.meta.last_row_id;
 
@@ -443,7 +443,7 @@ exams.put('/:id', authMiddleware, async (c) => {
     try {
         const user = c.get('user');
         const body = await c.req.json();
-        const { title, course_id, description, time_limit, is_active, questions } = body;
+        const { title, course_id, description, time_limit, is_active, questions, type } = body;
 
         // 강사는 본인이 담당하는 과정의 시험만 수정 가능
         if (user.role === 'teacher') {
@@ -468,9 +468,9 @@ exams.put('/:id', authMiddleware, async (c) => {
         // exams 테이블 사용, time_limit_minutes 사용
         await c.env.DB.prepare(`
             UPDATE exams 
-            SET title = ?, course_id = ?, description = ?, time_limit_minutes = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP
+            SET title = ?, course_id = ?, description = ?, time_limit_minutes = ?, type = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
-        `).bind(title, course_id, description, time_limit, is_active, id).run();
+        `).bind(title, course_id, description, time_limit, type, is_active, id).run();
 
         // Update Questions if provided
         if (questions && Array.isArray(questions)) {

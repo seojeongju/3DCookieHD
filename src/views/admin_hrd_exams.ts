@@ -874,12 +874,13 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                 if (!exams.length) {
                     mgmtExamId = '';
                     const examListEl2 = document.getElementById('examQuestionList');
-                    if (examListEl2) examListEl2.innerHTML = '<div class=\"flex flex-col items-center justify-center py-16 text-center px-4\"><i class=\"fas fa-clipboard-list text-4xl text-slate-300 mb-3\"></i><p class=\"text-xs font-medium text-slate-500\">선택된 회차에 시험이 없습니다.</p><p class=\"text-[11px] text-slate-400 mt-1\">시험 추가 버튼으로 시험을 만든 뒤 문제를 편성하세요.</p></div>';
+                    if (examListEl2) examListEl2.innerHTML = '<div class=\"flex flex-col items-center justify-center py-16 text-center px-4\"><i class=\"fas fa-clipboard-list text-4xl text-slate-300 mb-3\"></i><p class=\"text-xs font-medium text-slate-500\">편성된 문제가 없습니다.</p><p class=\"text-[11px] text-slate-400 mt-1\">왼쪽의 문제은행에서 문제를 선택하여 추가하세요.</p></div>';
                     const importBtn = document.getElementById('importBtn');
                     updateImportBtnStatus();
                     return;
                 }
-                mgmtExamId = String(exams[0].id);
+                const practiceExam = exams.find(e => e.type === 'practice') || exams[0];
+                mgmtExamId = String(practiceExam.id);
                 if (addTargetType === 'pre') {
                     await loadExamQuestions();
                     const importBtn = document.getElementById('importBtn');
@@ -1351,8 +1352,10 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
         }
 
         async function importSelectedQuestions() {
-            const checkboxes = Array.from(document.querySelectorAll('.bank-question-checkbox'));
-            const selectedBankIds = checkboxes.filter(cb => cb.checked).map(cb => parseInt(cb.value, 10)).filter(v => !Number.isNaN(v));
+            const checkboxes = Array.from(document.querySelectorAll('.bank-question-checkbox:checked')) as HTMLInputElement[];
+            const selectedBankIds = checkboxes.map(cb => parseInt(cb.value, 10)).filter(v => !Number.isNaN(v));
+            if (selectedBankIds.length === 0) return;
+
             if (addTargetType === 'ncs') {
                 if (!mgmtSessionId) {
                     showNotifyModal('안내', '회차를 선택한 뒤 NCS평가에 추가해 주세요.', 'info');
@@ -1380,8 +1383,37 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                 return;
             }
             if (!mgmtExamId) {
-                showNotifyModal('안내', '회차를 선택해 주세요. 해당 회차에 시험이 없으면 시험 추가 버튼으로 먼저 시험을 만드세요.', 'info');
-                return;
+                // 사전평가 모드 자동 시험 생성
+                if (!mgmtSessionId) {
+                    showNotifyModal('안내', '회차를 선택해 주세요.', 'info');
+                    return;
+                }
+                try {
+                    const sessSelect = document.getElementById('mgmtSessionSelect') as HTMLSelectElement;
+                    const sessTitle = sessSelect.options[sessSelect.selectedIndex]?.text?.split('(ID:')[0]?.trim() || '사전평가';
+                    const createRes = await fetch('/api/exams', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                        body: JSON.stringify({ 
+                            title: sessTitle + ' 사전평가', 
+                            course_id: mgmtSessionId,
+                            type: 'practice',
+                            description: '문제은행에서 자동 생성된 사전평가입니다.',
+                            time_limit: 60
+                        })
+                    });
+                    const createJson = await createRes.json();
+                    if (createJson && createJson.success) {
+                        mgmtExamId = String(createJson.id);
+                    } else {
+                        showNotifyModal('오류', '사전평가 생성에 실패했습니다: ' + (createJson.error || ''), 'error');
+                        return;
+                    }
+                } catch (e) {
+                    console.error(e);
+                    showNotifyModal('오류', '사전평가 생성 중 시스템 오류가 발생했습니다.', 'error');
+                    return;
+                }
             }
             try {
                 const res = await fetch(\`/api/cbt/exams/\${mgmtExamId}/import-questions\`, {
