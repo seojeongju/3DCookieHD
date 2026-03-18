@@ -320,6 +320,15 @@ cbt.get('/question-bank', authMiddleware, async (c) => {
                     params.push(cid);
                 }
             }
+            const categoryParam = c.req.query('category');
+            if (categoryParam) {
+                if (categoryParam === 'NCS') {
+                    sql += " AND (qb.category LIKE 'NCS%' OR ns.name IS NOT NULL)";
+                } else {
+                    sql += ' AND qb.category = ?';
+                    params.push(categoryParam);
+                }
+            }
             if (ncsSubjectIdParam) {
                 const sid = parseInt(String(ncsSubjectIdParam), 10);
                 if (!Number.isNaN(sid)) {

@@ -742,7 +742,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
             return type.replace('_', ' ');
         }
 
-        function setAddTargetType(type) {
+        async function setAddTargetType(type) {
             addTargetType = type;
             document.querySelectorAll('.add-type-btn').forEach(btn => {
                 const isActive = (btn.getAttribute('data-type') === type);
@@ -766,6 +766,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                 if (importLabel) importLabel.textContent = '선택 문제 NCS평가에 추가';
                 if (importBtn) updateImportBtnStatus();
                 if (mgmtSessionId) loadNcsCourseQuestions();
+                await loadQuestionBank();
             } else {
                 if (titleEl) titleEl.innerHTML = '<i class=\"fas fa-list-check text-indigo-500\"></i> 이 회차 사전평가 문제';
                 if (labelEl) labelEl.textContent = '회차를 선택하면 이 회차의 사전평가 문제가 표시됩니다.';
@@ -774,6 +775,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                 if (importLabel) importLabel.textContent = '선택 문제 추가';
                 if (importBtn) updateImportBtnStatus();
                 if (mgmtExamId) loadExamQuestions();
+                await loadQuestionBank();
             }
         }
 
@@ -931,6 +933,10 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                 if (difficultyVal) params.set('difficulty', difficultyVal);
                 if (keyword) params.set('keyword', keyword);
                 if (categoryVal) params.set('ncs_subject_id', categoryVal);
+                // 탭 유형에 따른 자동 카테고리 필터링 추가
+                if (!categoryVal) {
+                    params.set('category', addTargetType === 'ncs' ? 'NCS' : '사전평가');
+                }
                 const res = await fetch(\`/api/cbt/question-bank?\${params.toString()}\`, {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
