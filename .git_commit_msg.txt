@@ -1,8 +1,0 @@
-fix: Step 5 cross-card event bug complete rewrite
-
-- initStep5._running flag prevents concurrent/double execution
-- Replaced form-level event delegation with per-button direct addEventListener
-  via wireMethodButtons() - eliminates cross-card contamination entirely
-- makeMethodRow() creates new rows with direct listeners (no cloneNode)
-- stale DOM check after async wait prevents operating on detached elements
-- saveEvaluation scoped to ncsStep5Form instead of document querySelectorAll

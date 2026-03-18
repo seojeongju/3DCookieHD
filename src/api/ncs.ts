@@ -2671,15 +2671,25 @@ app.put('/approved/registrations/:id/curriculum', authMiddleware, requireAdmin, 
         console.log('[DEBUG] Curriculum PUT - Received items:', items.length);
 
         // Backup evaluation data before DELETE so Step 5 selections are not lost
+        // 교과목 이름이 중복될 수 있으므로 (이름 + 순서) 조합으로 맵을 생성합니다.
         const { results: existingEvalRows } = await c.env.DB.prepare(
-            'SELECT name, main_instructor_ids_json, evaluator_id, teaching_methods_json, evaluation_methods_json, textbook_ids_json, material_ids_json FROM ncs_approved_curriculum WHERE registration_id = ?'
+            'SELECT name, main_instructor_ids_json, evaluator_id, teaching_methods_json, evaluation_methods_json, textbook_ids_json, material_ids_json FROM ncs_approved_curriculum WHERE registration_id = ? ORDER BY sort_order ASC'
         ).bind(id).all() as { results: any[] };
+        
         const evalMap = new Map<string, any>();
+        const nameCountMap = new Map<string, number>();
         for (const row of (existingEvalRows || [])) {
-            if (row.name) evalMap.set(String(row.name).trim(), row);
+            if (row.name) {
+                const n = String(row.name).trim();
+                const count = nameCountMap.get(n) || 0;
+                evalMap.set(`${n}_${count}`, row);
+                nameCountMap.set(n, count + 1);
+            }
         }
 
         await c.env.DB.prepare('DELETE FROM ncs_approved_curriculum WHERE registration_id = ?').bind(id).run();
+        
+        const nameRestoreCountMap = new Map<string, number>();
         for (let i = 0; i < items.length; i++) {
             const it = items[i];
             const type = String(it.type || 'ncs').trim();
@@ -2690,10 +2700,11 @@ app.put('/approved/registrations/:id/curriculum', authMiddleware, requireAdmin, 
             const unitsJson = it.units && Array.isArray(it.units) ? JSON.stringify(it.units) : null;
             const objectivesJson = it.objectives && Array.isArray(it.objectives) ? JSON.stringify(it.objectives) : null;
             const jobName = (it.job_name || '').trim() || null;
-            console.log('[DEBUG] Inserting curriculum:', { type, name, jobName, hasAbilityUnits: !!abilityUnitsJson });
-
-            // Restore previously saved eval data if the curriculum item name matches
-            const prevEval = evalMap.get(name);
+            
+            // Restore previously saved eval data using (name + sequence count)
+            const count = nameRestoreCountMap.get(name) || 0;
+            const prevEval = evalMap.get(`${name}_${count}`);
+            nameRestoreCountMap.set(name, count + 1);
 
             await c.env.DB.prepare(
                 `INSERT INTO ncs_approved_curriculum (registration_id, type, name, job_name, classification, ability_units_json, units_json, objectives_json, sort_order, main_instructor_ids_json, evaluator_id, teaching_methods_json, evaluation_methods_json, textbook_ids_json, material_ids_json)

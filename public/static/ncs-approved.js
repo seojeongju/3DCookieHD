@@ -2872,10 +2872,14 @@
             var mainInstructorIds = [];
             try { mainInstructorIds = item.main_instructor_ids_json ? JSON.parse(item.main_instructor_ids_json) : []; } catch (e) { }
             var teachingMethods = [];
-            try { teachingMethods = item.teaching_methods_json ? JSON.parse(item.teaching_methods_json) : ['']; } catch (e) { teachingMethods = ['']; }
+            try { teachingMethods = item.teaching_methods_json ? JSON.parse(item.teaching_methods_json) : []; } catch (e) { teachingMethods = []; }
+            // 중복 제거 (DB에 이미 중복 저장된 경우 대비)
+            teachingMethods = teachingMethods.filter(function (v, i, a) { return v && a.indexOf(v) === i; });
             if (!teachingMethods.length) teachingMethods = [''];
             var evaluationMethods = [];
-            try { evaluationMethods = item.evaluation_methods_json ? JSON.parse(item.evaluation_methods_json) : ['']; } catch (e) { evaluationMethods = ['']; }
+            try { evaluationMethods = item.evaluation_methods_json ? JSON.parse(item.evaluation_methods_json) : []; } catch (e) { evaluationMethods = []; }
+            // 중복 제거 (DB에 이미 중복 저장된 경우 대비)
+            evaluationMethods = evaluationMethods.filter(function (v, i, a) { return v && a.indexOf(v) === i; });
             if (!evaluationMethods.length) evaluationMethods = [''];
             var instructorChecks = instructors.map(function (ins) {
                 var checked = mainInstructorIds.indexOf(ins.id) !== -1 ? 'checked' : '';
@@ -3116,8 +3120,12 @@
                 var evaluatorId = parseInt(card.querySelector('.evaluator-sel').value, 10) || null;
                 var tMethods = [];
                 card.querySelectorAll('.t-method-sel').forEach(function (s) { if (s.value) tMethods.push(s.value); });
+                // 중복 제거
+                tMethods = tMethods.filter(function (v, i, a) { return a.indexOf(v) === i; });
                 var eMethods = [];
                 card.querySelectorAll('.e-method-sel').forEach(function (s) { if (s.value) eMethods.push(s.value); });
+                // 중복 제거
+                eMethods = eMethods.filter(function (v, i, a) { return a.indexOf(v) === i; });
                 var curItem = curriculum.filter(function (it) { return it.id === id; })[0];
                 var textbookIds = [];
                 var materialIds = [];
