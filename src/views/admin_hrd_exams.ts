@@ -535,10 +535,9 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
         function updateImportBtnStatus() {
             const importBtn = document.getElementById('importBtn');
             if (!importBtn) return;
-            const hasTarget = addTargetType === 'ncs' ? !!mgmtSessionId : !!mgmtExamId;
             const checkboxes = document.querySelectorAll('.bank-question-checkbox:checked');
             const hasSelection = checkboxes.length > 0;
-            importBtn.disabled = !(hasTarget && hasSelection);
+            importBtn.disabled = !hasSelection;
         }
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -765,7 +764,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                 if (linkEl) { linkEl.href = mgmtSessionId ? '/admin/courses/' + mgmtSessionId + '/lms/ncs-eval' : '#'; linkEl.classList.remove('hidden'); }
                 if (cbtLinkEl) cbtLinkEl.classList.add('hidden');
                 if (importLabel) importLabel.textContent = '선택 문제 NCS평가에 추가';
-                if (importBtn) { importBtn.disabled = !mgmtSessionId; }
+                if (importBtn) updateImportBtnStatus();
                 if (mgmtSessionId) loadNcsCourseQuestions();
             } else {
                 if (titleEl) titleEl.innerHTML = '<i class=\"fas fa-list-check text-indigo-500\"></i> 이 회차 사전평가 문제';
@@ -773,7 +772,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                 if (linkEl) linkEl.classList.add('hidden');
                 if (cbtLinkEl && mgmtSessionId) cbtLinkEl.classList.remove('hidden');
                 if (importLabel) importLabel.textContent = '선택 문제 추가';
-                if (importBtn) { importBtn.disabled = !mgmtExamId; }
+                if (importBtn) updateImportBtnStatus();
                 if (mgmtExamId) loadExamQuestions();
             }
         }
