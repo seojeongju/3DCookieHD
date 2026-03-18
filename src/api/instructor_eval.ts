@@ -80,7 +80,7 @@ app.get('/list', authMiddleware, async (c) => {
         const sameId = (a: any, b: any) => (a != null && b != null) && (String(a).trim() === String(b).trim() || a == b);
         const list = subjects.map((s: any) => {
             const adminEval = evals.find((e: any) => sameSubject(e.subject_name, s.subject_name) && e.evaluator_type === 'admin' && (sameId(e.instructor_id, s.instructor_id) || (e.instructor_id == null && s.instructor_id == null)));
-            const selfEval = evals.find((e: any) => sameSubject(e.subject_name, s.subject_name) && e.evaluator_type === 'self' && sameId(e.evaluator_id, s.instructor_id));
+            const selfEval = evals.find((e: any) => sameSubject(e.subject_name, s.subject_name) && e.evaluator_type === 'self' && (sameId(e.instructor_id, s.instructor_id) || (e.instructor_id == null && s.instructor_id == null)));
             const canAdmin = user.role === 'admin';
             const canSelf = user.role === 'admin' || (user.role === 'teacher' && sameId(s.instructor_id, user.userId));
             return {
@@ -146,19 +146,11 @@ app.get('/by-params', authMiddleware, async (c) => {
         if (!session_id || !subject_name || !evaluator_type) return errorResponse(c, 'session_id, subject_name, evaluator_type 필요', 400);
         const user = c.get('user');
         const { DB } = c.env;
-        if (evaluator_type === 'admin') {
-            const instructorId = instructor_id_param != null && instructor_id_param !== '' ? parseInt(String(instructor_id_param), 10) : null;
-            const row = await DB.prepare(`
-                SELECT * FROM instructor_competency_evaluations
-                WHERE session_id=? AND subject_name=? AND evaluator_type=? AND evaluator_id=? AND (instructor_id=? OR (instructor_id IS NULL AND ? IS NULL))
-            `).bind(session_id, subject_name, evaluator_type, user.userId, instructorId, instructorId).first();
-            if (!row) return successResponse(c, null);
-            return successResponse(c, row);
-        }
+        const instructorId = instructor_id_param != null && instructor_id_param !== '' ? parseInt(String(instructor_id_param), 10) : null;
         const row = await DB.prepare(`
             SELECT * FROM instructor_competency_evaluations
-            WHERE session_id=? AND subject_name=? AND evaluator_type=? AND evaluator_id=?
-        `).bind(session_id, subject_name, evaluator_type, user.userId).first();
+            WHERE session_id=? AND subject_name=? AND evaluator_type=? AND (instructor_id=? OR (instructor_id IS NULL AND ? IS NULL))
+        `).bind(session_id, subject_name, evaluator_type, instructorId, instructorId).first();
         if (!row) return successResponse(c, null);
         return successResponse(c, row);
     } catch (e: any) {
@@ -224,16 +216,16 @@ app.post('/', authMiddleware, async (c) => {
 
         const existing = await DB.prepare(`
             SELECT id FROM instructor_competency_evaluations
-            WHERE session_id=? AND subject_name=? AND evaluator_type=? AND evaluator_id=? AND (instructor_id=? OR (instructor_id IS NULL AND ? IS NULL))
-        `).bind(session_id, subject_name, evaluator_type, evaluator_id, instructorId, instructorId).first() as any;
+            WHERE session_id=? AND subject_name=? AND evaluator_type=? AND (instructor_id=? OR (instructor_id IS NULL AND ? IS NULL))
+        `).bind(session_id, subject_name, evaluator_type, instructorId, instructorId).first() as any;
 
         if (existing?.id) {
             await DB.prepare(`
                 UPDATE instructor_competency_evaluations SET
-                    instructor_id=?, q1=?, q2=?, q3=?, q4=?, q5=?, q6=?, q7=?, q8=?, q9=?, q10=?,
+                    instructor_id=?, evaluator_id=?, q1=?, q2=?, q3=?, q4=?, q5=?, q6=?, q7=?, q8=?, q9=?, q10=?,
                     q11=?, q12=?, q13=?, q14=?, q15=?, suggestions=?, total_score=?, updated_at=datetime('now')
                 WHERE id = ?
-            `).bind(instructorId, ...scores, suggestions || null, total, existing.id).run();
+            `).bind(instructorId, evaluator_id, ...scores, suggestions || null, total, existing.id).run();
             return successResponse(c, { id: existing.id }, '수정되었습니다.');
         }
 
@@ -245,8 +237,8 @@ app.post('/', authMiddleware, async (c) => {
             session_id, subject_name, instructorId, evaluator_type, evaluator_id,
             ...scores, suggestions || null, total
         ).run();
-        const row = await DB.prepare('SELECT id FROM instructor_competency_evaluations WHERE session_id=? AND subject_name=? AND evaluator_type=? AND evaluator_id=? AND (instructor_id=? OR (instructor_id IS NULL AND ? IS NULL))')
-            .bind(session_id, subject_name, evaluator_type, evaluator_id, instructorId, instructorId).first() as any;
+        const row = await DB.prepare('SELECT id FROM instructor_competency_evaluations WHERE session_id=? AND subject_name=? AND evaluator_type=? AND (instructor_id=? OR (instructor_id IS NULL AND ? IS NULL))')
+            .bind(session_id, subject_name, evaluator_type, instructorId, instructorId).first() as any;
         return successResponse(c, { id: row?.id }, '저장되었습니다.');
     } catch (e: any) {
         return errorResponse(c, e.message, 500);
