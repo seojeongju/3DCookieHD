@@ -96,9 +96,17 @@ export const adminLmsInstructorEvalHtml = (sidebar: string = hrdSidebar('courses
                         var subject = enc(row.subject_name);
                         var name = esc(row.instructor_name);
                         var adminDone = row.admin_done; var selfDone = row.self_done;
-                        var adminBtn = row.can_admin ? (adminDone ? '<a href="'+basePath+'/instructor-eval/form?subject='+subject+'&evaluator=admin&instructor_id='+(row.instructor_id||'')+qs+'" class="text-indigo-600 hover:underline font-bold text-xs">수정</a>' : '<a href="'+basePath+'/instructor-eval/form?subject='+subject+'&evaluator=admin&instructor_id='+(row.instructor_id||'')+qs+'" class="inline-flex items-center px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700">원장 평가하기</a>') : '-';
-                        var selfBtn  = row.can_self  ? (selfDone  ? '<a href="'+basePath+'/instructor-eval/form?subject='+subject+'&evaluator=self&instructor_id='+(row.instructor_id||'')+qs+'" class="text-amber-600 hover:underline font-bold text-xs">수정</a>' : '<a href="'+basePath+'/instructor-eval/form?subject='+subject+'&evaluator=self&instructor_id='+(row.instructor_id||'')+qs+'" class="inline-flex items-center px-3 py-1.5 bg-amber-600 text-white rounded-lg text-xs font-bold hover:bg-amber-700">본인 평가하기</a>') : '-';
-                        return '<tr class="border-b border-slate-100 hover:bg-slate-50/50"><td class="py-4 px-4 font-medium text-slate-800">'+esc(row.subject_name)+'</td><td class="py-4 px-4 text-slate-600">'+name+'</td><td class="py-4 px-4 text-center">'+(adminDone?'<span class="text-green-600 text-xs font-bold">완료</span> ':'')+adminBtn+'</td><td class="py-4 px-4 text-center">'+(selfDone?'<span class="text-green-600 text-xs font-bold">완료</span> ':'')+selfBtn+'</td></tr>';
+                        var adminCell = row.can_admin
+                            ? (adminDone
+                                ? '<span class="text-green-600 text-xs font-bold mr-2">평가완료</span><a href="'+basePath+'/instructor-eval/form?subject='+subject+'&evaluator=admin&instructor_id='+(row.instructor_id||'')+qs+'" class="text-indigo-600 hover:underline font-bold text-xs">수정</a>'
+                                : '<a href="'+basePath+'/instructor-eval/form?subject='+subject+'&evaluator=admin&instructor_id='+(row.instructor_id||'')+qs+'" class="inline-flex items-center px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700">원장 평가하기</a>')
+                            : '-';
+                        var selfCell = row.can_self
+                            ? (selfDone
+                                ? '<span class="text-green-600 text-xs font-bold mr-2">평가완료</span><a href="'+basePath+'/instructor-eval/form?subject='+subject+'&evaluator=self&instructor_id='+(row.instructor_id||'')+qs+'" class="text-amber-600 hover:underline font-bold text-xs">수정</a>'
+                                : '<a href="'+basePath+'/instructor-eval/form?subject='+subject+'&evaluator=self&instructor_id='+(row.instructor_id||'')+qs+'" class="inline-flex items-center px-3 py-1.5 bg-amber-600 text-white rounded-lg text-xs font-bold hover:bg-amber-700">본인 평가하기</a>')
+                            : '-';
+                        return '<tr class="border-b border-slate-100 hover:bg-slate-50/50"><td class="py-4 px-4 font-medium text-slate-800">'+esc(row.subject_name)+'</td><td class="py-4 px-4 text-slate-600">'+name+'</td><td class="py-4 px-4 text-center">'+adminCell+'</td><td class="py-4 px-4 text-center">'+selfCell+'</td></tr>';
                     }).join('');
                 })
                 .catch(function(){ document.getElementById('loading').classList.add('hidden'); document.getElementById('error').classList.remove('hidden'); document.getElementById('error').textContent='요청 실패'; });

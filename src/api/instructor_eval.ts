@@ -76,8 +76,8 @@ app.get('/list', authMiddleware, async (c) => {
         const evals = (evalRows.results || []) as any[];
 
         const list = subjects.map((s: any) => {
-            const adminEval = evals.find((e: any) => e.subject_name === s.subject_name && e.evaluator_type === 'admin');
-            // 동일 교과목에 강사가 여러 명일 때: 본인 평가는 해당 담당강사(evaluator_id) 기준으로만 매칭
+            // 동일 교과목에 강사가 여러 명일 때: 원장/본인 모두 해당 담당강사(instructor_id) 기준으로 매칭
+            const adminEval = evals.find((e: any) => e.subject_name === s.subject_name && e.evaluator_type === 'admin' && (e.instructor_id === s.instructor_id || (e.instructor_id == null && s.instructor_id == null)));
             const selfEval = evals.find((e: any) => e.subject_name === s.subject_name && e.evaluator_type === 'self' && e.evaluator_id === s.instructor_id);
             const canAdmin = user.role === 'admin';
             const canSelf = user.role === 'admin' || (user.role === 'teacher' && s.instructor_id === user.userId);
@@ -134,15 +134,25 @@ app.get('/results', authMiddleware, async (c) => {
     }
 });
 
-/** 단건 조회 by query (수정 폼용) */
+/** 단건 조회 by query (수정 폼용). 원장 평가 시 instructor_id 필수(강사별 구분) */
 app.get('/by-params', authMiddleware, async (c) => {
     try {
         const session_id = c.req.query('session_id');
         const subject_name = c.req.query('subject_name');
         const evaluator_type = c.req.query('evaluator_type');
+        const instructor_id_param = c.req.query('instructor_id');
         if (!session_id || !subject_name || !evaluator_type) return errorResponse(c, 'session_id, subject_name, evaluator_type 필요', 400);
         const user = c.get('user');
         const { DB } = c.env;
+        if (evaluator_type === 'admin') {
+            const instructorId = instructor_id_param != null && instructor_id_param !== '' ? parseInt(String(instructor_id_param), 10) : null;
+            const row = await DB.prepare(`
+                SELECT * FROM instructor_competency_evaluations
+                WHERE session_id=? AND subject_name=? AND evaluator_type=? AND evaluator_id=? AND (instructor_id=? OR (instructor_id IS NULL AND ? IS NULL))
+            `).bind(session_id, subject_name, evaluator_type, user.userId, instructorId, instructorId).first();
+            if (!row) return successResponse(c, null);
+            return successResponse(c, row);
+        }
         const row = await DB.prepare(`
             SELECT * FROM instructor_competency_evaluations
             WHERE session_id=? AND subject_name=? AND evaluator_type=? AND evaluator_id=?
@@ -212,8 +222,8 @@ app.post('/', authMiddleware, async (c) => {
 
         const existing = await DB.prepare(`
             SELECT id FROM instructor_competency_evaluations
-            WHERE session_id=? AND subject_name=? AND evaluator_type=? AND evaluator_id=?
-        `).bind(session_id, subject_name, evaluator_type, evaluator_id).first() as any;
+            WHERE session_id=? AND subject_name=? AND evaluator_type=? AND evaluator_id=? AND (instructor_id=? OR (instructor_id IS NULL AND ? IS NULL))
+        `).bind(session_id, subject_name, evaluator_type, evaluator_id, instructorId, instructorId).first() as any;
 
         if (existing?.id) {
             await DB.prepare(`
@@ -233,8 +243,8 @@ app.post('/', authMiddleware, async (c) => {
             session_id, subject_name, instructorId, evaluator_type, evaluator_id,
             ...scores, suggestions || null, total
         ).run();
-        const row = await DB.prepare('SELECT id FROM instructor_competency_evaluations WHERE session_id=? AND subject_name=? AND evaluator_type=? AND evaluator_id=?')
-            .bind(session_id, subject_name, evaluator_type, evaluator_id).first() as any;
+        const row = await DB.prepare('SELECT id FROM instructor_competency_evaluations WHERE session_id=? AND subject_name=? AND evaluator_type=? AND evaluator_id=? AND (instructor_id=? OR (instructor_id IS NULL AND ? IS NULL))')
+            .bind(session_id, subject_name, evaluator_type, evaluator_id, instructorId, instructorId).first() as any;
         return successResponse(c, { id: row?.id }, '저장되었습니다.');
     } catch (e: any) {
         return errorResponse(c, e.message, 500);

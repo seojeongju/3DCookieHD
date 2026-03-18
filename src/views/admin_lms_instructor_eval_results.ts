@@ -89,20 +89,23 @@ export const adminLmsInstructorEvalResultsHtml = (sidebar: string = hrdSidebar('
                     if(evals.length===0){ document.getElementById('empty').classList.remove('hidden'); return; }
                     document.getElementById('content').classList.remove('hidden');
 
-                    var bySubject = {};
+                    var bySubjectInstructor = {};
                     evals.forEach(function(e){
-                        if(!bySubject[e.subject_name]) bySubject[e.subject_name] = { admin: null, self: null };
-                        if(e.evaluator_type==='admin') bySubject[e.subject_name].admin = e;
-                        else bySubject[e.subject_name].self = e;
+                        var key = (e.subject_name || '') + '\t' + (e.instructor_id != null ? e.instructor_id : '');
+                        if(!bySubjectInstructor[key]) bySubjectInstructor[key] = { subject_name: e.subject_name, instructor_id: e.instructor_id, instructor_name: null, admin: null, self: null };
+                        if(e.evaluator_type==='admin') bySubjectInstructor[key].admin = e;
+                        else bySubjectInstructor[key].self = e;
+                        if(e.instructor_name) bySubjectInstructor[key].instructor_name = e.instructor_name;
                     });
+                    var keys = Object.keys(bySubjectInstructor).sort(function(a,b){ var sa = a.split('\t')[0], sb = b.split('\t')[0]; if(sa!==sb) return sa.localeCompare(sb); return a.localeCompare(b); });
 
                     var questionLabels = ${JSON.stringify(QUESTION_LABELS)};
                     var html = '';
-                    Object.keys(bySubject).sort().forEach(function(subject){
-                        var row = bySubject[subject];
-                        var instructorName = (row.admin && row.admin.instructor_name) ? row.admin.instructor_name : (row.self && row.self.instructor_name) ? row.self.instructor_name : '-';
+                    keys.forEach(function(key){
+                        var row = bySubjectInstructor[key];
+                        var instructorName = row.instructor_name || (row.admin && row.admin.instructor_name) || (row.self && row.self.instructor_name) || '-';
                         html += '<div class="border border-slate-200 rounded-2xl overflow-hidden">';
-                        html += '<div class="bg-slate-100 px-4 py-3 font-bold text-slate-700 border-b border-slate-200">' + subject.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>';
+                        html += '<div class="bg-slate-100 px-4 py-3 font-bold text-slate-700 border-b border-slate-200">' + (row.subject_name||'').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>';
                         html += '<div class="px-4 py-2 border-b border-slate-100 text-sm text-slate-600"><span class="font-bold text-slate-700">담당강사:</span> ' + (instructorName+'').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>';
                         html += '<div class="p-4 space-y-6">';
 
