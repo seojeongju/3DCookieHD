@@ -66,8 +66,7 @@ export const adminLmsInstructorEvalFormHtml = (sidebar: string = hrdSidebar('cou
                                     <tr class="border-b border-slate-200"><td class="bg-slate-50 py-2 px-4 font-bold text-slate-600">교과목</td><td id="subjectDisplay" class="py-2 px-4 text-slate-800">-</td><td class="py-2 px-2 border-l border-slate-200"></td><td class="py-2 px-2"></td></tr>
                                     <tr class="border-b border-slate-200"><td class="bg-slate-50 py-2 px-4 font-bold text-slate-600">담당강사</td><td id="instructorName" class="py-2 px-4 text-slate-800">-</td><td class="py-2 px-2 border-l border-slate-200"></td><td class="py-2 px-2"></td></tr>
                                     <tr class="border-b border-slate-200"><td class="bg-slate-50 py-2 px-4 font-bold text-slate-600">평가자</td><td id="evaluatorLabel" class="py-2 px-4 text-slate-800">-</td><td class="py-2 px-2 border-l border-slate-200"></td><td class="py-2 px-2"></td></tr>
-                                    <tr class="border-b border-slate-200"><td class="bg-slate-50 py-2 px-4 font-bold text-slate-600">소속</td><td id="affiliation" class="py-2 px-4 text-slate-800">-</td><td class="py-2 px-2 border-l border-slate-200"></td><td class="py-2 px-2"></td></tr>
-                                    <tr><td class="bg-slate-50 py-2 px-4 font-bold text-slate-600">성명</td><td id="evaluatorName" class="py-2 px-4 text-slate-800">-</td><td class="py-2 px-2 border-l border-slate-200"></td><td class="py-2 px-2"></td></tr>
+                                    <tr><td class="bg-slate-50 py-2 px-4 font-bold text-slate-600">소속</td><td id="affiliation" class="py-2 px-4 text-slate-800">-</td><td class="py-2 px-2 border-l border-slate-200"></td><td class="py-2 px-2"></td></tr>
                                 </tbody>
                             </table>
                             <table class="w-full border border-slate-200 rounded-2xl overflow-hidden text-sm mb-6">
@@ -162,7 +161,7 @@ export const adminLmsInstructorEvalFormHtml = (sidebar: string = hrdSidebar('cou
 
             if(token){
                 fetch('/api/auth/me', { headers: { 'Authorization': 'Bearer '+token } }).then(function(r){ return r.json(); }).then(function(res){
-                    if(res&&res.success&&res.data){ document.getElementById('evaluatorName').textContent = res.data.name || '-'; document.getElementById('affiliation').textContent = '와우쓰리디(WOW3D) 홍대센터'; }
+                    if(res&&res.success&&res.data){ document.getElementById('affiliation').textContent = '와우쓰리디(WOW3D) 홍대센터'; }
                 });
             }
 
