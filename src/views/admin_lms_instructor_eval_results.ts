@@ -39,7 +39,12 @@ export const adminLmsInstructorEvalResultsHtml = (sidebar: string = hrdSidebar('
                     <div class="bg-white rounded-[2.5rem] border border-slate-200/60 shadow-sm overflow-hidden">
                         <div class="p-6 md:p-10">
                             <h1 class="text-2xl font-black text-slate-900 text-center mb-2">교강사직무능력평가 결과</h1>
-                            <p class="text-sm text-slate-500 text-center mb-6" id="courseTitle">-</p>
+                            <div class="border border-slate-200 rounded-xl overflow-hidden text-sm mb-6">
+                                <table class="w-full"><tbody>
+                                    <tr class="border-b border-slate-200"><td class="bg-slate-50 py-2 px-4 font-bold text-slate-600 w-28">과정명</td><td id="courseTitle" class="py-2 px-4 text-slate-800">-</td></tr>
+                                    <tr><td class="bg-slate-50 py-2 px-4 font-bold text-slate-600">과정 일자</td><td id="courseDates" class="py-2 px-4 text-slate-800">-</td></tr>
+                                </tbody></table>
+                            </div>
                             <div id="loading" class="py-12 text-center text-slate-400"><i class="fas fa-spinner fa-spin mr-2"></i> 불러오는 중...</div>
                             <div id="content" class="hidden space-y-8"></div>
                             <div id="empty" class="hidden py-12 text-center text-slate-500">저장된 평가 결과가 없습니다.</div>
@@ -63,9 +68,16 @@ export const adminLmsInstructorEvalResultsHtml = (sidebar: string = hrdSidebar('
 
             if(!courseId || !token){ document.getElementById('loading').classList.add('hidden'); document.getElementById('error').classList.remove('hidden'); document.getElementById('error').textContent='권한이 없습니다.'; return; }
 
+            function fmtDate(s){ if(!s) return ''; var d = (s+'').split('T')[0]; return d ? d.replace(/-/g,'.') : ''; }
             fetch('/api/courses/'+courseId+(qs?'?'+qs.substring(1):''), { headers: { 'Authorization': 'Bearer '+token } })
                 .then(function(r){ return r.json(); })
-                .then(function(res){ if(res&&res.success&&res.data) document.getElementById('courseTitle').textContent = res.data.title||'-'; })
+                .then(function(res){
+                    if(res&&res.success&&res.data){
+                        var d = res.data;
+                        document.getElementById('courseTitle').textContent = d.title||'-';
+                        document.getElementById('courseDates').textContent = (fmtDate(d.start_date) && fmtDate(d.end_date)) ? (fmtDate(d.start_date)+' ~ '+fmtDate(d.end_date)) : '-';
+                    }
+                })
                 .catch(function(){});
 
             fetch('/api/instructor-eval/results?session_id='+encodeURIComponent(courseId), { headers: { 'Authorization': 'Bearer '+token } })
@@ -88,8 +100,10 @@ export const adminLmsInstructorEvalResultsHtml = (sidebar: string = hrdSidebar('
                     var html = '';
                     Object.keys(bySubject).sort().forEach(function(subject){
                         var row = bySubject[subject];
+                        var instructorName = (row.admin && row.admin.instructor_name) ? row.admin.instructor_name : (row.self && row.self.instructor_name) ? row.self.instructor_name : '-';
                         html += '<div class="border border-slate-200 rounded-2xl overflow-hidden">';
                         html += '<div class="bg-slate-100 px-4 py-3 font-bold text-slate-700 border-b border-slate-200">' + subject.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>';
+                        html += '<div class="px-4 py-2 border-b border-slate-100 text-sm text-slate-600"><span class="font-bold text-slate-700">담당강사:</span> ' + (instructorName+'').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>';
                         html += '<div class="p-4 space-y-6">';
 
                         ['admin','self'].forEach(function(typ){

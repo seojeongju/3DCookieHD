@@ -77,7 +77,8 @@ app.get('/list', authMiddleware, async (c) => {
 
         const list = subjects.map((s: any) => {
             const adminEval = evals.find((e: any) => e.subject_name === s.subject_name && e.evaluator_type === 'admin');
-            const selfEval = evals.find((e: any) => e.subject_name === s.subject_name && e.evaluator_type === 'self');
+            // 동일 교과목에 강사가 여러 명일 때: 본인 평가는 해당 담당강사(evaluator_id) 기준으로만 매칭
+            const selfEval = evals.find((e: any) => e.subject_name === s.subject_name && e.evaluator_type === 'self' && e.evaluator_id === s.instructor_id);
             const canAdmin = user.role === 'admin';
             const canSelf = user.role === 'admin' || (user.role === 'teacher' && s.instructor_id === user.userId);
             return {
@@ -108,9 +109,10 @@ app.get('/results', authMiddleware, async (c) => {
 
         const { DB } = c.env;
         const rows = await DB.prepare(`
-            SELECT e.*, u.name as evaluator_name
+            SELECT e.*, u.name as evaluator_name, u2.name as instructor_name
             FROM instructor_competency_evaluations e
             LEFT JOIN users u ON e.evaluator_id = u.id
+            LEFT JOIN users u2 ON e.instructor_id = u2.id
             WHERE e.session_id = ?
             ORDER BY e.subject_name ASC, e.evaluator_type ASC
         `).bind(sessionId).all();

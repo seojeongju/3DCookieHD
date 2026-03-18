@@ -54,15 +54,22 @@ export const adminLmsInstructorEvalFormHtml = (sidebar: string = hrdSidebar('cou
                     <div class="bg-white rounded-[2.5rem] border border-slate-200/60 shadow-sm overflow-hidden">
                         <div class="p-6 md:p-10">
                             <h1 class="text-2xl font-black text-slate-900 text-center mb-2" id="formTitle">수업평가 (평가자: 본인)</h1>
-                            <p class="text-sm text-slate-500 text-center mb-6" id="formSub">-</p>
+                            <p class="text-sm text-slate-500 text-center mb-4" id="formSub">-</p>
                             <input type="hidden" id="sessionId" value="">
                             <input type="hidden" id="subjectName" value="">
                             <input type="hidden" id="evaluatorType" value="">
                             <input type="hidden" id="instructorId" value="">
-                            <div class="grid grid-cols-2 gap-4 mb-6 text-sm">
-                                <div><span class="font-bold text-slate-600">소속</span><p id="affiliation" class="text-slate-800">-</p></div>
-                                <div><span class="font-bold text-slate-600">성명</span><p id="evaluatorName" class="text-slate-800">-</p></div>
-                            </div>
+                            <table class="w-full border border-slate-200 rounded-xl overflow-hidden text-sm mb-6">
+                                <tbody>
+                                    <tr class="border-b border-slate-200"><td class="bg-slate-50 py-2 px-4 font-bold text-slate-600 w-28">과정명</td><td id="courseTitle" class="py-2 px-4 text-slate-800">-</td><td colspan="2" class="bg-slate-50 py-2 px-4 font-bold text-slate-600 text-center border-l border-slate-200 w-32">결재</td></tr>
+                                    <tr class="border-b border-slate-200"><td class="bg-slate-50 py-2 px-4 font-bold text-slate-600">과정 일자</td><td id="courseDates" class="py-2 px-4 text-slate-800">-</td><td class="bg-slate-50 py-1 px-2 text-center text-slate-600 border-l border-slate-200 w-16">원장</td><td class="bg-slate-50 py-1 px-2 text-center text-slate-600 w-16">담당</td></tr>
+                                    <tr class="border-b border-slate-200"><td class="bg-slate-50 py-2 px-4 font-bold text-slate-600">교과목</td><td id="subjectDisplay" class="py-2 px-4 text-slate-800">-</td><td class="py-2 px-2 border-l border-slate-200"></td><td class="py-2 px-2"></td></tr>
+                                    <tr class="border-b border-slate-200"><td class="bg-slate-50 py-2 px-4 font-bold text-slate-600">담당강사</td><td id="instructorName" class="py-2 px-4 text-slate-800">-</td><td class="py-2 px-2 border-l border-slate-200"></td><td class="py-2 px-2"></td></tr>
+                                    <tr class="border-b border-slate-200"><td class="bg-slate-50 py-2 px-4 font-bold text-slate-600">평가자</td><td id="evaluatorLabel" class="py-2 px-4 text-slate-800">-</td><td class="py-2 px-2 border-l border-slate-200"></td><td class="py-2 px-2"></td></tr>
+                                    <tr class="border-b border-slate-200"><td class="bg-slate-50 py-2 px-4 font-bold text-slate-600">소속</td><td id="affiliation" class="py-2 px-4 text-slate-800">-</td><td class="py-2 px-2 border-l border-slate-200"></td><td class="py-2 px-2"></td></tr>
+                                    <tr><td class="bg-slate-50 py-2 px-4 font-bold text-slate-600">성명</td><td id="evaluatorName" class="py-2 px-4 text-slate-800">-</td><td class="py-2 px-2 border-l border-slate-200"></td><td class="py-2 px-2"></td></tr>
+                                </tbody>
+                            </table>
                             <table class="w-full border border-slate-200 rounded-2xl overflow-hidden text-sm mb-6">
                                 <thead>
                                     <tr class="bg-slate-100 border-b border-slate-200">
@@ -116,6 +123,29 @@ export const adminLmsInstructorEvalFormHtml = (sidebar: string = hrdSidebar('cou
             document.getElementById('backLink').href = basePath + '/instructor-eval' + qs;
             document.getElementById('formTitle').textContent = evaluator === 'admin' ? '수업평가 (평가자: 원장/관리자)' : '수업평가 (평가자: 본인)';
             document.getElementById('formSub').textContent = subject || '-';
+            document.getElementById('subjectDisplay').textContent = subject || '-';
+            document.getElementById('evaluatorLabel').textContent = evaluator === 'admin' ? '원장(관리자)' : '담당강사(본인)';
+
+            function fmtDate(s){ if(!s) return ''; var d = (s+'').split('T')[0]; return d ? d.replace(/-/g,'.') : ''; }
+            fetch('/api/courses/'+courseId+(qs?'?'+qs.substring(1):''), { headers: { 'Authorization': 'Bearer '+token } })
+                .then(function(r){ return r.json(); })
+                .then(function(res){
+                    if(res&&res.success&&res.data){
+                        var d = res.data;
+                        document.getElementById('courseTitle').textContent = d.title || '-';
+                        document.getElementById('courseDates').textContent = (fmtDate(d.start_date) && fmtDate(d.end_date)) ? (fmtDate(d.start_date) + ' ~ ' + fmtDate(d.end_date)) : '-';
+                    }
+                })
+                .catch(function(){});
+            fetch('/api/instructor-eval/subjects?session_id='+encodeURIComponent(courseId), { headers: { 'Authorization': 'Bearer '+token } })
+                .then(function(r){ return r.json(); })
+                .then(function(res){
+                    if(res&&res.success&&res.data){
+                        var sub = (res.data||[]).find(function(row){ return (row.subject_name||'') === subject; });
+                        if(sub) document.getElementById('instructorName').textContent = sub.instructor_name || '-';
+                    }
+                })
+                .catch(function(){});
 
             function updateTotal(){
                 var sum = 0;
