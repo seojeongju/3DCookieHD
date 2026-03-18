@@ -2953,33 +2953,83 @@
         }
 
         function wireEvents(container) {
+            // Guard: 이미 이벤트가 등록된 컨테이너에 중복 바인딩 방지
+            if (container._step5Wired) return;
+            container._step5Wired = true;
+
+            // +/- 버튼으로 교수학습방법/평가방법 행 추가/삭제
+            function addMethodRow(container, isTeaching) {
+                var sel = isTeaching ? 'teaching' : 'evaluation';
+                var cls = isTeaching ? 't-method-sel' : 'e-method-sel';
+                var plusCls = isTeaching ? 't-method-plus' : 'e-method-plus';
+                var minusCls = isTeaching ? 't-method-minus' : 'e-method-minus';
+                var opts = isTeaching
+                    ? ['강의법','문답법','토의법','문제해결법','구안법','탐구학습','협동학습','개별지도 교수법','목표도달학습','문제중심학습','기타','혼합형']
+                    : ['포트폴리오','문제해결 시나리오','서술형 시험','논술형 시험','사례연구','평가자 질문','평가자 체크리스트','피 평가자 체크리스트','일지/저널','역할연기','구두발표','작업장평가','기타','혼합형'];
+                var placeholder = isTeaching ? ':: 교수학습방법 선택 ::' : ':: 평가방법 선택 ::';
+
+                var row = document.createElement('div');
+                row.className = 'method-item flex gap-2';
+
+                var select = document.createElement('select');
+                select.className = cls + ' flex-1 px-5 py-3 border border-slate-200 rounded-2xl text-sm bg-white font-bold text-slate-700 shadow-sm';
+                var emptyOpt = document.createElement('option');
+                emptyOpt.value = '';
+                emptyOpt.textContent = placeholder;
+                select.appendChild(emptyOpt);
+                opts.forEach(function(opt) {
+                    var o = document.createElement('option');
+                    o.value = opt;
+                    o.textContent = opt;
+                    select.appendChild(o);
+                });
+
+                var btnPlus = document.createElement('button');
+                btnPlus.type = 'button';
+                btnPlus.className = plusCls + ' w-11 h-11 flex items-center justify-center bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-100 transition-all';
+                btnPlus.innerHTML = '<i class="fas fa-plus"></i>';
+
+                var btnMinus = document.createElement('button');
+                btnMinus.type = 'button';
+                btnMinus.className = minusCls + ' w-11 h-11 flex items-center justify-center bg-red-50 text-red-600 rounded-2xl hover:bg-red-100 transition-all';
+                btnMinus.innerHTML = '<i class="fas fa-minus"></i>';
+
+                row.appendChild(select);
+                row.appendChild(btnPlus);
+                row.appendChild(btnMinus);
+                return row;
+            }
+
             container.addEventListener('click', function (e) {
-                var btnPlus = e.target.closest('.t-method-plus, .e-method-plus');
-                var btnMinus = e.target.closest('.t-method-minus, .e-method-minus');
+                var target = e.target;
+                var btnPlus = target.closest ? target.closest('.t-method-plus, .e-method-plus') : null;
+                var btnMinus = target.closest ? target.closest('.t-method-minus, .e-method-minus') : null;
 
                 if (btnPlus) {
-                    var items = btnPlus.closest('.t-methods-container') || btnPlus.closest('.e-methods-container');
-                    if (items) {
-                        var first = items.querySelector('.method-item');
-                        if (first) {
-                            var clone = first.cloneNode(true);
-                            var sel = clone.querySelector('select');
-                            if (sel) sel.value = '';
-                            items.appendChild(clone);
-                        }
+                    var isTeaching = btnPlus.classList.contains('t-method-plus');
+                    var methodsContainer = btnPlus.closest(isTeaching ? '.t-methods-container' : '.e-methods-container');
+                    if (methodsContainer) {
+                        methodsContainer.appendChild(addMethodRow(methodsContainer, isTeaching));
                     }
+                    e.stopPropagation();
+                    return;
                 }
+
                 if (btnMinus) {
-                    var items = btnMinus.closest('.t-methods-container') || btnMinus.closest('.e-methods-container');
-                    if (items) {
-                        var rows = items.querySelectorAll('.method-item');
+                    var isTeaching = btnMinus.classList.contains('t-method-minus');
+                    var methodsContainer = btnMinus.closest(isTeaching ? '.t-methods-container' : '.e-methods-container');
+                    if (methodsContainer) {
+                        var rows = methodsContainer.querySelectorAll('.method-item');
                         if (rows.length > 1) {
-                            btnMinus.closest('.method-item').remove();
+                            var rowEl = btnMinus.closest('.method-item');
+                            if (rowEl) rowEl.remove();
                         } else if (rows.length === 1) {
-                            var sel = rows[0].querySelector('select');
-                            if (sel) sel.value = '';
+                            var selEl = rows[0].querySelector('select');
+                            if (selEl) selEl.value = '';
                         }
                     }
+                    e.stopPropagation();
+                    return;
                 }
             });
         }
@@ -3095,8 +3145,14 @@
 
         var btnSave5 = document.getElementById('ncsStep5BtnSave');
         var btnNext5 = document.getElementById('ncsStep5BtnNext');
-        if (btnSave5) btnSave5.addEventListener('click', function () { saveEvaluation(false); });
-        if (btnNext5) btnNext5.addEventListener('click', function () { saveEvaluation(true); });
+        if (btnSave5 && !btnSave5._step5Bound) {
+            btnSave5._step5Bound = true;
+            btnSave5.addEventListener('click', function () { saveEvaluation(false); });
+        }
+        if (btnNext5 && !btnNext5._step5Bound) {
+            btnNext5._step5Bound = true;
+            btnNext5.addEventListener('click', function () { saveEvaluation(true); });
+        }
     }
 
     function initStep6() {
