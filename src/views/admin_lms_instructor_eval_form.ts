@@ -65,8 +65,7 @@ export const adminLmsInstructorEvalFormHtml = (sidebar: string = hrdSidebar('cou
                                     <tr class="border-b border-slate-200"><td class="bg-slate-50 py-2 px-4 font-bold text-slate-600">과정 일자</td><td id="courseDates" class="py-2 px-4 text-slate-800">-</td><td class="bg-slate-50 py-1 px-2 text-center text-slate-600 border-l border-slate-200 w-16">원장</td><td class="bg-slate-50 py-1 px-2 text-center text-slate-600 w-16">담당</td></tr>
                                     <tr class="border-b border-slate-200"><td class="bg-slate-50 py-2 px-4 font-bold text-slate-600">교과목</td><td id="subjectDisplay" class="py-2 px-4 text-slate-800">-</td><td class="py-2 px-2 border-l border-slate-200"></td><td class="py-2 px-2"></td></tr>
                                     <tr class="border-b border-slate-200"><td class="bg-slate-50 py-2 px-4 font-bold text-slate-600">담당강사</td><td id="instructorName" class="py-2 px-4 text-slate-800">-</td><td class="py-2 px-2 border-l border-slate-200"></td><td class="py-2 px-2"></td></tr>
-                                    <tr class="border-b border-slate-200"><td class="bg-slate-50 py-2 px-4 font-bold text-slate-600">평가자</td><td id="evaluatorLabel" class="py-2 px-4 text-slate-800">-</td><td class="py-2 px-2 border-l border-slate-200"></td><td class="py-2 px-2"></td></tr>
-                                    <tr><td class="bg-slate-50 py-2 px-4 font-bold text-slate-600">소속</td><td id="affiliation" class="py-2 px-4 text-slate-800">-</td><td class="py-2 px-2 border-l border-slate-200"></td><td class="py-2 px-2"></td></tr>
+                                    <tr class="border-b border-slate-200"><td class="bg-slate-50 py-2 px-4 font-bold text-slate-600">평가자 / 소속</td><td id="evaluatorLabel" class="py-2 px-4 text-slate-800">-</td><td class="py-2 px-2 border-l border-slate-200"></td><td class="py-2 px-2"></td></tr>
                                 </tbody>
                             </table>
                             <table class="w-full border border-slate-200 rounded-2xl overflow-hidden text-sm mb-6">
@@ -123,7 +122,7 @@ export const adminLmsInstructorEvalFormHtml = (sidebar: string = hrdSidebar('cou
             document.getElementById('formTitle').textContent = evaluator === 'admin' ? '수업평가 (평가자: 원장/관리자)' : '수업평가 (평가자: 본인)';
             document.getElementById('formSub').textContent = subject || '-';
             document.getElementById('subjectDisplay').textContent = subject || '-';
-            document.getElementById('evaluatorLabel').textContent = evaluator === 'admin' ? '원장(관리자)' : '담당강사(본인)';
+            document.getElementById('evaluatorLabel').textContent = evaluator === 'admin' ? '원장(관리자) / 와우쓰리디(WOW3D) 홍대센터' : '담당강사(본인) / 와우쓰리디(WOW3D) 홍대센터';
 
             function fmtDate(s){ if(!s) return ''; var d = (s+'').split('T')[0]; return d ? d.replace(/-/g,'.') : ''; }
             fetch('/api/courses/'+courseId+(qs?'?'+qs.substring(1):''), { headers: { 'Authorization': 'Bearer '+token } })
@@ -161,7 +160,6 @@ export const adminLmsInstructorEvalFormHtml = (sidebar: string = hrdSidebar('cou
 
             if(token){
                 fetch('/api/auth/me', { headers: { 'Authorization': 'Bearer '+token } }).then(function(r){ return r.json(); }).then(function(res){
-                    if(res&&res.success&&res.data){ document.getElementById('affiliation').textContent = '와우쓰리디(WOW3D) 홍대센터'; }
                 });
             }
 
