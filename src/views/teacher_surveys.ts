@@ -369,14 +369,15 @@ export const teacherSurveysHtml = `
                     
                     const rate = s.total_target > 0 ? Math.round((s.response_count / s.total_target) * 100) : 0;
 
+                    const displayTitle = (s.title || '-') + (s.subject_name ? ' - ' + String(s.subject_name).replace(/</g, '&lt;') : '');
                     return '<tr class="hover:bg-slate-50 transition group">' +
                             '<td class="px-10 py-6">' +
-                                '<div class="flex flex-col gap-2">' +
-                                    '<span class="text-[9px] font-black text-slate-300 uppercase tracking-tighter">' + (s.course_title || 'N/A') + '</span>' +
-                                    typeLabel +
-                                '</div>' +
+                            '<div class="flex flex-col gap-2">' +
+                            '<span class="text-[9px] font-black text-slate-300 uppercase tracking-tighter">' + (s.course_title || 'N/A') + '</span>' +
+                            typeLabel +
+                            '</div>' +
                             '</td>' +
-                            '<td class="px-6 py-6 font-black text-slate-900 tracking-tight text-sm">' + s.title + '</td>' +
+                            '<td class="px-6 py-6 font-black text-slate-900 tracking-tight text-sm">' + displayTitle + '</td>' +
                             '<td class="px-6 py-6 text-[10px] font-bold text-slate-400 uppercase tracking-tighter">' + (s.start_date || '-') + ' <span class="mx-1 text-slate-200">/</span> ' + (s.end_date || '-') + '</td>' +
                             '<td class="px-6 py-6 text-center">' +
                                 '<div class="flex flex-col items-center gap-2">' +

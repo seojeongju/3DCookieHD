@@ -36,8 +36,10 @@ app.get('/', authMiddleware, async (c) => {
         const { DB } = c.env;
         let query = `
             SELECT s.*,
+                COALESCE(c.title, (SELECT ac.name || ' (' || cs.session_number || '회차)' FROM course_sessions cs LEFT JOIN approved_courses ac ON cs.approved_course_id = ac.id WHERE cs.id = s.session_id)) as course_title,
                 (SELECT COUNT(*) FROM survey_responses sr WHERE sr.survey_id = s.id) as response_count
             FROM surveys s
+            LEFT JOIN courses c ON s.course_id = c.id
             WHERE 1=1
         `;
         const params: any[] = [];
@@ -91,7 +93,8 @@ app.get('/', authMiddleware, async (c) => {
             response_count: s.response_count || 0,
             total_target: totalTarget,
             created_at: s.created_at,
-            subject_name: s.subject_name || null
+            subject_name: s.subject_name || null,
+            course_title: s.course_title || s.session_title || null
         }));
 
         return successResponse(c, list);
@@ -168,6 +171,7 @@ app.get('/teacher', authMiddleware, async (c) => {
         let query = `
             SELECT 
                 s.*,
+                s.subject_name,
                 c.title as course_title,
                 c.teacher_id,
                 (SELECT COUNT(*) FROM survey_responses sr WHERE sr.survey_id = s.id) as response_count,
@@ -199,7 +203,8 @@ app.get('/teacher', authMiddleware, async (c) => {
             status: s.status,
             response_count: s.response_count || 0,
             total_target: s.total_target || 0,
-            created_at: s.created_at
+            created_at: s.created_at,
+            subject_name: s.subject_name || null
         }));
 
         return successResponse(c, surveys);
@@ -226,7 +231,7 @@ app.get('/my-pending', authMiddleware, async (c) => {
         // 1) course_id 기준: enrollments로 수강 중인 과정의 활성 설문
         const { results: byCourse } = await DB.prepare(`
             SELECT 
-                s.id, s.course_id, s.session_id, s.type, s.title, s.description, s.start_date, s.end_date, s.status, s.created_at,
+                s.id, s.course_id, s.session_id, s.type, s.title, s.description, s.start_date, s.end_date, s.status, s.created_at, s.subject_name,
                 c.title as course_title,
                 CASE WHEN sr.id IS NOT NULL THEN 'completed' ELSE 'pending' END as response_status
             FROM surveys s
@@ -241,7 +246,7 @@ app.get('/my-pending', authMiddleware, async (c) => {
         // 2) session_id(회차) 기준: course_session_enrollments로 수강 중인 회차의 활성 설문
         const { results: bySession } = await DB.prepare(`
             SELECT 
-                s.id, s.course_id, s.session_id, s.type, s.title, s.description, s.start_date, s.end_date, s.status, s.created_at,
+                s.id, s.course_id, s.session_id, s.type, s.title, s.description, s.start_date, s.end_date, s.status, s.created_at, s.subject_name,
                 (SELECT (ac.name || ' (' || cs.session_number || '회차' || CASE WHEN cs.session_name IS NOT NULL AND TRIM(cs.session_name) <> '' THEN ' - ' || cs.session_name ELSE '' END || ')')
                  FROM course_sessions cs LEFT JOIN approved_courses ac ON cs.approved_course_id = ac.id WHERE cs.id = s.session_id) as course_title,
                 CASE WHEN sr.id IS NOT NULL THEN 'completed' ELSE 'pending' END as response_status

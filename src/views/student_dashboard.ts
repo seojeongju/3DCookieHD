@@ -1403,6 +1403,7 @@ export const studentDashboardHtml = () => `
                         var btnClass = isPending ? 'px-6 py-3 bg-sky-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 shadow-lg shadow-sky-100 cursor-pointer' : 'px-6 py-3 bg-slate-100 text-slate-400 rounded-2xl font-black text-[10px] uppercase cursor-not-allowed';
                         var safeTitle = String(s.title || '-').replace(new RegExp('<', 'g'), '&lt;').replace(/"/g, '&quot;');
                         var safeCourse = String(courseTitle(s)).replace(new RegExp('<', 'g'), '&lt;').replace(/"/g, '&quot;');
+                        var displayTitle = safeTitle + (s.subject_name ? ' - ' + String(s.subject_name).replace(/</g, '&lt;').replace(/"/g, '&quot;') : '');
                         html += '<div class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm hover:border-sky-200 transition">' +
                             '<div class="flex flex-col md:flex-row justify-between items-center gap-4">' +
                             '<div class="flex-1">' +
@@ -1410,7 +1411,7 @@ export const studentDashboardHtml = () => `
                             '<span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] font-black rounded-full uppercase tracking-widest">' + safeCourse + '</span>' +
                             '<span class="px-2 py-0.5 ' + typeClass(s) + ' text-[10px] font-black rounded-full uppercase tracking-widest">' + typeLabel(s) + '</span>' +
                             '</div>' +
-                            '<h3 class="text-lg font-black text-slate-800 tracking-tight">' + safeTitle + '</h3>' +
+                            '<h3 class="text-lg font-black text-slate-800 tracking-tight">' + displayTitle + '</h3>' +
                             '<p class="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-wider"><i class="far fa-calendar-alt mr-1"></i> ' + startStr(s) + ' ~ ' + endStr(s) + '</p>' +
                             '</div>' +
                             '<div class="flex items-center gap-4">' +
@@ -1459,15 +1460,10 @@ export const studentDashboardHtml = () => `
                     { title: '전반적인 교육 소감을 구체적으로 작성하여 주시기 바랍니다.', start: 10, end: 11, isText: true }
                 ];
 
-                var safeTitle = (survey.title || '강의 후 설문지').replace(/</g, '&lt;');
-                var courseTitle = (survey.course_title || '-').replace(/</g, '&lt;');
-                var subjectTitle = (survey.subject_title || survey.course_title || '-').replace(/</g, '&lt;');
-                var teacherName = survey.teacher_name || '-';
-
-                var html = '<button type="button" onclick="loadStudentSurveys()" class="mb-6 inline-flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-200 transition"><i class="fas fa-arrow-left"></i> 목록으로</button>';
+                var displayTitle = safeTitle + (survey.subject_name ? ' - ' + String(survey.subject_name).replace(/</g, '&lt;') : '');
                 html += '<div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">';
                 html += '<div class="p-8 md:p-10">';
-                html += '<h1 class="text-2xl md:text-3xl font-black text-center text-gray-900 mb-4">' + safeTitle + '</h1>';
+                html += '<h1 class="text-2xl md:text-3xl font-black text-center text-gray-900 mb-4">' + displayTitle + '</h1>';
                 var safeDesc = (survey.description || "수고하셨습니다.\\n이 설문지는 오늘 배운 교과목에 대한 전반적인 사항을 객관적으로 파악하고, 이를 토대로 앞으로 교육을 하는데 기초 자료로 활용하고자 하는 것이 목적입니다. 여러분의 솔직하고 진지한 평가가 차후 보다 나은 교육으로 반영될 것입니다.").replace(/</g, '&lt;');
                 html += '<p class="text-sm text-gray-600 text-center mb-8 leading-relaxed whitespace-pre-wrap">' + safeDesc + '</p>';
 

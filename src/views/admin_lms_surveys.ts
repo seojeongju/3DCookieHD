@@ -413,9 +413,13 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
                 var previewHref = '/admin/courses/' + courseId + '/lms/surveys/' + s.id + '/preview' + (isHrd ? '?type=hrd' : '');
                 var typeAttr = String(s.type || '').split('&').join('&amp;').split('<').join('&lt;').split('>').join('&gt;').split('"').join('&quot;');
                 var titleSafe = String(s.title || '-').split('<').join('&lt;').split('>').join('&gt;').split('"').join('&quot;');
+                var courseTitleSafe = String(s.course_title || '-').split('<').join('&lt;').split('>').join('&gt;').split('"').join('&quot;');
                 return '<tr class="hover:bg-gray-50 transition">' +
                     '<td class="px-6 py-4 whitespace-nowrap">' + typeLabel + '</td>' +
-                    '<td class="px-6 py-4 font-medium text-gray-800">' + titleSafe + '</td>' +
+                    '<td class="px-6 py-4">' +
+                    '<div class="text-[10px] text-gray-400 font-bold mb-0.5 uppercase tracking-wider">' + courseTitleSafe + '</div>' +
+                    '<div class="font-bold text-gray-800">' + titleSafe + '</div>' +
+                    '</td>' +
                     '<td class="px-6 py-4 text-sm text-gray-600 max-w-[200px] truncate" title="' + (s.subject_name || '').replace(/"/g, '&quot;') + '">' + subjectCell + '</td>' +
                     '<td class="px-6 py-4 text-xs text-gray-500">' + startDate + ' ~ ' + endDate + '</td>' +
                     '<td class="px-6 py-4 text-center"><div class="flex items-center justify-center gap-2"><span class="text-sm font-bold text-gray-700">' + count + '/' + total + '</span><span class="text-xs text-gray-400">(' + rate + '%)</span></div>' +
