@@ -79,10 +79,16 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
                         <thead class="bg-gray-50">
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">상태</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">제목</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 group" onclick="sortBy('title')">
+                                    제목 <i class="fas fa-sort ml-1 text-gray-300 group-hover:text-gray-500" id="sort-title"></i>
+                                </th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">작성자</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">조회수</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">작성일</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 group" onclick="sortBy('views')">
+                                    조회수 <i class="fas fa-sort ml-1 text-gray-300 group-hover:text-gray-500" id="sort-views"></i>
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 group" onclick="sortBy('created_at')">
+                                    작성일 <i class="fas fa-sort ml-1 text-gray-300 group-hover:text-gray-500" id="sort-created_at"></i>
+                                </th>
                                 <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">관리</th>
                             </tr>
                         </thead>
@@ -182,7 +188,11 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
                                     <option value="hidden">비공개</option>
                                 </select>
                             </div>
-                            <div class="flex items-center pt-8">
+                            <div>
+                                <label class="block text-gray-700 font-medium mb-2">작성일</label>
+                                <input type="datetime-local" name="created_at" id="postCreatedAt" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500">
+                            </div>
+                            <div class="flex items-center">
                                 <input type="checkbox" name="pinned" id="postPinned" class="w-4 h-4 text-amber-600 border-gray-300 rounded focus:ring-amber-500">
                                 <label for="postPinned" class="ml-2 block text-gray-700 font-medium">상단 고정</label>
                             </div>
@@ -219,6 +229,18 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
     <script>
         let currentPage = 1;
         let itemsPerPage = 10;
+        let currentSort = 'created_at';
+        let currentOrder = 'DESC';
+
+        function sortBy(col) {
+            if (currentSort === col) {
+                currentOrder = currentOrder === 'DESC' ? 'ASC' : 'DESC';
+            } else {
+                currentSort = col;
+                currentOrder = 'DESC';
+            }
+            loadPosts(1);
+        }
 
         function setRowsPerPage(n) {
             itemsPerPage = n;
@@ -283,6 +305,16 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
                 document.getElementById('postTitle').value = post.title || '';
                 document.getElementById('postStatus').value = post.status || 'published';
                 document.getElementById('postPinned').checked = post.pinned === 1;
+                
+                if (post.created_at) {
+                    const dt = new Date(post.created_at);
+                    const offset = dt.getTimezoneOffset() * 60000;
+                    const localIso = new Date(dt.getTime() - offset).toISOString().substring(0, 16);
+                    document.getElementById('postCreatedAt').value = localIso;
+                } else {
+                    document.getElementById('postCreatedAt').value = '';
+                }
+
                 setTinyContent(post.content || '');
             } else {
                 document.getElementById('modalTitle').textContent = '교육사진 등록';
@@ -290,6 +322,12 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
                 document.getElementById('postId').value = '';
                 document.getElementById('postCategory').value = 'education_photo';
                 document.getElementById('postStatus').value = 'published';
+                
+                const now = new Date();
+                const offset = now.getTimezoneOffset() * 60000;
+                const localIso = new Date(now.getTime() - offset).toISOString().substring(0, 16);
+                document.getElementById('postCreatedAt').value = localIso;
+
                 setTinyContent('');
             }
             document.getElementById('createPostModal').classList.remove('hidden');
@@ -417,8 +455,20 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
             document.getElementById('searchResultText').textContent = '';
             document.getElementById('paginationRange').textContent = '';
             const search = document.getElementById('searchInput').value;
-            let url = '/api/posts?page=' + page + '&limit=' + itemsPerPage + '&category=education_photo';
+            let url = '/api/posts?page=' + page + '&limit=' + itemsPerPage + '&category=education_photo&sort=' + currentSort + '&order=' + currentOrder;
             if (search) url += '&search=' + encodeURIComponent(search);
+
+            // Update sort UI
+            ['title', 'views', 'created_at'].forEach(col => {
+                const icon = document.getElementById('sort-' + col);
+                if (icon) {
+                    if (currentSort === col) {
+                        icon.className = 'fas fa-sort-' + (currentOrder === 'ASC' ? 'up' : 'down') + ' ml-1 text-amber-600';
+                    } else {
+                        icon.className = 'fas fa-sort ml-1 text-gray-300 group-hover:text-gray-500';
+                    }
+                }
+            });
             try {
                 const res = await fetch(url);
                 const result = await res.json();
@@ -460,7 +510,7 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">\${post.author_name || '-'}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">\${post.views || 0}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">\${new Date(post.created_at).toLocaleDateString('ko-KR')}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">\${new Date(post.created_at).toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(/\\. /g, '-').replace(/\\.$/, '')}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm">
                             <button type="button" onclick="editPostByIndex(\${idx})" class="text-amber-600 hover:text-amber-800 mr-3"><i class="fas fa-edit"></i> 수정</button>
                             <button type="button" onclick="deletePost(\${post.id})" class="text-red-600 hover:text-red-800"><i class="fas fa-trash"></i> 삭제</button>
@@ -515,6 +565,7 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
                 title: document.getElementById('postTitle').value,
                 status: document.getElementById('postStatus').value,
                 pinned: document.getElementById('postPinned').checked,
+                created_at: document.getElementById('postCreatedAt').value ? document.getElementById('postCreatedAt').value.replace('T', ' ') + ':00' : null,
                 content: tinymce.get('postContent') ? tinymce.get('postContent').getContent() : '',
                 images: []
             };

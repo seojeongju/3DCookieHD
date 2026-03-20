@@ -16,6 +16,8 @@ app.get('/', async (c) => {
     const category = c.req.query('category');
     const search = c.req.query('search');
     const status = c.req.query('status');
+    const sort = c.req.query('sort') || 'created_at';
+    const order = (c.req.query('order') || 'DESC').toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
     const offset = (page - 1) * limit;
 
     const base = `
@@ -64,7 +66,7 @@ app.get('/', async (c) => {
       SELECT p.*, u.name as author_name,
       (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
       ${base}${whereSql}
-      ORDER BY p.pinned DESC, p.created_at DESC LIMIT ? OFFSET ?
+      ORDER BY p.pinned DESC, ${sort === 'created_at' ? 'p.created_at' : sort === 'title' ? 'p.title' : sort === 'views' ? 'p.views' : 'p.created_at'} ${order} LIMIT ? OFFSET ?
     `;
     const dataParams = [...params, limit, offset];
     const { results } = await DB.prepare(dataQuery).bind(...dataParams).all();
@@ -227,7 +229,7 @@ app.post('/', authMiddleware, async (c) => {
       return c.json({ success: false, error: '인증 정보가 올바르지 않습니다' }, 401);
     }
 
-    const { title, content, category, images, pinned, status, course_id, enrollment_id, rating } = body;
+    const { title, content, category, images, pinned, status, course_id, enrollment_id, rating, created_at } = body;
 
     const tit = title != null ? String(title).trim() : '';
     const cont = content != null ? String(content) : '';
@@ -387,7 +389,7 @@ app.post('/', authMiddleware, async (c) => {
         author_id, title, content, category, sub_category, images,
         views, likes, pinned, status, course_id, enrollment_id, rating, 
         content_url, teacher_feedback, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+      ) VALUES (?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
     `).bind(
       finalAuthorId,
       tit,
@@ -401,7 +403,8 @@ app.post('/', authMiddleware, async (c) => {
       enrollment_id || null,
       rating != null ? Number(rating) : null,
       content_url || null,
-      teacher_feedback || null
+      teacher_feedback || null,
+      (created_at && user.role === 'admin') ? created_at : new Date().toISOString().replace('T', ' ').substring(0, 19)
     ).run();
 
     if (cat === 'review' && course_id) {
@@ -582,7 +585,7 @@ app.put('/:id', authMiddleware, async (c) => {
       return c.json({ success: false, error: '권한이 없습니다' }, 403);
     }
 
-    const { title, content, images, pinned, status, sub_category, content_url, teacher_feedback } = body;
+    const { title, content, images, pinned, status, sub_category, content_url, teacher_feedback, created_at } = body;
 
     // D1 TEXT 컬럼 크기 제한을 초과하면 R2에 저장
     const CONTENT_SIZE_LIMIT = 50 * 1024; // 50KB
@@ -645,7 +648,7 @@ app.put('/:id', authMiddleware, async (c) => {
       }
     }
 
-    const { title: newTitle, content: newContent, images: newImages, pinned: newPinned, status: newStatus, rating: newRating } = body;
+    const { title: newTitle, content: newContent, images: newImages, pinned: newPinned, status: newStatus, rating: newRating, created_at: newCreatedAt } = body;
 
     // 게시글 수정
     await DB.prepare(`
@@ -653,6 +656,7 @@ app.put('/:id', authMiddleware, async (c) => {
       SET title = ?, content = ?, images = ?,
           pinned = ?, status = ?, rating = ?, 
           sub_category = ?, content_url = ?, teacher_feedback = ?,
+          created_at = ?,
           updated_at = datetime('now')
       WHERE id = ?
     `).bind(
@@ -665,6 +669,7 @@ app.put('/:id', authMiddleware, async (c) => {
       sub_category !== undefined ? sub_category : post.sub_category,
       content_url !== undefined ? content_url : post.content_url,
       teacher_feedback !== undefined ? teacher_feedback : post.teacher_feedback,
+      (newCreatedAt && user.role === 'admin') ? newCreatedAt : post.created_at,
       id
     ).run();
 
