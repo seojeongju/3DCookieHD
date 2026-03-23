@@ -36,11 +36,14 @@ export const adminPrototypeGalleryHtml = (sidebar: string) => `
                         <p class="text-gray-600 mt-1 text-sm">시제품 갤러리 게시글을 관리합니다.</p>
                     </div>
                     <div class="flex gap-2 flex-wrap">
-                        <button type="button" onclick="openCsvImportModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center text-sm font-medium shadow-sm">
-                            <i class="fas fa-file-csv mr-2"></i> CSV 일괄 등록
-                        </button>
+                        <a href="/prototype-gallery" target="_blank" rel="noopener" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition flex items-center text-sm font-medium shadow-sm border border-gray-200">
+                            <i class="fas fa-external-link-alt mr-2"></i> 공개 갤러리 미리보기
+                        </a>
                         <button type="button" onclick="openBulkImageModal()" class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition flex items-center text-sm font-medium shadow-sm">
                             <i class="fas fa-link mr-2"></i> 이미지 URL 일괄 입력
+                        </button>
+                        <button type="button" onclick="openCsvImportModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center text-sm font-medium shadow-sm">
+                            <i class="fas fa-file-csv mr-2"></i> CSV 일괄 등록
                         </button>
                         <button type="button" onclick="openModal(null)" class="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition flex items-center text-sm font-medium shadow-sm">
                             <i class="fas fa-plus mr-2"></i> 시제품 등록
@@ -173,7 +176,11 @@ export const adminPrototypeGalleryHtml = (sidebar: string) => `
                                     <option value="hidden">비공개</option>
                                 </select>
                             </div>
-                            <div class="flex items-center pt-8">
+                            <div>
+                                <label class="block text-gray-700 font-medium mb-2">작성일</label>
+                                <input type="datetime-local" name="created_at" id="postCreatedAt" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500">
+                            </div>
+                            <div class="flex items-center">
                                 <input type="checkbox" name="pinned" id="postPinned" class="w-4 h-4 text-amber-600 border-gray-300 rounded focus:ring-amber-500">
                                 <label for="postPinned" class="ml-2 block text-gray-700 font-medium">상단 고정</label>
                             </div>
@@ -181,6 +188,17 @@ export const adminPrototypeGalleryHtml = (sidebar: string) => `
                         <div>
                             <label class="block text-gray-700 font-medium mb-2">제목</label>
                             <input type="text" name="title" id="postTitle" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500" placeholder="시제품/작품 제목">
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 font-medium mb-2">사진 여러 장 올리기</label>
+                            <div id="multiImageDropZone" class="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center bg-gray-50 hover:bg-amber-50 hover:border-amber-400 transition cursor-pointer">
+                                <input type="file" id="multiImageInput" accept="image/*" multiple class="hidden">
+                                <p class="text-gray-500 text-sm mb-1"><i class="fas fa-cloud-upload-alt text-2xl text-amber-500 mb-2"></i></p>
+                                <p class="text-gray-600 font-medium">클릭하거나 이미지를 여기에 끌어다 놓으세요</p>
+                                <p class="text-gray-400 text-xs mt-1">여러 장 선택 가능 (JPG, PNG 등)</p>
+                                <div id="multiImageProgress" class="hidden mt-3 text-sm text-amber-600"></div>
+                                <div id="multiImageThumbs" class="hidden mt-3 flex flex-wrap gap-2 justify-center"></div>
+                            </div>
                         </div>
                         <div>
                             <label class="block text-gray-700 font-medium mb-2">내용 (이미지 첨부 가능)</label>
@@ -208,6 +226,7 @@ export const adminPrototypeGalleryHtml = (sidebar: string) => `
 
         document.addEventListener('DOMContentLoaded', () => {
             loadPosts(1);
+            setupMultiImageUpload();
             const csvInput = document.getElementById('csvFileInput');
             if (csvInput) {
                 csvInput.addEventListener('change', function() {
@@ -247,6 +266,8 @@ export const adminPrototypeGalleryHtml = (sidebar: string) => `
         });
 
         let csvParsedList = [];
+        let multiUploadedUrls = [];
+
         function parseCSVLine(line) {
             const out = [];
             let cur = '';
@@ -413,12 +434,26 @@ export const adminPrototypeGalleryHtml = (sidebar: string) => `
 
         function openModal(post) {
             document.getElementById('postCategory').value = 'prototype';
+            multiUploadedUrls = [];
+            document.getElementById('multiImageProgress').classList.add('hidden');
+            document.getElementById('multiImageProgress').textContent = '';
+            document.getElementById('multiImageThumbs').classList.add('hidden');
+            document.getElementById('multiImageThumbs').innerHTML = '';
+            document.getElementById('multiImageInput').value = '';
             if (post) {
                 document.getElementById('modalTitle').textContent = '시제품 수정';
                 document.getElementById('postId').value = post.id;
                 document.getElementById('postTitle').value = post.title || '';
                 document.getElementById('postStatus').value = post.status || 'published';
                 document.getElementById('postPinned').checked = post.pinned === 1;
+                if (post.created_at) {
+                    const dt = new Date(post.created_at);
+                    const offset = dt.getTimezoneOffset() * 60000;
+                    const localIso = new Date(dt.getTime() - offset).toISOString().substring(0, 16);
+                    document.getElementById('postCreatedAt').value = localIso;
+                } else {
+                    document.getElementById('postCreatedAt').value = '';
+                }
                 setTinyContent(post.content || '');
             } else {
                 document.getElementById('modalTitle').textContent = '시제품 등록';
@@ -426,6 +461,10 @@ export const adminPrototypeGalleryHtml = (sidebar: string) => `
                 document.getElementById('postId').value = '';
                 document.getElementById('postCategory').value = 'prototype';
                 document.getElementById('postStatus').value = 'published';
+                const now = new Date();
+                const offset = now.getTimezoneOffset() * 60000;
+                const localIso = new Date(now.getTime() - offset).toISOString().substring(0, 16);
+                document.getElementById('postCreatedAt').value = localIso;
                 setTinyContent('');
             }
             document.getElementById('createPostModal').classList.remove('hidden');
@@ -437,6 +476,61 @@ export const adminPrototypeGalleryHtml = (sidebar: string) => `
             } else {
                 initTinyMCE(html);
             }
+        }
+
+        function triggerMultiImageInput() {
+            document.getElementById('multiImageInput').click();
+        }
+        function setupMultiImageUpload() {
+            var dropZone = document.getElementById('multiImageDropZone');
+            var input = document.getElementById('multiImageInput');
+            if (!dropZone || !input) return;
+            dropZone.addEventListener('click', function(e) { if (!e.target.closest('#multiImageThumbs')) triggerMultiImageInput(); });
+            dropZone.addEventListener('dragover', function(e) { e.preventDefault(); e.stopPropagation(); dropZone.classList.add('border-amber-500', 'bg-amber-50'); });
+            dropZone.addEventListener('dragleave', function(e) { e.preventDefault(); dropZone.classList.remove('border-amber-500', 'bg-amber-50'); });
+            dropZone.addEventListener('drop', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.remove('border-amber-500', 'bg-amber-50');
+                var files = e.dataTransfer && e.dataTransfer.files;
+                if (files && files.length) handleMultiImageFiles(Array.from(files));
+            });
+            input.addEventListener('change', function() {
+                var files = this.files;
+                if (files && files.length) handleMultiImageFiles(Array.from(files));
+                this.value = '';
+            });
+        }
+        async function handleMultiImageFiles(files) {
+            var imageFiles = Array.from(files).filter(function(f) { return f.type.indexOf('image/') === 0; });
+            if (imageFiles.length === 0) {
+                alert('이미지 파일만 선택해 주세요.');
+                return;
+            }
+            var total = imageFiles.length;
+            var progressEl = document.getElementById('multiImageProgress');
+            var thumbsEl = document.getElementById('multiImageThumbs');
+            progressEl.classList.remove('hidden');
+            progressEl.textContent = '업로드 중 0 / ' + total + '...';
+            thumbsEl.classList.remove('hidden');
+            var editor = tinymce.get('postContent');
+            for (var i = 0; i < imageFiles.length; i++) {
+                progressEl.textContent = '업로드 중 ' + (i + 1) + ' / ' + total + '...';
+                try {
+                    var blob = imageFiles[i];
+                    var url = await uploadPostImage(blob);
+                    multiUploadedUrls.push(url);
+                    var thumb = document.createElement('span');
+                    thumb.className = 'inline-block w-12 h-12 rounded border border-gray-200 overflow-hidden bg-gray-100';
+                    thumb.innerHTML = '<img src="' + url + '" alt="" class="w-full h-full object-cover">';
+                    thumbsEl.appendChild(thumb);
+                    if (editor) editor.insertContent('<p><img src="' + url.replace(/"/g, '&quot;') + '" style="max-width:100%;height:auto"/></p>');
+                } catch (err) {
+                    console.error(err);
+                    progressEl.textContent = '업로드 중 ' + (i + 1) + '/' + total + ' - 오류: ' + (err.message || '실패');
+                }
+            }
+            progressEl.textContent = total + '장 업로드 완료.';
         }
 
         const IMAGE_MAX = 1200;
@@ -595,6 +689,7 @@ export const adminPrototypeGalleryHtml = (sidebar: string) => `
                 title: document.getElementById('postTitle').value,
                 status: document.getElementById('postStatus').value,
                 pinned: document.getElementById('postPinned').checked,
+                created_at: document.getElementById('postCreatedAt').value ? document.getElementById('postCreatedAt').value.replace('T', ' ') + ':00' : null,
                 content: tinymce.get('postContent') ? tinymce.get('postContent').getContent() : '',
                 images: []
             };
@@ -605,6 +700,7 @@ export const adminPrototypeGalleryHtml = (sidebar: string) => `
                 const imgs = div.getElementsByTagName('img');
                 for (let i = 0; i < imgs.length; i++) data.images.push(imgs[i].src);
             }
+            data.images = [...new Set([].concat(multiUploadedUrls, data.images))];
             try {
                 const token = localStorage.getItem('token');
                 const url = data.id ? '/api/posts/' + data.id : '/api/posts';
