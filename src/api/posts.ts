@@ -2,6 +2,10 @@ import { Hono } from 'hono';
 import type { Bindings, JWTPayload, Post } from '../types';
 import { authMiddleware, requireRole, requireAdmin } from '../middleware/auth';
 import { verifyToken, hashPassword, verifyPassword } from '../utils/jwt';
+import {
+  removeEducationPerformanceByPostId,
+  syncEducationPerformanceFromEducationPhotoPost,
+} from '../utils/education_performance_sync';
 
 const app = new Hono<{ Bindings: Bindings; Variables: { user: JWTPayload } }>();
 
@@ -647,12 +651,28 @@ app.post('/', async (c) => {
       await updateCourseRating(DB, Number(course_id));
     }
 
-    console.log('POST /api/posts: Insert successful', { id: result.meta.last_row_id });
+    const newPostId = Number(result.meta.last_row_id);
+    console.log('POST /api/posts: Insert successful', { id: newPostId });
+
+    if (cat === 'education_photo') {
+      const epRow = await DB.prepare(
+        `SELECT id, title, category, created_at, status FROM posts WHERE id = ?`
+      )
+        .bind(newPostId)
+        .first<{ id: number; title: string | null; category: string | null; created_at: string | null; status: string | null }>();
+      if (epRow) {
+        try {
+          await syncEducationPerformanceFromEducationPhotoPost(DB, epRow);
+        } catch (syncErr) {
+          console.error('POST /api/posts: education_performance sync failed', syncErr);
+        }
+      }
+    }
 
     return c.json({
       success: true,
       data: {
-        id: result.meta.last_row_id,
+        id: newPostId,
         message: '게시글이 등록되었습니다'
       }
     }, 201);
@@ -757,10 +777,25 @@ app.post('/bulk', authMiddleware, async (c) => {
       }
 
       try {
-        await DB.prepare(`
+        const ins = await DB.prepare(`
           INSERT INTO posts ( author_id, title, content, category, images, views, likes, pinned, status, created_at, updated_at )
           VALUES (?, ?, ?, ?, ?, 0, 0, 0, ?, datetime('now'), datetime('now'))
         `).bind(user.userId, tit, finalContent, cat, imagesJson, st).run();
+        const bulkId = Number(ins.meta.last_row_id);
+        if (cat === 'education_photo') {
+          const epRow = await DB.prepare(
+            `SELECT id, title, category, created_at, status FROM posts WHERE id = ?`
+          )
+            .bind(bulkId)
+            .first<{ id: number; title: string | null; category: string | null; created_at: string | null; status: string | null }>();
+          if (epRow) {
+            try {
+              await syncEducationPerformanceFromEducationPhotoPost(DB, epRow);
+            } catch (syncErr) {
+              console.error('POST /api/posts/bulk: education_performance sync failed', syncErr);
+            }
+          }
+        }
         results.ok++;
       } catch (insErr: any) {
         results.fail++;
@@ -780,6 +815,67 @@ app.post('/bulk', authMiddleware, async (c) => {
   } catch (error: any) {
     console.error('POST /api/posts/bulk:', error?.message ?? error);
     return c.json({ success: false, error: '일괄 등록 중 오류가 발생했습니다' }, 500);
+  }
+});
+
+/** 제목 정규화: 공백·대소문자 통일 (중복 판별용) */
+function normalizeGalleryTitleKey(title: string | null | undefined): string {
+  return (title ?? '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
+}
+
+/** POST /api/posts/dedupe-education-photo-titles — 교육사진 갤러리에서 동일 제목(정규화) 중복 글 삭제 (가장 오래된 id 1건만 유지) */
+app.post('/dedupe-education-photo-titles', authMiddleware, requireAdmin, async (c) => {
+  try {
+    const { DB } = c.env;
+    const { results } = await DB.prepare(
+      `SELECT id, title FROM posts WHERE category = 'education_photo' ORDER BY id ASC`
+    ).all<{ id: number; title: string | null }>();
+
+    const groups = new Map<string, { id: number; title: string | null }[]>();
+    for (const row of results || []) {
+      const key = normalizeGalleryTitleKey(row.title);
+      if (!key) continue;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(row);
+    }
+
+    const toDelete: number[] = [];
+    let duplicateGroupCount = 0;
+    for (const rows of groups.values()) {
+      if (rows.length <= 1) continue;
+      duplicateGroupCount++;
+      for (let i = 1; i < rows.length; i++) {
+        toDelete.push(rows[i].id);
+      }
+    }
+
+    let deleted = 0;
+    const deletedIds: number[] = [];
+    for (const delId of toDelete) {
+      try {
+        await removeEducationPerformanceByPostId(DB, delId);
+        await DB.prepare('DELETE FROM posts WHERE id = ?').bind(delId).run();
+        deleted++;
+        deletedIds.push(delId);
+      } catch (e) {
+        console.error('dedupe-education-photo-titles: delete failed', delId, e);
+      }
+    }
+
+    return c.json({
+      success: true,
+      data: {
+        deleted,
+        duplicate_groups: duplicateGroupCount,
+        deleted_ids: deletedIds,
+      },
+    });
+  } catch (e: unknown) {
+    console.error('dedupe-education-photo-titles:', e);
+    return c.json({ success: false, error: '중복 정리 실패' }, 500);
   }
 });
 
@@ -821,7 +917,7 @@ app.put('/:id', authMiddleware, async (c) => {
       return c.json({ success: false, error: '권한이 없습니다' }, 403);
     }
 
-    const { title, content, images, pinned, status, sub_category, content_url, teacher_feedback, created_at } = body;
+    const { title, content, images, pinned, status, sub_category, content_url, teacher_feedback, created_at, category } = body;
 
     // D1 TEXT 컬럼 크기 제한을 초과하면 R2에 저장
     const CONTENT_SIZE_LIMIT = 50 * 1024; // 50KB
@@ -891,10 +987,13 @@ app.put('/:id', authMiddleware, async (c) => {
       effectiveStatus = post.status;
     }
 
+    const effectiveCategory =
+      user.role === 'admin' && category !== undefined ? String(category).trim() : post.category;
+
     // 게시글 수정
     await DB.prepare(`
       UPDATE posts 
-      SET title = ?, content = ?, images = ?,
+      SET title = ?, content = ?, images = ?, category = ?,
           pinned = ?, status = ?, rating = ?, 
           sub_category = ?, content_url = ?, teacher_feedback = ?,
           created_at = ?,
@@ -904,6 +1003,7 @@ app.put('/:id', authMiddleware, async (c) => {
       newTitle ?? post.title,
       finalContent,
       imagesJsonForUpdate,
+      effectiveCategory,
       (newPinned !== undefined && user.role === 'admin') ? (newPinned ? 1 : 0) : post.pinned,
       effectiveStatus,
       newRating ?? post.rating,
@@ -916,6 +1016,19 @@ app.put('/:id', authMiddleware, async (c) => {
 
     if (post.category === 'review' && post.course_id) {
       await updateCourseRating(DB, Number(post.course_id));
+    }
+
+    const epRow = await DB.prepare(
+      `SELECT id, title, category, created_at, status FROM posts WHERE id = ?`
+    )
+      .bind(id)
+      .first<{ id: number; title: string | null; category: string | null; created_at: string | null; status: string | null }>();
+    if (epRow) {
+      try {
+        await syncEducationPerformanceFromEducationPhotoPost(DB, epRow);
+      } catch (syncErr) {
+        console.error('PUT /api/posts/:id: education_performance sync failed', syncErr);
+      }
     }
 
     return c.json({
@@ -962,6 +1075,12 @@ app.delete('/:id', authMiddleware, async (c) => {
 
     if (!hasPermission) {
       return c.json({ success: false, error: '권한이 없습니다' }, 403);
+    }
+
+    try {
+      await removeEducationPerformanceByPostId(DB, Number(id));
+    } catch (syncErr) {
+      console.error('DELETE /api/posts/:id: education_performance cleanup failed', syncErr);
     }
 
     // 게시글 삭제 (댓글도 CASCADE로 삭제됨)

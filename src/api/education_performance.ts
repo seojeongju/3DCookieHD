@@ -233,6 +233,86 @@ app.post('/from-gallery', authMiddleware, requireAdmin, async (c) => {
   }
 });
 
+/** POST /api/education-performance/sync-missing-gallery - 공개 갤러리 글 중 실적에 없는 건만 일괄 등록(초기 정합·누락 보정용) */
+app.post('/sync-missing-gallery', authMiddleware, requireAdmin, async (c) => {
+  try {
+    const { results } = await c.env.DB.prepare(`
+      SELECT id FROM posts WHERE category = 'education_photo' AND status = 'published' ORDER BY created_at DESC
+    `).all<{ id: number }>();
+    const ids = (results || []).map((r) => Number(r.id)).filter((n) => !Number.isNaN(n) && n > 0);
+
+    let ok = 0;
+    let skip = 0;
+    let fail = 0;
+
+    const maxSort = await c.env.DB.prepare(`
+      SELECT COALESCE(MAX(sort_order), -1) AS m FROM education_performance
+    `).first<{ m: number }>();
+    let nextOrder = (maxSort?.m ?? -1) + 1;
+
+    for (const postId of ids) {
+      const post = await c.env.DB.prepare(
+        `SELECT id, title, created_at FROM posts WHERE id = ? AND category = 'education_photo'`
+      )
+        .bind(postId)
+        .first<{ id: number; title: string; created_at: string }>();
+
+      if (!post) {
+        fail++;
+        continue;
+      }
+
+      const dup = await c.env.DB.prepare(`SELECT id FROM education_performance WHERE post_id = ?`).bind(postId).first();
+      if (dup) {
+        skip++;
+        continue;
+      }
+
+      const performedAt = performedAtFromPostCreated(post.created_at);
+      const title = (post.title || '').trim() || '교육사진';
+
+      try {
+        await c.env.DB.prepare(`
+          INSERT INTO education_performance (performed_at, title, category, sort_order, post_id)
+          VALUES (?, ?, NULL, ?, ?)
+        `)
+          .bind(performedAt, title, nextOrder++, postId)
+          .run();
+        ok++;
+      } catch {
+        fail++;
+      }
+    }
+
+    return c.json({ success: true, data: { ok, skip, fail, scanned: ids.length } });
+  } catch (e: unknown) {
+    console.error('education-performance sync-missing-gallery:', e);
+    return c.json({ success: false, error: '일괄 동기화 실패' }, 500);
+  }
+});
+
+/** POST /api/education-performance/reconcile-gallery-links — 삭제된 글·비공개·다른 카테고리 등으로 갤러리와 맞지 않는 post_id 실적 행 제거 */
+app.post('/reconcile-gallery-links', authMiddleware, requireAdmin, async (c) => {
+  try {
+    const r = await c.env.DB.prepare(`
+      DELETE FROM education_performance
+      WHERE post_id IS NOT NULL
+      AND (
+        NOT EXISTS (SELECT 1 FROM posts p WHERE p.id = education_performance.post_id)
+        OR EXISTS (
+          SELECT 1 FROM posts p WHERE p.id = education_performance.post_id
+          AND (p.category != 'education_photo' OR LOWER(COALESCE(p.status, '')) != 'published')
+        )
+      )
+    `).run();
+    const changes = typeof r.meta?.changes === 'number' ? r.meta.changes : 0;
+    return c.json({ success: true, data: { removed: changes } });
+  } catch (e: unknown) {
+    console.error('education-performance reconcile-gallery-links:', e);
+    return c.json({ success: false, error: '정합 정리 실패' }, 500);
+  }
+});
+
 /** PUT /api/education-performance/:id - 수정 (관리자). 갤러리 연동 행은 일자·제목만 갤러리 기준(동기화) 또는 순서·카테고리만 */
 app.put('/:id', authMiddleware, requireAdmin, async (c) => {
   try {

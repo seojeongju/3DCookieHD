@@ -17,9 +17,12 @@ export const adminEducationPerformanceHtml = `
             <header class="h-16 bg-white/80 backdrop-blur-md border-b border-slate-200/60 flex items-center justify-between px-8 shadow-sm z-10">
                 <div>
                     <h2 class="text-xl font-black text-slate-800 tracking-tight">교육실적 관리</h2>
-                    <p class="text-sm text-slate-500">센터소개 &gt; 교육실적 페이지에 표시되는 실적을 등록·수정합니다. 교육사진 갤러리 글과 연동하면 제목·일자가 갤러리와 동일하게 유지됩니다.</p>
+                    <p class="text-sm text-slate-500">센터소개 &gt; 교육실적 페이지에 표시되는 실적을 등록·수정합니다. 갤러리에 공개 글을 올리면 실적에 자동 반영됩니다(제목·일자는 갤러리 작성일 기준).</p>
                 </div>
-                <div class="flex gap-2">
+                <div class="flex flex-wrap gap-2 justify-end">
+                    <button type="button" onclick="syncMissingFromGallery()" class="px-4 py-2.5 bg-white text-slate-700 rounded-2xl hover:bg-slate-50 transition font-bold text-sm shadow-sm border border-slate-200/60" title="이미 등록된 실적은 건너뜁니다">
+                        <i class="fas fa-sync-alt mr-2 text-slate-500"></i>갤러리 누락 일괄반영
+                    </button>
                     <button type="button" onclick="openGalleryModal()" class="px-4 py-2.5 bg-white text-slate-800 rounded-2xl hover:bg-slate-50 transition font-bold text-sm shadow-sm border border-slate-200/60">
                         <i class="fas fa-images mr-2 text-emerald-600"></i>교육사진에서 불러오기
                     </button>
@@ -278,6 +281,23 @@ export const adminEducationPerformanceHtml = `
 
         function closeGalleryModal() {
             document.getElementById('galleryModal').classList.add('hidden');
+        }
+
+        async function syncMissingFromGallery() {
+            var token = localStorage.getItem('token');
+            if (!token) { alert('로그인이 필요합니다.'); return; }
+            if (!confirm('공개 상태인 교육사진 갤러리 글 중, 아직 교육실적에 없는 항목만 추가합니다. 계속할까요?')) return;
+            try {
+                var res = await fetch('/api/education-performance/sync-missing-gallery', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                var json = await res.json();
+                if (!json.success) { alert(json.error || '실패'); return; }
+                var d = json.data || {};
+                await load();
+                alert('처리 완료: 신규 ' + (d.ok != null ? d.ok : 0) + '건, 이미 있음 ' + (d.skip != null ? d.skip : 0) + '건, 갤러리 스캔 ' + (d.scanned != null ? d.scanned : 0) + '건');
+            } catch (err) { alert('연결 실패'); }
         }
 
         async function openGalleryModal() {

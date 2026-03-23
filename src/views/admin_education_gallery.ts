@@ -45,6 +45,12 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
                         <button type="button" onclick="openCsvImportModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center text-sm font-medium shadow-sm">
                             <i class="fas fa-file-csv mr-2"></i> CSV 일괄 등록
                         </button>
+                        <button type="button" onclick="dedupeEducationPhotoTitles()" class="px-4 py-2 bg-white text-rose-700 border border-rose-200 rounded-lg hover:bg-rose-50 transition flex items-center text-sm font-medium shadow-sm" title="같은 제목(공백·대소문자 통일) 중복 글을 정리합니다">
+                            <i class="fas fa-clone mr-2"></i> 제목 중복 정리
+                        </button>
+                        <button type="button" onclick="reconcileEducationPerformanceLinks()" class="px-4 py-2 bg-white text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-50 transition flex items-center text-sm font-medium shadow-sm" title="삭제·비공개 등으로 갤러리와 맞지 않는 교육실적 연동 행 제거">
+                            <i class="fas fa-unlink mr-2"></i> 교육실적 연동 정리
+                        </button>
                         <button type="button" onclick="openModal(null)" class="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition flex items-center text-sm font-medium shadow-sm">
                             <i class="fas fa-plus mr-2"></i> 교육사진 등록
                         </button>
@@ -625,6 +631,70 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
             } catch (err) {
                 console.error(err);
                 alert('삭제 중 오류가 발생했습니다.');
+            }
+        }
+
+        async function dedupeEducationPhotoTitles() {
+            if (!confirm('동일 제목(앞뒤 공백·연속 공백·대소문자 무시)으로 등록된 교육사진이 여러 개면, 가장 먼저 등록된 글만 남기고 나머지를 삭제합니다. 교육실적에 연동된 항목도 함께 제거됩니다. 계속할까요?')) return;
+            const token = localStorage.getItem('token');
+            if (!token) { alert('로그인이 필요합니다.'); return; }
+            try {
+                const res = await fetch('/api/posts/dedupe-education-photo-titles', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (res.status === 401) {
+                    alert('로그인 세션이 만료되었습니다.');
+                    window.location.href = '/login';
+                    return;
+                }
+                const json = await res.json();
+                if (!json.success) {
+                    alert('오류: ' + (json.error || '실패'));
+                    return;
+                }
+                const d = json.data || {};
+                let removedEp = 0;
+                try {
+                    const rec = await fetch('/api/education-performance/reconcile-gallery-links', {
+                        method: 'POST',
+                        headers: { 'Authorization': 'Bearer ' + token }
+                    });
+                    const recJson = await rec.json();
+                    if (recJson.success && recJson.data) removedEp = recJson.data.removed != null ? recJson.data.removed : 0;
+                } catch (re) { console.error(re); }
+                alert('중복 글 삭제: ' + (d.deleted || 0) + '건. 교육실적 연동 정리: ' + removedEp + '건 제거.');
+                loadPosts(currentPage);
+            } catch (e) {
+                console.error(e);
+                alert('처리 중 오류가 발생했습니다.');
+            }
+        }
+
+        async function reconcileEducationPerformanceLinks() {
+            if (!confirm('갤러리 글이 삭제되었거나 비공개·임시저장이거나 카테고리가 바뀐 경우, 교육실적에 남아 있는 연동 행을 제거합니다. 계속할까요?')) return;
+            const token = localStorage.getItem('token');
+            if (!token) { alert('로그인이 필요합니다.'); return; }
+            try {
+                const res = await fetch('/api/education-performance/reconcile-gallery-links', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (res.status === 401) {
+                    alert('로그인 세션이 만료되었습니다.');
+                    window.location.href = '/login';
+                    return;
+                }
+                const json = await res.json();
+                if (!json.success) {
+                    alert('오류: ' + (json.error || '실패'));
+                    return;
+                }
+                const n = json.data && json.data.removed != null ? json.data.removed : 0;
+                alert('교육실적에서 연동 해제된 행: ' + n + '건');
+            } catch (e) {
+                console.error(e);
+                alert('처리 중 오류가 발생했습니다.');
             }
         }
 
