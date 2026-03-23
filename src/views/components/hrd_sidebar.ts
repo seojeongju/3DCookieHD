@@ -159,7 +159,7 @@ export const hrdSidebar = (activeMenu: string, options?: HrdSidebarOptions) => {
                 </a>
                 <a href="/admin/exams/question-bank" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'exams-question-bank' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
                     <i class="fas fa-database w-6 text-sm ${activeMenu === 'exams-question-bank' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
-                    <span class="font-medium text-[13px]">문제은행</span>
+                    <span class="font-medium text-[13px]">사전평가문제은행</span>
                 </a>
             </div>
         </div>
@@ -167,7 +167,7 @@ export const hrdSidebar = (activeMenu: string, options?: HrdSidebarOptions) => {
         <a href="/admin/ncs-eval" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'ncs-eval' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
              ${activeMenu === 'ncs-eval' ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
             <i class="fas fa-certificate w-6 text-lg ${activeMenu === 'ncs-eval' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
-            <span class="font-medium text-[14px]">NCS 평가 관리</span>
+            <span class="font-medium text-[14px]">NCS평가(본평가)관리</span>
         </a>
 
         <a href="/admin/grades" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'grades' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
