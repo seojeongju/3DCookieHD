@@ -59,6 +59,19 @@ export const adminLmsNcsHtml = (sidebar: string = hrdSidebar('courses')) => `
                     </button>
                 </div>
             </div>
+            <div class="mt-5 border-t border-slate-100 pt-4">
+                <div class="inline-flex flex-wrap items-center gap-2 rounded-2xl bg-slate-50 border border-slate-200/70 p-2">
+                    <button type="button" onclick="goToNcsPlanPage()" class="px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 transition">
+                        <i class="fas fa-clipboard-list mr-1.5"></i>NCS평가계획
+                    </button>
+                    <button type="button" onclick="goToNcsExecPage()" class="px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 transition">
+                        <i class="fas fa-play-circle mr-1.5"></i>NCS평가실행
+                    </button>
+                    <button type="button" onclick="goToNcsResultPage()" class="px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 transition">
+                        <i class="fas fa-poll mr-1.5"></i>NCS평가결과
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -68,7 +81,7 @@ export const adminLmsNcsHtml = (sidebar: string = hrdSidebar('courses')) => `
             
             <!-- 왼쪽: 평가 계획 목록 및 훈련 현황 -->
             <div class="lg:col-span-1 space-y-6">
-                <section class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <section id="ncs-plan-section" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                     <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
                         <h3 class="font-bold text-gray-800">평가 계획 목록</h3>
                         <span class="text-xs text-gray-400" id="planCount">0건</span>
@@ -104,7 +117,7 @@ export const adminLmsNcsHtml = (sidebar: string = hrdSidebar('courses')) => `
             <div class="lg:col-span-3">
                 <div id="evaluationSection" class="hidden space-y-6">
                     <!-- 선택된 계획 정보 -->
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                    <div id="ncs-execution-section" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                         <div class="flex justify-between items-start">
                             <div>
                                 <span class="px-2 py-0.5 bg-blue-50 text-blue-600 text-xs font-bold rounded" id="selectedUnitCode">-</span>
@@ -197,6 +210,30 @@ export const adminLmsNcsHtml = (sidebar: string = hrdSidebar('courses')) => `
         const courseId = window.location.pathname.split('/')[3];
         let currentPlan = null;
         let studentResults = [];
+
+        function scrollToNcsSection(sectionId) {
+            const el = document.getElementById(sectionId);
+            if (!el) return;
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function goToNcsPlanPage() {
+            const url = new URL(window.location.href);
+            url.pathname = url.pathname.replace('/ncs-eval', '/ncs-eval-plan');
+            window.location.href = url.toString();
+        }
+
+        function goToNcsExecPage() {
+            const url = new URL(window.location.href);
+            url.pathname = url.pathname.replace('/ncs-eval', '/ncs-eval-exec');
+            window.location.href = url.toString();
+        }
+
+        function goToNcsResultPage() {
+            const url = new URL(window.location.href);
+            url.pathname = url.pathname.replace('/ncs-eval', '/ncs-eval-result');
+            window.location.href = url.toString();
+        }
 
         document.addEventListener('DOMContentLoaded', () => {
             loadCourseInfo();

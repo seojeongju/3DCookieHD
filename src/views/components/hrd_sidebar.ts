@@ -164,11 +164,30 @@ export const hrdSidebar = (activeMenu: string, options?: HrdSidebarOptions) => {
             </div>
         </div>
 
-        <a href="/admin/ncs-eval" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'ncs-eval' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
-             ${activeMenu === 'ncs-eval' ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
-            <i class="fas fa-certificate w-6 text-lg ${activeMenu === 'ncs-eval' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
-            <span class="font-medium text-[14px]">NCS평가(본평가)관리</span>
-        </a>
+        <div class="space-y-1">
+            <button type="button" class="sidebar-accordion-toggle flex items-center justify-between w-full px-4 py-3 rounded-xl transition-all duration-300 ${(activeMenu.startsWith('ncs-eval')) ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow open' : 'hover:bg-slate-800/50 hover:text-white'} group relative cursor-pointer" aria-expanded="${activeMenu.startsWith('ncs-eval')}">
+                <div class="flex items-center">
+                    ${(activeMenu.startsWith('ncs-eval')) ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}
+                    <i class="fas fa-certificate w-6 text-lg ${(activeMenu.startsWith('ncs-eval')) ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors duration-300"></i>
+                    <span class="font-medium text-[14px]">NCS평가(본평가)관리</span>
+                </div>
+                <i class="fas fa-chevron-down text-xs text-slate-500 transition-transform duration-200 chevron-icon ${(activeMenu.startsWith('ncs-eval')) ? 'rotate-180' : ''}"></i>
+            </button>
+            <div class="sidebar-submenu-content overflow-hidden transition-all duration-300 ${(activeMenu.startsWith('ncs-eval')) ? 'max-h-[1000px] opacity-100 mt-1' : 'max-h-0 opacity-0'}">
+                <a href="/admin/ncs-eval-plan" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'ncs-eval-plan' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
+                    <i class="fas fa-clipboard-list w-6 text-sm ${activeMenu === 'ncs-eval-plan' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
+                    <span class="font-medium text-[13px]">NCS평가계획</span>
+                </a>
+                <a href="/admin/ncs-eval-exec" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'ncs-eval-exec' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
+                    <i class="fas fa-play-circle w-6 text-sm ${activeMenu === 'ncs-eval-exec' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
+                    <span class="font-medium text-[13px]">NCS평가실행</span>
+                </a>
+                <a href="/admin/ncs-eval-result" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'ncs-eval-result' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
+                    <i class="fas fa-poll w-6 text-sm ${activeMenu === 'ncs-eval-result' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
+                    <span class="font-medium text-[13px]">NCS평가결과</span>
+                </a>
+            </div>
+        </div>
 
         <a href="/admin/grades" class="flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${activeMenu === 'grades' ? 'bg-gradient-to-r from-blue-600/20 to-transparent text-white active-nav-glow' : 'hover:bg-slate-800/50 hover:text-white'} group relative">
              ${activeMenu === 'grades' ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.8)]"></div>' : ''}

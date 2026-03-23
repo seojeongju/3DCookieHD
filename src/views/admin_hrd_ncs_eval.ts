@@ -51,7 +51,7 @@ export const adminHrdNcsEvalHtml = (sidebar = hrdSidebar('ncs-eval')) => `
                 <div class="max-w-7xl mx-auto space-y-6">
                     
                     <!-- 요약 통계 카드 -->
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div id="ncs-result-section" class="grid grid-cols-1 md:grid-cols-4 gap-6">
                         <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center group hover:shadow-md transition-all duration-300">
                             <div class="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-500 mr-4 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300">
                                 <i class="fas fa-layer-group text-xl"></i>
@@ -91,7 +91,7 @@ export const adminHrdNcsEvalHtml = (sidebar = hrdSidebar('ncs-eval')) => `
                     </div>
 
                     <!-- 과정별 NCS 현황 목록 -->
-                    <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div id="ncs-plan-section" class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
                         <div class="px-8 py-6 border-b border-gray-50 flex justify-between items-center bg-white/50 backdrop-blur-md">
                             <div class="flex items-center gap-4">
                                 <h3 class="font-black text-gray-800 text-lg uppercase tracking-tight">과정별 NCS 이수 현황</h3>
@@ -116,7 +116,7 @@ export const adminHrdNcsEvalHtml = (sidebar = hrdSidebar('ncs-eval')) => `
                                 </select>
                             </div>
                         </div>
-                        <div class="overflow-x-auto">
+                        <div id="ncs-exec-section" class="overflow-x-auto">
                             <table class="w-full text-left border-collapse">
                                 <thead>
                                     <tr class="bg-gray-50/50">

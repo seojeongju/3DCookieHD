@@ -3465,6 +3465,7 @@ app.get('/plans', authMiddleware, async (c) => {
     try {
         const user = c.get('user') as JWTPayload;
         const courseId = c.req.query('courseId');
+        const evaluationRoundRaw = c.req.query('evaluation_round') ?? c.req.query('round');
         if (!courseId) return c.json({ success: false, error: 'Course ID is required' }, 400);
 
         // 강사인 경우 권한 확인
@@ -3475,13 +3476,25 @@ app.get('/plans', authMiddleware, async (c) => {
             }
         }
 
+        // 기존 화면은 본평가(1차)만 보여주는 흐름이었으므로 기본값을 1로 유지합니다.
+        // 평가실행 탭(2차/3차)에서는 evaluation_round 값을 명시해서 필터링합니다.
+        const evaluationRound = evaluationRoundRaw != null && String(evaluationRoundRaw).trim() !== ''
+            ? parseInt(String(evaluationRoundRaw), 10)
+            : 1;
+        if (!Number.isFinite(evaluationRound) || evaluationRound < 1) {
+            return c.json({ success: false, error: 'Invalid evaluation_round' }, 400);
+        }
+
+        const evaluationRoundCondition = 'AND p.evaluation_round = ?';
+
         const { results } = await c.env.DB.prepare(`
             SELECT p.*, u.name as unit_name, u.code as unit_code, u.level as unit_level
             FROM ncs_evaluation_plans p
             JOIN ncs_units u ON p.ncs_unit_id = u.id
             WHERE p.course_id = ?
+            ${evaluationRoundCondition}
             ORDER BY u.code ASC
-        `).bind(courseId).all();
+        `).bind(courseId, evaluationRound).all();
 
         return c.json({ success: true, data: results });
     } catch (e) {
@@ -3495,7 +3508,7 @@ app.post('/plans', authMiddleware, async (c) => {
     try {
         const user = c.get('user') as JWTPayload;
         const body = await c.req.json();
-        const { course_id, ncs_unit_id, method, target_score, planned_date, status } = body;
+        const { course_id, ncs_unit_id, method, target_score, planned_date, status, evaluation_round } = body;
 
         // 강사인 경우 권한 확인
         if (user.role === 'teacher') {
@@ -3505,10 +3518,15 @@ app.post('/plans', authMiddleware, async (c) => {
             }
         }
 
+        const roundNum = evaluation_round != null && String(evaluation_round).trim() !== '' ? parseInt(String(evaluation_round), 10) : 1;
+        if (!Number.isFinite(roundNum) || roundNum < 1 || roundNum > 3) {
+            return c.json({ success: false, error: 'Invalid evaluation_round' }, 400);
+        }
+
         const result = await c.env.DB.prepare(`
-            INSERT INTO ncs_evaluation_plans (course_id, ncs_unit_id, method, target_score, planned_date, status)
-            VALUES (?, ?, ?, ?, ?, ?)
-        `).bind(course_id, ncs_unit_id, method, target_score, planned_date, status || 'draft').run();
+            INSERT INTO ncs_evaluation_plans (course_id, ncs_unit_id, method, target_score, planned_date, status, evaluation_round)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        `).bind(course_id, ncs_unit_id, method, target_score, planned_date, status || 'draft', roundNum).run();
 
         return c.json({ success: true, data: { id: result.meta.last_row_id } });
     } catch (e) {
