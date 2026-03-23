@@ -765,8 +765,8 @@ export const homeHtml = `
         async function fetchAllEducationPhotoPosts() {
             var all = [];
             var page = 1;
-            var limit = 200;
-            var maxPages = 50; // 안전장치: 최대 10,000건
+            var limit = 100;
+            var maxPages = 100; // 안전장치: 최대 10,000건
             while (page <= maxPages) {
                 var res = await fetch('/api/posts?category=education_photo&status=published&page=' + page + '&limit=' + limit + '&sort=created_at&order=DESC');
                 var result = await res.json();
@@ -774,10 +774,10 @@ export const homeHtml = `
                     throw new Error(result.error || '교육사진 목록 조회 실패');
                 }
                 var list = Array.isArray(result.data) ? result.data : [];
+                if (list.length === 0) break;
                 all = all.concat(list);
-                var p = result.pagination || {};
-                var totalPages = Number(p.totalPages || 1);
-                if (page >= totalPages || list.length === 0) break;
+                // pagination 메타값에 의존하지 않고, 페이지가 limit보다 작아질 때까지 끝까지 순회
+                if (list.length < limit) break;
                 page++;
             }
             return all;
