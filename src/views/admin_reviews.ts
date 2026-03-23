@@ -92,11 +92,8 @@ export const adminReviewsListHtml = (sidebar: string | null = null) => `
                         </button>
                         <input type="text" id="reviewAuthorName" readonly class="flex-1 px-3 py-2.5 border border-slate-200 rounded-xl bg-slate-50 text-slate-700 text-sm" placeholder="선택된 작성자 이름">
                     </div>
-                    <select id="reviewAuthorSelect" class="w-full px-4 py-3 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none text-sm mb-2">
-                        <option value="">— 과정을 먼저 선택하세요 —</option>
-                    </select>
                     <input type="number" name="author_id" id="reviewAuthorId" required min="1" class="w-full px-4 py-3 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none font-mono text-sm" placeholder="users.id">
-                    <p class="text-[11px] text-slate-500 mt-1">과정 선택 시 승인된 수강생 목록에서 선택할 수 있습니다. 필요 시 회원 번호를 직접 입력할 수도 있습니다.</p>
+                    <p class="text-[11px] text-slate-500 mt-1">작성자 선택(찾기)로 수강생을 고르면, 아래 수강과정에서 바로 과정을 선택할 수 있습니다.</p>
                     <div id="selectedAuthorCourses" class="mt-2 hidden rounded-xl border border-slate-200 bg-slate-50 p-3">
                         <p class="text-xs font-bold text-slate-600 mb-2">선택된 작성자 수강과정</p>
                         <ul id="selectedAuthorCoursesList" class="space-y-1 text-xs text-slate-700"></ul>
@@ -104,11 +101,8 @@ export const adminReviewsListHtml = (sidebar: string | null = null) => `
                 </div>
                 <div>
                     <label class="block text-xs font-black text-sky-600 uppercase tracking-widest mb-2">과정 *</label>
-                    <select id="reviewCourseSelect" class="w-full px-4 py-3 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none text-sm mb-2">
-                        <option value="">— 목록에서 선택 —</option>
-                    </select>
                     <input type="number" name="course_id" id="reviewCourseId" required min="1" class="w-full px-4 py-3 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none font-mono text-sm" placeholder="과정 ID (courses 또는 승인과정 id)">
-                    <p class="text-[11px] text-slate-500 mt-1">과정명 뒤에 상태가 함께 표시됩니다. 목록 선택 시 과정 ID가 자동 입력됩니다.</p>
+                    <p class="text-[11px] text-slate-500 mt-1">작성자 수강과정의 과정선택 버튼을 누르면 과정 ID가 자동 입력됩니다. 필요 시 직접 수정할 수 있습니다.</p>
                 </div>
                 <div>
                     <label class="block text-xs font-black text-sky-600 uppercase tracking-widest mb-2">평점 *</label>
@@ -191,11 +185,21 @@ export const adminReviewsListHtml = (sidebar: string | null = null) => `
             return { text: st || '미정', cls: 'bg-slate-100 text-slate-600' };
         }
 
+        function isCourseSelectableByEnrollmentStatus(st) {
+            // 수강중/수강종료(마감 포함 맥락) 과정은 후기 작성 대상으로 바로 선택 가능
+            return st === 'approved' || st === 'enrolled' || st === 'completed';
+        }
+
+        function setCourseFromAuthorCourse(courseIdRaw) {
+            const courseId = parseInt(courseIdRaw, 10);
+            if (!courseId) return;
+            const courseIdInput = document.getElementById('reviewCourseId');
+            if (courseIdInput) courseIdInput.value = String(courseId);
+        }
+
         function openReviewCreateModal() {
             document.getElementById('reviewCreateModal').classList.remove('hidden');
             document.getElementById('reviewCreateModal').classList.add('flex');
-            loadCourseOptionsForModal();
-            resetReviewAuthorOptions();
             document.getElementById('reviewAuthorName').value = '';
             renderSelectedAuthorCourses([]);
         }
@@ -203,58 +207,6 @@ export const adminReviewsListHtml = (sidebar: string | null = null) => `
         function closeReviewCreateModal() {
             document.getElementById('reviewCreateModal').classList.add('hidden');
             document.getElementById('reviewCreateModal').classList.remove('flex');
-        }
-
-        async function loadCourseOptionsForModal() {
-            const sel = document.getElementById('reviewCourseSelect');
-            if (!sel || sel.dataset.loaded === '1') return;
-            try {
-                const res = await fetch('/api/courses?limit=500&page=1');
-                const json = await res.json();
-                const list = (json.data || json.results || json) || [];
-                const rows = Array.isArray(list) ? list : [];
-                function statusLabel(status) {
-                    if (status === 'recruiting') return '모집중';
-                    if (status === 'in_progress') return '진행중';
-                    if (status === 'completed') return '종료';
-                    if (status === 'always_open') return '상시모집';
-                    if (status === 'closed') return '폐강';
-                    if (status === 'active') return '운영중';
-                    if (status === 'full') return '마감';
-                    return status ? String(status) : '상태미정';
-                }
-                rows.forEach(function(c) {
-                    if (!c || c.id == null) return;
-                    const opt = document.createElement('option');
-                    opt.value = String(c.id);
-                    const title = c.title || c.name || '과정';
-                    const st = statusLabel(c.status);
-                    opt.textContent = '[' + c.id + '] ' + title + ' (' + st + ')';
-                    sel.appendChild(opt);
-                });
-                sel.dataset.loaded = '1';
-            } catch (e) {
-                console.error(e);
-            }
-            sel.onchange = function() {
-                const v = sel.value;
-                const manual = document.getElementById('reviewCourseId');
-                if (manual && v) manual.value = v;
-                loadAuthorOptionsByCourse(v);
-            };
-        }
-
-        function resetReviewAuthorOptions() {
-            const authorSel = document.getElementById('reviewAuthorSelect');
-            if (!authorSel) return;
-            authorSel.innerHTML = '<option value="">— 과정을 먼저 선택하세요 —</option>';
-            authorSel.onchange = function() {
-                const v = authorSel.value;
-                if (v) {
-                    document.getElementById('reviewAuthorId').value = v;
-                    loadSelectedAuthorCourses(v);
-                }
-            };
         }
 
         function openAuthorFinderModal() {
@@ -333,13 +285,26 @@ export const adminReviewsListHtml = (sidebar: string | null = null) => `
             wrap.classList.remove('hidden');
             list.innerHTML = rows.map(function(r) {
                 const st = enrollmentStatusLabel(r.status);
+                const selectable = isCourseSelectableByEnrollmentStatus(r.status);
                 const title = escapeHtml(r.course_title || ('과정 #' + (r.course_id || '')));
+                const courseId = Number(r.course_id || 0);
                 const enrolledAt = r.enrolled_at ? escapeHtml(new Date(r.enrolled_at).toLocaleDateString('ko-KR')) : '';
                 return '<li class="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-2.5 py-2">' +
-                    '<div class="min-w-0"><p class="font-semibold text-slate-800 truncate">' + title + '</p>' +
+                    '<div class="min-w-0 flex-1"><p class="font-semibold text-slate-800 truncate">' + title + '</p>' +
                     '<p class="text-[11px] text-slate-500">' + (enrolledAt ? ('신청일: ' + enrolledAt) : '') + '</p></div>' +
-                    '<span class="px-2 py-1 rounded-full text-[11px] font-bold whitespace-nowrap ' + st.cls + '">' + st.text + '</span></li>';
+                    '<div class="flex items-center gap-1.5">' +
+                    '<span class="px-2 py-1 rounded-full text-[11px] font-bold whitespace-nowrap ' + st.cls + '">' + st.text + '</span>' +
+                    (selectable
+                        ? '<button type="button" data-course-pick="1" data-course-id="' + courseId + '" class="px-2 py-1 rounded-lg border border-sky-200 text-sky-700 bg-sky-50 hover:bg-sky-100 text-[11px] font-bold whitespace-nowrap">과정선택</button>'
+                        : '<span class="px-2 py-1 rounded-lg border border-slate-200 text-slate-400 bg-slate-50 text-[11px] font-bold whitespace-nowrap">선택불가</span>') +
+                    '</div></li>';
             }).join('');
+            list.querySelectorAll('[data-course-pick="1"]').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    const courseId = btn.getAttribute('data-course-id') || '';
+                    setCourseFromAuthorCourse(courseId);
+                });
+            });
         }
 
         async function loadSelectedAuthorCourses(userIdRaw) {
@@ -366,66 +331,8 @@ export const adminReviewsListHtml = (sidebar: string | null = null) => `
             }
         }
 
-        async function loadAuthorOptionsByCourse(courseIdRaw) {
-            const authorSel = document.getElementById('reviewAuthorSelect');
-            if (!authorSel) return;
-            const courseId = parseInt(courseIdRaw, 10);
-            if (!courseId) {
-                resetReviewAuthorOptions();
-                return;
-            }
-            authorSel.innerHTML = '<option value="">수강생 목록 불러오는 중...</option>';
-            try {
-                const token = localStorage.getItem('token');
-                const res = await fetch('/api/enrollments?course_id=' + courseId + '&status=approved&limit=500', {
-                    headers: { 'Authorization': 'Bearer ' + token }
-                });
-                const json = await res.json();
-                const list = Array.isArray(json?.data) ? json.data : [];
-                const uniq = new Map();
-                list.forEach(function(r) {
-                    const uid = Number(r.user_id);
-                    if (!uid || uniq.has(uid)) return;
-                    uniq.set(uid, r);
-                });
-                if (uniq.size === 0) {
-                    authorSel.innerHTML = '<option value="">승인된 수강생이 없습니다. 사용자 ID를 직접 입력하세요</option>';
-                    return;
-                }
-                authorSel.innerHTML = '<option value="">— 수강생 선택 —</option>';
-                Array.from(uniq.values()).forEach(function(r) {
-                    const opt = document.createElement('option');
-                    opt.value = String(r.user_id);
-                    opt.textContent = '[' + r.user_id + '] ' + (r.user_name || '이름 없음') + (r.user_email ? ' · ' + r.user_email : '');
-                    authorSel.appendChild(opt);
-                });
-                authorSel.onchange = function() {
-                    const v = authorSel.value;
-                    if (v) {
-                        document.getElementById('reviewAuthorId').value = v;
-                        const selectedText = authorSel.options[authorSel.selectedIndex]?.textContent || '';
-                        const inferredName = selectedText.replace(/^\[\d+\]\s*/, '').split('·')[0].trim();
-                        document.getElementById('reviewAuthorName').value = inferredName;
-                        loadSelectedAuthorCourses(v);
-                    }
-                };
-            } catch (e) {
-                console.error(e);
-                authorSel.innerHTML = '<option value="">수강생 목록 로드 실패 (직접 입력 가능)</option>';
-            }
-        }
-
         document.addEventListener('DOMContentLoaded', () => {
             loadReviews(1);
-            const courseManual = document.getElementById('reviewCourseId');
-            if (courseManual) {
-                courseManual.addEventListener('change', function() {
-                    loadAuthorOptionsByCourse(courseManual.value);
-                });
-                courseManual.addEventListener('blur', function() {
-                    loadAuthorOptionsByCourse(courseManual.value);
-                });
-            }
             const authorManual = document.getElementById('reviewAuthorId');
             if (authorManual) {
                 authorManual.addEventListener('change', function() {
@@ -622,8 +529,8 @@ export const adminReviewsListHtml = (sidebar: string | null = null) => `
                     alert('수강후기가 등록되었습니다.');
                     closeReviewCreateModal();
                     document.getElementById('reviewCreateForm').reset();
-                    document.getElementById('reviewCourseSelect').value = '';
-                    resetReviewAuthorOptions();
+                    document.getElementById('reviewAuthorName').value = '';
+                    renderSelectedAuthorCourses([]);
                     loadReviews(1);
                 } else {
                     alert(result.error || '등록에 실패했습니다.');
