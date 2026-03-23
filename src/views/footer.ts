@@ -3,9 +3,9 @@ import { socialLinksFooterRowHtml } from './components/social_links';
 export const footerHtml = () => `
 <footer class="bg-gray-900 text-gray-300 py-10 sm:py-12 border-t border-gray-800 mt-auto pb-[max(2.5rem,env(safe-area-inset-bottom,0px))]">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-16 mb-8">
             <!-- 회사 정보 -->
-            <div class="col-span-1 md:col-span-2">
+            <div>
                 <div class="flex items-center mb-6">
                     <img src="/static/logo.png" alt="WOW 3D" class="h-9 mr-2" onerror="this.src='https://placehold.co/150x50/333/FFF?text=WOW3D'">
                 </div>
@@ -16,20 +16,7 @@ export const footerHtml = () => `
                 ${socialLinksFooterRowHtml()}
             </div>
 
-            <!-- 바로가기 -->
-            <div>
-                <h3 class="text-white font-bold mb-4 uppercase tracking-wider text-sm">바로가기</h3>
-                <ul class="space-y-2 text-sm">
-                    <li><a href="/courses" class="hover:text-primary-400 transition">교육과정</a></li>
-                    <li><a href="/schedule" class="hover:text-primary-400 transition">교육일정</a></li>
-                    <li><a href="/online-consulting" class="hover:text-primary-400 transition">온라인 상담 신청</a></li>
-                    <li><a href="/posts?category=notice" class="hover:text-primary-400 transition">공지사항</a></li>
-                    <li><a href="/reviews" class="hover:text-primary-400 transition">수강후기</a></li>
-                    <li><a href="/locations" class="hover:text-primary-400 transition">오시는 길</a></li>
-                </ul>
-            </div>
-
-            <!-- 고객센터 -->
+            <!-- 연락처 -->
             <div>
                 <h3 class="text-white font-bold mb-4 uppercase tracking-wider text-sm">CONTACT US</h3>
                 <ul class="space-y-2 text-sm">

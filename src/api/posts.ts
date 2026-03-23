@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import type { Bindings, JWTPayload, Post } from '../types';
 import { authMiddleware, requireRole, requireAdmin } from '../middleware/auth';
+import { verifyToken } from '../utils/jwt';
 
 const app = new Hono<{ Bindings: Bindings; Variables: { user: JWTPayload } }>();
 
@@ -41,10 +42,27 @@ app.get('/', async (c) => {
     if (category && category !== 'all') whereClauses.push(' AND p.category = ?');
     if (search) whereClauses.push(' AND (p.title LIKE ? OR p.content LIKE ?)');
     if (status) whereClauses.push(' AND p.status = ?');
+
+    const mine = c.req.query('mine');
+    const authHeader = c.req.header('Authorization');
+    let viewer: JWTPayload | null = null;
+    if (authHeader?.startsWith('Bearer ')) {
+      viewer = await verifyToken(authHeader.substring(7));
+    }
+
     const authorId = c.req.query('author_id');
-    if (authorId) {
+    if (mine === '1' || mine === 'true') {
+      if (!viewer) {
+        return c.json({ success: false, error: '로그인이 필요합니다' }, 401);
+      }
       whereClauses.push(' AND p.author_id = ?');
-      params.push(authorId);
+      params.push(viewer.userId);
+    } else if (authorId) {
+      if (!viewer || (Number(authorId) !== viewer.userId && viewer.role !== 'admin')) {
+        return c.json({ success: false, error: '권한이 없습니다' }, 403);
+      }
+      whereClauses.push(' AND p.author_id = ?');
+      params.push(Number(authorId));
     }
     const subCategory = c.req.query('sub_category');
     if (subCategory) {
@@ -258,6 +276,21 @@ app.post('/', authMiddleware, async (c) => {
       if (existing) {
         return c.json({ success: false, error: '이미 리뷰를 작성하셨습니다' }, 400);
       }
+
+      if (user.role !== 'admin') {
+        const legacyOk = await DB.prepare(`
+          SELECT 1 as ok FROM enrollments
+          WHERE user_id = ? AND course_id = ? AND status = 'approved'
+        `).bind(user.userId, Number(course_id)).first<{ ok: number }>();
+        const hrdOk = await DB.prepare(`
+          SELECT 1 as ok FROM course_session_enrollments e
+          INNER JOIN course_sessions s ON e.session_id = s.id
+          WHERE e.user_id = ? AND s.approved_course_id = ? AND e.status IN ('approved', 'enrolled')
+        `).bind(user.userId, Number(course_id)).first<{ ok: number }>();
+        if (!legacyOk && !hrdOk) {
+          return c.json({ success: false, error: '해당 과정의 승인된 수강 등록이 있어야 후기를 작성할 수 있습니다' }, 403);
+        }
+      }
     }
 
     // 공지사항, FAQ: 관리자만 작성 가능 / Q&A: 관리자·수강생 작성 가능
@@ -310,9 +343,14 @@ app.post('/', authMiddleware, async (c) => {
       imagesJson = '[]';
     }
 
-    const st = status && ['draft', 'published', 'hidden'].includes(String(status))
+    let st = status && ['draft', 'published', 'hidden'].includes(String(status))
       ? String(status)
       : 'published';
+
+    // 수강후기: 학생·강사 작성분은 관리자 승인 전까지 비공개( hidden ). 관리자만 최초 공개 게시 가능.
+    if (cat === 'review' && user.role !== 'admin') {
+      st = 'hidden';
+    }
 
     // D1 TEXT 컬럼 크기 제한. 초과 시 R2에만 저장하고 DB에는 URL만 저장.
     const CONTENT_SIZE_LIMIT = 50 * 1024; // 50KB (D1 한계 회피)
@@ -650,6 +688,11 @@ app.put('/:id', authMiddleware, async (c) => {
 
     const { title: newTitle, content: newContent, images: newImages, pinned: newPinned, status: newStatus, rating: newRating, created_at: newCreatedAt } = body;
 
+    let effectiveStatus = newStatus !== undefined ? newStatus : post.status;
+    if (post.category === 'review' && user.role !== 'admin') {
+      effectiveStatus = post.status;
+    }
+
     // 게시글 수정
     await DB.prepare(`
       UPDATE posts 
@@ -664,7 +707,7 @@ app.put('/:id', authMiddleware, async (c) => {
       finalContent,
       imagesJsonForUpdate,
       (newPinned !== undefined && user.role === 'admin') ? (newPinned ? 1 : 0) : post.pinned,
-      newStatus ?? post.status,
+      effectiveStatus,
       newRating ?? post.rating,
       sub_category !== undefined ? sub_category : post.sub_category,
       content_url !== undefined ? content_url : post.content_url,

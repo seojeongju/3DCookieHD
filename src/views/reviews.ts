@@ -1,4 +1,4 @@
-﻿import { footerHtml } from './footer';
+import { footerHtml } from './footer';
 import { navigationHtml } from './components/navigation';
 
 export const reviewsListHtml = `
@@ -89,7 +89,7 @@ export const reviewsListHtml = `
     <!-- 메인 컨텐츠 -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <!-- 상단 액션 바 -->
-        <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
             <div class="flex items-center space-x-2">
                 <span class="text-gray-600 font-medium">정렬:</span>
                 <select id="sortOrder" onchange="loadReviews()" class="border-gray-300 rounded-md shadow-sm focus:border-green-500 focus:ring focus:ring-green-200 focus:ring-opacity-50">
@@ -97,9 +97,12 @@ export const reviewsListHtml = `
                     <option value="rating">평점순</option>
                 </select>
             </div>
-            <button onclick="openWriteModal()" class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium shadow-md flex items-center">
-                <i class="fas fa-pen mr-2"></i> 후기 작성하기
-            </button>
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto">
+            <a href="/student?tab=courseReviews" class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium shadow-md inline-flex items-center justify-center">
+                <i class="fas fa-pen mr-2"></i> 수강후기 작성 (나의 강의실)
+            </a>
+            <p class="text-sm text-gray-500 sm:ml-2">후기는 <strong class="text-gray-700">나의 강의실 → 수강후기</strong>에서 작성 · 관리자 승인 후 공개</p>
+            </div>
         </div>
 
         <!-- 리뷰 목록 -->
@@ -117,54 +120,6 @@ export const reviewsListHtml = `
         </div>
     </div>
 
-    <!-- 후기 작성 모달 -->
-    <div id="writeReviewModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div class="p-6 border-b border-gray-200 flex justify-between items-center">
-                <h3 class="text-xl font-bold text-gray-800">수강후기 작성</h3>
-                <button onclick="closeModal('writeReviewModal')" class="text-gray-500 hover:text-gray-700">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
-            </div>
-            <div class="p-6">
-                <form id="writeReviewForm" onsubmit="handleSubmitReview(event)">
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-gray-700 font-medium mb-2">수강 과정</label>
-                            <select name="course_id" id="courseSelect" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
-                                <option value="">과정을 선택해주세요</option>
-                                <!-- 과정 목록이 동적으로 로드됩니다 -->
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-gray-700 font-medium mb-2">평점</label>
-                            <div class="flex space-x-2 text-2xl text-gray-300" id="starRating">
-                                <button type="button" onclick="setRating(1)" class="hover:text-yellow-400 focus:outline-none"><i class="fas fa-star"></i></button>
-                                <button type="button" onclick="setRating(2)" class="hover:text-yellow-400 focus:outline-none"><i class="fas fa-star"></i></button>
-                                <button type="button" onclick="setRating(3)" class="hover:text-yellow-400 focus:outline-none"><i class="fas fa-star"></i></button>
-                                <button type="button" onclick="setRating(4)" class="hover:text-yellow-400 focus:outline-none"><i class="fas fa-star"></i></button>
-                                <button type="button" onclick="setRating(5)" class="hover:text-yellow-400 focus:outline-none"><i class="fas fa-star"></i></button>
-                            </div>
-                            <input type="hidden" name="rating" id="ratingInput" required>
-                        </div>
-                        <div>
-                            <label class="block text-gray-700 font-medium mb-2">제목</label>
-                            <input type="text" name="title" required placeholder="후기 제목을 입력해주세요" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
-                        </div>
-                        <div>
-                            <label class="block text-gray-700 font-medium mb-2">내용</label>
-                            <textarea name="content" rows="5" required placeholder="수강 후기를 자세히 적어주세요. 다른 분들에게 큰 도움이 됩니다." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"></textarea>
-                        </div>
-                    </div>
-                    <div class="mt-6 flex justify-end space-x-3">
-                        <button type="button" onclick="closeModal('writeReviewModal')" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">취소</button>
-                        <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">등록하기</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
     <!-- 푸터 -->
     <!-- 푸터 -->
     ${footerHtml()}
@@ -172,7 +127,6 @@ export const reviewsListHtml = `
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             loadReviews();
-            loadCourses();
         });
 
         async function loadReviews() {
@@ -244,95 +198,6 @@ export const reviewsListHtml = `
                         <p class="text-gray-600">오류가 발생했습니다.</p>
                     </div>
                 \`;
-            }
-        }
-
-        async function loadCourses() {
-            try {
-                const response = await fetch('/api/courses');
-                const result = await response.json();
-                
-                if (result.success) {
-                    const select = document.getElementById('courseSelect');
-                    result.data.forEach(course => {
-                        if (course.status === 'open' || course.status === 'closed') {
-                            const option = document.createElement('option');
-                            option.value = course.id;
-                            option.textContent = course.title;
-                            select.appendChild(option);
-                        }
-                    });
-                }
-            } catch (error) {
-                console.error('Error loading courses:', error);
-            }
-        }
-
-        function openWriteModal() {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                if(confirm('로그인이 필요한 서비스입니다. 로그인 페이지로 이동하시겠습니까?')) {
-                    location.href = '/login';
-                }
-                return;
-            }
-            document.getElementById('writeReviewModal').classList.remove('hidden');
-        }
-
-        function closeModal(id) {
-            document.getElementById(id).classList.add('hidden');
-        }
-
-        function setRating(rating) {
-            document.getElementById('ratingInput').value = rating;
-            const stars = document.getElementById('starRating').children;
-            for (let i = 0; i < 5; i++) {
-                if (i < rating) {
-                    stars[i].classList.add('text-yellow-400');
-                    stars[i].classList.remove('text-gray-300');
-                } else {
-                    stars[i].classList.remove('text-yellow-400');
-                    stars[i].classList.add('text-gray-300');
-                }
-            }
-        }
-
-        async function handleSubmitReview(e) {
-            e.preventDefault();
-            const form = e.target;
-            const formData = new FormData(form);
-            const data = Object.fromEntries(formData.entries());
-            
-            try {
-                const token = localStorage.getItem('token');
-                data.category = 'review';
-                // status는 리뷰의 경우 기본적으로 draft 또는 hidden으로 관리자 승인이 필요할 수 있으나,
-                // API에서 처리하도록 둠. 여기서는 보낼 때 status를 명시하지 않으면 API 기본값인 'published'가 됨.
-                // 하지만 리뷰는 '관리자 승인 후 게시'가 요구사항이므로 'hidden'으로 보내는 것이 안전할 수 있음.
-                data.status = 'hidden'; 
-
-                const response = await fetch('/api/posts', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + token
-                    },
-                    body: JSON.stringify(data)
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    alert('후기가 등록되었습니다. 관리자 승인 후 게시됩니다.');
-                    closeModal('writeReviewModal');
-                    form.reset();
-                    setRating(0);
-                } else {
-                    alert('오류: ' + result.error);
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('등록 중 오류가 발생했습니다.');
             }
         }
 

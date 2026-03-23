@@ -191,6 +191,10 @@ export const studentDashboardHtml = () => `
                                             <span class="w-8 h-8 rounded-lg bg-slate-100 text-slate-400 flex items-center justify-center flex-shrink-0 group-hover:bg-slate-200 group-hover:text-slate-600 transition-colors"><i class="fas fa-briefcase text-[10px]"></i></span>
                                             <span>취업 성과</span>
                                         </button>
+                                        <button onclick="switchTab('courseReviews')" id="btn-courseReviews" class="nav-side-btn w-full text-left px-3.5 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 flex items-center gap-3 group text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+                                            <span class="w-8 h-8 rounded-lg bg-slate-100 text-slate-400 flex items-center justify-center flex-shrink-0 group-hover:bg-slate-200 group-hover:text-slate-600 transition-colors"><i class="fas fa-star text-[10px]"></i></span>
+                                            <span>수강후기</span>
+                                        </button>
                                     </div>
                                 </div>
                                 <!-- 계정 -->
@@ -241,7 +245,13 @@ export const studentDashboardHtml = () => `
             updateWelcomeTime();
             setInterval(updateWelcomeTime, 1000);
             loadStudentStats();
-            switchTab('dashboard');
+            var initialTab = 'dashboard';
+            try {
+                var p = new URLSearchParams(window.location.search);
+                var t = p.get('tab');
+                if (t && tabLabels[t]) initialTab = t;
+            } catch (e) {}
+            switchTab(initialTab);
         });
 
         async function loadStudentStats() {
@@ -359,8 +369,8 @@ export const studentDashboardHtml = () => `
             window.logout();
         }
 
-        var tabLabels = { dashboard: '종합 대시보드', preAssessment: '사전평가', lectures: '수강 중인 강의', grades: '성적/결과', ncs: 'NCS 평가', surveys: '설문/평가', portfolio: '포트폴리오', employment: '취업 성과', profile: '수강생 정보' };
-        var tabIcons = { dashboard: 'fa-th-large', preAssessment: 'fa-clipboard-list', lectures: 'fa-video', grades: 'fa-history', ncs: 'fa-certificate', surveys: 'fa-poll', portfolio: 'fa-image', employment: 'fa-user-tie', profile: 'fa-user-edit' };
+        var tabLabels = { dashboard: '종합 대시보드', preAssessment: '사전평가', lectures: '수강 중인 강의', grades: '성적/결과', ncs: 'NCS 평가', surveys: '설문/평가', portfolio: '포트폴리오', employment: '취업 성과', courseReviews: '수강후기', profile: '수강생 정보' };
+        var tabIcons = { dashboard: 'fa-th-large', preAssessment: 'fa-clipboard-list', lectures: 'fa-video', grades: 'fa-history', ncs: 'fa-certificate', surveys: 'fa-poll', portfolio: 'fa-image', employment: 'fa-user-tie', courseReviews: 'fa-star', profile: 'fa-user-edit' };
 
         function switchTab(tab) {
             var iconEl = document.getElementById('contentTitleIcon');
@@ -373,7 +383,7 @@ export const studentDashboardHtml = () => `
             var iconBase = 'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ';
             var iconInactive = iconBase + 'bg-slate-100 text-slate-400 group-hover:bg-slate-200 group-hover:text-slate-600 ';
             var iconActive = iconBase + 'bg-sky-100 text-sky-600 ';
-            ['dashboard', 'lectures', 'preAssessment', 'grades', 'surveys', 'portfolio', 'ncs', 'employment', 'profile'].forEach(t => {
+            ['dashboard', 'lectures', 'preAssessment', 'grades', 'surveys', 'portfolio', 'ncs', 'employment', 'courseReviews', 'profile'].forEach(t => {
                 const btn = document.getElementById('btn-' + t);
                 if (btn) {
                     var isActive = t === tab;
@@ -394,8 +404,167 @@ export const studentDashboardHtml = () => `
             else if (tab === 'surveys') loadStudentSurveys();
             else if (tab === 'portfolio') loadStudentPortfolios();
             else if (tab === 'employment') loadEmploymentStatus();
+            else if (tab === 'courseReviews') loadCourseReviews();
             else if (tab === 'profile') loadProfileEdit();
         }
+
+        function escapeHtml(str) {
+            if (str == null || str === '') return '';
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function reviewStatusLabel(st) {
+            if (st === 'published') return { label: '공개됨', cls: 'bg-emerald-50 text-emerald-700 border-emerald-100' };
+            if (st === 'draft') return { label: '임시저장', cls: 'bg-slate-100 text-slate-600 border-slate-200' };
+            return { label: '승인 대기', cls: 'bg-amber-50 text-amber-800 border-amber-100' };
+        }
+
+        async function loadCourseReviews() {
+            const container = document.getElementById('contentArea');
+            container.innerHTML = '<div class="text-center py-12"><i class="fas fa-spinner fa-spin text-3xl text-sky-500"></i><p class="text-slate-400 font-bold text-sm mt-4 uppercase tracking-widest">로딩 중...</p></div>';
+            try {
+                const token = localStorage.getItem('token');
+                const [resGeneral, resSession, resMine] = await Promise.all([
+                    fetch('/api/enrollments?status=approved', { headers: { 'Authorization': 'Bearer ' + token } }),
+                    fetch('/api/course-sessions/me/enrollments', { headers: { 'Authorization': 'Bearer ' + token } }),
+                    fetch('/api/posts?category=review&mine=1&limit=50&sort=created_at&order=DESC', { headers: { 'Authorization': 'Bearer ' + token } })
+                ]);
+                const jsonGeneral = await resGeneral.json();
+                const jsonSession = await resSession.json();
+                const jsonMine = await resMine.json();
+
+                const generalData = jsonGeneral.success ? (jsonGeneral.data || []) : [];
+                const sessionData = jsonSession.success ? (jsonSession.data || []) : [];
+                const merged = [].concat(sessionData, generalData);
+                var seenCid = {};
+                var allCourses = [];
+                merged.forEach(function(item) {
+                    var cid = item.course_id;
+                    if (cid == null || seenCid[cid]) return;
+                    seenCid[cid] = true;
+                    allCourses.push(item);
+                });
+                const courseById = {};
+                allCourses.forEach(function(item) {
+                    var cid = item.course_id;
+                    courseById[cid] = item.course_title || item.title || ('과정 #' + cid);
+                });
+
+                var myReviews = jsonMine.success ? (jsonMine.data || []) : [];
+
+                var formHtml = '';
+                if (allCourses.length === 0) {
+                    formHtml = '<div class="bento-card bg-amber-50/80 rounded-[2rem] p-6 border border-amber-100 text-amber-900 text-sm font-bold mb-8">승인된 수강 과정이 있어야 수강후기를 작성할 수 있습니다. <a href="/course-sessions" class="underline text-sky-700">교육과정 둘러보기</a></div>';
+                } else {
+                    formHtml = '<div class="bento-card bg-white rounded-[2.5rem] p-6 sm:p-8 border border-slate-200/60 shadow-sm mb-8">' +
+                        '<h3 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><i class="fas fa-pen-fancy text-sky-500"></i> 새 수강후기 작성</h3>' +
+                        '<p class="text-xs text-slate-500 font-medium mb-6 leading-relaxed">작성하신 후기는 <strong class="text-slate-700">관리자 승인 후</strong> 홈페이지 수강후기에 공개됩니다.</p>' +
+                        '<form id="courseReviewForm" class="space-y-5" onsubmit="submitCourseReview(event)">' +
+                        '<div><label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-2">수강 과정 *</label>' +
+                        '<select name="course_id" id="courseReviewCourseId" required class="w-full px-4 py-3.5 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none font-medium text-slate-900 bg-white">' +
+                        '<option value="">과정을 선택하세요</option>' +
+                        allCourses.map(function(item) {
+                            var cid = item.course_id;
+                            var title = (item.course_title || item.title || ('과정 #' + cid)).replace(/</g, '&lt;');
+                            return '<option value="' + cid + '">' + title + '</option>';
+                        }).join('') +
+                        '</select></div>' +
+                        '<div><label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-2">평점 *</label>' +
+                        '<div class="flex gap-1 text-2xl text-slate-300" id="courseReviewStars">' +
+                        [1,2,3,4,5].map(function(n) { return '<button type="button" class="course-review-star hover:text-amber-400 focus:outline-none" data-rating="' + n + '" onclick="setCourseReviewRating(' + n + ')"><i class="fas fa-star"></i></button>'; }).join('') +
+                        '</div><input type="hidden" name="rating" id="courseReviewRating" value=""></div>' +
+                        '<div><label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-2">제목 *</label>' +
+                        '<input type="text" name="title" required maxlength="200" placeholder="한 줄로 요약해 주세요" class="w-full px-4 py-3.5 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none font-medium text-slate-900"></div>' +
+                        '<div><label class="block text-[10px] font-black text-sky-600 uppercase tracking-widest mb-2">후기 내용 *</label>' +
+                        '<textarea name="content" required rows="6" placeholder="수강 경험을 자세히 적어 주세요." class="w-full px-4 py-3.5 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none font-medium text-slate-900 custom-scrollbar"></textarea></div>' +
+                        '<div class="flex justify-end"><button type="submit" class="px-8 py-3.5 bg-sky-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-sky-100 hover:bg-slate-900 transition"><i class="fas fa-paper-plane mr-2"></i> 제출하기</button></div>' +
+                        '</form></div>';
+                }
+
+                var listHtml = '<div><h3 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><i class="fas fa-list text-sky-500"></i> 내가 작성한 후기</h3>';
+                if (myReviews.length === 0) {
+                    listHtml += '<div class="bento-card bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200 p-10 text-center text-slate-500 font-bold text-sm">아직 작성한 수강후기가 없습니다.</div></div>';
+                } else {
+                    listHtml += '<div class="space-y-4">';
+                    myReviews.forEach(function(r) {
+                        var st = reviewStatusLabel(r.status);
+                        var ctitle = courseById[r.course_id] || ('과정 #' + (r.course_id || ''));
+                        listHtml += '<div class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm hover:border-sky-100 transition">' +
+                            '<div class="flex flex-wrap items-start justify-between gap-3 mb-3">' +
+                            '<span class="inline-flex px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ' + st.cls + '">' + st.label + '</span>' +
+                            '<span class="text-[10px] font-bold text-slate-400">' + new Date(r.created_at).toLocaleString('ko-KR') + '</span></div>' +
+                            '<p class="text-[10px] font-black text-sky-600 uppercase tracking-widest mb-1">' + escapeHtml(ctitle) + '</p>' +
+                            '<h4 class="text-lg font-black text-slate-900 tracking-tight mb-2">' + escapeHtml(r.title) + '</h4>' +
+                            '<p class="text-sm text-slate-600 line-clamp-4 whitespace-pre-wrap">' + escapeHtml(r.content) + '</p>' +
+                            '</div>';
+                    });
+                    listHtml += '</div></div>';
+                }
+
+                container.innerHTML = '<div class="max-w-3xl mx-auto space-y-6">' + formHtml + listHtml + '</div>';
+            } catch (e) {
+                console.error(e);
+                container.innerHTML = '<div class="text-center py-12 text-red-500 font-bold">수강후기를 불러오지 못했습니다.</div>';
+            }
+        }
+
+        window.setCourseReviewRating = function(n) {
+            var input = document.getElementById('courseReviewRating');
+            if (input) input.value = n;
+            var wrap = document.getElementById('courseReviewStars');
+            if (!wrap) return;
+            var buttons = wrap.querySelectorAll('.course-review-star');
+            for (var i = 0; i < buttons.length; i++) {
+                var btn = buttons[i];
+                var r = parseInt(btn.getAttribute('data-rating'), 10);
+                if (r <= n) {
+                    btn.classList.add('text-amber-400');
+                    btn.classList.remove('text-slate-300');
+                } else {
+                    btn.classList.remove('text-amber-400');
+                    btn.classList.add('text-slate-300');
+                }
+            }
+        };
+
+        window.submitCourseReview = async function(e) {
+            e.preventDefault();
+            var token = localStorage.getItem('token');
+            if (!token) { alert('로그인이 필요합니다.'); return; }
+            var rating = parseInt(document.getElementById('courseReviewRating').value, 10);
+            if (!rating || rating < 1 || rating > 5) {
+                alert('평점을 선택해 주세요.');
+                return;
+            }
+            var form = document.getElementById('courseReviewForm');
+            var fd = new FormData(form);
+            var courseId = fd.get('course_id');
+            var title = (fd.get('title') || '').toString().trim();
+            var content = (fd.get('content') || '').toString().trim();
+            try {
+                var res = await fetch('/api/posts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({
+                        category: 'review',
+                        course_id: Number(courseId),
+                        rating: rating,
+                        title: title,
+                        content: content
+                    })
+                });
+                var result = await res.json();
+                if (result.success) {
+                    alert('수강후기가 접수되었습니다. 관리자 승인 후 홈페이지에 공개됩니다.');
+                    loadCourseReviews();
+                } else {
+                    alert(result.error || '등록에 실패했습니다.');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('등록 중 오류가 발생했습니다.');
+            }
+        };
 
         async function loadProfileEdit() {
             const container = document.getElementById('contentArea');
