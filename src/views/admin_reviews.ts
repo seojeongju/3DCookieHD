@@ -1,4 +1,4 @@
-import { hrdSidebar } from './components/hrd_sidebar';
+﻿import { hrdSidebar } from './components/hrd_sidebar';
 
 export const adminReviewsListHtml = (sidebar: string | null = null) => `
 <!DOCTYPE html>
@@ -6,7 +6,7 @@ export const adminReviewsListHtml = (sidebar: string | null = null) => `
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>수강후기 관리 - 와우쓰리디홍대센터</title>
+    <title>?섍컯?꾧린 愿由?- ??곗벐由щ뵒?띾??쇳꽣</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
 </head>
@@ -16,11 +16,11 @@ export const adminReviewsListHtml = (sidebar: string | null = null) => `
         <div class="flex-1 flex flex-col overflow-hidden bg-slate-50 min-w-0">
             <header class="h-16 bg-white/90 backdrop-blur-md border-b border-slate-200/60 flex items-center justify-between px-4 sm:px-8 shadow-sm z-10 shrink-0">
                 <div class="flex items-center min-w-0 gap-3">
-                    <h2 class="text-lg sm:text-xl font-black text-slate-900 tracking-tight truncate">수강후기 관리</h2>
-                    <span class="hidden sm:inline text-sm text-slate-500 truncate">홈페이지 노출은 <code class="text-xs bg-slate-100 px-1 rounded">공개(published)</code> 상태입니다.</span>
+                    <h2 class="text-lg sm:text-xl font-black text-slate-900 tracking-tight truncate">?섍컯?꾧린 愿由?/h2>
+                    <span class="hidden sm:inline text-sm text-slate-500 truncate">?덊럹?댁? ?몄텧? <code class="text-xs bg-slate-100 px-1 rounded">怨듦컻(published)</code> ?곹깭?낅땲??</span>
                 </div>
                 <button type="button" onclick="openReviewCreateModal()" class="shrink-0 px-4 py-2.5 rounded-2xl bg-sky-600 text-white text-sm font-black shadow-sm hover:bg-slate-900 transition">
-                    <i class="fas fa-plus mr-2"></i>수강후기 등록
+                    <i class="fas fa-plus mr-2"></i>?섍컯?꾧린 ?깅줉
                 </button>
             </header>
 
@@ -28,21 +28,21 @@ export const adminReviewsListHtml = (sidebar: string | null = null) => `
                 <div class="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-4 mb-6 flex flex-wrap gap-3 items-center justify-between">
                     <div class="flex flex-wrap gap-3 items-center">
                         <select id="statusFilter" onchange="loadReviews(1)" class="px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-sky-500 text-sm font-bold text-slate-700">
-                            <option value="">전체 상태</option>
-                            <option value="hidden">승인 대기(비공개)</option>
-                            <option value="published">공개됨</option>
+                            <option value="">?꾩껜 ?곹깭</option>
+                            <option value="hidden">?뱀씤 ?湲?鍮꾧났媛?</option>
+                            <option value="published">怨듦컻??/option>
                         </select>
-                        <button type="button" onclick="loadReviews(1)" class="p-2.5 rounded-xl text-slate-500 hover:bg-slate-100 hover:text-sky-600 transition" title="새로고침"><i class="fas fa-sync-alt"></i></button>
+                        <button type="button" onclick="loadReviews(1)" class="p-2.5 rounded-xl text-slate-500 hover:bg-slate-100 hover:text-sky-600 transition" title="?덈줈怨좎묠"><i class="fas fa-sync-alt"></i></button>
                         <span id="searchResultText" class="text-sm text-slate-500"></span>
                         <label class="flex items-center gap-1.5 text-sm text-slate-500">
-                            <span>페이지당</span>
+                            <span>?섏씠吏??/span>
                             <select id="rowsPerPage" onchange="setRowsPerPageReviews(parseInt(this.value, 10))" class="border border-slate-200 rounded-lg px-2 py-1.5 text-sm focus:ring-2 focus:ring-sky-500">
                                 <option value="10">10</option>
                                 <option value="20">20</option>
                                 <option value="30">30</option>
                                 <option value="50">50</option>
                             </select>
-                            <span>건</span>
+                            <span>嫄?/span>
                         </label>
                     </div>
                 </div>
@@ -52,17 +52,17 @@ export const adminReviewsListHtml = (sidebar: string | null = null) => `
                         <table class="min-w-full divide-y divide-slate-200">
                             <thead class="bg-slate-50">
                                 <tr>
-                                    <th scope="col" class="px-4 sm:px-6 py-3 text-left text-xs font-black text-slate-500 uppercase tracking-wider">상태</th>
-                                    <th scope="col" class="px-4 sm:px-6 py-3 text-left text-xs font-black text-slate-500 uppercase tracking-wider">작성자 / 과정</th>
-                                    <th scope="col" class="px-4 sm:px-6 py-3 text-left text-xs font-black text-slate-500 uppercase tracking-wider">평점 / 내용</th>
-                                    <th scope="col" class="px-4 sm:px-6 py-3 text-left text-xs font-black text-slate-500 uppercase tracking-wider">작성일</th>
-                                    <th scope="col" class="px-4 sm:px-6 py-3 text-right text-xs font-black text-slate-500 uppercase tracking-wider">관리</th>
+                                    <th scope="col" class="px-4 sm:px-6 py-3 text-left text-xs font-black text-slate-500 uppercase tracking-wider">?곹깭</th>
+                                    <th scope="col" class="px-4 sm:px-6 py-3 text-left text-xs font-black text-slate-500 uppercase tracking-wider">?묒꽦??/ 怨쇱젙</th>
+                                    <th scope="col" class="px-4 sm:px-6 py-3 text-left text-xs font-black text-slate-500 uppercase tracking-wider">?됱젏 / ?댁슜</th>
+                                    <th scope="col" class="px-4 sm:px-6 py-3 text-left text-xs font-black text-slate-500 uppercase tracking-wider">?묒꽦??/th>
+                                    <th scope="col" class="px-4 sm:px-6 py-3 text-right text-xs font-black text-slate-500 uppercase tracking-wider">愿由?/th>
                                 </tr>
                             </thead>
                             <tbody id="reviewsTableBody" class="bg-white divide-y divide-slate-200">
                                 <tr>
                                     <td colspan="5" class="px-6 py-16 text-center text-slate-500">
-                                        <i class="fas fa-spinner fa-spin mr-2"></i> 데이터를 불러오는 중...
+                                        <i class="fas fa-spinner fa-spin mr-2"></i> ?곗씠?곕? 遺덈윭?ㅻ뒗 以?..
                                     </td>
                                 </tr>
                             </tbody>
@@ -77,29 +77,32 @@ export const adminReviewsListHtml = (sidebar: string | null = null) => `
         </div>
     </div>
 
-    <!-- 등록 모달 -->
+    <!-- ?깅줉 紐⑤떖 -->
     <div id="reviewCreateModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/50">
         <div class="bg-white rounded-[2rem] border border-slate-200/60 shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div class="p-6 border-b border-slate-100 flex justify-between items-center">
-                <h3 class="text-lg font-black text-slate-900">수강후기 등록</h3>
+                <h3 class="text-lg font-black text-slate-900">?섍컯?꾧린 ?깅줉</h3>
                 <button type="button" onclick="closeReviewCreateModal()" class="text-slate-400 hover:text-slate-700 p-2"><i class="fas fa-times text-xl"></i></button>
             </div>
             <form id="reviewCreateForm" onsubmit="submitReviewCreate(event)" class="p-6 space-y-4">
                 <div>
-                    <label class="block text-xs font-black text-sky-600 uppercase tracking-widest mb-2">작성자 사용자 ID *</label>
-                    <input type="number" name="author_id" id="reviewAuthorId" required min="1" class="w-full px-4 py-3 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none font-mono text-sm" placeholder="users.id">
-                    <p class="text-[11px] text-slate-500 mt-1">후기가 속할 수강생 계정의 회원 번호입니다.</p>
-                </div>
-                <div>
-                    <label class="block text-xs font-black text-sky-600 uppercase tracking-widest mb-2">과정 *</label>
-                    <select id="reviewCourseSelect" class="w-full px-4 py-3 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none text-sm mb-2">
-                        <option value="">— 목록에서 선택 —</option>
+                    <label class="block text-xs font-black text-sky-600 uppercase tracking-widest mb-2">?묒꽦???ъ슜??ID *</label>
+                    <select id="reviewAuthorSelect" class="w-full px-4 py-3 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none text-sm mb-2">
+                        <option value="">??怨쇱젙??癒쇱? ?좏깮?섏꽭????/option>
                     </select>
-                    <input type="number" name="course_id" id="reviewCourseId" required min="1" class="w-full px-4 py-3 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none font-mono text-sm" placeholder="과정 ID (courses 또는 승인과정 id)">
-                    <p class="text-[11px] text-slate-500 mt-1">목록 선택 시 자동 입력됩니다. 국비 과정만 해당되면 승인과정 ID를 직접 입력하세요.</p>
+                    <input type="number" name="author_id" id="reviewAuthorId" required min="1" class="w-full px-4 py-3 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none font-mono text-sm" placeholder="users.id">
+                    <p class="text-[11px] text-slate-500 mt-1">怨쇱젙 ?좏깮 ???뱀씤???섍컯??紐⑸줉?먯꽌 ?좏깮?????덉뒿?덈떎. ?꾩슂 ???뚯썝 踰덊샇瑜?吏곸젒 ?낅젰???섎룄 ?덉뒿?덈떎.</p>
                 </div>
                 <div>
-                    <label class="block text-xs font-black text-sky-600 uppercase tracking-widest mb-2">평점 *</label>
+                    <label class="block text-xs font-black text-sky-600 uppercase tracking-widest mb-2">怨쇱젙 *</label>
+                    <select id="reviewCourseSelect" class="w-full px-4 py-3 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none text-sm mb-2">
+                        <option value="">??紐⑸줉?먯꽌 ?좏깮 ??/option>
+                    </select>
+                    <input type="number" name="course_id" id="reviewCourseId" required min="1" class="w-full px-4 py-3 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none font-mono text-sm" placeholder="怨쇱젙 ID (courses ?먮뒗 ?뱀씤怨쇱젙 id)">
+                    <p class="text-[11px] text-slate-500 mt-1">紐⑸줉 ?좏깮 ???먮룞 ?낅젰?⑸땲?? 援?퉬 怨쇱젙留??대떦?섎㈃ ?뱀씤怨쇱젙 ID瑜?吏곸젒 ?낅젰?섏꽭??</p>
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-sky-600 uppercase tracking-widest mb-2">?됱젏 *</label>
                     <select name="rating" id="reviewRating" required class="w-full px-4 py-3 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none text-sm">
                         <option value="5">5</option>
                         <option value="4">4</option>
@@ -109,23 +112,23 @@ export const adminReviewsListHtml = (sidebar: string | null = null) => `
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-black text-sky-600 uppercase tracking-widest mb-2">제목 *</label>
-                    <input type="text" name="title" required maxlength="200" class="w-full px-4 py-3 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none text-sm" placeholder="후기 제목">
+                    <label class="block text-xs font-black text-sky-600 uppercase tracking-widest mb-2">?쒕ぉ *</label>
+                    <input type="text" name="title" required maxlength="200" class="w-full px-4 py-3 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none text-sm" placeholder="?꾧린 ?쒕ぉ">
                 </div>
                 <div>
-                    <label class="block text-xs font-black text-sky-600 uppercase tracking-widest mb-2">내용 *</label>
-                    <textarea name="content" required rows="5" class="w-full px-4 py-3 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none text-sm custom-scrollbar" placeholder="후기 내용"></textarea>
+                    <label class="block text-xs font-black text-sky-600 uppercase tracking-widest mb-2">?댁슜 *</label>
+                    <textarea name="content" required rows="5" class="w-full px-4 py-3 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none text-sm custom-scrollbar" placeholder="?꾧린 ?댁슜"></textarea>
                 </div>
                 <div>
-                    <label class="block text-xs font-black text-sky-600 uppercase tracking-widest mb-2">공개 여부</label>
+                    <label class="block text-xs font-black text-sky-600 uppercase tracking-widest mb-2">怨듦컻 ?щ?</label>
                     <select name="status" id="reviewInitialStatus" class="w-full px-4 py-3 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none text-sm">
-                        <option value="published">바로 공개 (홈페이지 노출)</option>
-                        <option value="hidden">비공개 (추후 승인)</option>
+                        <option value="published">諛붾줈 怨듦컻 (?덊럹?댁? ?몄텧)</option>
+                        <option value="hidden">鍮꾧났媛?(異뷀썑 ?뱀씤)</option>
                     </select>
                 </div>
                 <div class="flex justify-end gap-2 pt-2">
-                    <button type="button" onclick="closeReviewCreateModal()" class="px-5 py-3 rounded-2xl border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50">취소</button>
-                    <button type="submit" class="px-6 py-3 rounded-2xl bg-sky-600 text-white text-sm font-black hover:bg-slate-900 transition">등록</button>
+                    <button type="button" onclick="closeReviewCreateModal()" class="px-5 py-3 rounded-2xl border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50">痍⑥냼</button>
+                    <button type="submit" class="px-6 py-3 rounded-2xl bg-sky-600 text-white text-sm font-black hover:bg-slate-900 transition">?깅줉</button>
                 </div>
             </form>
         </div>
@@ -155,6 +158,7 @@ export const adminReviewsListHtml = (sidebar: string | null = null) => `
             document.getElementById('reviewCreateModal').classList.remove('hidden');
             document.getElementById('reviewCreateModal').classList.add('flex');
             loadCourseOptionsForModal();
+            resetReviewAuthorOptions();
         }
 
         function closeReviewCreateModal() {
@@ -174,7 +178,7 @@ export const adminReviewsListHtml = (sidebar: string | null = null) => `
                     if (!c || c.id == null) return;
                     const opt = document.createElement('option');
                     opt.value = String(c.id);
-                    opt.textContent = '[' + c.id + '] ' + (c.title || c.name || '과정');
+                    opt.textContent = '[' + c.id + '] ' + (c.title || c.name || '怨쇱젙');
                     sel.appendChild(opt);
                 });
                 sel.dataset.loaded = '1';
@@ -185,10 +189,75 @@ export const adminReviewsListHtml = (sidebar: string | null = null) => `
                 const v = sel.value;
                 const manual = document.getElementById('reviewCourseId');
                 if (manual && v) manual.value = v;
+                loadAuthorOptionsByCourse(v);
             };
         }
 
-        document.addEventListener('DOMContentLoaded', () => loadReviews(1));
+        function resetReviewAuthorOptions() {
+            const authorSel = document.getElementById('reviewAuthorSelect');
+            if (!authorSel) return;
+            authorSel.innerHTML = '<option value="">??怨쇱젙??癒쇱? ?좏깮?섏꽭????/option>';
+            authorSel.onchange = function() {
+                const v = authorSel.value;
+                if (v) document.getElementById('reviewAuthorId').value = v;
+            };
+        }
+
+        async function loadAuthorOptionsByCourse(courseIdRaw) {
+            const authorSel = document.getElementById('reviewAuthorSelect');
+            if (!authorSel) return;
+            const courseId = parseInt(courseIdRaw, 10);
+            if (!courseId) {
+                resetReviewAuthorOptions();
+                return;
+            }
+            authorSel.innerHTML = '<option value="">?섍컯??紐⑸줉 遺덈윭?ㅻ뒗 以?..</option>';
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch('/api/enrollments?course_id=' + courseId + '&status=approved&limit=500', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const json = await res.json();
+                const list = Array.isArray(json?.data) ? json.data : [];
+                const uniq = new Map();
+                list.forEach(function(r) {
+                    const uid = Number(r.user_id);
+                    if (!uid || uniq.has(uid)) return;
+                    uniq.set(uid, r);
+                });
+                if (uniq.size === 0) {
+                    authorSel.innerHTML = '<option value="">?뱀씤???섍컯?앹씠 ?놁뒿?덈떎. ?ъ슜??ID瑜?吏곸젒 ?낅젰?섏꽭??/option>';
+                    return;
+                }
+                authorSel.innerHTML = '<option value="">???섍컯???좏깮 ??/option>';
+                Array.from(uniq.values()).forEach(function(r) {
+                    const opt = document.createElement('option');
+                    opt.value = String(r.user_id);
+                    opt.textContent = '[' + r.user_id + '] ' + (r.user_name || '?대쫫 ?놁쓬') + (r.user_email ? ' 쨌 ' + r.user_email : '');
+                    authorSel.appendChild(opt);
+                });
+                authorSel.onchange = function() {
+                    const v = authorSel.value;
+                    if (v) document.getElementById('reviewAuthorId').value = v;
+                };
+            } catch (e) {
+                console.error(e);
+                authorSel.innerHTML = '<option value="">?섍컯??紐⑸줉 濡쒕뱶 ?ㅽ뙣 (吏곸젒 ?낅젰 媛??</option>';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadReviews(1);
+            const courseManual = document.getElementById('reviewCourseId');
+            if (courseManual) {
+                courseManual.addEventListener('change', function() {
+                    loadAuthorOptionsByCourse(courseManual.value);
+                });
+                courseManual.addEventListener('blur', function() {
+                    loadAuthorOptionsByCourse(courseManual.value);
+                });
+            }
+        });
 
         async function loadReviews(page) {
             currentPageReviews = page;
@@ -209,12 +278,12 @@ export const adminReviewsListHtml = (sidebar: string | null = null) => `
                 const tbody = document.getElementById('reviewsTableBody');
 
                 if (response.status === 401) {
-                    tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-red-500">로그인이 필요합니다.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-red-500">濡쒓렇?몄씠 ?꾩슂?⑸땲??</td></tr>';
                     return;
                 }
 
                 if (!result.success) {
-                    tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-red-500">데이터를 불러오는데 실패했습니다.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-red-500">?곗씠?곕? 遺덈윭?ㅻ뒗???ㅽ뙣?덉뒿?덈떎.</td></tr>';
                     document.getElementById('paginationReviews').innerHTML = '';
                     return;
                 }
@@ -228,10 +297,10 @@ export const adminReviewsListHtml = (sidebar: string | null = null) => `
                     const sel = document.getElementById('rowsPerPage');
                     if (sel) sel.value = String(p.limit);
                 }
-                document.getElementById('searchResultText').textContent = '검색결과 ' + total + '건';
+                document.getElementById('searchResultText').textContent = '寃?됯껐怨?' + total + '嫄?;
 
                 if (result.data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-16 text-center"><div class="flex flex-col items-center text-slate-500"><i class="fas fa-star text-4xl text-slate-300 mb-3"></i><p class="font-bold">등록된 수강후기가 없습니다</p></div></td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-16 text-center"><div class="flex flex-col items-center text-slate-500"><i class="fas fa-star text-4xl text-slate-300 mb-3"></i><p class="font-bold">?깅줉???섍컯?꾧린媛 ?놁뒿?덈떎</p></div></td></tr>';
                     document.getElementById('paginationReviews').innerHTML = '';
                     return;
                 }
@@ -239,37 +308,37 @@ export const adminReviewsListHtml = (sidebar: string | null = null) => `
                 tbody.innerHTML = result.data.map(function(review) {
                     const isPub = review.status === 'published';
                     const stClass = isPub ? 'bg-emerald-100 text-emerald-800' : (review.status === 'draft' ? 'bg-slate-100 text-slate-600' : 'bg-amber-100 text-amber-800');
-                    const stLabel = isPub ? '공개' : (review.status === 'draft' ? '임시' : '비공개');
-                    const courseTitle = review.course_title || ('과정 #' + (review.course_id || ''));
+                    const stLabel = isPub ? '怨듦컻' : (review.status === 'draft' ? '?꾩떆' : '鍮꾧났媛?);
+                    const courseTitle = review.course_title || ('怨쇱젙 #' + (review.course_id || ''));
                     const contentPlain = escapeHtml((review.content || '').replace(/<[^>]+>/g, ' ').trim().substring(0, 120));
                     return '<tr class="hover:bg-slate-50 transition">' +
                         '<td class="px-4 sm:px-6 py-4 whitespace-nowrap">' +
                         '<span class="px-2 py-1 inline-flex text-xs font-bold rounded-full ' + stClass + '">' + stLabel + '</span>' +
                         '</td>' +
                         '<td class="px-4 sm:px-6 py-4">' +
-                        '<div class="text-sm font-bold text-slate-900">' + escapeHtml(review.author_name || '—') + ' <span class="text-slate-400 font-mono text-xs">(id:' + escapeHtml(String(review.author_id || '')) + ')</span></div>' +
+                        '<div class="text-sm font-bold text-slate-900">' + escapeHtml(review.author_name || '??) + ' <span class="text-slate-400 font-mono text-xs">(id:' + escapeHtml(String(review.author_id || '')) + ')</span></div>' +
                         '<div class="text-xs text-slate-500">' + escapeHtml(courseTitle) + '</div>' +
                         '</td>' +
                         '<td class="px-4 sm:px-6 py-4">' +
                         '<div class="flex text-amber-400 text-xs mb-1">' + getStarRating(review.rating) + '</div>' +
                         '<div class="text-sm font-bold text-slate-800">' + escapeHtml(review.title || '') + '</div>' +
-                        '<div class="text-sm text-slate-500 truncate max-w-md">' + contentPlain + (contentPlain.length >= 120 ? '…' : '') + '</div>' +
+                        '<div class="text-sm text-slate-500 truncate max-w-md">' + contentPlain + (contentPlain.length >= 120 ? '?? : '') + '</div>' +
                         '</td>' +
                         '<td class="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-slate-500">' +
                         escapeHtml(new Date(review.created_at).toLocaleString('ko-KR')) +
                         '</td>' +
                         '<td class="px-4 sm:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">' +
                         (isPub
-                            ? '<button type="button" onclick="setReviewPublished(' + review.id + ', false)" class="text-amber-600 hover:text-amber-900 mr-2 font-bold"><i class="fas fa-eye-slash"></i> 비공개</button>'
-                            : '<button type="button" onclick="setReviewPublished(' + review.id + ', true)" class="text-emerald-600 hover:text-emerald-900 mr-2 font-bold"><i class="fas fa-check"></i> 공개</button>') +
-                        '<button type="button" onclick="deleteReview(' + review.id + ')" class="text-red-600 hover:text-red-900 font-bold"><i class="fas fa-trash"></i> 삭제</button>' +
+                            ? '<button type="button" onclick="setReviewPublished(' + review.id + ', false)" class="text-amber-600 hover:text-amber-900 mr-2 font-bold"><i class="fas fa-eye-slash"></i> 鍮꾧났媛?/button>'
+                            : '<button type="button" onclick="setReviewPublished(' + review.id + ', true)" class="text-emerald-600 hover:text-emerald-900 mr-2 font-bold"><i class="fas fa-check"></i> 怨듦컻</button>') +
+                        '<button type="button" onclick="deleteReview(' + review.id + ')" class="text-red-600 hover:text-red-900 font-bold"><i class="fas fa-trash"></i> ??젣</button>' +
                         '</td>' +
                         '</tr>';
                 }).join('');
 
                 const start = total === 0 ? 0 : (pageNum - 1) * (p.limit || itemsPerPageReviews) + 1;
                 const end = Math.min(pageNum * (p.limit || itemsPerPageReviews), total);
-                document.getElementById('paginationRange').textContent = total > 0 ? start + '-' + end + ' / ' + total + '건' : '';
+                document.getElementById('paginationRange').textContent = total > 0 ? start + '-' + end + ' / ' + total + '嫄? : '';
 
                 const nav = document.getElementById('paginationReviews');
                 if (totalPages <= 1) {
@@ -283,26 +352,26 @@ export const adminReviewsListHtml = (sidebar: string | null = null) => `
                     else if (pages[pages.length - 1] !== '...') pages.push('...');
                 }
                 let html = '';
-                html += '<button type="button" onclick="loadReviews(' + (pageNum - 1) + ')" ' + (pageNum <= 1 ? 'disabled' : '') + ' class="px-3 py-2 rounded-xl border border-slate-200 text-sm font-bold ' + (pageNum <= 1 ? 'opacity-50 cursor-not-allowed bg-slate-50 text-slate-400' : 'bg-white text-slate-700 hover:bg-slate-50') + '"><i class="fas fa-chevron-left mr-1"></i> 이전</button>';
+                html += '<button type="button" onclick="loadReviews(' + (pageNum - 1) + ')" ' + (pageNum <= 1 ? 'disabled' : '') + ' class="px-3 py-2 rounded-xl border border-slate-200 text-sm font-bold ' + (pageNum <= 1 ? 'opacity-50 cursor-not-allowed bg-slate-50 text-slate-400' : 'bg-white text-slate-700 hover:bg-slate-50') + '"><i class="fas fa-chevron-left mr-1"></i> ?댁쟾</button>';
                 pages.forEach(function(n) {
-                    if (n === '...') html += '<span class="px-2 py-2 text-slate-400">…</span>';
+                    if (n === '...') html += '<span class="px-2 py-2 text-slate-400">??/span>';
                     else {
                         const active = n === pageNum;
                         html += '<button type="button" onclick="loadReviews(' + n + ')" class="min-w-[2.25rem] px-3 py-2 rounded-xl text-sm font-bold ' + (active ? 'bg-sky-600 text-white' : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50') + '">' + n + '</button>';
                     }
                 });
-                html += '<button type="button" onclick="loadReviews(' + (pageNum + 1) + ')" ' + (pageNum >= totalPages ? 'disabled' : '') + ' class="px-3 py-2 rounded-xl border border-slate-200 text-sm font-bold ' + (pageNum >= totalPages ? 'opacity-50 cursor-not-allowed bg-slate-50 text-slate-400' : 'bg-white text-slate-700 hover:bg-slate-50') + '">다음 <i class="fas fa-chevron-right ml-1"></i></button>';
+                html += '<button type="button" onclick="loadReviews(' + (pageNum + 1) + ')" ' + (pageNum >= totalPages ? 'disabled' : '') + ' class="px-3 py-2 rounded-xl border border-slate-200 text-sm font-bold ' + (pageNum >= totalPages ? 'opacity-50 cursor-not-allowed bg-slate-50 text-slate-400' : 'bg-white text-slate-700 hover:bg-slate-50') + '">?ㅼ쓬 <i class="fas fa-chevron-right ml-1"></i></button>';
                 nav.innerHTML = html;
 
             } catch (error) {
                 console.error('Error:', error);
-                document.getElementById('reviewsTableBody').innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-red-500">오류가 발생했습니다.</td></tr>';
+                document.getElementById('reviewsTableBody').innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-red-500">?ㅻ쪟媛 諛쒖깮?덉뒿?덈떎.</td></tr>';
                 document.getElementById('paginationReviews').innerHTML = '';
             }
         }
 
         async function setReviewPublished(id, published) {
-            if (!confirm(published ? '이 후기를 공개(홈페이지 노출)하시겠습니까?' : '비공개(승인 대기)로 바꾸시겠습니까?')) return;
+            if (!confirm(published ? '???꾧린瑜?怨듦컻(?덊럹?댁? ?몄텧)?섏떆寃좎뒿?덇퉴?' : '鍮꾧났媛??뱀씤 ?湲?濡?諛붽씀?쒓쿋?듬땲源?')) return;
             try {
                 const token = localStorage.getItem('token');
                 const response = await fetch('/api/posts/' + id, {
@@ -315,19 +384,19 @@ export const adminReviewsListHtml = (sidebar: string | null = null) => `
                 });
                 const result = await response.json();
                 if (result.success) {
-                    alert('처리되었습니다.');
+                    alert('泥섎━?섏뿀?듬땲??');
                     loadReviews(currentPageReviews);
                 } else {
-                    alert('오류: ' + (result.error || '알 수 없음'));
+                    alert('?ㅻ쪟: ' + (result.error || '?????놁쓬'));
                 }
             } catch (error) {
                 console.error('Error:', error);
-                alert('처리 중 오류가 발생했습니다.');
+                alert('泥섎━ 以??ㅻ쪟媛 諛쒖깮?덉뒿?덈떎.');
             }
         }
 
         async function deleteReview(id) {
-            if (!confirm('정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return;
+            if (!confirm('?뺣쭚 ??젣?섏떆寃좎뒿?덇퉴? ???묒뾽? ?섎룎由????놁뒿?덈떎.')) return;
             try {
                 const token = localStorage.getItem('token');
                 const response = await fetch('/api/posts/' + id, {
@@ -336,14 +405,14 @@ export const adminReviewsListHtml = (sidebar: string | null = null) => `
                 });
                 const result = await response.json();
                 if (result.success) {
-                    alert('삭제되었습니다.');
+                    alert('??젣?섏뿀?듬땲??');
                     loadReviews(currentPageReviews);
                 } else {
-                    alert('오류: ' + (result.error || '알 수 없음'));
+                    alert('?ㅻ쪟: ' + (result.error || '?????놁쓬'));
                 }
             } catch (error) {
                 console.error('Error:', error);
-                alert('삭제 중 오류가 발생했습니다.');
+                alert('??젣 以??ㅻ쪟媛 諛쒖깮?덉뒿?덈떎.');
             }
         }
 
@@ -351,7 +420,7 @@ export const adminReviewsListHtml = (sidebar: string | null = null) => `
             e.preventDefault();
             const token = localStorage.getItem('token');
             if (!token) {
-                alert('로그인이 필요합니다.');
+                alert('濡쒓렇?몄씠 ?꾩슂?⑸땲??');
                 return;
             }
             const authorId = parseInt(document.getElementById('reviewAuthorId').value, 10);
@@ -361,7 +430,7 @@ export const adminReviewsListHtml = (sidebar: string | null = null) => `
             const content = (document.querySelector('#reviewCreateForm [name="content"]').value || '').trim();
             const status = document.getElementById('reviewInitialStatus').value;
             if (!authorId || !courseId || !title || !content) {
-                alert('작성자 ID, 과정 ID, 제목, 내용을 입력해 주세요.');
+                alert('?묒꽦??ID, 怨쇱젙 ID, ?쒕ぉ, ?댁슜???낅젰??二쇱꽭??');
                 return;
             }
             try {
@@ -383,17 +452,17 @@ export const adminReviewsListHtml = (sidebar: string | null = null) => `
                 });
                 const result = await res.json();
                 if (result.success) {
-                    alert('수강후기가 등록되었습니다.');
+                    alert('?섍컯?꾧린媛 ?깅줉?섏뿀?듬땲??');
                     closeReviewCreateModal();
                     document.getElementById('reviewCreateForm').reset();
                     document.getElementById('reviewCourseSelect').value = '';
                     loadReviews(1);
                 } else {
-                    alert(result.error || '등록에 실패했습니다.');
+                    alert(result.error || '?깅줉???ㅽ뙣?덉뒿?덈떎.');
                 }
             } catch (err) {
                 console.error(err);
-                alert('등록 중 오류가 발생했습니다.');
+                alert('?깅줉 以??ㅻ쪟媛 諛쒖깮?덉뒿?덈떎.');
             }
         }
 

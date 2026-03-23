@@ -762,17 +762,33 @@ export const homeHtml = `
                 container.innerHTML = '<div class="col-span-1 md:col-span-2 lg:col-span-3 text-center py-12 text-gray-500">수강후기를 불러오지 못했습니다.</div>';
             }
         }
+        async function fetchAllEducationPhotoPosts() {
+            var all = [];
+            var page = 1;
+            var limit = 200;
+            var maxPages = 50; // 안전장치: 최대 10,000건
+            while (page <= maxPages) {
+                var res = await fetch('/api/posts?category=education_photo&status=published&page=' + page + '&limit=' + limit + '&sort=created_at&order=DESC');
+                var result = await res.json();
+                if (!result.success) {
+                    throw new Error(result.error || '교육사진 목록 조회 실패');
+                }
+                var list = Array.isArray(result.data) ? result.data : [];
+                all = all.concat(list);
+                var p = result.pagination || {};
+                var totalPages = Number(p.totalPages || 1);
+                if (page >= totalPages || list.length === 0) break;
+                page++;
+            }
+            return all;
+        }
+
         async function loadEducationPhotos() {
             var container = document.getElementById('educationPhotoList');
             if (!container) return;
             try {
-                // 충분히 많이 받은 뒤 '사진 있음' 우선·최신순으로 골라 메인 8칸 채움
-                var res = await fetch('/api/posts?category=education_photo&status=published&limit=100');
-                var result = await res.json();
-                if (!result.success) {
-                    container.innerHTML = '<div class="text-center py-12 text-gray-500">교육사진 목록을 불러오지 못했습니다.</div>';
-                    return;
-                }
+                // 전체 공개 교육사진을 조회한 뒤, 사진이 있는 항목만 메인에 노출
+                var list = await fetchAllEducationPhotoPosts();
                 function getFirstImage(p) {
                     var img = (p.images && p.images.length) ? p.images[0] : '';
                     if (typeof p.images === 'string' && p.images.trim().startsWith('[')) {
@@ -787,7 +803,6 @@ export const homeHtml = `
                     }
                     return img;
                 }
-                var list = (result.data || []).slice();
                 // 1) 사진이 있는 글을 먼저  2) 그 안에서는 최신순 (등록일 또는 created_at)
                 list.sort(function(a, b) {
                     var ia = getFirstImage(a) ? 1 : 0;
