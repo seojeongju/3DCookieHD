@@ -19,6 +19,7 @@ app.get('/', authMiddleware, async (c) => {
     const limit = parseInt(c.req.query('limit') || '10');
     const status = c.req.query('status'); // pending, approved, rejected, completed, cancelled
     const courseId = c.req.query('course_id'); // 과정별 필터링 (legacy: courses.id / HRD: approved_courses.id)
+    const userIdQuery = c.req.query('user_id'); // 관리자용 사용자 필터
     const typeHrd = c.req.query('type') === 'hrd';
     const offset = (page - 1) * limit;
 
@@ -163,6 +164,10 @@ app.get('/', authMiddleware, async (c) => {
     } else {
       // 관리자는 모든 신청 조회 가능
       const conditions: string[] = [];
+      if (userIdQuery) {
+        conditions.push('e.user_id = ?');
+        params.push(userIdQuery);
+      }
       if (status) {
         conditions.push('e.status = ?');
         params.push(status);

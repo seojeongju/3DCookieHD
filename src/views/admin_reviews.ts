@@ -86,11 +86,21 @@ export const adminReviewsListHtml = (sidebar: string | null = null) => `
             <form id="reviewCreateForm" onsubmit="submitReviewCreate(event)" class="p-6 space-y-4">
                 <div>
                     <label class="block text-xs font-black text-sky-600 uppercase tracking-widest mb-2">작성자 사용자 ID *</label>
+                    <div class="flex gap-2 mb-2">
+                        <button type="button" onclick="openAuthorFinderModal()" class="px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 text-sm font-bold hover:bg-slate-50">
+                            <i class="fas fa-search mr-1"></i>작성자 선택(찾기)
+                        </button>
+                        <input type="text" id="reviewAuthorName" readonly class="flex-1 px-3 py-2.5 border border-slate-200 rounded-xl bg-slate-50 text-slate-700 text-sm" placeholder="선택된 작성자 이름">
+                    </div>
                     <select id="reviewAuthorSelect" class="w-full px-4 py-3 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none text-sm mb-2">
                         <option value="">— 과정을 먼저 선택하세요 —</option>
                     </select>
                     <input type="number" name="author_id" id="reviewAuthorId" required min="1" class="w-full px-4 py-3 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none font-mono text-sm" placeholder="users.id">
                     <p class="text-[11px] text-slate-500 mt-1">과정 선택 시 승인된 수강생 목록에서 선택할 수 있습니다. 필요 시 회원 번호를 직접 입력할 수도 있습니다.</p>
+                    <div id="selectedAuthorCourses" class="mt-2 hidden rounded-xl border border-slate-200 bg-slate-50 p-3">
+                        <p class="text-xs font-bold text-slate-600 mb-2">선택된 작성자 수강과정</p>
+                        <ul id="selectedAuthorCoursesList" class="space-y-1 text-xs text-slate-700"></ul>
+                    </div>
                 </div>
                 <div>
                     <label class="block text-xs font-black text-sky-600 uppercase tracking-widest mb-2">과정 *</label>
@@ -98,7 +108,7 @@ export const adminReviewsListHtml = (sidebar: string | null = null) => `
                         <option value="">— 목록에서 선택 —</option>
                     </select>
                     <input type="number" name="course_id" id="reviewCourseId" required min="1" class="w-full px-4 py-3 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none font-mono text-sm" placeholder="과정 ID (courses 또는 승인과정 id)">
-                    <p class="text-[11px] text-slate-500 mt-1">목록 선택 시 자동 입력됩니다. 국비 과정만 해당되면 승인과정 ID를 직접 입력하세요.</p>
+                    <p class="text-[11px] text-slate-500 mt-1">과정명 뒤에 상태가 함께 표시됩니다. 목록 선택 시 과정 ID가 자동 입력됩니다.</p>
                 </div>
                 <div>
                     <label class="block text-xs font-black text-sky-600 uppercase tracking-widest mb-2">평점 *</label>
@@ -133,6 +143,24 @@ export const adminReviewsListHtml = (sidebar: string | null = null) => `
         </div>
     </div>
 
+    <div id="authorFinderModal" class="fixed inset-0 z-[60] hidden items-center justify-center p-4 bg-black/50">
+        <div class="bg-white rounded-[2rem] border border-slate-200/60 shadow-xl max-w-2xl w-full max-h-[85vh] overflow-hidden flex flex-col">
+            <div class="p-5 border-b border-slate-100 flex justify-between items-center">
+                <h3 class="text-lg font-black text-slate-900">작성자 선택</h3>
+                <button type="button" onclick="closeAuthorFinderModal()" class="text-slate-400 hover:text-slate-700 p-2"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div class="p-5 border-b border-slate-100">
+                <div class="flex gap-2">
+                    <input type="text" id="authorFinderKeyword" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-sky-200 outline-none text-sm" placeholder="수강생 이름/이메일 검색">
+                    <button type="button" onclick="searchAuthorCandidates()" class="px-4 py-2.5 rounded-xl bg-sky-600 text-white text-sm font-bold hover:bg-slate-900">검색</button>
+                </div>
+            </div>
+            <div id="authorFinderList" class="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-2 text-sm">
+                <p class="text-slate-400 text-center py-8">검색어를 입력하고 검색해 주세요.</p>
+            </div>
+        </div>
+    </div>
+
     <style>
         .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
@@ -153,11 +181,22 @@ export const adminReviewsListHtml = (sidebar: string | null = null) => `
             return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         }
 
+        function enrollmentStatusLabel(st) {
+            if (st === 'pending') return { text: '수강예약', cls: 'bg-blue-100 text-blue-700' };
+            if (st === 'approved') return { text: '수강중', cls: 'bg-emerald-100 text-emerald-700' };
+            if (st === 'completed') return { text: '수강종료', cls: 'bg-slate-200 text-slate-700' };
+            if (st === 'cancelled') return { text: '취소', cls: 'bg-amber-100 text-amber-700' };
+            if (st === 'rejected') return { text: '반려', cls: 'bg-rose-100 text-rose-700' };
+            return { text: st || '미정', cls: 'bg-slate-100 text-slate-600' };
+        }
+
         function openReviewCreateModal() {
             document.getElementById('reviewCreateModal').classList.remove('hidden');
             document.getElementById('reviewCreateModal').classList.add('flex');
             loadCourseOptionsForModal();
             resetReviewAuthorOptions();
+            document.getElementById('reviewAuthorName').value = '';
+            renderSelectedAuthorCourses([]);
         }
 
         function closeReviewCreateModal() {
@@ -173,11 +212,23 @@ export const adminReviewsListHtml = (sidebar: string | null = null) => `
                 const json = await res.json();
                 const list = (json.data || json.results || json) || [];
                 const rows = Array.isArray(list) ? list : [];
+                function statusLabel(status) {
+                    if (status === 'recruiting') return '모집중';
+                    if (status === 'in_progress') return '진행중';
+                    if (status === 'completed') return '종료';
+                    if (status === 'always_open') return '상시모집';
+                    if (status === 'closed') return '폐강';
+                    if (status === 'active') return '운영중';
+                    if (status === 'full') return '마감';
+                    return status ? String(status) : '상태미정';
+                }
                 rows.forEach(function(c) {
                     if (!c || c.id == null) return;
                     const opt = document.createElement('option');
                     opt.value = String(c.id);
-                    opt.textContent = '[' + c.id + '] ' + (c.title || c.name || '과정');
+                    const title = c.title || c.name || '과정';
+                    const st = statusLabel(c.status);
+                    opt.textContent = '[' + c.id + '] ' + title + ' (' + st + ')';
                     sel.appendChild(opt);
                 });
                 sel.dataset.loaded = '1';
@@ -198,8 +249,112 @@ export const adminReviewsListHtml = (sidebar: string | null = null) => `
             authorSel.innerHTML = '<option value="">— 과정을 먼저 선택하세요 —</option>';
             authorSel.onchange = function() {
                 const v = authorSel.value;
-                if (v) document.getElementById('reviewAuthorId').value = v;
+                if (v) {
+                    document.getElementById('reviewAuthorId').value = v;
+                    loadSelectedAuthorCourses(v);
+                }
             };
+        }
+
+        function openAuthorFinderModal() {
+            document.getElementById('authorFinderModal').classList.remove('hidden');
+            document.getElementById('authorFinderModal').classList.add('flex');
+            const keyword = document.getElementById('authorFinderKeyword');
+            keyword.value = '';
+            keyword.focus();
+            document.getElementById('authorFinderList').innerHTML = '<p class="text-slate-400 text-center py-8">검색어를 입력하고 검색해 주세요.</p>';
+        }
+
+        function closeAuthorFinderModal() {
+            document.getElementById('authorFinderModal').classList.add('hidden');
+            document.getElementById('authorFinderModal').classList.remove('flex');
+        }
+
+        async function searchAuthorCandidates() {
+            const keyword = (document.getElementById('authorFinderKeyword').value || '').trim();
+            const container = document.getElementById('authorFinderList');
+            container.innerHTML = '<p class="text-slate-400 text-center py-8">검색 중...</p>';
+            try {
+                const token = localStorage.getItem('token');
+                let url = '/api/users?role=student';
+                if (keyword) url += '&search=' + encodeURIComponent(keyword);
+                const res = await fetch(url, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const json = await res.json();
+                const rows = Array.isArray(json?.data) ? json.data : [];
+                if (rows.length === 0) {
+                    container.innerHTML = '<p class="text-slate-400 text-center py-8">검색 결과가 없습니다.</p>';
+                    return;
+                }
+                container.innerHTML = rows.map(function(u) {
+                    const uid = Number(u.id || 0);
+                    const rawName = String(u.name || '이름 없음');
+                    const name = escapeHtml(rawName);
+                    const email = escapeHtml(u.email || '');
+                    const phone = escapeHtml(u.phone || '');
+                    return '<button type="button" onclick="selectAuthorFromFinder(' + uid + ', \'' + encodeURIComponent(rawName) + '\')" class="w-full text-left rounded-xl border border-slate-200 hover:border-sky-300 hover:bg-sky-50 p-3 transition">' +
+                        '<div class="font-bold text-slate-900">' + name + ' <span class="font-mono text-xs text-slate-400">(id:' + uid + ')</span></div>' +
+                        '<div class="text-xs text-slate-500 mt-1">' + email + (phone ? ' · ' + phone : '') + '</div>' +
+                        '</button>';
+                }).join('');
+            } catch (e) {
+                console.error(e);
+                container.innerHTML = '<p class="text-red-500 text-center py-8">작성자 검색 중 오류가 발생했습니다.</p>';
+            }
+        }
+
+        async function selectAuthorFromFinder(userId, encodedUserName) {
+            const userName = decodeURIComponent(encodedUserName || '');
+            document.getElementById('reviewAuthorId').value = String(userId);
+            document.getElementById('reviewAuthorName').value = userName || '';
+            await loadSelectedAuthorCourses(userId);
+            closeAuthorFinderModal();
+        }
+
+        function renderSelectedAuthorCourses(rows) {
+            const wrap = document.getElementById('selectedAuthorCourses');
+            const list = document.getElementById('selectedAuthorCoursesList');
+            if (!wrap || !list) return;
+            if (!Array.isArray(rows) || rows.length === 0) {
+                wrap.classList.add('hidden');
+                list.innerHTML = '';
+                return;
+            }
+            wrap.classList.remove('hidden');
+            list.innerHTML = rows.map(function(r) {
+                const st = enrollmentStatusLabel(r.status);
+                const title = escapeHtml(r.course_title || ('과정 #' + (r.course_id || '')));
+                const enrolledAt = r.enrolled_at ? escapeHtml(new Date(r.enrolled_at).toLocaleDateString('ko-KR')) : '';
+                return '<li class="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-2.5 py-2">' +
+                    '<div class="min-w-0"><p class="font-semibold text-slate-800 truncate">' + title + '</p>' +
+                    '<p class="text-[11px] text-slate-500">' + (enrolledAt ? ('신청일: ' + enrolledAt) : '') + '</p></div>' +
+                    '<span class="px-2 py-1 rounded-full text-[11px] font-bold whitespace-nowrap ' + st.cls + '">' + st.text + '</span></li>';
+            }).join('');
+        }
+
+        async function loadSelectedAuthorCourses(userIdRaw) {
+            const userId = parseInt(userIdRaw, 10);
+            if (!userId) {
+                renderSelectedAuthorCourses([]);
+                return;
+            }
+            const list = document.getElementById('selectedAuthorCoursesList');
+            const wrap = document.getElementById('selectedAuthorCourses');
+            if (wrap) wrap.classList.remove('hidden');
+            if (list) list.innerHTML = '<li class="text-slate-500 text-xs">과정 정보를 불러오는 중...</li>';
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch('/api/enrollments?user_id=' + userId + '&limit=500&page=1', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const json = await res.json();
+                const rows = Array.isArray(json?.data) ? json.data : [];
+                renderSelectedAuthorCourses(rows);
+            } catch (e) {
+                console.error(e);
+                if (list) list.innerHTML = '<li class="text-red-500 text-xs">과정 정보 로드 실패</li>';
+            }
         }
 
         async function loadAuthorOptionsByCourse(courseIdRaw) {
@@ -237,7 +392,13 @@ export const adminReviewsListHtml = (sidebar: string | null = null) => `
                 });
                 authorSel.onchange = function() {
                     const v = authorSel.value;
-                    if (v) document.getElementById('reviewAuthorId').value = v;
+                    if (v) {
+                        document.getElementById('reviewAuthorId').value = v;
+                        const selectedText = authorSel.options[authorSel.selectedIndex]?.textContent || '';
+                        const inferredName = selectedText.replace(/^\[\d+\]\s*/, '').split('·')[0].trim();
+                        document.getElementById('reviewAuthorName').value = inferredName;
+                        loadSelectedAuthorCourses(v);
+                    }
                 };
             } catch (e) {
                 console.error(e);
@@ -254,6 +415,24 @@ export const adminReviewsListHtml = (sidebar: string | null = null) => `
                 });
                 courseManual.addEventListener('blur', function() {
                     loadAuthorOptionsByCourse(courseManual.value);
+                });
+            }
+            const authorManual = document.getElementById('reviewAuthorId');
+            if (authorManual) {
+                authorManual.addEventListener('change', function() {
+                    loadSelectedAuthorCourses(authorManual.value);
+                });
+                authorManual.addEventListener('blur', function() {
+                    loadSelectedAuthorCourses(authorManual.value);
+                });
+            }
+            const finderKeyword = document.getElementById('authorFinderKeyword');
+            if (finderKeyword) {
+                finderKeyword.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        searchAuthorCandidates();
+                    }
                 });
             }
         });
