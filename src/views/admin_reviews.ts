@@ -293,13 +293,19 @@ export const adminReviewsListHtml = (sidebar: string | null = null) => `
                     const name = escapeHtml(rawName);
                     const email = escapeHtml(u.email || '');
                     const phone = escapeHtml(u.phone || '');
-                    // encodeURIComponent does not escape apostrophe('), so force-escape for inline onclick safety.
-                    const safeEncodedName = encodeURIComponent(rawName).replace(/'/g, '%27');
-                    return '<button type="button" onclick="selectAuthorFromFinder(' + uid + ', \'' + safeEncodedName + '\')" class="w-full text-left rounded-xl border border-slate-200 hover:border-sky-300 hover:bg-sky-50 p-3 transition">' +
+                    return '<button type="button" data-author-pick="1" data-user-id="' + uid + '" data-user-name="' + encodeURIComponent(rawName) + '" class="w-full text-left rounded-xl border border-slate-200 hover:border-sky-300 hover:bg-sky-50 p-3 transition">' +
                         '<div class="font-bold text-slate-900">' + name + ' <span class="font-mono text-xs text-slate-400">(id:' + uid + ')</span></div>' +
                         '<div class="text-xs text-slate-500 mt-1">' + email + (phone ? ' · ' + phone : '') + '</div>' +
                         '</button>';
                 }).join('');
+                container.querySelectorAll('[data-author-pick="1"]').forEach(function(btn) {
+                    btn.addEventListener('click', function() {
+                        const userId = Number(btn.getAttribute('data-user-id') || 0);
+                        const encodedName = btn.getAttribute('data-user-name') || '';
+                        if (!userId) return;
+                        selectAuthorFromFinder(userId, encodedName);
+                    });
+                });
             } catch (e) {
                 console.error(e);
                 container.innerHTML = '<p class="text-red-500 text-center py-8">작성자 검색 중 오류가 발생했습니다.</p>';
