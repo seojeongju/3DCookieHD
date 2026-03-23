@@ -517,7 +517,7 @@ export const teacherPortfoliosHtml = `
             document.getElementById('modalThumbnail').src = p.thumbnail_url || 'https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=800';
             document.getElementById('modalCategory').textContent = p.category || 'ASSET';
             document.getElementById('modalTitleDetail').textContent = p.title;
-            document.getElementById('modalDescription').textContent = p.description || '기술 설명이 제공되지 않았습니다.';
+            document.getElementById('modalDescription').innerHTML = p.description || '<p class="text-slate-500">기술 설명이 제공되지 않았습니다.</p>';
             document.getElementById('modalStudentName').textContent = p.student_name || '알 수 없음';
             document.getElementById('modalCourseTitle').textContent = p.course_title || '과정 정보 없음';
             document.getElementById('modalStudentInitial').textContent = (p.student_name || 'N')[0];

@@ -238,7 +238,7 @@ export const adminPortfoliosHtml = `
                     </div>
                     <div class="p-4 flex-1 flex flex-col">
                         <h4 class="font-bold text-gray-800 text-base mb-2 line-clamp-1 group-hover:text-blue-600 transition-colors">\${p.title}</h4>
-                        <p class="text-gray-500 text-xs font-medium line-clamp-2 mb-3 leading-relaxed">\${p.description || '설명이 없습니다.'}</p>
+                        <p class="text-gray-500 text-xs font-medium line-clamp-2 mb-3 leading-relaxed">\${(p.description_plain && String(p.description_plain).trim()) ? String(p.description_plain).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') : '설명이 없습니다.'}</p>
                         <div class="mt-auto pt-3 border-t border-gray-50 flex justify-between items-center">
                             <div class="flex items-center gap-2">
                                 <div class="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-[8px] font-bold">\${p.student_name[0]}</div>
@@ -296,7 +296,7 @@ export const adminPortfoliosHtml = `
             document.getElementById('modalThumbnail').src = p.thumbnail_url || 'https://images.unsplash.com/photo-1587586062323-836091e6006e?auto=format&fit=crop&q=80&w=800';
             document.getElementById('modalCategory').textContent = p.category;
             document.getElementById('modalTitle').textContent = p.title;
-            document.getElementById('modalDescription').textContent = p.description || '설명이 공개되지 않았습니다.';
+            document.getElementById('modalDescription').innerHTML = p.description || '<p class="text-gray-500">설명이 공개되지 않았습니다.</p>';
             document.getElementById('modalStudent').textContent = p.student_name;
             document.getElementById('modalCourse').textContent = p.course_title || '소속 과정 정보 없음';
             document.getElementById('modalContentLink').href = p.content_url || '#';

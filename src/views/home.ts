@@ -532,9 +532,14 @@ export const homeHtml = `
                 var cards = withImage.slice(0, 8).map(function(p) {
                     var safeTitle = (p.title || '포트폴리오').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                     var titleEsc = safeTitle;
-                    var description = p.description || '';
-                    var contentPlain = description.substring(0, 80);
-                    if (description.length > 80) contentPlain += '\u2026';
+                    function portfolioPlainText(html) {
+                        if (!html || typeof html !== 'string') return '';
+                        return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+                    }
+                    var rawPlain = (p.description_plain != null && String(p.description_plain).trim() !== '')
+                        ? String(p.description_plain)
+                        : portfolioPlainText(p.description || '');
+                    var contentPlain = rawPlain.length > 80 ? rawPlain.substring(0, 80) + '\u2026' : rawPlain;
                     var contentEsc = contentPlain.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
                     var authorEsc = (p.student_name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                     
@@ -560,28 +565,37 @@ export const homeHtml = `
             var container = document.getElementById('educationPhotoList');
             if (!container) return;
             try {
-                var res = await fetch('/api/posts?category=education_photo&status=published&limit=20');
+                // 충분히 많이 받은 뒤 '사진 있음' 우선·최신순으로 골라 메인 8칸 채움
+                var res = await fetch('/api/posts?category=education_photo&status=published&limit=100');
                 var result = await res.json();
                 if (!result.success) {
                     container.innerHTML = '<div class="col-span-2 md:col-span-4 text-center py-12 text-gray-500">교육사진 목록을 불러오지 못했습니다.</div>';
                     return;
                 }
-                var list = (result.data || []).slice();
-                // 최신순 정렬 (등록일 또는 created_at 기준)
-                list.sort(function(a, b) {
-                    var da = parseContentRegDate(a.content) || a.created_at || 0;
-                    var db = parseContentRegDate(b.content) || b.created_at || 0;
-                    return new Date(db) - new Date(da);
-                });
-                // 사진이 있는 항목만 사용 (사진 없으면 다음 항목으로 밀림)
                 function getFirstImage(p) {
                     var img = (p.images && p.images.length) ? p.images[0] : '';
+                    if (typeof p.images === 'string' && p.images.trim().startsWith('[')) {
+                        try {
+                            var arr = JSON.parse(p.images);
+                            if (Array.isArray(arr) && arr.length) img = arr[0];
+                        } catch (e) { /* ignore */ }
+                    }
                     if (!img && p.content) {
                         var m = p.content.match(/<img[^>]+src=["']([^"']+)["']/i);
                         if (m && m[1]) img = m[1];
                     }
                     return img;
                 }
+                var list = (result.data || []).slice();
+                // 1) 사진이 있는 글을 먼저  2) 그 안에서는 최신순 (등록일 또는 created_at)
+                list.sort(function(a, b) {
+                    var ia = getFirstImage(a) ? 1 : 0;
+                    var ib = getFirstImage(b) ? 1 : 0;
+                    if (ib !== ia) return ib - ia;
+                    var da = parseContentRegDate(a.content) || a.created_at || 0;
+                    var db = parseContentRegDate(b.content) || b.created_at || 0;
+                    return new Date(db) - new Date(da);
+                });
                 var withImage = list.filter(function(p) { return !!getFirstImage(p); });
                 if (withImage.length === 0) {
                     container.innerHTML = '<div class="col-span-2 md:col-span-4 text-center py-12">' +

@@ -5,6 +5,17 @@ import { verifyToken } from '../utils/jwt';
 
 const app = new Hono<{ Bindings: Bindings; Variables: { user: JWTPayload } }>();
 
+/** 마이그레이션 미적용 DB에서도 목록 API가 동작하도록, status 컬럼 존재 여부 확인 */
+async function studentPortfoliosHasStatusColumn(DB: D1Database): Promise<boolean> {
+    try {
+        const { results } = await DB.prepare('PRAGMA table_info(student_portfolios)').all();
+        const rows = (results || []) as Array<{ name: string }>;
+        return rows.some((r) => r.name === 'status');
+    } catch {
+        return false;
+    }
+}
+
 /** Authorization 헤더로 관리자·강사 여부 (목록 전체 조회용) */
 async function getStaffFromHeader(c: { req: { header: (n: string) => string | undefined } }): Promise<boolean> {
   const auth = c.req.header('Authorization');
@@ -20,10 +31,14 @@ function normalizePortfolioStatus(raw: unknown): 'draft' | 'published' | 'hidden
   return 'published';
 }
 
-// HTML 태그 제거 및 텍스트만 추출
+// HTML 태그 제거 및 텍스트만 추출 (목록·요약용)
 function stripHtml(html: string): string {
     if (!html) return '';
-    return html.replace(/<[^>]*>?/gm, '').trim();
+    return html
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/&nbsp;/gi, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
 }
 
 // 콘텐츠에서 첫 번째 이미지 URL 추출
@@ -48,12 +63,13 @@ app.get('/', async (c) => {
         const studentId = c.req.query('studentId');
         const courseId = c.req.query('courseId');
         const staff = await getStaffFromHeader(c);
+        const hasStatusCol = await studentPortfoliosHasStatusColumn(DB);
 
         let where = "WHERE 1=1";
         const params: any[] = [];
 
-        // 비로그인·일반 사용자: 홈페이지에는 공개(published)만 (레거시 NULL은 공개로 간주)
-        if (!staff) {
+        // 비로그인·일반 사용자: 공개(published)만 — status 컬럼이 있을 때만 필터 (미적용 DB 호환)
+        if (!staff && hasStatusCol) {
             where += " AND (p.status IS NULL OR p.status = 'published')";
         }
 
@@ -101,11 +117,13 @@ app.get('/', async (c) => {
                 thumb = extractFirstImage(p.description);
             }
             const st = normalizePortfolioStatus(p.status);
+            const descriptionPlain = stripHtml(String(p.description || ''));
             return {
                 ...p,
                 status: st,
                 thumbnail_url: thumb,
-                is_featured: Boolean(p.is_featured)
+                is_featured: Boolean(p.is_featured),
+                description_plain: descriptionPlain
             };
         });
 
@@ -162,7 +180,8 @@ app.get('/:id', async (c) => {
                 ...post,
                 status: st,
                 thumbnail_url: thumb,
-                is_featured: Boolean(post.is_featured)
+                is_featured: Boolean(post.is_featured),
+                description_plain: stripHtml(String(post.description || ''))
             }
         });
     } catch (error: any) {
