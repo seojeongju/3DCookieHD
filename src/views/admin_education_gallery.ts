@@ -254,8 +254,30 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
             loadPosts(1);
         }
 
+        async function runGalleryBackgroundDedupe() {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+            try {
+                const res = await fetch('/api/posts/dedupe-education-photo-titles', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (res.status === 401) return;
+                const json = await res.json();
+                if (!json.success || !json.data || !(json.data.deleted > 0)) return;
+                try {
+                    await fetch('/api/education-performance/reconcile-gallery-links', {
+                        method: 'POST',
+                        headers: { 'Authorization': 'Bearer ' + token }
+                    });
+                } catch (re) { console.error(re); }
+                loadPosts(currentPage);
+            } catch (e) { console.error(e); }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             loadPosts(1);
+            runGalleryBackgroundDedupe();
             setupMultiImageUpload();
             const csvInput = document.getElementById('csvFileInput');
             if (csvInput) {
@@ -635,7 +657,7 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
         }
 
         async function dedupeEducationPhotoTitles() {
-            if (!confirm('동일 제목(앞뒤 공백·연속 공백·대소문자 무시)으로 등록된 교육사진이 여러 개면, 가장 먼저 등록된 글만 남기고 나머지를 삭제합니다. 교육실적에 연동된 항목도 함께 제거됩니다. 계속할까요?')) return;
+            if (!confirm('동일 제목(유니코드·공백·대소문자 정규화 후 비교)으로 여러 개면, 가장 최근에 등록된 글(id가 큰 것) 1건만 남기고 나머지를 삭제합니다. 교육실적 연동도 정리합니다. 계속할까요?')) return;
             const token = localStorage.getItem('token');
             if (!token) { alert('로그인이 필요합니다.'); return; }
             try {

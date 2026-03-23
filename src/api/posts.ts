@@ -6,6 +6,7 @@ import {
   removeEducationPerformanceByPostId,
   syncEducationPerformanceFromEducationPhotoPost,
 } from '../utils/education_performance_sync';
+import { normalizeGalleryTitleKey } from '../utils/gallery_title_normalize';
 
 const app = new Hono<{ Bindings: Bindings; Variables: { user: JWTPayload } }>();
 
@@ -818,15 +819,7 @@ app.post('/bulk', authMiddleware, async (c) => {
   }
 });
 
-/** 제목 정규화: 공백·대소문자 통일 (중복 판별용) */
-function normalizeGalleryTitleKey(title: string | null | undefined): string {
-  return (title ?? '')
-    .trim()
-    .replace(/\s+/g, ' ')
-    .toLowerCase();
-}
-
-/** POST /api/posts/dedupe-education-photo-titles — 교육사진 갤러리에서 동일 제목(정규화) 중복 글 삭제 (가장 오래된 id 1건만 유지) */
+/** POST /api/posts/dedupe-education-photo-titles — 동일 제목(정규화) 중복 글 삭제, 최신 글(id 큰 것) 1건만 유지 */
 app.post('/dedupe-education-photo-titles', authMiddleware, requireAdmin, async (c) => {
   try {
     const { DB } = c.env;
@@ -847,8 +840,12 @@ app.post('/dedupe-education-photo-titles', authMiddleware, requireAdmin, async (
     for (const rows of groups.values()) {
       if (rows.length <= 1) continue;
       duplicateGroupCount++;
-      for (let i = 1; i < rows.length; i++) {
-        toDelete.push(rows[i].id);
+      rows.sort((a, b) => a.id - b.id);
+      const keepIndex = rows.length - 1;
+      for (let i = 0; i < rows.length; i++) {
+        if (i !== keepIndex) {
+          toDelete.push(rows[i].id);
+        }
       }
     }
 
