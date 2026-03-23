@@ -1,8 +1,24 @@
 import { Hono } from 'hono';
 import type { Bindings, JWTPayload } from '../types';
 import { authMiddleware } from '../middleware/auth';
+import { verifyToken } from '../utils/jwt';
 
 const app = new Hono<{ Bindings: Bindings; Variables: { user: JWTPayload } }>();
+
+/** Authorization 헤더로 관리자·강사 여부 (목록 전체 조회용) */
+async function getStaffFromHeader(c: { req: { header: (n: string) => string | undefined } }): Promise<boolean> {
+  const auth = c.req.header('Authorization');
+  if (!auth?.startsWith('Bearer ')) return false;
+  const payload = await verifyToken(auth.slice(7));
+  const role = (payload?.role || '').toLowerCase();
+  return role === 'admin' || role === 'teacher';
+}
+
+function normalizePortfolioStatus(raw: unknown): 'draft' | 'published' | 'hidden' {
+  const s = String(raw || '').toLowerCase();
+  if (s === 'draft' || s === 'hidden' || s === 'published') return s;
+  return 'published';
+}
 
 // HTML 태그 제거 및 텍스트만 추출
 function stripHtml(html: string): string {
@@ -31,9 +47,15 @@ app.get('/', async (c) => {
         const isFeatured = c.req.query('isFeatured') === 'true';
         const studentId = c.req.query('studentId');
         const courseId = c.req.query('courseId');
+        const staff = await getStaffFromHeader(c);
 
         let where = "WHERE 1=1";
         const params: any[] = [];
+
+        // 비로그인·일반 사용자: 홈페이지에는 공개(published)만 (레거시 NULL은 공개로 간주)
+        if (!staff) {
+            where += " AND (p.status IS NULL OR p.status = 'published')";
+        }
 
         if (search) {
             where += " AND (p.title LIKE ? OR p.description LIKE ?)";
@@ -78,8 +100,10 @@ app.get('/', async (c) => {
             if (!thumb && p.description) {
                 thumb = extractFirstImage(p.description);
             }
+            const st = normalizePortfolioStatus(p.status);
             return {
                 ...p,
+                status: st,
                 thumbnail_url: thumb,
                 is_featured: Boolean(p.is_featured)
             };
@@ -121,6 +145,12 @@ app.get('/:id', async (c) => {
             return c.json({ success: false, error: '포트폴리오를 찾을 수 없습니다' }, 404);
         }
 
+        const staff = await getStaffFromHeader(c);
+        const st = normalizePortfolioStatus(post.status);
+        if (!staff && st !== 'published') {
+            return c.json({ success: false, error: '포트폴리오를 찾을 수 없습니다' }, 404);
+        }
+
         let thumb = post.thumbnail_url;
         if (!thumb && post.description) {
             thumb = extractFirstImage(post.description);
@@ -130,6 +160,7 @@ app.get('/:id', async (c) => {
             success: true,
             data: {
                 ...post,
+                status: st,
                 thumbnail_url: thumb,
                 is_featured: Boolean(post.is_featured)
             }
@@ -147,16 +178,18 @@ app.post('/', authMiddleware, async (c) => {
         const { DB } = c.env;
         const user = c.get('user');
         const body = await c.req.json();
-        const { title, description, course_id, student_id, category, content_url, thumbnail_url, is_featured, teacher_feedback } = body;
+        const { title, description, course_id, student_id, category, content_url, thumbnail_url, is_featured, teacher_feedback, status } = body;
 
         if (!title) return c.json({ success: false, error: '제목은 필수입니다' }, 400);
+
+        const st = normalizePortfolioStatus(status);
 
         const result = await DB.prepare(`
             INSERT INTO student_portfolios (
                 student_id, course_id, title, description, thumbnail_url, 
-                content_url, category, is_featured, teacher_feedback, 
+                content_url, category, is_featured, teacher_feedback, status,
                 created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
         `).bind(
             student_id || user.userId,
             course_id || null,
@@ -166,7 +199,8 @@ app.post('/', authMiddleware, async (c) => {
             content_url || null,
             category || 'other',
             is_featured ? 1 : 0,
-            teacher_feedback || null
+            teacher_feedback || null,
+            st
         ).run();
 
         return c.json({ success: true, data: { id: result.meta.last_row_id } });
@@ -183,17 +217,22 @@ app.put('/:id', authMiddleware, async (c) => {
         const { DB } = c.env;
         const id = c.req.param('id');
         const body = await c.req.json();
-        const { title, description, course_id, student_id, category, content_url, thumbnail_url, is_featured, teacher_feedback } = body;
+        const { title, description, course_id, student_id, category, content_url, thumbnail_url, is_featured, teacher_feedback, status } = body;
+
+        const st = normalizePortfolioStatus(status);
 
         await DB.prepare(`
             UPDATE student_portfolios 
             SET title=?, description=?, course_id=?, student_id=?, category=?, 
                 content_url=?, thumbnail_url=?, is_featured=?, teacher_feedback=?, 
+                status=?,
                 updated_at=datetime('now')
             WHERE id=?
         `).bind(
             title, description, course_id || null, student_id, category,
-            content_url, thumbnail_url, is_featured ? 1 : 0, teacher_feedback, id
+            content_url, thumbnail_url, is_featured ? 1 : 0, teacher_feedback,
+            st,
+            id
         ).run();
 
         return c.json({ success: true });

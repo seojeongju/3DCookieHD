@@ -115,6 +115,7 @@ export const PUBLIC_PATHS: string[] = [
     '/facilities',
     '/locations',
     '/online-consulting',
+    '/tomorrow-learning-card',
     '/corporate-education',
     '/university-education',
     '/course-sessions',

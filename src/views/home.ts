@@ -238,11 +238,11 @@ export const homeHtml = `
                     <h3 class="text-lg font-bold text-gray-800 mb-2">국비지원 과정</h3>
                     <p class="text-gray-600 text-sm">맞춤형 국비지원 과정으로 부담 없이 학습할 수 있습니다.</p>
                 </div>
-                <div class="p-6 rounded-2xl bg-gray-50 border border-gray-100">
-                    <div class="w-14 h-14 mx-auto mb-4 rounded-xl bg-primary-100 text-primary-600 flex items-center justify-center"><i class="fas fa-map-marker-alt text-2xl"></i></div>
-                    <h3 class="text-lg font-bold text-gray-800 mb-2">홍대·구미·전주</h3>
+                <a href="/locations" class="block p-6 rounded-2xl bg-gray-50 border border-gray-100 hover:border-primary-200 hover:bg-primary-50/50 transition shadow-sm hover:shadow-md text-center group">
+                    <div class="w-14 h-14 mx-auto mb-4 rounded-xl bg-primary-100 text-primary-600 flex items-center justify-center group-hover:bg-primary-200 group-hover:text-primary-700 transition-colors"><i class="fas fa-map-marker-alt text-2xl"></i></div>
+                    <h3 class="text-lg font-bold text-gray-800 mb-2 group-hover:text-primary-700">홍대·구미·전주</h3>
                     <p class="text-gray-600 text-sm">전국 3개 센터에서 편리한 위치에서 수강할 수 있습니다.</p>
-                </div>
+                </a>
             </div>
         </div>
     </section>

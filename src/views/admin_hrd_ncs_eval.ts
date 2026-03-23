@@ -100,7 +100,15 @@ export const adminHrdNcsEvalHtml = (sidebar = hrdSidebar('ncs-eval')) => `
                                     <button onclick="filterCourses('active')" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all filter-btn text-gray-500 hover:text-gray-700" data-filter="active">진행중</button>
                                 </div>
                             </div>
-                            <div class="flex items-center gap-4">
+                            <div class="flex flex-wrap items-center gap-3 justify-end">
+                                <label class="flex items-center gap-2 text-xs font-bold text-gray-500">
+                                    <span class="hidden sm:inline">페이지당</span>
+                                    <select id="pageSizeSelect" onchange="changePageSize()" class="bg-gray-50 border border-gray-100 text-xs font-bold text-gray-600 rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-500/20 outline-none">
+                                        <option value="10" selected>10개</option>
+                                        <option value="20">20개</option>
+                                        <option value="50">50개</option>
+                                    </select>
+                                </label>
                                 <select id="sortSelect" onchange="sortData()" class="bg-gray-50 border-none text-xs font-bold text-gray-600 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none">
                                     <option value="name">과정명순</option>
                                     <option value="rate">이수율 높은순</option>
@@ -131,6 +139,10 @@ export const adminHrdNcsEvalHtml = (sidebar = hrdSidebar('ncs-eval')) => `
                                 </tbody>
                             </table>
                         </div>
+                        <div id="ncsPaginationBar" class="px-6 py-4 border-t border-gray-50 bg-gray-50/40 flex flex-col sm:flex-row items-center justify-between gap-4">
+                            <p id="ncsPaginationInfo" class="text-xs font-bold text-gray-500 order-2 sm:order-1"></p>
+                            <nav id="ncsPaginationNav" class="flex items-center gap-1 flex-wrap justify-center order-1 sm:order-2" aria-label="페이지 이동"></nav>
+                        </div>
                     </div>
                 </div>
             </main>
@@ -139,6 +151,9 @@ export const adminHrdNcsEvalHtml = (sidebar = hrdSidebar('ncs-eval')) => `
 
     <script>
         let allData = [];
+        let activeFilter = 'all';
+        let currentPage = 1;
+        let pageSize = 10;
         const token = localStorage.getItem('token');
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -154,7 +169,8 @@ export const adminHrdNcsEvalHtml = (sidebar = hrdSidebar('ncs-eval')) => `
                 if (result.success) {
                     allData = result.data;
                     updateStats(allData);
-                    filterCourses('all');
+                    currentPage = 1;
+                    filterCourses(activeFilter);
                 }
             } catch (e) {
                 console.error(e);
@@ -176,10 +192,31 @@ export const adminHrdNcsEvalHtml = (sidebar = hrdSidebar('ncs-eval')) => `
             document.getElementById('statGlobalAvg').textContent = globalAvg + '점';
         }
 
+        function getFilteredRows() {
+            if (activeFilter === 'active') {
+                return allData.filter(c => c.unit_count > 0 && c.accomplishment_rate < 100);
+            }
+            return [...allData];
+        }
+
+        function getSortedRows(rows) {
+            const sortBy = document.getElementById('sortSelect').value;
+            const sorted = [...rows];
+            if (sortBy === 'name') {
+                sorted.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+            } else if (sortBy === 'rate') {
+                sorted.sort((a, b) => (b.accomplishment_rate || 0) - (a.accomplishment_rate || 0));
+            } else if (sortBy === 'avg') {
+                sorted.sort((a, b) => (b.avg_score || 0) - (a.avg_score || 0));
+            }
+            return sorted;
+        }
+
         function filterCourses(filter) {
+            activeFilter = filter || 'all';
             const btns = document.querySelectorAll('.filter-btn');
             btns.forEach(btn => {
-                if (btn.dataset.filter === filter) {
+                if (btn.dataset.filter === activeFilter) {
                     btn.classList.add('bg-white', 'text-indigo-600', 'shadow-sm');
                     btn.classList.remove('text-gray-500');
                 } else {
@@ -187,28 +224,82 @@ export const adminHrdNcsEvalHtml = (sidebar = hrdSidebar('ncs-eval')) => `
                     btn.classList.add('text-gray-500');
                 }
             });
-
-            let filtered = allData;
-            if (filter === 'active') {
-                filtered = allData.filter(c => c.unit_count > 0 && c.accomplishment_rate < 100);
-            }
-            
-            renderSummaryTable(filtered);
+            currentPage = 1;
+            renderTablePage();
         }
 
         function sortData() {
-            const sortBy = document.getElementById('sortSelect').value;
-            let sorted = [...allData];
+            currentPage = 1;
+            renderTablePage();
+        }
 
-            if (sortBy === 'name') {
-                sorted.sort((a, b) => a.title.localeCompare(b.title));
-            } else if (sortBy === 'rate') {
-                sorted.sort((a, b) => b.accomplishment_rate - a.accomplishment_rate);
-            } else if (sortBy === 'avg') {
-                sorted.sort((a, b) => b.avg_score - a.avg_score);
+        function changePageSize() {
+            const sel = document.getElementById('pageSizeSelect');
+            pageSize = Math.max(1, parseInt(sel.value, 10) || 10);
+            currentPage = 1;
+            renderTablePage();
+        }
+
+        function goToPage(p) {
+            const rows = getSortedRows(getFilteredRows());
+            const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
+            currentPage = Math.min(Math.max(1, p), totalPages);
+            renderTablePage();
+        }
+
+        function renderTablePage() {
+            const rows = getSortedRows(getFilteredRows());
+            const total = rows.length;
+            const totalPages = Math.max(1, Math.ceil(total / pageSize));
+            if (currentPage > totalPages) currentPage = totalPages;
+            const start = (currentPage - 1) * pageSize;
+            const pageRows = rows.slice(start, start + pageSize);
+            renderSummaryTable(pageRows);
+            renderPagination(total, totalPages);
+        }
+
+        function renderPagination(total, totalPages) {
+            const info = document.getElementById('ncsPaginationInfo');
+            const nav = document.getElementById('ncsPaginationNav');
+            if (!info || !nav) return;
+            if (total === 0) {
+                info.textContent = '';
+                nav.innerHTML = '';
+                return;
+            }
+            const start = (currentPage - 1) * pageSize + 1;
+            const end = Math.min(currentPage * pageSize, total);
+            info.textContent = '총 ' + total + '건 중 ' + start + '–' + end + '번째 (페이지 ' + currentPage + ' / ' + totalPages + ')';
+
+            const btnBase = 'min-w-[2.25rem] px-3 py-2 rounded-xl text-xs font-black transition border border-gray-200 bg-white text-gray-700 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-700 disabled:opacity-40 disabled:pointer-events-none';
+            const btnActive = 'min-w-[2.25rem] px-3 py-2 rounded-xl text-xs font-black border-2 border-indigo-600 bg-indigo-600 text-white';
+
+            let html = '';
+            html += '<button type="button" class="' + btnBase + '" ' + (currentPage <= 1 ? 'disabled' : '') + ' onclick="goToPage(' + (currentPage - 1) + ')">이전</button>';
+
+            const maxButtons = 5;
+            let from = Math.max(1, currentPage - Math.floor(maxButtons / 2));
+            let to = Math.min(totalPages, from + maxButtons - 1);
+            if (to - from + 1 < maxButtons) from = Math.max(1, to - maxButtons + 1);
+
+            if (from > 1) {
+                html += '<button type="button" class="' + btnBase + '" onclick="goToPage(1)">1</button>';
+                if (from > 2) html += '<span class="px-1 text-gray-400 text-xs">…</span>';
+            }
+            for (let i = from; i <= to; i++) {
+                if (i === currentPage) {
+                    html += '<button type="button" class="' + btnActive + '" disabled>' + i + '</button>';
+                } else {
+                    html += '<button type="button" class="' + btnBase + '" onclick="goToPage(' + i + ')">' + i + '</button>';
+                }
+            }
+            if (to < totalPages) {
+                if (to < totalPages - 1) html += '<span class="px-1 text-gray-400 text-xs">…</span>';
+                html += '<button type="button" class="' + btnBase + '" onclick="goToPage(' + totalPages + ')">' + totalPages + '</button>';
             }
 
-            renderSummaryTable(sorted);
+            html += '<button type="button" class="' + btnBase + '" ' + (currentPage >= totalPages ? 'disabled' : '') + ' onclick="goToPage(' + (currentPage + 1) + ')">다음</button>';
+            nav.innerHTML = html;
         }
 
         function renderSummaryTable(data) {
@@ -217,6 +308,10 @@ export const adminHrdNcsEvalHtml = (sidebar = hrdSidebar('ncs-eval')) => `
             
             if (data.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="7" class="px-8 py-20 text-center text-gray-400">조건에 맞는 과정이 없습니다.</td></tr>';
+                const info = document.getElementById('ncsPaginationInfo');
+                const nav = document.getElementById('ncsPaginationNav');
+                if (info) info.textContent = '';
+                if (nav) nav.innerHTML = '';
                 return;
             }
 

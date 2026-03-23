@@ -93,9 +93,10 @@ export const navigationHtml = (activeMenu = '') => `
                             상담센터
                             <i class="fas fa-chevron-down ml-1 text-[10px] text-gray-400"></i>
                         </button>
-                        <div class="absolute left-0 top-full mt-0 w-48 bg-white rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 border border-gray-100 overflow-hidden z-50">
+                        <div class="absolute left-0 top-full mt-0 w-56 bg-white rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 border border-gray-100 overflow-hidden z-50">
                             <div class="py-1">
                                 <a href="/online-consulting" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">온라인상담신청</a>
+                                <a href="/tomorrow-learning-card" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">내일배움카드발급안내</a>
                             </div>
                         </div>
                     </div>
@@ -159,6 +160,7 @@ export const navigationHtml = (activeMenu = '') => `
                 <a href="/jobseekers" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">구직정보</a>
                 <div class="px-2 py-1 mt-2 text-[11px] font-bold text-gray-400 uppercase tracking-wider">상담센터</div>
                 <a href="/online-consulting" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">온라인상담신청</a>
+                <a href="/tomorrow-learning-card" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">내일배움카드발급안내</a>
                 ${socialLinksMobileNavHtml()}
                 <div class="border-t border-gray-100 mt-2 pt-2">
                     <a href="/login" class="block px-4 py-3 text-gray-700 hover:bg-gray-50"><i class="fas fa-sign-in-alt mr-2 text-gray-400"></i>로그인</a>

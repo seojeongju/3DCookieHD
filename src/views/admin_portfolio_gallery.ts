@@ -393,7 +393,10 @@ export const adminPortfolioGalleryHtml = (sidebar: string) => `
             let url = '/api/portfolios?page=' + page + '&limit=' + itemsPerPage;
             if (search) url += '&search=' + encodeURIComponent(search);
             try {
-                const res = await fetch(url);
+                const token = localStorage.getItem('token');
+                const res = await fetch(url, {
+                    headers: token ? { 'Authorization': 'Bearer ' + token } : {}
+                });
                 const result = await res.json();
                 const tbody = document.getElementById('tableBody');
                 if (!result.success) {

@@ -141,6 +141,7 @@ import { adminPortfolioGalleryHtml } from './views/admin_portfolio_gallery';
 import { scheduleHtml } from './views/schedule';
 import { locationsHtml } from './views/locations';
 import { educationPerformanceHtml } from './views/education_performance';
+import { tomorrowLearningCardHtml } from './views/tomorrow_learning_card';
 import { coursesListHtml } from './views/courses';
 import { courseSessionsListHtml, courseSessionDetailHtml } from './views/course_sessions_public';
 import { achievementsHtml } from './views/achievements';
@@ -500,6 +501,7 @@ app.get('/locations', async (c) => {
     return c.html(locationsHtml({ kakaoMapAppKey: appKey }));
 });
 app.get('/education-performance', (c) => c.html(educationPerformanceHtml()));
+app.get('/tomorrow-learning-card', (c) => c.html(tomorrowLearningCardHtml()));
 app.get('/achievements', (c) => c.html(achievementsHtml));
 app.get('/reviews', (c) => c.html(reviewsListHtml));
 
