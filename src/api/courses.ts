@@ -866,8 +866,13 @@ courses.get('/:id/attendance', async (c) => {
     let allSessionLogs: any[] = [];
     // timetable 기반 훈련일 수 (isHrd 그룹 이후 학생 루프에서 사용되므로 바깜에 let 선언)
     let timetableTotalDays = 0;           // 과정 전체 훈련일 수 (finalRate 분모)
-    let timetableProgressedDays = 0;      // 오늘까지 훈련일 수 (currentRate 분모)
+    let timetableProgressedDays = 0;      // 검색일까지 훈련일 수 (currentRate 분모)
     let allTimetableDates: string[] = []; // is_training_day 판별용 재사용
+    const todayStr = new Date().toISOString().split('T')[0];
+    const searchDateStr = (date || '').toString().substring(0, 10);
+    // 출석률 집계 상한: 미래 검색일은 오늘까지만 반영
+    let progressCap = searchDateStr;
+    if (searchDateStr > todayStr) progressCap = todayStr;
 
     if (isHrd) {
       // 0. 회차 정보 조회 (기본 시간 설정 + 마감 여부 + 훈련 기간)
@@ -908,9 +913,6 @@ courses.get('/:id/attendance', async (c) => {
         )
       `, [courseId]);
 
-      const today2 = new Date().toISOString().split('T')[0];
-      const isClosed = (sessionDetails?.session_status || '') === 'closed';
-
       const { results: timetableRowsData } = await c.env.DB.prepare(`
         SELECT DISTINCT training_date FROM session_timetable
         WHERE session_id = ? AND (is_excluded IS NULL OR is_excluded = 0)
@@ -919,9 +921,7 @@ courses.get('/:id/attendance', async (c) => {
 
       allTimetableDates = (timetableRowsData || []).map((r: any) => (r.training_date || '').toString().substring(0, 10)).filter(Boolean);
       timetableTotalDays = allTimetableDates.length;
-      timetableProgressedDays = isClosed
-        ? timetableTotalDays
-        : allTimetableDates.filter(d => d <= today2).length;
+      timetableProgressedDays = allTimetableDates.filter(d => d <= progressCap).length;
 
     } else {
       // 1. 일반 과정의 수강생 목록 조회
@@ -957,7 +957,11 @@ courses.get('/:id/attendance', async (c) => {
     const result = students.map(student => {
       const log = attendanceLogs.find(l => l.enrollment_id === student.enrollment_id);
 
-      const sLogs = allSessionLogs.filter(l => l.enrollment_id === student.enrollment_id);
+      const sLogs = allSessionLogs.filter(l => {
+        if (l.enrollment_id !== student.enrollment_id) return false;
+        const ld = (l.date || '').toString().split('T')[0];
+        return !ld || ld <= progressCap;
+      });
       let attendance_rate = 0;
       let advanced_attendance: any = null;
 

@@ -119,6 +119,17 @@ app.post('/', authMiddleware, requireAdmin, async (c) => {
         });
     } catch (error) {
         console.error('[Users API] Create failed:', error);
+        const msg = error instanceof Error ? error.message : String(error);
+        if (/no such column:\s*is_initial_login/i.test(msg)) {
+            return c.json(
+                {
+                    success: false,
+                    error:
+                        'DB에 is_initial_login 컬럼이 없습니다. 마이그레이션 0094를 적용한 뒤 다시 시도하세요. (npm run db:migrate:prod)',
+                },
+                500
+            );
+        }
         return c.json({ success: false, error: 'Failed to create user' }, 500);
     }
 });

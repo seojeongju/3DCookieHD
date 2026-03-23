@@ -255,9 +255,8 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
             const roAttr = readOnly ? ' readonly' : '';
             tbody.innerHTML = students.map((student, index) => {
                 let attendanceHtml = '<span class="text-gray-400 text-xs">-</span>';
-                if (readOnly && student.has_log === false) {
-                    attendanceHtml = '<span class="text-gray-500 text-xs font-medium">해당일 미기록</span>';
-                } else if (student.advanced_attendance) {
+                // 출석 현황: 검색일까지 누적 출석률 우선 (비훈련일·미기록일에도 API가 내려준 advanced_attendance/attendance_rate 표시)
+                if (student.advanced_attendance) {
                     const adv = student.advanced_attendance;
                     const cRate = parseFloat(adv.currentRate);
                     let color = 'text-green-600';
@@ -291,7 +290,7 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
                             </div>
                         </div>
                     \`;
-                } else if (student.attendance_rate !== undefined) {
+                } else if (student.attendance_rate !== undefined && student.attendance_rate !== null) {
                     const cRate = student.attendance_rate;
                     let color = 'text-green-600';
                     let bg = 'bg-green-50';
@@ -299,6 +298,8 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
                     else if (cRate < 90) { color = 'text-yellow-600'; bg = 'bg-yellow-50'; }
                     
                     attendanceHtml = \`<div class="inline-flex px-2 py-1 rounded \${bg}"><span class="text-sm font-bold \${color}">\${cRate}%</span></div>\`;
+                } else if (readOnly && student.has_log === false) {
+                    attendanceHtml = '<span class="text-gray-500 text-xs font-medium">해당일 미기록</span>';
                 }
 
                 return \`
