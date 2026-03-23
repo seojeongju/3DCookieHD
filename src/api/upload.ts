@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import type { Bindings } from '../types';
 import { authMiddleware, requireAdmin } from '../middleware/auth';
+import { verifyToken } from '../utils/jwt';
 
 const app = new Hono<{ Bindings: Bindings }>();
 
@@ -41,6 +42,96 @@ const FILE_CATEGORIES = {
 } as const;
 
 type FileCategory = keyof typeof FILE_CATEGORIES;
+type MaskLevel = 'soft' | 'medium' | 'strong';
+type MaskMode = 'auto' | 'boxes';
+type FaceBox = { x: number; y: number; w: number; h: number };
+
+function isImageMime(mimeType: string): boolean {
+  return mimeType.startsWith('image/');
+}
+
+function buildStoragePath(basePath: string, folder: string | null, fileName: string): string {
+  return folder ? `${basePath}/${folder}/${fileName}` : `${basePath}/${fileName}`;
+}
+
+async function getViewer(c: any): Promise<{ userId: number; role: string } | null> {
+  const authHeader = c.req.header('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) return null;
+  const payload = await verifyToken(authHeader.substring(7));
+  if (!payload) return null;
+  return { userId: payload.userId, role: payload.role };
+}
+
+function normalizeMaskLevel(v: string | null | undefined): MaskLevel {
+  if (v === 'strong') return 'strong';
+  if (v === 'medium') return 'medium';
+  return 'soft';
+}
+
+function maskBlurByLevel(level: MaskLevel): number {
+  if (level === 'strong') return 14;
+  if (level === 'medium') return 10;
+  return 7;
+}
+
+function normalizeMaskMode(v: string | null | undefined): MaskMode {
+  return v === 'boxes' ? 'boxes' : 'auto';
+}
+
+function parseFaceBoxes(raw: string | null): FaceBox[] {
+  if (!raw) return [];
+  try {
+    const arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) return [];
+    const out: FaceBox[] = [];
+    for (const b of arr) {
+      const x = Number(b?.x);
+      const y = Number(b?.y);
+      const w = Number(b?.w);
+      const h = Number(b?.h);
+      if (![x, y, w, h].every((n) => Number.isFinite(n))) continue;
+      if (w <= 0 || h <= 0) continue;
+      // 정규화 좌표(0~1)로 제한
+      out.push({
+        x: Math.max(0, Math.min(1, x)),
+        y: Math.max(0, Math.min(1, y)),
+        w: Math.max(0.001, Math.min(1, w)),
+        h: Math.max(0.001, Math.min(1, h)),
+      });
+    }
+    return out.slice(0, 50);
+  } catch {
+    return [];
+  }
+}
+
+async function createMaskedImageFromR2Object(
+  sourceUrl: string,
+  mimeType: string,
+  maskLevel: MaskLevel
+): Promise<ArrayBuffer | null> {
+  try {
+    const transformed = await fetch(sourceUrl, {
+      cf: {
+        image: {
+          // 1차 MVP: 얼굴 자동 인식 전, 전체 이미지에 약한 소프트 마스크 적용
+          blur: maskBlurByLevel(maskLevel),
+          quality: 88,
+          format: mimeType === 'image/png' ? 'png' : 'webp',
+        },
+      },
+      headers: {
+        // 내부 호출 힌트(향후 접근제어 도입 시 조건 분기용)
+        'X-Internal-Image-Transform': '1',
+      },
+    } as RequestInit);
+    if (!transformed.ok) return null;
+    return await transformed.arrayBuffer();
+  } catch (e) {
+    console.warn('createMaskedImageFromR2Object failed:', e);
+    return null;
+  }
+}
 
 /**
  * 파일 업로드
@@ -64,6 +155,9 @@ app.post('/', authMiddleware, async (c) => {
     const file = formData.get('file') as File;
     const category = formData.get('category') as FileCategory;
     const folder = formData.get('folder') as string | null;
+    const maskLevel = normalizeMaskLevel(formData.get('mask_level') as string | null);
+    const maskMode = normalizeMaskMode(formData.get('mask_mode') as string | null);
+    const faceBoxes = parseFaceBoxes(formData.get('face_boxes') as string | null);
 
     // 유효성 검사
     if (!file) {
@@ -102,24 +196,80 @@ app.post('/', authMiddleware, async (c) => {
 
     // R2 경로 생성
     const basePath = FILE_CATEGORIES[category];
-    const filePath = folder 
+    const filePath = folder
       ? `${basePath}/${folder}/${newFileName}`
       : `${basePath}/${newFileName}`;
 
     // 파일을 R2에 업로드
     const fileBuffer = await file.arrayBuffer();
-    await R2.put(filePath, fileBuffer, {
-      httpMetadata: {
-        contentType: mimeType,
-        cacheControl: 'public, max-age=31536000', // 1년 캐싱
-      },
-      customMetadata: {
-        originalName: fileName,
-        uploadedBy: user.userId.toString(),
-        uploadedAt: new Date().toISOString(),
-        category: category,
-      },
-    });
+    let storedPath = filePath;
+    let maskApplied = false;
+    let originalPath: string | null = null;
+
+    if (isImageMime(mimeType)) {
+      // 1차 MVP: 이미지는 원본/공개본 분리 저장
+      // - 원본: private/originals/... (직접 URL 미노출)
+      // - 공개본: 기존 경로(filePath), 약한 마스크 적용본
+      originalPath = buildStoragePath(`private/originals/${basePath}`, folder, newFileName);
+      await R2.put(originalPath, fileBuffer, {
+        httpMetadata: {
+          contentType: mimeType,
+          cacheControl: 'private, max-age=0, no-store',
+        },
+        customMetadata: {
+          originalName: fileName,
+          uploadedBy: user.userId.toString(),
+          uploadedAt: new Date().toISOString(),
+          category: category,
+          visibility: 'private-original',
+        },
+      });
+
+      const origin = new URL(c.req.url).origin;
+      const encodedOriginalPath = originalPath.split('/').map(encodeURIComponent).join('/');
+      const sourceUrl = `${origin}/api/upload/files/${encodedOriginalPath}`;
+      // 3차 인터페이스: face_boxes 전달 시 boxes 모드로 처리(현재 MVP는 전체 마스크 강도 가중 fallback)
+      const effectiveMaskLevel =
+        maskMode === 'boxes' && faceBoxes.length > 0
+          ? (maskLevel === 'soft' ? 'medium' : maskLevel)
+          : maskLevel;
+      const maskedBuffer = await createMaskedImageFromR2Object(sourceUrl, mimeType, effectiveMaskLevel);
+      const publicBuffer = maskedBuffer ?? fileBuffer;
+      maskApplied = maskedBuffer != null;
+
+      await R2.put(filePath, publicBuffer, {
+        httpMetadata: {
+          contentType: mimeType,
+          cacheControl: 'public, max-age=31536000', // 1년 캐싱
+        },
+        customMetadata: {
+          originalName: fileName,
+          uploadedBy: user.userId.toString(),
+          uploadedAt: new Date().toISOString(),
+          category: category,
+          visibility: 'public-masked',
+          maskApplied: String(maskApplied),
+          maskLevel: effectiveMaskLevel,
+          maskMode,
+          faceBoxesJson: faceBoxes.length ? JSON.stringify(faceBoxes) : '',
+          originalPath: originalPath,
+        },
+      });
+      storedPath = filePath;
+    } else {
+      await R2.put(filePath, fileBuffer, {
+        httpMetadata: {
+          contentType: mimeType,
+          cacheControl: 'public, max-age=31536000', // 1년 캐싱
+        },
+        customMetadata: {
+          originalName: fileName,
+          uploadedBy: user.userId.toString(),
+          uploadedAt: new Date().toISOString(),
+          category: category,
+        },
+      });
+    }
 
     // 파일 메타데이터를 데이터베이스에 저장
     const { DB } = c.env;
@@ -133,7 +283,7 @@ app.post('/', authMiddleware, async (c) => {
           uploaded_by, related_id, related_type
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
-        filePath,
+        storedPath,
         fileName,
         file.size,
         mimeType,
@@ -151,18 +301,23 @@ app.post('/', authMiddleware, async (c) => {
     // 공개 URL 생성 (Cloudflare R2 Public URL)
     // 실제 배포 환경에서는 R2 Custom Domain을 사용하거나
     // Workers를 통해 파일을 서빙해야 합니다
-    const publicUrl = `/api/upload/files/${filePath}`;
+    const publicUrl = `/api/upload/files/${storedPath}`;
 
     return c.json({
       success: true,
       data: {
         url: publicUrl,
-        path: filePath,
+        path: storedPath,
         fileName: newFileName,
         originalName: fileName,
         size: file.size,
         mimeType: mimeType,
         category: category,
+        maskApplied,
+        maskLevel: isImageMime(mimeType) ? maskLevel : null,
+        maskMode: isImageMime(mimeType) ? maskMode : null,
+        faceBoxesCount: isImageMime(mimeType) ? faceBoxes.length : 0,
+        originalPath,
       },
     }, 201);
   } catch (error) {
@@ -211,6 +366,11 @@ app.get('/files/*', async (c) => {
     
     console.log('Normalized file path:', filePath);
 
+    // 비공개 원본 접근은 관리자/업로드자만 허용
+    // (내부 변환 호출은 전용 헤더로 허용)
+    const isPrivateOriginalPath = filePath.startsWith('private/originals/');
+    const isInternalTransform = c.req.header('X-Internal-Image-Transform') === '1';
+
     // 파일 조회
     const object = await R2.get(filePath);
     
@@ -225,6 +385,19 @@ app.get('/files/*', async (c) => {
         return new Response(html, { status: 404, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
       }
       return c.json({ success: false, error: `파일을 찾을 수 없습니다: ${filePath}` }, 404);
+    }
+
+    if (isPrivateOriginalPath && !isInternalTransform) {
+      const viewer = await getViewer(c);
+      if (!viewer) {
+        return c.json({ success: false, error: '원본 파일 접근 권한이 없습니다' }, 403);
+      }
+      const uploadedBy = object.customMetadata?.uploadedBy;
+      const isOwner = uploadedBy != null && uploadedBy === String(viewer.userId);
+      const isAdmin = viewer.role === 'admin';
+      if (!isOwner && !isAdmin) {
+        return c.json({ success: false, error: '원본 파일 접근 권한이 없습니다' }, 403);
+      }
     }
 
     // 파일 메타데이터
@@ -289,6 +462,15 @@ app.delete('/*', authMiddleware, async (c) => {
 
     // 파일 삭제
     await R2.delete(filePath);
+    // 공개본 삭제 시 원본 경로가 있으면 함께 정리
+    const originalPath = object.customMetadata?.originalPath;
+    if (originalPath) {
+      try {
+        await R2.delete(originalPath);
+      } catch (e) {
+        console.warn('Failed to delete original image path:', originalPath, e);
+      }
+    }
 
     return c.json({
       success: true,
@@ -341,6 +523,133 @@ app.get('/', authMiddleware, requireAdmin, async (c) => {
   } catch (error) {
     console.error('File list error:', error);
     return c.json({ success: false, error: '파일 목록 조회 중 오류가 발생했습니다' }, 500);
+  }
+});
+
+/**
+ * 마스크 재처리 (관리자): 원본 → 공개본 다시 생성
+ * POST /api/upload/reprocess-mask
+ * body: { path?: string, prefix?: string, mask_level?: 'soft'|'medium'|'strong', limit?: number }
+ */
+app.post('/reprocess-mask', authMiddleware, requireAdmin, async (c) => {
+  try {
+    const { R2 } = c.env;
+    if (!R2) {
+      return c.json({ success: false, error: 'R2 스토리지가 설정되지 않았습니다' }, 500);
+    }
+
+    const body = await c.req.json<{
+      path?: string;
+      prefix?: string;
+      mask_level?: string;
+      mask_mode?: string;
+      face_boxes?: Array<{ x: number; y: number; w: number; h: number }>;
+      limit?: number;
+    }>();
+    const maskLevel = normalizeMaskLevel(body.mask_level);
+    const maskMode = normalizeMaskMode(body.mask_mode);
+    const faceBoxes = Array.isArray(body.face_boxes) ? parseFaceBoxes(JSON.stringify(body.face_boxes)) : [];
+    const singlePath = body.path ? String(body.path).trim() : '';
+    const prefix = body.prefix ? String(body.prefix).trim() : 'images/';
+    const limit = Math.max(1, Math.min(500, Number(body.limit || 100)));
+
+    const targets: string[] = [];
+    if (singlePath) {
+      targets.push(singlePath);
+    } else {
+      const listed = await R2.list({ prefix, limit });
+      for (const obj of listed.objects) targets.push(obj.key);
+    }
+
+    let ok = 0;
+    let skip = 0;
+    let fail = 0;
+    for (const path of targets) {
+      try {
+        const head = await R2.head(path);
+        if (!head) {
+          fail++;
+          continue;
+        }
+        const mimeType = head.httpMetadata?.contentType || '';
+        const originalPath = head.customMetadata?.originalPath;
+        if (!originalPath || !isImageMime(mimeType)) {
+          skip++;
+          continue;
+        }
+        const origin = new URL(c.req.url).origin;
+        const encodedOriginalPath = originalPath.split('/').map(encodeURIComponent).join('/');
+        const sourceUrl = `${origin}/api/upload/files/${encodedOriginalPath}`;
+        const effectiveMaskLevel =
+          maskMode === 'boxes' && faceBoxes.length > 0
+            ? (maskLevel === 'soft' ? 'medium' : maskLevel)
+            : maskLevel;
+        const masked = await createMaskedImageFromR2Object(sourceUrl, mimeType, effectiveMaskLevel);
+        if (!masked) {
+          fail++;
+          continue;
+        }
+        await R2.put(path, masked, {
+          httpMetadata: {
+            contentType: mimeType,
+            cacheControl: head.httpMetadata?.cacheControl || 'public, max-age=31536000',
+          },
+          customMetadata: {
+            ...(head.customMetadata || {}),
+            visibility: 'public-masked',
+            maskApplied: 'true',
+            maskLevel: effectiveMaskLevel,
+            maskMode,
+            faceBoxesJson: faceBoxes.length ? JSON.stringify(faceBoxes) : (head.customMetadata?.faceBoxesJson || ''),
+            originalPath,
+          },
+        });
+        ok++;
+      } catch (e) {
+        console.error('reprocess-mask failed for', path, e);
+        fail++;
+      }
+    }
+
+    return c.json({
+      success: true,
+      data: { ok, skip, fail, total: targets.length, maskLevel, maskMode, faceBoxesCount: faceBoxes.length },
+    });
+  } catch (e) {
+    console.error('reprocess-mask error:', e);
+    return c.json({ success: false, error: '마스크 재처리 중 오류가 발생했습니다' }, 500);
+  }
+});
+
+/**
+ * 공개본의 마스크 메타 조회(관리자)
+ * GET /api/upload/mask-meta?path=images/...
+ */
+app.get('/mask-meta', authMiddleware, requireAdmin, async (c) => {
+  try {
+    const { R2 } = c.env;
+    if (!R2) return c.json({ success: false, error: 'R2 스토리지가 설정되지 않았습니다' }, 500);
+    const path = String(c.req.query('path') || '').trim();
+    if (!path) return c.json({ success: false, error: 'path가 필요합니다' }, 400);
+    const head = await R2.head(path);
+    if (!head) return c.json({ success: false, error: '파일을 찾을 수 없습니다' }, 404);
+    const meta = head.customMetadata || {};
+    const faceBoxes = parseFaceBoxes(meta.faceBoxesJson || '');
+    return c.json({
+      success: true,
+      data: {
+        path,
+        maskApplied: meta.maskApplied === 'true',
+        maskLevel: meta.maskLevel || null,
+        maskMode: meta.maskMode || null,
+        originalPath: meta.originalPath || null,
+        faceBoxes,
+        faceBoxesCount: faceBoxes.length,
+      },
+    });
+  } catch (e) {
+    console.error('mask-meta error:', e);
+    return c.json({ success: false, error: '마스크 메타 조회 중 오류가 발생했습니다' }, 500);
   }
 });
 
