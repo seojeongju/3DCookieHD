@@ -5,3 +5,16 @@ body { font-family: Arial, Helvetica, sans-serif; }
     .overflow-x-auto { -webkit-overflow-scrolling: touch; }
 }
 h1 { font-family: Arial, Helvetica, sans-serif; }
+
+/* 터치·가독성 (모바일) */
+@media (max-width: 1023px) {
+    a, button { -webkit-tap-highlight-color: rgba(74, 144, 226, 0.12); }
+}
+
+/* 노치·홈 인디케이터 대응 (Tailwind에서 env 보강) */
+.safe-nav-top {
+    padding-top: env(safe-area-inset-top, 0px);
+}
+.safe-pb-menu {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+}

@@ -12,9 +12,19 @@ export const homeHtml = `
         border-radius: 0 0 0 2rem;
         background: linear-gradient(135deg, #2d5fa3 0%, #4a90e2 50%, #5b9bd5 100%);
       }
+      @media (max-width: 1023px) {
+        .hero-slider {
+          min-height: min(72vh, 520px);
+          height: 64vh;
+        }
+        .hero-dots {
+          bottom: max(12px, env(safe-area-inset-bottom, 12px));
+        }
+      }
       @media (min-width: 1024px) {
         .hero-slider {
             height: 600px;
+            min-height: 0;
             border-radius: 0 0 2rem 0;
         }
       }
@@ -98,11 +108,11 @@ export const homeHtml = `
             <div class="hero-content absolute inset-0 flex items-center">
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
                     <div class="max-w-2xl text-left">
-                        <h1 class="text-3xl md:text-5xl lg:text-6xl font-bold mb-4 lg:mb-6 drop-shadow-xl leading-tight text-white animate-fade-in-up">상상을 현실로,<br>미래를 디자인하다!</h1>
-                        <p class="text-lg md:text-xl lg:text-2xl mb-8 drop-shadow-md text-gray-100 animate-fade-in-up delay-100">와우쓰리디홍대센터에서<br>3D모델링과 프린팅을 마스터하세요.</p>
-                        <div class="flex gap-4 animate-fade-in-up delay-200">
-                            <a href="/course-sessions" class="bg-primary-600 text-white px-8 py-4 rounded-xl font-bold hover:bg-primary-700 transition shadow-lg hover:shadow-primary-500/30 text-center">과정 둘러보기</a>
-                            <a href="/online-consulting" class="bg-white/10 backdrop-blur-sm border border-white/30 text-white px-8 py-4 rounded-xl font-bold hover:bg-white hover:text-primary-600 transition text-center">상담 신청</a>
+                        <h1 class="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 lg:mb-6 drop-shadow-xl leading-tight text-white animate-fade-in-up">상상을 현실로,<br>미래를 디자인하다!</h1>
+                        <p class="text-base sm:text-lg md:text-xl lg:text-2xl mb-6 sm:mb-8 drop-shadow-md text-gray-100 animate-fade-in-up delay-100">와우쓰리디홍대센터에서<br>3D모델링과 프린팅을 마스터하세요.</p>
+                        <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full max-w-md sm:max-w-none animate-fade-in-up delay-200">
+                            <a href="/course-sessions" class="bg-primary-600 text-white px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl font-bold hover:bg-primary-700 transition shadow-lg hover:shadow-primary-500/30 text-center w-full sm:w-auto min-h-[48px] flex items-center justify-center">과정 둘러보기</a>
+                            <a href="/online-consulting" class="bg-white/10 backdrop-blur-sm border border-white/30 text-white px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl font-bold hover:bg-white hover:text-primary-600 transition text-center w-full sm:w-auto min-h-[48px] flex items-center justify-center">상담 신청</a>
                         </div>
                     </div>
                 </div>
@@ -114,10 +124,10 @@ export const homeHtml = `
             <div class="hero-content absolute inset-0 flex items-center">
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
                     <div class="max-w-2xl text-left">
-                        <h1 class="text-3xl md:text-5xl lg:text-6xl font-bold mb-4 lg:mb-6 drop-shadow-xl leading-tight text-white animate-fade-in-up">실무 중심의<br>전문 교육 솔루션</h1>
-                        <p class="text-lg md:text-xl lg:text-2xl mb-8 drop-shadow-md text-gray-100 animate-fade-in-up delay-100">현장 경험이 풍부한 전문 강사진과 함께<br>진짜 실력을 키우세요.</p>
-                        <div class="flex gap-4 animate-fade-in-up delay-200">
-                            <a href="/course-sessions" class="bg-blue-600 text-white px-8 py-4 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg text-center">수강 신청하기</a>
+                        <h1 class="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 lg:mb-6 drop-shadow-xl leading-tight text-white animate-fade-in-up">실무 중심의<br>전문 교육 솔루션</h1>
+                        <p class="text-base sm:text-lg md:text-xl lg:text-2xl mb-6 sm:mb-8 drop-shadow-md text-gray-100 animate-fade-in-up delay-100">현장 경험이 풍부한 전문 강사진과 함께<br>진짜 실력을 키우세요.</p>
+                        <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full max-w-md sm:max-w-none animate-fade-in-up delay-200">
+                            <a href="/course-sessions" class="bg-blue-600 text-white px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg text-center w-full sm:w-auto min-h-[48px] flex items-center justify-center">수강 신청하기</a>
                         </div>
                     </div>
                 </div>
@@ -129,10 +139,10 @@ export const homeHtml = `
             <div class="hero-content absolute inset-0 flex items-center">
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
                     <div class="max-w-2xl text-left">
-                        <h1 class="text-3xl md:text-5xl lg:text-6xl font-bold mb-4 lg:mb-6 drop-shadow-xl leading-tight text-white animate-fade-in-up">취업과 창업의<br>가장 빠른 지름길</h1>
-                        <p class="text-lg md:text-xl lg:text-2xl mb-8 drop-shadow-md text-gray-100 animate-fade-in-up delay-100">체계적인 NCS 기반 커리큘럼으로<br>여러분의 꿈을 현실로 만듭니다.</p>
-                        <div class="flex gap-4 animate-fade-in-up delay-200">
-                            <a href="/online-consulting" class="bg-indigo-600 text-white px-8 py-4 rounded-xl font-bold hover:bg-indigo-700 transition shadow-lg text-center">무료 상담 받기</a>
+                        <h1 class="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 lg:mb-6 drop-shadow-xl leading-tight text-white animate-fade-in-up">취업과 창업의<br>가장 빠른 지름길</h1>
+                        <p class="text-base sm:text-lg md:text-xl lg:text-2xl mb-6 sm:mb-8 drop-shadow-md text-gray-100 animate-fade-in-up delay-100">체계적인 NCS 기반 커리큘럼으로<br>여러분의 꿈을 현실로 만듭니다.</p>
+                        <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full max-w-md sm:max-w-none animate-fade-in-up delay-200">
+                            <a href="/online-consulting" class="bg-indigo-600 text-white px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl font-bold hover:bg-indigo-700 transition shadow-lg text-center w-full sm:w-auto min-h-[48px] flex items-center justify-center">무료 상담 받기</a>
                         </div>
                     </div>
                 </div>
@@ -199,35 +209,35 @@ export const homeHtml = `
     </section>
 
     <!-- 모바일 버전 퀵 메뉴 (슬라이더 하단 노출) -->
-    <section class="block lg:hidden bg-gray-50 py-6 px-4 -mt-6 relative z-30">
-        <div class="grid grid-cols-2 gap-3">
-            <a href="https://wow-cbt-webmain.pages.dev/" target="_blank" class="flex flex-col items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+    <section class="block lg:hidden bg-gray-50 py-5 sm:py-6 px-3 sm:px-4 -mt-6 relative z-30">
+        <div class="grid grid-cols-2 gap-2.5 sm:gap-3">
+            <a href="https://wow-cbt-webmain.pages.dev/" target="_blank" class="flex flex-col items-center justify-center min-h-[5.75rem] sm:min-h-0 bg-white p-3 sm:p-4 rounded-xl shadow-sm border border-gray-100 active:scale-[0.98] transition-transform">
                 <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mb-2"><i class="fas fa-pen-nib"></i></div>
-                <span class="text-sm font-bold text-gray-800 text-center">문제은행(CBT)</span>
+                <span class="text-xs sm:text-sm font-bold text-gray-800 text-center leading-snug">문제은행(CBT)</span>
             </a>
-            <a href="https://wow3d.step.or.kr/main.do" target="_blank" class="flex flex-col items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <a href="https://wow3d.step.or.kr/main.do" target="_blank" class="flex flex-col items-center justify-center min-h-[5.75rem] sm:min-h-0 bg-white p-3 sm:p-4 rounded-xl shadow-sm border border-gray-100 active:scale-[0.98] transition-transform">
                 <div class="w-10 h-10 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center mb-2"><i class="fas fa-laptop-code"></i></div>
-                <span class="text-sm font-bold text-gray-800 text-center">STEP 훈련</span>
+                <span class="text-xs sm:text-sm font-bold text-gray-800 text-center leading-snug">STEP 훈련</span>
             </a>
-            <a href="https://wow3d-all-print.jayseo36.workers.dev/" target="_blank" class="flex flex-col items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <a href="https://wow3d-all-print.jayseo36.workers.dev/" target="_blank" class="flex flex-col items-center justify-center min-h-[5.75rem] sm:min-h-0 bg-white p-3 sm:p-4 rounded-xl shadow-sm border border-gray-100 active:scale-[0.98] transition-transform">
                 <div class="w-10 h-10 rounded-full bg-violet-100 text-violet-600 flex items-center justify-center mb-2"><i class="fas fa-robot"></i></div>
-                <span class="text-sm font-bold text-gray-800 text-center break-keep">3D프린팅 AI실시간자동견적</span>
+                <span class="text-xs sm:text-sm font-bold text-gray-800 text-center break-keep leading-snug">3D프린팅 AI실시간자동견적</span>
             </a>
-            <a href="https://wow3dhd.co.kr/" target="_blank" class="flex flex-col items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <a href="https://wow3dhd.co.kr/" target="_blank" class="flex flex-col items-center justify-center min-h-[5.75rem] sm:min-h-0 bg-white p-3 sm:p-4 rounded-xl shadow-sm border border-gray-100 active:scale-[0.98] transition-transform">
                 <div class="w-10 h-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center mb-2"><i class="fas fa-shopping-cart"></i></div>
-                <span class="text-sm font-bold text-gray-800 text-center">와우쓰리디 온라인마켓</span>
+                <span class="text-xs sm:text-sm font-bold text-gray-800 text-center leading-snug">와우쓰리디 온라인마켓</span>
             </a>
         </div>
     </section>
 
     <!-- 센터 소개 -->
-    <section class="py-16 bg-white">
+    <section class="py-12 sm:py-16 bg-white">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-12">
-                <h2 class="text-4xl font-bold text-gray-800 mb-4">와우쓰리디홍대센터</h2>
-                <p class="text-xl text-gray-600 max-w-2xl mx-auto">4차산업 3D프린팅 교육 전문 기관으로, 실무 중심의 커리큘럼과 최신 장비로 여러분의 성장을 지원합니다.</p>
+            <div class="text-center mb-8 sm:mb-12">
+                <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-3 sm:mb-4 tracking-tight">와우쓰리디홍대센터</h2>
+                <p class="text-base sm:text-lg md:text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed px-1">4차산업 3D프린팅 교육 전문 기관으로, 실무 중심의 커리큘럼과 최신 장비로 여러분의 성장을 지원합니다.</p>
             </div>
-            <div class="grid md:grid-cols-3 gap-8 text-center">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-8 text-center">
                 <div class="p-6 rounded-2xl bg-gray-50 border border-gray-100">
                     <div class="w-14 h-14 mx-auto mb-4 rounded-xl bg-primary-100 text-primary-600 flex items-center justify-center"><i class="fas fa-cube text-2xl"></i></div>
                     <h3 class="text-lg font-bold text-gray-800 mb-2">3D 모델링·프린팅</h3>
@@ -248,11 +258,11 @@ export const homeHtml = `
     </section>
 
     <!-- 과정 목록 섹션 -->
-    <section id="courses" class="py-16 bg-gray-50">
+    <section id="courses" class="py-12 sm:py-16 bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-12">
-                <h2 class="text-4xl font-bold text-gray-800 mb-4">교육 과정</h2>
-                <p class="text-xl text-gray-600">다양한 분야의 전문 교육 프로그램</p>
+            <div class="text-center mb-8 sm:mb-12">
+                <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-3 sm:mb-4 tracking-tight">교육 과정</h2>
+                <p class="text-base sm:text-lg md:text-xl text-gray-600">다양한 분야의 전문 교육 프로그램</p>
             </div>
             <div id="courseList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                 <!-- 로딩 표시 -->
@@ -264,19 +274,19 @@ export const homeHtml = `
     </section>
 
     <!-- 교육사진 섹션 (실데이터) -->
-    <section id="education-photos" class="py-16 bg-white border-t border-gray-100">
+    <section id="education-photos" class="py-12 sm:py-16 bg-white border-t border-gray-100">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-12">
-                <h2 class="text-4xl font-bold text-gray-800 mb-4">교육사진</h2>
-                <p class="text-xl text-gray-600">생생한 교육 현장과 수업 모습을 소개합니다.</p>
+            <div class="text-center mb-8 sm:mb-12">
+                <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-3 sm:mb-4 tracking-tight">교육사진</h2>
+                <p class="text-base sm:text-lg md:text-xl text-gray-600">생생한 교육 현장과 수업 모습을 소개합니다.</p>
             </div>
             <div id="educationPhotoList" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                 <div class="col-span-2 md:col-span-4 flex justify-center py-12">
                     <div class="inline-block animate-spin rounded-full h-10 w-10 border-2 border-primary-600 border-t-transparent"></div>
                 </div>
             </div>
-            <div class="text-center">
-                <a href="/education-photos?filter=education_photo" class="inline-flex items-center gap-2 px-8 py-4 bg-primary-600 text-white font-bold rounded-xl hover:bg-primary-700 transition shadow-lg">
+            <div class="text-center px-2">
+                <a href="/education-photos?filter=education_photo" class="inline-flex items-center justify-center gap-2 w-full min-[360px]:w-auto px-6 sm:px-8 py-3.5 sm:py-4 min-h-[48px] bg-primary-600 text-white text-sm sm:text-base font-bold rounded-xl hover:bg-primary-700 transition shadow-lg">
                     교육사진 갤러리 보기 <i class="fas fa-arrow-right"></i>
                 </a>
             </div>
@@ -284,19 +294,19 @@ export const homeHtml = `
     </section>
 
     <!-- 포트폴리오 섹션 (수강생 작품, /api/portfolios → /portfolios) -->
-    <section id="portfolios" class="py-16 bg-gray-50 border-t border-gray-100">
+    <section id="portfolios" class="py-12 sm:py-16 bg-gray-50 border-t border-gray-100">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-12">
-                <h2 class="text-4xl font-bold text-gray-800 mb-4">포트폴리오</h2>
-                <p class="text-xl text-gray-600">수강생 우수 작품과 프로젝트 결과물을 소개합니다.</p>
+            <div class="text-center mb-8 sm:mb-12">
+                <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-3 sm:mb-4 tracking-tight">포트폴리오</h2>
+                <p class="text-base sm:text-lg md:text-xl text-gray-600">수강생 우수 작품과 프로젝트 결과물을 소개합니다.</p>
             </div>
             <div id="portfolioList" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                 <div class="col-span-2 md:col-span-4 flex justify-center py-12">
                     <div class="inline-block animate-spin rounded-full h-10 w-10 border-2 border-primary-600 border-t-transparent"></div>
                 </div>
             </div>
-            <div class="text-center">
-                <a href="/portfolios" class="inline-flex items-center gap-2 px-8 py-4 bg-gray-800 text-white font-bold rounded-xl hover:bg-gray-900 transition shadow-lg">
+            <div class="text-center px-2">
+                <a href="/portfolios" class="inline-flex items-center justify-center gap-2 w-full min-[360px]:w-auto px-6 sm:px-8 py-3.5 sm:py-4 min-h-[48px] bg-gray-800 text-white text-sm sm:text-base font-bold rounded-xl hover:bg-gray-900 transition shadow-lg">
                     포트폴리오 갤러리 보기 <i class="fas fa-arrow-right"></i>
                 </a>
             </div>
@@ -304,19 +314,19 @@ export const homeHtml = `
     </section>
 
     <!-- 시제품 제작 사진 섹션 (/api/posts?category=prototype → /prototype-gallery) -->
-    <section id="prototype-gallery" class="py-16 bg-white border-t border-gray-100">
+    <section id="prototype-gallery" class="py-12 sm:py-16 bg-white border-t border-gray-100">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-12">
-                <h2 class="text-4xl font-bold text-gray-800 mb-4">시제품 제작 사진</h2>
-                <p class="text-xl text-gray-600">3D 프린팅으로 제작한 시제품과 프로젝트 결과물을 소개합니다.</p>
+            <div class="text-center mb-8 sm:mb-12">
+                <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-3 sm:mb-4 tracking-tight">시제품 제작 사진</h2>
+                <p class="text-base sm:text-lg md:text-xl text-gray-600">3D 프린팅으로 제작한 시제품과 프로젝트 결과물을 소개합니다.</p>
             </div>
             <div id="prototypeList" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                 <div class="col-span-2 md:col-span-4 flex justify-center py-12">
                     <div class="inline-block animate-spin rounded-full h-10 w-10 border-2 border-primary-600 border-t-transparent"></div>
                 </div>
             </div>
-            <div class="text-center">
-                <a href="/prototype-gallery" class="inline-flex items-center gap-2 px-8 py-4 bg-gray-800 text-white font-bold rounded-xl hover:bg-gray-900 transition shadow-lg">
+            <div class="text-center px-2">
+                <a href="/prototype-gallery" class="inline-flex items-center justify-center gap-2 w-full min-[360px]:w-auto px-6 sm:px-8 py-3.5 sm:py-4 min-h-[48px] bg-gray-800 text-white text-sm sm:text-base font-bold rounded-xl hover:bg-gray-900 transition shadow-lg">
                     시제품·작품 더 보기 <i class="fas fa-arrow-right"></i>
                 </a>
             </div>
@@ -324,26 +334,26 @@ export const homeHtml = `
     </section>
 
     <!-- 상담 신청 섹션 -->
-    <section id="contact" class="py-16 bg-white border-t border-gray-100">
+    <section id="contact" class="py-12 sm:py-16 bg-white border-t border-gray-100">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-12">
-                <h2 class="text-4xl font-bold text-gray-800 mb-4">상담·문의</h2>
-                <p class="text-xl text-gray-600">과정 안내, 수강 신청, 시설 견학 등 편하게 문의해 주세요.</p>
+            <div class="text-center mb-8 sm:mb-12">
+                <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-3 sm:mb-4 tracking-tight">상담·문의</h2>
+                <p class="text-base sm:text-lg md:text-xl text-gray-600">과정 안내, 수강 신청, 시설 견학 등 편하게 문의해 주세요.</p>
             </div>
-            <div class="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                <a href="/online-consulting" class="block p-8 rounded-2xl bg-primary-50 border-2 border-primary-100 hover:border-primary-300 hover:bg-primary-100 transition text-center">
-                    <i class="fas fa-envelope text-4xl text-primary-600 mb-4"></i>
-                    <h3 class="text-xl font-bold text-gray-800 mb-2">온라인 상담 신청</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 max-w-4xl mx-auto">
+                <a href="/online-consulting" class="block p-6 sm:p-8 rounded-2xl bg-primary-50 border-2 border-primary-100 hover:border-primary-300 hover:bg-primary-100 transition text-center min-h-[140px] sm:min-h-0 flex flex-col items-center justify-center active:scale-[0.99]">
+                    <i class="fas fa-envelope text-3xl sm:text-4xl text-primary-600 mb-3 sm:mb-4"></i>
+                    <h3 class="text-lg sm:text-xl font-bold text-gray-800 mb-2">온라인 상담 신청</h3>
                     <p class="text-gray-600 text-sm">24시간 접수 가능합니다.</p>
                 </a>
-                <a href="/locations" class="block p-8 rounded-2xl bg-gray-50 border-2 border-gray-100 hover:border-primary-200 hover:bg-gray-100 transition text-center">
-                    <i class="fas fa-map-marker-alt text-4xl text-primary-600 mb-4"></i>
-                    <h3 class="text-xl font-bold text-gray-800 mb-2">오시는 길</h3>
+                <a href="/locations" class="block p-6 sm:p-8 rounded-2xl bg-gray-50 border-2 border-gray-100 hover:border-primary-200 hover:bg-gray-100 transition text-center min-h-[140px] sm:min-h-0 flex flex-col items-center justify-center active:scale-[0.99]">
+                    <i class="fas fa-map-marker-alt text-3xl sm:text-4xl text-primary-600 mb-3 sm:mb-4"></i>
+                    <h3 class="text-lg sm:text-xl font-bold text-gray-800 mb-2">오시는 길</h3>
                     <p class="text-gray-600 text-sm">홍대·구미·전주 센터 위치 안내</p>
                 </a>
             </div>
-            <div class="mt-10 text-center text-gray-600">
-                <p class="font-medium">전화 문의 <a href="tel:02-3144-3137" class="text-primary-600 font-bold hover:underline">02-3144-3137</a> / <a href="tel:054-464-3137" class="text-primary-600 font-bold hover:underline">054-464-3137</a></p>
+            <div class="mt-8 sm:mt-10 text-center text-gray-600 px-2">
+                <p class="font-medium text-sm sm:text-base leading-relaxed">전화 문의 <a href="tel:02-3144-3137" class="text-primary-600 font-bold hover:underline whitespace-nowrap">02-3144-3137</a> <span class="text-gray-400 hidden sm:inline">/</span><br class="sm:hidden"> <a href="tel:054-464-3137" class="text-primary-600 font-bold hover:underline whitespace-nowrap">054-464-3137</a></p>
             </div>
         </div>
     </section>

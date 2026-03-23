@@ -2,19 +2,19 @@ import { socialLinksDesktopNavHtml, socialLinksMobileNavHtml } from './social_li
 
 export const navigationHtml = (activeMenu = '') => `
     <!-- 네비게이션 -->
-    <nav class="bg-white shadow-sm sticky top-0 z-50 border-b border-gray-100">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-14 sm:h-16">
-                <!-- 모바일 메뉴 버튼 -->
-                <button type="button" id="navMobileToggle" aria-label="메뉴 열기" class="lg:hidden p-2 -ml-2 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition">
-                    <i class="fas fa-bars text-xl"></i>
+    <nav class="bg-white/95 backdrop-blur-md shadow-sm sticky top-0 z-50 border-b border-gray-100 safe-nav-top">
+        <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center min-h-[3.25rem] sm:min-h-[4rem] h-14 sm:h-16">
+                <!-- 모바일 메뉴 버튼 (최소 44×44 터치 영역) -->
+                <button type="button" id="navMobileToggle" aria-controls="navMobileMenu" aria-expanded="false" aria-label="메뉴 열기" class="lg:hidden shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center -ml-1 rounded-xl text-gray-600 hover:bg-gray-100 hover:text-gray-900 active:bg-gray-50 transition">
+                    <i class="fas fa-bars text-xl" aria-hidden="true"></i>
                 </button>
 
                 <!-- 로고 -->
-                <div class="flex-shrink-0 flex items-center">
-                    <a href="/" class="flex flex-col items-start group">
-                        <img src="/static/logo.png" alt="WOW 3D" class="h-8 sm:h-9 w-auto object-contain mb-0.5">
-                        <span class="text-xs sm:text-sm text-gray-600 font-bold tracking-wider group-hover:text-primary-600 transition-colors">와우쓰리디홍대센터</span>
+                <div class="min-w-0 shrink flex items-center">
+                    <a href="/" class="flex flex-col items-start group max-w-[min(100%,11rem)] sm:max-w-none">
+                        <img src="/static/logo.png" alt="WOW 3D" class="h-7 sm:h-9 w-auto object-contain mb-0.5">
+                        <span class="text-[11px] sm:text-xs md:text-sm text-gray-600 font-bold tracking-wider group-hover:text-primary-600 transition-colors truncate max-w-full">와우쓰리디홍대센터</span>
                     </a>
                 </div>
 
@@ -57,7 +57,7 @@ export const navigationHtml = (activeMenu = '') => `
 
                     <!-- 게시판 (수강후기 포함) -->
                     <div class="relative group">
-                        <button class="px-3 py-2 ${['board', 'reviews', 'portfolios', 'prototype'].includes(activeMenu) ? 'text-primary-600 font-bold' : 'text-gray-600 font-medium'} hover:text-primary-600 text-sm flex items-center transition-colors">
+                        <button class="px-3 py-2 ${['board', 'reviews', 'prototype'].includes(activeMenu) ? 'text-primary-600 font-bold' : 'text-gray-600 font-medium'} hover:text-primary-600 text-sm flex items-center transition-colors">
                             게시판
                             <i class="fas fa-chevron-down ml-1 text-[10px] text-gray-400"></i>
                         </button>
@@ -67,7 +67,6 @@ export const navigationHtml = (activeMenu = '') => `
                                 <a href="/posts?category=faq" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">FAQ</a>
                                 <a href="/posts?category=qna" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">Q&A</a>
                                 <a href="/reviews" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">수강후기</a>
-                                <a href="/portfolios" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">포트폴리오</a>
                                 <a href="/prototype-gallery" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">시제품 제작사진</a>
                             </div>
                         </div>
@@ -120,9 +119,9 @@ export const navigationHtml = (activeMenu = '') => `
                 ${socialLinksDesktopNavHtml()}
 
                 <!-- 우측 메뉴 (로그인/회원가입) -->
-                <div class="flex items-center space-x-2 shrink-0" id="authMenu">
-                    <a href="/login" class="px-2 sm:px-3 py-2 text-gray-500 hover:text-primary-600 font-medium text-sm transition-colors">로그인</a>
-                    <a href="/register" class="px-3 sm:px-4 py-1.5 bg-primary-500 hover:bg-primary-600 text-white text-sm font-medium rounded transition-colors shadow-sm">회원가입</a>
+                <div class="flex items-center gap-1 sm:gap-2 shrink-0" id="authMenu">
+                    <a href="/login" class="px-2 sm:px-3 py-2 min-h-[44px] sm:min-h-0 flex items-center text-gray-500 hover:text-primary-600 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap">로그인</a>
+                    <a href="/register" class="px-2.5 sm:px-4 py-2 min-h-[44px] sm:min-h-0 flex items-center bg-primary-500 hover:bg-primary-600 text-white text-xs sm:text-sm font-medium rounded-lg transition-colors shadow-sm whitespace-nowrap">회원가입</a>
                 </div>
             </div>
         </div>
@@ -131,10 +130,10 @@ export const navigationHtml = (activeMenu = '') => `
     <!-- 모바일 메뉴 (드로어) -->
     <div id="navMobileMenu" class="fixed inset-0 z-40 lg:hidden hidden" aria-hidden="true">
         <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" id="navMobileMenuBackdrop" aria-label="메뉴 닫기"></div>
-        <div class="absolute top-0 left-0 right-0 bg-white shadow-xl max-h-[85vh] overflow-y-auto rounded-b-2xl">
-            <div class="flex items-center justify-between p-4 border-b border-gray-100">
-                <span class="font-bold text-gray-800">메뉴</span>
-                <button type="button" id="navMobileMenuClose" aria-label="메뉴 닫기" class="p-2 rounded-lg text-gray-500 hover:bg-gray-100"><i class="fas fa-times"></i></button>
+        <div class="absolute top-0 left-0 right-0 bg-white shadow-xl max-h-[min(92dvh,100%)] overflow-y-auto overscroll-contain rounded-b-2xl safe-pb-menu">
+            <div class="flex items-center justify-between p-4 pt-[max(1rem,env(safe-area-inset-top,0px))] border-b border-gray-100">
+                <span class="font-bold text-gray-800 text-lg">메뉴</span>
+                <button type="button" id="navMobileMenuClose" aria-label="메뉴 닫기" class="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100 active:bg-gray-50"><i class="fas fa-times text-lg"></i></button>
             </div>
             <div class="py-2 pb-6">
                 <a href="/course-sessions" class="block px-2 py-1 text-[11px] font-bold text-gray-400 uppercase tracking-wider hover:text-primary-600 transition-colors">과정안내 <i class="fas fa-chevron-right ml-1 text-[8px]"></i></a>
@@ -153,7 +152,6 @@ export const navigationHtml = (activeMenu = '') => `
                 <a href="/posts?category=faq" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">FAQ</a>
                 <a href="/posts?category=qna" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">Q&A</a>
                 <a href="/reviews" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">수강후기</a>
-                <a href="/portfolios" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">포트폴리오</a>
                 <a href="/prototype-gallery" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">시제품 제작사진</a>
                 <div class="px-2 py-1 mt-2 text-[11px] font-bold text-gray-400 uppercase tracking-wider">채용정보</div>
                 <a href="/jobs" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">구인정보</a>
@@ -175,12 +173,35 @@ export const navigationHtml = (activeMenu = '') => `
         var menu = document.getElementById('navMobileMenu');
         var backdrop = document.getElementById('navMobileMenuBackdrop');
         var closeBtn = document.getElementById('navMobileMenuClose');
-        function openMenu(){ if(menu){ menu.classList.remove('hidden'); menu.setAttribute('aria-hidden','false'); document.body.style.overflow='hidden'; }}
-        function closeMenu(){ if(menu){ menu.classList.add('hidden'); menu.setAttribute('aria-hidden','true'); document.body.style.overflow=''; }}
-        if(toggle) toggle.addEventListener('click', openMenu);
-        if(backdrop) backdrop.addEventListener('click', closeMenu);
-        if(closeBtn) closeBtn.addEventListener('click', closeMenu);
-        if(menu) menu.querySelectorAll('a').forEach(function(a){ a.addEventListener('click', closeMenu); });
+        function syncToggleState(isOpen) {
+            if (toggle) {
+                toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+                toggle.setAttribute('aria-label', isOpen ? '메뉴 닫기' : '메뉴 열기');
+            }
+        }
+        function openMenu(){
+            if (!menu) return;
+            menu.classList.remove('hidden');
+            menu.setAttribute('aria-hidden','false');
+            document.body.style.overflow='hidden';
+            syncToggleState(true);
+        }
+        function closeMenu(){
+            if (!menu) return;
+            menu.classList.add('hidden');
+            menu.setAttribute('aria-hidden','true');
+            document.body.style.overflow='';
+            syncToggleState(false);
+        }
+        function toggleMenu(){
+            if (!menu) return;
+            if (menu.classList.contains('hidden')) openMenu();
+            else closeMenu();
+        }
+        if (toggle) toggle.addEventListener('click', function(e){ e.preventDefault(); toggleMenu(); });
+        if (backdrop) backdrop.addEventListener('click', closeMenu);
+        if (closeBtn) closeBtn.addEventListener('click', closeMenu);
+        if (menu) menu.querySelectorAll('a').forEach(function(a){ a.addEventListener('click', closeMenu); });
     })();
     </script>
     <script src="/static/academic-menu.js"></script>
