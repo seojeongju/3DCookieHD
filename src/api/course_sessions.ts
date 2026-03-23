@@ -1,7 +1,12 @@
 import { Hono } from 'hono';
 import type { Bindings } from '../types';
 import { authMiddleware, requireAdmin, requireRole } from '../middleware/auth';
-import { applyEffectiveStatus, applyEffectiveStatusToList, getEffectiveSessionStatus } from '../utils/course_session_status';
+import {
+  applyEffectiveStatus,
+  applyEffectiveStatusToList,
+  getEffectiveSessionStatus,
+  sqlWhereEffectiveStatusEquals,
+} from '../utils/course_session_status';
 
 const STATUS_VALUES = ['recruiting', 'in_progress', 'completed', 'always_open', 'closed'] as const;
 
@@ -303,8 +308,12 @@ app.get('/', authMiddleware, requireRole('admin', 'teacher', 'instructor'), asyn
       params.push(categoryId);
     }
     if (status !== undefined && status !== '') {
-      conditions.push('s.status = ?');
-      params.push(status);
+      if (status === 'in_progress' || status === 'recruiting' || status === 'completed') {
+        conditions.push(sqlWhereEffectiveStatusEquals('s', status));
+      } else {
+        conditions.push('s.status = ?');
+        params.push(status);
+      }
     }
     if (name !== undefined && name !== '') {
       conditions.push('a.name LIKE ?');
@@ -364,8 +373,7 @@ app.get('/', authMiddleware, requireRole('admin', 'teacher', 'instructor'), asyn
         .all() as { results: Record<string, unknown>[] };
     }
 
-    // 관리자 수동 변경 상태 통일: 표시는 DB status 그대로 사용 (종합대시보드와 동일)
-    const list = rows.results || [];
+    const list = applyEffectiveStatusToList((rows.results || []) as { status: string; training_start_date?: string | null; training_end_date?: string | null }[]);
     return c.json({
       success: true,
       data: list,

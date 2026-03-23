@@ -85,9 +85,19 @@ function renderCourses(courses) {
 
         const progress = Math.min(100, ((course.enrolled_count || 0) / (course.max_students || 1)) * 100);
 
+        const st = (course.status || '').toLowerCase();
+        const statusBadge = course.is_hrd && st
+            ? (st === 'in_progress' ? '<span class="px-2 py-1 bg-emerald-100 text-emerald-700 text-xs font-bold rounded">진행중</span>' :
+                st === 'completed' ? '<span class="px-2 py-1 bg-slate-100 text-slate-600 text-xs font-bold rounded">종료</span>' :
+                st === 'recruiting' ? '<span class="px-2 py-1 bg-sky-100 text-sky-700 text-xs font-bold rounded">모집중</span>' :
+                st === 'always_open' ? '<span class="px-2 py-1 bg-violet-100 text-violet-700 text-xs font-bold rounded">상시모집</span>' : '')
+            : '';
         card.innerHTML = `
-            <div class="flex items-start justify-between mb-3">
-                <span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded">${course.category || '일반'}</span>
+            <div class="flex items-start justify-between mb-3 gap-2 flex-wrap">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded">${course.category || '일반'}</span>
+                    ${statusBadge}
+                </div>
                 <span class="text-xs text-gray-500">${course.enrolled_count || 0} / ${course.max_students || 0}명</span>
             </div>
             <h4 class="font-bold text-gray-800 mb-2 line-clamp-2">${course.title}</h4>

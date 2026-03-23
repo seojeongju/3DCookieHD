@@ -49,3 +49,74 @@ export function applyEffectiveStatus<T extends SessionLike>(row: T): T {
 export function applyEffectiveStatusToList<T extends SessionLike>(rows: T[]): T[] {
   return rows.map((row) => applyEffectiveStatus(row));
 }
+
+/**
+ * SQLite WHERE 절: getEffectiveSessionStatus(행) === target (개강일·종료일 기준, DB status만으로는 부족할 때 사용)
+ * @param alias course_sessions 테이블 별칭 (예: s)
+ */
+export function sqlWhereEffectiveStatusEquals(alias: string, target: 'in_progress' | 'recruiting' | 'completed'): string {
+  const a = alias;
+  if (target === 'in_progress') {
+    return `(
+      ${a}.status <> 'closed'
+      AND ${a}.status <> 'always_open'
+      AND (
+        (
+          ${a}.training_start_date IS NOT NULL AND ${a}.training_end_date IS NOT NULL
+          AND length(trim(${a}.training_start_date)) > 0 AND length(trim(${a}.training_end_date)) > 0
+          AND date(${a}.training_start_date) <= date('now') AND date(${a}.training_end_date) >= date('now')
+        )
+        OR (
+          ${a}.training_start_date IS NOT NULL AND length(trim(${a}.training_start_date)) > 0
+          AND (${a}.training_end_date IS NULL OR length(trim(${a}.training_end_date)) = 0)
+          AND date(${a}.training_start_date) <= date('now')
+        )
+        OR (
+          (${a}.training_start_date IS NULL OR length(trim(${a}.training_start_date)) = 0)
+          AND ${a}.training_end_date IS NOT NULL AND length(trim(${a}.training_end_date)) > 0
+          AND date(${a}.training_end_date) >= date('now')
+        )
+        OR (
+          ${a}.status = 'in_progress'
+          AND (${a}.training_start_date IS NULL OR length(trim(${a}.training_start_date)) = 0)
+          AND (${a}.training_end_date IS NULL OR length(trim(${a}.training_end_date)) = 0)
+        )
+      )
+    )`;
+  }
+  if (target === 'recruiting') {
+    return `(
+      ${a}.status <> 'closed'
+      AND ${a}.status <> 'always_open'
+      AND (
+        (
+          ${a}.training_start_date IS NOT NULL AND length(trim(${a}.training_start_date)) > 0
+          AND date(${a}.training_start_date) > date('now')
+        )
+        OR (
+          ${a}.status = 'recruiting'
+          AND (${a}.training_start_date IS NULL OR length(trim(${a}.training_start_date)) = 0)
+        )
+      )
+    )`;
+  }
+  // completed
+  return `(
+    ${a}.status <> 'closed'
+    AND (
+      (
+        ${a}.status = 'always_open'
+        AND ${a}.training_end_date IS NOT NULL AND length(trim(${a}.training_end_date)) > 0
+        AND date(${a}.training_end_date) < date('now')
+      )
+      OR (
+        ${a}.training_end_date IS NOT NULL AND length(trim(${a}.training_end_date)) > 0
+        AND date(${a}.training_end_date) < date('now')
+        AND NOT (
+          ${a}.training_start_date IS NOT NULL AND length(trim(${a}.training_start_date)) > 0
+          AND date(${a}.training_start_date) > date('now')
+        )
+      )
+    )
+  )`;
+}

@@ -852,6 +852,13 @@ courses.get('/:id/attendance', async (c) => {
       const inCourses = await c.env.DB.prepare('SELECT id FROM courses WHERE id = ?').bind(idNum).first();
       const inSessions = await c.env.DB.prepare('SELECT id FROM course_sessions WHERE id = ?').bind(idNum).first();
       if (!inCourses && inSessions) isHrd = true;
+      else if (inCourses && inSessions) {
+        // courses.id와 course_sessions.id가 같은 숫자로 공존할 수 있음 → 회차에 수강생이 있으면 HRD(LMS 회차) 출석으로 처리
+        const hasSessionEnrollments = await c.env.DB.prepare(
+          'SELECT 1 FROM course_session_enrollments WHERE session_id = ? LIMIT 1'
+        ).bind(idNum).first();
+        if (hasSessionEnrollments) isHrd = true;
+      }
     }
 
     if (!date) {

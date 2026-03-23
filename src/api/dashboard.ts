@@ -3,6 +3,7 @@ import { Hono } from 'hono';
 import { Bindings } from '../types';
 import { authMiddleware } from '../middleware/auth';
 import { verifyToken } from '../utils/jwt';
+import { getEffectiveSessionStatus } from '../utils/course_session_status';
 
 const app = new Hono<{ Bindings: Bindings }>();
 
@@ -270,11 +271,18 @@ app.get('/teacher-stats', authMiddleware, async (c) => {
             hrdCourses = (hrdRows.results || []).map(r => {
                 const sessionLabel = r.session_number != null ? ' (' + r.session_number + '회차)' : '';
                 const title = (r.course_name || '') + sessionLabel;
+                const effStatus = getEffectiveSessionStatus({
+                    status: r.status,
+                    training_start_date: r.training_start_date,
+                    training_end_date: r.training_end_date,
+                });
                 return {
                     id: r.id,
                     title: title,
                     category: r.category_name || '국비지원',
-                    status: r.status,
+                    status: effStatus,
+                    training_start_date: r.training_start_date,
+                    training_end_date: r.training_end_date,
                     max_students: 0,
                     is_hrd: true,
                     enrolled_count: 0

@@ -22,6 +22,20 @@ function esc(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+/** API가 내려준 유효 상태(개강·종료일 반영)에 맞는 배지 HTML */
+function sessionStatusBadgeHtml(st) {
+    var s = (st || '').toLowerCase();
+    var map = {
+        in_progress: { t: '진행중', cls: 'bg-emerald-100 text-emerald-700' },
+        recruiting: { t: '모집중', cls: 'bg-sky-100 text-sky-700' },
+        completed: { t: '종료', cls: 'bg-slate-100 text-slate-600' },
+        always_open: { t: '상시모집', cls: 'bg-violet-100 text-violet-700' },
+        closed: { t: '폐강', cls: 'bg-red-100 text-red-700' },
+    };
+    var m = map[s] || { t: st || '-', cls: 'bg-slate-100 text-slate-600' };
+    return '<span class="px-2 py-0.5 ' + m.cls + ' text-[10px] font-black rounded uppercase tracking-wider">' + esc(m.t) + '</span>';
+}
+
 async function loadActiveSessions() {
     var grid = document.getElementById('active-sessions-grid');
     if (!grid) return;
@@ -47,7 +61,7 @@ async function loadActiveSessions() {
                 return '<div class="bg-white rounded-[2rem] border border-slate-200/60 shadow-sm overflow-hidden hover:shadow-md transition-all group animate-fade-in">' +
                     '<div class="px-6 py-5 bg-gradient-to-br from-slate-50 to-white border-b border-slate-100">' +
                     '<div class="flex items-center justify-between mb-2">' +
-                    '<span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-black rounded uppercase tracking-wider">진행중</span>' +
+                    sessionStatusBadgeHtml(session.status) +
                     '<span class="text-[10px] font-bold text-slate-400"><i class="far fa-calendar-alt mr-1"></i> ' + esc(range) + '</span></div>' +
                     '<h4 class="font-black text-slate-800 text-sm mb-1 truncate" title="' + name + '">' + name + '</h4>' +
                     '<div class="flex items-center gap-2">' +
@@ -55,7 +69,7 @@ async function loadActiveSessions() {
                     '<span class="w-1 h-1 rounded-full bg-slate-300"></span>' +
                     '<span class="text-xs font-medium text-slate-400">' + instructor + '</span></div></div>' +
                     '<div class="p-4 grid grid-cols-2 gap-2 bg-white">' +
-                    '<a href="/admin/courses/' + sid + '/lms/attendance" class="flex items-center justify-center gap-2 py-2.5 bg-slate-50 text-slate-700 rounded-xl text-xs font-bold hover:bg-primary-50 hover:text-primary-600 transition"><i class="fas fa-user-check text-[10px]"></i> 출석</a>' +
+                    '<a href="/admin/courses/' + sid + '/lms/attendance?type=hrd" class="flex items-center justify-center gap-2 py-2.5 bg-slate-50 text-slate-700 rounded-xl text-xs font-bold hover:bg-primary-50 hover:text-primary-600 transition"><i class="fas fa-user-check text-[10px]"></i> 출석</a>' +
                     '<a href="/admin/courses/' + sid + '/lms/counseling" class="flex items-center justify-center gap-2 py-2.5 bg-slate-50 text-slate-700 rounded-xl text-xs font-bold hover:bg-primary-50 hover:text-primary-600 transition"><i class="fas fa-comments text-[10px]"></i> 상담</a>' +
                     '<a href="/admin/courses/' + sid + '/lms/assignments" class="flex items-center justify-center gap-2 py-2.5 bg-slate-50 text-slate-700 rounded-xl text-xs font-bold hover:bg-primary-50 hover:text-primary-600 transition"><i class="fas fa-tasks text-[10px]"></i> 과제</a>' +
                     '<a href="/admin/courses/sessions/' + sid + '/timetable" class="flex items-center justify-center gap-2 py-2.5 bg-slate-50 text-slate-700 rounded-xl text-xs font-bold hover:bg-primary-50 hover:text-primary-600 transition"><i class="far fa-calendar-alt text-[10px]"></i> 시간표</a>' +
