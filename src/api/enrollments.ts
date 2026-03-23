@@ -23,6 +23,98 @@ app.get('/', authMiddleware, async (c) => {
     const typeHrd = c.req.query('type') === 'hrd';
     const offset = (page - 1) * limit;
 
+    // 관리자/강사: 사용자별 전체 수강과정(legacy + HRD 회차) 조회
+    // 수강후기 작성자 선택 모달에서 사용
+    if (userIdQuery && (user.role === 'admin' || user.role === 'teacher')) {
+      const userId = parseInt(String(userIdQuery), 10);
+      if (!userId) {
+        return c.json({ success: true, data: [], pagination: { page, limit, total: 0, totalPages: 0 } });
+      }
+
+      // legacy enrollments
+      let legacyQuery = `
+        SELECT
+          e.id,
+          e.user_id,
+          e.course_id,
+          e.status,
+          e.enrolled_at,
+          u.name as user_name,
+          u.email as user_email,
+          u.phone as user_phone,
+          c.title as course_title,
+          c.category as course_category,
+          c.thumbnail_url as course_thumbnail,
+          c.start_date as course_start_date,
+          c.end_date as course_end_date,
+          cam.name as campus_name
+        FROM enrollments e
+        LEFT JOIN users u ON e.user_id = u.id
+        LEFT JOIN courses c ON e.course_id = c.id
+        LEFT JOIN campuses cam ON c.campus_id = cam.id
+        WHERE e.user_id = ?
+      `;
+      const legacyParams: any[] = [userId];
+      if (user.role === 'teacher') {
+        legacyQuery += ' AND c.teacher_id = ?';
+        legacyParams.push(user.userId);
+      }
+      const legacyRows = await DB.prepare(legacyQuery).bind(...legacyParams).all();
+
+      // HRD course session enrollments
+      let hrdQuery = `
+        SELECT
+          cse.id,
+          cse.user_id,
+          cs.approved_course_id as course_id,
+          CASE
+            WHEN cse.status = 'enrolled' THEN 'approved'
+            ELSE cse.status
+          END as status,
+          cse.enrolled_at,
+          u.name as user_name,
+          u.email as user_email,
+          u.phone as user_phone,
+          (a.name || ' (' || cs.session_number || '회차)' || CASE WHEN cs.session_name IS NOT NULL AND cs.session_name != '' THEN (' - ' || cs.session_name) ELSE '' END) as course_title,
+          '국비지원' as course_category,
+          NULL as course_thumbnail,
+          cs.training_start_date as course_start_date,
+          cs.training_end_date as course_end_date,
+          NULL as campus_name
+        FROM course_session_enrollments cse
+        INNER JOIN users u ON cse.user_id = u.id
+        INNER JOIN course_sessions cs ON cse.session_id = cs.id
+        INNER JOIN approved_courses a ON cs.approved_course_id = a.id
+        WHERE cse.user_id = ?
+      `;
+      const hrdParams: any[] = [userId];
+      if (user.role === 'teacher') {
+        hrdQuery += `
+          AND EXISTS (
+            SELECT 1 FROM session_timetable st
+            WHERE st.session_id = cs.id AND st.instructor_id = ?
+          )
+        `;
+        hrdParams.push(user.userId);
+      }
+      const hrdRows = await DB.prepare(hrdQuery).bind(...hrdParams).all();
+
+      const merged = [...(legacyRows.results || []), ...(hrdRows.results || [])]
+        .sort((a: any, b: any) => {
+          const ta = a?.enrolled_at ? Date.parse(String(a.enrolled_at)) : 0;
+          const tb = b?.enrolled_at ? Date.parse(String(b.enrolled_at)) : 0;
+          return tb - ta;
+        });
+      const total = merged.length;
+      const paged = merged.slice(offset, offset + limit);
+
+      return c.json({
+        success: true,
+        data: paged,
+        pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
+      });
+    }
+
     // HRD: course_id가 회차(session) ID이면 해당 회차 수강생만, 아니면 승인과정 기준 전체 회차 수강생
     if (typeHrd && courseId && (user.role === 'admin' || user.role === 'teacher')) {
       const courseIdNum = parseInt(String(courseId), 10);

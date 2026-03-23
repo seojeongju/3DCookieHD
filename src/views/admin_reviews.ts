@@ -184,6 +184,7 @@ export const adminReviewsListHtml = (sidebar: string | null = null) => `
         function enrollmentStatusLabel(st) {
             if (st === 'pending') return { text: '수강예약', cls: 'bg-blue-100 text-blue-700' };
             if (st === 'approved') return { text: '수강중', cls: 'bg-emerald-100 text-emerald-700' };
+            if (st === 'enrolled') return { text: '수강중', cls: 'bg-emerald-100 text-emerald-700' };
             if (st === 'completed') return { text: '수강종료', cls: 'bg-slate-200 text-slate-700' };
             if (st === 'cancelled') return { text: '취소', cls: 'bg-amber-100 text-amber-700' };
             if (st === 'rejected') return { text: '반려', cls: 'bg-rose-100 text-rose-700' };
@@ -325,8 +326,8 @@ export const adminReviewsListHtml = (sidebar: string | null = null) => `
             const list = document.getElementById('selectedAuthorCoursesList');
             if (!wrap || !list) return;
             if (!Array.isArray(rows) || rows.length === 0) {
-                wrap.classList.add('hidden');
-                list.innerHTML = '';
+                wrap.classList.remove('hidden');
+                list.innerHTML = '<li class="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-slate-500">등록된 수강과정이 없습니다.</li>';
                 return;
             }
             wrap.classList.remove('hidden');
