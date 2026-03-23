@@ -233,11 +233,11 @@ export const homeHtml = `
                     <h3 class="text-lg font-bold text-gray-800 mb-2">3D 모델링·프린팅</h3>
                     <p class="text-gray-600 text-sm">산업용 3D프린터와 전문 소프트웨어로 실무 역량을 키웁니다.</p>
                 </div>
-                <div class="p-6 rounded-2xl bg-gray-50 border border-gray-100">
-                    <div class="w-14 h-14 mx-auto mb-4 rounded-xl bg-primary-100 text-primary-600 flex items-center justify-center"><i class="fas fa-graduation-cap text-2xl"></i></div>
-                    <h3 class="text-lg font-bold text-gray-800 mb-2">국비지원 과정</h3>
+                <a href="/tomorrow-learning-card" class="block p-6 rounded-2xl bg-gray-50 border border-gray-100 hover:border-primary-200 hover:bg-primary-50/50 transition shadow-sm hover:shadow-md text-center group">
+                    <div class="w-14 h-14 mx-auto mb-4 rounded-xl bg-primary-100 text-primary-600 flex items-center justify-center group-hover:bg-primary-200 group-hover:text-primary-700 transition-colors"><i class="fas fa-graduation-cap text-2xl"></i></div>
+                    <h3 class="text-base sm:text-lg font-bold text-gray-800 mb-2 group-hover:text-primary-700 leading-snug">국비지원과정 - 내일배움카드발급안내</h3>
                     <p class="text-gray-600 text-sm">맞춤형 국비지원 과정으로 부담 없이 학습할 수 있습니다.</p>
-                </div>
+                </a>
                 <a href="/locations" class="block p-6 rounded-2xl bg-gray-50 border border-gray-100 hover:border-primary-200 hover:bg-primary-50/50 transition shadow-sm hover:shadow-md text-center group">
                     <div class="w-14 h-14 mx-auto mb-4 rounded-xl bg-primary-100 text-primary-600 flex items-center justify-center group-hover:bg-primary-200 group-hover:text-primary-700 transition-colors"><i class="fas fa-map-marker-alt text-2xl"></i></div>
                     <h3 class="text-lg font-bold text-gray-800 mb-2 group-hover:text-primary-700">홍대·구미·전주</h3>
