@@ -148,6 +148,9 @@ export const homeHtml = `
         width: 210px;
         flex: 0 0 210px;
       }
+      .education-face-mask {
+        filter: blur(1.2px) saturate(0.92) contrast(0.96);
+      }
       @media (max-width: 1023px) {
         .prototype-marquee-item {
           width: 170px;
@@ -783,6 +786,18 @@ export const homeHtml = `
             return all;
         }
 
+        function applyEducationMarqueeConstantSpeed(container) {
+            if (!container) return;
+            var track = container.querySelector('.education-photo-marquee-track');
+            if (!track) return;
+            // 항목 수가 늘어나도 일정한 체감 속도(px/sec)를 유지하도록 폭 기반으로 duration 계산
+            var pxPerSec = 20; // 값이 작을수록 더 천천히 이동
+            var distance = (track.scrollWidth / 2) + 8; // keyframes의 calc(-50% - 0.5rem)와 대응
+            var durationSec = distance / pxPerSec;
+            if (!Number.isFinite(durationSec) || durationSec <= 0) return;
+            track.style.animationDuration = Math.max(18, durationSec).toFixed(2) + 's';
+        }
+
         async function loadEducationPhotos() {
             var container = document.getElementById('educationPhotoList');
             if (!container) return;
@@ -846,6 +861,9 @@ export const homeHtml = `
                     cards +
                     cards +
                     '</div>';
+                requestAnimationFrame(function() {
+                    applyEducationMarqueeConstantSpeed(container);
+                });
             } catch (e) {
                 console.error('loadEducationPhotos error:', e);
                 container.innerHTML = '<div class="text-center py-12 text-gray-500">교육사진 목록을 불러오지 못했습니다.</div>';

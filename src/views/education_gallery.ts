@@ -24,6 +24,14 @@ export const educationGalleryHtml = `
         }
       }
     </script>
+    <style>
+      .education-face-mask {
+        filter: blur(1.2px) saturate(0.92) contrast(0.96);
+      }
+      .education-face-mask-modal {
+        filter: blur(0.9px) saturate(0.94) contrast(0.97);
+      }
+    </style>
 </head>
 <body class="bg-gray-50 flex flex-col min-h-screen">
     ${navigationHtml('photos')}
@@ -39,7 +47,7 @@ export const educationGalleryHtml = `
         </div>
     </div>
 
-    <!-- 보기 옵션 + 올리기 (교육 사진만) -->
+    <!-- 보기 옵션 -->
     <div class="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 -mt-6 relative z-20">
         <div class="bg-white rounded-2xl shadow-xl p-4 flex flex-col sm:flex-row gap-4 items-center justify-between border border-gray-100">
             <div class="flex flex-wrap gap-4 items-center">
@@ -48,9 +56,6 @@ export const educationGalleryHtml = `
                 <span class="text-xs text-gray-400 font-medium mr-1">보기:</span>
                 <button type="button" id="viewBtnGrid" onclick="setViewMode('grid')" class="view-mode-btn px-3 py-2 rounded-lg text-sm font-bold bg-primary-100 text-primary-700 transition" data-view="grid" title="그리드"><i class="fas fa-th-large mr-1"></i>그리드</button>
                 <button type="button" id="viewBtnImage" onclick="setViewMode('image')" class="view-mode-btn px-3 py-2 rounded-lg text-sm font-bold bg-gray-100 text-gray-600 hover:bg-gray-200 transition" data-view="image" title="이미지 크게"><i class="fas fa-image mr-1"></i>이미지</button>
-            </div>
-            <div id="uploadArea" class="hidden flex gap-2">
-                <button type="button" onclick="openEducationPhotoModal()" class="px-4 py-2.5 bg-primary-600 text-white rounded-xl font-bold text-sm hover:bg-primary-700 transition"><i class="fas fa-camera mr-2"></i>교육 사진 올리기</button>
             </div>
         </div>
     </div>
@@ -70,7 +75,7 @@ export const educationGalleryHtml = `
     <div id="detailModal" class="fixed inset-0 bg-black/90 hidden z-[70] flex items-center justify-center p-4 backdrop-blur-md">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <div class="relative">
-                <img id="modalImage" src="" alt="" class="w-full h-80 object-cover rounded-t-2xl">
+                <img id="modalImage" src="" alt="" class="w-full h-80 object-cover rounded-t-2xl education-face-mask-modal">
                 <button type="button" onclick="closeDetailModal()" class="absolute top-4 right-4 w-12 h-12 bg-white/90 hover:bg-white text-gray-800 rounded-full flex items-center justify-center transition"><i class="fas fa-times text-xl"></i></button>
                 <span class="absolute top-4 left-4 px-3 py-1 rounded-full text-xs font-bold text-white bg-primary-600">교육 사진</span>
             </div>
@@ -82,35 +87,6 @@ export const educationGalleryHtml = `
                 </div>
                 <div id="modalContent" class="prose max-w-none text-gray-700 leading-relaxed"></div>
             </div>
-        </div>
-    </div>
-
-    <!-- 교육 사진 올리기 모달 -->
-    <div id="educationPhotoModal" class="fixed inset-0 bg-black/50 hidden z-[80] flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div class="p-6 border-b flex justify-between items-center">
-                <h3 class="text-xl font-bold text-gray-800">교육 사진 올리기</h3>
-                <button type="button" onclick="closeEducationPhotoModal()" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times text-xl"></i></button>
-            </div>
-            <form id="educationPhotoForm" onsubmit="submitEducationPhoto(event)" class="p-6 space-y-4">
-                <div>
-                    <label class="block text-gray-700 font-medium mb-2">제목 <span class="text-red-500">*</span></label>
-                    <input type="text" id="epTitle" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500" placeholder="예: 3D 모델링 수업 현장">
-                </div>
-                <div>
-                    <label class="block text-gray-700 font-medium mb-2">설명 (선택)</label>
-                    <textarea id="epContent" rows="4" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500" placeholder="사진에 대한 간단한 설명"></textarea>
-                </div>
-                <div>
-                    <label class="block text-gray-700 font-medium mb-2">이미지 URL <span class="text-red-500">*</span></label>
-                    <input type="url" id="epImageUrl" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500" placeholder="https://... (이미지 주소)">
-                    <p class="text-xs text-gray-500 mt-1">이미지는 먼저 업로드 후 URL을 붙여넣거나, 외부 이미지 주소를 입력하세요.</p>
-                </div>
-                <div class="flex gap-3 pt-4">
-                    <button type="button" onclick="closeEducationPhotoModal()" class="flex-1 py-3 border border-gray-300 rounded-xl font-bold text-gray-600 hover:bg-gray-50">취소</button>
-                    <button type="submit" class="flex-1 py-3 bg-primary-600 text-white rounded-xl font-bold hover:bg-primary-700">등록</button>
-                </div>
-            </form>
         </div>
     </div>
 
@@ -139,7 +115,6 @@ export const educationGalleryHtml = `
                 html += '<span class="text-gray-700 mr-2 font-bold">' + (user.name || '') + '님</span>';
                 html += '<button type="button" onclick="logout()" class="text-gray-500 hover:text-red-600 text-sm">로그아웃</button>';
                 authMenu.innerHTML = html;
-                document.getElementById('uploadArea').classList.remove('hidden');
             }
         }
         function logout() { localStorage.removeItem('token'); localStorage.removeItem('user'); location.href = '/'; }
@@ -239,7 +214,7 @@ export const educationGalleryHtml = `
                     var aspectClass = isImageMode ? 'aspect-[4/3]' : 'aspect-square';
                     return '<div class="rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition bg-white border border-gray-100 cursor-pointer" onclick="openDetail(' + idx + ')" data-idx="' + idx + '">' +
                         '<div class="' + aspectClass + ' bg-gray-200 relative">' +
-                        '<img src="' + img.replace(/"/g, '&quot;') + '" alt="" class="w-full h-full object-cover hover:scale-105 transition duration-500">' +
+                        '<img src="' + img.replace(/"/g, '&quot;') + '" alt="" class="w-full h-full object-cover education-face-mask transition duration-500">' +
                         '<span class="absolute top-2 left-2 px-2 py-1 rounded-lg text-xs font-bold text-white ' + typeClass + '">' + typeLabel + '</span>' +
                         '</div>' +
                         '<div class="p-4">' +
@@ -302,50 +277,6 @@ export const educationGalleryHtml = `
         function closeDetailModal() {
             document.getElementById('detailModal').classList.add('hidden');
             document.body.style.overflow = '';
-        }
-
-        function openEducationPhotoModal() {
-            document.getElementById('educationPhotoForm').reset();
-            document.getElementById('educationPhotoModal').classList.remove('hidden');
-        }
-        function closeEducationPhotoModal() {
-            document.getElementById('educationPhotoModal').classList.add('hidden');
-        }
-
-        async function submitEducationPhoto(e) {
-            e.preventDefault();
-            var title = document.getElementById('epTitle').value.trim();
-            var content = document.getElementById('epContent').value.trim();
-            var imgUrl = document.getElementById('epImageUrl').value.trim();
-            if (!title || !imgUrl) { alert('제목과 이미지 URL을 입력하세요.'); return; }
-            var token = localStorage.getItem('token');
-            if (!token) { alert('로그인이 필요합니다.'); return; }
-            try {
-                var res = await fetch('/api/posts', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-                    body: JSON.stringify({
-                        title: title,
-                        content: content || '',
-                        category: 'education_photo',
-                        status: 'published',
-                        images: [imgUrl],
-                        pinned: false
-                    })
-                });
-                var result = await res.json();
-                if (res.status === 401) { alert('로그인 세션이 만료되었습니다.'); location.href = '/login'; return; }
-                if (result.success) {
-                    alert('교육 사진이 등록되었습니다.');
-                    closeEducationPhotoModal();
-                    loadAll();
-                } else {
-                    alert('오류: ' + (result.error || '등록 실패'));
-                }
-            } catch (err) {
-                console.error(err);
-                alert('등록 중 오류가 발생했습니다.');
-            }
         }
 
     </script>
