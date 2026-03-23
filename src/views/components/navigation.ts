@@ -1,3 +1,4 @@
+import { socialLinksDesktopNavHtml, socialLinksMobileNavHtml } from './social_links';
 
 export const navigationHtml = (activeMenu = '') => `
     <!-- 네비게이션 -->
@@ -115,6 +116,8 @@ export const navigationHtml = (activeMenu = '') => `
                     </div>
                 </div>
 
+                ${socialLinksDesktopNavHtml()}
+
                 <!-- 우측 메뉴 (로그인/회원가입) -->
                 <div class="flex items-center space-x-2 shrink-0" id="authMenu">
                     <a href="/login" class="px-2 sm:px-3 py-2 text-gray-500 hover:text-primary-600 font-medium text-sm transition-colors">로그인</a>
@@ -156,6 +159,7 @@ export const navigationHtml = (activeMenu = '') => `
                 <a href="/jobseekers" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">구직정보</a>
                 <div class="px-2 py-1 mt-2 text-[11px] font-bold text-gray-400 uppercase tracking-wider">상담센터</div>
                 <a href="/online-consulting" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">온라인상담신청</a>
+                ${socialLinksMobileNavHtml()}
                 <div class="border-t border-gray-100 mt-2 pt-2">
                     <a href="/login" class="block px-4 py-3 text-gray-700 hover:bg-gray-50"><i class="fas fa-sign-in-alt mr-2 text-gray-400"></i>로그인</a>
                     <a href="/register" class="block px-4 py-3 text-primary-600 font-medium hover:bg-primary-50"><i class="fas fa-user-plus mr-2"></i>회원가입</a>

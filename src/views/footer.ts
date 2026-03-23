@@ -1,3 +1,5 @@
+import { socialLinksFooterRowHtml } from './components/social_links';
+
 export const footerHtml = () => `
 <footer class="bg-gray-900 text-gray-300 py-12 border-t border-gray-800 mt-auto">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -11,9 +13,7 @@ export const footerHtml = () => `
                     4차 산업혁명의 핵심 기술인 3D프린팅 전문 교육기관입니다.<br>
                     실무 중심의 커리큘럼과 최신 장비로 여러분의 꿈을 지원합니다.
                 </p>
-                <div class="flex space-x-4">
-                    <a href="https://blog.naver.com/wow3d16" target="_blank" class="text-gray-400 hover:text-white transition"><i class="fab fa-blog"></i></a>
-                </div>
+                ${socialLinksFooterRowHtml()}
             </div>
 
             <!-- 바로가기 -->
