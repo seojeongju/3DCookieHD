@@ -990,7 +990,7 @@ app.get('/sitemap', (c) => {
                                                                                 </h2>
                                                                                 <ul class="space-y-2">
                                                                                     <li><a href="/#reviews" class="text-gray-600 hover:text-blue-600 transition">수강 후기</a></li>
-                                                                                    <li><a href="/#portfolio" class="text-gray-600 hover:text-blue-600 transition">포트폴리오</a></li>
+                                                                                    <li><a href="/#portfolios" class="text-gray-600 hover:text-blue-600 transition">포트폴리오</a></li>
                                                                                     <li><a href="/#prototype-gallery" class="text-gray-600 hover:text-blue-600 transition">시제품 갤러리</a></li>
                                                                                 </ul>
                                                                             </div>

@@ -27,7 +27,7 @@ export const portfoliosListHtml = `
 </head>
 <body class="bg-gray-50 flex flex-col min-h-screen">
     <!-- 네비게이션 -->
-    ${navigationHtml('')}
+    ${navigationHtml('portfolios')}
 
     <!-- 히어로 섹션 -->
     <div class="bg-gradient-to-br from-gray-900 to-primary-900 text-white py-20 relative overflow-hidden">

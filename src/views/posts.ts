@@ -90,13 +90,13 @@ export const postsListHtml = `
     <div class="bg-gradient-to-r from-gray-700 to-gray-900 text-white py-16">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h1 class="text-4xl font-bold mb-4">게시판</h1>
-            <p class="text-xl text-gray-300">공지사항, FAQ, 포트폴리오 등 다양한 소식을 전해드립니다.</p>
+            <p class="text-xl text-gray-300">공지사항 · FAQ · Q&A를 확인하세요. 수강생 작품 포트폴리오는 <a href="/portfolios" class="text-white underline underline-offset-2 hover:text-primary-200 font-semibold">포트폴리오 갤러리</a>에서 보실 수 있습니다.</p>
         </div>
     </div>
 
     <!-- 메인 컨텐츠 -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <!-- 탭 메뉴 (순서: 공지사항 → FAQ → Q&A → 포트폴리오) -->
+        <!-- 탭 메뉴 (포트폴리오는 /portfolios 갤러리와 통합) -->
         <div class="flex border-b border-gray-200 mb-8 overflow-x-auto">
             <button onclick="filterCategory('notice')" class="tab-btn px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent whitespace-nowrap" data-category="notice">
                 공지사항
@@ -106,9 +106,6 @@ export const postsListHtml = `
             </button>
             <button onclick="filterCategory('qna')" class="tab-btn px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent whitespace-nowrap" data-category="qna">
                 Q&A
-            </button>
-            <button onclick="filterCategory('portfolio')" class="tab-btn px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent whitespace-nowrap" data-category="portfolio">
-                포트폴리오
             </button>
         </div>
 
@@ -215,9 +212,13 @@ export const postsListHtml = `
         const itemsPerPage = 10;
 
         document.addEventListener('DOMContentLoaded', () => {
-            // URL 파라미터 확인
+            // URL 파라미터 확인 (포트폴리오는 /portfolios 갤러리로 통합)
             const urlParams = new URLSearchParams(window.location.search);
             const categoryParam = urlParams.get('category');
+            if (categoryParam === 'portfolio') {
+                window.location.replace('/portfolios');
+                return;
+            }
             if (categoryParam) {
                 currentCategory = categoryParam;
             }
@@ -271,8 +272,8 @@ export const postsListHtml = `
                 else writeBtn.classList.add('hidden');
                 return;
             }
-            // Q&A, 포트폴리오(게시글): 관리자·수강생 작성 가능
-            if (currentCategory === 'qna' || currentCategory === 'portfolio') {
+            // Q&A: 관리자·수강생 작성 가능
+            if (currentCategory === 'qna') {
                 writeBtn.classList.remove('hidden');
             } else {
                 writeBtn.classList.add('hidden');
@@ -313,31 +314,7 @@ export const postsListHtml = `
                     return;
                 }
 
-                // 포트폴리오는 카드형, 나머지는 리스트형
-                if (currentCategory === 'portfolio') {
-                    list.innerHTML = \`
-                        <div class="grid md:grid-cols-3 gap-6">
-                            \${result.data.map(post => \`
-                                <div class="bg-white rounded-lg shadow-sm hover:shadow-md transition cursor-pointer overflow-hidden border border-gray-100" onclick='openPostDetail(\${JSON.stringify(post).replace(/'/g, "&#39;")})'>
-                                    <div class="h-48 bg-gray-200 overflow-hidden">
-                                        \${post.images && post.images.length > 0 
-                                            ? \`<img src="\${post.images[0]}" class="w-full h-full object-cover">\`
-                                            : \`<div class="w-full h-full flex items-center justify-center text-gray-400"><i class="fas fa-image text-3xl"></i></div>\`
-                                        }
-                                    </div>
-                                    <div class="p-4">
-                                        <h3 class="font-bold text-gray-800 mb-2 truncate">\${post.title}</h3>
-                                        <div class="flex justify-between text-xs text-gray-500">
-                                            <span>\${post.author_name || '익명'}</span>
-                                            <span>\${new Date(post.created_at).toLocaleDateString()}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            \`).join('')}
-                        </div>
-                    \`;
-                } else {
-                    list.innerHTML = result.data.map(post => \`
+                list.innerHTML = result.data.map(post => \`
                         <div class="bg-white rounded-lg shadow-sm hover:shadow-md transition p-5 border border-gray-100 cursor-pointer \${post.pinned ? 'bg-red-50 border-red-100' : ''}" onclick='openPostDetail(\${JSON.stringify(post).replace(/'/g, "&#39;")})'>
                             <div class="flex justify-between items-start">
                                 <div class="flex-1 min-w-0">
@@ -360,7 +337,6 @@ export const postsListHtml = `
                             </div>
                         </div>
                     \`).join('');
-                }
 
                 renderPagination(result.pagination);
                 
