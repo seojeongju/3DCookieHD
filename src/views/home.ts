@@ -84,6 +84,107 @@ export const homeHtml = `
         width: 32px;
         border-radius: 6px;
       }
+
+      .prototype-marquee {
+        position: relative;
+        overflow: hidden;
+        border-radius: 1rem;
+        margin-bottom: 2rem;
+      }
+      .prototype-marquee-track {
+        display: flex;
+        align-items: stretch;
+        gap: 1rem;
+        width: max-content;
+        animation: prototypeMarquee 48s linear infinite;
+        will-change: transform;
+      }
+      .prototype-marquee:hover .prototype-marquee-track {
+        animation-play-state: paused;
+      }
+      .prototype-marquee-item {
+        width: 210px;
+        flex: 0 0 210px;
+      }
+      .portfolio-marquee {
+        position: relative;
+        overflow: hidden;
+        border-radius: 1rem;
+        margin-bottom: 2rem;
+      }
+      .portfolio-marquee-track {
+        display: flex;
+        align-items: stretch;
+        gap: 1rem;
+        width: max-content;
+        animation: portfolioMarquee 52s linear infinite;
+        will-change: transform;
+      }
+      .portfolio-marquee:hover .portfolio-marquee-track {
+        animation-play-state: paused;
+      }
+      .portfolio-marquee-item {
+        width: 210px;
+        flex: 0 0 210px;
+      }
+      .education-photo-marquee {
+        position: relative;
+        overflow: hidden;
+        border-radius: 1rem;
+        margin-bottom: 2rem;
+      }
+      .education-photo-marquee-track {
+        display: flex;
+        align-items: stretch;
+        gap: 1rem;
+        width: max-content;
+        animation: educationPhotoMarquee 56s linear infinite;
+        will-change: transform;
+      }
+      .education-photo-marquee:hover .education-photo-marquee-track {
+        animation-play-state: paused;
+      }
+      .education-photo-marquee-item {
+        width: 210px;
+        flex: 0 0 210px;
+      }
+      @media (max-width: 1023px) {
+        .prototype-marquee-item {
+          width: 170px;
+          flex-basis: 170px;
+        }
+        .portfolio-marquee-item {
+          width: 170px;
+          flex-basis: 170px;
+        }
+        .education-photo-marquee-item {
+          width: 170px;
+          flex-basis: 170px;
+        }
+      }
+      @keyframes prototypeMarquee {
+        from { transform: translateX(0); }
+        to { transform: translateX(calc(-50% - 0.5rem)); }
+      }
+      @keyframes portfolioMarquee {
+        from { transform: translateX(0); }
+        to { transform: translateX(calc(-50% - 0.5rem)); }
+      }
+      @keyframes educationPhotoMarquee {
+        from { transform: translateX(0); }
+        to { transform: translateX(calc(-50% - 0.5rem)); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .prototype-marquee-track {
+          animation: none;
+        }
+        .portfolio-marquee-track {
+          animation: none;
+        }
+        .education-photo-marquee-track {
+          animation: none;
+        }
+      }
       
       /* 커스텀 스크롤바 (모달 등) */
       .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
@@ -280,8 +381,8 @@ export const homeHtml = `
                 <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-3 sm:mb-4 tracking-tight">교육사진</h2>
                 <p class="text-base sm:text-lg md:text-xl text-gray-600">생생한 교육 현장과 수업 모습을 소개합니다.</p>
             </div>
-            <div id="educationPhotoList" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                <div class="col-span-2 md:col-span-4 flex justify-center py-12">
+            <div id="educationPhotoList" class="education-photo-marquee">
+                <div class="flex justify-center py-12">
                     <div class="inline-block animate-spin rounded-full h-10 w-10 border-2 border-primary-600 border-t-transparent"></div>
                 </div>
             </div>
@@ -300,8 +401,8 @@ export const homeHtml = `
                 <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-3 sm:mb-4 tracking-tight">포트폴리오</h2>
                 <p class="text-base sm:text-lg md:text-xl text-gray-600">수강생 우수 작품과 프로젝트 결과물을 소개합니다.</p>
             </div>
-            <div id="portfolioList" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                <div class="col-span-2 md:col-span-4 flex justify-center py-12">
+            <div id="portfolioList" class="portfolio-marquee">
+                <div class="flex justify-center py-12">
                     <div class="inline-block animate-spin rounded-full h-10 w-10 border-2 border-primary-600 border-t-transparent"></div>
                 </div>
             </div>
@@ -320,8 +421,8 @@ export const homeHtml = `
                 <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-3 sm:mb-4 tracking-tight">시제품 제작 사진</h2>
                 <p class="text-base sm:text-lg md:text-xl text-gray-600">3D 프린팅으로 제작한 시제품과 프로젝트 결과물을 소개합니다.</p>
             </div>
-            <div id="prototypeList" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                <div class="col-span-2 md:col-span-4 flex justify-center py-12">
+            <div id="prototypeList" class="prototype-marquee">
+                <div class="flex justify-center py-12">
                     <div class="inline-block animate-spin rounded-full h-10 w-10 border-2 border-primary-600 border-t-transparent"></div>
                 </div>
             </div>
@@ -478,7 +579,7 @@ export const homeHtml = `
                 var res = await fetch('/api/posts?category=prototype&status=published&limit=20');
                 var result = await res.json();
                 if (!result.success) {
-                    container.innerHTML = '<div class="col-span-2 md:col-span-4 text-center py-12 text-gray-500">시제품 목록을 불러오지 못했습니다.</div>';
+                    container.innerHTML = '<div class="text-center py-12 text-gray-500">시제품 목록을 불러오지 못했습니다.</div>';
                     return;
                 }
                 var list = (result.data || []).slice();
@@ -497,19 +598,19 @@ export const homeHtml = `
                 }
                 var withImage = list.filter(function(p) { return !!getFirstImage(p); });
                 if (withImage.length === 0) {
-                    container.innerHTML = '<div class="col-span-2 md:col-span-4 text-center py-12">' +
+                    container.innerHTML = '<div class="text-center py-12">' +
                         '<p class="text-gray-500 mb-6">등록된 시제품이 없습니다.</p>' +
                         '<a href="/prototype-gallery" class="inline-flex items-center gap-2 px-6 py-3 bg-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-300 transition">시제품 갤러리 보기 <i class="fas fa-arrow-right"></i></a></div>';
                     return;
                 }
-                var cards = withImage.slice(0, 8).map(function(p) {
+                var cards = withImage.map(function(p) {
                     var img = getFirstImage(p);
                     var safeTitle = (p.title || '시제품').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                     var titleEsc = (p.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                     var contentPlain = stripHtml(p.content || '').trim().substring(0, 80);
                     if (stripHtml(p.content || '').trim().length > 80) contentPlain += '\u2026';
                     var contentEsc = contentPlain.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-                    return '<a href="/prototype-gallery" class="block rounded-xl overflow-hidden shadow-md hover:shadow-xl transition bg-white border border-gray-100">' +
+                    return '<a href="/prototype-gallery" class="prototype-marquee-item block rounded-xl overflow-hidden shadow-md hover:shadow-xl transition bg-white border border-gray-100">' +
                         '<div class="relative aspect-square bg-gray-200 group">' +
                         '<img src="' + img + '" alt="' + safeTitle + '" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">' +
                         '<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-3">' +
@@ -520,10 +621,18 @@ export const homeHtml = `
                         (contentEsc ? '<p class="text-xs text-gray-500 mt-0.5 overflow-hidden" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">' + contentEsc + '</p>' : '') +
                         '</div></a>';
                 }).join('');
-                container.innerHTML = cards;
+                if (withImage.length === 1) {
+                    container.innerHTML = '<div class="flex justify-center">' + cards + '</div>';
+                    return;
+                }
+                container.innerHTML =
+                    '<div class="prototype-marquee-track">' +
+                    cards +
+                    cards +
+                    '</div>';
             } catch (e) {
                 console.error('loadPrototypes error:', e);
-                container.innerHTML = '<div class="col-span-2 md:col-span-4 text-center py-12 text-gray-500">시제품 목록을 불러오지 못했습니다.</div>';
+                container.innerHTML = '<div class="text-center py-12 text-gray-500">시제품 목록을 불러오지 못했습니다.</div>';
             }
         }
         function parseContentRegDate(content) {
@@ -544,7 +653,7 @@ export const homeHtml = `
                 var result = await res.json();
                 
                 if (!result.success) {
-                    container.innerHTML = '<div class="col-span-2 md:col-span-4 text-center py-12 text-gray-500">포트폴리오 목록을 불러오지 못했습니다.</div>';
+                    container.innerHTML = '<div class="text-center py-12 text-gray-500">포트폴리오 목록을 불러오지 못했습니다.</div>';
                     return;
                 }
                 
@@ -553,13 +662,13 @@ export const homeHtml = `
                 var withImage = list.filter(function(p) { return !!p.thumbnail_url; });
                 
                 if (withImage.length === 0) {
-                    container.innerHTML = '<div class="col-span-2 md:col-span-4 text-center py-12">' +
+                    container.innerHTML = '<div class="text-center py-12">' +
                         '<p class="text-gray-500 mb-6">등록된 포트폴리오가 없습니다.</p>' +
                         '<a href="/portfolios" class="inline-flex items-center gap-2 px-6 py-3 bg-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-300 transition">포트폴리오 갤러리 보기 <i class="fas fa-arrow-right"></i></a></div>';
                     return;
                 }
                 
-                var cards = withImage.slice(0, 8).map(function(p) {
+                var cards = withImage.map(function(p) {
                     var safeTitle = (p.title || '포트폴리오').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                     var titleEsc = safeTitle;
                     function portfolioPlainText(html) {
@@ -573,7 +682,7 @@ export const homeHtml = `
                     var contentEsc = contentPlain.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
                     var authorEsc = (p.student_name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                     
-                    return '<a href="/portfolios" class="block rounded-xl overflow-hidden shadow-md hover:shadow-xl transition bg-white border border-gray-100">' +
+                    return '<a href="/portfolios" class="portfolio-marquee-item block rounded-xl overflow-hidden shadow-md hover:shadow-xl transition bg-white border border-gray-100">' +
                         '<div class="relative aspect-square bg-gray-200 group">' +
                         '<img src="' + p.thumbnail_url + '" alt="' + safeTitle + '" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">' +
                         '<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-3">' +
@@ -585,10 +694,18 @@ export const homeHtml = `
                         (contentEsc ? '<p class="text-xs text-gray-500 mt-0.5 overflow-hidden" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">' + contentEsc + '</p>' : '') +
                         '</div></a>';
                 }).join('');
-                container.innerHTML = cards;
+                if (withImage.length === 1) {
+                    container.innerHTML = '<div class="flex justify-center">' + cards + '</div>';
+                    return;
+                }
+                container.innerHTML =
+                    '<div class="portfolio-marquee-track">' +
+                    cards +
+                    cards +
+                    '</div>';
             } catch (e) {
                 console.error('loadPortfolios error:', e);
-                container.innerHTML = '<div class="col-span-2 md:col-span-4 text-center py-12 text-gray-500">포트폴리오 목록을 불러오지 못했습니다.</div>';
+                container.innerHTML = '<div class="text-center py-12 text-gray-500">포트폴리오 목록을 불러오지 못했습니다.</div>';
             }
         }
         function maskReviewName(name) {
@@ -653,7 +770,7 @@ export const homeHtml = `
                 var res = await fetch('/api/posts?category=education_photo&status=published&limit=100');
                 var result = await res.json();
                 if (!result.success) {
-                    container.innerHTML = '<div class="col-span-2 md:col-span-4 text-center py-12 text-gray-500">교육사진 목록을 불러오지 못했습니다.</div>';
+                    container.innerHTML = '<div class="text-center py-12 text-gray-500">교육사진 목록을 불러오지 못했습니다.</div>';
                     return;
                 }
                 function getFirstImage(p) {
@@ -682,19 +799,19 @@ export const homeHtml = `
                 });
                 var withImage = list.filter(function(p) { return !!getFirstImage(p); });
                 if (withImage.length === 0) {
-                    container.innerHTML = '<div class="col-span-2 md:col-span-4 text-center py-12">' +
+                    container.innerHTML = '<div class="text-center py-12">' +
                         '<p class="text-gray-500 mb-6">등록된 교육사진이 없습니다.</p>' +
                         '<a href="/education-photos?filter=education_photo" class="inline-flex items-center gap-2 px-6 py-3 bg-primary-100 text-primary-700 font-bold rounded-xl hover:bg-primary-200 transition">교육사진 갤러리 보기 <i class="fas fa-arrow-right"></i></a></div>';
                     return;
                 }
-                var cards = withImage.slice(0, 8).map(function(p) {
+                var cards = withImage.map(function(p) {
                     var img = getFirstImage(p);
                     var safeTitle = (p.title || '교육사진').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                     var titleEsc = (p.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                     var contentPlain = stripHtml(p.content || '').trim().substring(0, 80);
                     if (stripHtml(p.content || '').trim().length > 80) contentPlain += '\u2026';
                     var contentEsc = contentPlain.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-                    return '<a href="/education-photos?filter=education_photo" class="block rounded-xl overflow-hidden shadow-md hover:shadow-xl transition bg-white border border-gray-100">' +
+                    return '<a href="/education-photos?filter=education_photo" class="education-photo-marquee-item block rounded-xl overflow-hidden shadow-md hover:shadow-xl transition bg-white border border-gray-100">' +
                         '<div class="relative aspect-square bg-gray-200 group">' +
                         '<img src="' + img + '" alt="' + safeTitle + '" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">' +
                         '<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-3">' +
@@ -705,10 +822,18 @@ export const homeHtml = `
                         (contentEsc ? '<p class="text-xs text-gray-500 mt-0.5 overflow-hidden" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">' + contentEsc + '</p>' : '') +
                         '</div></a>';
                 }).join('');
-                container.innerHTML = cards;
+                if (withImage.length === 1) {
+                    container.innerHTML = '<div class="flex justify-center">' + cards + '</div>';
+                    return;
+                }
+                container.innerHTML =
+                    '<div class="education-photo-marquee-track">' +
+                    cards +
+                    cards +
+                    '</div>';
             } catch (e) {
                 console.error('loadEducationPhotos error:', e);
-                container.innerHTML = '<div class="col-span-2 md:col-span-4 text-center py-12 text-gray-500">교육사진 목록을 불러오지 못했습니다.</div>';
+                container.innerHTML = '<div class="text-center py-12 text-gray-500">교육사진 목록을 불러오지 못했습니다.</div>';
             }
         }
         document.addEventListener('DOMContentLoaded', function() {
