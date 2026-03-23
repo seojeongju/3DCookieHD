@@ -27,7 +27,7 @@ export const LMS_DASHBOARD = {
 /**
  * 통합 성과 관리 하위 메뉴 = LMS 탭 메뉴 (순서 동일)
  * path가 null이거나 onlySidebar면 LMS 탭에는 미표시
- * 순서: 대시보드 → 수강생관리 → 출석관리 → 훈련일지 → 상담관리 → 사전평가관리 → NCS평가관리 → 설문관리 → 성적관리 → 취업관리
+ * 순서: 대시보드 → 수강생관리 → 출석관리 → 훈련일지 → 상담관리 → 사전평가관리 → NCS평가(본평가)관리 → 설문관리 → 성적관리 → 취업관리
  */
 export const LMS_MENU_ITEMS: LmsMenuItem[] = [
   { tab: 'students', path: 'students', label: '수강생관리', icon: 'fa-user-graduate' },
@@ -35,7 +35,7 @@ export const LMS_MENU_ITEMS: LmsMenuItem[] = [
   { tab: 'training-logs', path: 'training-logs', label: '훈련일지', icon: 'fa-book-open' },
   { tab: 'counseling', path: 'counseling', label: '상담관리', icon: 'fa-comments' },
   { tab: 'exams', path: 'cbt', label: '사전평가관리', icon: 'fa-file-contract' },
-  { tab: 'ncs', path: 'ncs-eval', label: 'NCS평가관리', icon: 'fa-certificate' },
+  { tab: 'ncs', path: 'ncs-eval', label: 'NCS평가(본평가)관리', icon: 'fa-certificate' },
   { tab: 'surveys', path: 'surveys', label: '설문관리', icon: 'fa-poll-h' },
   { tab: 'instructor-eval', path: 'instructor-eval', label: '교강사직무능력평가', icon: 'fa-chalkboard-teacher' },
   { tab: 'grades', path: 'grades', label: '성적관리', icon: 'fa-chart-line' },

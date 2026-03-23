@@ -943,7 +943,7 @@ cbt.post('/ncs-course-questions', authMiddleware, async (c) => {
             const last: any = await c.env.DB.prepare('SELECT id FROM ncs_course_questions WHERE course_id = ? AND question_bank_id = ? ORDER BY id DESC LIMIT 1').bind(courseId, bankId).first();
             if (last?.id) inserted.push(last.id);
         }
-        return successResponse(c, { course_id: courseId, inserted_count: inserted.length }, '선택한 문제가 NCS평가에 등록되었습니다.');
+        return successResponse(c, { course_id: courseId, inserted_count: inserted.length }, '선택한 문제가 NCS평가(본평가)에 등록되었습니다.');
     } catch (e: any) {
         console.error('POST /api/cbt/ncs-course-questions error:', e);
         return errorResponse(c, e.message, 500);

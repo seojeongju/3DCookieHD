@@ -50,7 +50,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                     <div class="flex justify-between items-center flex-wrap gap-3">
                         <div>
                             <h1 class="${questionBankOnly ? 'text-xl sm:text-2xl font-black text-slate-800 tracking-tight' : 'text-xl sm:text-2xl font-bold text-gray-800 tracking-tight'}">${questionBankOnly ? '문제은행' : '통합 시험/CBT 현황'}</h1>
-                            <p class="${questionBankOnly ? 'text-slate-500 mt-1 text-sm' : 'text-gray-500 mt-1 text-sm'}">${questionBankOnly ? '전역 문제은행에서 문제를 등록·관리하고, 회차를 선택해 사전평가 또는 NCS평가로 편성할 수 있습니다.' : '모든 교육 과정의 시험 등록 현황 및 학생들의 응시율/평균 점수를 관리합니다.'}</p>
+                            <p class="${questionBankOnly ? 'text-slate-500 mt-1 text-sm' : 'text-gray-500 mt-1 text-sm'}">${questionBankOnly ? '전역 문제은행에서 문제를 등록·관리하고, 회차를 선택해 사전평가 또는 NCS평가(본평가)로 편성할 수 있습니다.' : '모든 교육 과정의 시험 등록 현황 및 학생들의 응시율/평균 점수를 관리합니다.'}</p>
                         </div>
                         <div class="flex items-center gap-3">
                             <button onclick="loadExamSummary()" class="p-2.5 bg-white border border-slate-200 rounded-2xl text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-all shadow-sm hover:shadow" title="새로고침">
@@ -183,7 +183,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                                     <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">추가 유형</span>
                                     <div class="flex bg-slate-100 p-1 rounded-xl">
                                         <button type="button" id="addTypePre" onclick="setAddTargetType('pre')" class="add-type-btn px-4 py-2 rounded-lg text-xs font-bold transition bg-white text-indigo-600 shadow-sm border border-slate-200/60" data-type="pre"><i class="fas fa-clipboard-list mr-1.5 opacity-70"></i>사전평가</button>
-                                        <button type="button" id="addTypeNcs" onclick="setAddTargetType('ncs')" class="add-type-btn px-4 py-2 rounded-lg text-xs font-bold transition text-slate-500 hover:text-slate-700" data-type="ncs"><i class="fas fa-certificate mr-1.5 opacity-70"></i>NCS평가</button>
+                                        <button type="button" id="addTypeNcs" onclick="setAddTargetType('ncs')" class="add-type-btn px-4 py-2 rounded-lg text-xs font-bold transition text-slate-500 hover:text-slate-700" data-type="ncs"><i class="fas fa-certificate mr-1.5 opacity-70"></i>NCS평가(본평가)</button>
                                     </div>
                                 </div>
                                 <div class="h-6 w-px bg-slate-200 hidden sm:block"></div>
@@ -195,7 +195,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                                 </div>
                                 <button type="button" id="mgmtAddExamBtn" class="hidden inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 transition shadow-sm" onclick="openAddExamModal()"><i class="fas fa-plus"></i> 시험 추가</button>
                                 <a id="mgmtCbtLink" href="#" class="hidden inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-indigo-200 text-indigo-700 text-xs font-bold hover:bg-indigo-50 transition">이 회차 사전평가 관리</a>
-                                <a id="rightPanelLink" href="#" class="hidden inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-amber-200 text-amber-700 text-xs font-bold hover:bg-amber-50 transition">NCS평가관리에서 보기</a>
+                                <a id="rightPanelLink" href="#" class="hidden inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-amber-200 text-amber-700 text-xs font-bold hover:bg-amber-50 transition">NCS평가(본평가)관리에서 보기</a>
                             </div>
                         </div>
                         <div class="p-6 sm:p-8">
@@ -728,7 +728,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
 
         let mgmtSessionId = '';
         let mgmtExamId = '';
-        let addTargetType = 'pre'; // 'pre' = 사전평가(시험에 추가), 'ncs' = NCS평가(해당 회차 NCS평가관리에 등록)
+        let addTargetType = 'pre'; // 'pre' = 사전평가(시험에 추가), 'ncs' = NCS평가(본평가)(해당 회차 NCS평가관리로 등록)
         let bankQuestions = [];
         let examQuestions = [];
         let mgmtSubjects = [];
@@ -759,11 +759,11 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
             const importLabel = document.getElementById('importBtnLabel');
             const importBtn = document.getElementById('importBtn');
             if (type === 'ncs') {
-                if (titleEl) titleEl.innerHTML = '<i class=\"fas fa-certificate text-amber-500\"></i> 이 회차의 NCS평가용 문제';
-                if (labelEl) labelEl.textContent = '문제은행에서 NCS평가로 추가한 문제가 여기 표시됩니다.';
+                if (titleEl) titleEl.innerHTML = '<i class=\"fas fa-certificate text-amber-500\"></i> 이 회차의 NCS평가(본평가)용 문제';
+                if (labelEl) labelEl.textContent = '문제은행에서 NCS평가(본평가)로 추가한 문제가 여기 표시됩니다.';
                 if (linkEl) { linkEl.href = mgmtSessionId ? '/admin/courses/' + mgmtSessionId + '/lms/ncs-eval' : '#'; linkEl.classList.remove('hidden'); }
                 if (cbtLinkEl) cbtLinkEl.classList.add('hidden');
-                if (importLabel) importLabel.textContent = '선택 문제 NCS평가에 추가';
+                if (importLabel) importLabel.textContent = '선택 문제 NCS평가(본평가)에 추가';
                 if (importBtn) updateImportBtnStatus();
                 loadNcsCourseQuestions();
                 await loadQuestionBank();
@@ -904,7 +904,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                 const json = await res.json();
                 const list = (json && json.success && Array.isArray(json.data)) ? json.data : [];
                 if (list.length === 0) {
-                    listEl.innerHTML = '<div class=\"flex flex-col items-center justify-center py-16 text-center px-4\"><i class=\"fas fa-certificate text-4xl text-amber-200 mb-3\"></i><p class=\"text-xs font-medium text-slate-500\">이 회차에 NCS평가용 문제가 없습니다.</p><p class=\"text-[11px] text-slate-400 mt-1\">좌측에서 문제를 선택한 뒤 &quot;선택 문제 NCS평가에 추가&quot;를 누르세요.</p></div>';
+                    listEl.innerHTML = '<div class=\"flex flex-col items-center justify-center py-16 text-center px-4\"><i class=\"fas fa-certificate text-4xl text-amber-200 mb-3\"></i><p class=\"text-xs font-medium text-slate-500\">이 회차에 NCS평가(본평가)용 문제가 없습니다.</p><p class=\"text-[11px] text-slate-400 mt-1\">좌측에서 문제를 선택한 뒤 &quot;선택 문제 NCS평가(본평가)에 추가&quot;를 누르세요.</p></div>';
                     return;
                 }
                 listEl.innerHTML = list.map((q, idx) => \`
@@ -916,7 +916,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                 \`).join('');
             } catch (e) {
                 console.error(e);
-                listEl.innerHTML = '<div class=\"flex flex-col items-center justify-center py-16 text-center px-4\"><i class=\"fas fa-exclamation-circle text-4xl text-red-300 mb-3\"></i><p class=\"text-xs font-medium text-red-500\">NCS평가 문제 목록을 불러오지 못했습니다.</p></div>';
+                listEl.innerHTML = '<div class=\"flex flex-col items-center justify-center py-16 text-center px-4\"><i class=\"fas fa-exclamation-circle text-4xl text-red-300 mb-3\"></i><p class=\"text-xs font-medium text-red-500\">NCS평가(본평가) 문제 목록을 불러오지 못했습니다.</p></div>';
             }
         }
 
@@ -955,8 +955,8 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                     const category = (q.category || q.course_title || '').toString().replace(new RegExp('<', 'g'), '&lt;');
                     const isNcsSubject = category === 'NCS교과목';
                     const isPre = category === '사전평가';
-                    const isNcs = category === 'NCS평가';
-                    const isNcsSubjectName = category && category !== '사전평가' && category !== 'NCS평가';
+                    const isNcs = category === 'NCS평가' || category === 'NCS평가(본평가)';
+                    const isNcsSubjectName = category && category !== '사전평가' && category !== 'NCS평가' && category !== 'NCS평가(본평가)';
                     const categoryBadge = isNcsSubjectName
                         ? '<span class=\"px-2 py-0.5 rounded-lg bg-amber-50 text-[10px] font-bold text-amber-700\" title=\"NCS교과목\">' + category + '</span>'
                         : isNcsSubject
@@ -964,7 +964,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                             : isPre
                                 ? '<span class=\"px-2 py-0.5 rounded-lg bg-indigo-50 text-[10px] font-bold text-indigo-700\" title=\"분류\">사전평가</span>'
                                 : isNcs
-                                    ? '<span class=\"px-2 py-0.5 rounded-lg bg-amber-50 text-[10px] font-bold text-amber-700\" title=\"분류\">NCS평가</span>'
+                                    ? '<span class=\"px-2 py-0.5 rounded-lg bg-amber-50 text-[10px] font-bold text-amber-700\" title=\"분류\">NCS평가(본평가)</span>'
                                     : (category ? '<span class=\"px-2 py-0.5 rounded-lg bg-violet-50 text-[10px] font-bold text-violet-600\">' + category + '</span>' : '<span class=\"px-2 py-0.5 rounded-lg bg-slate-100 text-[10px] font-bold text-slate-400\">미분류</span>');
                     return \`<label class=\"bento-card flex items-start gap-3 p-3 rounded-2xl border border-slate-200/60 bg-white hover:border-slate-300/60 cursor-pointer transition-all shadow-sm\">
                         <input type=\"checkbox\" class=\"mt-1 bank-question-checkbox shrink-0 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500/20\" value=\"\${q.id}\">
@@ -1360,7 +1360,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
 
             if (addTargetType === 'ncs') {
                 if (!mgmtSessionId) {
-                    showNotifyModal('안내', '회차를 선택한 뒤 NCS평가에 추가해 주세요.', 'info');
+                    showNotifyModal('안내', '회차를 선택한 뒤 NCS평가(본평가)에 추가해 주세요.', 'info');
                     return;
                 }
                 try {
@@ -1371,7 +1371,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                     });
                     const json = await res.json();
                     if (json && json.success) {
-                        showNotifyModal('추가 완료', '선택한 문제가 이 회차의 NCS평가관리에 등록되었습니다. NCS평가관리 페이지에서 확인하세요.', 'success');
+                        showNotifyModal('추가 완료', '선택한 문제가 이 회차의 NCS평가(본평가)관리에 등록되었습니다. NCS평가(본평가)관리 페이지에서 확인하세요.', 'success');
                         checkboxes.forEach(cb => { cb.checked = false; });
                         updateImportBtnStatus();
                         await loadNcsCourseQuestions();

@@ -90,13 +90,13 @@ export const adminLmsNcsHtml = (sidebar: string = hrdSidebar('courses')) => `
 
                 <section class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                     <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
-                        <h3 class="font-bold text-gray-800 text-sm">NCS평가용 문제</h3>
+                        <h3 class="font-bold text-gray-800 text-sm">NCS평가(본평가)용 문제</h3>
                         <span class="text-xs text-gray-400" id="ncsQuestionsCount">0문항</span>
                     </div>
                     <div id="ncsCourseQuestionsList" class="divide-y divide-gray-100 max-h-[280px] overflow-y-auto p-2">
                         <div class="p-6 text-center text-gray-400 text-xs">불러오는 중...</div>
                     </div>
-                    <p class="px-4 pb-3 text-[10px] text-gray-400">문제은행 페이지에서 이 회차를 선택 후 &quot;NCS평가에 추가&quot;로 등록한 문제입니다.</p>
+                    <p class="px-4 pb-3 text-[10px] text-gray-400">문제은행 페이지에서 이 회차를 선택 후 &quot;NCS평가(본평가)에 추가&quot;로 등록한 문제입니다.</p>
                 </section>
             </div>
 
@@ -218,7 +218,7 @@ export const adminLmsNcsHtml = (sidebar: string = hrdSidebar('courses')) => `
                 const list = (json && json.success && Array.isArray(json.data)) ? json.data : [];
                 if (countEl) countEl.textContent = list.length + '문항';
                 if (list.length === 0) {
-                    listEl.innerHTML = '<div class="p-6 text-center text-gray-400 text-xs">등록된 NCS평가용 문제가 없습니다.<br>문제은행 페이지에서 이 회차를 선택 후 NCS평가에 추가하세요.</div>';
+                    listEl.innerHTML = '<div class="p-6 text-center text-gray-400 text-xs">등록된 NCS평가(본평가)용 문제가 없습니다.<br>문제은행 페이지에서 이 회차를 선택 후 NCS평가(본평가)에 추가하세요.</div>';
                     return;
                 }
                 const diffLabel = (d) => (d === 'high' ? '상' : d === 'medium' ? '중' : d === 'low' ? '하' : '-');
