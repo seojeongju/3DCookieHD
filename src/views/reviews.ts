@@ -88,21 +88,13 @@ export const reviewsListHtml = `
 
     <!-- 메인 컨텐츠 -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <!-- 상단 액션 바 -->
-        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
-            <div class="flex items-center space-x-2">
-                <span class="text-gray-600 font-medium">정렬:</span>
-                <select id="sortOrder" onchange="loadReviews()" class="border-gray-300 rounded-md shadow-sm focus:border-green-500 focus:ring focus:ring-green-200 focus:ring-opacity-50">
-                    <option value="latest">최신순</option>
-                    <option value="rating">평점순</option>
-                </select>
-            </div>
-            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto">
-            <a href="/student?tab=courseReviews" class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium shadow-md inline-flex items-center justify-center">
-                <i class="fas fa-pen mr-2"></i> 수강후기 작성 (나의 강의실)
-            </a>
-            <p class="text-sm text-gray-500 sm:ml-2">후기는 <strong class="text-gray-700">나의 강의실 → 수강후기</strong>에서 작성 · 관리자 승인 후 공개</p>
-            </div>
+        <!-- 정렬 (작성은 학생 대시보드 나의 강의실 → 수강후기에서만 가능) -->
+        <div class="flex flex-wrap items-center gap-2 mb-8">
+            <span class="text-gray-600 font-medium">정렬:</span>
+            <select id="sortOrder" onchange="loadReviews()" class="border-gray-300 rounded-md shadow-sm focus:border-green-500 focus:ring focus:ring-green-200 focus:ring-opacity-50">
+                <option value="latest">최신순</option>
+                <option value="rating">평점순</option>
+            </select>
         </div>
 
         <!-- 리뷰 목록 -->

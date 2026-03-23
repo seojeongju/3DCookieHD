@@ -333,6 +333,26 @@ export const homeHtml = `
         </div>
     </section>
 
+    <!-- 수강후기 (관리자 승인·공개 게시글만, 비로그인 열람) -->
+    <section id="reviews" class="py-12 sm:py-16 bg-gradient-to-b from-emerald-50/80 to-white border-t border-emerald-100/80">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-8 sm:mb-12">
+                <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-3 sm:mb-4 tracking-tight">수강후기</h2>
+                <p class="text-base sm:text-lg md:text-xl text-gray-600">승인된 수강생 후기를 누구나 확인할 수 있습니다.</p>
+            </div>
+            <div id="homeReviewList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                <div class="col-span-1 md:col-span-2 lg:col-span-3 flex justify-center py-12">
+                    <div class="inline-block animate-spin rounded-full h-10 w-10 border-2 border-emerald-500 border-t-transparent"></div>
+                </div>
+            </div>
+            <div class="text-center px-2">
+                <a href="/reviews" class="inline-flex items-center justify-center gap-2 w-full min-[360px]:w-auto px-6 sm:px-8 py-3.5 sm:py-4 min-h-[48px] bg-emerald-600 text-white text-sm sm:text-base font-bold rounded-xl hover:bg-emerald-700 transition shadow-lg">
+                    수강후기 전체보기 <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+    </section>
+
     <!-- 상담 신청 섹션 -->
     <section id="contact" class="py-12 sm:py-16 bg-white border-t border-gray-100">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -571,6 +591,60 @@ export const homeHtml = `
                 container.innerHTML = '<div class="col-span-2 md:col-span-4 text-center py-12 text-gray-500">포트폴리오 목록을 불러오지 못했습니다.</div>';
             }
         }
+        function maskReviewName(name) {
+            if (!name) return '수강생';
+            if (name.length <= 2) return name.replace(/.$/, '*');
+            return name[0] + '*'.repeat(name.length - 2) + name[name.length - 1];
+        }
+        function reviewStarsHtml(rating) {
+            var n = parseInt(rating, 10) || 0;
+            var html = '';
+            for (var i = 1; i <= 5; i++) {
+                html += i <= n ? '<i class="fas fa-star text-amber-400"></i>' : '<i class="far fa-star text-gray-300"></i>';
+            }
+            return html;
+        }
+        async function loadHomeReviews() {
+            var container = document.getElementById('homeReviewList');
+            if (!container) return;
+            try {
+                var res = await fetch('/api/posts?category=review&status=published&limit=6&sort=created_at&order=DESC');
+                var result = await res.json();
+                if (!result.success) {
+                    container.innerHTML = '<div class="col-span-1 md:col-span-2 lg:col-span-3 text-center py-12 text-gray-500">수강후기를 불러오지 못했습니다.</div>';
+                    return;
+                }
+                var list = result.data || [];
+                if (list.length === 0) {
+                    container.innerHTML = '<div class="col-span-1 md:col-span-2 lg:col-span-3 text-center py-12 text-gray-500">' +
+                        '<p class="mb-4">아직 공개된 수강후기가 없습니다.</p>' +
+                        '<a href="/reviews" class="text-emerald-600 font-bold hover:underline">수강후기 페이지</a>에서 확인해 주세요.</div>';
+                    return;
+                }
+                container.innerHTML = list.map(function(r) {
+                    var titleEsc = (r.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+                    var plain = stripHtml(r.content || '').trim();
+                    var excerpt = plain.length > 120 ? plain.substring(0, 120) + '\u2026' : plain;
+                    var excerptEsc = excerpt.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    var authorEsc = maskReviewName(r.author_name).replace(/</g, '&lt;');
+                    var dateStr = r.created_at ? new Date(r.created_at).toLocaleDateString('ko-KR') : '';
+                    return '<article class="bg-white rounded-2xl border border-emerald-100/80 shadow-sm hover:shadow-md transition p-6 flex flex-col h-full">' +
+                        '<div class="flex items-start justify-between gap-2 mb-3">' +
+                        '<div class="flex items-center gap-2 min-w-0">' +
+                        '<div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center flex-shrink-0"><i class="fas fa-user"></i></div>' +
+                        '<div class="min-w-0"><p class="text-sm font-bold text-gray-800 truncate">' + authorEsc + '</p>' +
+                        '<p class="text-xs text-gray-400">' + dateStr + '</p></div></div>' +
+                        '<div class="text-amber-400 text-sm flex-shrink-0">' + reviewStarsHtml(r.rating) + '</div></div>' +
+                        '<h3 class="text-lg font-bold text-gray-900 mb-2 line-clamp-2">' + titleEsc + '</h3>' +
+                        '<p class="text-gray-600 text-sm leading-relaxed line-clamp-4 flex-1">' + excerptEsc + '</p>' +
+                        '<a href="/reviews" class="mt-4 inline-flex items-center gap-1 text-emerald-600 text-sm font-bold hover:text-emerald-800">더 보기 <i class="fas fa-chevron-right text-xs"></i></a>' +
+                        '</article>';
+                }).join('');
+            } catch (e) {
+                console.error('loadHomeReviews error:', e);
+                container.innerHTML = '<div class="col-span-1 md:col-span-2 lg:col-span-3 text-center py-12 text-gray-500">수강후기를 불러오지 못했습니다.</div>';
+            }
+        }
         async function loadEducationPhotos() {
             var container = document.getElementById('educationPhotoList');
             if (!container) return;
@@ -642,6 +716,7 @@ export const homeHtml = `
             loadEducationPhotos();
             loadPortfolios();
             loadPrototypes();
+            loadHomeReviews();
             
             // Init Hero Slider
             if (document.querySelector('.hero-slide')) {

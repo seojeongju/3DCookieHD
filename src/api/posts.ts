@@ -24,6 +24,8 @@ app.get('/', async (c) => {
     const base = `
       FROM posts p
       LEFT JOIN users u ON p.author_id = u.id
+      LEFT JOIN courses c ON p.course_id = c.id
+      LEFT JOIN approved_courses ac ON p.course_id = ac.id
       WHERE 1=1
     `;
     const params: any[] = [];
@@ -74,6 +76,23 @@ app.get('/', async (c) => {
       whereClauses.push(' AND p.course_id = ?');
       params.push(courseId);
     }
+
+    const isPrivileged =
+      viewer?.role === 'admin' ||
+      mine === '1' ||
+      mine === 'true' ||
+      (authorId && viewer && Number(authorId) === viewer.userId);
+
+    if (!isPrivileged) {
+      if (status && status !== 'published') {
+        return c.json({ success: false, error: '권한이 없습니다' }, 403);
+      }
+      if (!status) {
+        whereClauses.push(' AND p.status = ?');
+        params.push('published');
+      }
+    }
+
     const whereSql = whereClauses.join('');
 
     const countQuery = `SELECT COUNT(*) as total ${base}${whereSql}`;
@@ -82,7 +101,8 @@ app.get('/', async (c) => {
 
     const dataQuery = `
       SELECT p.*, u.name as author_name,
-      (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
+      (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count,
+      COALESCE(c.title, ac.name) as course_title
       ${base}${whereSql}
       ORDER BY p.pinned DESC, ${sort === 'created_at' ? 'p.created_at' : sort === 'title' ? 'p.title' : sort === 'views' ? 'p.views' : 'p.created_at'} ${order} LIMIT ? OFFSET ?
     `;
@@ -152,9 +172,6 @@ app.get('/:id', async (c) => {
     const { DB } = c.env;
     const id = c.req.param('id');
 
-    // 조회수 증가
-    await DB.prepare('UPDATE posts SET views = views + 1 WHERE id = ?').bind(id).run();
-
     // 게시글 조회
     const post = await DB.prepare(`
       SELECT p.*, u.name as author_name
@@ -166,6 +183,25 @@ app.get('/:id', async (c) => {
     if (!post) {
       return c.json({ success: false, error: '게시글을 찾을 수 없습니다' }, 404);
     }
+
+    const authHeader = c.req.header('Authorization');
+    let viewer: JWTPayload | null = null;
+    if (authHeader?.startsWith('Bearer ')) {
+      viewer = await verifyToken(authHeader.substring(7));
+    }
+
+    const isPublished = post.status === 'published';
+    if (!isPublished) {
+      if (!viewer) {
+        return c.json({ success: false, error: '게시글을 찾을 수 없습니다' }, 404);
+      }
+      if (viewer.role !== 'admin' && Number(post.author_id) !== Number(viewer.userId)) {
+        return c.json({ success: false, error: '게시글을 찾을 수 없습니다' }, 404);
+      }
+    }
+
+    // 조회수 증가 (공개 열람 또는 권한 있는 비공개 열람 시에만)
+    await DB.prepare('UPDATE posts SET views = views + 1 WHERE id = ?').bind(id).run();
 
     // 댓글 조회
     const { results: comments } = await DB.prepare(`
@@ -263,36 +299,6 @@ app.post('/', authMiddleware, async (c) => {
       return c.json({ success: false, error: '내용은 필수입니다' }, 400);
     }
 
-    // 리뷰 특정 처리
-    if (cat === 'review') {
-      if (!course_id || !rating) {
-        return c.json({ success: false, error: '과정 ID와 평점은 필수입니다' }, 400);
-      }
-      if (rating < 1 || rating > 5) {
-        return c.json({ success: false, error: '평점은 1-5 사이여야 합니다' }, 400);
-      }
-      // 중복 리뷰 확인
-      const existing = await DB.prepare('SELECT id FROM posts WHERE category = ? AND author_id = ? AND course_id = ?').bind('review', user.userId, course_id).first();
-      if (existing) {
-        return c.json({ success: false, error: '이미 리뷰를 작성하셨습니다' }, 400);
-      }
-
-      if (user.role !== 'admin') {
-        const legacyOk = await DB.prepare(`
-          SELECT 1 as ok FROM enrollments
-          WHERE user_id = ? AND course_id = ? AND status = 'approved'
-        `).bind(user.userId, Number(course_id)).first<{ ok: number }>();
-        const hrdOk = await DB.prepare(`
-          SELECT 1 as ok FROM course_session_enrollments e
-          INNER JOIN course_sessions s ON e.session_id = s.id
-          WHERE e.user_id = ? AND s.approved_course_id = ? AND e.status IN ('approved', 'enrolled')
-        `).bind(user.userId, Number(course_id)).first<{ ok: number }>();
-        if (!legacyOk && !hrdOk) {
-          return c.json({ success: false, error: '해당 과정의 승인된 수강 등록이 있어야 후기를 작성할 수 있습니다' }, 403);
-        }
-      }
-    }
-
     // 공지사항, FAQ: 관리자만 작성 가능 / Q&A: 관리자·수강생 작성 가능
     if ((cat === 'notice' || cat === 'faq') && user.role !== 'admin') {
       return c.json({ success: false, error: '공지사항과 FAQ는 관리자만 작성할 수 있습니다' }, 403);
@@ -301,12 +307,11 @@ app.post('/', authMiddleware, async (c) => {
     let finalAuthorId = user.userId;
     const { sub_category, content_url, teacher_feedback, author_id: bodyAuthorId } = body;
 
-    // 강사 및 관리자가 학생의 포트폴리오/시제품을 대신 올리는 경우 처리
-    if (bodyAuthorId && Number(bodyAuthorId) !== user.userId) {
+    // 강사 및 관리자가 학생의 포트폴리오/시제품·수강후기를 대신 올리는 경우 처리 (author_id 먼저 확정)
+    if (bodyAuthorId != null && String(bodyAuthorId).trim() !== '' && Number(bodyAuthorId) !== user.userId) {
       if (user.role === 'admin') {
         finalAuthorId = Number(bodyAuthorId);
       } else if (user.role === 'teacher') {
-        // 강사인 경우, 해당 학생이 본인의 과정을 수강하고 있는지 확인 (단순화된 검증)
         const enrollment = await DB.prepare(`
                 SELECT e.id FROM enrollments e
                 JOIN courses c ON e.course_id = c.id
@@ -319,6 +324,40 @@ app.post('/', authMiddleware, async (c) => {
         finalAuthorId = Number(bodyAuthorId);
       } else {
         return c.json({ success: false, error: '본인의 게시물만 등록 가능합니다' }, 403);
+      }
+    }
+
+    // 리뷰 특정 처리 (작성자 확정 후 중복·수강 검증)
+    if (cat === 'review') {
+      if (!course_id || !rating) {
+        return c.json({ success: false, error: '과정 ID와 평점은 필수입니다' }, 400);
+      }
+      if (rating < 1 || rating > 5) {
+        return c.json({ success: false, error: '평점은 1-5 사이여야 합니다' }, 400);
+      }
+      const existing = await DB.prepare('SELECT id FROM posts WHERE category = ? AND author_id = ? AND course_id = ?').bind('review', finalAuthorId, course_id).first();
+      if (existing) {
+        return c.json({ success: false, error: '해당 작성자는 이 과정에 이미 리뷰가 있습니다' }, 400);
+      }
+
+      if (user.role !== 'admin') {
+        const legacyOk = await DB.prepare(`
+          SELECT 1 as ok FROM enrollments
+          WHERE user_id = ? AND course_id = ? AND status = 'approved'
+        `).bind(finalAuthorId, Number(course_id)).first<{ ok: number }>();
+        const hrdOk = await DB.prepare(`
+          SELECT 1 as ok FROM course_session_enrollments e
+          INNER JOIN course_sessions s ON e.session_id = s.id
+          WHERE e.user_id = ? AND s.approved_course_id = ? AND e.status IN ('approved', 'enrolled')
+        `).bind(finalAuthorId, Number(course_id)).first<{ ok: number }>();
+        if (!legacyOk && !hrdOk) {
+          return c.json({ success: false, error: '해당 과정의 승인된 수강 등록이 있어야 후기를 작성할 수 있습니다' }, 403);
+        }
+      }
+
+      const authorExists = await DB.prepare('SELECT id FROM users WHERE id = ?').bind(finalAuthorId).first();
+      if (!authorExists) {
+        return c.json({ success: false, error: '존재하지 않는 작성자(사용자) ID입니다' }, 400);
       }
     }
 
