@@ -6,7 +6,7 @@ export const adminJobseekersListHtml = `
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>인재풀 관리 - 와우쓰리디홍대센터</title>
+    <title>구직정보 관리 - 와우쓰리디홍대센터</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
 </head>
@@ -16,11 +16,11 @@ export const adminJobseekersListHtml = `
         <div class="flex-1 flex flex-col overflow-hidden bg-gray-50">
             <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 shadow-sm z-10">
                 <div class="flex items-center">
-                    <h2 class="text-xl font-bold text-gray-800">인재풀 관리</h2>
-                    <span class="ml-4 text-sm text-gray-500">등록된 구직자 정보를 조회하고 관리합니다.</span>
+                    <h2 class="text-xl font-bold text-gray-800">구직정보</h2>
+                    <span class="ml-4 text-sm text-gray-500">구직(인재풀) 정보를 등록·조회·수정합니다.</span>
                 </div>
                 <button onclick="openModal('createJobseekerModal')" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center shadow-sm font-medium">
-                    <i class="fas fa-plus mr-2"></i> 인재 등록
+                    <i class="fas fa-plus mr-2"></i> 구직정보 등록
                 </button>
             </header>
 
@@ -78,11 +78,11 @@ export const adminJobseekersListHtml = `
         </div>
     </div>
 
-    <!-- 인재 등록/수정 모달 -->
+    <!-- 구직정보 등록/수정 모달 -->
     <div id="createJobseekerModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
             <div class="p-6 border-b border-gray-200 flex justify-between items-center">
-                <h3 class="text-xl font-bold text-gray-800" id="modalTitle">인재 등록</h3>
+                <h3 class="text-xl font-bold text-gray-800" id="modalTitle">구직정보 등록</h3>
                 <button onclick="closeModal('createJobseekerModal')" class="text-gray-500 hover:text-gray-700">
                     <i class="fas fa-times text-xl"></i>
                 </button>
@@ -170,7 +170,7 @@ export const adminJobseekersListHtml = `
             
             if (jobseeker) {
                 // 수정 모드
-                title.textContent = '인재 정보 수정';
+                title.textContent = '구직정보 수정';
                 document.getElementById('jobseekerId').value = jobseeker.id;
                 document.getElementById('jobseekerName').value = jobseeker.name;
                 document.getElementById('jobseekerBirthDate').value = jobseeker.birth_date || '';
@@ -186,7 +186,7 @@ export const adminJobseekersListHtml = `
                 document.getElementById('jobseekerMemo').value = jobseeker.memo || '';
             } else {
                 // 등록 모드
-                title.textContent = '인재 등록';
+                title.textContent = '구직정보 등록';
                 form.reset();
                 document.getElementById('jobseekerId').value = '';
                 document.getElementById('jobseekerStatus').value = 'active';

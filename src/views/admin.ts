@@ -367,7 +367,7 @@ export const adminDashboardHtml = `
                                 <div class="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center mb-2 text-blue-600">
                                     <i class="fas fa-briefcase"></i>
                                 </div>
-                                채용공고
+                                구인정보
                             </button>
                             <button onclick="location.href='/admin/posts'" class="bento-card flex flex-col items-center justify-center p-5 bg-white border border-slate-200/60 rounded-2xl hover:border-red-200 text-red-700 font-bold text-sm uppercase tracking-wider">
                                 <div class="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center mb-2 text-red-600">
@@ -387,7 +387,7 @@ export const adminDashboardHtml = `
     <div id="createJobModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-slate-200/60">
             <div class="p-6 border-b border-slate-200/60 flex justify-between items-center sticky top-0 bg-white rounded-t-2xl">
-                <h3 class="text-xl font-black text-slate-800 tracking-tight">채용공고 등록</h3>
+                <h3 class="text-xl font-black text-slate-800 tracking-tight">구인정보 등록</h3>
                 <button onclick="closeModal('createJobModal')" class="text-slate-500 hover:text-slate-700 p-2 rounded-xl hover:bg-slate-100 transition">
                     <i class="fas fa-times text-lg"></i>
                 </button>

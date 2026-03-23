@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import type { Bindings, JWTPayload, Post } from '../types';
 import { authMiddleware, requireRole, requireAdmin } from '../middleware/auth';
-import { verifyToken } from '../utils/jwt';
+import { verifyToken, hashPassword, verifyPassword } from '../utils/jwt';
 
 const app = new Hono<{ Bindings: Bindings; Variables: { user: JWTPayload } }>();
 
@@ -100,7 +100,7 @@ app.get('/', async (c) => {
     const total = totalResult?.total || 0;
 
     const dataQuery = `
-      SELECT p.*, u.name as author_name,
+      SELECT p.*, COALESCE(u.name, p.author_name) as author_name,
       (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count,
       COALESCE(c.title, ac.name) as course_title
       ${base}${whereSql}
@@ -139,11 +139,18 @@ app.get('/', async (c) => {
         if (match?.[1]) images = [match[1]];
       }
 
+      const isQnaSecret = post.category === 'qna' && post.sub_category === 'secret';
+      let outContent = displayContent;
+      if (isQnaSecret) {
+        outContent = '🔒 비밀글입니다. 내용은 작성자 본인(또는 관리자)만, 비회원 비밀글은 비밀번호 확인 후 볼 수 있습니다.';
+      }
+
       return {
         ...post,
-        content: displayContent,
+        content: outContent,
         images,
-        pinned: Boolean(post.pinned)
+        pinned: Boolean(post.pinned),
+        is_secret: Boolean(isQnaSecret)
       };
     });
 
@@ -164,6 +171,98 @@ app.get('/', async (c) => {
 });
 
 // ============================================
+// Q&A 비회원 비밀글 비밀번호 확인
+// POST /api/posts/:id/verify-qna-password
+// ============================================
+app.post('/:id/verify-qna-password', async (c) => {
+  try {
+    const { DB } = c.env;
+    const id = c.req.param('id');
+    let body: { password?: string };
+    try {
+      body = await c.req.json();
+    } catch {
+      return c.json({ success: false, error: 'JSON 본문이 필요합니다' }, 400);
+    }
+    const password = body.password != null ? String(body.password) : '';
+
+    const post = await DB.prepare(`
+      SELECT p.*, COALESCE(u.name, p.author_name) as author_name
+      FROM posts p
+      LEFT JOIN users u ON p.author_id = u.id
+      WHERE p.id = ?
+    `).bind(id).first() as any;
+
+    if (!post || post.category !== 'qna' || post.sub_category !== 'secret' || post.author_id != null) {
+      return c.json({ success: false, error: '비밀번호 확인이 필요 없는 글입니다' }, 400);
+    }
+    if (!post.guest_password_hash) {
+      return c.json({ success: false, error: '비밀번호가 설정되지 않은 글입니다' }, 400);
+    }
+    const ok = await verifyPassword(password, post.guest_password_hash);
+    if (!ok) {
+      return c.json({ success: false, error: '비밀번호가 일치하지 않습니다' }, 401);
+    }
+
+    await DB.prepare('UPDATE posts SET views = views + 1 WHERE id = ?').bind(id).run();
+
+    const { results: comments } = await DB.prepare(`
+      SELECT c.*, u.name as author_name
+      FROM comments c
+      LEFT JOIN users u ON c.user_id = u.id
+      WHERE c.post_id = ?
+      ORDER BY c.created_at ASC
+    `).bind(id).all();
+
+    let images: string[] = [];
+    try {
+      if (post.images != null && post.images !== '') {
+        const v = typeof post.images === 'string' ? JSON.parse(post.images) : post.images;
+        images = Array.isArray(v) ? v : [];
+      }
+    } catch {
+      images = [];
+    }
+
+    let finalContent = post.content || '';
+    const r2UrlMatch = post.content && (
+      post.content.match(/\[R2:(\/api\/upload\/files\/[^\]]+)\]/) ||
+      post.content.match(/URL: (\/api\/upload\/files\/[^\]]+)/)
+    );
+    if (r2UrlMatch && r2UrlMatch[1]) {
+      try {
+        const { R2 } = c.env;
+        if (R2) {
+          const filePath = r2UrlMatch[1].replace('/api/upload/files/', '');
+          const object = await R2.get(filePath);
+          if (object) {
+            const decoder = new TextDecoder('utf-8');
+            finalContent = decoder.decode(await object.arrayBuffer());
+          }
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+
+    delete post.guest_password_hash;
+    return c.json({
+      success: true,
+      data: {
+        ...post,
+        content: finalContent,
+        images,
+        pinned: Boolean(post.pinned),
+        comments: comments || []
+      }
+    });
+  } catch (error: any) {
+    console.error('verify-qna-password:', error);
+    return c.json({ success: false, error: '처리 중 오류가 발생했습니다' }, 500);
+  }
+});
+
+// ============================================
 // 게시글 상세 조회
 // GET /api/posts/:id
 // ============================================
@@ -174,7 +273,7 @@ app.get('/:id', async (c) => {
 
     // 게시글 조회
     const post = await DB.prepare(`
-      SELECT p.*, u.name as author_name
+      SELECT p.*, COALESCE(u.name, p.author_name) as author_name
       FROM posts p
       LEFT JOIN users u ON p.author_id = u.id
       WHERE p.id = ?
@@ -197,6 +296,28 @@ app.get('/:id', async (c) => {
       }
       if (viewer.role !== 'admin' && Number(post.author_id) !== Number(viewer.userId)) {
         return c.json({ success: false, error: '게시글을 찾을 수 없습니다' }, 404);
+      }
+    }
+
+    const isQnaSecret = post.category === 'qna' && post.sub_category === 'secret';
+    if (isQnaSecret) {
+      const isAdmin = viewer?.role === 'admin';
+      const isAuthor = viewer && post.author_id != null && Number(post.author_id) === Number(viewer.userId);
+      const isGuestSecret = post.author_id == null && post.guest_password_hash;
+      if (!isAdmin && !isAuthor) {
+        if (isGuestSecret) {
+          return c.json({
+            success: false,
+            error: '비밀글입니다. 비밀번호를 입력해 주세요.',
+            code: 'QNA_SECRET_GUEST',
+            needsPassword: true
+          }, 403);
+        }
+        return c.json({
+          success: false,
+          error: '비밀글은 작성자만 열람할 수 있습니다.',
+          code: 'QNA_SECRET_DENIED'
+        }, 403);
       }
     }
 
@@ -245,6 +366,8 @@ app.get('/:id', async (c) => {
       }
     }
 
+    delete post.guest_password_hash;
+
     return c.json({
       success: true,
       data: {
@@ -265,7 +388,7 @@ app.get('/:id', async (c) => {
 // 게시글 작성
 // POST /api/posts
 // ============================================
-app.post('/', authMiddleware, async (c) => {
+app.post('/', async (c) => {
   let body: any;
   try {
     body = await c.req.json();
@@ -276,11 +399,10 @@ app.post('/', authMiddleware, async (c) => {
 
   try {
     const { DB } = c.env;
-    const user = c.get('user');
-
-    if (!user || !user.userId) {
-      console.error('POST /api/posts: user not found or userId missing', { user });
-      return c.json({ success: false, error: '인증 정보가 올바르지 않습니다' }, 401);
+    const authHeader = c.req.header('Authorization');
+    let user: JWTPayload | null = null;
+    if (authHeader?.startsWith('Bearer ')) {
+      user = await verifyToken(authHeader.substring(7));
     }
 
     const { title, content, category, images, pinned, status, course_id, enrollment_id, rating, created_at } = body;
@@ -299,16 +421,47 @@ app.post('/', authMiddleware, async (c) => {
       return c.json({ success: false, error: '내용은 필수입니다' }, 400);
     }
 
-    // 공지사항, FAQ: 관리자만 작성 가능 / Q&A: 관리자·수강생 작성 가능
-    if ((cat === 'notice' || cat === 'faq') && user.role !== 'admin') {
+    if (!user && cat !== 'qna') {
+      return c.json({ success: false, error: '로그인이 필요합니다' }, 401);
+    }
+
+    // 공지사항, FAQ: 관리자만
+    if ((cat === 'notice' || cat === 'faq') && (!user || user.role !== 'admin')) {
       return c.json({ success: false, error: '공지사항과 FAQ는 관리자만 작성할 수 있습니다' }, 403);
     }
 
-    let finalAuthorId = user.userId;
-    const { sub_category, content_url, teacher_feedback, author_id: bodyAuthorId } = body;
+    const { sub_category: bodySubCategory, content_url, teacher_feedback, author_id: bodyAuthorId } = body;
+
+    let finalAuthorId: number | null = user ? user.userId : null;
+    let guestAuthorName: string | null = null;
+    let guestPasswordHash: string | null = null;
+    let qnaSubCategory: string | null = null;
+
+    if (cat === 'qna') {
+      if (user) {
+        const secret = body.qna_secret === true || body.qna_secret === '1' || body.sub_category === 'secret';
+        qnaSubCategory = secret ? 'secret' : 'public';
+        finalAuthorId = user.userId;
+      } else {
+        guestAuthorName = String(body.author_name || '').trim();
+        if (!guestAuthorName) {
+          return c.json({ success: false, error: '비회원 작성 시 작성자 이름은 필수입니다' }, 400);
+        }
+        const secret = body.qna_secret === true || body.qna_secret === '1' || body.sub_category === 'secret';
+        qnaSubCategory = secret ? 'secret' : 'public';
+        if (secret) {
+          const pw = String(body.guest_password || '').trim();
+          if (pw.length < 4) {
+            return c.json({ success: false, error: '비밀글 비밀번호는 4자 이상이어야 합니다' }, 400);
+          }
+          guestPasswordHash = await hashPassword(pw);
+        }
+        finalAuthorId = null;
+      }
+    }
 
     // 강사 및 관리자가 학생의 포트폴리오/시제품·수강후기를 대신 올리는 경우 처리 (author_id 먼저 확정)
-    if (bodyAuthorId != null && String(bodyAuthorId).trim() !== '' && Number(bodyAuthorId) !== user.userId) {
+    if (user && bodyAuthorId != null && String(bodyAuthorId).trim() !== '' && Number(bodyAuthorId) !== user.userId) {
       if (user.role === 'admin') {
         finalAuthorId = Number(bodyAuthorId);
       } else if (user.role === 'teacher') {
@@ -326,6 +479,9 @@ app.post('/', authMiddleware, async (c) => {
         return c.json({ success: false, error: '본인의 게시물만 등록 가능합니다' }, 403);
       }
     }
+
+    const resolvedSubCategory =
+      cat === 'qna' && qnaSubCategory ? qnaSubCategory : (bodySubCategory != null ? String(bodySubCategory) : null);
 
     // 리뷰 특정 처리 (작성자 확정 후 중복·수강 검증)
     if (cat === 'review') {
@@ -362,7 +518,7 @@ app.post('/', authMiddleware, async (c) => {
     }
 
     const pin = pinned === true || pinned === 1 || pinned === '1';
-    if (pin && user.role !== 'admin') {
+    if (pin && (!user || user.role !== 'admin')) {
       return c.json({ success: false, error: '상단 고정은 관리자만 설정할 수 있습니다' }, 403);
     }
 
@@ -387,7 +543,7 @@ app.post('/', authMiddleware, async (c) => {
       : 'published';
 
     // 수강후기: 학생·강사 작성분은 관리자 승인 전까지 비공개( hidden ). 관리자만 최초 공개 게시 가능.
-    if (cat === 'review' && user.role !== 'admin') {
+    if (cat === 'review' && user && user.role !== 'admin') {
       st = 'hidden';
     }
 
@@ -407,7 +563,8 @@ app.post('/', authMiddleware, async (c) => {
       try {
         const timestamp = Date.now();
         const randomStr = Math.random().toString(36).substring(2, 8);
-        const filePath = `posts/content/${timestamp}_${randomStr}_${user.userId}.html`;
+        const uidPart = user?.userId != null ? String(user.userId) : `guest_${timestamp}`;
+        const filePath = `posts/content/${timestamp}_${randomStr}_${uidPart}.html`;
 
         const encoder = new TextEncoder();
         const contentBuffer = encoder.encode(cont);
@@ -419,7 +576,7 @@ app.post('/', authMiddleware, async (c) => {
           },
           customMetadata: {
             originalName: `post_${timestamp}.html`,
-            uploadedBy: user.userId.toString(),
+            uploadedBy: String(user?.userId ?? 0),
             uploadedAt: new Date().toISOString(),
             postTitle: tit.substring(0, 100),
           },
@@ -451,7 +608,7 @@ app.post('/', authMiddleware, async (c) => {
     }
 
     console.log('POST /api/posts: Inserting post', {
-      author_id: user.userId,
+      author_id: finalAuthorId,
       title: tit,
       category: cat,
       status: st,
@@ -463,16 +620,18 @@ app.post('/', authMiddleware, async (c) => {
 
     const result = await DB.prepare(`
       INSERT INTO posts (
-        author_id, title, content, category, sub_category, images,
+        author_id, title, content, category, sub_category, author_name, guest_password_hash, images,
         views, likes, pinned, status, course_id, enrollment_id, rating, 
         content_url, teacher_feedback, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
     `).bind(
       finalAuthorId,
       tit,
       finalContent,
       cat,
-      sub_category || null,
+      resolvedSubCategory,
+      guestAuthorName,
+      guestPasswordHash,
       imagesJson,
       pin ? 1 : 0,
       st,
@@ -481,7 +640,7 @@ app.post('/', authMiddleware, async (c) => {
       rating != null ? Number(rating) : null,
       content_url || null,
       teacher_feedback || null,
-      (created_at && user.role === 'admin') ? created_at : new Date().toISOString().replace('T', ' ').substring(0, 19)
+      (created_at && user?.role === 'admin') ? created_at : new Date().toISOString().replace('T', ' ').substring(0, 19)
     ).run();
 
     if (cat === 'review' && course_id) {

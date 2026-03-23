@@ -77,22 +77,16 @@ export const adminPostsListHtml = (sidebar: string | null = null) => `
         <div class="bg-white rounded-lg shadow-sm mb-6">
             <div class="border-b border-gray-200">
                 <nav class="-mb-px flex" aria-label="Tabs">
-                    <button onclick="filterCategory('')" id="tab-all" class="w-1/5 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-center border-b-2 font-medium text-sm">
+                    <button onclick="filterCategory('')" id="tab-all" class="w-1/4 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-center border-b-2 font-medium text-sm">
                         전체
                     </button>
-                    <button onclick="filterCategory('notice')" id="tab-notice" class="w-1/5 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-center border-b-2 font-medium text-sm">
+                    <button onclick="filterCategory('notice')" id="tab-notice" class="w-1/4 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-center border-b-2 font-medium text-sm">
                         공지사항
                     </button>
-                    <button onclick="filterCategory('faq')" id="tab-faq" class="w-1/5 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-center border-b-2 font-medium text-sm">
+                    <button onclick="filterCategory('faq')" id="tab-faq" class="w-1/4 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-center border-b-2 font-medium text-sm">
                         FAQ
                     </button>
-                    <button onclick="filterCategory('portfolio')" id="tab-portfolio" class="w-1/5 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-center border-b-2 font-medium text-sm">
-                        포트폴리오
-                    </button>
-                    <button onclick="filterCategory('prototype')" id="tab-prototype" class="w-1/5 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-center border-b-2 font-medium text-sm">
-                        시제품
-                    </button>
-                    <button onclick="filterCategory('qna')" id="tab-qna" class="w-1/5 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-center border-b-2 font-medium text-sm">
+                    <button onclick="filterCategory('qna')" id="tab-qna" class="w-1/4 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-center border-b-2 font-medium text-sm">
                         Q&A
                     </button>
                 </nav>
@@ -239,7 +233,7 @@ export const adminPostsListHtml = (sidebar: string | null = null) => `
             document.getElementById('currentCategory').value = category;
             
             // 탭 스타일 업데이트
-            const tabs = ['all', 'notice', 'faq', 'portfolio', 'prototype', 'qna'];
+            const tabs = ['all', 'notice', 'faq', 'qna'];
             tabs.forEach(tab => {
                 const element = document.getElementById(\`tab-\${tab}\`);
                 if (!element) return;
@@ -247,9 +241,9 @@ export const adminPostsListHtml = (sidebar: string | null = null) => `
                 const isSelected = (category === '' && tab === 'all') || category === tab;
                 
                 if (isSelected) {
-                    element.className = 'w-1/5 border-blue-500 text-blue-600 py-4 px-1 text-center border-b-2 font-medium text-sm';
+                    element.className = 'w-1/4 border-blue-500 text-blue-600 py-4 px-1 text-center border-b-2 font-medium text-sm';
                 } else {
-                    element.className = 'w-1/5 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-center border-b-2 font-medium text-sm';
+                    element.className = 'w-1/4 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-center border-b-2 font-medium text-sm';
                 }
             });
             

@@ -153,6 +153,13 @@ export const postsListHtml = `
                 </button>
             </div>
             <div class="p-6">
+                <div id="qnaSecretGate" class="hidden mb-4 p-4 rounded-xl border border-amber-200 bg-amber-50/90">
+                    <p class="text-sm text-amber-900 font-medium mb-3">비회원 비밀글입니다. 글 작성 시 설정한 비밀번호를 입력해 주세요.</p>
+                    <div class="flex flex-wrap gap-2 items-center">
+                        <input type="password" id="qnaSecretPasswordInput" autocomplete="off" placeholder="비밀번호" onkeydown="if(event.key==='Enter')submitQnaPassword()" class="flex-1 min-w-[200px] px-4 py-2 border border-amber-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        <button type="button" onclick="submitQnaPassword()" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition">확인</button>
+                    </div>
+                </div>
                 <div class="prose max-w-none text-gray-800 leading-relaxed min-h-[200px]" id="detailContent"></div>
                 
                 <!-- 댓글 섹션 (추후 구현 가능) -->
@@ -184,6 +191,21 @@ export const postsListHtml = `
                 <form id="writeForm" onsubmit="handleWrite(event)">
                     <input type="hidden" name="category" id="writeCategory">
                     <div class="space-y-4">
+                        <div id="qnaWriteExtras" class="hidden space-y-4 p-4 rounded-xl border border-slate-200 bg-slate-50/80">
+                            <p class="text-sm text-slate-600 font-medium">Q&A 작성 옵션</p>
+                            <div id="guestAuthorRow" class="hidden">
+                                <label class="block text-gray-700 font-medium mb-2">작성자 이름 <span class="text-red-500">*</span></label>
+                                <input type="text" name="author_name" id="guestAuthorName" autocomplete="nickname" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500" placeholder="비회원 표시 이름">
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <input type="checkbox" id="qnaSecretCheckbox" class="rounded border-gray-300 text-primary-600 focus:ring-primary-500">
+                                <label for="qnaSecretCheckbox" class="text-gray-700 font-medium cursor-pointer">비밀글로 작성 (본인·관리자만 열람 / 비회원은 비밀번호로 열람)</label>
+                            </div>
+                            <div id="guestPasswordRow" class="hidden">
+                                <label class="block text-gray-700 font-medium mb-2">비밀글 비밀번호 <span class="text-red-500">*</span> <span class="text-xs font-normal text-gray-500">(4자 이상)</span></label>
+                                <input type="password" name="guest_password" id="guestPassword" autocomplete="new-password" minlength="4" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500" placeholder="비밀번호">
+                            </div>
+                        </div>
                         <div>
                             <label class="block text-gray-700 font-medium mb-2">제목</label>
                             <input type="text" name="title" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
@@ -226,6 +248,11 @@ export const postsListHtml = `
             updateTabButtons();
             checkWritePermission();
             loadPosts();
+
+            const qnaCb = document.getElementById('qnaSecretCheckbox');
+            if (qnaCb) {
+                qnaCb.addEventListener('change', () => updateGuestPasswordRowVisibility());
+            }
         });
 
         function filterCategory(category) {
@@ -258,26 +285,33 @@ export const postsListHtml = `
             const token = localStorage.getItem('token');
             const userStr = localStorage.getItem('user');
             const writeBtn = document.getElementById('writeBtn');
-            
-            if (!token || !userStr) {
-                writeBtn.classList.add('hidden');
-                return;
-            }
-            
-            const user = JSON.parse(userStr);
-            
-            // 공지사항, FAQ: 관리자만 작성
+
+            // 공지·FAQ: 로그인 관리자만
             if (currentCategory === 'notice' || currentCategory === 'faq') {
-                if (user.role === 'admin') writeBtn.classList.remove('hidden');
-                else writeBtn.classList.add('hidden');
+                if (token && userStr) {
+                    const user = JSON.parse(userStr);
+                    if (user.role === 'admin') writeBtn.classList.remove('hidden');
+                    else writeBtn.classList.add('hidden');
+                } else {
+                    writeBtn.classList.add('hidden');
+                }
                 return;
             }
-            // Q&A: 관리자·수강생 작성 가능
+            // Q&A: 회원·비회원 모두 글쓰기
             if (currentCategory === 'qna') {
                 writeBtn.classList.remove('hidden');
-            } else {
-                writeBtn.classList.add('hidden');
+                return;
             }
+            writeBtn.classList.add('hidden');
+        }
+
+        function updateGuestPasswordRowVisibility() {
+            const token = localStorage.getItem('token');
+            const guestPwRow = document.getElementById('guestPasswordRow');
+            const secret = document.getElementById('qnaSecretCheckbox')?.checked;
+            if (!guestPwRow) return;
+            if (!token && secret) guestPwRow.classList.remove('hidden');
+            else guestPwRow.classList.add('hidden');
         }
 
         async function loadPosts(page = 1) {
@@ -320,6 +354,7 @@ export const postsListHtml = `
                                 <div class="flex-1 min-w-0">
                                     <div class="flex items-center gap-2 mb-1">
                                         \${post.pinned ? '<span class="px-2 py-0.5 bg-red-100 text-red-600 text-xs font-bold rounded-full">공지</span>' : ''}
+                                        \${post.is_secret ? '<span class="px-2 py-0.5 bg-amber-100 text-amber-800 text-xs font-bold rounded-full">비밀</span>' : ''}
                                         <h3 class="text-lg font-bold text-gray-800 truncate">\${post.title}</h3>
                                     </div>
                                     <p class="text-gray-500 text-sm line-clamp-2 mb-2">\${stripHtml(post.content)}</p>
@@ -392,32 +427,105 @@ export const postsListHtml = `
             document.getElementById('pagination').innerHTML = html;
         }
 
+        function fillPostDetailModal(detail) {
+            document.getElementById('detailTitle').textContent = detail.title;
+            document.getElementById('detailCategory').textContent = getCategoryName(detail.category);
+            document.getElementById('detailDate').textContent = new Date(detail.created_at).toLocaleDateString();
+            document.getElementById('detailAuthor').textContent = detail.author_name || '익명';
+            document.getElementById('detailViews').textContent = detail.views;
+            document.getElementById('detailContent').innerHTML = detail.content || '';
+        }
+
         async function openPostDetail(post) {
-            // 상세 정보 조회 (조회수 증가 등을 위해 API 호출)
             try {
-                const response = await fetch('/api/posts/' + post.id);
+                document.getElementById('qnaSecretGate').classList.add('hidden');
+                document.getElementById('qnaSecretPasswordInput').value = '';
+                window.__qnaPendingPost = post;
+
+                const token = localStorage.getItem('token');
+                const headers = {};
+                if (token) headers['Authorization'] = 'Bearer ' + token;
+
+                const response = await fetch('/api/posts/' + post.id, { headers });
                 const result = await response.json();
-                
-                if (result.success) {
-                    const detail = result.data;
-                    document.getElementById('detailTitle').textContent = detail.title;
-                    document.getElementById('detailCategory').textContent = getCategoryName(detail.category);
-                    document.getElementById('detailDate').textContent = new Date(detail.created_at).toLocaleDateString();
-                    document.getElementById('detailAuthor').textContent = detail.author_name || '익명';
-                    document.getElementById('detailViews').textContent = detail.views;
-                    document.getElementById('detailContent').innerHTML = detail.content || '';
-                    
+
+                if (response.status === 403 && result.code === 'QNA_SECRET_GUEST') {
+                    fillPostDetailModal({ ...post, views: post.views, content: '' });
+                    document.getElementById('detailContent').innerHTML = '<p class="text-gray-500 text-sm">비밀번호 확인 후 본문이 표시됩니다.</p>';
+                    document.getElementById('qnaSecretGate').classList.remove('hidden');
                     document.getElementById('postDetailModal').classList.remove('hidden');
                     document.body.style.overflow = 'hidden';
+                    return;
+                }
+
+                if (response.status === 403 && result.code === 'QNA_SECRET_DENIED') {
+                    alert(result.error || '비밀글은 작성자만 열람할 수 있습니다.');
+                    return;
+                }
+
+                if (result.success) {
+                    fillPostDetailModal(result.data);
+                    document.getElementById('postDetailModal').classList.remove('hidden');
+                    document.body.style.overflow = 'hidden';
+                } else {
+                    alert(result.error || '게시글을 불러올 수 없습니다.');
                 }
             } catch (error) {
                 console.error('Error:', error);
             }
         }
 
+        async function submitQnaPassword() {
+            const post = window.__qnaPendingPost;
+            const pw = document.getElementById('qnaSecretPasswordInput').value;
+            if (!post || !post.id) return;
+            if (!pw || pw.length < 1) {
+                alert('비밀번호를 입력해 주세요.');
+                return;
+            }
+            try {
+                const res = await fetch('/api/posts/' + post.id + '/verify-qna-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: pw })
+                });
+                const result = await res.json();
+                if (result.success && result.data) {
+                    document.getElementById('qnaSecretGate').classList.add('hidden');
+                    fillPostDetailModal(result.data);
+                } else {
+                    alert(result.error || '비밀번호가 일치하지 않습니다.');
+                }
+            } catch (e) {
+                console.error(e);
+                alert('확인 중 오류가 발생했습니다.');
+            }
+        }
+
         function openWriteModal() {
             document.getElementById('writeForm').reset();
             document.getElementById('writeCategory').value = currentCategory;
+            const qnaExtras = document.getElementById('qnaWriteExtras');
+            const guestRow = document.getElementById('guestAuthorRow');
+            const token = localStorage.getItem('token');
+
+            if (currentCategory === 'qna' && qnaExtras) {
+                qnaExtras.classList.remove('hidden');
+                if (guestRow) {
+                    if (!token) guestRow.classList.remove('hidden');
+                    else guestRow.classList.add('hidden');
+                }
+                const cb = document.getElementById('qnaSecretCheckbox');
+                if (cb) cb.checked = false;
+                const gp = document.getElementById('guestPassword');
+                if (gp) gp.value = '';
+                const ga = document.getElementById('guestAuthorName');
+                if (ga) ga.value = '';
+                updateGuestPasswordRowVisibility();
+            } else if (qnaExtras) {
+                qnaExtras.classList.add('hidden');
+            }
+
             document.getElementById('writeModal').classList.remove('hidden');
             
             if (!tinymce.get('writeContent')) {
@@ -467,15 +575,27 @@ export const postsListHtml = `
             }
             
             const data = Object.fromEntries(formData.entries());
-            
+            const token = localStorage.getItem('token');
+
+            if (currentCategory === 'qna') {
+                data.category = 'qna';
+                const secretEl = document.getElementById('qnaSecretCheckbox');
+                data.qna_secret = !!(secretEl && secretEl.checked);
+                if (!token) {
+                    data.author_name = (document.getElementById('guestAuthorName')?.value || '').trim();
+                    if (data.qna_secret) {
+                        data.guest_password = document.getElementById('guestPassword')?.value || '';
+                    }
+                }
+            }
+
+            const headers = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = 'Bearer ' + token;
+
             try {
-                const token = localStorage.getItem('token');
                 const response = await fetch('/api/posts', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + token
-                    },
+                    headers,
                     body: JSON.stringify(data)
                 });
                 
