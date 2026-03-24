@@ -465,6 +465,10 @@ const NCS_PLAN_PRINT_STYLES = `
   content: "문항 내용을 입력하세요.";
   color: #94a3b8;
 }
+#tools_notes:empty::before {
+  content: "비고를 입력하세요.";
+  color: #94a3b8;
+}
 .ncs-questions-print-root.is-preview {
   left: 0 !important;
   right: 0 !important;
@@ -702,6 +706,11 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                         <i class="fas fa-print mr-1"></i>인쇄
                       </button>
                       ` : ''}
+                      ${(item.id === 'minutes' || item.id === 'questions' || item.id === 'tools' || item.id === 'rubric') ? `
+                      <button type="button" data-plan-new-btn="${item.id}" class="px-3 py-2 rounded-xl bg-indigo-500 text-white text-xs font-black hover:bg-indigo-600 transition">
+                        <i class="fas fa-file-circle-plus mr-1"></i>새문서 작성
+                      </button>
+                      ` : ''}
                       ${item.id === 'questions' ? `
                       <button type="button" id="questionsPrintBtn" class="px-3 py-2 rounded-xl bg-amber-500 text-white text-xs font-black hover:bg-amber-600 transition">
                         <i class="fas fa-print mr-1"></i>인쇄
@@ -895,138 +904,202 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                   </div>
                 </div>
               ` : item.id === 'questions' ? `
-                <div class="space-y-4">
-                  <div class="rounded-2xl border border-slate-200/70 bg-slate-50 p-4">
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-                      <input id="questions_doc_title" class="md:col-span-2 px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="문서 제목 (예: NCS 본평가 문항지)" />
-                      <input id="questions_writer" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="출제자" />
-                      <input id="questions_total_target" type="number" min="0" step="1" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="목표 총점(선택)" />
+                <div class="rounded-2xl border border-slate-200/70 overflow-hidden">
+                  <input type="file" id="questionsFileAttachInput" multiple class="hidden" />
+                  <input type="file" id="questionsImageInsertInput" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden" />
+
+                  <div class="p-3 border-b border-slate-200/70 bg-slate-50/80 flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <button type="button" id="questionsImageInsertBtn" class="px-3 py-1.5 rounded-lg bg-sky-500 text-white text-xs font-black hover:bg-sky-600 transition"><i class="fas fa-image mr-1"></i>이미지 삽입</button>
+                      <button type="button" id="questionsImageDeleteBtn" class="px-3 py-1.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 text-xs font-black hover:bg-rose-100 transition"><i class="fas fa-trash mr-1"></i>이미지 삭제</button>
+                      <button type="button" id="questionsFileAttachBtn" class="px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-xs font-black text-slate-700 hover:bg-slate-100 transition"><i class="fas fa-paperclip mr-1"></i>파일첨부</button>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-6 gap-3 mt-3">
-                      <input id="questionInputNo" type="number" min="1" step="1" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="문항번호" />
-                      <select id="questionInputType" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white">
-                        <option value="객관식">객관식</option>
-                        <option value="주관식">주관식</option>
-                        <option value="실습형">실습형</option>
-                        <option value="서술형">서술형</option>
-                      </select>
-                      <input id="questionInputScore" type="number" min="0" step="1" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="배점" />
-                      <input id="questionInputKeyword" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white md:col-span-2" placeholder="평가기준/키워드" />
-                      <button type="button" id="questionAddRowBtn" class="px-3 py-2 rounded-xl bg-sky-600 text-white text-sm font-black hover:bg-sky-700 transition">
-                        <i class="fas fa-plus mr-1"></i>문항 추가
-                      </button>
-                    </div>
-                    <div class="mt-3 rounded-xl border border-slate-200/80 bg-white p-3">
-                      <div class="flex flex-wrap items-center gap-2 mb-2">
-                        <input type="file" id="questionsFileAttachInput" multiple class="hidden" />
-                        <button type="button" id="questionsFileAttachBtn" class="px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-black text-slate-700 hover:bg-slate-50 transition">
-                          <i class="fas fa-paperclip mr-1"></i>파일 첨부
-                        </button>
-                        <input type="file" id="questionsImageInsertInput" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden" />
-                        <button type="button" id="questionsImageInsertBtn" class="px-3 py-2 rounded-xl border border-sky-200 bg-sky-50 text-xs font-black text-sky-800 hover:bg-sky-100 transition">
-                          <i class="fas fa-image mr-1"></i>이미지 삽입
-                        </button>
-                        <button type="button" id="questionsImageDeleteBtn" class="px-3 py-2 rounded-xl border border-rose-200 bg-rose-50 text-xs font-black text-rose-700 hover:bg-rose-100 transition">
-                          <i class="fas fa-trash mr-1"></i>이미지 삭제
-                        </button>
-                        <span class="text-[11px] text-slate-500">이미지는 문항 입력란에 즉시 표시되며, 드래그로 크기 조절/삭제할 수 있습니다.</span>
-                      </div>
-                      <label class="block text-xs font-black text-slate-600 mb-1.5">첨부파일</label>
-                      <div id="questionsAttachmentsList" class="flex flex-wrap gap-2 min-h-[2.5rem]"></div>
-                    </div>
-                    <div class="mt-3">
-                      <label class="block text-xs font-black text-slate-600 mb-1.5">문항 내용</label>
-                      <div id="questionInputText" contenteditable="true" class="w-full min-h-[120px] px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white whitespace-pre-wrap leading-relaxed"></div>
-                    </div>
+                    <div class="text-[11px] text-slate-500">문항 작성란에서 이미지 즉시표시/리사이즈/삭제를 지원합니다.</div>
                   </div>
 
-                  <div class="rounded-2xl border border-slate-200/70 overflow-hidden">
-                    <div class="overflow-x-auto">
-                      <table class="w-full text-left">
-                        <thead class="bg-slate-50 border-b border-slate-100">
-                          <tr>
-                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider w-16">번호</th>
-                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider w-24">유형</th>
-                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider">문항</th>
-                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider w-20 text-center">배점</th>
-                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider">평가기준</th>
-                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider w-32 text-center">작업</th>
-                          </tr>
-                        </thead>
-                        <tbody id="questionsRowsBody" class="divide-y divide-slate-100 bg-white"></tbody>
-                      </table>
-                    </div>
-                  </div>
-                  <div class="flex items-center justify-between rounded-2xl border border-slate-200/70 bg-white px-4 py-3">
-                    <p class="text-sm text-slate-600">총 배점</p>
-                    <p id="questionsTotalScoreLabel" class="text-sm font-black text-slate-900">0점</p>
-                  </div>
-                  <div>
-                    <label class="block text-xs font-black text-slate-600 mb-1.5">비고</label>
-                    <textarea id="questions_notes" class="w-full h-24 px-3 py-2 rounded-xl border border-slate-200 text-sm"></textarea>
+                  <div class="p-4 bg-white overflow-x-auto">
+                    <table class="w-full min-w-[980px] border border-black text-xs">
+                      <tr>
+                        <td class="border border-black text-center font-black text-3xl py-6" colspan="8">평가 문항제작</td>
+                      </tr>
+                      <tr>
+                        <td class="border border-black text-center bg-slate-50 font-bold w-20">과정명</td>
+                        <td class="border border-black px-2 py-1" colspan="5"><div id="questions_doc_title" contenteditable="true" class="outline-none min-h-[1.25rem]"></div></td>
+                        <td class="border border-black text-center bg-slate-50 font-bold w-20">출제자</td>
+                        <td class="border border-black px-2 py-1"><div id="questions_writer" contenteditable="true" class="outline-none min-h-[1.25rem]"></div></td>
+                      </tr>
+                      <tr>
+                        <td class="border border-black text-center bg-slate-50 font-bold">배점</td>
+                        <td class="border border-black px-2 py-1" colspan="7">
+                          <div class="flex items-center justify-between gap-2">
+                            <div class="text-slate-700"><span id="questionsTotalScoreLabel" class="font-black">0점</span></div>
+                            <div class="flex items-center gap-2">
+                              <span class="text-slate-500">목표 총점</span>
+                              <input id="questions_total_target" type="number" min="0" step="1" class="w-28 px-2 py-1 border border-slate-200 rounded bg-white text-right" />
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td class="border border-black text-center bg-slate-50 font-bold align-top py-2">첨부파일</td>
+                        <td class="border border-black px-2 py-2" colspan="7">
+                          <div id="questionsAttachmentsList" class="flex flex-wrap gap-2 min-h-[2.5rem]"></div>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td class="border border-black text-center bg-slate-50 font-bold align-top py-2">문항작성</td>
+                        <td class="border border-black p-2" colspan="7">
+                          <div class="grid grid-cols-1 md:grid-cols-6 gap-2 mb-2">
+                            <input id="questionInputNo" type="number" min="1" step="1" class="px-2 py-1 border border-slate-200 rounded bg-white" placeholder="번호" />
+                            <select id="questionInputType" class="px-2 py-1 border border-slate-200 rounded bg-white">
+                              <option value="객관식">객관식</option>
+                              <option value="주관식">주관식</option>
+                              <option value="실습형">실습형</option>
+                              <option value="서술형">서술형</option>
+                            </select>
+                            <input id="questionInputScore" type="number" min="0" step="1" class="px-2 py-1 border border-slate-200 rounded bg-white" placeholder="배점" />
+                            <input id="questionInputKeyword" class="px-2 py-1 border border-slate-200 rounded bg-white md:col-span-2" placeholder="평가기준/키워드" />
+                            <button type="button" id="questionAddRowBtn" class="px-2 py-1 rounded bg-sky-600 text-white font-black hover:bg-sky-700 transition">문항 추가</button>
+                          </div>
+                          <div id="questionInputText" contenteditable="true" class="w-full min-h-[120px] px-3 py-2 border border-slate-200 rounded bg-white whitespace-pre-wrap leading-relaxed"></div>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td class="border border-black text-center bg-slate-50 font-bold align-top py-2">평가문항</td>
+                        <td class="border border-black p-0" colspan="7">
+                          <table class="w-full text-left">
+                            <thead class="bg-slate-50 border-b border-slate-200">
+                              <tr>
+                                <th class="px-3 py-2 text-xs font-black text-slate-600 w-16">번호</th>
+                                <th class="px-3 py-2 text-xs font-black text-slate-600 w-24">유형</th>
+                                <th class="px-3 py-2 text-xs font-black text-slate-600">문항</th>
+                                <th class="px-3 py-2 text-xs font-black text-slate-600 w-20 text-center">배점</th>
+                                <th class="px-3 py-2 text-xs font-black text-slate-600">평가기준</th>
+                                <th class="px-3 py-2 text-xs font-black text-slate-600 w-32 text-center">작업</th>
+                              </tr>
+                            </thead>
+                            <tbody id="questionsRowsBody" class="divide-y divide-slate-100 bg-white"></tbody>
+                          </table>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td class="border border-black text-center bg-slate-50 font-bold">비고</td>
+                        <td class="border border-black p-0" colspan="7">
+                          <textarea id="questions_notes" class="w-full h-24 px-3 py-2 outline-none resize-y border-0 text-sm"></textarea>
+                        </td>
+                      </tr>
+                    </table>
                   </div>
                 </div>
               ` : item.id === 'tools' ? `
-                <div class="space-y-4">
-                  <div class="rounded-2xl border border-slate-200/70 bg-slate-50 p-4">
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-                      <input id="tools_doc_title" class="md:col-span-2 px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="문서 제목 (예: NCS 본평가 도구표)" />
-                      <input id="tools_writer" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="작성자" />
-                      <input id="tools_target_time" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="총 소요시간(예: 60분)" />
+                <div class="rounded-2xl border border-slate-200/70 overflow-hidden">
+                  <input type="file" id="toolsFileAttachInput" multiple class="hidden" />
+                  <input type="file" id="toolsImageInsertInput" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden" />
+
+                  <div class="p-3 border-b border-slate-200/70 bg-slate-50/80 flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <button type="button" id="toolsImageInsertBtn" class="px-3 py-1.5 rounded-lg bg-sky-500 text-white text-xs font-black hover:bg-sky-600 transition"><i class="fas fa-image mr-1"></i>이미지 삽입</button>
+                      <button type="button" id="toolsImageDeleteBtn" class="px-3 py-1.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 text-xs font-black hover:bg-rose-100 transition"><i class="fas fa-trash mr-1"></i>이미지 삭제</button>
+                      <button type="button" id="toolsFileAttachBtn" class="px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-xs font-black text-slate-700 hover:bg-slate-100 transition"><i class="fas fa-paperclip mr-1"></i>파일첨부</button>
                     </div>
-                    <div class="mt-3 rounded-xl border border-slate-200/80 bg-white p-3">
-                      <div class="flex flex-wrap items-center gap-2 mb-2">
-                        <input type="file" id="toolsFileAttachInput" multiple class="hidden" />
-                        <button type="button" id="toolsFileAttachBtn" class="px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-black text-slate-700 hover:bg-slate-50 transition">
-                          <i class="fas fa-paperclip mr-1"></i>파일 첨부
-                        </button>
-                        <input type="file" id="toolsImageInsertInput" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden" />
-                        <button type="button" id="toolsImageInsertBtn" class="px-3 py-2 rounded-xl border border-sky-200 bg-sky-50 text-xs font-black text-sky-800 hover:bg-sky-100 transition">
-                          <i class="fas fa-image mr-1"></i>이미지 삽입
-                        </button>
-                        <span class="text-[11px] text-slate-500">이미지는 비고 입력란 커서 위치에 <code class="text-slate-600">![설명](URL)</code> 형식으로 삽입됩니다.</span>
-                      </div>
-                      <label class="block text-xs font-black text-slate-600 mb-1.5">첨부파일</label>
-                      <div id="toolsAttachmentsList" class="flex flex-wrap gap-2 min-h-[2.5rem]"></div>
-                    </div>
+                    <div class="text-[11px] text-slate-500">비고 영역에서 이미지 즉시표시/리사이즈/삭제를 지원합니다.</div>
                   </div>
 
-                  <div class="rounded-2xl border border-slate-200/70 overflow-hidden">
-                    <div class="overflow-x-auto">
-                      <table class="w-full text-left">
-                        <thead class="bg-slate-50 border-b border-slate-100">
-                          <tr>
-                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider">도구명</th>
-                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider w-28">유형</th>
-                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider">준비물/상세</th>
-                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider w-24 text-center">시간</th>
-                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider w-20 text-center">배점</th>
-                          </tr>
-                        </thead>
-                        <tbody id="toolsRowsBody" class="divide-y divide-slate-100 bg-white"></tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  <div class="flex items-center justify-between rounded-2xl border border-slate-200/70 bg-white px-4 py-3">
-                    <p class="text-sm text-slate-600">총 배점</p>
-                    <p id="toolsTotalScoreLabel" class="text-sm font-black text-slate-900">0점</p>
-                  </div>
-                  <div>
-                    <label class="block text-xs font-black text-slate-600 mb-1.5">비고</label>
-                    <textarea id="tools_notes" class="w-full h-24 px-3 py-2 rounded-xl border border-slate-200 text-sm"></textarea>
+                  <div class="p-4 bg-white overflow-x-auto">
+                    <table class="w-full min-w-[980px] border border-black text-xs">
+                      <tr>
+                        <td class="border border-black text-center font-black text-3xl py-6" colspan="7">평가 도구제작</td>
+                      </tr>
+                      <tr>
+                        <td class="border border-black text-center bg-slate-50 font-bold w-24">문서제목</td>
+                        <td class="border border-black px-2 py-1" colspan="3"><div id="tools_doc_title" contenteditable="true" class="outline-none min-h-[1.25rem]"></div></td>
+                        <td class="border border-black text-center bg-slate-50 font-bold w-20">작성자</td>
+                        <td class="border border-black px-2 py-1"><div id="tools_writer" contenteditable="true" class="outline-none min-h-[1.25rem]"></div></td>
+                        <td class="border border-black text-center bg-slate-50 font-bold"><span id="toolsTotalScoreLabel">0점</span></td>
+                      </tr>
+                      <tr>
+                        <td class="border border-black text-center bg-slate-50 font-bold">총 소요시간</td>
+                        <td class="border border-black px-2 py-1" colspan="6"><div id="tools_target_time" contenteditable="true" class="outline-none min-h-[1.25rem]"></div></td>
+                      </tr>
+                      <tr>
+                        <td class="border border-black text-center bg-slate-50 font-bold align-top py-2">첨부파일</td>
+                        <td class="border border-black px-2 py-2" colspan="6">
+                          <div id="toolsAttachmentsList" class="flex flex-wrap gap-2 min-h-[2.5rem]"></div>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td class="border border-black text-center bg-slate-50 font-bold align-top py-2">평가도구</td>
+                        <td class="border border-black p-0" colspan="6">
+                          <table class="w-full text-left">
+                            <thead class="bg-slate-50 border-b border-slate-200">
+                              <tr>
+                                <th class="px-3 py-2 text-xs font-black text-slate-600">도구명</th>
+                                <th class="px-3 py-2 text-xs font-black text-slate-600 w-28">유형</th>
+                                <th class="px-3 py-2 text-xs font-black text-slate-600">준비물/상세</th>
+                                <th class="px-3 py-2 text-xs font-black text-slate-600 w-24 text-center">시간</th>
+                                <th class="px-3 py-2 text-xs font-black text-slate-600 w-20 text-center">배점</th>
+                              </tr>
+                            </thead>
+                            <tbody id="toolsRowsBody" class="divide-y divide-slate-100 bg-white"></tbody>
+                          </table>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td class="border border-black text-center bg-slate-50 font-bold">비고</td>
+                        <td class="border border-black p-2" colspan="6">
+                          <div id="tools_notes" contenteditable="true" class="w-full min-h-[120px] px-3 py-2 border border-slate-200 rounded bg-white whitespace-pre-wrap leading-relaxed"></div>
+                        </td>
+                      </tr>
+                    </table>
                   </div>
                 </div>
               ` : item.id === 'rubric' ? `
                 <div class="space-y-4">
-                  <div class="rounded-2xl border border-slate-200/70 bg-slate-50 p-4">
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-                      <input id="rubric_doc_title" class="md:col-span-2 px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="문서 제목 (예: 평가도구 채점기준표)" />
-                      <input id="rubric_writer" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="작성자" />
-                      <input id="rubric_total_target" type="number" min="0" step="1" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="기준 총점(선택)" />
+                  <div class="rounded-2xl border border-slate-200/70 bg-white p-4 space-y-4">
+                    <div class="overflow-x-auto">
+                      <table class="w-full border-collapse text-[13px] leading-relaxed bg-white">
+                        <colgroup>
+                          <col style="width: 13%" />
+                          <col style="width: 20%" />
+                          <col style="width: 13%" />
+                          <col style="width: 20%" />
+                          <col style="width: 13%" />
+                          <col style="width: 21%" />
+                        </colgroup>
+                        <tbody>
+                          <tr>
+                            <td class="border border-black text-center bg-slate-50 font-bold py-2">문서명</td>
+                            <td class="border border-black px-2 py-2" colspan="3">
+                              <div id="rubric_doc_title" contenteditable="true" class="min-h-[2rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">평가도구 채점기준표</div>
+                            </td>
+                            <td class="border border-black text-center bg-slate-50 font-bold py-2">작성자</td>
+                            <td class="border border-black px-2 py-2">
+                              <div id="rubric_writer" contenteditable="true" class="min-h-[2rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1"></div>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td class="border border-black text-center bg-slate-50 font-bold py-2">기준 총점</td>
+                            <td class="border border-black px-2 py-2">
+                              <div id="rubric_total_target" contenteditable="true" class="min-h-[2rem] text-center whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">100</div>
+                            </td>
+                            <td class="border border-black text-center bg-slate-50 font-bold py-2">총 배점</td>
+                            <td class="border border-black px-2 py-2 text-center">
+                              <p id="rubricTotalScoreLabel" class="text-sm font-black text-slate-900">0점</p>
+                            </td>
+                            <td class="border border-black text-center bg-slate-50 font-bold py-2">비고</td>
+                            <td class="border border-black px-2 py-2 text-[11px] text-slate-500">채점기준표를 직접 편집하고, 비고에 이미지/메모를 바로 삽입하세요.</td>
+                          </tr>
+                        </tbody>
+                      </table>
                     </div>
-                    <div class="mt-3 rounded-xl border border-slate-200/80 bg-white p-3">
+                    <div class="rounded-xl border border-slate-200/80 bg-slate-50 p-3">
                       <div class="flex flex-wrap items-center gap-2 mb-2">
+                        <button type="button" id="rubricImageDeleteBtn" class="px-3 py-2 rounded-xl border border-rose-200 bg-rose-50 text-xs font-black text-rose-700 hover:bg-rose-100 transition">
+                          <i class="fas fa-trash mr-1"></i>선택 이미지 삭제
+                        </button>
+                        <span class="text-[11px] text-slate-500">이미지 삽입 후 바로 보이며, 모서리 드래그로 크기 조절/선택 삭제가 가능합니다.</span>
+                      </div>
+                      <div class="flex flex-wrap items-center gap-2">
                         <input type="file" id="rubricFileAttachInput" multiple class="hidden" />
                         <button type="button" id="rubricFileAttachBtn" class="px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-black text-slate-700 hover:bg-slate-50 transition">
                           <i class="fas fa-paperclip mr-1"></i>파일 첨부
@@ -1035,14 +1108,13 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                         <button type="button" id="rubricImageInsertBtn" class="px-3 py-2 rounded-xl border border-sky-200 bg-sky-50 text-xs font-black text-sky-800 hover:bg-sky-100 transition">
                           <i class="fas fa-image mr-1"></i>이미지 삽입
                         </button>
-                        <span class="text-[11px] text-slate-500">이미지는 비고 입력란 커서 위치에 <code class="text-slate-600">![설명](URL)</code> 형식으로 삽입됩니다.</span>
                       </div>
-                      <label class="block text-xs font-black text-slate-600 mb-1.5">첨부파일</label>
+                      <label class="block text-xs font-black text-slate-600 mb-1.5 mt-3">첨부파일</label>
                       <div id="rubricAttachmentsList" class="flex flex-wrap gap-2 min-h-[2.5rem]"></div>
                     </div>
                   </div>
 
-                  <div class="rounded-2xl border border-slate-200/70 overflow-hidden">
+                  <div class="rounded-2xl border border-slate-200/70 overflow-hidden bg-white">
                     <div class="overflow-x-auto">
                       <table class="w-full text-left">
                         <thead class="bg-slate-50 border-b border-slate-100">
@@ -1058,14 +1130,9 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                       </table>
                     </div>
                   </div>
-
-                  <div class="flex items-center justify-between rounded-2xl border border-slate-200/70 bg-white px-4 py-3">
-                    <p class="text-sm text-slate-600">총 배점</p>
-                    <p id="rubricTotalScoreLabel" class="text-sm font-black text-slate-900">0점</p>
-                  </div>
-                  <div>
+                  <div class="rounded-2xl border border-slate-200/70 bg-white p-4">
                     <label class="block text-xs font-black text-slate-600 mb-1.5">비고</label>
-                    <textarea id="rubric_notes" class="w-full h-24 px-3 py-2 rounded-xl border border-slate-200 text-sm"></textarea>
+                    <div id="rubric_notes" contenteditable="true" class="w-full min-h-[120px] px-3 py-2 border border-slate-200 rounded bg-white whitespace-pre-wrap leading-relaxed"></div>
                   </div>
                 </div>
               ` : item.id === 'achievement' ? `
@@ -1462,12 +1529,111 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       return !!el.querySelector('img');
     }
 
+    function getQuestionsFieldValue(id) {
+      var el = document.getElementById(id);
+      if (!el) return '';
+      var tag = el.tagName ? String(el.tagName).toUpperCase() : '';
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return String(el.value || '');
+      if (el.isContentEditable) return String(el.textContent || '');
+      return String(el.textContent || '');
+    }
+
+    function setQuestionsFieldValue(id, value) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      var next = value != null ? String(value) : '';
+      var tag = el.tagName ? String(el.tagName).toUpperCase() : '';
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
+        el.value = next;
+        return;
+      }
+      if (el.isContentEditable) {
+        el.textContent = next;
+        return;
+      }
+      el.textContent = next;
+    }
+
     function questionContentToDisplayHtml(raw) {
       var text = String(raw || '');
       if (!text.trim()) return '-';
       if (/<[a-z][\\s\\S]*>/i.test(text)) return text;
       if (/!\[[^\]]*\]\([^)]+\)/.test(text)) return questionMarkdownToEditorHtml(text);
       return '<div class="whitespace-pre-wrap">' + escapeHtml(text) + '</div>';
+    }
+
+    function normalizeToolsNotesForEditor(raw) {
+      var text = String(raw || '');
+      if (!text.trim()) return '';
+      if (/<[a-z][\\s\\S]*>/i.test(text)) return text;
+      return minutesMarkdownToEditorHtml(text);
+    }
+
+    function getToolsFieldValue(id) {
+      var el = document.getElementById(id);
+      if (!el) return '';
+      var tag = el.tagName ? String(el.tagName).toUpperCase() : '';
+      if (id === 'tools_notes' && el.isContentEditable) return String(el.innerHTML || '');
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return String(el.value || '');
+      if (el.isContentEditable) return String(el.textContent || '');
+      return String(el.textContent || '');
+    }
+
+    function setToolsFieldValue(id, value) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      var next = value != null ? String(value) : '';
+      var tag = el.tagName ? String(el.tagName).toUpperCase() : '';
+      if (id === 'tools_notes' && el.isContentEditable) {
+        el.innerHTML = normalizeToolsNotesForEditor(next);
+        return;
+      }
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
+        el.value = next;
+        return;
+      }
+      if (el.isContentEditable) {
+        el.textContent = next;
+        return;
+      }
+      el.textContent = next;
+    }
+
+    function normalizeRubricNotesForEditor(raw) {
+      var text = String(raw || '');
+      if (!text.trim()) return '';
+      if (/<[a-z][\s\S]*>/i.test(text)) return text;
+      return minutesMarkdownToEditorHtml(text);
+    }
+
+    function getRubricFieldValue(id) {
+      var el = document.getElementById(id);
+      if (!el) return '';
+      var tag = el.tagName ? String(el.tagName).toUpperCase() : '';
+      if (id === 'rubric_notes' && el.isContentEditable) return String(el.innerHTML || '');
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return String(el.value || '');
+      if (el.isContentEditable) return String(el.textContent || '');
+      return String(el.textContent || '');
+    }
+
+    function setRubricFieldValue(id, value) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      var next = value != null ? String(value) : '';
+      var tag = el.tagName ? String(el.tagName).toUpperCase() : '';
+      if (id === 'rubric_notes' && el.isContentEditable) {
+        el.innerHTML = normalizeRubricNotesForEditor(next);
+        return;
+      }
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
+        el.value = next;
+        return;
+      }
+      if (el.isContentEditable) {
+        el.textContent = next;
+        return;
+      }
+      el.textContent = next;
     }
 
     function minutesContentToPrintHtml(text) {
@@ -1978,7 +2144,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
     async function fillQuestionsPrintSheet() {
       var courseTitle = await resolveCourseTitleForPrint();
       var subEl = document.getElementById('questionsPrintSubtitle');
-      var docTitle = (document.getElementById('questions_doc_title') || {}).value || '';
+      var docTitle = getQuestionsFieldValue('questions_doc_title');
       if (subEl) subEl.textContent = docTitle ? ('(' + docTitle + ')') : '';
 
       var subjLabel = '';
@@ -1991,7 +2157,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       setMinutesPrintText('questionsPrintSubject', subjLabel || '-');
       setMinutesPrintText('questionsPrintRound', roundLabel(selectedRound));
       setMinutesPrintText('questionsPrintDocTitle', docTitle || '-');
-      setMinutesPrintText('questionsPrintWriter', (document.getElementById('questions_writer') || {}).value || '-');
+      setMinutesPrintText('questionsPrintWriter', getQuestionsFieldValue('questions_writer') || '-');
 
       var qAtt = readQuestionsAttachmentsFromDom();
       var qAttPrint = document.getElementById('questionsPrintAttachments');
@@ -2009,7 +2175,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
 
       var rows = readQuestionRowsFromTable();
       var total = rows.reduce(function(acc, r) { return acc + Number(r && r.score != null ? r.score : 0); }, 0);
-      var target = Number((document.getElementById('questions_total_target') || {}).value || 0);
+      var target = Number(getQuestionsFieldValue('questions_total_target') || 0);
       var sumText = '총배점 ' + total + '점';
       if (target > 0) sumText += ' / 목표 ' + target + '점';
       setMinutesPrintText('questionsPrintScoreSummary', sumText);
@@ -2037,7 +2203,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         }
       }
 
-      setMinutesPrintText('questionsPrintNotes', (document.getElementById('questions_notes') || {}).value || '');
+      setMinutesPrintText('questionsPrintNotes', getQuestionsFieldValue('questions_notes'));
     }
 
     async function printQuestionsDocument() {
@@ -2053,7 +2219,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
     async function fillToolsPrintSheet() {
       var courseTitle = await resolveCourseTitleForPrint();
       var subEl = document.getElementById('toolsPrintSubtitle');
-      var docTitle = (document.getElementById('tools_doc_title') || {}).value || '';
+      var docTitle = getToolsFieldValue('tools_doc_title');
       if (subEl) subEl.textContent = docTitle ? ('(' + docTitle + ')') : '';
 
       var subjLabel = '';
@@ -2066,7 +2232,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       setMinutesPrintText('toolsPrintSubject', subjLabel || '-');
       setMinutesPrintText('toolsPrintRound', roundLabel(selectedRound));
       setMinutesPrintText('toolsPrintDocTitle', docTitle || '-');
-      setMinutesPrintText('toolsPrintWriter', (document.getElementById('tools_writer') || {}).value || '-');
+      setMinutesPrintText('toolsPrintWriter', getToolsFieldValue('tools_writer') || '-');
 
       var tAtt = readToolsAttachmentsFromDom();
       var tAttPrint = document.getElementById('toolsPrintAttachments');
@@ -2084,7 +2250,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
 
       var rows = readToolRowsFromTable();
       var totalScore = rows.reduce(function(acc, r) { return acc + Number(r && r.score != null ? r.score : 0); }, 0);
-      var targetTime = ((document.getElementById('tools_target_time') || {}).value || '').toString().trim();
+      var targetTime = getToolsFieldValue('tools_target_time').toString().trim();
       var summary = '총배점 ' + totalScore + '점';
       if (targetTime) summary = '총시간 ' + targetTime + ' / ' + summary;
       setMinutesPrintText('toolsPrintSummary', summary);
@@ -2111,7 +2277,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         }
       }
 
-      setMinutesPrintText('toolsPrintNotes', (document.getElementById('tools_notes') || {}).value || '');
+      setMinutesPrintHtml('toolsPrintNotes', minutesContentToPrintHtml(getToolsFieldValue('tools_notes')));
     }
 
     async function printToolsDocument() {
@@ -2127,7 +2293,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
     async function fillRubricPrintSheet() {
       var courseTitle = await resolveCourseTitleForPrint();
       var subEl = document.getElementById('rubricPrintSubtitle');
-      var docTitle = (document.getElementById('rubric_doc_title') || {}).value || '';
+      var docTitle = getRubricFieldValue('rubric_doc_title');
       if (subEl) subEl.textContent = docTitle ? ('(' + docTitle + ')') : '';
 
       var subjLabel = '';
@@ -2140,7 +2306,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       setMinutesPrintText('rubricPrintSubject', subjLabel || '-');
       setMinutesPrintText('rubricPrintRound', roundLabel(selectedRound));
       setMinutesPrintText('rubricPrintDocTitle', docTitle || '-');
-      setMinutesPrintText('rubricPrintWriter', (document.getElementById('rubric_writer') || {}).value || '-');
+      setMinutesPrintText('rubricPrintWriter', getRubricFieldValue('rubric_writer') || '-');
 
       var rAtt = readRubricAttachmentsFromDom();
       var rAttPrint = document.getElementById('rubricPrintAttachments');
@@ -2158,7 +2324,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
 
       var rows = readRubricRowsFromTable();
       var total = rows.reduce(function(acc, r) { return acc + Number(r && r.score != null ? r.score : 0); }, 0);
-      var target = Number((document.getElementById('rubric_total_target') || {}).value || 0);
+      var target = Number(getRubricFieldValue('rubric_total_target') || 0);
       var sumText = '총배점 ' + total + '점';
       if (target > 0) sumText += ' / 기준 ' + target + '점';
       setMinutesPrintText('rubricPrintScoreSummary', sumText);
@@ -2185,7 +2351,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         }
       }
 
-      setMinutesPrintText('rubricPrintNotes', (document.getElementById('rubric_notes') || {}).value || '');
+      setMinutesPrintHtml('rubricPrintNotes', minutesContentToPrintHtml(getRubricFieldValue('rubric_notes')));
     }
 
     async function printRubricDocument() {
@@ -2410,11 +2576,11 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       }
       if (tabId === 'questions') {
         return {
-          title: (document.getElementById('questions_doc_title') || {}).value || '',
+          title: getQuestionsFieldValue('questions_doc_title'),
           payload: {
-            writer: (document.getElementById('questions_writer') || {}).value || '',
-            total_target: Number((document.getElementById('questions_total_target') || {}).value || 0),
-            notes: (document.getElementById('questions_notes') || {}).value || '',
+            writer: getQuestionsFieldValue('questions_writer'),
+            total_target: Number(getQuestionsFieldValue('questions_total_target') || 0),
+            notes: getQuestionsFieldValue('questions_notes'),
             attachments: readQuestionsAttachmentsFromDom(),
             rows: readQuestionRowsFromTable()
           }
@@ -2422,11 +2588,11 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       }
       if (tabId === 'tools') {
         return {
-          title: (document.getElementById('tools_doc_title') || {}).value || '',
+          title: getToolsFieldValue('tools_doc_title'),
           payload: {
-            writer: (document.getElementById('tools_writer') || {}).value || '',
-            target_time: (document.getElementById('tools_target_time') || {}).value || '',
-            notes: (document.getElementById('tools_notes') || {}).value || '',
+            writer: getToolsFieldValue('tools_writer'),
+            target_time: getToolsFieldValue('tools_target_time'),
+            notes: getToolsFieldValue('tools_notes'),
             attachments: readToolsAttachmentsFromDom(),
             rows: readToolRowsFromTable()
           }
@@ -2434,11 +2600,11 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       }
       if (tabId === 'rubric') {
         return {
-          title: (document.getElementById('rubric_doc_title') || {}).value || '',
+          title: getRubricFieldValue('rubric_doc_title'),
           payload: {
-            writer: (document.getElementById('rubric_writer') || {}).value || '',
-            total_target: Number((document.getElementById('rubric_total_target') || {}).value || 0),
-            notes: (document.getElementById('rubric_notes') || {}).value || '',
+            writer: getRubricFieldValue('rubric_writer'),
+            total_target: Number(getRubricFieldValue('rubric_total_target') || 0),
+            notes: getRubricFieldValue('rubric_notes'),
             attachments: readRubricAttachmentsFromDom(),
             rows: readRubricRowsFromTable()
           }
@@ -2591,7 +2757,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       const label = document.getElementById('questionsTotalScoreLabel');
       if (!label) return;
       const total = (Array.isArray(rows) ? rows : []).reduce(function(acc, row) { return acc + Number(row?.score || 0); }, 0);
-      const target = Number((document.getElementById('questions_total_target') || {}).value || 0);
+      const target = Number(getQuestionsFieldValue('questions_total_target') || 0);
       label.textContent = total + '점' + (target > 0 ? (' / 목표 ' + target + '점') : '');
       label.classList.toggle('text-rose-600', target > 0 && total > target);
       label.classList.toggle('text-slate-900', !(target > 0 && total > target));
@@ -2774,7 +2940,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       const label = document.getElementById('rubricTotalScoreLabel');
       if (!label) return;
       const total = (Array.isArray(rows) ? rows : []).reduce(function(acc, row) { return acc + Number(row?.score || 0); }, 0);
-      const target = Number((document.getElementById('rubric_total_target') || {}).value || 0);
+      const target = Number(getRubricFieldValue('rubric_total_target') || 0);
       label.textContent = total + '점' + (target > 0 ? (' / 기준 ' + target + '점') : '');
       label.classList.toggle('text-rose-600', target > 0 && total > target);
       label.classList.toggle('text-slate-900', !(target > 0 && total > target));
@@ -3012,40 +3178,28 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         return;
       }
       if (tabId === 'questions') {
-        const titleEl = document.getElementById('questions_doc_title');
-        const writerEl = document.getElementById('questions_writer');
-        const targetEl = document.getElementById('questions_total_target');
-        const notesEl = document.getElementById('questions_notes');
-        if (titleEl) titleEl.value = data?.title || '';
-        if (writerEl) writerEl.value = payload.writer || '';
-        if (targetEl) targetEl.value = payload.total_target || '';
-        if (notesEl) notesEl.value = payload.notes || '';
+        setQuestionsFieldValue('questions_doc_title', data?.title || '');
+        setQuestionsFieldValue('questions_writer', payload.writer || '');
+        setQuestionsFieldValue('questions_total_target', payload.total_target || '');
+        setQuestionsFieldValue('questions_notes', payload.notes || '');
         renderQuestionsAttachments(payload.attachments || []);
         renderQuestionRows(payload.rows || []);
         return;
       }
       if (tabId === 'tools') {
-        const titleEl = document.getElementById('tools_doc_title');
-        const writerEl = document.getElementById('tools_writer');
-        const targetTimeEl = document.getElementById('tools_target_time');
-        const notesEl = document.getElementById('tools_notes');
-        if (titleEl) titleEl.value = data?.title || '';
-        if (writerEl) writerEl.value = payload.writer || '';
-        if (targetTimeEl) targetTimeEl.value = payload.target_time || '';
-        if (notesEl) notesEl.value = payload.notes || '';
+        setToolsFieldValue('tools_doc_title', data?.title || '');
+        setToolsFieldValue('tools_writer', payload.writer || '');
+        setToolsFieldValue('tools_target_time', payload.target_time || '');
+        setToolsFieldValue('tools_notes', payload.notes || '');
         renderToolsAttachments(payload.attachments || []);
         renderToolRows(normalizeToolRows(payload.rows || []));
         return;
       }
       if (tabId === 'rubric') {
-        const titleEl = document.getElementById('rubric_doc_title');
-        const writerEl = document.getElementById('rubric_writer');
-        const targetEl = document.getElementById('rubric_total_target');
-        const notesEl = document.getElementById('rubric_notes');
-        if (titleEl) titleEl.value = data?.title || '';
-        if (writerEl) writerEl.value = payload.writer || '';
-        if (targetEl) targetEl.value = payload.total_target || '';
-        if (notesEl) notesEl.value = payload.notes || '';
+        setRubricFieldValue('rubric_doc_title', data?.title || '');
+        setRubricFieldValue('rubric_writer', payload.writer || '');
+        setRubricFieldValue('rubric_total_target', payload.total_target || '');
+        setRubricFieldValue('rubric_notes', payload.notes || '');
         renderRubricAttachments(payload.attachments || []);
         renderRubricRows(normalizeRubricRows(payload.rows || []));
         return;
@@ -3313,6 +3467,13 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       }
     }
 
+    async function startNewDocument(tabId) {
+      selectedDocIdByTab[tabId] = '';
+      clearDocForm(tabId);
+      await loadDocumentList(tabId, '');
+      setStatus(tabId, '새 문서 작성 중', false);
+    }
+
     async function updateDocument(tabId) {
       if (!selectedCourseId) {
         alert('먼저 과정을 선택해 주세요.');
@@ -3491,6 +3652,13 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           const tabId = btn.getAttribute('data-plan-save-btn');
           if (!tabId) return;
           await saveDocument(tabId);
+        });
+      });
+      document.querySelectorAll('[data-plan-new-btn]').forEach(function(btn) {
+        btn.addEventListener('click', async function() {
+          const tabId = btn.getAttribute('data-plan-new-btn');
+          if (!tabId) return;
+          await startNewDocument(tabId);
         });
       });
       document.querySelectorAll('[data-plan-update-btn]').forEach(function(btn) {
@@ -3711,10 +3879,60 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         });
       }
       var toolsImageInsertBtn = document.getElementById('toolsImageInsertBtn');
+      var toolsImageDeleteBtn = document.getElementById('toolsImageDeleteBtn');
       var toolsImageInsertInput = document.getElementById('toolsImageInsertInput');
       if (toolsImageInsertBtn && toolsImageInsertInput) {
         toolsImageInsertBtn.addEventListener('click', function() { openNcsPlanImageInsertModal('tools_notes', 'tools'); });
       }
+      var selectedToolsImageBox = null;
+      function clearSelectedToolsImage() {
+        if (selectedToolsImageBox) selectedToolsImageBox.classList.remove('is-selected');
+        selectedToolsImageBox = null;
+      }
+      function removeSelectedToolsImage() {
+        if (!selectedToolsImageBox) return;
+        selectedToolsImageBox.remove();
+        selectedToolsImageBox = null;
+        var editor = document.getElementById('tools_notes');
+        if (editor) editor.focus();
+      }
+      if (toolsImageDeleteBtn) {
+        toolsImageDeleteBtn.addEventListener('click', function() {
+          if (!selectedToolsImageBox) {
+            alert('삭제할 이미지를 먼저 클릭해 선택해 주세요.');
+            return;
+          }
+          removeSelectedToolsImage();
+        });
+      }
+      var toolsNotesEditor = document.getElementById('tools_notes');
+      if (toolsNotesEditor) {
+        toolsNotesEditor.addEventListener('click', function(ev) {
+          var target = ev.target;
+          var box = target && target.closest ? target.closest('.minutes-image-resizable') : null;
+          if (box) {
+            if (selectedToolsImageBox && selectedToolsImageBox !== box) selectedToolsImageBox.classList.remove('is-selected');
+            selectedToolsImageBox = box;
+            selectedToolsImageBox.classList.add('is-selected');
+            return;
+          }
+          clearSelectedToolsImage();
+        });
+        toolsNotesEditor.addEventListener('keydown', function(ev) {
+          var key = String(ev.key || '').toLowerCase();
+          if (!selectedToolsImageBox) return;
+          if (key === 'delete' || key === 'backspace') {
+            ev.preventDefault();
+            removeSelectedToolsImage();
+          }
+        });
+      }
+      document.addEventListener('click', function(ev) {
+        var target = ev.target;
+        if (!selectedToolsImageBox) return;
+        if (target && target.closest && (target.closest('#tools_notes') || target.closest('#toolsImageDeleteBtn'))) return;
+        clearSelectedToolsImage();
+      });
       var rubricFileAttachBtn = document.getElementById('rubricFileAttachBtn');
       var rubricFileAttachInput = document.getElementById('rubricFileAttachInput');
       if (rubricFileAttachBtn && rubricFileAttachInput) {
@@ -3734,10 +3952,60 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         });
       }
       var rubricImageInsertBtn = document.getElementById('rubricImageInsertBtn');
+      var rubricImageDeleteBtn = document.getElementById('rubricImageDeleteBtn');
       var rubricImageInsertInput = document.getElementById('rubricImageInsertInput');
       if (rubricImageInsertBtn && rubricImageInsertInput) {
         rubricImageInsertBtn.addEventListener('click', function() { openNcsPlanImageInsertModal('rubric_notes', 'rubric'); });
       }
+      var selectedRubricImageBox = null;
+      function clearSelectedRubricImage() {
+        if (selectedRubricImageBox) selectedRubricImageBox.classList.remove('is-selected');
+        selectedRubricImageBox = null;
+      }
+      function removeSelectedRubricImage() {
+        if (!selectedRubricImageBox) return;
+        selectedRubricImageBox.remove();
+        selectedRubricImageBox = null;
+        var editor = document.getElementById('rubric_notes');
+        if (editor) editor.focus();
+      }
+      if (rubricImageDeleteBtn) {
+        rubricImageDeleteBtn.addEventListener('click', function() {
+          if (!selectedRubricImageBox) {
+            alert('삭제할 이미지를 먼저 클릭해 선택해 주세요.');
+            return;
+          }
+          removeSelectedRubricImage();
+        });
+      }
+      var rubricNotesEditor = document.getElementById('rubric_notes');
+      if (rubricNotesEditor) {
+        rubricNotesEditor.addEventListener('click', function(ev) {
+          var target = ev.target;
+          var box = target && target.closest ? target.closest('.minutes-image-resizable') : null;
+          if (box) {
+            if (selectedRubricImageBox && selectedRubricImageBox !== box) selectedRubricImageBox.classList.remove('is-selected');
+            selectedRubricImageBox = box;
+            selectedRubricImageBox.classList.add('is-selected');
+          } else {
+            clearSelectedRubricImage();
+          }
+        });
+        rubricNotesEditor.addEventListener('keydown', function(ev) {
+          var key = String(ev.key || '').toLowerCase();
+          if (!selectedRubricImageBox) return;
+          if (key === 'delete' || key === 'backspace') {
+            ev.preventDefault();
+            removeSelectedRubricImage();
+          }
+        });
+      }
+      document.addEventListener('click', function(ev) {
+        var target = ev.target;
+        if (!selectedRubricImageBox) return;
+        if (target && target.closest && (target.closest('#rubric_notes') || target.closest('#rubricImageDeleteBtn'))) return;
+        clearSelectedRubricImage();
+      });
       var achievementFileAttachBtn = document.getElementById('achievementFileAttachBtn');
       var achievementFileAttachInput = document.getElementById('achievementFileAttachInput');
       if (achievementFileAttachBtn && achievementFileAttachInput) {
