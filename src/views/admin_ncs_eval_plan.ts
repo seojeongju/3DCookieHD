@@ -86,9 +86,6 @@ function minutesPrintSheetHtml() {
 function questionsPrintSheetHtml() {
   return `
     <div id="questionsPrintRoot" class="ncs-questions-print-root" aria-hidden="true">
-      <button type="button" id="questionsPrintPreviewCloseBtn" class="no-print hidden fixed top-4 right-4 z-[210] px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-black shadow-lg hover:bg-slate-800">
-        닫기
-      </button>
       <div class="questions-print-doc max-w-[210mm] mx-auto text-black text-[11pt] leading-relaxed bg-white print:p-0">
         <div class="text-center border-b-2 border-black pb-3 mb-3">
           <h1 class="text-xl font-black tracking-tight">평가 문항제작</h1>
@@ -152,9 +149,6 @@ function questionsPrintSheetHtml() {
 function toolsPrintSheetHtml() {
   return `
     <div id="toolsPrintRoot" class="ncs-tools-print-root" aria-hidden="true">
-      <button type="button" id="toolsPrintPreviewCloseBtn" class="no-print hidden fixed top-4 right-4 z-[210] px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-black shadow-lg hover:bg-slate-800">
-        닫기
-      </button>
       <div class="tools-print-doc max-w-[210mm] mx-auto text-black text-[11pt] leading-relaxed bg-white print:p-0">
         <div class="text-center border-b-2 border-black pb-3 mb-3">
           <h1 class="text-xl font-black tracking-tight">평가 도구제작</h1>
@@ -218,9 +212,6 @@ function toolsPrintSheetHtml() {
 function rubricPrintSheetHtml() {
   return `
     <div id="rubricPrintRoot" class="ncs-rubric-print-root" aria-hidden="true">
-      <button type="button" id="rubricPrintPreviewCloseBtn" class="no-print hidden fixed top-4 right-4 z-[210] px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-black shadow-lg hover:bg-slate-800">
-        닫기
-      </button>
       <div class="rubric-print-doc max-w-[210mm] mx-auto text-black text-[11pt] leading-relaxed bg-white print:p-0">
         <div class="text-center border-b-2 border-black pb-3 mb-3">
           <h1 class="text-xl font-black tracking-tight">평가도구 채점기준표</h1>
@@ -284,9 +275,6 @@ function rubricPrintSheetHtml() {
 function achievementPrintSheetHtml() {
   return `
     <div id="achievementPrintRoot" class="ncs-achievement-print-root" aria-hidden="true">
-      <button type="button" id="achievementPrintPreviewCloseBtn" class="no-print hidden fixed top-4 right-4 z-[210] px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-black shadow-lg hover:bg-slate-800">
-        닫기
-      </button>
       <div class="achievement-print-doc max-w-[210mm] mx-auto text-black text-[11pt] leading-relaxed bg-white print:p-0">
         <div class="text-center border-b-2 border-black pb-3 mb-3">
           <h1 class="text-xl font-black tracking-tight">평가성취수준기준표</h1>
@@ -349,9 +337,6 @@ function achievementPrintSheetHtml() {
 function reviewPrintSheetHtml() {
   return `
     <div id="reviewPrintRoot" class="ncs-review-print-root" aria-hidden="true">
-      <button type="button" id="reviewPrintPreviewCloseBtn" class="no-print hidden fixed top-4 right-4 z-[210] px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-black shadow-lg hover:bg-slate-800">
-        닫기
-      </button>
       <div class="review-print-doc max-w-[210mm] mx-auto text-black text-[11pt] leading-relaxed bg-white print:p-0">
         <div class="flex items-start justify-between gap-4 border border-black mb-0">
           <div class="flex-1 py-4 px-3 text-center">
@@ -676,41 +661,26 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                       </button>
                       ` : ''}
                       ${item.id === 'questions' ? `
-                      <button type="button" id="questionsPreviewBtn" class="px-3 py-2 rounded-xl border border-sky-200 bg-sky-50 text-sky-800 text-xs font-black hover:bg-sky-100 transition">
-                        <i class="fas fa-eye mr-1"></i>미리보기
-                      </button>
                       <button type="button" id="questionsPrintBtn" class="px-3 py-2 rounded-xl bg-amber-500 text-white text-xs font-black hover:bg-amber-600 transition">
                         <i class="fas fa-print mr-1"></i>인쇄
                       </button>
                       ` : ''}
                       ${item.id === 'tools' ? `
-                      <button type="button" id="toolsPreviewBtn" class="px-3 py-2 rounded-xl border border-sky-200 bg-sky-50 text-sky-800 text-xs font-black hover:bg-sky-100 transition">
-                        <i class="fas fa-eye mr-1"></i>미리보기
-                      </button>
                       <button type="button" id="toolsPrintBtn" class="px-3 py-2 rounded-xl bg-amber-500 text-white text-xs font-black hover:bg-amber-600 transition">
                         <i class="fas fa-print mr-1"></i>인쇄
                       </button>
                       ` : ''}
                       ${item.id === 'rubric' ? `
-                      <button type="button" id="rubricPreviewBtn" class="px-3 py-2 rounded-xl border border-sky-200 bg-sky-50 text-sky-800 text-xs font-black hover:bg-sky-100 transition">
-                        <i class="fas fa-eye mr-1"></i>미리보기
-                      </button>
                       <button type="button" id="rubricPrintBtn" class="px-3 py-2 rounded-xl bg-amber-500 text-white text-xs font-black hover:bg-amber-600 transition">
                         <i class="fas fa-print mr-1"></i>인쇄
                       </button>
                       ` : ''}
                       ${item.id === 'achievement' ? `
-                      <button type="button" id="achievementPreviewBtn" class="px-3 py-2 rounded-xl border border-sky-200 bg-sky-50 text-sky-800 text-xs font-black hover:bg-sky-100 transition">
-                        <i class="fas fa-eye mr-1"></i>미리보기
-                      </button>
                       <button type="button" id="achievementPrintBtn" class="px-3 py-2 rounded-xl bg-amber-500 text-white text-xs font-black hover:bg-amber-600 transition">
                         <i class="fas fa-print mr-1"></i>인쇄
                       </button>
                       ` : ''}
                       ${item.id === 'review' ? `
-                      <button type="button" id="reviewPreviewBtn" class="px-3 py-2 rounded-xl border border-sky-200 bg-sky-50 text-sky-800 text-xs font-black hover:bg-sky-100 transition">
-                        <i class="fas fa-eye mr-1"></i>미리보기
-                      </button>
                       <button type="button" id="reviewPrintBtn" class="px-3 py-2 rounded-xl bg-amber-500 text-white text-xs font-black hover:bg-amber-600 transition">
                         <i class="fas fa-print mr-1"></i>인쇄
                       </button>
@@ -1881,37 +1851,11 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       setMinutesPrintText('questionsPrintNotes', (document.getElementById('questions_notes') || {}).value || '');
     }
 
-    async function openQuestionsPrintPreview() {
-      if (!selectedCourseId) {
-        alert('과정을 선택해 주세요.');
-        return;
-      }
-      await fillQuestionsPrintSheet();
-      var root = document.getElementById('questionsPrintRoot');
-      var closeBtn = document.getElementById('questionsPrintPreviewCloseBtn');
-      if (root) {
-        root.classList.add('is-preview');
-        root.setAttribute('aria-hidden', 'false');
-      }
-      if (closeBtn) closeBtn.classList.remove('hidden');
-    }
-
-    function closeQuestionsPrintPreview() {
-      var root = document.getElementById('questionsPrintRoot');
-      var closeBtn = document.getElementById('questionsPrintPreviewCloseBtn');
-      if (root) {
-        root.classList.remove('is-preview');
-        root.setAttribute('aria-hidden', 'true');
-      }
-      if (closeBtn) closeBtn.classList.add('hidden');
-    }
-
     async function printQuestionsDocument() {
       if (!selectedCourseId) {
         alert('과정을 선택해 주세요.');
         return;
       }
-      closeQuestionsPrintPreview();
       await fillQuestionsPrintSheet();
       document.body.setAttribute('data-print-target', 'questions');
       window.setTimeout(function() { window.print(); }, 50);
@@ -1981,37 +1925,11 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       setMinutesPrintText('toolsPrintNotes', (document.getElementById('tools_notes') || {}).value || '');
     }
 
-    async function openToolsPrintPreview() {
-      if (!selectedCourseId) {
-        alert('과정을 선택해 주세요.');
-        return;
-      }
-      await fillToolsPrintSheet();
-      var root = document.getElementById('toolsPrintRoot');
-      var closeBtn = document.getElementById('toolsPrintPreviewCloseBtn');
-      if (root) {
-        root.classList.add('is-preview');
-        root.setAttribute('aria-hidden', 'false');
-      }
-      if (closeBtn) closeBtn.classList.remove('hidden');
-    }
-
-    function closeToolsPrintPreview() {
-      var root = document.getElementById('toolsPrintRoot');
-      var closeBtn = document.getElementById('toolsPrintPreviewCloseBtn');
-      if (root) {
-        root.classList.remove('is-preview');
-        root.setAttribute('aria-hidden', 'true');
-      }
-      if (closeBtn) closeBtn.classList.add('hidden');
-    }
-
     async function printToolsDocument() {
       if (!selectedCourseId) {
         alert('과정을 선택해 주세요.');
         return;
       }
-      closeToolsPrintPreview();
       await fillToolsPrintSheet();
       document.body.setAttribute('data-print-target', 'tools');
       window.setTimeout(function() { window.print(); }, 50);
@@ -2081,37 +1999,11 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       setMinutesPrintText('rubricPrintNotes', (document.getElementById('rubric_notes') || {}).value || '');
     }
 
-    async function openRubricPrintPreview() {
-      if (!selectedCourseId) {
-        alert('과정을 선택해 주세요.');
-        return;
-      }
-      await fillRubricPrintSheet();
-      var root = document.getElementById('rubricPrintRoot');
-      var closeBtn = document.getElementById('rubricPrintPreviewCloseBtn');
-      if (root) {
-        root.classList.add('is-preview');
-        root.setAttribute('aria-hidden', 'false');
-      }
-      if (closeBtn) closeBtn.classList.remove('hidden');
-    }
-
-    function closeRubricPrintPreview() {
-      var root = document.getElementById('rubricPrintRoot');
-      var closeBtn = document.getElementById('rubricPrintPreviewCloseBtn');
-      if (root) {
-        root.classList.remove('is-preview');
-        root.setAttribute('aria-hidden', 'true');
-      }
-      if (closeBtn) closeBtn.classList.add('hidden');
-    }
-
     async function printRubricDocument() {
       if (!selectedCourseId) {
         alert('과정을 선택해 주세요.');
         return;
       }
-      closeRubricPrintPreview();
       await fillRubricPrintSheet();
       document.body.setAttribute('data-print-target', 'rubric');
       window.setTimeout(function() { window.print(); }, 50);
@@ -2179,37 +2071,11 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       setMinutesPrintText('achievementPrintNotes', (document.getElementById('achievement_notes') || {}).value || '');
     }
 
-    async function openAchievementPrintPreview() {
-      if (!selectedCourseId) {
-        alert('과정을 선택해 주세요.');
-        return;
-      }
-      await fillAchievementPrintSheet();
-      var root = document.getElementById('achievementPrintRoot');
-      var closeBtn = document.getElementById('achievementPrintPreviewCloseBtn');
-      if (root) {
-        root.classList.add('is-preview');
-        root.setAttribute('aria-hidden', 'false');
-      }
-      if (closeBtn) closeBtn.classList.remove('hidden');
-    }
-
-    function closeAchievementPrintPreview() {
-      var root = document.getElementById('achievementPrintRoot');
-      var closeBtn = document.getElementById('achievementPrintPreviewCloseBtn');
-      if (root) {
-        root.classList.remove('is-preview');
-        root.setAttribute('aria-hidden', 'true');
-      }
-      if (closeBtn) closeBtn.classList.add('hidden');
-    }
-
     async function printAchievementDocument() {
       if (!selectedCourseId) {
         alert('과정을 선택해 주세요.');
         return;
       }
-      closeAchievementPrintPreview();
       await fillAchievementPrintSheet();
       document.body.setAttribute('data-print-target', 'achievement');
       window.setTimeout(function() { window.print(); }, 50);
@@ -2285,37 +2151,11 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       setMinutesPrintText('reviewPrintNotes', (document.getElementById('review_notes') || {}).value || '');
     }
 
-    async function openReviewPrintPreview() {
-      if (!selectedCourseId) {
-        alert('과정을 선택해 주세요.');
-        return;
-      }
-      await fillReviewPrintSheet();
-      var root = document.getElementById('reviewPrintRoot');
-      var closeBtn = document.getElementById('reviewPrintPreviewCloseBtn');
-      if (root) {
-        root.classList.add('is-preview');
-        root.setAttribute('aria-hidden', 'false');
-      }
-      if (closeBtn) closeBtn.classList.remove('hidden');
-    }
-
-    function closeReviewPrintPreview() {
-      var root = document.getElementById('reviewPrintRoot');
-      var closeBtn = document.getElementById('reviewPrintPreviewCloseBtn');
-      if (root) {
-        root.classList.remove('is-preview');
-        root.setAttribute('aria-hidden', 'true');
-      }
-      if (closeBtn) closeBtn.classList.add('hidden');
-    }
-
     async function printReviewDocument() {
       if (!selectedCourseId) {
         alert('과정을 선택해 주세요.');
         return;
       }
-      closeReviewPrintPreview();
       await fillReviewPrintSheet();
       document.body.setAttribute('data-print-target', 'review');
       window.setTimeout(function() { window.print(); }, 50);
@@ -3481,65 +3321,25 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         minutesPrintBtn.addEventListener('click', function() { printMinutesDocument(); });
       }
 
-      var questionsPreviewBtn = document.getElementById('questionsPreviewBtn');
-      if (questionsPreviewBtn) {
-        questionsPreviewBtn.addEventListener('click', function() { void openQuestionsPrintPreview(); });
-      }
       var questionsPrintBtn = document.getElementById('questionsPrintBtn');
       if (questionsPrintBtn) {
         questionsPrintBtn.addEventListener('click', function() { void printQuestionsDocument(); });
-      }
-      var questionsPrintPreviewCloseBtn = document.getElementById('questionsPrintPreviewCloseBtn');
-      if (questionsPrintPreviewCloseBtn) {
-        questionsPrintPreviewCloseBtn.addEventListener('click', function() { closeQuestionsPrintPreview(); });
-      }
-      var toolsPreviewBtn = document.getElementById('toolsPreviewBtn');
-      if (toolsPreviewBtn) {
-        toolsPreviewBtn.addEventListener('click', function() { void openToolsPrintPreview(); });
       }
       var toolsPrintBtn = document.getElementById('toolsPrintBtn');
       if (toolsPrintBtn) {
         toolsPrintBtn.addEventListener('click', function() { void printToolsDocument(); });
       }
-      var toolsPrintPreviewCloseBtn = document.getElementById('toolsPrintPreviewCloseBtn');
-      if (toolsPrintPreviewCloseBtn) {
-        toolsPrintPreviewCloseBtn.addEventListener('click', function() { closeToolsPrintPreview(); });
-      }
-      var rubricPreviewBtn = document.getElementById('rubricPreviewBtn');
-      if (rubricPreviewBtn) {
-        rubricPreviewBtn.addEventListener('click', function() { void openRubricPrintPreview(); });
-      }
       var rubricPrintBtn = document.getElementById('rubricPrintBtn');
       if (rubricPrintBtn) {
         rubricPrintBtn.addEventListener('click', function() { void printRubricDocument(); });
-      }
-      var rubricPrintPreviewCloseBtn = document.getElementById('rubricPrintPreviewCloseBtn');
-      if (rubricPrintPreviewCloseBtn) {
-        rubricPrintPreviewCloseBtn.addEventListener('click', function() { closeRubricPrintPreview(); });
-      }
-      var achievementPreviewBtn = document.getElementById('achievementPreviewBtn');
-      if (achievementPreviewBtn) {
-        achievementPreviewBtn.addEventListener('click', function() { void openAchievementPrintPreview(); });
       }
       var achievementPrintBtn = document.getElementById('achievementPrintBtn');
       if (achievementPrintBtn) {
         achievementPrintBtn.addEventListener('click', function() { void printAchievementDocument(); });
       }
-      var achievementPrintPreviewCloseBtn = document.getElementById('achievementPrintPreviewCloseBtn');
-      if (achievementPrintPreviewCloseBtn) {
-        achievementPrintPreviewCloseBtn.addEventListener('click', function() { closeAchievementPrintPreview(); });
-      }
-      var reviewPreviewBtn = document.getElementById('reviewPreviewBtn');
-      if (reviewPreviewBtn) {
-        reviewPreviewBtn.addEventListener('click', function() { void openReviewPrintPreview(); });
-      }
       var reviewPrintBtn = document.getElementById('reviewPrintBtn');
       if (reviewPrintBtn) {
         reviewPrintBtn.addEventListener('click', function() { void printReviewDocument(); });
-      }
-      var reviewPrintPreviewCloseBtn = document.getElementById('reviewPrintPreviewCloseBtn');
-      if (reviewPrintPreviewCloseBtn) {
-        reviewPrintPreviewCloseBtn.addEventListener('click', function() { closeReviewPrintPreview(); });
       }
       var toolsFileAttachBtn = document.getElementById('toolsFileAttachBtn');
       var toolsFileAttachInput = document.getElementById('toolsFileAttachInput');
