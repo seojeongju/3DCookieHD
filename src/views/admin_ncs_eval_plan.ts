@@ -148,10 +148,278 @@ function questionsPrintSheetHtml() {
   `;
 }
 
+/** 인쇄·미리보기: 평가 도구제작 */
+function toolsPrintSheetHtml() {
+  return `
+    <div id="toolsPrintRoot" class="ncs-tools-print-root" aria-hidden="true">
+      <button type="button" id="toolsPrintPreviewCloseBtn" class="no-print hidden fixed top-4 right-4 z-[210] px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-black shadow-lg hover:bg-slate-800">
+        닫기
+      </button>
+      <div class="tools-print-doc max-w-[210mm] mx-auto text-black text-[11pt] leading-relaxed bg-white print:p-0">
+        <div class="text-center border-b-2 border-black pb-3 mb-3">
+          <h1 class="text-xl font-black tracking-tight">평가 도구제작</h1>
+          <p id="toolsPrintSubtitle" class="text-sm mt-1 text-slate-700"></p>
+        </div>
+        <table class="w-full border-collapse border border-black text-[10pt] mb-4">
+          <tbody>
+            <tr>
+              <td class="border border-black w-[18%] bg-slate-100 px-2 py-2 font-bold text-center">과정명</td>
+              <td class="border border-black px-2 py-2" colspan="3" id="toolsPrintCourseName"></td>
+            </tr>
+            <tr>
+              <td class="border border-black bg-slate-100 px-2 py-2 font-bold text-center">교과목(하위)</td>
+              <td class="border border-black px-2 py-2" id="toolsPrintSubject"></td>
+              <td class="border border-black w-[18%] bg-slate-100 px-2 py-2 font-bold text-center">평가차수</td>
+              <td class="border border-black px-2 py-2" id="toolsPrintRound"></td>
+            </tr>
+            <tr>
+              <td class="border border-black bg-slate-100 px-2 py-2 font-bold text-center">문서제목</td>
+              <td class="border border-black px-2 py-2" id="toolsPrintDocTitle"></td>
+              <td class="border border-black bg-slate-100 px-2 py-2 font-bold text-center">작성자</td>
+              <td class="border border-black px-2 py-2" id="toolsPrintWriter"></td>
+            </tr>
+            <tr>
+              <td class="border border-black bg-slate-100 px-2 py-2 font-bold text-center">시간·배점</td>
+              <td class="border border-black px-2 py-2" colspan="3" id="toolsPrintSummary"></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="border border-black mb-2">
+          <div class="bg-slate-100 px-2 py-1.5 font-bold border-b border-black">첨부파일</div>
+          <div id="toolsPrintAttachments" class="px-3 py-2 text-[10pt] align-top"></div>
+        </div>
+        <div class="border border-black mb-2">
+          <div class="bg-slate-100 px-2 py-1.5 font-bold text-center border-b border-black">평가도구 목록</div>
+          <div class="overflow-x-auto">
+            <table class="w-full border-collapse text-[10pt]">
+              <thead>
+                <tr class="bg-slate-50">
+                  <th class="border border-black px-2 py-2 text-left">도구명</th>
+                  <th class="border border-black px-2 py-2 w-24 text-center">유형</th>
+                  <th class="border border-black px-2 py-2 text-left">준비물/상세</th>
+                  <th class="border border-black px-2 py-2 w-16 text-center">시간(분)</th>
+                  <th class="border border-black px-2 py-2 w-14 text-center">배점</th>
+                </tr>
+              </thead>
+              <tbody id="toolsPrintRowsBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="border border-black">
+          <div class="bg-slate-100 px-2 py-1.5 font-bold border-b border-black">비고</div>
+          <div id="toolsPrintNotes" class="px-3 py-2 whitespace-pre-wrap min-h-[3rem] text-[10pt]"></div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/** 인쇄·미리보기: 평가 도구 채점기준표 */
+function rubricPrintSheetHtml() {
+  return `
+    <div id="rubricPrintRoot" class="ncs-rubric-print-root" aria-hidden="true">
+      <button type="button" id="rubricPrintPreviewCloseBtn" class="no-print hidden fixed top-4 right-4 z-[210] px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-black shadow-lg hover:bg-slate-800">
+        닫기
+      </button>
+      <div class="rubric-print-doc max-w-[210mm] mx-auto text-black text-[11pt] leading-relaxed bg-white print:p-0">
+        <div class="text-center border-b-2 border-black pb-3 mb-3">
+          <h1 class="text-xl font-black tracking-tight">평가도구 채점기준표</h1>
+          <p id="rubricPrintSubtitle" class="text-sm mt-1 text-slate-700"></p>
+        </div>
+        <table class="w-full border-collapse border border-black text-[10pt] mb-4">
+          <tbody>
+            <tr>
+              <td class="border border-black w-[18%] bg-slate-100 px-2 py-2 font-bold text-center">과정명</td>
+              <td class="border border-black px-2 py-2" colspan="3" id="rubricPrintCourseName"></td>
+            </tr>
+            <tr>
+              <td class="border border-black bg-slate-100 px-2 py-2 font-bold text-center">교과목(하위)</td>
+              <td class="border border-black px-2 py-2" id="rubricPrintSubject"></td>
+              <td class="border border-black w-[18%] bg-slate-100 px-2 py-2 font-bold text-center">평가차수</td>
+              <td class="border border-black px-2 py-2" id="rubricPrintRound"></td>
+            </tr>
+            <tr>
+              <td class="border border-black bg-slate-100 px-2 py-2 font-bold text-center">문서제목</td>
+              <td class="border border-black px-2 py-2" id="rubricPrintDocTitle"></td>
+              <td class="border border-black bg-slate-100 px-2 py-2 font-bold text-center">작성자</td>
+              <td class="border border-black px-2 py-2" id="rubricPrintWriter"></td>
+            </tr>
+            <tr>
+              <td class="border border-black bg-slate-100 px-2 py-2 font-bold text-center">배점</td>
+              <td class="border border-black px-2 py-2" colspan="3" id="rubricPrintScoreSummary"></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="border border-black mb-2">
+          <div class="bg-slate-100 px-2 py-1.5 font-bold border-b border-black">첨부파일</div>
+          <div id="rubricPrintAttachments" class="px-3 py-2 text-[10pt] align-top"></div>
+        </div>
+        <div class="border border-black mb-2">
+          <div class="bg-slate-100 px-2 py-1.5 font-bold text-center border-b border-black">채점기준 항목</div>
+          <div class="overflow-x-auto">
+            <table class="w-full border-collapse text-[10pt]">
+              <thead>
+                <tr class="bg-slate-50">
+                  <th class="border border-black px-2 py-2 text-left">평가항목</th>
+                  <th class="border border-black px-2 py-2 w-14 text-center">배점</th>
+                  <th class="border border-black px-2 py-2 text-left">상(우수)</th>
+                  <th class="border border-black px-2 py-2 text-left">중(보통)</th>
+                  <th class="border border-black px-2 py-2 text-left">하(미흡)</th>
+                </tr>
+              </thead>
+              <tbody id="rubricPrintRowsBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="border border-black">
+          <div class="bg-slate-100 px-2 py-1.5 font-bold border-b border-black">비고</div>
+          <div id="rubricPrintNotes" class="px-3 py-2 whitespace-pre-wrap min-h-[3rem] text-[10pt]"></div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/** 인쇄·미리보기: 평가 성취수준 기준표 */
+function achievementPrintSheetHtml() {
+  return `
+    <div id="achievementPrintRoot" class="ncs-achievement-print-root" aria-hidden="true">
+      <button type="button" id="achievementPrintPreviewCloseBtn" class="no-print hidden fixed top-4 right-4 z-[210] px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-black shadow-lg hover:bg-slate-800">
+        닫기
+      </button>
+      <div class="achievement-print-doc max-w-[210mm] mx-auto text-black text-[11pt] leading-relaxed bg-white print:p-0">
+        <div class="text-center border-b-2 border-black pb-3 mb-3">
+          <h1 class="text-xl font-black tracking-tight">평가성취수준기준표</h1>
+          <p id="achievementPrintSubtitle" class="text-sm mt-1 text-slate-700"></p>
+        </div>
+        <table class="w-full border-collapse border border-black text-[10pt] mb-4">
+          <tbody>
+            <tr>
+              <td class="border border-black w-[18%] bg-slate-100 px-2 py-2 font-bold text-center">과정명</td>
+              <td class="border border-black px-2 py-2" colspan="3" id="achievementPrintCourseName"></td>
+            </tr>
+            <tr>
+              <td class="border border-black bg-slate-100 px-2 py-2 font-bold text-center">교과목(하위)</td>
+              <td class="border border-black px-2 py-2" id="achievementPrintSubject"></td>
+              <td class="border border-black w-[18%] bg-slate-100 px-2 py-2 font-bold text-center">평가차수</td>
+              <td class="border border-black px-2 py-2" id="achievementPrintRound"></td>
+            </tr>
+            <tr>
+              <td class="border border-black bg-slate-100 px-2 py-2 font-bold text-center">문서제목</td>
+              <td class="border border-black px-2 py-2" id="achievementPrintDocTitle"></td>
+              <td class="border border-black bg-slate-100 px-2 py-2 font-bold text-center">작성자</td>
+              <td class="border border-black px-2 py-2" id="achievementPrintWriter"></td>
+            </tr>
+            <tr>
+              <td class="border border-black bg-slate-100 px-2 py-2 font-bold text-center">만점·합계비율</td>
+              <td class="border border-black px-2 py-2" colspan="3" id="achievementPrintSummary"></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="border border-black mb-2">
+          <div class="bg-slate-100 px-2 py-1.5 font-bold border-b border-black">첨부파일</div>
+          <div id="achievementPrintAttachments" class="px-3 py-2 text-[10pt] align-top"></div>
+        </div>
+        <div class="border border-black mb-2">
+          <div class="bg-slate-100 px-2 py-1.5 font-bold text-center border-b border-black">성취수준 항목</div>
+          <div class="overflow-x-auto">
+            <table class="w-full border-collapse text-[10pt]">
+              <thead>
+                <tr class="bg-slate-50">
+                  <th class="border border-black px-2 py-2 w-16 text-center">수준</th>
+                  <th class="border border-black px-2 py-2 w-16 text-center">최소</th>
+                  <th class="border border-black px-2 py-2 w-16 text-center">최대</th>
+                  <th class="border border-black px-2 py-2 w-16 text-center">비율(%)</th>
+                  <th class="border border-black px-2 py-2 text-left">성취기준</th>
+                </tr>
+              </thead>
+              <tbody id="achievementPrintRowsBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="border border-black">
+          <div class="bg-slate-100 px-2 py-1.5 font-bold border-b border-black">비고</div>
+          <div id="achievementPrintNotes" class="px-3 py-2 whitespace-pre-wrap min-h-[3rem] text-[10pt]"></div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/** 인쇄·미리보기: 평가 도구 검토 */
+function reviewPrintSheetHtml() {
+  return `
+    <div id="reviewPrintRoot" class="ncs-review-print-root" aria-hidden="true">
+      <button type="button" id="reviewPrintPreviewCloseBtn" class="no-print hidden fixed top-4 right-4 z-[210] px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-black shadow-lg hover:bg-slate-800">
+        닫기
+      </button>
+      <div class="review-print-doc max-w-[210mm] mx-auto text-black text-[11pt] leading-relaxed bg-white print:p-0">
+        <div class="text-center border-b-2 border-black pb-3 mb-3">
+          <h1 class="text-xl font-black tracking-tight">평가도구 검토</h1>
+          <p id="reviewPrintSubtitle" class="text-sm mt-1 text-slate-700"></p>
+        </div>
+        <table class="w-full border-collapse border border-black text-[10pt] mb-4">
+          <tbody>
+            <tr>
+              <td class="border border-black w-[18%] bg-slate-100 px-2 py-2 font-bold text-center">과정명</td>
+              <td class="border border-black px-2 py-2" colspan="3" id="reviewPrintCourseName"></td>
+            </tr>
+            <tr>
+              <td class="border border-black bg-slate-100 px-2 py-2 font-bold text-center">교과목(하위)</td>
+              <td class="border border-black px-2 py-2" id="reviewPrintSubject"></td>
+              <td class="border border-black w-[18%] bg-slate-100 px-2 py-2 font-bold text-center">평가차수</td>
+              <td class="border border-black px-2 py-2" id="reviewPrintRound"></td>
+            </tr>
+            <tr>
+              <td class="border border-black bg-slate-100 px-2 py-2 font-bold text-center">문서제목</td>
+              <td class="border border-black px-2 py-2" id="reviewPrintDocTitle"></td>
+              <td class="border border-black bg-slate-100 px-2 py-2 font-bold text-center">작성/검토</td>
+              <td class="border border-black px-2 py-2" id="reviewPrintWriterReviewer"></td>
+            </tr>
+            <tr>
+              <td class="border border-black bg-slate-100 px-2 py-2 font-bold text-center">완료율</td>
+              <td class="border border-black px-2 py-2" colspan="3" id="reviewPrintCompletion"></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="border border-black mb-2">
+          <div class="bg-slate-100 px-2 py-1.5 font-bold border-b border-black">첨부파일</div>
+          <div id="reviewPrintAttachments" class="px-3 py-2 text-[10pt] align-top"></div>
+        </div>
+        <div class="border border-black mb-2">
+          <div class="bg-slate-100 px-2 py-1.5 font-bold text-center border-b border-black">검토 항목</div>
+          <div class="overflow-x-auto">
+            <table class="w-full border-collapse text-[10pt]">
+              <thead>
+                <tr class="bg-slate-50">
+                  <th class="border border-black px-2 py-2 w-14 text-center">완료</th>
+                  <th class="border border-black px-2 py-2 text-left">검토항목</th>
+                  <th class="border border-black px-2 py-2 text-left">의견</th>
+                  <th class="border border-black px-2 py-2 w-20 text-center">담당자</th>
+                  <th class="border border-black px-2 py-2 w-24 text-center">검토일</th>
+                </tr>
+              </thead>
+              <tbody id="reviewPrintRowsBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="border border-black">
+          <div class="bg-slate-100 px-2 py-1.5 font-bold border-b border-black">종합의견</div>
+          <div id="reviewPrintNotes" class="px-3 py-2 whitespace-pre-wrap min-h-[3rem] text-[10pt]"></div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 const NCS_PLAN_PRINT_STYLES = `
 <style>
 .ncs-minutes-print-root,
-.ncs-questions-print-root {
+.ncs-questions-print-root,
+.ncs-tools-print-root,
+.ncs-rubric-print-root,
+.ncs-achievement-print-root,
+.ncs-review-print-root {
   position: fixed;
   left: -200vw;
   top: 0;
@@ -177,6 +445,78 @@ const NCS_PLAN_PRINT_STYLES = `
   align-items: center !important;
 }
 .ncs-questions-print-root.is-preview .questions-print-doc {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+  padding: 12mm;
+}
+.ncs-tools-print-root.is-preview {
+  left: 0 !important;
+  right: 0 !important;
+  top: 0 !important;
+  width: 100% !important;
+  max-height: 100vh !important;
+  overflow: auto !important;
+  background: rgba(15, 23, 42, 0.55) !important;
+  z-index: 200 !important;
+  padding: 1rem !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+}
+.ncs-tools-print-root.is-preview .tools-print-doc {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+  padding: 12mm;
+}
+.ncs-rubric-print-root.is-preview {
+  left: 0 !important;
+  right: 0 !important;
+  top: 0 !important;
+  width: 100% !important;
+  max-height: 100vh !important;
+  overflow: auto !important;
+  background: rgba(15, 23, 42, 0.55) !important;
+  z-index: 200 !important;
+  padding: 1rem !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+}
+.ncs-rubric-print-root.is-preview .rubric-print-doc {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+  padding: 12mm;
+}
+.ncs-achievement-print-root.is-preview {
+  left: 0 !important;
+  right: 0 !important;
+  top: 0 !important;
+  width: 100% !important;
+  max-height: 100vh !important;
+  overflow: auto !important;
+  background: rgba(15, 23, 42, 0.55) !important;
+  z-index: 200 !important;
+  padding: 1rem !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+}
+.ncs-achievement-print-root.is-preview .achievement-print-doc {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+  padding: 12mm;
+}
+.ncs-review-print-root.is-preview {
+  left: 0 !important;
+  right: 0 !important;
+  top: 0 !important;
+  width: 100% !important;
+  max-height: 100vh !important;
+  overflow: auto !important;
+  background: rgba(15, 23, 42, 0.55) !important;
+  z-index: 200 !important;
+  padding: 1rem !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+}
+.ncs-review-print-root.is-preview .review-print-doc {
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
   padding: 12mm;
 }
@@ -216,6 +556,82 @@ const NCS_PLAN_PRINT_STYLES = `
     display: block !important;
     background: #fff !important;
   }
+  body[data-print-target="tools"] .ncs-tools-print-root,
+  body[data-print-target="tools"] .ncs-tools-print-root * {
+    visibility: visible !important;
+  }
+  body[data-print-target="tools"] .ncs-tools-print-root {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-height: none !important;
+    overflow: visible !important;
+    z-index: 0 !important;
+    background: #fff !important;
+    padding: 0 !important;
+  }
+  body[data-print-target="tools"] .ncs-tools-print-root.is-preview {
+    display: block !important;
+    background: #fff !important;
+  }
+  body[data-print-target="rubric"] .ncs-rubric-print-root,
+  body[data-print-target="rubric"] .ncs-rubric-print-root * {
+    visibility: visible !important;
+  }
+  body[data-print-target="rubric"] .ncs-rubric-print-root {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-height: none !important;
+    overflow: visible !important;
+    z-index: 0 !important;
+    background: #fff !important;
+    padding: 0 !important;
+  }
+  body[data-print-target="rubric"] .ncs-rubric-print-root.is-preview {
+    display: block !important;
+    background: #fff !important;
+  }
+  body[data-print-target="achievement"] .ncs-achievement-print-root,
+  body[data-print-target="achievement"] .ncs-achievement-print-root * {
+    visibility: visible !important;
+  }
+  body[data-print-target="achievement"] .ncs-achievement-print-root {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-height: none !important;
+    overflow: visible !important;
+    z-index: 0 !important;
+    background: #fff !important;
+    padding: 0 !important;
+  }
+  body[data-print-target="achievement"] .ncs-achievement-print-root.is-preview {
+    display: block !important;
+    background: #fff !important;
+  }
+  body[data-print-target="review"] .ncs-review-print-root,
+  body[data-print-target="review"] .ncs-review-print-root * {
+    visibility: visible !important;
+  }
+  body[data-print-target="review"] .ncs-review-print-root {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-height: none !important;
+    overflow: visible !important;
+    z-index: 0 !important;
+    background: #fff !important;
+    padding: 0 !important;
+  }
+  body[data-print-target="review"] .ncs-review-print-root.is-preview {
+    display: block !important;
+    background: #fff !important;
+  }
 }
 </style>
 `;
@@ -247,6 +663,38 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                         <i class="fas fa-eye mr-1"></i>미리보기
                       </button>
                       <button type="button" id="questionsPrintBtn" class="px-3 py-2 rounded-xl bg-amber-500 text-white text-xs font-black hover:bg-amber-600 transition">
+                        <i class="fas fa-print mr-1"></i>인쇄
+                      </button>
+                      ` : ''}
+                      ${item.id === 'tools' ? `
+                      <button type="button" id="toolsPreviewBtn" class="px-3 py-2 rounded-xl border border-sky-200 bg-sky-50 text-sky-800 text-xs font-black hover:bg-sky-100 transition">
+                        <i class="fas fa-eye mr-1"></i>미리보기
+                      </button>
+                      <button type="button" id="toolsPrintBtn" class="px-3 py-2 rounded-xl bg-amber-500 text-white text-xs font-black hover:bg-amber-600 transition">
+                        <i class="fas fa-print mr-1"></i>인쇄
+                      </button>
+                      ` : ''}
+                      ${item.id === 'rubric' ? `
+                      <button type="button" id="rubricPreviewBtn" class="px-3 py-2 rounded-xl border border-sky-200 bg-sky-50 text-sky-800 text-xs font-black hover:bg-sky-100 transition">
+                        <i class="fas fa-eye mr-1"></i>미리보기
+                      </button>
+                      <button type="button" id="rubricPrintBtn" class="px-3 py-2 rounded-xl bg-amber-500 text-white text-xs font-black hover:bg-amber-600 transition">
+                        <i class="fas fa-print mr-1"></i>인쇄
+                      </button>
+                      ` : ''}
+                      ${item.id === 'achievement' ? `
+                      <button type="button" id="achievementPreviewBtn" class="px-3 py-2 rounded-xl border border-sky-200 bg-sky-50 text-sky-800 text-xs font-black hover:bg-sky-100 transition">
+                        <i class="fas fa-eye mr-1"></i>미리보기
+                      </button>
+                      <button type="button" id="achievementPrintBtn" class="px-3 py-2 rounded-xl bg-amber-500 text-white text-xs font-black hover:bg-amber-600 transition">
+                        <i class="fas fa-print mr-1"></i>인쇄
+                      </button>
+                      ` : ''}
+                      ${item.id === 'review' ? `
+                      <button type="button" id="reviewPreviewBtn" class="px-3 py-2 rounded-xl border border-sky-200 bg-sky-50 text-sky-800 text-xs font-black hover:bg-sky-100 transition">
+                        <i class="fas fa-eye mr-1"></i>미리보기
+                      </button>
+                      <button type="button" id="reviewPrintBtn" class="px-3 py-2 rounded-xl bg-amber-500 text-white text-xs font-black hover:bg-amber-600 transition">
                         <i class="fas fa-print mr-1"></i>인쇄
                       </button>
                       ` : ''}
@@ -477,6 +925,21 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                         <i class="fas fa-plus mr-1"></i>도구 항목 추가
                       </button>
                     </div>
+                    <div class="mt-3 rounded-xl border border-slate-200/80 bg-white p-3">
+                      <div class="flex flex-wrap items-center gap-2 mb-2">
+                        <input type="file" id="toolsFileAttachInput" multiple class="hidden" />
+                        <button type="button" id="toolsFileAttachBtn" class="px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-black text-slate-700 hover:bg-slate-50 transition">
+                          <i class="fas fa-paperclip mr-1"></i>파일 첨부
+                        </button>
+                        <input type="file" id="toolsImageInsertInput" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden" />
+                        <button type="button" id="toolsImageInsertBtn" class="px-3 py-2 rounded-xl border border-sky-200 bg-sky-50 text-xs font-black text-sky-800 hover:bg-sky-100 transition">
+                          <i class="fas fa-image mr-1"></i>이미지 삽입
+                        </button>
+                        <span class="text-[11px] text-slate-500">이미지는 비고 입력란 커서 위치에 <code class="text-slate-600">![설명](URL)</code> 형식으로 삽입됩니다.</span>
+                      </div>
+                      <label class="block text-xs font-black text-slate-600 mb-1.5">첨부파일</label>
+                      <div id="toolsAttachmentsList" class="flex flex-wrap gap-2 min-h-[2.5rem]"></div>
+                    </div>
                   </div>
 
                   <div class="rounded-2xl border border-slate-200/70 overflow-hidden">
@@ -525,6 +988,21 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                     </div>
                     <div class="mt-3">
                       <input id="rubricInputLow" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="하(미흡) 기준" />
+                    </div>
+                    <div class="mt-3 rounded-xl border border-slate-200/80 bg-white p-3">
+                      <div class="flex flex-wrap items-center gap-2 mb-2">
+                        <input type="file" id="rubricFileAttachInput" multiple class="hidden" />
+                        <button type="button" id="rubricFileAttachBtn" class="px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-black text-slate-700 hover:bg-slate-50 transition">
+                          <i class="fas fa-paperclip mr-1"></i>파일 첨부
+                        </button>
+                        <input type="file" id="rubricImageInsertInput" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden" />
+                        <button type="button" id="rubricImageInsertBtn" class="px-3 py-2 rounded-xl border border-sky-200 bg-sky-50 text-xs font-black text-sky-800 hover:bg-sky-100 transition">
+                          <i class="fas fa-image mr-1"></i>이미지 삽입
+                        </button>
+                        <span class="text-[11px] text-slate-500">이미지는 비고 입력란 커서 위치에 <code class="text-slate-600">![설명](URL)</code> 형식으로 삽입됩니다.</span>
+                      </div>
+                      <label class="block text-xs font-black text-slate-600 mb-1.5">첨부파일</label>
+                      <div id="rubricAttachmentsList" class="flex flex-wrap gap-2 min-h-[2.5rem]"></div>
                     </div>
                   </div>
 
@@ -575,6 +1053,21 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                         <i class="fas fa-plus mr-1"></i>성취수준 추가
                       </button>
                     </div>
+                    <div class="mt-3 rounded-xl border border-slate-200/80 bg-white p-3">
+                      <div class="flex flex-wrap items-center gap-2 mb-2">
+                        <input type="file" id="achievementFileAttachInput" multiple class="hidden" />
+                        <button type="button" id="achievementFileAttachBtn" class="px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-black text-slate-700 hover:bg-slate-50 transition">
+                          <i class="fas fa-paperclip mr-1"></i>파일 첨부
+                        </button>
+                        <input type="file" id="achievementImageInsertInput" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden" />
+                        <button type="button" id="achievementImageInsertBtn" class="px-3 py-2 rounded-xl border border-sky-200 bg-sky-50 text-xs font-black text-sky-800 hover:bg-sky-100 transition">
+                          <i class="fas fa-image mr-1"></i>이미지 삽입
+                        </button>
+                        <span class="text-[11px] text-slate-500">이미지는 비고 입력란 커서 위치에 <code class="text-slate-600">![설명](URL)</code> 형식으로 삽입됩니다.</span>
+                      </div>
+                      <label class="block text-xs font-black text-slate-600 mb-1.5">첨부파일</label>
+                      <div id="achievementAttachmentsList" class="flex flex-wrap gap-2 min-h-[2.5rem]"></div>
+                    </div>
                   </div>
 
                   <div class="rounded-2xl border border-slate-200/70 overflow-hidden">
@@ -621,6 +1114,21 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                     </div>
                     <div class="mt-3">
                       <textarea id="reviewInputComment" class="w-full h-20 px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="검토 의견"></textarea>
+                    </div>
+                    <div class="mt-3 rounded-xl border border-slate-200/80 bg-white p-3">
+                      <div class="flex flex-wrap items-center gap-2 mb-2">
+                        <input type="file" id="reviewFileAttachInput" multiple class="hidden" />
+                        <button type="button" id="reviewFileAttachBtn" class="px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-black text-slate-700 hover:bg-slate-50 transition">
+                          <i class="fas fa-paperclip mr-1"></i>파일 첨부
+                        </button>
+                        <input type="file" id="reviewImageInsertInput" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden" />
+                        <button type="button" id="reviewImageInsertBtn" class="px-3 py-2 rounded-xl border border-sky-200 bg-sky-50 text-xs font-black text-sky-800 hover:bg-sky-100 transition">
+                          <i class="fas fa-image mr-1"></i>이미지 삽입
+                        </button>
+                        <span class="text-[11px] text-slate-500">이미지는 종합의견 입력란 커서 위치에 <code class="text-slate-600">![설명](URL)</code> 형식으로 삽입됩니다.</span>
+                      </div>
+                      <label class="block text-xs font-black text-slate-600 mb-1.5">첨부파일</label>
+                      <div id="reviewAttachmentsList" class="flex flex-wrap gap-2 min-h-[2.5rem]"></div>
                     </div>
                   </div>
                   <div class="rounded-2xl border border-slate-200/70 overflow-hidden">
@@ -720,6 +1228,10 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
     </div>
     ${minutesPrintSheetHtml()}
     ${questionsPrintSheetHtml()}
+    ${toolsPrintSheetHtml()}
+    ${rubricPrintSheetHtml()}
+    ${achievementPrintSheetHtml()}
+    ${reviewPrintSheetHtml()}
   `;
 }
 
@@ -877,6 +1389,150 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       renderQuestionsAttachments(items);
     }
 
+    function readToolsAttachmentsFromDom() {
+      var box = document.getElementById('toolsAttachmentsList');
+      if (!box) return [];
+      var out = [];
+      box.querySelectorAll('[data-tools-attachment-url]').forEach(function(el) {
+        out.push({
+          url: el.getAttribute('data-tools-attachment-url') || '',
+          name: el.getAttribute('data-tools-attachment-name') || 'file'
+        });
+      });
+      return out;
+    }
+
+    function renderToolsAttachments(items) {
+      var box = document.getElementById('toolsAttachmentsList');
+      if (!box) return;
+      var list = Array.isArray(items) ? items : [];
+      if (!list.length) {
+        box.innerHTML = '<p class="text-xs text-slate-400 py-1">첨부된 파일이 없습니다.</p>';
+        return;
+      }
+      box.innerHTML = list.map(function(it, idx) {
+        var u = escapeHtml(it.url || '');
+        var n = escapeHtml(it.name || 'file');
+        return '<div class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm max-w-full" data-tools-attachment-url="' + u + '" data-tools-attachment-name="' + n + '">' +
+          '<a href="' + u + '" target="_blank" rel="noopener noreferrer" class="text-sky-700 font-semibold truncate flex-1 min-w-0">' + n + '</a>' +
+          '<button type="button" class="text-rose-600 text-xs font-black shrink-0" data-remove-tools-attachment="' + idx + '">삭제</button></div>';
+      }).join('');
+    }
+
+    function removeToolsAttachment(index) {
+      var items = readToolsAttachmentsFromDom();
+      if (index >= 0 && index < items.length) items.splice(index, 1);
+      renderToolsAttachments(items);
+    }
+
+    function readRubricAttachmentsFromDom() {
+      var box = document.getElementById('rubricAttachmentsList');
+      if (!box) return [];
+      var out = [];
+      box.querySelectorAll('[data-rubric-attachment-url]').forEach(function(el) {
+        out.push({
+          url: el.getAttribute('data-rubric-attachment-url') || '',
+          name: el.getAttribute('data-rubric-attachment-name') || 'file'
+        });
+      });
+      return out;
+    }
+
+    function renderRubricAttachments(items) {
+      var box = document.getElementById('rubricAttachmentsList');
+      if (!box) return;
+      var list = Array.isArray(items) ? items : [];
+      if (!list.length) {
+        box.innerHTML = '<p class="text-xs text-slate-400 py-1">첨부된 파일이 없습니다.</p>';
+        return;
+      }
+      box.innerHTML = list.map(function(it, idx) {
+        var u = escapeHtml(it.url || '');
+        var n = escapeHtml(it.name || 'file');
+        return '<div class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm max-w-full" data-rubric-attachment-url="' + u + '" data-rubric-attachment-name="' + n + '">' +
+          '<a href="' + u + '" target="_blank" rel="noopener noreferrer" class="text-sky-700 font-semibold truncate flex-1 min-w-0">' + n + '</a>' +
+          '<button type="button" class="text-rose-600 text-xs font-black shrink-0" data-remove-rubric-attachment="' + idx + '">삭제</button></div>';
+      }).join('');
+    }
+
+    function removeRubricAttachment(index) {
+      var items = readRubricAttachmentsFromDom();
+      if (index >= 0 && index < items.length) items.splice(index, 1);
+      renderRubricAttachments(items);
+    }
+
+    function readAchievementAttachmentsFromDom() {
+      var box = document.getElementById('achievementAttachmentsList');
+      if (!box) return [];
+      var out = [];
+      box.querySelectorAll('[data-achievement-attachment-url]').forEach(function(el) {
+        out.push({
+          url: el.getAttribute('data-achievement-attachment-url') || '',
+          name: el.getAttribute('data-achievement-attachment-name') || 'file'
+        });
+      });
+      return out;
+    }
+
+    function renderAchievementAttachments(items) {
+      var box = document.getElementById('achievementAttachmentsList');
+      if (!box) return;
+      var list = Array.isArray(items) ? items : [];
+      if (!list.length) {
+        box.innerHTML = '<p class="text-xs text-slate-400 py-1">첨부된 파일이 없습니다.</p>';
+        return;
+      }
+      box.innerHTML = list.map(function(it, idx) {
+        var u = escapeHtml(it.url || '');
+        var n = escapeHtml(it.name || 'file');
+        return '<div class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm max-w-full" data-achievement-attachment-url="' + u + '" data-achievement-attachment-name="' + n + '">' +
+          '<a href="' + u + '" target="_blank" rel="noopener noreferrer" class="text-sky-700 font-semibold truncate flex-1 min-w-0">' + n + '</a>' +
+          '<button type="button" class="text-rose-600 text-xs font-black shrink-0" data-remove-achievement-attachment="' + idx + '">삭제</button></div>';
+      }).join('');
+    }
+
+    function removeAchievementAttachment(index) {
+      var items = readAchievementAttachmentsFromDom();
+      if (index >= 0 && index < items.length) items.splice(index, 1);
+      renderAchievementAttachments(items);
+    }
+
+    function readReviewAttachmentsFromDom() {
+      var box = document.getElementById('reviewAttachmentsList');
+      if (!box) return [];
+      var out = [];
+      box.querySelectorAll('[data-review-attachment-url]').forEach(function(el) {
+        out.push({
+          url: el.getAttribute('data-review-attachment-url') || '',
+          name: el.getAttribute('data-review-attachment-name') || 'file'
+        });
+      });
+      return out;
+    }
+
+    function renderReviewAttachments(items) {
+      var box = document.getElementById('reviewAttachmentsList');
+      if (!box) return;
+      var list = Array.isArray(items) ? items : [];
+      if (!list.length) {
+        box.innerHTML = '<p class="text-xs text-slate-400 py-1">첨부된 파일이 없습니다.</p>';
+        return;
+      }
+      box.innerHTML = list.map(function(it, idx) {
+        var u = escapeHtml(it.url || '');
+        var n = escapeHtml(it.name || 'file');
+        return '<div class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm max-w-full" data-review-attachment-url="' + u + '" data-review-attachment-name="' + n + '">' +
+          '<a href="' + u + '" target="_blank" rel="noopener noreferrer" class="text-sky-700 font-semibold truncate flex-1 min-w-0">' + n + '</a>' +
+          '<button type="button" class="text-rose-600 text-xs font-black shrink-0" data-remove-review-attachment="' + idx + '">삭제</button></div>';
+      }).join('');
+    }
+
+    function removeReviewAttachment(index) {
+      var items = readReviewAttachmentsFromDom();
+      if (index >= 0 && index < items.length) items.splice(index, 1);
+      renderReviewAttachments(items);
+    }
+
     function readMinutesSignaturesFromDom() {
       var chair = document.getElementById('minutesSignChairPreview');
       var writer = document.getElementById('minutesSignWriterPreview');
@@ -947,9 +1603,12 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         alert('과정을 선택해 주세요.');
         return null;
       }
-      var folder = planDocFolder === 'questions'
-        ? 'ncs-plan-questions/' + String(selectedCourseId)
-        : 'ncs-plan-minutes/' + String(selectedCourseId);
+      var folder = 'ncs-plan-minutes/' + String(selectedCourseId);
+      if (planDocFolder === 'questions') folder = 'ncs-plan-questions/' + String(selectedCourseId);
+      if (planDocFolder === 'tools') folder = 'ncs-plan-tools/' + String(selectedCourseId);
+      if (planDocFolder === 'rubric') folder = 'ncs-plan-rubric/' + String(selectedCourseId);
+      if (planDocFolder === 'achievement') folder = 'ncs-plan-achievement/' + String(selectedCourseId);
+      if (planDocFolder === 'review') folder = 'ncs-plan-review/' + String(selectedCourseId);
       var fd = new FormData();
       fd.append('file', file);
       fd.append('category', isImage ? 'images' : 'documents');
@@ -1140,6 +1799,408 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       window.setTimeout(function() { window.print(); }, 50);
     }
 
+    async function fillToolsPrintSheet() {
+      var courseTitle = await resolveCourseTitleForPrint();
+      var subEl = document.getElementById('toolsPrintSubtitle');
+      var docTitle = (document.getElementById('tools_doc_title') || {}).value || '';
+      if (subEl) subEl.textContent = docTitle ? ('(' + docTitle + ')') : '';
+
+      var subjLabel = '';
+      var subjEl = document.getElementById('ncsPlanSubjectSelect');
+      if (subjEl && subjEl.selectedIndex >= 0 && subjEl.options[subjEl.selectedIndex]) {
+        subjLabel = (subjEl.options[subjEl.selectedIndex].textContent || '').trim();
+      }
+
+      setMinutesPrintText('toolsPrintCourseName', courseTitle || '-');
+      setMinutesPrintText('toolsPrintSubject', subjLabel || '-');
+      setMinutesPrintText('toolsPrintRound', roundLabel(selectedRound));
+      setMinutesPrintText('toolsPrintDocTitle', docTitle || '-');
+      setMinutesPrintText('toolsPrintWriter', (document.getElementById('tools_writer') || {}).value || '-');
+
+      var tAtt = readToolsAttachmentsFromDom();
+      var tAttPrint = document.getElementById('toolsPrintAttachments');
+      if (tAttPrint) {
+        if (!tAtt.length) {
+          tAttPrint.innerHTML = '<span class="text-slate-500">없음</span>';
+        } else {
+          tAttPrint.innerHTML = tAtt.map(function(a) {
+            var u = escapeHtml(a.url || '');
+            var n = escapeHtml(a.name || 'file');
+            return '<div class="mb-1"><a href="' + u + '" class="text-sky-800 underline">' + n + '</a></div>';
+          }).join('');
+        }
+      }
+
+      var rows = readToolRowsFromTable();
+      var totalScore = rows.reduce(function(acc, r) { return acc + Number(r && r.score != null ? r.score : 0); }, 0);
+      var targetTime = ((document.getElementById('tools_target_time') || {}).value || '').toString().trim();
+      var summary = '총배점 ' + totalScore + '점';
+      if (targetTime) summary = '총시간 ' + targetTime + ' / ' + summary;
+      setMinutesPrintText('toolsPrintSummary', summary);
+
+      var tbody = document.getElementById('toolsPrintRowsBody');
+      if (tbody) {
+        if (!rows.length) {
+          tbody.innerHTML = '<tr><td colspan="5" class="border border-black px-2 py-3 text-center text-slate-500 text-[10pt]">등록된 도구 항목이 없습니다.</td></tr>';
+        } else {
+          tbody.innerHTML = rows.map(function(row) {
+            var name = escapeHtml(String(row && row.name != null ? row.name : '-'));
+            var typ = escapeHtml(String(row && row.type != null ? row.type : '-'));
+            var materials = escapeHtml(String(row && row.materials != null ? row.materials : '-'));
+            var duration = escapeHtml(String(row && row.duration != null ? row.duration : '-'));
+            var score = Number(row && row.score != null ? row.score : 0);
+            return '<tr>' +
+              '<td class="border border-black px-2 py-2 text-left align-top whitespace-pre-wrap text-[10pt]">' + name + '</td>' +
+              '<td class="border border-black px-2 py-2 text-center align-top">' + typ + '</td>' +
+              '<td class="border border-black px-2 py-2 text-left align-top whitespace-pre-wrap text-[10pt]">' + materials + '</td>' +
+              '<td class="border border-black px-2 py-2 text-center align-top">' + duration + '</td>' +
+              '<td class="border border-black px-2 py-2 text-center align-top">' + score + '</td>' +
+              '</tr>';
+          }).join('');
+        }
+      }
+
+      setMinutesPrintText('toolsPrintNotes', (document.getElementById('tools_notes') || {}).value || '');
+    }
+
+    async function openToolsPrintPreview() {
+      if (!selectedCourseId) {
+        alert('과정을 선택해 주세요.');
+        return;
+      }
+      await fillToolsPrintSheet();
+      var root = document.getElementById('toolsPrintRoot');
+      var closeBtn = document.getElementById('toolsPrintPreviewCloseBtn');
+      if (root) {
+        root.classList.add('is-preview');
+        root.setAttribute('aria-hidden', 'false');
+      }
+      if (closeBtn) closeBtn.classList.remove('hidden');
+    }
+
+    function closeToolsPrintPreview() {
+      var root = document.getElementById('toolsPrintRoot');
+      var closeBtn = document.getElementById('toolsPrintPreviewCloseBtn');
+      if (root) {
+        root.classList.remove('is-preview');
+        root.setAttribute('aria-hidden', 'true');
+      }
+      if (closeBtn) closeBtn.classList.add('hidden');
+    }
+
+    async function printToolsDocument() {
+      if (!selectedCourseId) {
+        alert('과정을 선택해 주세요.');
+        return;
+      }
+      closeToolsPrintPreview();
+      await fillToolsPrintSheet();
+      document.body.setAttribute('data-print-target', 'tools');
+      window.setTimeout(function() { window.print(); }, 50);
+    }
+
+    async function fillRubricPrintSheet() {
+      var courseTitle = await resolveCourseTitleForPrint();
+      var subEl = document.getElementById('rubricPrintSubtitle');
+      var docTitle = (document.getElementById('rubric_doc_title') || {}).value || '';
+      if (subEl) subEl.textContent = docTitle ? ('(' + docTitle + ')') : '';
+
+      var subjLabel = '';
+      var subjEl = document.getElementById('ncsPlanSubjectSelect');
+      if (subjEl && subjEl.selectedIndex >= 0 && subjEl.options[subjEl.selectedIndex]) {
+        subjLabel = (subjEl.options[subjEl.selectedIndex].textContent || '').trim();
+      }
+
+      setMinutesPrintText('rubricPrintCourseName', courseTitle || '-');
+      setMinutesPrintText('rubricPrintSubject', subjLabel || '-');
+      setMinutesPrintText('rubricPrintRound', roundLabel(selectedRound));
+      setMinutesPrintText('rubricPrintDocTitle', docTitle || '-');
+      setMinutesPrintText('rubricPrintWriter', (document.getElementById('rubric_writer') || {}).value || '-');
+
+      var rAtt = readRubricAttachmentsFromDom();
+      var rAttPrint = document.getElementById('rubricPrintAttachments');
+      if (rAttPrint) {
+        if (!rAtt.length) {
+          rAttPrint.innerHTML = '<span class="text-slate-500">없음</span>';
+        } else {
+          rAttPrint.innerHTML = rAtt.map(function(a) {
+            var u = escapeHtml(a.url || '');
+            var n = escapeHtml(a.name || 'file');
+            return '<div class="mb-1"><a href="' + u + '" class="text-sky-800 underline">' + n + '</a></div>';
+          }).join('');
+        }
+      }
+
+      var rows = readRubricRowsFromTable();
+      var total = rows.reduce(function(acc, r) { return acc + Number(r && r.score != null ? r.score : 0); }, 0);
+      var target = Number((document.getElementById('rubric_total_target') || {}).value || 0);
+      var sumText = '총배점 ' + total + '점';
+      if (target > 0) sumText += ' / 기준 ' + target + '점';
+      setMinutesPrintText('rubricPrintScoreSummary', sumText);
+
+      var tbody = document.getElementById('rubricPrintRowsBody');
+      if (tbody) {
+        if (!rows.length) {
+          tbody.innerHTML = '<tr><td colspan="5" class="border border-black px-2 py-3 text-center text-slate-500 text-[10pt]">등록된 채점기준이 없습니다.</td></tr>';
+        } else {
+          tbody.innerHTML = rows.map(function(row) {
+            var item = escapeHtml(String(row && row.item != null ? row.item : '-'));
+            var score = Number(row && row.score != null ? row.score : 0);
+            var high = escapeHtml(String(row && row.high != null ? row.high : '-'));
+            var mid = escapeHtml(String(row && row.mid != null ? row.mid : '-'));
+            var low = escapeHtml(String(row && row.low != null ? row.low : '-'));
+            return '<tr>' +
+              '<td class="border border-black px-2 py-2 text-left align-top whitespace-pre-wrap text-[10pt]">' + item + '</td>' +
+              '<td class="border border-black px-2 py-2 text-center align-top">' + score + '</td>' +
+              '<td class="border border-black px-2 py-2 text-left align-top whitespace-pre-wrap text-[10pt]">' + high + '</td>' +
+              '<td class="border border-black px-2 py-2 text-left align-top whitespace-pre-wrap text-[10pt]">' + mid + '</td>' +
+              '<td class="border border-black px-2 py-2 text-left align-top whitespace-pre-wrap text-[10pt]">' + low + '</td>' +
+              '</tr>';
+          }).join('');
+        }
+      }
+
+      setMinutesPrintText('rubricPrintNotes', (document.getElementById('rubric_notes') || {}).value || '');
+    }
+
+    async function openRubricPrintPreview() {
+      if (!selectedCourseId) {
+        alert('과정을 선택해 주세요.');
+        return;
+      }
+      await fillRubricPrintSheet();
+      var root = document.getElementById('rubricPrintRoot');
+      var closeBtn = document.getElementById('rubricPrintPreviewCloseBtn');
+      if (root) {
+        root.classList.add('is-preview');
+        root.setAttribute('aria-hidden', 'false');
+      }
+      if (closeBtn) closeBtn.classList.remove('hidden');
+    }
+
+    function closeRubricPrintPreview() {
+      var root = document.getElementById('rubricPrintRoot');
+      var closeBtn = document.getElementById('rubricPrintPreviewCloseBtn');
+      if (root) {
+        root.classList.remove('is-preview');
+        root.setAttribute('aria-hidden', 'true');
+      }
+      if (closeBtn) closeBtn.classList.add('hidden');
+    }
+
+    async function printRubricDocument() {
+      if (!selectedCourseId) {
+        alert('과정을 선택해 주세요.');
+        return;
+      }
+      closeRubricPrintPreview();
+      await fillRubricPrintSheet();
+      document.body.setAttribute('data-print-target', 'rubric');
+      window.setTimeout(function() { window.print(); }, 50);
+    }
+
+    async function fillAchievementPrintSheet() {
+      var courseTitle = await resolveCourseTitleForPrint();
+      var subEl = document.getElementById('achievementPrintSubtitle');
+      var docTitle = (document.getElementById('achievement_doc_title') || {}).value || '';
+      if (subEl) subEl.textContent = docTitle ? ('(' + docTitle + ')') : '';
+
+      var subjLabel = '';
+      var subjEl = document.getElementById('ncsPlanSubjectSelect');
+      if (subjEl && subjEl.selectedIndex >= 0 && subjEl.options[subjEl.selectedIndex]) {
+        subjLabel = (subjEl.options[subjEl.selectedIndex].textContent || '').trim();
+      }
+
+      setMinutesPrintText('achievementPrintCourseName', courseTitle || '-');
+      setMinutesPrintText('achievementPrintSubject', subjLabel || '-');
+      setMinutesPrintText('achievementPrintRound', roundLabel(selectedRound));
+      setMinutesPrintText('achievementPrintDocTitle', docTitle || '-');
+      setMinutesPrintText('achievementPrintWriter', (document.getElementById('achievement_writer') || {}).value || '-');
+
+      var aAtt = readAchievementAttachmentsFromDom();
+      var aAttPrint = document.getElementById('achievementPrintAttachments');
+      if (aAttPrint) {
+        if (!aAtt.length) {
+          aAttPrint.innerHTML = '<span class="text-slate-500">없음</span>';
+        } else {
+          aAttPrint.innerHTML = aAtt.map(function(a) {
+            var u = escapeHtml(a.url || '');
+            var n = escapeHtml(a.name || 'file');
+            return '<div class="mb-1"><a href="' + u + '" class="text-sky-800 underline">' + n + '</a></div>';
+          }).join('');
+        }
+      }
+
+      var rows = readAchievementRowsFromTable();
+      var sumRate = rows.reduce(function(acc, r) { return acc + Number(r && r.rate != null ? r.rate : 0); }, 0);
+      var targetScore = Number((document.getElementById('achievement_target_score') || {}).value || 0);
+      var summary = '합계비율 ' + sumRate + '%';
+      if (targetScore > 0) summary = '만점 ' + targetScore + '점 / ' + summary;
+      setMinutesPrintText('achievementPrintSummary', summary);
+
+      var tbody = document.getElementById('achievementPrintRowsBody');
+      if (tbody) {
+        if (!rows.length) {
+          tbody.innerHTML = '<tr><td colspan="5" class="border border-black px-2 py-3 text-center text-slate-500 text-[10pt]">등록된 성취수준 항목이 없습니다.</td></tr>';
+        } else {
+          tbody.innerHTML = rows.map(function(row) {
+            var level = escapeHtml(String(row && row.level != null ? row.level : '-'));
+            var minScore = Number(row && row.min_score != null ? row.min_score : 0);
+            var maxScore = Number(row && row.max_score != null ? row.max_score : 0);
+            var rate = Number(row && row.rate != null ? row.rate : 0);
+            var criteria = escapeHtml(String(row && row.criteria != null ? row.criteria : '-'));
+            return '<tr>' +
+              '<td class="border border-black px-2 py-2 text-center align-top">' + level + '</td>' +
+              '<td class="border border-black px-2 py-2 text-center align-top">' + minScore + '</td>' +
+              '<td class="border border-black px-2 py-2 text-center align-top">' + maxScore + '</td>' +
+              '<td class="border border-black px-2 py-2 text-center align-top">' + rate + '</td>' +
+              '<td class="border border-black px-2 py-2 text-left align-top whitespace-pre-wrap text-[10pt]">' + criteria + '</td>' +
+              '</tr>';
+          }).join('');
+        }
+      }
+
+      setMinutesPrintText('achievementPrintNotes', (document.getElementById('achievement_notes') || {}).value || '');
+    }
+
+    async function openAchievementPrintPreview() {
+      if (!selectedCourseId) {
+        alert('과정을 선택해 주세요.');
+        return;
+      }
+      await fillAchievementPrintSheet();
+      var root = document.getElementById('achievementPrintRoot');
+      var closeBtn = document.getElementById('achievementPrintPreviewCloseBtn');
+      if (root) {
+        root.classList.add('is-preview');
+        root.setAttribute('aria-hidden', 'false');
+      }
+      if (closeBtn) closeBtn.classList.remove('hidden');
+    }
+
+    function closeAchievementPrintPreview() {
+      var root = document.getElementById('achievementPrintRoot');
+      var closeBtn = document.getElementById('achievementPrintPreviewCloseBtn');
+      if (root) {
+        root.classList.remove('is-preview');
+        root.setAttribute('aria-hidden', 'true');
+      }
+      if (closeBtn) closeBtn.classList.add('hidden');
+    }
+
+    async function printAchievementDocument() {
+      if (!selectedCourseId) {
+        alert('과정을 선택해 주세요.');
+        return;
+      }
+      closeAchievementPrintPreview();
+      await fillAchievementPrintSheet();
+      document.body.setAttribute('data-print-target', 'achievement');
+      window.setTimeout(function() { window.print(); }, 50);
+    }
+
+    async function fillReviewPrintSheet() {
+      var courseTitle = await resolveCourseTitleForPrint();
+      var subEl = document.getElementById('reviewPrintSubtitle');
+      var docTitle = (document.getElementById('review_doc_title') || {}).value || '';
+      if (subEl) subEl.textContent = docTitle ? ('(' + docTitle + ')') : '';
+
+      var subjLabel = '';
+      var subjEl = document.getElementById('ncsPlanSubjectSelect');
+      if (subjEl && subjEl.selectedIndex >= 0 && subjEl.options[subjEl.selectedIndex]) {
+        subjLabel = (subjEl.options[subjEl.selectedIndex].textContent || '').trim();
+      }
+
+      setMinutesPrintText('reviewPrintCourseName', courseTitle || '-');
+      setMinutesPrintText('reviewPrintSubject', subjLabel || '-');
+      setMinutesPrintText('reviewPrintRound', roundLabel(selectedRound));
+      setMinutesPrintText('reviewPrintDocTitle', docTitle || '-');
+
+      var writer = (document.getElementById('review_writer') || {}).value || '-';
+      var reviewer = (document.getElementById('review_reviewer') || {}).value || '-';
+      setMinutesPrintText('reviewPrintWriterReviewer', '작성자: ' + writer + ' / 검토자: ' + reviewer);
+
+      var rows = readReviewRowsFromTable();
+      var total = rows.length;
+      var done = rows.filter(function(r) { return !!(r && r.done); }).length;
+      var rate = total > 0 ? Math.round((done / total) * 100) : 0;
+      setMinutesPrintText('reviewPrintCompletion', rate + '% (' + done + '/' + total + ')');
+
+      var rvAtt = readReviewAttachmentsFromDom();
+      var rvAttPrint = document.getElementById('reviewPrintAttachments');
+      if (rvAttPrint) {
+        if (!rvAtt.length) {
+          rvAttPrint.innerHTML = '<span class="text-slate-500">없음</span>';
+        } else {
+          rvAttPrint.innerHTML = rvAtt.map(function(a) {
+            var u = escapeHtml(a.url || '');
+            var n = escapeHtml(a.name || 'file');
+            return '<div class="mb-1"><a href="' + u + '" class="text-sky-800 underline">' + n + '</a></div>';
+          }).join('');
+        }
+      }
+
+      var tbody = document.getElementById('reviewPrintRowsBody');
+      if (tbody) {
+        if (!rows.length) {
+          tbody.innerHTML = '<tr><td colspan="5" class="border border-black px-2 py-3 text-center text-slate-500 text-[10pt]">등록된 검토항목이 없습니다.</td></tr>';
+        } else {
+          tbody.innerHTML = rows.map(function(row) {
+            var doneTxt = row && row.done ? '완료' : '';
+            var item = escapeHtml(String(row && row.item != null ? row.item : '-'));
+            var comment = escapeHtml(String(row && row.comment != null ? row.comment : '-'));
+            var owner = escapeHtml(String(row && row.owner != null ? row.owner : '-'));
+            var reviewedAt = escapeHtml(String(row && row.reviewed_at != null ? row.reviewed_at : '-'));
+            return '<tr>' +
+              '<td class="border border-black px-2 py-2 text-center align-top">' + doneTxt + '</td>' +
+              '<td class="border border-black px-2 py-2 text-left align-top whitespace-pre-wrap text-[10pt]">' + item + '</td>' +
+              '<td class="border border-black px-2 py-2 text-left align-top whitespace-pre-wrap text-[10pt]">' + comment + '</td>' +
+              '<td class="border border-black px-2 py-2 text-center align-top">' + owner + '</td>' +
+              '<td class="border border-black px-2 py-2 text-center align-top">' + reviewedAt + '</td>' +
+              '</tr>';
+          }).join('');
+        }
+      }
+
+      setMinutesPrintText('reviewPrintNotes', (document.getElementById('review_notes') || {}).value || '');
+    }
+
+    async function openReviewPrintPreview() {
+      if (!selectedCourseId) {
+        alert('과정을 선택해 주세요.');
+        return;
+      }
+      await fillReviewPrintSheet();
+      var root = document.getElementById('reviewPrintRoot');
+      var closeBtn = document.getElementById('reviewPrintPreviewCloseBtn');
+      if (root) {
+        root.classList.add('is-preview');
+        root.setAttribute('aria-hidden', 'false');
+      }
+      if (closeBtn) closeBtn.classList.remove('hidden');
+    }
+
+    function closeReviewPrintPreview() {
+      var root = document.getElementById('reviewPrintRoot');
+      var closeBtn = document.getElementById('reviewPrintPreviewCloseBtn');
+      if (root) {
+        root.classList.remove('is-preview');
+        root.setAttribute('aria-hidden', 'true');
+      }
+      if (closeBtn) closeBtn.classList.add('hidden');
+    }
+
+    async function printReviewDocument() {
+      if (!selectedCourseId) {
+        alert('과정을 선택해 주세요.');
+        return;
+      }
+      closeReviewPrintPreview();
+      await fillReviewPrintSheet();
+      document.body.setAttribute('data-print-target', 'review');
+      window.setTimeout(function() { window.print(); }, 50);
+    }
+
     function setStatus(tabId, text, isError) {
       const el = document.getElementById('planDocStatus-' + tabId);
       if (!el) return;
@@ -1218,6 +2279,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
             writer: (document.getElementById('tools_writer') || {}).value || '',
             target_time: (document.getElementById('tools_target_time') || {}).value || '',
             notes: (document.getElementById('tools_notes') || {}).value || '',
+            attachments: readToolsAttachmentsFromDom(),
             rows: readToolRowsFromTable()
           }
         };
@@ -1229,6 +2291,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
             writer: (document.getElementById('rubric_writer') || {}).value || '',
             total_target: Number((document.getElementById('rubric_total_target') || {}).value || 0),
             notes: (document.getElementById('rubric_notes') || {}).value || '',
+            attachments: readRubricAttachmentsFromDom(),
             rows: readRubricRowsFromTable()
           }
         };
@@ -1240,6 +2303,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
             writer: (document.getElementById('achievement_writer') || {}).value || '',
             target_score: Number((document.getElementById('achievement_target_score') || {}).value || 0),
             notes: (document.getElementById('achievement_notes') || {}).value || '',
+            attachments: readAchievementAttachmentsFromDom(),
             rows: readAchievementRowsFromTable()
           }
         };
@@ -1251,6 +2315,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
             writer: (document.getElementById('review_writer') || {}).value || '',
             reviewer: (document.getElementById('review_reviewer') || {}).value || '',
             notes: (document.getElementById('review_notes') || {}).value || '',
+            attachments: readReviewAttachmentsFromDom(),
             rows: readReviewRowsFromTable()
           }
         };
@@ -1804,6 +2869,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         if (writerEl) writerEl.value = payload.writer || '';
         if (targetTimeEl) targetTimeEl.value = payload.target_time || '';
         if (notesEl) notesEl.value = payload.notes || '';
+        renderToolsAttachments(payload.attachments || []);
         renderToolRows(payload.rows || []);
         return;
       }
@@ -1816,6 +2882,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         if (writerEl) writerEl.value = payload.writer || '';
         if (targetEl) targetEl.value = payload.total_target || '';
         if (notesEl) notesEl.value = payload.notes || '';
+        renderRubricAttachments(payload.attachments || []);
         renderRubricRows(payload.rows || []);
         return;
       }
@@ -1828,6 +2895,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         if (writerEl) writerEl.value = payload.writer || '';
         if (targetEl) targetEl.value = payload.target_score || '';
         if (notesEl) notesEl.value = payload.notes || '';
+        renderAchievementAttachments(payload.attachments || []);
         renderAchievementRows(payload.rows || []);
         return;
       }
@@ -1840,6 +2908,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         if (writerEl) writerEl.value = payload.writer || '';
         if (reviewerEl) reviewerEl.value = payload.reviewer || '';
         if (notesEl) notesEl.value = payload.notes || '';
+        renderReviewAttachments(payload.attachments || []);
         renderReviewRows(payload.rows || []);
         return;
       }
@@ -2114,6 +3183,26 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           removeQuestionsAttachment(parseInt(rmQuestionsAtt, 10));
           return;
         }
+        const rmToolsAtt = target.getAttribute('data-remove-tools-attachment');
+        if (rmToolsAtt != null) {
+          removeToolsAttachment(parseInt(rmToolsAtt, 10));
+          return;
+        }
+        const rmRubricAtt = target.getAttribute('data-remove-rubric-attachment');
+        if (rmRubricAtt != null) {
+          removeRubricAttachment(parseInt(rmRubricAtt, 10));
+          return;
+        }
+        const rmAchievementAtt = target.getAttribute('data-remove-achievement-attachment');
+        if (rmAchievementAtt != null) {
+          removeAchievementAttachment(parseInt(rmAchievementAtt, 10));
+          return;
+        }
+        const rmReviewAtt = target.getAttribute('data-remove-review-attachment');
+        if (rmReviewAtt != null) {
+          removeReviewAttachment(parseInt(rmReviewAtt, 10));
+          return;
+        }
         const rmMinutesSign = target.getAttribute('data-remove-minutes-signature');
         if (rmMinutesSign != null) {
           removeMinutesSignature(rmMinutesSign);
@@ -2362,6 +3451,186 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       var questionsPrintPreviewCloseBtn = document.getElementById('questionsPrintPreviewCloseBtn');
       if (questionsPrintPreviewCloseBtn) {
         questionsPrintPreviewCloseBtn.addEventListener('click', function() { closeQuestionsPrintPreview(); });
+      }
+      var toolsPreviewBtn = document.getElementById('toolsPreviewBtn');
+      if (toolsPreviewBtn) {
+        toolsPreviewBtn.addEventListener('click', function() { void openToolsPrintPreview(); });
+      }
+      var toolsPrintBtn = document.getElementById('toolsPrintBtn');
+      if (toolsPrintBtn) {
+        toolsPrintBtn.addEventListener('click', function() { void printToolsDocument(); });
+      }
+      var toolsPrintPreviewCloseBtn = document.getElementById('toolsPrintPreviewCloseBtn');
+      if (toolsPrintPreviewCloseBtn) {
+        toolsPrintPreviewCloseBtn.addEventListener('click', function() { closeToolsPrintPreview(); });
+      }
+      var rubricPreviewBtn = document.getElementById('rubricPreviewBtn');
+      if (rubricPreviewBtn) {
+        rubricPreviewBtn.addEventListener('click', function() { void openRubricPrintPreview(); });
+      }
+      var rubricPrintBtn = document.getElementById('rubricPrintBtn');
+      if (rubricPrintBtn) {
+        rubricPrintBtn.addEventListener('click', function() { void printRubricDocument(); });
+      }
+      var rubricPrintPreviewCloseBtn = document.getElementById('rubricPrintPreviewCloseBtn');
+      if (rubricPrintPreviewCloseBtn) {
+        rubricPrintPreviewCloseBtn.addEventListener('click', function() { closeRubricPrintPreview(); });
+      }
+      var achievementPreviewBtn = document.getElementById('achievementPreviewBtn');
+      if (achievementPreviewBtn) {
+        achievementPreviewBtn.addEventListener('click', function() { void openAchievementPrintPreview(); });
+      }
+      var achievementPrintBtn = document.getElementById('achievementPrintBtn');
+      if (achievementPrintBtn) {
+        achievementPrintBtn.addEventListener('click', function() { void printAchievementDocument(); });
+      }
+      var achievementPrintPreviewCloseBtn = document.getElementById('achievementPrintPreviewCloseBtn');
+      if (achievementPrintPreviewCloseBtn) {
+        achievementPrintPreviewCloseBtn.addEventListener('click', function() { closeAchievementPrintPreview(); });
+      }
+      var reviewPreviewBtn = document.getElementById('reviewPreviewBtn');
+      if (reviewPreviewBtn) {
+        reviewPreviewBtn.addEventListener('click', function() { void openReviewPrintPreview(); });
+      }
+      var reviewPrintBtn = document.getElementById('reviewPrintBtn');
+      if (reviewPrintBtn) {
+        reviewPrintBtn.addEventListener('click', function() { void printReviewDocument(); });
+      }
+      var reviewPrintPreviewCloseBtn = document.getElementById('reviewPrintPreviewCloseBtn');
+      if (reviewPrintPreviewCloseBtn) {
+        reviewPrintPreviewCloseBtn.addEventListener('click', function() { closeReviewPrintPreview(); });
+      }
+      var toolsFileAttachBtn = document.getElementById('toolsFileAttachBtn');
+      var toolsFileAttachInput = document.getElementById('toolsFileAttachInput');
+      if (toolsFileAttachBtn && toolsFileAttachInput) {
+        toolsFileAttachBtn.addEventListener('click', function() { toolsFileAttachInput.click(); });
+        toolsFileAttachInput.addEventListener('change', async function(ev) {
+          var files = ev.target.files;
+          if (!files || !files.length) return;
+          var items = readToolsAttachmentsFromDom();
+          for (var ti = 0; ti < files.length; ti++) {
+            var tdata = await uploadNcsEvalPlanFile(files[ti], false, 'tools');
+            if (tdata && tdata.url) {
+              items.push({ url: tdata.url, name: tdata.originalName || tdata.fileName || files[ti].name });
+            }
+          }
+          renderToolsAttachments(items);
+          ev.target.value = '';
+        });
+      }
+      var toolsImageInsertBtn = document.getElementById('toolsImageInsertBtn');
+      var toolsImageInsertInput = document.getElementById('toolsImageInsertInput');
+      if (toolsImageInsertBtn && toolsImageInsertInput) {
+        toolsImageInsertBtn.addEventListener('click', function() { toolsImageInsertInput.click(); });
+        toolsImageInsertInput.addEventListener('change', async function(ev) {
+          var tf = ev.target.files && ev.target.files[0];
+          if (!tf) return;
+          var timg = await uploadNcsEvalPlanFile(tf, true, 'tools');
+          if (timg && timg.url) {
+            var tta = document.getElementById('tools_notes');
+            insertAtCursor(tta, '\\n![이미지](' + timg.url + ')\\n');
+          }
+          ev.target.value = '';
+        });
+      }
+      var rubricFileAttachBtn = document.getElementById('rubricFileAttachBtn');
+      var rubricFileAttachInput = document.getElementById('rubricFileAttachInput');
+      if (rubricFileAttachBtn && rubricFileAttachInput) {
+        rubricFileAttachBtn.addEventListener('click', function() { rubricFileAttachInput.click(); });
+        rubricFileAttachInput.addEventListener('change', async function(ev) {
+          var files = ev.target.files;
+          if (!files || !files.length) return;
+          var items = readRubricAttachmentsFromDom();
+          for (var ri = 0; ri < files.length; ri++) {
+            var rdata = await uploadNcsEvalPlanFile(files[ri], false, 'rubric');
+            if (rdata && rdata.url) {
+              items.push({ url: rdata.url, name: rdata.originalName || rdata.fileName || files[ri].name });
+            }
+          }
+          renderRubricAttachments(items);
+          ev.target.value = '';
+        });
+      }
+      var rubricImageInsertBtn = document.getElementById('rubricImageInsertBtn');
+      var rubricImageInsertInput = document.getElementById('rubricImageInsertInput');
+      if (rubricImageInsertBtn && rubricImageInsertInput) {
+        rubricImageInsertBtn.addEventListener('click', function() { rubricImageInsertInput.click(); });
+        rubricImageInsertInput.addEventListener('change', async function(ev) {
+          var rf = ev.target.files && ev.target.files[0];
+          if (!rf) return;
+          var rimg = await uploadNcsEvalPlanFile(rf, true, 'rubric');
+          if (rimg && rimg.url) {
+            var rta = document.getElementById('rubric_notes');
+            insertAtCursor(rta, '\\n![이미지](' + rimg.url + ')\\n');
+          }
+          ev.target.value = '';
+        });
+      }
+      var achievementFileAttachBtn = document.getElementById('achievementFileAttachBtn');
+      var achievementFileAttachInput = document.getElementById('achievementFileAttachInput');
+      if (achievementFileAttachBtn && achievementFileAttachInput) {
+        achievementFileAttachBtn.addEventListener('click', function() { achievementFileAttachInput.click(); });
+        achievementFileAttachInput.addEventListener('change', async function(ev) {
+          var files = ev.target.files;
+          if (!files || !files.length) return;
+          var items = readAchievementAttachmentsFromDom();
+          for (var ai = 0; ai < files.length; ai++) {
+            var adata = await uploadNcsEvalPlanFile(files[ai], false, 'achievement');
+            if (adata && adata.url) {
+              items.push({ url: adata.url, name: adata.originalName || adata.fileName || files[ai].name });
+            }
+          }
+          renderAchievementAttachments(items);
+          ev.target.value = '';
+        });
+      }
+      var achievementImageInsertBtn = document.getElementById('achievementImageInsertBtn');
+      var achievementImageInsertInput = document.getElementById('achievementImageInsertInput');
+      if (achievementImageInsertBtn && achievementImageInsertInput) {
+        achievementImageInsertBtn.addEventListener('click', function() { achievementImageInsertInput.click(); });
+        achievementImageInsertInput.addEventListener('change', async function(ev) {
+          var af = ev.target.files && ev.target.files[0];
+          if (!af) return;
+          var aimg = await uploadNcsEvalPlanFile(af, true, 'achievement');
+          if (aimg && aimg.url) {
+            var ata = document.getElementById('achievement_notes');
+            insertAtCursor(ata, '\\n![이미지](' + aimg.url + ')\\n');
+          }
+          ev.target.value = '';
+        });
+      }
+      var reviewFileAttachBtn = document.getElementById('reviewFileAttachBtn');
+      var reviewFileAttachInput = document.getElementById('reviewFileAttachInput');
+      if (reviewFileAttachBtn && reviewFileAttachInput) {
+        reviewFileAttachBtn.addEventListener('click', function() { reviewFileAttachInput.click(); });
+        reviewFileAttachInput.addEventListener('change', async function(ev) {
+          var files = ev.target.files;
+          if (!files || !files.length) return;
+          var items = readReviewAttachmentsFromDom();
+          for (var rvi = 0; rvi < files.length; rvi++) {
+            var rvdata = await uploadNcsEvalPlanFile(files[rvi], false, 'review');
+            if (rvdata && rvdata.url) {
+              items.push({ url: rvdata.url, name: rvdata.originalName || rvdata.fileName || files[rvi].name });
+            }
+          }
+          renderReviewAttachments(items);
+          ev.target.value = '';
+        });
+      }
+      var reviewImageInsertBtn = document.getElementById('reviewImageInsertBtn');
+      var reviewImageInsertInput = document.getElementById('reviewImageInsertInput');
+      if (reviewImageInsertBtn && reviewImageInsertInput) {
+        reviewImageInsertBtn.addEventListener('click', function() { reviewImageInsertInput.click(); });
+        reviewImageInsertInput.addEventListener('change', async function(ev) {
+          var rvf = ev.target.files && ev.target.files[0];
+          if (!rvf) return;
+          var rvimg = await uploadNcsEvalPlanFile(rvf, true, 'review');
+          if (rvimg && rvimg.url) {
+            var rvta = document.getElementById('review_notes');
+            insertAtCursor(rvta, '\\n![이미지](' + rvimg.url + ')\\n');
+          }
+          ev.target.value = '';
+        });
       }
 
       var minutesFileAttachBtn = document.getElementById('minutesFileAttachBtn');
