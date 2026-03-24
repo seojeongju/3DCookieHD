@@ -473,6 +473,10 @@ const NCS_PLAN_PRINT_STYLES = `
   content: "필독/비고 내용을 입력하세요.";
   color: #94a3b8;
 }
+#review_notes:empty::before {
+  content: "기타의견/종합의견을 입력하세요.";
+  color: #94a3b8;
+}
 .ncs-questions-print-root.is-preview {
   left: 0 !important;
   right: 0 !important;
@@ -710,7 +714,7 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                         <i class="fas fa-print mr-1"></i>인쇄
                       </button>
                       ` : ''}
-                      ${(item.id === 'minutes' || item.id === 'questions' || item.id === 'tools' || item.id === 'rubric' || item.id === 'achievement') ? `
+                      ${(item.id === 'minutes' || item.id === 'questions' || item.id === 'tools' || item.id === 'rubric' || item.id === 'achievement' || item.id === 'review') ? `
                       <button type="button" data-plan-new-btn="${item.id}" class="px-3 py-2 rounded-xl bg-indigo-500 text-white text-xs font-black hover:bg-indigo-600 transition">
                         <i class="fas fa-file-circle-plus mr-1"></i>새문서 작성
                       </button>
@@ -1240,85 +1244,126 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                   </div>
                 </div>
               ` : item.id === 'review' ? `
-                <div class="space-y-4">
-                  <div class="rounded-2xl border border-slate-200/70 bg-slate-50 p-4">
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-                      <input id="review_doc_title" class="md:col-span-2 px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="문서 제목 (예: 평가도구 검토 체크리스트)" />
-                      <input id="review_writer" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="작성자" />
-                      <input id="review_reviewer" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="검토자" />
+                <div class="rounded-2xl border border-slate-200/70 overflow-hidden">
+                  <input type="file" id="reviewFileAttachInput" multiple class="hidden" />
+                  <input type="file" id="reviewImageInsertInput" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden" />
+                  <input type="file" id="reviewSignChairInput" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden" />
+                  <input type="file" id="reviewSignWriterInput" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden" />
+                  <input type="file" id="reviewSignReviewerInput" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden" />
+
+                  <div class="p-3 border-b border-slate-200/70 bg-slate-50/80 flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <button type="button" id="reviewImageInsertBtn" class="px-3 py-1.5 rounded-lg bg-sky-500 text-white text-xs font-black hover:bg-sky-600 transition"><i class="fas fa-image mr-1"></i>이미지 삽입</button>
+                      <button type="button" id="reviewImageDeleteBtn" class="px-3 py-1.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 text-xs font-black hover:bg-rose-100 transition"><i class="fas fa-trash mr-1"></i>이미지 삭제</button>
+                      <button type="button" id="reviewFileAttachBtn" class="px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-xs font-black text-slate-700 hover:bg-slate-100 transition"><i class="fas fa-paperclip mr-1"></i>파일첨부</button>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
-                      <input id="review_approval_role_chair" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="결재직함(예: 팀장)" />
-                      <input id="review_approval_role_writer" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="결재직함(예: 실장)" />
-                      <input id="review_approval_role_reviewer" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="결재직함(예: 원장)" />
-                    </div>
-                    <div class="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
-                      <div class="rounded-xl border border-slate-200 bg-white p-3">
-                        <p class="text-xs font-black text-slate-600 mb-2">결재 서명(1)</p>
-                        <input type="file" id="reviewSignChairInput" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden" />
-                        <div id="reviewSignChairPreview" class="h-16 rounded-lg border border-dashed border-slate-200 flex items-center justify-center text-xs text-slate-400 mb-2">(서명 없음)</div>
-                        <div class="flex items-center gap-2">
-                          <button type="button" id="reviewSignChairBtn" class="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-black text-slate-700 hover:bg-slate-50 transition">서명 삽입</button>
-                          <button type="button" class="px-2.5 py-1.5 rounded-lg border border-rose-200 text-xs font-black text-rose-700 hover:bg-rose-50 transition" data-remove-review-signature="chairperson">삭제</button>
-                        </div>
-                      </div>
-                      <div class="rounded-xl border border-slate-200 bg-white p-3">
-                        <p class="text-xs font-black text-slate-600 mb-2">결재 서명(2)</p>
-                        <input type="file" id="reviewSignWriterInput" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden" />
-                        <div id="reviewSignWriterPreview" class="h-16 rounded-lg border border-dashed border-slate-200 flex items-center justify-center text-xs text-slate-400 mb-2">(서명 없음)</div>
-                        <div class="flex items-center gap-2">
-                          <button type="button" id="reviewSignWriterBtn" class="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-black text-slate-700 hover:bg-slate-50 transition">서명 삽입</button>
-                          <button type="button" class="px-2.5 py-1.5 rounded-lg border border-rose-200 text-xs font-black text-rose-700 hover:bg-rose-50 transition" data-remove-review-signature="writer">삭제</button>
-                        </div>
-                      </div>
-                      <div class="rounded-xl border border-slate-200 bg-white p-3">
-                        <p class="text-xs font-black text-slate-600 mb-2">결재 서명(3)</p>
-                        <input type="file" id="reviewSignReviewerInput" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden" />
-                        <div id="reviewSignReviewerPreview" class="h-16 rounded-lg border border-dashed border-slate-200 flex items-center justify-center text-xs text-slate-400 mb-2">(서명 없음)</div>
-                        <div class="flex items-center gap-2">
-                          <button type="button" id="reviewSignReviewerBtn" class="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-black text-slate-700 hover:bg-slate-50 transition">서명 삽입</button>
-                          <button type="button" class="px-2.5 py-1.5 rounded-lg border border-rose-200 text-xs font-black text-rose-700 hover:bg-rose-50 transition" data-remove-review-signature="reviewer">삭제</button>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="mt-3 rounded-xl border border-slate-200/80 bg-white p-3">
-                      <div class="flex flex-wrap items-center gap-2 mb-2">
-                        <input type="file" id="reviewFileAttachInput" multiple class="hidden" />
-                        <button type="button" id="reviewFileAttachBtn" class="px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-black text-slate-700 hover:bg-slate-50 transition">
-                          <i class="fas fa-paperclip mr-1"></i>파일 첨부
-                        </button>
-                        <input type="file" id="reviewImageInsertInput" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden" />
-                        <button type="button" id="reviewImageInsertBtn" class="px-3 py-2 rounded-xl border border-sky-200 bg-sky-50 text-xs font-black text-sky-800 hover:bg-sky-100 transition">
-                          <i class="fas fa-image mr-1"></i>이미지 삽입
-                        </button>
-                        <span class="text-[11px] text-slate-500">이미지는 종합의견 입력란 커서 위치에 <code class="text-slate-600">![설명](URL)</code> 형식으로 삽입됩니다.</span>
-                      </div>
-                      <label class="block text-xs font-black text-slate-600 mb-1.5">첨부파일</label>
-                      <div id="reviewAttachmentsList" class="flex flex-wrap gap-2 min-h-[2.5rem]"></div>
+                    <div class="text-[11px] text-slate-500">기타의견 영역에서 이미지 즉시표시/리사이즈/삭제를 지원합니다.</div>
+                  </div>
+
+                  <div class="p-4 bg-white overflow-x-auto">
+                    <table class="w-full border border-black text-[12px] leading-relaxed min-w-[1100px]">
+                      <colgroup>
+                        <col style="width: 26%" />
+                        <col style="width: 28%" />
+                        <col style="width: 15.33%" />
+                        <col style="width: 15.33%" />
+                        <col style="width: 15.33%" />
+                      </colgroup>
+                      <tbody>
+                        <tr>
+                          <td class="border border-black px-4 py-3 text-5xl font-black text-center" rowspan="2" colspan="2">평가지 검토 체크리스트</td>
+                          <td class="border border-black text-center bg-slate-50 font-bold py-1.5">
+                            <div id="review_approval_role_chair" contenteditable="true" class="outline-none min-h-[1.25rem] whitespace-pre-wrap">검토자</div>
+                          </td>
+                          <td class="border border-black text-center bg-slate-50 font-bold py-1.5">
+                            <div id="review_approval_role_writer" contenteditable="true" class="outline-none min-h-[1.25rem] whitespace-pre-wrap">실장</div>
+                          </td>
+                          <td class="border border-black text-center bg-slate-50 font-bold py-1.5">
+                            <div id="review_approval_role_reviewer" contenteditable="true" class="outline-none min-h-[1.25rem] whitespace-pre-wrap">원장</div>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td class="border border-black p-1.5 align-top">
+                            <div id="reviewSignChairPreview" class="h-20 rounded border border-dashed border-slate-300 flex items-center justify-center text-xs text-slate-400 mb-1">(서명 없음)</div>
+                            <div class="flex items-center justify-center gap-1.5">
+                              <button type="button" id="reviewSignChairBtn" class="px-2 py-1 rounded border border-slate-200 text-[11px] font-black text-slate-700 hover:bg-slate-50 transition">서명 삽입</button>
+                              <button type="button" class="px-2 py-1 rounded border border-rose-200 text-[11px] font-black text-rose-700 hover:bg-rose-50 transition" data-remove-review-signature="chairperson">삭제</button>
+                            </div>
+                          </td>
+                          <td class="border border-black p-1.5 align-top">
+                            <div id="reviewSignWriterPreview" class="h-20 rounded border border-dashed border-slate-300 flex items-center justify-center text-xs text-slate-400 mb-1">(서명 없음)</div>
+                            <div class="flex items-center justify-center gap-1.5">
+                              <button type="button" id="reviewSignWriterBtn" class="px-2 py-1 rounded border border-slate-200 text-[11px] font-black text-slate-700 hover:bg-slate-50 transition">서명 삽입</button>
+                              <button type="button" class="px-2 py-1 rounded border border-rose-200 text-[11px] font-black text-rose-700 hover:bg-rose-50 transition" data-remove-review-signature="writer">삭제</button>
+                            </div>
+                          </td>
+                          <td class="border border-black p-1.5 align-top">
+                            <div id="reviewSignReviewerPreview" class="h-20 rounded border border-dashed border-slate-300 flex items-center justify-center text-xs text-slate-400 mb-1">(서명 없음)</div>
+                            <div class="flex items-center justify-center gap-1.5">
+                              <button type="button" id="reviewSignReviewerBtn" class="px-2 py-1 rounded border border-slate-200 text-[11px] font-black text-slate-700 hover:bg-slate-50 transition">서명 삽입</button>
+                              <button type="button" class="px-2 py-1 rounded border border-rose-200 text-[11px] font-black text-rose-700 hover:bg-rose-50 transition" data-remove-review-signature="reviewer">삭제</button>
+                            </div>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+
+                    <p class="text-center text-[11px] text-slate-700 my-4">본 과정의 평가지에 대한 의견을 아래와 같이 의뢰하오니 검토 부탁드립니다.</p>
+
+                    <table class="w-full border border-black text-[12px] leading-relaxed min-w-[1100px]">
+                      <colgroup>
+                        <col style="width: 18%" />
+                        <col style="width: 30%" />
+                        <col style="width: 18%" />
+                        <col style="width: 34%" />
+                      </colgroup>
+                      <tbody>
+                        <tr>
+                          <td class="border border-black text-center bg-slate-50 font-bold py-1">과정명</td>
+                          <td class="border border-black px-2 py-1" colspan="3"><div id="review_doc_title" contenteditable="true" class="outline-none min-h-[1.25rem] whitespace-pre-wrap"></div></td>
+                        </tr>
+                        <tr>
+                          <td class="border border-black text-center bg-slate-50 font-bold py-1">교과목명</td>
+                          <td class="border border-black px-2 py-1"><div id="review_subject_name" contenteditable="true" class="outline-none min-h-[1.25rem] whitespace-pre-wrap"></div></td>
+                          <td class="border border-black text-center bg-slate-50 font-bold py-1">능력단위명/수준</td>
+                          <td class="border border-black px-2 py-1"><div id="review_unit_level" contenteditable="true" class="outline-none min-h-[1.25rem] whitespace-pre-wrap"></div></td>
+                        </tr>
+                        <tr>
+                          <td class="border border-black text-center bg-slate-50 font-bold py-1">평가도구</td>
+                          <td class="border border-black px-2 py-1"><div id="review_tool_name" contenteditable="true" class="outline-none min-h-[1.25rem] whitespace-pre-wrap"></div></td>
+                          <td class="border border-black text-center bg-slate-50 font-bold py-1">검토인</td>
+                          <td class="border border-black px-2 py-1"><div id="review_writer" contenteditable="true" class="outline-none min-h-[1.25rem] whitespace-pre-wrap"></div></td>
+                        </tr>
+                        <tr>
+                          <td class="border border-black text-center bg-slate-50 font-bold py-1">검토일</td>
+                          <td class="border border-black px-2 py-1"><div id="review_reviewer" contenteditable="true" class="outline-none min-h-[1.25rem] whitespace-pre-wrap"></div></td>
+                          <td class="border border-black text-center bg-slate-50 font-bold py-1">검토일</td>
+                          <td class="border border-black px-2 py-1"><div id="review_review_date" contenteditable="true" class="outline-none min-h-[1.25rem] whitespace-pre-wrap"></div></td>
+                        </tr>
+                      </tbody>
+                    </table>
+
+                    <table class="w-full border border-black text-[12px] leading-relaxed mt-3 min-w-[1100px]">
+                      <thead class="bg-slate-50">
+                        <tr>
+                          <th class="border border-black px-2 py-1 text-center font-bold w-44">검토항목</th>
+                          <th class="border border-black px-2 py-1 text-center font-bold">1안 검토사항</th>
+                          <th class="border border-black px-2 py-1 text-center font-bold w-14">적절</th>
+                          <th class="border border-black px-2 py-1 text-center font-bold w-14">수정 필요</th>
+                        </tr>
+                      </thead>
+                      <tbody id="reviewRowsBody" class="bg-white"></tbody>
+                    </table>
+
+                    <div class="mt-3 border border-black bg-white p-2">
+                      <p class="text-xs font-black mb-1">기타의견</p>
+                      <div id="review_notes" contenteditable="true" class="min-h-[92px] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1"></div>
                     </div>
                   </div>
-                  <div class="rounded-2xl border border-slate-200/70 overflow-hidden">
-                    <div class="overflow-x-auto">
-                      <table class="w-full text-left">
-                        <thead class="bg-slate-50 border-b border-slate-100">
-                          <tr>
-                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider w-44">검토항목</th>
-                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider">1안 검토사항</th>
-                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider w-20 text-center">적절</th>
-                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider w-24 text-center">수정 필요</th>
-                          </tr>
-                        </thead>
-                        <tbody id="reviewRowsBody" class="divide-y divide-slate-100 bg-white"></tbody>
-                      </table>
-                    </div>
-                  </div>
-                  <div class="flex items-center justify-between rounded-2xl border border-slate-200/70 bg-white px-4 py-3">
-                    <p class="text-sm text-slate-600">검토 완료율</p>
-                    <p id="reviewCompletionLabel" class="text-sm font-black text-slate-900">0%</p>
-                  </div>
-                  <div>
-                    <label class="block text-xs font-black text-slate-600 mb-1.5">종합의견</label>
-                    <textarea id="review_notes" class="w-full h-24 px-3 py-2 rounded-xl border border-slate-200 text-sm"></textarea>
+                  <p id="reviewCompletionLabel" class="hidden">0%</p>
+                  <div class="px-4 pb-4">
+                    <label class="block text-xs font-black text-slate-600 mb-1.5">첨부파일</label>
+                    <div id="reviewAttachmentsList" class="flex flex-wrap gap-2 min-h-[2.5rem]"></div>
                   </div>
                 </div>
               ` : `
@@ -1715,6 +1760,43 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       var tag = el.tagName ? String(el.tagName).toUpperCase() : '';
       if (id === 'achievement_notes' && el.isContentEditable) {
         el.innerHTML = normalizeAchievementNotesForEditor(next);
+        return;
+      }
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
+        el.value = next;
+        return;
+      }
+      if (el.isContentEditable) {
+        el.textContent = next;
+        return;
+      }
+      el.textContent = next;
+    }
+
+    function normalizeReviewNotesForEditor(raw) {
+      var text = String(raw || '');
+      if (!text.trim()) return '';
+      if (/<[a-z][\s\S]*>/i.test(text)) return text;
+      return minutesMarkdownToEditorHtml(text);
+    }
+
+    function getReviewFieldValue(id) {
+      var el = document.getElementById(id);
+      if (!el) return '';
+      var tag = el.tagName ? String(el.tagName).toUpperCase() : '';
+      if (id === 'review_notes' && el.isContentEditable) return String(el.innerHTML || '');
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return String(el.value || '');
+      if (el.isContentEditable) return String(el.textContent || '');
+      return String(el.textContent || '');
+    }
+
+    function setReviewFieldValue(id, value) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      var next = value != null ? String(value) : '';
+      var tag = el.tagName ? String(el.tagName).toUpperCase() : '';
+      if (id === 'review_notes' && el.isContentEditable) {
+        el.innerHTML = normalizeReviewNotesForEditor(next);
         return;
       }
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
@@ -2531,7 +2613,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
     async function fillReviewPrintSheet() {
       var courseTitle = await resolveCourseTitleForPrint();
       var subEl = document.getElementById('reviewPrintSubtitle');
-      var docTitle = (document.getElementById('review_doc_title') || {}).value || '';
+      var docTitle = getReviewFieldValue('review_doc_title');
       if (subEl) subEl.textContent = docTitle ? ('(' + docTitle + ')') : '';
 
       var subjLabel = '';
@@ -2545,11 +2627,11 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       setMinutesPrintText('reviewPrintRound', roundLabel(selectedRound));
       setMinutesPrintText('reviewPrintDocTitle', docTitle || '-');
 
-      setMinutesPrintText('reviewPrintWriter', (document.getElementById('review_writer') || {}).value || '-');
-      setMinutesPrintText('reviewPrintReviewer', (document.getElementById('review_reviewer') || {}).value || '-');
-      setMinutesPrintApprovalRole('reviewPrintApprovalRoleChair', (document.getElementById('review_approval_role_chair') || {}).value || '', '팀장');
-      setMinutesPrintApprovalRole('reviewPrintApprovalRoleWriter', (document.getElementById('review_approval_role_writer') || {}).value || '', '실장');
-      setMinutesPrintApprovalRole('reviewPrintApprovalRoleReviewer', (document.getElementById('review_approval_role_reviewer') || {}).value || '', '원장');
+      setMinutesPrintText('reviewPrintWriter', getReviewFieldValue('review_writer') || '-');
+      setMinutesPrintText('reviewPrintReviewer', getReviewFieldValue('review_reviewer') || '-');
+      setMinutesPrintApprovalRole('reviewPrintApprovalRoleChair', getReviewFieldValue('review_approval_role_chair') || '', '팀장');
+      setMinutesPrintApprovalRole('reviewPrintApprovalRoleWriter', getReviewFieldValue('review_approval_role_writer') || '', '실장');
+      setMinutesPrintApprovalRole('reviewPrintApprovalRoleReviewer', getReviewFieldValue('review_approval_role_reviewer') || '', '원장');
       var rsig = readReviewSignaturesFromDom();
       setMinutesPrintSignature('reviewPrintSignChair', rsig.chairperson);
       setMinutesPrintSignature('reviewPrintSignWriter', rsig.writer);
@@ -2595,7 +2677,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         }
       }
 
-      setMinutesPrintText('reviewPrintNotes', (document.getElementById('review_notes') || {}).value || '');
+      setMinutesPrintHtml('reviewPrintNotes', minutesContentToPrintHtml(getReviewFieldValue('review_notes')));
     }
 
     async function printReviewDocument() {
@@ -2726,14 +2808,18 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       }
       if (tabId === 'review') {
         return {
-          title: (document.getElementById('review_doc_title') || {}).value || '',
+          title: getReviewFieldValue('review_doc_title'),
           payload: {
-            writer: (document.getElementById('review_writer') || {}).value || '',
-            reviewer: (document.getElementById('review_reviewer') || {}).value || '',
-            approval_role_chair: (document.getElementById('review_approval_role_chair') || {}).value || '',
-            approval_role_writer: (document.getElementById('review_approval_role_writer') || {}).value || '',
-            approval_role_reviewer: (document.getElementById('review_approval_role_reviewer') || {}).value || '',
-            notes: (document.getElementById('review_notes') || {}).value || '',
+            writer: getReviewFieldValue('review_writer'),
+            reviewer: getReviewFieldValue('review_reviewer'),
+            approval_role_chair: getReviewFieldValue('review_approval_role_chair'),
+            approval_role_writer: getReviewFieldValue('review_approval_role_writer'),
+            approval_role_reviewer: getReviewFieldValue('review_approval_role_reviewer'),
+            subject_name: getReviewFieldValue('review_subject_name'),
+            unit_level: getReviewFieldValue('review_unit_level'),
+            tool_name: getReviewFieldValue('review_tool_name'),
+            review_date: getReviewFieldValue('review_review_date'),
+            notes: getReviewFieldValue('review_notes'),
             attachments: readReviewAttachmentsFromDom(),
             signatures: readReviewSignaturesFromDom(),
             rows: readReviewRowsFromTable()
@@ -3236,7 +3322,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       if (!body) return;
       const safeRows = Array.isArray(rows) ? rows : [];
       if (!safeRows.length) {
-        body.innerHTML = '<tr><td colspan="4" class="px-4 py-8 text-center text-sm text-slate-400">등록된 검토항목이 없습니다.</td></tr>';
+        body.innerHTML = '<tr><td colspan="4" class="border border-black px-4 py-8 text-center text-sm text-slate-400">등록된 검토항목이 없습니다.</td></tr>';
         updateReviewCompletion([]);
         return;
       }
@@ -3246,10 +3332,10 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         const adequate = !!row?.adequate;
         const needsRevision = !!row?.needs_revision;
         return '<tr data-review-row data-item="' + escapeHtml(item) + '" data-comment="' + escapeHtml(comment) + '">' +
-          '<td class="px-4 py-3 text-sm font-semibold text-slate-700 align-top"><div data-review-cell="item" contenteditable="true" class="min-h-[2.2rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(item) + '</div></td>' +
-          '<td class="px-4 py-3 text-sm text-slate-700 align-top"><div data-review-cell="comment" contenteditable="true" class="min-h-[2.2rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(comment) + '</div></td>' +
-          '<td class="px-4 py-3 text-center align-top"><input type="checkbox" data-review-check="adequate" data-review-index="' + idx + '" ' + (adequate ? 'checked' : '') + ' /></td>' +
-          '<td class="px-4 py-3 text-center align-top"><input type="checkbox" data-review-check="needs_revision" data-review-index="' + idx + '" ' + (needsRevision ? 'checked' : '') + ' /></td>' +
+          '<td class="border border-black px-2 py-1 text-sm font-semibold text-slate-700 align-top"><div data-review-cell="item" contenteditable="true" class="min-h-[1.8rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(item) + '</div></td>' +
+          '<td class="border border-black px-2 py-1 text-sm text-slate-700 align-top"><div data-review-cell="comment" contenteditable="true" class="min-h-[1.8rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(comment) + '</div></td>' +
+          '<td class="border border-black px-2 py-1 text-center align-top"><input type="checkbox" data-review-check="adequate" data-review-index="' + idx + '" ' + (adequate ? 'checked' : '') + ' /></td>' +
+          '<td class="border border-black px-2 py-1 text-center align-top"><input type="checkbox" data-review-check="needs_revision" data-review-index="' + idx + '" ' + (needsRevision ? 'checked' : '') + ' /></td>' +
         '</tr>';
       }).join('');
       updateReviewCompletion(safeRows);
@@ -3336,20 +3422,17 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         return;
       }
       if (tabId === 'review') {
-        const titleEl = document.getElementById('review_doc_title');
-        const writerEl = document.getElementById('review_writer');
-        const reviewerEl = document.getElementById('review_reviewer');
-        const roleChairEl = document.getElementById('review_approval_role_chair');
-        const roleWriterEl = document.getElementById('review_approval_role_writer');
-        const roleReviewerEl = document.getElementById('review_approval_role_reviewer');
-        const notesEl = document.getElementById('review_notes');
-        if (titleEl) titleEl.value = data?.title || '';
-        if (writerEl) writerEl.value = payload.writer || '';
-        if (reviewerEl) reviewerEl.value = payload.reviewer || '';
-        if (roleChairEl) roleChairEl.value = payload.approval_role_chair || '팀장';
-        if (roleWriterEl) roleWriterEl.value = payload.approval_role_writer || '실장';
-        if (roleReviewerEl) roleReviewerEl.value = payload.approval_role_reviewer || '원장';
-        if (notesEl) notesEl.value = payload.notes || '';
+        setReviewFieldValue('review_doc_title', data?.title || '');
+        setReviewFieldValue('review_writer', payload.writer || '');
+        setReviewFieldValue('review_reviewer', payload.reviewer || '');
+        setReviewFieldValue('review_approval_role_chair', payload.approval_role_chair || '검토자');
+        setReviewFieldValue('review_approval_role_writer', payload.approval_role_writer || '실장');
+        setReviewFieldValue('review_approval_role_reviewer', payload.approval_role_reviewer || '원장');
+        setReviewFieldValue('review_subject_name', payload.subject_name || '');
+        setReviewFieldValue('review_unit_level', payload.unit_level || '');
+        setReviewFieldValue('review_tool_name', payload.tool_name || '평가지 체크리스트');
+        setReviewFieldValue('review_review_date', payload.review_date || '');
+        setReviewFieldValue('review_notes', payload.notes || '');
         renderReviewAttachments(payload.attachments || []);
         renderReviewSignatures(payload.signatures || {});
         renderReviewRows(normalizeReviewRows(payload.rows || []));
@@ -4216,10 +4299,60 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         });
       }
       var reviewImageInsertBtn = document.getElementById('reviewImageInsertBtn');
+      var reviewImageDeleteBtn = document.getElementById('reviewImageDeleteBtn');
       var reviewImageInsertInput = document.getElementById('reviewImageInsertInput');
       if (reviewImageInsertBtn && reviewImageInsertInput) {
         reviewImageInsertBtn.addEventListener('click', function() { openNcsPlanImageInsertModal('review_notes', 'review'); });
       }
+      var selectedReviewImageBox = null;
+      function clearSelectedReviewImage() {
+        if (selectedReviewImageBox) selectedReviewImageBox.classList.remove('is-selected');
+        selectedReviewImageBox = null;
+      }
+      function removeSelectedReviewImage() {
+        if (!selectedReviewImageBox) return;
+        selectedReviewImageBox.remove();
+        selectedReviewImageBox = null;
+        var editor = document.getElementById('review_notes');
+        if (editor) editor.focus();
+      }
+      if (reviewImageDeleteBtn) {
+        reviewImageDeleteBtn.addEventListener('click', function() {
+          if (!selectedReviewImageBox) {
+            alert('삭제할 이미지를 먼저 클릭해 선택해 주세요.');
+            return;
+          }
+          removeSelectedReviewImage();
+        });
+      }
+      var reviewNotesEditor = document.getElementById('review_notes');
+      if (reviewNotesEditor) {
+        reviewNotesEditor.addEventListener('click', function(ev) {
+          var target = ev.target;
+          var box = target && target.closest ? target.closest('.minutes-image-resizable') : null;
+          if (box) {
+            if (selectedReviewImageBox && selectedReviewImageBox !== box) selectedReviewImageBox.classList.remove('is-selected');
+            selectedReviewImageBox = box;
+            selectedReviewImageBox.classList.add('is-selected');
+          } else {
+            clearSelectedReviewImage();
+          }
+        });
+        reviewNotesEditor.addEventListener('keydown', function(ev) {
+          var key = String(ev.key || '').toLowerCase();
+          if (!selectedReviewImageBox) return;
+          if (key === 'delete' || key === 'backspace') {
+            ev.preventDefault();
+            removeSelectedReviewImage();
+          }
+        });
+      }
+      document.addEventListener('click', function(ev) {
+        var target = ev.target;
+        if (!selectedReviewImageBox) return;
+        if (target && target.closest && (target.closest('#review_notes') || target.closest('#reviewImageDeleteBtn'))) return;
+        clearSelectedReviewImage();
+      });
 
       function bindReviewSignatureInput(btnId, inputId, previewId) {
         var btn = document.getElementById(btnId);
