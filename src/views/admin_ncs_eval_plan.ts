@@ -469,6 +469,10 @@ const NCS_PLAN_PRINT_STYLES = `
   content: "비고를 입력하세요.";
   color: #94a3b8;
 }
+#achievement_notes:empty::before {
+  content: "필독/비고 내용을 입력하세요.";
+  color: #94a3b8;
+}
 .ncs-questions-print-root.is-preview {
   left: 0 !important;
   right: 0 !important;
@@ -706,7 +710,7 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                         <i class="fas fa-print mr-1"></i>인쇄
                       </button>
                       ` : ''}
-                      ${(item.id === 'minutes' || item.id === 'questions' || item.id === 'tools' || item.id === 'rubric') ? `
+                      ${(item.id === 'minutes' || item.id === 'questions' || item.id === 'tools' || item.id === 'rubric' || item.id === 'achievement') ? `
                       <button type="button" data-plan-new-btn="${item.id}" class="px-3 py-2 rounded-xl bg-indigo-500 text-white text-xs font-black hover:bg-indigo-600 transition">
                         <i class="fas fa-file-circle-plus mr-1"></i>새문서 작성
                       </button>
@@ -1144,52 +1148,95 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                   </div>
                 </div>
               ` : item.id === 'achievement' ? `
-                <div class="space-y-4">
-                  <div class="rounded-2xl border border-slate-200/70 bg-slate-50 p-4">
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-                      <input id="achievement_doc_title" class="md:col-span-2 px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="문서 제목 (예: 성취수준 기준표)" />
-                      <input id="achievement_writer" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="작성자" />
-                      <input id="achievement_target_score" type="number" min="0" step="1" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="만점(기준점수)" />
+                <div class="rounded-2xl border border-slate-200/70 overflow-hidden">
+                  <input type="file" id="achievementFileAttachInput" multiple class="hidden" />
+                  <input type="file" id="achievementImageInsertInput" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden" />
+
+                  <div class="p-3 border-b border-slate-200/70 bg-slate-50/80 flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <button type="button" id="achievementImageInsertBtn" class="px-3 py-1.5 rounded-lg bg-sky-500 text-white text-xs font-black hover:bg-sky-600 transition"><i class="fas fa-image mr-1"></i>이미지 삽입</button>
+                      <button type="button" id="achievementImageDeleteBtn" class="px-3 py-1.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 text-xs font-black hover:bg-rose-100 transition"><i class="fas fa-trash mr-1"></i>이미지 삭제</button>
+                      <button type="button" id="achievementFileAttachBtn" class="px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-xs font-black text-slate-700 hover:bg-slate-100 transition"><i class="fas fa-paperclip mr-1"></i>파일첨부</button>
                     </div>
-                    <div class="mt-3 rounded-xl border border-slate-200/80 bg-white p-3">
-                      <div class="flex flex-wrap items-center gap-2 mb-2">
-                        <input type="file" id="achievementFileAttachInput" multiple class="hidden" />
-                        <button type="button" id="achievementFileAttachBtn" class="px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-black text-slate-700 hover:bg-slate-50 transition">
-                          <i class="fas fa-paperclip mr-1"></i>파일 첨부
-                        </button>
-                        <input type="file" id="achievementImageInsertInput" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden" />
-                        <button type="button" id="achievementImageInsertBtn" class="px-3 py-2 rounded-xl border border-sky-200 bg-sky-50 text-xs font-black text-sky-800 hover:bg-sky-100 transition">
-                          <i class="fas fa-image mr-1"></i>이미지 삽입
-                        </button>
-                        <span class="text-[11px] text-slate-500">이미지는 비고 입력란 커서 위치에 <code class="text-slate-600">![설명](URL)</code> 형식으로 삽입됩니다.</span>
-                      </div>
-                      <label class="block text-xs font-black text-slate-600 mb-1.5">첨부파일</label>
-                      <div id="achievementAttachmentsList" class="flex flex-wrap gap-2 min-h-[2.5rem]"></div>
-                    </div>
+                    <div class="text-[11px] text-slate-500">비고 영역에서 이미지 즉시표시/리사이즈/삭제를 지원합니다.</div>
                   </div>
 
-                  <div class="rounded-2xl border border-slate-200/70 overflow-hidden">
-                    <div class="overflow-x-auto">
-                      <table class="w-full text-left">
-                        <thead class="bg-slate-50 border-b border-slate-100">
-                          <tr>
-                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider w-20 text-center">성취수준</th>
-                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider">종합 성취기준</th>
-                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider w-24 text-center">점수분배</th>
-                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider w-16 text-center">Fail</th>
-                          </tr>
-                        </thead>
-                        <tbody id="achievementRowsBody" class="divide-y divide-slate-100 bg-white"></tbody>
-                      </table>
+                  <div class="p-4 bg-white overflow-x-auto">
+                    <table class="w-full min-w-[1080px] border border-black text-[12px] leading-relaxed">
+                      <colgroup>
+                        <col style="width: 13%" />
+                        <col style="width: 41%" />
+                        <col style="width: 10%" />
+                        <col style="width: 10%" />
+                        <col style="width: 10%" />
+                        <col style="width: 16%" />
+                      </colgroup>
+                      <tbody>
+                        <tr>
+                          <td class="border border-black text-center bg-slate-50 font-bold py-1">과정명</td>
+                          <td class="border border-black px-2 py-1" colspan="2"><div id="achievement_doc_title" contenteditable="true" class="outline-none min-h-[1.25rem] whitespace-pre-wrap"></div></td>
+                          <td class="border border-black text-center bg-slate-50 font-bold py-1">평가일자</td>
+                          <td class="border border-black px-2 py-1" colspan="2"><div id="achievement_eval_date" contenteditable="true" class="outline-none min-h-[1.25rem] whitespace-pre-wrap"></div></td>
+                        </tr>
+                        <tr>
+                          <td class="border border-black text-center bg-slate-50 font-bold py-1">교과목</td>
+                          <td class="border border-black px-2 py-1" colspan="2"><div id="achievement_subject_name" contenteditable="true" class="outline-none min-h-[1.25rem] whitespace-pre-wrap"></div></td>
+                          <td class="border border-black text-center bg-slate-50 font-bold py-1">훈련생</td>
+                          <td class="border border-black px-2 py-1" colspan="2"><div id="achievement_trainee" contenteditable="true" class="outline-none min-h-[1.25rem] whitespace-pre-wrap"></div></td>
+                        </tr>
+                        <tr>
+                          <td class="border border-black text-center bg-slate-50 font-bold py-1">능력단위명/수준</td>
+                          <td class="border border-black px-2 py-1" colspan="2"><div id="achievement_unit_level" contenteditable="true" class="outline-none min-h-[1.25rem] whitespace-pre-wrap"></div></td>
+                          <td class="border border-black text-center bg-slate-50 font-bold py-1">훈련교사</td>
+                          <td class="border border-black px-2 py-1"><div id="achievement_writer" contenteditable="true" class="outline-none min-h-[1.25rem] whitespace-pre-wrap"></div></td>
+                          <td class="border border-black px-2 py-1 text-center"><div id="achievement_target_score" contenteditable="true" class="outline-none min-h-[1.25rem] whitespace-pre-wrap">100</div></td>
+                        </tr>
+                      </tbody>
+                    </table>
+
+                    <h3 class="text-center text-3xl font-black my-4">종합 환산점수별 성취기준</h3>
+
+                    <table class="w-full min-w-[1080px] border border-black text-[12px] leading-relaxed">
+                      <thead class="bg-slate-50">
+                        <tr>
+                          <th class="border border-black px-2 py-1 text-center font-bold w-20">성취수준</th>
+                          <th class="border border-black px-2 py-1 text-center font-bold">종합 성취기준</th>
+                          <th class="border border-black px-2 py-1 text-center font-bold w-24">점수분배</th>
+                          <th class="border border-black px-2 py-1 text-center font-bold w-16">Fail</th>
+                        </tr>
+                      </thead>
+                      <tbody id="achievementRowsBody" class="bg-white"></tbody>
+                    </table>
+
+                    <div class="mt-3 border border-black bg-white p-2">
+                      <p class="text-xs font-black mb-1">필독</p>
+                      <div id="achievement_notes" contenteditable="true" class="min-h-[78px] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1"></div>
                     </div>
+
+                    <h3 class="text-center text-3xl font-black my-4">능력단위요소별 취득 점수 및 환산점수</h3>
+                    <table class="w-full border border-black text-[12px] leading-relaxed">
+                      <thead class="bg-slate-50">
+                        <tr>
+                          <th class="border border-black px-2 py-1 text-center font-bold">능력단위요소명</th>
+                          <th class="border border-black px-2 py-1 text-center font-bold w-24">취득점수</th>
+                          <th class="border border-black px-2 py-1 text-center font-bold w-24">환산점수</th>
+                          <th class="border border-black px-2 py-1 text-center font-bold">지도교사 평가</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td class="border border-black px-2 py-1"><div id="achievement_score_item_name" contenteditable="true" class="outline-none min-h-[1.25rem] whitespace-pre-wrap"></div></td>
+                          <td class="border border-black px-2 py-1 text-center"><div id="achievement_score_raw" contenteditable="true" class="outline-none min-h-[1.25rem] whitespace-pre-wrap"></div></td>
+                          <td class="border border-black px-2 py-1 text-center"><div id="achievement_score_converted" contenteditable="true" class="outline-none min-h-[1.25rem] whitespace-pre-wrap"></div></td>
+                          <td class="border border-black px-2 py-1"><div id="achievement_score_comment" contenteditable="true" class="outline-none min-h-[1.25rem] whitespace-pre-wrap"></div></td>
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
-                  <div class="flex items-center justify-between rounded-2xl border border-slate-200/70 bg-white px-4 py-3">
-                    <p class="text-sm text-slate-600">점수분배 합계</p>
-                    <p id="achievementRateSumLabel" class="text-sm font-black text-slate-900">0점</p>
-                  </div>
-                  <div>
-                    <label class="block text-xs font-black text-slate-600 mb-1.5">비고</label>
-                    <textarea id="achievement_notes" class="w-full h-24 px-3 py-2 rounded-xl border border-slate-200 text-sm"></textarea>
+                  <p id="achievementRateSumLabel" class="hidden">0점</p>
+                  <div class="px-4 pb-4">
+                    <label class="block text-xs font-black text-slate-600 mb-1.5">첨부파일</label>
+                    <div id="achievementAttachmentsList" class="flex flex-wrap gap-2 min-h-[2.5rem]"></div>
                   </div>
                 </div>
               ` : item.id === 'review' ? `
@@ -1631,6 +1678,43 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       var tag = el.tagName ? String(el.tagName).toUpperCase() : '';
       if (id === 'rubric_notes' && el.isContentEditable) {
         el.innerHTML = normalizeRubricNotesForEditor(next);
+        return;
+      }
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
+        el.value = next;
+        return;
+      }
+      if (el.isContentEditable) {
+        el.textContent = next;
+        return;
+      }
+      el.textContent = next;
+    }
+
+    function normalizeAchievementNotesForEditor(raw) {
+      var text = String(raw || '');
+      if (!text.trim()) return '';
+      if (/<[a-z][\s\S]*>/i.test(text)) return text;
+      return minutesMarkdownToEditorHtml(text);
+    }
+
+    function getAchievementFieldValue(id) {
+      var el = document.getElementById(id);
+      if (!el) return '';
+      var tag = el.tagName ? String(el.tagName).toUpperCase() : '';
+      if (id === 'achievement_notes' && el.isContentEditable) return String(el.innerHTML || '');
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return String(el.value || '');
+      if (el.isContentEditable) return String(el.textContent || '');
+      return String(el.textContent || '');
+    }
+
+    function setAchievementFieldValue(id, value) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      var next = value != null ? String(value) : '';
+      var tag = el.tagName ? String(el.tagName).toUpperCase() : '';
+      if (id === 'achievement_notes' && el.isContentEditable) {
+        el.innerHTML = normalizeAchievementNotesForEditor(next);
         return;
       }
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
@@ -2375,7 +2459,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
     async function fillAchievementPrintSheet() {
       var courseTitle = await resolveCourseTitleForPrint();
       var subEl = document.getElementById('achievementPrintSubtitle');
-      var docTitle = (document.getElementById('achievement_doc_title') || {}).value || '';
+      var docTitle = getAchievementFieldValue('achievement_doc_title');
       if (subEl) subEl.textContent = docTitle ? ('(' + docTitle + ')') : '';
 
       var subjLabel = '';
@@ -2388,7 +2472,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       setMinutesPrintText('achievementPrintSubject', subjLabel || '-');
       setMinutesPrintText('achievementPrintRound', roundLabel(selectedRound));
       setMinutesPrintText('achievementPrintDocTitle', docTitle || '-');
-      setMinutesPrintText('achievementPrintWriter', (document.getElementById('achievement_writer') || {}).value || '-');
+      setMinutesPrintText('achievementPrintWriter', getAchievementFieldValue('achievement_writer') || '-');
 
       var aAtt = readAchievementAttachmentsFromDom();
       var aAttPrint = document.getElementById('achievementPrintAttachments');
@@ -2406,7 +2490,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
 
       var rows = readAchievementRowsFromTable();
       var sumScore = rows.reduce(function(acc, r) { return acc + Number(r && r.score_distribution != null ? r.score_distribution : (r && r.max_score != null ? r.max_score : 0)); }, 0);
-      var targetScore = Number((document.getElementById('achievement_target_score') || {}).value || 0);
+      var targetScore = Number(getAchievementFieldValue('achievement_target_score') || 0);
       var summary = '점수분배 합계 ' + sumScore + '점';
       if (targetScore > 0) summary = '만점 ' + targetScore + '점 / ' + summary;
       setMinutesPrintText('achievementPrintSummary', summary);
@@ -2431,7 +2515,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         }
       }
 
-      setMinutesPrintText('achievementPrintNotes', (document.getElementById('achievement_notes') || {}).value || '');
+      setMinutesPrintHtml('achievementPrintNotes', minutesContentToPrintHtml(getAchievementFieldValue('achievement_notes')));
     }
 
     async function printAchievementDocument() {
@@ -2622,11 +2706,19 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       }
       if (tabId === 'achievement') {
         return {
-          title: (document.getElementById('achievement_doc_title') || {}).value || '',
+          title: getAchievementFieldValue('achievement_doc_title'),
           payload: {
-            writer: (document.getElementById('achievement_writer') || {}).value || '',
-            target_score: Number((document.getElementById('achievement_target_score') || {}).value || 0),
-            notes: (document.getElementById('achievement_notes') || {}).value || '',
+            writer: getAchievementFieldValue('achievement_writer'),
+            eval_date: getAchievementFieldValue('achievement_eval_date'),
+            subject_name: getAchievementFieldValue('achievement_subject_name'),
+            trainee: getAchievementFieldValue('achievement_trainee'),
+            unit_level: getAchievementFieldValue('achievement_unit_level'),
+            target_score: Number(getAchievementFieldValue('achievement_target_score') || 0),
+            notes: getAchievementFieldValue('achievement_notes'),
+            score_item_name: getAchievementFieldValue('achievement_score_item_name'),
+            score_raw: getAchievementFieldValue('achievement_score_raw'),
+            score_converted: getAchievementFieldValue('achievement_score_converted'),
+            score_comment: getAchievementFieldValue('achievement_score_comment'),
             attachments: readAchievementAttachmentsFromDom(),
             rows: readAchievementRowsFromTable()
           }
@@ -3035,7 +3127,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       if (!body) return;
       const safeRows = Array.isArray(rows) ? rows : [];
       if (!safeRows.length) {
-        body.innerHTML = '<tr><td colspan="4" class="px-4 py-8 text-center text-sm text-slate-400">등록된 성취수준이 없습니다.</td></tr>';
+        body.innerHTML = '<tr><td colspan="4" class="border border-black px-4 py-8 text-center text-sm text-slate-400">등록된 성취수준이 없습니다.</td></tr>';
         updateAchievementRateSum([]);
         return;
       }
@@ -3045,10 +3137,10 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         const score = Number(row?.score_distribution ?? row?.max_score ?? 0);
         const fail = String(row?.fail || '');
         return '<tr data-achievement-row data-level="' + escapeHtml(level) + '" data-criteria="' + escapeHtml(criteria) + '" data-score-distribution="' + escapeHtml(String(score)) + '" data-fail="' + escapeHtml(fail) + '">' +
-          '<td class="px-4 py-3 text-sm text-center font-semibold text-slate-700 align-top"><div data-achievement-cell="level" contenteditable="true" class="min-h-[2.2rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(level) + '</div></td>' +
-          '<td class="px-4 py-3 text-sm text-slate-700 align-top"><div data-achievement-cell="criteria" contenteditable="true" class="min-h-[2.2rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(criteria) + '</div></td>' +
-          '<td class="px-4 py-3 text-sm text-center font-semibold text-slate-800 align-top"><div data-achievement-cell="score_distribution" contenteditable="true" class="min-h-[2.2rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(String(score)) + '</div></td>' +
-          '<td class="px-4 py-3 text-sm text-center text-slate-700 align-top"><div data-achievement-cell="fail" contenteditable="true" class="min-h-[2.2rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(fail) + '</div></td>' +
+          '<td class="border border-black px-2 py-1 text-sm text-center font-semibold text-slate-700 align-top"><div data-achievement-cell="level" contenteditable="true" class="min-h-[1.6rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(level) + '</div></td>' +
+          '<td class="border border-black px-2 py-1 text-sm text-slate-700 align-top"><div data-achievement-cell="criteria" contenteditable="true" class="min-h-[1.6rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(criteria) + '</div></td>' +
+          '<td class="border border-black px-2 py-1 text-sm text-center font-semibold text-slate-800 align-top"><div data-achievement-cell="score_distribution" contenteditable="true" class="min-h-[1.6rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(String(score)) + '</div></td>' +
+          '<td class="border border-black px-2 py-1 text-sm text-center text-slate-700 align-top"><div data-achievement-cell="fail" contenteditable="true" class="min-h-[1.6rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(fail) + '</div></td>' +
         '</tr>';
       }).join('');
       updateAchievementRateSum(safeRows);
@@ -3056,11 +3148,11 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
 
     function defaultAchievementRows() {
       return [
-        { level: '5', criteria: '', score_distribution: 100, fail: '', min_score: 0, max_score: 100, rate: 0 },
-        { level: '4', criteria: '', score_distribution: 90, fail: '', min_score: 0, max_score: 90, rate: 0 },
-        { level: '3', criteria: '', score_distribution: 80, fail: '', min_score: 0, max_score: 80, rate: 0 },
-        { level: '2', criteria: '', score_distribution: 70, fail: '', min_score: 0, max_score: 70, rate: 0 },
-        { level: 'fail', criteria: '', score_distribution: 59, fail: 'fail', min_score: 0, max_score: 59, rate: 0 }
+        { level: '5', criteria: '해당 지식과 기술을 확실하게 습득하여 직무수행에 필요한 기술적 사고력과 문제 해결력을 토대로 주도적으로 완벽한 작업을 수행할 수 있다.', score_distribution: 100, fail: '', min_score: 0, max_score: 100, rate: 0 },
+        { level: '4', criteria: '해당 지식과 기술을 확실하게 습득하여 직무수행에 필요한 기술적 사고력과 문제 해결력을 토대로 작업을 수행할 수 있다.', score_distribution: 90, fail: '', min_score: 0, max_score: 90, rate: 0 },
+        { level: '3', criteria: '해당 지식과 기술을 대부분 습득하여 직무수행에 필요한 지식과 기술을 가지고 대부분의 작업을 수행할 수 있다.', score_distribution: 80, fail: '', min_score: 0, max_score: 80, rate: 0 },
+        { level: '2', criteria: '해당 지식과 기술을 부분적으로 습득하여 직무수행에 필요한 지식과 기술을 가지고 타인과 공동으로 작업을 수행할 수 있다.', score_distribution: 70, fail: '', min_score: 0, max_score: 70, rate: 0 },
+        { level: '1', criteria: '해당 지식과 기술을 습득하는데 부족함이 있어 타인의 도움을 받아야만 작업을 수행할 수 있다.', score_distribution: 59, fail: 'fail', min_score: 0, max_score: 59, rate: 0 }
       ];
     }
 
@@ -3227,14 +3319,18 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         return;
       }
       if (tabId === 'achievement') {
-        const titleEl = document.getElementById('achievement_doc_title');
-        const writerEl = document.getElementById('achievement_writer');
-        const targetEl = document.getElementById('achievement_target_score');
-        const notesEl = document.getElementById('achievement_notes');
-        if (titleEl) titleEl.value = data?.title || '';
-        if (writerEl) writerEl.value = payload.writer || '';
-        if (targetEl) targetEl.value = payload.target_score || '';
-        if (notesEl) notesEl.value = payload.notes || '';
+        setAchievementFieldValue('achievement_doc_title', data?.title || '');
+        setAchievementFieldValue('achievement_writer', payload.writer || '');
+        setAchievementFieldValue('achievement_eval_date', payload.eval_date || '');
+        setAchievementFieldValue('achievement_subject_name', payload.subject_name || '');
+        setAchievementFieldValue('achievement_trainee', payload.trainee || '');
+        setAchievementFieldValue('achievement_unit_level', payload.unit_level || '');
+        setAchievementFieldValue('achievement_target_score', payload.target_score || '');
+        setAchievementFieldValue('achievement_notes', payload.notes || '');
+        setAchievementFieldValue('achievement_score_item_name', payload.score_item_name || '');
+        setAchievementFieldValue('achievement_score_raw', payload.score_raw || '');
+        setAchievementFieldValue('achievement_score_converted', payload.score_converted || '');
+        setAchievementFieldValue('achievement_score_comment', payload.score_comment || '');
         renderAchievementAttachments(payload.attachments || []);
         renderAchievementRows(normalizeAchievementRows(payload.rows || []));
         return;
@@ -4047,10 +4143,60 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         });
       }
       var achievementImageInsertBtn = document.getElementById('achievementImageInsertBtn');
+      var achievementImageDeleteBtn = document.getElementById('achievementImageDeleteBtn');
       var achievementImageInsertInput = document.getElementById('achievementImageInsertInput');
       if (achievementImageInsertBtn && achievementImageInsertInput) {
         achievementImageInsertBtn.addEventListener('click', function() { openNcsPlanImageInsertModal('achievement_notes', 'achievement'); });
       }
+      var selectedAchievementImageBox = null;
+      function clearSelectedAchievementImage() {
+        if (selectedAchievementImageBox) selectedAchievementImageBox.classList.remove('is-selected');
+        selectedAchievementImageBox = null;
+      }
+      function removeSelectedAchievementImage() {
+        if (!selectedAchievementImageBox) return;
+        selectedAchievementImageBox.remove();
+        selectedAchievementImageBox = null;
+        var editor = document.getElementById('achievement_notes');
+        if (editor) editor.focus();
+      }
+      if (achievementImageDeleteBtn) {
+        achievementImageDeleteBtn.addEventListener('click', function() {
+          if (!selectedAchievementImageBox) {
+            alert('삭제할 이미지를 먼저 클릭해 선택해 주세요.');
+            return;
+          }
+          removeSelectedAchievementImage();
+        });
+      }
+      var achievementNotesEditor = document.getElementById('achievement_notes');
+      if (achievementNotesEditor) {
+        achievementNotesEditor.addEventListener('click', function(ev) {
+          var target = ev.target;
+          var box = target && target.closest ? target.closest('.minutes-image-resizable') : null;
+          if (box) {
+            if (selectedAchievementImageBox && selectedAchievementImageBox !== box) selectedAchievementImageBox.classList.remove('is-selected');
+            selectedAchievementImageBox = box;
+            selectedAchievementImageBox.classList.add('is-selected');
+          } else {
+            clearSelectedAchievementImage();
+          }
+        });
+        achievementNotesEditor.addEventListener('keydown', function(ev) {
+          var key = String(ev.key || '').toLowerCase();
+          if (!selectedAchievementImageBox) return;
+          if (key === 'delete' || key === 'backspace') {
+            ev.preventDefault();
+            removeSelectedAchievementImage();
+          }
+        });
+      }
+      document.addEventListener('click', function(ev) {
+        var target = ev.target;
+        if (!selectedAchievementImageBox) return;
+        if (target && target.closest && (target.closest('#achievement_notes') || target.closest('#achievementImageDeleteBtn'))) return;
+        clearSelectedAchievementImage();
+      });
       var reviewFileAttachBtn = document.getElementById('reviewFileAttachBtn');
       var reviewFileAttachInput = document.getElementById('reviewFileAttachInput');
       if (reviewFileAttachBtn && reviewFileAttachInput) {
