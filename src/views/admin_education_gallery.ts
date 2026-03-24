@@ -51,6 +51,12 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
                         <button type="button" onclick="reconcileEducationPerformanceLinks()" class="px-4 py-2 bg-white text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-50 transition flex items-center text-sm font-medium shadow-sm" title="삭제·비공개 등으로 갤러리와 맞지 않는 교육실적 연동 행 제거">
                             <i class="fas fa-unlink mr-2"></i> 교육실적 연동 정리
                         </button>
+                        <button type="button" onclick="migrateHrdmarketImages(true)" class="px-4 py-2 bg-white text-violet-700 border border-violet-200 rounded-lg hover:bg-violet-50 transition flex items-center text-sm font-medium shadow-sm" title="hrdmarket.co.kr 링크가 있는 글만 집계(저장 안 함)">
+                            <i class="fas fa-eye mr-2"></i> HRD 이미지 이전 미리보기
+                        </button>
+                        <button type="button" onclick="migrateHrdmarketImages(false)" class="px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition flex items-center text-sm font-medium shadow-sm" title="원격 이미지를 R2로 받아 게시글의 URL을 /api/upload/files/ 로 치환합니다">
+                            <i class="fas fa-cloud-download-alt mr-2"></i> HRD 이미지 서버로 이전
+                        </button>
                         <button type="button" onclick="openModal(null)" class="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition flex items-center text-sm font-medium shadow-sm">
                             <i class="fas fa-plus mr-2"></i> 교육사진 등록
                         </button>
@@ -768,6 +774,64 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
                 }
                 const n = json.data && json.data.removed != null ? json.data.removed : 0;
                 alert('교육실적에서 연동 해제된 행: ' + n + '건');
+            } catch (e) {
+                console.error(e);
+                alert('처리 중 오류가 발생했습니다.');
+            }
+        }
+
+        /** 전체 게시글을 페이지 단위로 순회하며 hrdmarket.co.kr 이미지를 우리 서버(R2)로 이전합니다. */
+        async function migrateHrdmarketImages(dryRun) {
+            if (dryRun) {
+                if (!confirm('hrdmarket 링크가 있는 글만 집계합니다(저장하지 않음). 계속할까요?')) return;
+            } else {
+                if (!confirm('hrdmarket.co.kr 이미지를 다운로드해 R2에 저장하고, 게시글 본문·images 필드의 URL을 우리 서버 경로로 바꿉니다. 시간이 걸릴 수 있습니다. 진행할까요?')) return;
+            }
+            const token = localStorage.getItem('token');
+            if (!token) { alert('로그인이 필요합니다.'); return; }
+            let offset = 0;
+            const limit = 8;
+            let sumWould = 0;
+            let sumUpdated = 0;
+            let sumSkipped = 0;
+            let sumErr = 0;
+            let batches = 0;
+            try {
+                while (true) {
+                    const res = await fetch('/api/posts/admin/migrate-hrdmarket-images', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + token
+                        },
+                        body: JSON.stringify({ dry_run: dryRun, limit, offset })
+                    });
+                    if (res.status === 401) {
+                        alert('로그인 세션이 만료되었습니다.');
+                        window.location.href = '/login';
+                        return;
+                    }
+                    const json = await res.json();
+                    if (!json.success) {
+                        alert('오류: ' + (json.error || '실패'));
+                        return;
+                    }
+                    const d = json.data;
+                    const s = d.summary || {};
+                    sumWould += Number(s.would_update) || 0;
+                    sumUpdated += Number(s.updated) || 0;
+                    sumSkipped += Number(s.skipped_no_hrd) || 0;
+                    sumErr += Number(s.errors) || 0;
+                    batches++;
+                    if (!d.batch || !d.batch.has_more) break;
+                    offset = d.batch.next_offset;
+                }
+                if (dryRun) {
+                    alert('미리보기 완료.\\n이전 대상(건수 합): ' + sumWould + '\\n스킵(해당 URL 없음): ' + sumSkipped + '\\n오류: ' + sumErr + '\\n배치 수: ' + batches);
+                } else {
+                    alert('이전 완료.\\n갱신된 글: ' + sumUpdated + '\\n스킵: ' + sumSkipped + '\\n오류: ' + sumErr + '\\n배치 수: ' + batches);
+                }
+                loadPosts(currentPage);
             } catch (e) {
                 console.error(e);
                 alert('처리 중 오류가 발생했습니다.');

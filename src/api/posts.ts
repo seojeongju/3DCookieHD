@@ -7,8 +7,147 @@ import {
   syncEducationPerformanceFromEducationPhotoPost,
 } from '../utils/education_performance_sync';
 import { normalizeGalleryTitleKey } from '../utils/gallery_title_normalize';
+import { importRemoteImageFromUrl } from './upload';
 
 const app = new Hono<{ Bindings: Bindings; Variables: { user: JWTPayload } }>();
+
+const POST_HTML_CONTENT_LIMIT = 50 * 1024;
+
+function parsePostImagesArray(raw: unknown): string[] {
+  if (raw == null || raw === '') return [];
+  try {
+    const v = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    return Array.isArray(v) ? v.map((x) => String(x)) : [];
+  } catch {
+    return [];
+  }
+}
+
+async function loadPostFullHtmlContent(post: any, R2: R2Bucket | undefined): Promise<string> {
+  let content = post.content || '';
+  const r2UrlMatch =
+    content.match(/\[R2:(\/api\/upload\/files\/[^\]]+)\]/) || content.match(/URL: (\/api\/upload\/files\/[^\]]+)/);
+  if (r2UrlMatch && r2UrlMatch[1] && R2) {
+    try {
+      const filePath = r2UrlMatch[1].replace('/api/upload/files/', '');
+      const object = await R2.get(filePath);
+      if (object) {
+        const decoder = new TextDecoder('utf-8');
+        content = decoder.decode(await object.arrayBuffer());
+      }
+    } catch (e) {
+      console.error('loadPostFullHtmlContent:', e);
+    }
+  }
+  return content;
+}
+
+function collectHrdmarketUrls(fullContent: string, images: string[]): string[] {
+  const set = new Set<string>();
+  const addFromText = (t: string) => {
+    const normalized = String(t).replace(/&amp;/g, '&');
+    const re = /https?:\/\/(?:[a-z0-9-]+\.)?hrdmarket\.co\.kr[^\s"'<>]*/gi;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(normalized)) !== null) {
+      let u = m[0];
+      u = u.replace(/[),.;]+$/g, '');
+      set.add(u);
+    }
+  };
+  addFromText(fullContent);
+  for (const im of images) addFromText(im);
+  return [...set];
+}
+
+function replaceUrlsInString(s: string, map: Map<string, string>): string {
+  let out = s;
+  const pairs = [...map.entries()].sort((a, b) => b[0].length - a[0].length);
+  for (const [from, to] of pairs) {
+    if (from === to) continue;
+    out = out.split(from).join(to);
+    const fromAmp = from.replace(/&/g, '&amp;');
+    if (fromAmp !== from) {
+      out = out.split(fromAmp).join(to.replace(/&/g, '&amp;'));
+    }
+  }
+  return out;
+}
+
+async function persistMigratedPost(
+  c: { env: Bindings; get: (k: 'user') => JWTPayload },
+  post: any,
+  newContent: string,
+  newImages: string[]
+): Promise<void> {
+  const { DB, R2 } = c.env;
+  const user = c.get('user');
+  if (!R2) {
+    throw new Error('R2가 필요합니다');
+  }
+  const imagesJson = JSON.stringify(newImages);
+
+  let finalContent = newContent;
+  if (newContent.length > POST_HTML_CONTENT_LIMIT) {
+    const oldMatch =
+      post.content &&
+      (post.content.match(/\[R2:(\/api\/upload\/files\/[^\]]+)\]/) ||
+        post.content.match(/URL: (\/api\/upload\/files\/[^\]]+)/));
+    if (oldMatch && oldMatch[1]) {
+      const oldPath = oldMatch[1].replace('/api/upload/files/', '');
+      try {
+        await R2.delete(oldPath);
+      } catch {
+        /* ignore */
+      }
+    }
+    const timestamp = Date.now();
+    const randomStr = Math.random().toString(36).substring(2, 8);
+    const filePath = `posts/content/${timestamp}_${randomStr}_${user.userId}.html`;
+    const encoder = new TextEncoder();
+    await R2.put(filePath, encoder.encode(newContent), {
+      httpMetadata: { contentType: 'text/html; charset=utf-8', cacheControl: 'public, max-age=31536000' },
+      customMetadata: {
+        originalName: `post_${timestamp}.html`,
+        uploadedBy: user.userId.toString(),
+        uploadedAt: new Date().toISOString(),
+        postTitle: String(post.title || '').substring(0, 100),
+      },
+    });
+    const contentUrl = `/api/upload/files/${filePath}`;
+    finalContent = `[R2:${contentUrl}]`;
+  } else {
+    const oldMatch =
+      post.content &&
+      (post.content.match(/\[R2:(\/api\/upload\/files\/[^\]]+)\]/) ||
+        post.content.match(/URL: (\/api\/upload\/files\/[^\]]+)/));
+    if (oldMatch && oldMatch[1]) {
+      const oldPath = oldMatch[1].replace('/api/upload/files/', '');
+      try {
+        await R2.delete(oldPath);
+      } catch {
+        /* ignore */
+      }
+    }
+    finalContent = newContent;
+  }
+
+  await DB.prepare(`UPDATE posts SET content = ?, images = ?, updated_at = datetime('now') WHERE id = ?`)
+    .bind(finalContent, imagesJson, post.id)
+    .run();
+
+  const epRow = await DB.prepare(
+    `SELECT id, title, category, created_at, status FROM posts WHERE id = ?`
+  )
+    .bind(post.id)
+    .first<{ id: number; title: string | null; category: string | null; created_at: string | null; status: string | null }>();
+  if (epRow) {
+    try {
+      await syncEducationPerformanceFromEducationPhotoPost(DB, epRow);
+    } catch (syncErr) {
+      console.error('migrate-hrdmarket: education_performance sync failed', syncErr);
+    }
+  }
+}
 
 // ============================================
 // 게시글 목록 조회
@@ -873,6 +1012,126 @@ app.post('/dedupe-education-photo-titles', authMiddleware, requireAdmin, async (
   } catch (e: unknown) {
     console.error('dedupe-education-photo-titles:', e);
     return c.json({ success: false, error: '중복 정리 실패' }, 500);
+  }
+});
+
+/**
+ * POST /api/posts/admin/migrate-hrdmarket-images
+ * hrdmarket.co.kr 이미지 URL을 다운로드해 R2에 저장하고, 게시글 content·images의 URL을 우리 서버 경로로 치환합니다.
+ * body: { dry_run?: boolean, limit?: number (1~40, 기본 8), offset?: number }
+ */
+app.post('/admin/migrate-hrdmarket-images', authMiddleware, requireAdmin, async (c) => {
+  try {
+    const { DB, R2 } = c.env;
+    if (!R2) {
+      return c.json({ success: false, error: 'R2 스토리지가 설정되지 않았습니다' }, 500);
+    }
+
+    const body = await c.req.json().catch(() => ({} as Record<string, unknown>));
+    const dryRun = Boolean(body?.dry_run);
+    const limit = Math.min(40, Math.max(1, Number(body?.limit) || 8));
+    const offset = Math.max(0, Number(body?.offset) || 0);
+
+    const user = c.get('user');
+    const origin = new URL(c.req.url).origin;
+
+    const totalRow = await DB.prepare(`SELECT COUNT(*) as total FROM posts`).first<{ total: number }>();
+    const totalPosts = totalRow?.total ?? 0;
+
+    const { results: rows } = await DB.prepare(`SELECT * FROM posts ORDER BY id LIMIT ? OFFSET ?`)
+      .bind(limit, offset)
+      .all();
+
+    const list = Array.isArray(rows) ? rows : [];
+    const reports: Array<Record<string, unknown>> = [];
+    let updated = 0;
+    let wouldUpdate = 0;
+    let skipped = 0;
+    let errors = 0;
+
+    for (const post of list) {
+      const p = post as any;
+      try {
+        const images = parsePostImagesArray(p.images);
+        const fullContent = await loadPostFullHtmlContent(p, R2);
+        const urls = collectHrdmarketUrls(fullContent, images);
+        if (urls.length === 0) {
+          skipped++;
+          reports.push({ id: p.id, status: 'skipped', reason: 'no_hrdmarket_urls' });
+          continue;
+        }
+
+        const urlMap = new Map<string, string>();
+        let failReason: string | null = null;
+        for (const u of urls) {
+          if (dryRun) {
+            urlMap.set(u, u);
+            continue;
+          }
+          const r = await importRemoteImageFromUrl(c.env, user, origin, u, {
+            category: 'images',
+            folder: 'posts',
+          });
+          if (!r.success) {
+            failReason = r.error;
+            break;
+          }
+          urlMap.set(u, r.data.url);
+          await new Promise((res) => setTimeout(res, 100));
+        }
+
+        if (failReason) {
+          errors++;
+          reports.push({ id: p.id, status: 'error', error: failReason, urls_found: urls.length });
+          continue;
+        }
+
+        if (dryRun) {
+          wouldUpdate++;
+          reports.push({ id: p.id, status: 'would_migrate', url_count: urls.length });
+          continue;
+        }
+
+        const newContent = replaceUrlsInString(fullContent, urlMap);
+        const newImages = images.map((im) => replaceUrlsInString(im, urlMap));
+        await persistMigratedPost(c, p, newContent, newImages);
+        updated++;
+        reports.push({ id: p.id, status: 'migrated', urls_replaced: urls.length });
+      } catch (e: unknown) {
+        errors++;
+        const msg = e instanceof Error ? e.message : String(e);
+        reports.push({ id: (post as any).id, status: 'error', error: msg });
+      }
+    }
+
+    const rowCount = list.length;
+    const nextOffset = offset + rowCount;
+    const hasMore = nextOffset < totalPosts;
+
+    return c.json({
+      success: true,
+      data: {
+        dry_run: dryRun,
+        batch: {
+          limit,
+          offset,
+          next_offset: nextOffset,
+          has_more: hasMore,
+          total_posts: totalPosts,
+        },
+        summary: {
+          processed: rowCount,
+          skipped_no_hrd: skipped,
+          updated: dryRun ? 0 : updated,
+          would_update: dryRun ? wouldUpdate : 0,
+          errors,
+        },
+        posts: reports,
+      },
+    });
+  } catch (e: unknown) {
+    console.error('migrate-hrdmarket-images:', e);
+    return c.json({ success: false, error: '마이그레이션 처리 중 오류가 발생했습니다' }, 500);
   }
 });
 
