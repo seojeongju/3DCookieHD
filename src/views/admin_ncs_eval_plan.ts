@@ -1285,6 +1285,36 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
     ${rubricPrintSheetHtml()}
     ${achievementPrintSheetHtml()}
     ${reviewPrintSheetHtml()}
+    <div id="ncsPlanImageInsertModal" class="fixed inset-0 bg-black/45 hidden z-[250] p-4">
+      <div class="max-w-3xl mx-auto mt-8 bg-white rounded-xl border border-slate-200 shadow-2xl overflow-hidden">
+        <div class="px-5 py-3 border-b border-slate-200 flex items-center justify-between">
+          <h4 class="text-lg font-black text-slate-800">이미지</h4>
+          <button type="button" id="ncsPlanImageInsertCloseBtn" class="text-slate-400 hover:text-slate-600 text-xl leading-none">&times;</button>
+        </div>
+        <div class="p-4">
+          <input type="file" id="ncsPlanImageInsertModalInput" accept="image/jpeg,image/png,image/gif,image/webp" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm bg-white" />
+          <div class="mt-3 grid grid-cols-1 md:grid-cols-[1.2fr_1fr] gap-4">
+            <div class="rounded-lg border border-slate-200 bg-slate-50 min-h-[220px] flex items-center justify-center overflow-hidden">
+              <img id="ncsPlanImageInsertPreview" alt="미리보기" class="max-w-full max-h-[320px] hidden" />
+              <p id="ncsPlanImageInsertPreviewEmpty" class="text-sm text-slate-400">미리보기</p>
+            </div>
+            <div class="rounded-lg border border-sky-200 bg-sky-50 p-4 text-sky-800 text-sm leading-relaxed">
+              <p class="font-black mb-1">문서에 이미지 첨부하기</p>
+              <ol class="list-decimal ml-4 space-y-1">
+                <li>이미지 파일을 선택합니다.</li>
+                <li>삽입할 입력란(본문/비고)에 커서를 둡니다.</li>
+                <li><strong>문서에 삽입</strong> 버튼을 누릅니다.</li>
+              </ol>
+              <p class="mt-2 text-xs text-slate-500">삽입 형식: <code class="text-slate-600">![이미지](URL)</code></p>
+            </div>
+          </div>
+        </div>
+        <div class="px-5 py-3 border-t border-slate-200 flex items-center justify-end gap-2 bg-slate-50">
+          <button type="button" id="ncsPlanImageInsertApplyBtn" class="px-4 py-2 rounded-lg bg-sky-600 text-white font-black text-sm hover:bg-sky-700">문서에 삽입</button>
+          <button type="button" id="ncsPlanImageInsertCancelBtn" class="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 font-bold text-sm hover:bg-slate-100">닫기</button>
+        </div>
+      </div>
+    </div>
   `;
 }
 
@@ -1296,6 +1326,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
     let activeTab = 'minutes';
     let selectedCourseId = useFixedCourseId ? fixedCourseId : '';
     let selectedRound = 1;
+    var imageInsertContext = { targetId: '', folder: 'minutes', file: null };
 
     const TAB_NAMES = {
       minutes: '평가계획회의록',
@@ -1686,6 +1717,27 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       var pos = start + text.length;
       textarea.selectionStart = textarea.selectionEnd = pos;
       textarea.focus();
+    }
+
+    function openNcsPlanImageInsertModal(targetId, folder) {
+      var modal = document.getElementById('ncsPlanImageInsertModal');
+      var input = document.getElementById('ncsPlanImageInsertModalInput');
+      var preview = document.getElementById('ncsPlanImageInsertPreview');
+      var empty = document.getElementById('ncsPlanImageInsertPreviewEmpty');
+      imageInsertContext = { targetId: String(targetId || ''), folder: String(folder || 'minutes'), file: null };
+      if (input) input.value = '';
+      if (preview) {
+        preview.removeAttribute('src');
+        preview.classList.add('hidden');
+      }
+      if (empty) empty.classList.remove('hidden');
+      if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeNcsPlanImageInsertModal() {
+      var modal = document.getElementById('ncsPlanImageInsertModal');
+      if (modal) modal.classList.add('hidden');
+      imageInsertContext = { targetId: '', folder: 'minutes', file: null };
     }
 
     async function uploadNcsEvalPlanFile(file, isImage, planDocFolder) {
