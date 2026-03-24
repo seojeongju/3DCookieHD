@@ -560,6 +560,23 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
           <p id="activeDocLabel" class="text-sm font-black text-slate-800 mt-1">${prefix ? '평가계획회의록' : '평가계획회의록'}</p>
         </div>
       </div>
+      <div class="mt-3 pt-3 border-t border-slate-200/80">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <label class="block">
+            <span class="text-xs text-slate-500 font-bold uppercase tracking-wider">개설 회차 (선택)</span>
+            <select id="ncsPlanSessionSelect" class="mt-1 w-full px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white disabled:opacity-60" disabled>
+              <option value="">과정 선택 후 회차</option>
+            </select>
+          </label>
+          <label class="block">
+            <span class="text-xs text-slate-500 font-bold uppercase tracking-wider">교과목 · 하위 과목 (선택)</span>
+            <select id="ncsPlanSubjectSelect" class="mt-1 w-full px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white disabled:opacity-60" disabled>
+              <option value="">회차 선택 후 교과목</option>
+            </select>
+          </label>
+        </div>
+        <p class="text-[11px] text-slate-500 mt-2">과정에 연결된 개설 회차가 있을 때만 회차 목록이 채워집니다. 회차를 고르면 NCS 편성 <strong>교과목(하위 과목)</strong>을 고를 수 있으며, 선택 값은 <strong>평가실시일자</strong> 문서 저장 시 함께 저장됩니다.</p>
+      </div>
     </div>
     <div class="rounded-[2rem] border border-slate-200/60 shadow-sm bg-white/80 backdrop-blur-md p-4">
         <div class="flex flex-wrap gap-2">
@@ -883,13 +900,24 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         };
       }
       if (tabId === 'schedule') {
+        var sessEl = document.getElementById('ncsPlanSessionSelect');
+        var subjEl = document.getElementById('ncsPlanSubjectSelect');
+        var rawSess = sessEl && sessEl.value ? parseInt(sessEl.value, 10) : NaN;
+        var rawCur = subjEl && subjEl.value ? parseInt(subjEl.value, 10) : NaN;
+        var subjLabel = '';
+        if (subjEl && subjEl.selectedIndex >= 0 && subjEl.options[subjEl.selectedIndex]) {
+          subjLabel = subjEl.options[subjEl.selectedIndex].textContent || '';
+        }
         return {
           title: (document.getElementById('schedule_doc_title') || {}).value || '',
           payload: {
             eval_type: (document.getElementById('schedule_eval_type') || {}).value || '',
             writer: (document.getElementById('schedule_writer') || {}).value || '',
             notes: (document.getElementById('schedule_notes') || {}).value || '',
-            rows: readScheduleRowsFromTable()
+            rows: readScheduleRowsFromTable(),
+            session_id: Number.isFinite(rawSess) && rawSess > 0 ? rawSess : '',
+            curriculum_id: Number.isFinite(rawCur) && rawCur > 0 ? rawCur : '',
+            subject_name: (subjLabel || '').trim()
           }
         };
       }
@@ -1472,6 +1500,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         if (writerEl) writerEl.value = payload.writer || '';
         if (notesEl) notesEl.value = payload.notes || '';
         renderScheduleRows(payload.rows || []);
+        void applyScheduleSessionSubjectFromPayload(payload || {});
         return;
       }
       if (tabId === 'questions') {
@@ -1563,6 +1592,100 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         });
       } catch (e) {
         console.error(e);
+      }
+    }
+
+    async function loadNcsPlanSessionOptions(courseId) {
+      var sessSel = document.getElementById('ncsPlanSessionSelect');
+      if (!sessSel) return;
+      if (!courseId) {
+        sessSel.innerHTML = '<option value="">과정 선택 후 회차</option>';
+        sessSel.disabled = true;
+        return;
+      }
+      sessSel.disabled = false;
+      sessSel.innerHTML = '<option value="">회차 선택 (선택사항)</option>';
+      try {
+        var res = await authFetch('/api/course-sessions?lms_course_id=' + encodeURIComponent(String(courseId)) + '&limit=100&page=1');
+        var json = await res.json();
+        var list = Array.isArray(json && json.data) ? json.data : [];
+        list.forEach(function(s) {
+          if (!s || s.id == null) return;
+          var opt = document.createElement('option');
+          opt.value = String(s.id);
+          var sn = s.session_number != null ? String(s.session_number) + '회차' : '';
+          var sd = (s.training_start_date || '').toString().substring(0, 10);
+          var label = '[' + s.id + '] ' + (sn || '회차') + (sd ? ' · ' + sd : '');
+          opt.textContent = label;
+          sessSel.appendChild(opt);
+        });
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function loadNcsPlanSubjectOptions(sessionId) {
+      var subSel = document.getElementById('ncsPlanSubjectSelect');
+      if (!subSel) return;
+      subSel.innerHTML = '<option value="">교과목 선택 (선택사항)</option>';
+      if (!sessionId) {
+        subSel.disabled = true;
+        return;
+      }
+      subSel.disabled = false;
+      try {
+        var res = await authFetch('/api/course-sessions/' + encodeURIComponent(String(sessionId)) + '/timetable/resources');
+        var json = await res.json();
+        var data = json && json.data;
+        var subjects = data && Array.isArray(data.subjects) ? data.subjects : [];
+        subjects.forEach(function(sub) {
+          if (!sub || sub.id == null) return;
+          var opt = document.createElement('option');
+          opt.value = String(sub.id);
+          var nm = String(sub.name || sub.job_name || '교과목');
+          if (nm.length > 96) nm = nm.substring(0, 96) + '…';
+          opt.textContent = nm;
+          subSel.appendChild(opt);
+        });
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function applyScheduleSessionSubjectFromPayload(payload) {
+      var p = payload || {};
+      var sessSel = document.getElementById('ncsPlanSessionSelect');
+      var subSel = document.getElementById('ncsPlanSubjectSelect');
+      if (!sessSel || !subSel) return;
+      var cid = selectedCourseId || (useFixedCourseId ? fixedCourseId : '');
+      if (!cid) {
+        sessSel.innerHTML = '<option value="">과정 선택 후 회차</option>';
+        sessSel.disabled = true;
+        subSel.innerHTML = '<option value="">회차 선택 후 교과목</option>';
+        subSel.disabled = true;
+        return;
+      }
+      sessSel.disabled = false;
+      await loadNcsPlanSessionOptions(cid);
+      var wantSess = p.session_id != null && String(p.session_id).trim() !== '' ? String(p.session_id).trim() : '';
+      if (wantSess) {
+        sessSel.value = wantSess;
+        if (sessSel.value !== wantSess) sessSel.value = '';
+      } else {
+        sessSel.value = '';
+      }
+      if (sessSel.value) {
+        await loadNcsPlanSubjectOptions(sessSel.value);
+        var wantCur = p.curriculum_id != null && String(p.curriculum_id).trim() !== '' ? String(p.curriculum_id).trim() : '';
+        if (wantCur) {
+          subSel.value = wantCur;
+          if (subSel.value !== wantCur) subSel.value = '';
+        } else {
+          subSel.value = '';
+        }
+      } else {
+        subSel.innerHTML = '<option value="">회차 선택 후 교과목</option>';
+        subSel.disabled = true;
       }
     }
 
@@ -1659,9 +1782,22 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         if (courseSel) {
           courseSel.addEventListener('change', async function() {
             selectedCourseId = courseSel.value || '';
+            var subSelReset = document.getElementById('ncsPlanSubjectSelect');
+            if (subSelReset) {
+              subSelReset.innerHTML = '<option value="">회차 선택 후 교과목</option>';
+              subSelReset.disabled = true;
+            }
+            await loadNcsPlanSessionOptions(selectedCourseId);
             await loadDocument(activeTab);
           });
         }
+      }
+
+      var ncsPlanSessionSelect = document.getElementById('ncsPlanSessionSelect');
+      if (ncsPlanSessionSelect) {
+        ncsPlanSessionSelect.addEventListener('change', async function() {
+          await loadNcsPlanSubjectOptions(ncsPlanSessionSelect.value || '');
+        });
       }
 
       const roundSel = document.getElementById('ncsPlanRoundSelect');
@@ -1917,6 +2053,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           var cd = cj && cj.data;
           if (cd && (cd.title || cd.name)) window.__ncsEvalPlanCourseTitle = cd.title || cd.name;
         } catch (e) {}
+        await loadNcsPlanSessionOptions(fixedCourseId);
         await loadDocument('minutes');
       }
 

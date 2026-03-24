@@ -288,6 +288,7 @@ app.get('/', authMiddleware, requireRole('admin', 'teacher', 'instructor'), asyn
   try {
     const categoryId = c.req.query('category_id');
     const approvedCourseId = c.req.query('approved_course_id');
+    const lmsCourseId = c.req.query('lms_course_id');
     const status = c.req.query('status');
     const name = c.req.query('name');
     const instructorName = c.req.query('instructor_name');
@@ -302,6 +303,13 @@ app.get('/', authMiddleware, requireRole('admin', 'teacher', 'instructor'), asyn
     if (approvedCourseId !== undefined && approvedCourseId !== '') {
       conditions.push('s.approved_course_id = ?');
       params.push(approvedCourseId);
+    }
+    if (lmsCourseId !== undefined && lmsCourseId !== '') {
+      const lid = parseInt(String(lmsCourseId), 10);
+      if (!Number.isNaN(lid) && lid > 0) {
+        conditions.push('s.lms_course_id = ?');
+        params.push(lid);
+      }
     }
     if (categoryId !== undefined && categoryId !== '') {
       conditions.push('a.category_id = ?');
