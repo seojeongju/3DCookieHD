@@ -1057,41 +1057,65 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                 <div class="space-y-4">
                   <div class="rounded-2xl border border-slate-200/70 bg-white p-4 space-y-4">
                     <div class="overflow-x-auto">
-                      <table class="w-full border-collapse text-[13px] leading-relaxed bg-white">
+                      <table class="w-full border-collapse text-[12px] leading-relaxed bg-white">
                         <colgroup>
-                          <col style="width: 13%" />
-                          <col style="width: 20%" />
-                          <col style="width: 13%" />
-                          <col style="width: 20%" />
-                          <col style="width: 13%" />
-                          <col style="width: 21%" />
+                          <col style="width: 11%" />
+                          <col style="width: 44%" />
+                          <col style="width: 9%" />
+                          <col style="width: 8%" />
+                          <col style="width: 10%" />
+                          <col style="width: 18%" />
                         </colgroup>
                         <tbody>
                           <tr>
-                            <td class="border border-black text-center bg-slate-50 font-bold py-2">문서명</td>
-                            <td class="border border-black px-2 py-2" colspan="3">
-                              <div id="rubric_doc_title" contenteditable="true" class="min-h-[2rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">평가도구 채점기준표</div>
+                            <td class="border border-black text-center bg-slate-50 font-bold py-1.5">과정명</td>
+                            <td class="border border-black px-2 py-1.5" colspan="3">
+                              <div id="rubric_doc_title" contenteditable="true" class="min-h-[1.5rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1"></div>
                             </td>
-                            <td class="border border-black text-center bg-slate-50 font-bold py-2">작성자</td>
-                            <td class="border border-black px-2 py-2">
-                              <div id="rubric_writer" contenteditable="true" class="min-h-[2rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1"></div>
+                            <td class="border border-black text-center bg-slate-50 font-bold py-1.5">수준</td>
+                            <td class="border border-black px-2 py-1.5 text-center">
+                              <div id="rubric_total_target" contenteditable="true" class="min-h-[1.5rem] text-center whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">2</div>
                             </td>
                           </tr>
                           <tr>
-                            <td class="border border-black text-center bg-slate-50 font-bold py-2">기준 총점</td>
-                            <td class="border border-black px-2 py-2">
-                              <div id="rubric_total_target" contenteditable="true" class="min-h-[2rem] text-center whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">100</div>
+                            <td class="border border-black text-center bg-slate-50 font-bold py-1.5">교과목</td>
+                            <td class="border border-black px-2 py-1.5" colspan="3">
+                              <div id="rubric_subject_name" contenteditable="true" class="min-h-[1.5rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1"></div>
                             </td>
-                            <td class="border border-black text-center bg-slate-50 font-bold py-2">총 배점</td>
-                            <td class="border border-black px-2 py-2 text-center">
-                              <p id="rubricTotalScoreLabel" class="text-sm font-black text-slate-900">0점</p>
+                            <td class="border border-black text-center bg-slate-50 font-bold py-1.5">훈련교사</td>
+                            <td class="border border-black px-2 py-1.5">
+                              <div id="rubric_writer" contenteditable="true" class="min-h-[1.5rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1"></div>
                             </td>
-                            <td class="border border-black text-center bg-slate-50 font-bold py-2">비고</td>
-                            <td class="border border-black px-2 py-2 text-[11px] text-slate-500">채점기준표를 직접 편집하고, 비고에 이미지/메모를 바로 삽입하세요.</td>
+                          </tr>
+                          <tr>
+                            <td class="border border-black text-center bg-slate-50 font-bold py-1.5">능력단위명</td>
+                            <td class="border border-black px-2 py-1.5" colspan="5">
+                              <div id="rubric_unit_name" contenteditable="true" class="min-h-[1.5rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1"></div>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td class="border border-black text-center bg-slate-50 font-bold py-1.5">능력단위요소</td>
+                            <td class="border border-black text-center bg-slate-50 font-bold py-1.5">성취기준(채점기준) 설명</td>
+                            <td class="border border-black text-center bg-slate-50 font-bold py-1.5" colspan="2">성취수준</td>
+                            <td class="border border-black text-center bg-slate-50 font-bold py-1.5" colspan="2">성취기준 등록</td>
+                          </tr>
+                          <tr>
+                            <td class="border border-black p-0 align-top" colspan="6">
+                              <table class="w-full border-collapse text-[12px] leading-relaxed">
+                                <colgroup>
+                                  <col style="width: 18%" />
+                                  <col style="width: 47%" />
+                                  <col style="width: 9%" />
+                                  <col style="width: 26%" />
+                                </colgroup>
+                                <tbody id="rubricRowsBody" class="bg-white"></tbody>
+                              </table>
+                            </td>
                           </tr>
                         </tbody>
                       </table>
                     </div>
+                    <p id="rubricTotalScoreLabel" class="hidden">0점</p>
                     <div class="rounded-xl border border-slate-200/80 bg-slate-50 p-3">
                       <div class="flex flex-wrap items-center gap-2 mb-2">
                         <button type="button" id="rubricImageDeleteBtn" class="px-3 py-2 rounded-xl border border-rose-200 bg-rose-50 text-xs font-black text-rose-700 hover:bg-rose-100 transition">
@@ -1114,22 +1138,6 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                     </div>
                   </div>
 
-                  <div class="rounded-2xl border border-slate-200/70 overflow-hidden bg-white">
-                    <div class="overflow-x-auto">
-                      <table class="w-full text-left">
-                        <thead class="bg-slate-50 border-b border-slate-100">
-                          <tr>
-                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider">평가항목</th>
-                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider w-20 text-center">배점</th>
-                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider">상(우수)</th>
-                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider">중(보통)</th>
-                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider">하(미흡)</th>
-                          </tr>
-                        </thead>
-                        <tbody id="rubricRowsBody" class="divide-y divide-slate-100 bg-white"></tbody>
-                      </table>
-                    </div>
-                  </div>
                   <div class="rounded-2xl border border-slate-200/70 bg-white p-4">
                     <label class="block text-xs font-black text-slate-600 mb-1.5">비고</label>
                     <div id="rubric_notes" contenteditable="true" class="w-full min-h-[120px] px-3 py-2 border border-slate-200 rounded bg-white whitespace-pre-wrap leading-relaxed"></div>
@@ -2603,6 +2611,8 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           title: getRubricFieldValue('rubric_doc_title'),
           payload: {
             writer: getRubricFieldValue('rubric_writer'),
+            subject_name: getRubricFieldValue('rubric_subject_name'),
+            unit_name: getRubricFieldValue('rubric_unit_name'),
             total_target: Number(getRubricFieldValue('rubric_total_target') || 0),
             notes: getRubricFieldValue('rubric_notes'),
             attachments: readRubricAttachmentsFromDom(),
@@ -2915,7 +2925,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       if (!body) return;
       const safeRows = Array.isArray(rows) ? rows : [];
       if (!safeRows.length) {
-        body.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-sm text-slate-400">등록된 채점기준이 없습니다.</td></tr>';
+        body.innerHTML = '<tr><td colspan="4" class="border border-black px-4 py-8 text-center text-sm text-slate-400">등록된 채점기준이 없습니다.</td></tr>';
         updateRubricTotalScore([]);
         return;
       }
@@ -2926,11 +2936,23 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         const mid = String(row?.mid || '');
         const low = String(row?.low || '');
         return '<tr data-rubric-row data-item="' + escapeHtml(item) + '" data-score="' + score + '" data-high="' + escapeHtml(high) + '" data-mid="' + escapeHtml(mid) + '" data-low="' + escapeHtml(low) + '">' +
-          '<td class="px-4 py-3 text-sm font-semibold text-slate-700 align-top"><div data-rubric-cell="item" contenteditable="true" class="min-h-[2.2rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(item) + '</div></td>' +
-          '<td class="px-4 py-3 text-sm text-center font-semibold text-slate-800 align-top"><div data-rubric-cell="score" contenteditable="true" class="min-h-[2.2rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(String(score)) + '</div></td>' +
-          '<td class="px-4 py-3 text-sm text-slate-700 align-top"><div data-rubric-cell="high" contenteditable="true" class="min-h-[2.2rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(high) + '</div></td>' +
-          '<td class="px-4 py-3 text-sm text-slate-700 align-top"><div data-rubric-cell="mid" contenteditable="true" class="min-h-[2.2rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(mid) + '</div></td>' +
-          '<td class="px-4 py-3 text-sm text-slate-700 align-top"><div data-rubric-cell="low" contenteditable="true" class="min-h-[2.2rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(low) + '</div></td>' +
+          '<td class="border border-black px-2 py-1 align-top" rowspan="4"><div data-rubric-cell="item" contenteditable="true" class="min-h-[6.4rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(item) + '</div></td>' +
+          '<td class="border border-black px-2 py-1 text-[12px] align-top"><div class="min-h-[1.6rem] whitespace-pre-wrap">성취기준 설명</div><div data-rubric-cell="score" contenteditable="true" class="hidden">' + escapeHtml(String(score)) + '</div></td>' +
+          '<td class="border border-black px-2 py-1 text-center font-bold">우수</td>' +
+          '<td class="border border-black px-2 py-1 align-top"><div data-rubric-cell="high" contenteditable="true" class="min-h-[1.6rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(high) + '</div></td>' +
+        '</tr>' +
+        '<tr>' +
+          '<td class="border border-black px-2 py-1 text-[12px] text-slate-600">보통</td>' +
+          '<td class="border border-black px-2 py-1 text-center font-bold">보통</td>' +
+          '<td class="border border-black px-2 py-1 align-top"><div data-rubric-cell="mid" contenteditable="true" class="min-h-[1.6rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(mid) + '</div></td>' +
+        '</tr>' +
+        '<tr>' +
+          '<td class="border border-black px-2 py-1 text-[12px] text-slate-600">미흡</td>' +
+          '<td class="border border-black px-2 py-1 text-center font-bold">미흡</td>' +
+          '<td class="border border-black px-2 py-1 align-top"><div data-rubric-cell="low" contenteditable="true" class="min-h-[1.6rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(low) + '</div></td>' +
+        '</tr>' +
+        '<tr>' +
+          '<td class="border border-black px-2 py-1 text-[12px] text-slate-600" colspan="3">필요 시 성취기준을 직접 수정해 사용하세요.</td>' +
         '</tr>';
       }).join('');
       updateRubricTotalScore(safeRows);
@@ -2948,11 +2970,9 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
 
     function defaultRubricRows() {
       return [
-        { item: '평가항목 1', score: 20, high: '', mid: '', low: '' },
-        { item: '평가항목 2', score: 20, high: '', mid: '', low: '' },
-        { item: '평가항목 3', score: 20, high: '', mid: '', low: '' },
-        { item: '평가항목 4', score: 20, high: '', mid: '', low: '' },
-        { item: '평가항목 5', score: 20, high: '', mid: '', low: '' }
+        { item: '2.1 신조형 3D프린터에서 지원하는 적층 장비별 파라미터를 설명할 수 있다.', score: 0, high: '성취기준 등록', mid: '성취기준 등록', low: '성취기준 등록' },
+        { item: '2.2 파악된 적층 값의 범위 내에서 적용 값을 결정할 수 있다.', score: 0, high: '성취기준 등록', mid: '성취기준 등록', low: '성취기준 등록' },
+        { item: '2.3 결정된 적층 값을 운영하여 제품을 슬라이싱 할 수 있다.', score: 0, high: '성취기준 등록', mid: '성취기준 등록', low: '성취기준 등록' }
       ];
     }
 
@@ -3198,6 +3218,8 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       if (tabId === 'rubric') {
         setRubricFieldValue('rubric_doc_title', data?.title || '');
         setRubricFieldValue('rubric_writer', payload.writer || '');
+        setRubricFieldValue('rubric_subject_name', payload.subject_name || '');
+        setRubricFieldValue('rubric_unit_name', payload.unit_name || '');
         setRubricFieldValue('rubric_total_target', payload.total_target || '');
         setRubricFieldValue('rubric_notes', payload.notes || '');
         renderRubricAttachments(payload.attachments || []);
