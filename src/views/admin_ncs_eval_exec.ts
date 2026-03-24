@@ -42,6 +42,13 @@ export const adminNcsEvalExecHtml = (sidebar = hrdSidebar('ncs-eval-exec')) => `
                 </button>
               </div>
             </div>
+            <div class="mt-4">
+              <label class="block text-xs font-black text-sky-600 uppercase tracking-widest mb-2">교과목 선택</label>
+              <select id="ncsExecSubjectSelect" class="w-full px-4 py-3 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-sky-100 outline-none text-sm bg-white disabled:opacity-60" disabled>
+                <option value="">전체 교과목</option>
+              </select>
+              <p class="text-[11px] text-slate-500 mt-2">과정 선택 시 해당 교과목 목록이 자동으로 채워집니다.</p>
+            </div>
           </section>
 
           <section id="ncsExecSummarySection" class="bg-white rounded-[2rem] border border-slate-200/60 shadow-sm p-5 hidden">
@@ -162,6 +169,8 @@ export const adminNcsEvalExecHtml = (sidebar = hrdSidebar('ncs-eval-exec')) => `
 
   <script>
     let selectedCourseId = '';
+    let selectedSubjectId = '';
+    let selectedSubjectName = '';
     const planStatsCache = {};
 
     function authHeaders() {
@@ -189,6 +198,46 @@ export const adminNcsEvalExecHtml = (sidebar = hrdSidebar('ncs-eval-exec')) => `
         });
       } catch (e) {
         console.error(e);
+      }
+    }
+
+    async function loadSubjectOptions(courseId) {
+      const sel = document.getElementById('ncsExecSubjectSelect');
+      if (!sel) return;
+      sel.innerHTML = '<option value="">전체 교과목</option>';
+      selectedSubjectId = '';
+      selectedSubjectName = '';
+      if (!courseId) {
+        sel.disabled = true;
+        return;
+      }
+      try {
+        const sessRes = await fetch('/api/course-sessions?lms_course_id=' + encodeURIComponent(String(courseId)) + '&limit=100&page=1', {
+          headers: authHeaders()
+        });
+        const sessJson = await sessRes.json();
+        const sessions = Array.isArray(sessJson?.data) ? sessJson.data : [];
+        const picked = sessions[0];
+        if (!picked || picked.id == null) {
+          sel.disabled = true;
+          return;
+        }
+        const res = await fetch('/api/course-sessions/' + encodeURIComponent(String(picked.id)) + '/timetable/resources', {
+          headers: authHeaders()
+        });
+        const json = await res.json();
+        const subjects = Array.isArray(json?.data?.subjects) ? json.data.subjects : [];
+        subjects.forEach((sub) => {
+          if (!sub || sub.id == null) return;
+          const opt = document.createElement('option');
+          opt.value = String(sub.id);
+          opt.textContent = String(sub.name || sub.job_name || '교과목');
+          sel.appendChild(opt);
+        });
+        sel.disabled = false;
+      } catch (e) {
+        console.error(e);
+        sel.disabled = true;
       }
     }
 
@@ -235,12 +284,18 @@ export const adminNcsEvalExecHtml = (sidebar = hrdSidebar('ncs-eval-exec')) => `
       const body = document.getElementById('round' + round + 'Body');
       const count = document.getElementById('round' + round + 'Count');
       if (!body) return;
-      if (count) count.textContent = list.length + '건';
-      if (!list.length) {
+      const filtered = (Array.isArray(list) ? list : []).filter((plan) => {
+        if (!selectedSubjectId) return true;
+        if (plan && plan.curriculum_id != null && String(plan.curriculum_id) === selectedSubjectId) return true;
+        const subjectName = String(plan?.subject_name || '').trim();
+        return !!selectedSubjectName && subjectName === selectedSubjectName;
+      });
+      if (count) count.textContent = filtered.length + '건';
+      if (!filtered.length) {
         body.innerHTML = '<tr><td colspan="10" class="px-4 py-6 text-center text-sm text-slate-400">등록된 계획이 없습니다.</td></tr>';
         return;
       }
-      body.innerHTML = list.map((plan) => {
+      body.innerHTML = filtered.map((plan) => {
         const stats = planStatsCache[plan.id] || { total: 0, graded: 0, passed: 0 };
         const planDocOk = plan.status === 'confirmed' || plan.status === 'completed';
         const evalDateOk = !!plan.planned_date;
@@ -271,7 +326,14 @@ export const adminNcsEvalExecHtml = (sidebar = hrdSidebar('ncs-eval-exec')) => `
     }
 
     function renderSummary(roundPlans) {
-      const all = [].concat(roundPlans[1] || [], roundPlans[2] || [], roundPlans[3] || []);
+      const all = []
+        .concat(roundPlans[1] || [], roundPlans[2] || [], roundPlans[3] || [])
+        .filter((plan) => {
+          if (!selectedSubjectId) return true;
+          if (plan && plan.curriculum_id != null && String(plan.curriculum_id) === selectedSubjectId) return true;
+          const subjectName = String(plan?.subject_name || '').trim();
+          return !!selectedSubjectName && subjectName === selectedSubjectName;
+        });
       const totalPlans = all.length;
       const confirmedPlans = all.filter(p => p.status === 'confirmed' || p.status === 'completed').length;
       const gradedPlans = all.filter(p => {
@@ -313,8 +375,21 @@ export const adminNcsEvalExecHtml = (sidebar = hrdSidebar('ncs-eval-exec')) => `
       loadCourseOptions();
       const sel = document.getElementById('ncsExecCourseSelect');
       if (sel) {
-        sel.addEventListener('change', () => {
+        sel.addEventListener('change', async () => {
           selectedCourseId = sel.value || '';
+          await loadSubjectOptions(selectedCourseId);
+          if (!selectedCourseId) return;
+          await loadCourseOverview();
+        });
+      }
+
+      const subjectSel = document.getElementById('ncsExecSubjectSelect');
+      if (subjectSel) {
+        subjectSel.addEventListener('change', () => {
+          selectedSubjectId = subjectSel.value || '';
+          const selectedOpt = subjectSel.options[subjectSel.selectedIndex];
+          selectedSubjectName = selectedOpt ? String(selectedOpt.textContent || '').trim() : '';
+          if (!selectedSubjectId) selectedSubjectName = '';
           if (!selectedCourseId) return;
           loadCourseOverview();
         });

@@ -6,8 +6,10 @@ function resultPageScript(useFixedCourseId: boolean) {
   <script>
     const useFixedCourseId = ${useFixedCourseId ? 'true' : 'false'};
     const fixedCourseId = useFixedCourseId ? (window.location.pathname.split('/')[3] || '') : '';
+    const isTeacherPath = window.location.pathname.startsWith('/teacher/');
+    const basePrefix = isTeacherPath ? '/teacher' : '/admin';
     let selectedCourseId = useFixedCourseId ? fixedCourseId : '';
-    let activeTab = 'grading';
+    let activeTab = 'overview';
     let gradingRound = 1;
     let docsRound = 1;
     let statsRound = 1;
@@ -82,10 +84,109 @@ function resultPageScript(useFixedCourseId: boolean) {
       return Array.isArray(json?.data) ? json.data : [];
     }
 
+    async function fetchPlanEvaluationStats(planId) {
+      const res = await authFetch('/api/ncs/evaluations/' + encodeURIComponent(planId));
+      const json = await res.json();
+      const rows = Array.isArray(json?.data) ? json.data : [];
+      const total = rows.length;
+      const gradedRows = rows.filter(r => r && r.score != null && String(r.score).trim() !== '');
+      const graded = gradedRows.length;
+      const passed = gradedRows.filter(r => Number(r?.is_passed) === 1).length;
+      const avgScore = graded ? (gradedRows.reduce((acc, r) => acc + Number(r?.score || 0), 0) / graded) : 0;
+      const passRate = graded ? (passed / graded * 100) : 0;
+      const completed = total > 0 && graded >= total;
+      return { total, graded, passed, avgScore, passRate, completed };
+    }
+
     function renderNoCourseMessage(containerId) {
       const el = document.getElementById(containerId);
       if (!el) return;
       el.innerHTML = '<div class="p-6 text-center text-slate-400 text-sm">먼저 과정을 선택해 주세요.</div>';
+    }
+
+    async function renderOverviewTab() {
+      const body = document.getElementById('ncsResultOverviewBody');
+      if (!body) return;
+      if (!selectedCourseId) {
+        renderNoCourseMessage('ncsResultOverviewBody');
+        return;
+      }
+      body.innerHTML = '<div class="p-6 text-center text-slate-400 text-sm">로딩 중...</div>';
+      try {
+        const allPlans = [];
+        for (const round of [1, 2, 3]) {
+          const plans = await fetchPlansByRound(round);
+          plans.forEach(p => allPlans.push({ ...p, __round: round }));
+        }
+        if (!allPlans.length) {
+          body.innerHTML = '<div class="p-6 text-center text-slate-400 text-sm">등록된 평가 계획이 없습니다.</div>';
+          return;
+        }
+        const statsByPlan = await Promise.all(allPlans.map(async (plan) => {
+          const stats = await fetchPlanEvaluationStats(plan.id);
+          return { plan, stats };
+        }));
+        const completedRows = statsByPlan.filter(x => x.stats.completed);
+        const totalPlans = allPlans.length;
+        const completedPlans = completedRows.length;
+        const inProgressPlans = statsByPlan.filter(x => !x.stats.completed && x.stats.graded > 0).length;
+        const pendingPlans = statsByPlan.filter(x => x.stats.graded === 0).length;
+        const totalLearners = completedRows.reduce((acc, x) => acc + x.stats.total, 0);
+        const totalPassed = completedRows.reduce((acc, x) => acc + x.stats.passed, 0);
+        const overallPassRate = totalLearners > 0 ? (totalPassed / totalLearners * 100) : 0;
+
+        const summaryCards =
+          '<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">' +
+            '<div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"><p class="text-[11px] text-slate-500 font-black uppercase tracking-wider">전체 계획 수</p><p class="mt-1 text-2xl font-black text-slate-900">' + totalPlans + '</p></div>' +
+            '<div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3"><p class="text-[11px] text-emerald-700 font-black uppercase tracking-wider">실행 완료</p><p class="mt-1 text-2xl font-black text-emerald-700">' + completedPlans + '</p></div>' +
+            '<div class="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3"><p class="text-[11px] text-sky-700 font-black uppercase tracking-wider">입력 진행중</p><p class="mt-1 text-2xl font-black text-sky-700">' + inProgressPlans + '</p></div>' +
+            '<div class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3"><p class="text-[11px] text-amber-700 font-black uppercase tracking-wider">입력 대기</p><p class="mt-1 text-2xl font-black text-amber-700">' + pendingPlans + '</p></div>' +
+            '<div class="rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3"><p class="text-[11px] text-indigo-700 font-black uppercase tracking-wider">완료건 이수율</p><p class="mt-1 text-2xl font-black text-indigo-700">' + overallPassRate.toFixed(1) + '%</p></div>' +
+          '</div>';
+
+        const tableHtml = completedRows.length
+          ? '<div class="overflow-x-auto rounded-2xl border border-slate-200/70 mt-4"><table class="w-full text-left min-w-[980px]"><thead class="bg-slate-50 border-b border-slate-100"><tr>' +
+              '<th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider">차수</th>' +
+              '<th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider">능력단위</th>' +
+              '<th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider">평가실시일</th>' +
+              '<th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider text-center">채점완료</th>' +
+              '<th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider text-center">평균점수</th>' +
+              '<th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider text-center">이수율</th>' +
+              '<th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider text-center">바로가기</th>' +
+            '</tr></thead><tbody class="divide-y divide-slate-100">' +
+            completedRows.map(x => {
+              const plan = x.plan;
+              const stats = x.stats;
+              const courseId = encodeURIComponent(selectedCourseId);
+              const roundQ = encodeURIComponent(plan.__round);
+              return '<tr>' +
+                '<td class="px-4 py-3 text-sm font-bold text-slate-700">' + escapeHtml(roundLabel(plan.__round)) + '</td>' +
+                '<td class="px-4 py-3 text-sm text-slate-800">[' + escapeHtml(plan.unit_code || '-') + '] ' + escapeHtml(plan.unit_name || '-') + '</td>' +
+                '<td class="px-4 py-3 text-sm text-slate-700">' + escapeHtml(plan.planned_date || '-') + '</td>' +
+                '<td class="px-4 py-3 text-sm text-center text-slate-700">' + stats.graded + '/' + stats.total + '</td>' +
+                '<td class="px-4 py-3 text-sm text-center text-slate-700">' + stats.avgScore.toFixed(1) + '점</td>' +
+                '<td class="px-4 py-3 text-sm text-center font-bold text-sky-700">' + stats.passRate.toFixed(1) + '%</td>' +
+                '<td class="px-4 py-3 text-center"><div class="flex items-center justify-center gap-1.5">' +
+                  '<a href="' + basePrefix + '/courses/' + courseId + '/lms/ncs-eval-result?evaluation_round=' + roundQ + '" class="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50">상세결과</a>' +
+                  '<a href="' + basePrefix + '/courses/' + courseId + '/lms/ncs-eval-exec?evaluation_round=' + roundQ + '" class="px-2.5 py-1.5 rounded-lg border border-sky-200 bg-sky-50 text-xs font-bold text-sky-700 hover:bg-sky-100">평가실행</a>' +
+                '</div></td>' +
+              '</tr>';
+            }).join('') +
+            '</tbody></table></div>'
+          : '<div class="mt-4 p-6 text-center text-slate-400 text-sm border border-slate-200 rounded-2xl">NCS 평가실행 완료 내역이 없습니다.</div>';
+
+        body.innerHTML = '<div class="space-y-4">' +
+          summaryCards +
+          '<div class="rounded-2xl border border-slate-200/70 bg-white p-4">' +
+            '<h4 class="text-sm font-black text-slate-900">평가실행 완료 내역</h4>' +
+            '<p class="text-xs text-slate-500 mt-1">채점이 전원 완료된 계획만 표시됩니다.</p>' +
+            tableHtml +
+          '</div>' +
+        '</div>';
+      } catch (e) {
+        console.error(e);
+        body.innerHTML = '<div class="p-6 text-center text-red-500 text-sm">종합현황을 불러오지 못했습니다.</div>';
+      }
     }
 
     async function renderGradingTab() {
@@ -263,6 +364,7 @@ function resultPageScript(useFixedCourseId: boolean) {
     }
 
     async function reloadAllTabs() {
+      await renderOverviewTab();
       await renderGradingTab();
       await loadDocPlanOptions();
       await renderDocResults();
@@ -276,7 +378,7 @@ function resultPageScript(useFixedCourseId: boolean) {
     }
 
     document.addEventListener('DOMContentLoaded', async () => {
-      setActiveTab('grading');
+      setActiveTab('overview');
       applyRoundBadges();
       if (useFixedCourseId) {
         const label = document.getElementById('fixedCourseHint');
@@ -328,7 +430,10 @@ function resultTabsHtml() {
   return `
   <section class="bg-white rounded-[2rem] border border-slate-200/60 shadow-sm p-4">
     <div class="flex flex-wrap gap-2">
-      <button type="button" data-ncs-result-tab-btn="grading" onclick="setActiveTab('grading')" class="px-4 py-2.5 rounded-xl border border-slate-900 bg-slate-900 text-white text-sm font-black transition">
+      <button type="button" data-ncs-result-tab-btn="overview" onclick="setActiveTab('overview')" class="px-4 py-2.5 rounded-xl border border-slate-900 bg-slate-900 text-white text-sm font-black transition">
+        종합현황
+      </button>
+      <button type="button" data-ncs-result-tab-btn="grading" onclick="setActiveTab('grading')" class="px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 text-sm font-black transition hover:bg-slate-50">
         종료된평가채점
       </button>
       <button type="button" data-ncs-result-tab-btn="docs" onclick="setActiveTab('docs')" class="px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 text-sm font-black transition hover:bg-slate-50">
@@ -340,7 +445,15 @@ function resultTabsHtml() {
     </div>
   </section>
 
-  <section data-ncs-result-tab-panel="grading" class="bg-white rounded-[2rem] border border-slate-200/60 shadow-sm p-5">
+  <section data-ncs-result-tab-panel="overview" class="bg-white rounded-[2rem] border border-slate-200/60 shadow-sm p-5">
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+      <h3 class="text-lg font-black text-slate-900">종합현황</h3>
+      <p class="text-xs text-slate-500">평가실행 완료 내역은 이 탭에서 종합 조회됩니다.</p>
+    </div>
+    <div id="ncsResultOverviewBody"></div>
+  </section>
+
+  <section data-ncs-result-tab-panel="grading" class="hidden bg-white rounded-[2rem] border border-slate-200/60 shadow-sm p-5">
     <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
       <h3 class="text-lg font-black text-slate-900">종료된평가채점 <span id="gradingRoundLabel" class="text-sm text-sky-700"></span></h3>
       <select id="gradingRoundSelect" class="px-3 py-2 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 bg-white">
