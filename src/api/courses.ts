@@ -315,45 +315,47 @@ courses.get('/:id', async (c) => {
           `).bind(sessionId).first<any>();
         }
 
-        if (!session) return notFoundResponse(c, '개설된 회차 정보를 찾을 수 없습니다');
+        // 회차가 있으면 HRD 회차 정보를 우선 반환하고,
+        // 없으면 아래 일반 과정 조회 로직으로 자연스럽게 폴백한다.
+        if (session) {
+          const dailyHoursResolved = session.daily_hours != null && Number(session.daily_hours) > 0
+            ? Number(session.daily_hours)
+            : (session.total_hours != null && session.total_days != null && Number(session.total_days) > 0 && Number(session.total_hours) > 0
+              ? Math.round((Number(session.total_hours) / Number(session.total_days)) * 10) / 10
+              : null);
 
-        const dailyHoursResolved = session.daily_hours != null && Number(session.daily_hours) > 0
-          ? Number(session.daily_hours)
-          : (session.total_hours != null && session.total_days != null && Number(session.total_days) > 0 && Number(session.total_hours) > 0
-            ? Math.round((Number(session.total_hours) / Number(session.total_days)) * 10) / 10
-            : null);
+          // 3. 프론트엔드 호환 필드 구성
+          const realSessionId = session.id;
+          const courseName = session.approved_course_name || '미지정 과정';
+          const sessionNum = session.session_number || '1';
+          const sessionNameSuffix = session.session_name ? ` - ${session.session_name}` : '';
+          const fullTitle = `${courseName} (${sessionNum}회차)${sessionNameSuffix}`;
 
-        // 3. 프론트엔드 호환 필드 구성
-        const realSessionId = session.id;
-        const courseName = session.approved_course_name || '미지정 과정';
-        const sessionNum = session.session_number || '1';
-        const sessionNameSuffix = session.session_name ? ` - ${session.session_name}` : '';
-        const fullTitle = `${courseName} (${sessionNum}회차)${sessionNameSuffix}`;
+          // 4. 수강생 수 조회
+          const studentCountResult = await DB.prepare(
+            'SELECT COUNT(*) as count FROM course_session_enrollments WHERE session_id = ? AND status IN ("approved", "enrolled")'
+          ).bind(realSessionId).first<{ count: number }>();
 
-        // 4. 수강생 수 조회
-        const studentCountResult = await DB.prepare(
-          'SELECT COUNT(*) as count FROM course_session_enrollments WHERE session_id = ? AND status IN ("approved", "enrolled")'
-        ).bind(realSessionId).first<{ count: number }>();
-
-        // 5. 최종 데이터 반환 (daily_hours: 배정 훈련시간, 없으면 total_hours/total_days로 계산)
-        return successResponse(c, {
-          ...session,
-          id: realSessionId, // 매우 중요: 이후 모든 LMS API는 이 ID를 사용함
-          course_id: session.approved_course_id,
-          title: fullTitle,
-          name: fullTitle,
-          teacher_name: session.instructor_name || session.approved_instructor_name,
-          start_date: session.training_start_date,
-          end_date: session.training_end_date,
-          start_time: session.training_time_start,
-          end_time: session.training_time_end,
-          category: session.category_name || '국비지원',
-          price: 0,
-          current_students: studentCountResult?.count || 0,
-          max_students: 0,
-          status: session.status || 'active',
-          daily_hours: dailyHoursResolved
-        });
+          // 5. 최종 데이터 반환 (daily_hours: 배정 훈련시간, 없으면 total_hours/total_days로 계산)
+          return successResponse(c, {
+            ...session,
+            id: realSessionId, // 매우 중요: 이후 모든 LMS API는 이 ID를 사용함
+            course_id: session.approved_course_id,
+            title: fullTitle,
+            name: fullTitle,
+            teacher_name: session.instructor_name || session.approved_instructor_name,
+            start_date: session.training_start_date,
+            end_date: session.training_end_date,
+            start_time: session.training_time_start,
+            end_time: session.training_time_end,
+            category: session.category_name || '국비지원',
+            price: 0,
+            current_students: studentCountResult?.count || 0,
+            max_students: 0,
+            status: session.status || 'active',
+            daily_hours: dailyHoursResolved
+          });
+        }
       } catch (err: any) {
         console.error('HRD Course Detail Critical Error:', err);
         return c.json({
