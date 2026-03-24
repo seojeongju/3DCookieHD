@@ -1135,6 +1135,31 @@ app.post('/admin/migrate-hrdmarket-images', authMiddleware, requireAdmin, async 
   }
 });
 
+/**
+ * GET /api/posts/admin/migrate-hrdmarket-images/status
+ * DB의 content·images 컬럼 문자열에 'hrdmarket'이 남아 있는 글 수(빠른 확인). R2 전용 본문은 여기서 안 잡힐 수 있음.
+ */
+app.get('/admin/migrate-hrdmarket-images/status', authMiddleware, requireAdmin, async (c) => {
+  try {
+    const { DB } = c.env;
+    const row = await DB.prepare(`
+      SELECT COUNT(*) as n FROM posts
+      WHERE IFNULL(content,'') LIKE '%hrdmarket%' OR IFNULL(images,'') LIKE '%hrdmarket%'
+    `).first<{ n: number }>();
+    return c.json({
+      success: true,
+      data: {
+        posts_with_hrdmarket_in_db_columns: row?.n ?? 0,
+        note:
+          '본문이 DB가 아니라 R2([R2:...])에만 있는 글은 이 숫자에 안 잡힐 수 있습니다. 최종 확인은 「미리보기」로 전체 스캔해 대상 합이 0인지 보세요.',
+      },
+    });
+  } catch (e: unknown) {
+    console.error('migrate-hrdmarket-images/status:', e);
+    return c.json({ success: false, error: '조회 실패' }, 500);
+  }
+});
+
 // ============================================
 // 게시글 수정
 // PUT /api/posts/:id

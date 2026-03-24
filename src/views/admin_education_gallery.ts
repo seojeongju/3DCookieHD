@@ -57,6 +57,9 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
                         <button type="button" onclick="migrateHrdmarketImages(false)" class="px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition flex items-center text-sm font-medium shadow-sm" title="원격 이미지를 R2로 받아 게시글의 URL을 /api/upload/files/ 로 치환합니다">
                             <i class="fas fa-cloud-download-alt mr-2"></i> HRD 이미지 서버로 이전
                         </button>
+                        <button type="button" onclick="checkHrdmarketMigrationStatus()" class="px-4 py-2 bg-white text-violet-800 border border-violet-200 rounded-lg hover:bg-violet-50 transition flex items-center text-sm font-medium shadow-sm" title="DB에 hrdmarket 문자열이 남은 글 수(빠름). R2 본문은 미리보기로 확인">
+                            <i class="fas fa-check-double mr-2"></i> 이전 여부 빠른 확인
+                        </button>
                         <button type="button" onclick="openModal(null)" class="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition flex items-center text-sm font-medium shadow-sm">
                             <i class="fas fa-plus mr-2"></i> 교육사진 등록
                         </button>
@@ -780,6 +783,28 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
             }
         }
 
+        /** DB 컬럼에 hrdmarket 문자열이 남았는지 빠르게 확인합니다(R2 전용 본문은 미리보기 권장). */
+        async function checkHrdmarketMigrationStatus() {
+            const token = localStorage.getItem('token');
+            if (!token) { alert('로그인이 필요합니다.'); return; }
+            try {
+                const res = await fetch('/api/posts/admin/migrate-hrdmarket-images/status', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const json = await res.json();
+                if (!json.success) {
+                    alert('오류: ' + (json.error || '실패'));
+                    return;
+                }
+                const d = json.data || {};
+                const n = d.posts_with_hrdmarket_in_db_columns != null ? d.posts_with_hrdmarket_in_db_columns : '-';
+                alert('DB content/images에 hrdmarket이 남아 있는 글(추정): ' + n + '건\\n\\n' + (d.note || '') + '\\n\\n※ 최종 확인: 「미리보기」 실행 시 대상 합이 0이면 치환할 URL이 없습니다.');
+            } catch (e) {
+                console.error(e);
+                alert('처리 중 오류가 발생했습니다.');
+            }
+        }
+
         /** 전체 게시글을 페이지 단위로 순회하며 hrdmarket.co.kr 이미지를 우리 서버(R2)로 이전합니다. */
         async function migrateHrdmarketImages(dryRun) {
             if (dryRun) {
@@ -823,13 +848,14 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
                     sumSkipped += Number(s.skipped_no_hrd) || 0;
                     sumErr += Number(s.errors) || 0;
                     batches++;
+                    console.log('[HRD 이전] 배치 ' + batches + ':', d.summary, 'offset→' + (d.batch && d.batch.next_offset));
                     if (!d.batch || !d.batch.has_more) break;
                     offset = d.batch.next_offset;
                 }
                 if (dryRun) {
-                    alert('미리보기 완료.\\n이전 대상(건수 합): ' + sumWould + '\\n스킵(해당 URL 없음): ' + sumSkipped + '\\n오류: ' + sumErr + '\\n배치 수: ' + batches);
+                    alert('미리보기 완료.\\n\\n이전 대상(건수 합): ' + sumWould + '\\n스킵(해당 URL 없음): ' + sumSkipped + '\\n오류: ' + sumErr + '\\n배치 수: ' + batches + '\\n\\n※ 대상 합이 0이면 더 이상 옮길 hrdmarket URL이 없습니다(전체 글 스캔 기준).');
                 } else {
-                    alert('이전 완료.\\n갱신된 글: ' + sumUpdated + '\\n스킵: ' + sumSkipped + '\\n오류: ' + sumErr + '\\n배치 수: ' + batches);
+                    alert('이전 완료.\\n\\n갱신된 글: ' + sumUpdated + '\\n스킵: ' + sumSkipped + '\\n오류: ' + sumErr + '\\n배치 수: ' + batches + '\\n\\n확인: 「미리보기」를 다시 눌러 대상 합이 0인지 보세요. 오류가 있으면 해당 글은 수동 점검이 필요할 수 있습니다.');
                 }
                 loadPosts(currentPage);
             } catch (e) {
