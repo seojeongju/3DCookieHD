@@ -496,7 +496,7 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
                         const imgs = Array.from(doc.querySelectorAll('img'));
                         const remoteImgs = imgs.filter(function(img) {
                             const src = (img.getAttribute('src') || '').trim();
-                            return /^https?:\/\//i.test(src) && !isLocalUploadedImageUrl(src);
+                            return /^https?:\\/\\//i.test(src) && !isLocalUploadedImageUrl(src);
                         });
                         if (remoteImgs.length === 0) return;
 
@@ -913,7 +913,7 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
                 const post = bulkImagePostList[i];
                 let url = urls[i];
                 try {
-                    if (/^https?:\/\//i.test(url) && !isLocalUploadedImageUrl(url)) {
+                    if (/^https?:\\/\\//i.test(url) && !isLocalUploadedImageUrl(url)) {
                         url = await importRemoteImageUrl(url);
                     }
                     const res = await fetch('/api/posts/' + post.id, {
