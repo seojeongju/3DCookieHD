@@ -1268,6 +1268,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
     let selectedRound = 1;
     var imageInsertContext = { targetId: '', folder: 'minutes', file: null };
     var lastFocusedEditableId = '';
+    var autoEditableSeq = 1;
     var selectedDocIdByTab = {};
     var selectedSessionIdForSubject = '';
 
@@ -3208,23 +3209,36 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
     });
 
     document.addEventListener('DOMContentLoaded', async function() {
+      function ensureEditableTargetId(el) {
+        if (!el) return '';
+        if (el.id) return String(el.id);
+        var tag = el.tagName ? String(el.tagName).toUpperCase() : '';
+        var isEditable = tag === 'TEXTAREA' || tag === 'INPUT' || !!el.isContentEditable;
+        if (!isEditable) return '';
+        var generated = 'ncsAutoEditable_' + String(autoEditableSeq++);
+        el.id = generated;
+        return generated;
+      }
+
       document.addEventListener('focusin', function(ev) {
         var el = ev.target;
-        if (!el || !el.id) return;
+        if (!el) return;
+        var ensuredId = ensureEditableTargetId(el);
+        if (!ensuredId) return;
         var tag = el.tagName ? String(el.tagName).toUpperCase() : '';
         if (tag === 'TEXTAREA') {
-          lastFocusedEditableId = String(el.id);
+          lastFocusedEditableId = ensuredId;
           return;
         }
         if (tag === 'INPUT') {
           var inputType = String(el.type || '').toLowerCase();
           if (inputType !== 'file' && inputType !== 'button' && inputType !== 'submit' && inputType !== 'reset') {
-            lastFocusedEditableId = String(el.id);
+            lastFocusedEditableId = ensuredId;
           }
           return;
         }
         if (el.isContentEditable) {
-          lastFocusedEditableId = String(el.id);
+          lastFocusedEditableId = ensuredId;
         }
       });
 
