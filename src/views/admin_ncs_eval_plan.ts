@@ -655,6 +655,15 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                   <h3 class="text-lg font-black text-slate-900 tracking-tight">${item.label}</h3>
                   <div class="flex items-center gap-2 flex-wrap justify-end">
                       <span class="text-xs font-bold text-slate-400" id="activeRoundBadge-${item.id}">1차평가(본평가)</span>
+                      <label class="inline-flex items-center gap-2">
+                        <span class="text-[11px] text-slate-500 font-bold">저장문서</span>
+                        <select id="planDocSelect-${item.id}" data-plan-doc-select="${item.id}" class="px-2.5 py-2 rounded-xl border border-slate-200 text-xs bg-white min-w-[13rem]">
+                          <option value="">최신 문서</option>
+                        </select>
+                      </label>
+                      <button type="button" data-plan-doc-list-reload="${item.id}" class="px-2.5 py-2 rounded-xl border border-slate-200 bg-white text-xs font-black text-slate-700 hover:bg-slate-50 transition" title="저장 목록 새로고침">
+                        <i class="fas fa-rotate-right"></i>
+                      </button>
                       ${item.id === 'minutes' ? `
                       <button type="button" id="minutesPrintBtn" class="px-3 py-2 rounded-xl bg-amber-500 text-white text-xs font-black hover:bg-amber-600 transition">
                         <i class="fas fa-print mr-1"></i>인쇄
@@ -1238,6 +1247,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
     let selectedRound = 1;
     var imageInsertContext = { targetId: '', folder: 'minutes', file: null };
     var lastFocusedEditableId = '';
+    var selectedDocIdByTab = {};
 
     const TAB_NAMES = {
       minutes: '평가계획회의록',
@@ -3026,23 +3036,82 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       }
     }
 
-    async function loadDocument(tabId) {
+    function formatPlanDocOptionText(row, index) {
+      var title = String((row && row.title) || '').trim();
+      var updated = String((row && row.updated_at) || '').trim();
+      var titlePart = title || ('문서 #' + String(index + 1));
+      var datePart = updated ? (' · ' + updated) : '';
+      return titlePart + datePart;
+    }
+
+    function setPlanDocSelectOptions(tabId, list, selectedId) {
+      var sel = document.getElementById('planDocSelect-' + tabId);
+      if (!sel) return;
+      sel.innerHTML = '<option value="">최신 문서</option>';
+      (Array.isArray(list) ? list : []).forEach(function(row, idx) {
+        if (!row || row.id == null) return;
+        var opt = document.createElement('option');
+        opt.value = String(row.id);
+        opt.textContent = formatPlanDocOptionText(row, idx);
+        sel.appendChild(opt);
+      });
+      var selected = selectedId != null ? String(selectedId) : '';
+      if (selected) sel.value = selected;
+      if (selected && sel.value !== selected) sel.value = '';
+    }
+
+    async function loadDocumentList(tabId, selectedId) {
       if (!selectedCourseId) {
+        setPlanDocSelectOptions(tabId, [], '');
+        return [];
+      }
+      try {
+        var res = await authFetch('/api/ncs/plan-documents/list?course_id=' + encodeURIComponent(selectedCourseId) + '&evaluation_round=' + encodeURIComponent(selectedRound) + '&doc_type=' + encodeURIComponent(tabId));
+        var json = await res.json();
+        if (!json || !json.success) throw new Error((json && json.error) || 'list load failed');
+        var list = Array.isArray(json.data) ? json.data : [];
+        setPlanDocSelectOptions(tabId, list, selectedId || selectedDocIdByTab[tabId] || '');
+        return list;
+      } catch (e) {
+        console.error(e);
+        setPlanDocSelectOptions(tabId, [], '');
+        return [];
+      }
+    }
+
+    async function loadDocument(tabId, docId) {
+      if (!selectedCourseId) {
+        selectedDocIdByTab[tabId] = '';
+        setPlanDocSelectOptions(tabId, [], '');
         clearDocForm(tabId);
         setStatus(tabId, '과정을 선택해 주세요', true);
         return;
       }
       setStatus(tabId, '불러오는 중...', false);
       try {
-        const res = await authFetch('/api/ncs/plan-documents?course_id=' + encodeURIComponent(selectedCourseId) + '&evaluation_round=' + encodeURIComponent(selectedRound) + '&doc_type=' + encodeURIComponent(tabId));
+        var requestedDocId = docId != null && String(docId).trim() !== '' ? String(docId).trim() : '';
+        var currentSelectedId = requestedDocId || selectedDocIdByTab[tabId] || '';
+        await loadDocumentList(tabId, currentSelectedId);
+        var url = '/api/ncs/plan-documents?course_id=' + encodeURIComponent(selectedCourseId) + '&evaluation_round=' + encodeURIComponent(selectedRound) + '&doc_type=' + encodeURIComponent(tabId);
+        if (requestedDocId) url += '&doc_id=' + encodeURIComponent(requestedDocId);
+        const res = await authFetch(url);
         const json = await res.json();
         if (!json?.success) throw new Error(json?.error || 'load failed');
         if (!json.data) {
+          if (requestedDocId) {
+            selectedDocIdByTab[tabId] = '';
+            await loadDocument(tabId, '');
+            return;
+          }
+          selectedDocIdByTab[tabId] = '';
+          await loadDocumentList(tabId, '');
           clearDocForm(tabId);
           setStatus(tabId, '새 문서', false);
           return;
         }
         applyDocForm(tabId, json.data);
+        selectedDocIdByTab[tabId] = String(json.data.id || '');
+        await loadDocumentList(tabId, selectedDocIdByTab[tabId]);
         setUpdatedAt(tabId, json.data.updated_at || null);
         setStatus(tabId, '불러오기 완료', false);
       } catch (e) {
@@ -3076,12 +3145,22 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         const json = await res.json();
         if (!json?.success) throw new Error(json?.error || 'save failed');
         setStatus(tabId, '저장 완료', false);
+        if (json && json.data && json.data.id != null) {
+          selectedDocIdByTab[tabId] = String(json.data.id);
+          await loadDocumentList(tabId, selectedDocIdByTab[tabId]);
+        } else {
+          await loadDocumentList(tabId, selectedDocIdByTab[tabId] || '');
+        }
         const now = new Date();
         const stamp = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0') + ' ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
         setUpdatedAt(tabId, stamp);
+        var tabName = TAB_NAMES[tabId] || tabId;
+        alert('[' + tabName + '] 문서가 저장되었습니다.');
       } catch (e) {
         console.error(e);
         setStatus(tabId, '저장 실패', true);
+        var errMsg = (e && e.message) ? String(e.message) : '알 수 없는 오류';
+        alert('문서 저장에 실패했습니다.\\n' + errMsg);
       }
     }
 
@@ -3175,6 +3254,24 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           const tabId = btn.getAttribute('data-plan-save-btn');
           if (!tabId) return;
           await saveDocument(tabId);
+        });
+      });
+
+      document.querySelectorAll('[data-plan-doc-select]').forEach(function(sel) {
+        sel.addEventListener('change', async function() {
+          var tabId = sel.getAttribute('data-plan-doc-select');
+          if (!tabId) return;
+          var pickedId = (sel.value || '').trim();
+          selectedDocIdByTab[tabId] = pickedId;
+          await loadDocument(tabId, pickedId);
+        });
+      });
+
+      document.querySelectorAll('[data-plan-doc-list-reload]').forEach(function(btn) {
+        btn.addEventListener('click', async function() {
+          var tabId = btn.getAttribute('data-plan-doc-list-reload');
+          if (!tabId) return;
+          await loadDocumentList(tabId, selectedDocIdByTab[tabId] || '');
         });
       });
 

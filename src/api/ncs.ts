@@ -3484,6 +3484,7 @@ app.get('/plan-documents', authMiddleware, async (c) => {
         const courseIdRaw = c.req.query('course_id');
         const roundRaw = c.req.query('evaluation_round') ?? c.req.query('round');
         const docType = (c.req.query('doc_type') || '').trim();
+        const docIdRaw = (c.req.query('doc_id') || '').trim();
         if (!courseIdRaw || !docType) {
             return c.json({ success: false, error: 'course_id and doc_type are required' }, 400);
         }
@@ -3499,12 +3500,27 @@ app.get('/plan-documents', authMiddleware, async (c) => {
         const allowed = await ensureNcsCoursePermission(c, courseId);
         if (!allowed) return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
 
-        const row: any = await c.env.DB.prepare(`
-            SELECT id, course_id, evaluation_round, doc_type, title, payload_json, updated_at
-            FROM ncs_plan_documents
-            WHERE course_id = ? AND evaluation_round = ? AND doc_type = ?
-            LIMIT 1
-        `).bind(courseId, round, docType).first();
+        let row: any = null;
+        if (docIdRaw) {
+            const docId = parseInt(String(docIdRaw), 10);
+            if (!Number.isFinite(docId) || docId < 1) {
+                return c.json({ success: false, error: 'Invalid doc_id' }, 400);
+            }
+            row = await c.env.DB.prepare(`
+                SELECT id, course_id, evaluation_round, doc_type, title, payload_json, updated_at
+                FROM ncs_plan_documents
+                WHERE id = ? AND course_id = ? AND evaluation_round = ? AND doc_type = ?
+                LIMIT 1
+            `).bind(docId, courseId, round, docType).first();
+        } else {
+            row = await c.env.DB.prepare(`
+                SELECT id, course_id, evaluation_round, doc_type, title, payload_json, updated_at
+                FROM ncs_plan_documents
+                WHERE course_id = ? AND evaluation_round = ? AND doc_type = ?
+                ORDER BY updated_at DESC, id DESC
+                LIMIT 1
+            `).bind(courseId, round, docType).first();
+        }
 
         if (!row) {
             return c.json({ success: true, data: null });
@@ -3535,7 +3551,42 @@ app.get('/plan-documents', authMiddleware, async (c) => {
     }
 });
 
-// NCS 평가계획 문서 저장(업서트)
+// NCS 평가계획 문서 목록 조회 (탭별)
+app.get('/plan-documents/list', authMiddleware, async (c) => {
+    try {
+        const courseIdRaw = c.req.query('course_id');
+        const roundRaw = c.req.query('evaluation_round') ?? c.req.query('round');
+        const docType = (c.req.query('doc_type') || '').trim();
+        if (!courseIdRaw || !docType) {
+            return c.json({ success: false, error: 'course_id and doc_type are required' }, 400);
+        }
+        if (!ALLOWED_PLAN_DOC_TYPES.has(docType)) {
+            return c.json({ success: false, error: 'Invalid doc_type' }, 400);
+        }
+        const courseId = parseInt(String(courseIdRaw), 10);
+        const round = roundRaw != null && String(roundRaw).trim() !== '' ? parseInt(String(roundRaw), 10) : 1;
+        if (!Number.isFinite(courseId) || courseId < 1 || !Number.isFinite(round) || round < 1 || round > 3) {
+            return c.json({ success: false, error: 'Invalid course_id or evaluation_round' }, 400);
+        }
+
+        const allowed = await ensureNcsCoursePermission(c, courseId);
+        if (!allowed) return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
+
+        const { results } = await c.env.DB.prepare(`
+            SELECT id, title, updated_at
+            FROM ncs_plan_documents
+            WHERE course_id = ? AND evaluation_round = ? AND doc_type = ?
+            ORDER BY updated_at DESC, id DESC
+        `).bind(courseId, round, docType).all();
+
+        return c.json({ success: true, data: Array.isArray(results) ? results : [] });
+    } catch (e) {
+        console.error('Failed to fetch NCS plan document list:', e);
+        return c.json({ success: false, error: 'Failed to fetch plan document list' }, 500);
+    }
+});
+
+// NCS 평가계획 문서 저장(다건 누적)
 app.post('/plan-documents', authMiddleware, async (c) => {
     try {
         const user = c.get('user') as JWTPayload;
@@ -3562,21 +3613,6 @@ app.post('/plan-documents', authMiddleware, async (c) => {
         if (!allowed) return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
 
         const payloadJson = JSON.stringify(payload ?? {});
-        const existing: any = await c.env.DB.prepare(`
-            SELECT id FROM ncs_plan_documents
-            WHERE course_id = ? AND evaluation_round = ? AND doc_type = ?
-            LIMIT 1
-        `).bind(courseId, round, docType).first();
-
-        if (existing?.id) {
-            await c.env.DB.prepare(`
-                UPDATE ncs_plan_documents
-                SET title = ?, payload_json = ?, updated_by = ?, updated_at = CURRENT_TIMESTAMP
-                WHERE id = ?
-            `).bind(title || null, payloadJson, user.userId ?? null, existing.id).run();
-            return c.json({ success: true, data: { id: existing.id, mode: 'updated' } });
-        }
-
         const result = await c.env.DB.prepare(`
             INSERT INTO ncs_plan_documents (course_id, evaluation_round, doc_type, title, payload_json, created_by, updated_by)
             VALUES (?, ?, ?, ?, ?, ?, ?)
