@@ -82,9 +82,72 @@ function minutesPrintSheetHtml() {
   `;
 }
 
+/** 인쇄·미리보기: 평가 문항제작 */
+function questionsPrintSheetHtml() {
+  return `
+    <div id="questionsPrintRoot" class="ncs-questions-print-root" aria-hidden="true">
+      <button type="button" id="questionsPrintPreviewCloseBtn" class="no-print hidden fixed top-4 right-4 z-[210] px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-black shadow-lg hover:bg-slate-800">
+        닫기
+      </button>
+      <div class="questions-print-doc max-w-[210mm] mx-auto text-black text-[11pt] leading-relaxed bg-white print:p-0">
+        <div class="text-center border-b-2 border-black pb-3 mb-3">
+          <h1 class="text-xl font-black tracking-tight">평가 문항제작</h1>
+          <p id="questionsPrintSubtitle" class="text-sm mt-1 text-slate-700"></p>
+        </div>
+        <table class="w-full border-collapse border border-black text-[10pt] mb-4">
+          <tbody>
+            <tr>
+              <td class="border border-black w-[18%] bg-slate-100 px-2 py-2 font-bold text-center">과정명</td>
+              <td class="border border-black px-2 py-2" colspan="3" id="questionsPrintCourseName"></td>
+            </tr>
+            <tr>
+              <td class="border border-black bg-slate-100 px-2 py-2 font-bold text-center">교과목(하위)</td>
+              <td class="border border-black px-2 py-2" id="questionsPrintSubject"></td>
+              <td class="border border-black w-[18%] bg-slate-100 px-2 py-2 font-bold text-center">평가차수</td>
+              <td class="border border-black px-2 py-2" id="questionsPrintRound"></td>
+            </tr>
+            <tr>
+              <td class="border border-black bg-slate-100 px-2 py-2 font-bold text-center">문서제목</td>
+              <td class="border border-black px-2 py-2" id="questionsPrintDocTitle"></td>
+              <td class="border border-black bg-slate-100 px-2 py-2 font-bold text-center">출제자</td>
+              <td class="border border-black px-2 py-2" id="questionsPrintWriter"></td>
+            </tr>
+            <tr>
+              <td class="border border-black bg-slate-100 px-2 py-2 font-bold text-center">배점</td>
+              <td class="border border-black px-2 py-2" colspan="3" id="questionsPrintScoreSummary"></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="border border-black mb-2">
+          <div class="bg-slate-100 px-2 py-1.5 font-bold text-center border-b border-black">평가문항</div>
+          <div class="overflow-x-auto">
+            <table class="w-full border-collapse text-[10pt]">
+              <thead>
+                <tr class="bg-slate-50">
+                  <th class="border border-black px-2 py-2 w-12 text-center">번호</th>
+                  <th class="border border-black px-2 py-2 w-20 text-center">유형</th>
+                  <th class="border border-black px-2 py-2 text-left">문항</th>
+                  <th class="border border-black px-2 py-2 w-14 text-center">배점</th>
+                  <th class="border border-black px-2 py-2 text-left">평가기준·키워드</th>
+                </tr>
+              </thead>
+              <tbody id="questionsPrintRowsBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="border border-black">
+          <div class="bg-slate-100 px-2 py-1.5 font-bold border-b border-black">비고</div>
+          <div id="questionsPrintNotes" class="px-3 py-2 whitespace-pre-wrap min-h-[3rem] text-[10pt]"></div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 const NCS_PLAN_PRINT_STYLES = `
 <style>
-.ncs-minutes-print-root {
+.ncs-minutes-print-root,
+.ncs-questions-print-root {
   position: fixed;
   left: -200vw;
   top: 0;
@@ -95,9 +158,33 @@ const NCS_PLAN_PRINT_STYLES = `
   z-index: 999999;
   padding: 0;
 }
+.ncs-questions-print-root.is-preview {
+  left: 0 !important;
+  right: 0 !important;
+  top: 0 !important;
+  width: 100% !important;
+  max-height: 100vh !important;
+  overflow: auto !important;
+  background: rgba(15, 23, 42, 0.55) !important;
+  z-index: 200 !important;
+  padding: 1rem !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+}
+.ncs-questions-print-root.is-preview .questions-print-doc {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+  padding: 12mm;
+}
 @media print {
   @page { size: A4; margin: 12mm; }
-  .ncs-minutes-print-root {
+  .no-print { display: none !important; }
+  body * { visibility: hidden !important; }
+  body[data-print-target="minutes"] .ncs-minutes-print-root,
+  body[data-print-target="minutes"] .ncs-minutes-print-root * {
+    visibility: visible !important;
+  }
+  body[data-print-target="minutes"] .ncs-minutes-print-root {
     position: absolute !important;
     left: 0 !important;
     top: 0 !important;
@@ -106,8 +193,25 @@ const NCS_PLAN_PRINT_STYLES = `
     overflow: visible !important;
     z-index: 0 !important;
   }
-  body * { visibility: hidden !important; }
-  .ncs-minutes-print-root, .ncs-minutes-print-root * { visibility: visible !important; }
+  body[data-print-target="questions"] .ncs-questions-print-root,
+  body[data-print-target="questions"] .ncs-questions-print-root * {
+    visibility: visible !important;
+  }
+  body[data-print-target="questions"] .ncs-questions-print-root {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-height: none !important;
+    overflow: visible !important;
+    z-index: 0 !important;
+    background: #fff !important;
+    padding: 0 !important;
+  }
+  body[data-print-target="questions"] .ncs-questions-print-root.is-preview {
+    display: block !important;
+    background: #fff !important;
+  }
 }
 </style>
 `;
@@ -131,6 +235,14 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                       <span class="text-xs font-bold text-slate-400" id="activeRoundBadge-${item.id}">1차평가(본평가)</span>
                       ${item.id === 'minutes' ? `
                       <button type="button" id="minutesPrintBtn" class="px-3 py-2 rounded-xl bg-amber-500 text-white text-xs font-black hover:bg-amber-600 transition">
+                        <i class="fas fa-print mr-1"></i>인쇄
+                      </button>
+                      ` : ''}
+                      ${item.id === 'questions' ? `
+                      <button type="button" id="questionsPreviewBtn" class="px-3 py-2 rounded-xl border border-sky-200 bg-sky-50 text-sky-800 text-xs font-black hover:bg-sky-100 transition">
+                        <i class="fas fa-eye mr-1"></i>미리보기
+                      </button>
+                      <button type="button" id="questionsPrintBtn" class="px-3 py-2 rounded-xl bg-amber-500 text-white text-xs font-black hover:bg-amber-600 transition">
                         <i class="fas fa-print mr-1"></i>인쇄
                       </button>
                       ` : ''}
@@ -587,6 +699,7 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
         ${panels}
     </div>
     ${minutesPrintSheetHtml()}
+    ${questionsPrintSheetHtml()}
   `;
 }
 
@@ -859,6 +972,93 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         }
       }
 
+      document.body.setAttribute('data-print-target', 'minutes');
+      window.setTimeout(function() { window.print(); }, 50);
+    }
+
+    async function fillQuestionsPrintSheet() {
+      var courseTitle = await resolveCourseTitleForPrint();
+      var subEl = document.getElementById('questionsPrintSubtitle');
+      var docTitle = (document.getElementById('questions_doc_title') || {}).value || '';
+      if (subEl) subEl.textContent = docTitle ? ('(' + docTitle + ')') : '';
+
+      var subjLabel = '';
+      var subjEl = document.getElementById('ncsPlanSubjectSelect');
+      if (subjEl && subjEl.selectedIndex >= 0 && subjEl.options[subjEl.selectedIndex]) {
+        subjLabel = (subjEl.options[subjEl.selectedIndex].textContent || '').trim();
+      }
+
+      setMinutesPrintText('questionsPrintCourseName', courseTitle || '-');
+      setMinutesPrintText('questionsPrintSubject', subjLabel || '-');
+      setMinutesPrintText('questionsPrintRound', roundLabel(selectedRound));
+      setMinutesPrintText('questionsPrintDocTitle', docTitle || '-');
+      setMinutesPrintText('questionsPrintWriter', (document.getElementById('questions_writer') || {}).value || '-');
+
+      var rows = readQuestionRowsFromTable();
+      var total = rows.reduce(function(acc, r) { return acc + Number(r && r.score != null ? r.score : 0); }, 0);
+      var target = Number((document.getElementById('questions_total_target') || {}).value || 0);
+      var sumText = '총배점 ' + total + '점';
+      if (target > 0) sumText += ' / 목표 ' + target + '점';
+      setMinutesPrintText('questionsPrintScoreSummary', sumText);
+
+      var tbody = document.getElementById('questionsPrintRowsBody');
+      if (tbody) {
+        if (!rows.length) {
+          tbody.innerHTML = '<tr><td colspan="5" class="border border-black px-2 py-3 text-center text-slate-500 text-[10pt]">등록된 문항이 없습니다.</td></tr>';
+        } else {
+          tbody.innerHTML = rows.map(function(row, idx) {
+            var no = Number(row && row.no != null ? row.no : idx + 1);
+            var typ = escapeHtml(String(row && row.type != null ? row.type : '-'));
+            var txt = escapeHtml(String(row && row.text != null ? row.text : ''));
+            var sc = Number(row && row.score != null ? row.score : 0);
+            var kw = escapeHtml(String(row && row.keyword != null ? row.keyword : '-'));
+            return '<tr>' +
+              '<td class="border border-black px-2 py-2 text-center align-top">' + no + '</td>' +
+              '<td class="border border-black px-2 py-2 text-center align-top">' + typ + '</td>' +
+              '<td class="border border-black px-2 py-2 text-left align-top whitespace-pre-wrap text-[10pt]">' + (txt || '-') + '</td>' +
+              '<td class="border border-black px-2 py-2 text-center align-top">' + sc + '</td>' +
+              '<td class="border border-black px-2 py-2 text-left align-top whitespace-pre-wrap text-[10pt]">' + kw + '</td>' +
+              '</tr>';
+          }).join('');
+        }
+      }
+
+      setMinutesPrintText('questionsPrintNotes', (document.getElementById('questions_notes') || {}).value || '');
+    }
+
+    async function openQuestionsPrintPreview() {
+      if (!selectedCourseId) {
+        alert('과정을 선택해 주세요.');
+        return;
+      }
+      await fillQuestionsPrintSheet();
+      var root = document.getElementById('questionsPrintRoot');
+      var closeBtn = document.getElementById('questionsPrintPreviewCloseBtn');
+      if (root) {
+        root.classList.add('is-preview');
+        root.setAttribute('aria-hidden', 'false');
+      }
+      if (closeBtn) closeBtn.classList.remove('hidden');
+    }
+
+    function closeQuestionsPrintPreview() {
+      var root = document.getElementById('questionsPrintRoot');
+      var closeBtn = document.getElementById('questionsPrintPreviewCloseBtn');
+      if (root) {
+        root.classList.remove('is-preview');
+        root.setAttribute('aria-hidden', 'true');
+      }
+      if (closeBtn) closeBtn.classList.add('hidden');
+    }
+
+    async function printQuestionsDocument() {
+      if (!selectedCourseId) {
+        alert('과정을 선택해 주세요.');
+        return;
+      }
+      closeQuestionsPrintPreview();
+      await fillQuestionsPrintSheet();
+      document.body.setAttribute('data-print-target', 'questions');
       window.setTimeout(function() { window.print(); }, 50);
     }
 
@@ -1772,6 +1972,10 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       loadDocument(tabId);
     }
 
+    window.addEventListener('afterprint', function() {
+      document.body.removeAttribute('data-print-target');
+    });
+
     document.addEventListener('DOMContentLoaded', async function() {
       if (useFixedCourseId) {
         const hint = document.getElementById('fixedCourseHint');
@@ -2060,6 +2264,19 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       var minutesPrintBtn = document.getElementById('minutesPrintBtn');
       if (minutesPrintBtn) {
         minutesPrintBtn.addEventListener('click', function() { printMinutesDocument(); });
+      }
+
+      var questionsPreviewBtn = document.getElementById('questionsPreviewBtn');
+      if (questionsPreviewBtn) {
+        questionsPreviewBtn.addEventListener('click', function() { void openQuestionsPrintPreview(); });
+      }
+      var questionsPrintBtn = document.getElementById('questionsPrintBtn');
+      if (questionsPrintBtn) {
+        questionsPrintBtn.addEventListener('click', function() { void printQuestionsDocument(); });
+      }
+      var questionsPrintPreviewCloseBtn = document.getElementById('questionsPrintPreviewCloseBtn');
+      if (questionsPrintPreviewCloseBtn) {
+        questionsPrintPreviewCloseBtn.addEventListener('click', function() { closeQuestionsPrintPreview(); });
       }
 
       var minutesFileAttachBtn = document.getElementById('minutesFileAttachBtn');
