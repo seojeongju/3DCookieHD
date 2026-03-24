@@ -1327,6 +1327,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
     let selectedCourseId = useFixedCourseId ? fixedCourseId : '';
     let selectedRound = 1;
     var imageInsertContext = { targetId: '', folder: 'minutes', file: null };
+    var lastFocusedEditableId = '';
 
     const TAB_NAMES = {
       minutes: '평가계획회의록',
@@ -1717,6 +1718,41 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       var pos = start + text.length;
       textarea.selectionStart = textarea.selectionEnd = pos;
       textarea.focus();
+    }
+
+    function insertImageIntoEditable(targetEl, url) {
+      if (!targetEl || !url) return false;
+      var tag = targetEl.tagName ? String(targetEl.tagName).toUpperCase() : '';
+      if (tag === 'TEXTAREA') {
+        insertAtCursor(targetEl, '\\n![이미지](' + url + ')\\n');
+        return true;
+      }
+      if (tag === 'INPUT') {
+        insertAtCursor(targetEl, ' ![이미지](' + url + ') ');
+        return true;
+      }
+      if (targetEl.isContentEditable && window.getSelection) {
+        var sel = window.getSelection();
+        if (!sel) return false;
+        var range = sel.rangeCount > 0 ? sel.getRangeAt(0) : null;
+        if (!range) {
+          range = document.createRange();
+          range.selectNodeContents(targetEl);
+          range.collapse(false);
+        }
+        var img = document.createElement('img');
+        img.src = url;
+        img.alt = '이미지';
+        img.style.maxWidth = '100%';
+        img.style.height = 'auto';
+        range.insertNode(img);
+        range.setStartAfter(img);
+        range.setEndAfter(img);
+        sel.removeAllRanges();
+        sel.addRange(range);
+        return true;
+      }
+      return false;
     }
 
     function openNcsPlanImageInsertModal(targetId, folder) {
@@ -3285,6 +3321,26 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
     });
 
     document.addEventListener('DOMContentLoaded', async function() {
+      document.addEventListener('focusin', function(ev) {
+        var el = ev.target;
+        if (!el || !el.id) return;
+        var tag = el.tagName ? String(el.tagName).toUpperCase() : '';
+        if (tag === 'TEXTAREA') {
+          lastFocusedEditableId = String(el.id);
+          return;
+        }
+        if (tag === 'INPUT') {
+          var inputType = String(el.type || '').toLowerCase();
+          if (inputType !== 'file' && inputType !== 'button' && inputType !== 'submit' && inputType !== 'reset') {
+            lastFocusedEditableId = String(el.id);
+          }
+          return;
+        }
+        if (el.isContentEditable) {
+          lastFocusedEditableId = String(el.id);
+        }
+      });
+
       if (useFixedCourseId) {
         const hint = document.getElementById('fixedCourseHint');
         if (hint) hint.textContent = '현재 과정 ID: ' + fixedCourseId;
@@ -3685,17 +3741,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       var toolsImageInsertBtn = document.getElementById('toolsImageInsertBtn');
       var toolsImageInsertInput = document.getElementById('toolsImageInsertInput');
       if (toolsImageInsertBtn && toolsImageInsertInput) {
-        toolsImageInsertBtn.addEventListener('click', function() { toolsImageInsertInput.click(); });
-        toolsImageInsertInput.addEventListener('change', async function(ev) {
-          var tf = ev.target.files && ev.target.files[0];
-          if (!tf) return;
-          var timg = await uploadNcsEvalPlanFile(tf, true, 'tools');
-          if (timg && timg.url) {
-            var tta = document.getElementById('tools_notes');
-            insertAtCursor(tta, '\\n![이미지](' + timg.url + ')\\n');
-          }
-          ev.target.value = '';
-        });
+        toolsImageInsertBtn.addEventListener('click', function() { openNcsPlanImageInsertModal('tools_notes', 'tools'); });
       }
       var rubricFileAttachBtn = document.getElementById('rubricFileAttachBtn');
       var rubricFileAttachInput = document.getElementById('rubricFileAttachInput');
@@ -3718,17 +3764,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       var rubricImageInsertBtn = document.getElementById('rubricImageInsertBtn');
       var rubricImageInsertInput = document.getElementById('rubricImageInsertInput');
       if (rubricImageInsertBtn && rubricImageInsertInput) {
-        rubricImageInsertBtn.addEventListener('click', function() { rubricImageInsertInput.click(); });
-        rubricImageInsertInput.addEventListener('change', async function(ev) {
-          var rf = ev.target.files && ev.target.files[0];
-          if (!rf) return;
-          var rimg = await uploadNcsEvalPlanFile(rf, true, 'rubric');
-          if (rimg && rimg.url) {
-            var rta = document.getElementById('rubric_notes');
-            insertAtCursor(rta, '\\n![이미지](' + rimg.url + ')\\n');
-          }
-          ev.target.value = '';
-        });
+        rubricImageInsertBtn.addEventListener('click', function() { openNcsPlanImageInsertModal('rubric_notes', 'rubric'); });
       }
       var achievementFileAttachBtn = document.getElementById('achievementFileAttachBtn');
       var achievementFileAttachInput = document.getElementById('achievementFileAttachInput');
@@ -3751,17 +3787,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       var achievementImageInsertBtn = document.getElementById('achievementImageInsertBtn');
       var achievementImageInsertInput = document.getElementById('achievementImageInsertInput');
       if (achievementImageInsertBtn && achievementImageInsertInput) {
-        achievementImageInsertBtn.addEventListener('click', function() { achievementImageInsertInput.click(); });
-        achievementImageInsertInput.addEventListener('change', async function(ev) {
-          var af = ev.target.files && ev.target.files[0];
-          if (!af) return;
-          var aimg = await uploadNcsEvalPlanFile(af, true, 'achievement');
-          if (aimg && aimg.url) {
-            var ata = document.getElementById('achievement_notes');
-            insertAtCursor(ata, '\\n![이미지](' + aimg.url + ')\\n');
-          }
-          ev.target.value = '';
-        });
+        achievementImageInsertBtn.addEventListener('click', function() { openNcsPlanImageInsertModal('achievement_notes', 'achievement'); });
       }
       var reviewFileAttachBtn = document.getElementById('reviewFileAttachBtn');
       var reviewFileAttachInput = document.getElementById('reviewFileAttachInput');
@@ -3784,17 +3810,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       var reviewImageInsertBtn = document.getElementById('reviewImageInsertBtn');
       var reviewImageInsertInput = document.getElementById('reviewImageInsertInput');
       if (reviewImageInsertBtn && reviewImageInsertInput) {
-        reviewImageInsertBtn.addEventListener('click', function() { reviewImageInsertInput.click(); });
-        reviewImageInsertInput.addEventListener('change', async function(ev) {
-          var rvf = ev.target.files && ev.target.files[0];
-          if (!rvf) return;
-          var rvimg = await uploadNcsEvalPlanFile(rvf, true, 'review');
-          if (rvimg && rvimg.url) {
-            var rvta = document.getElementById('review_notes');
-            insertAtCursor(rvta, '\\n![이미지](' + rvimg.url + ')\\n');
-          }
-          ev.target.value = '';
-        });
+        reviewImageInsertBtn.addEventListener('click', function() { openNcsPlanImageInsertModal('review_notes', 'review'); });
       }
 
       function bindReviewSignatureInput(btnId, inputId, previewId) {
@@ -3837,17 +3853,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       var minutesImageInsertBtn = document.getElementById('minutesImageInsertBtn');
       var minutesImageInsertInput = document.getElementById('minutesImageInsertInput');
       if (minutesImageInsertBtn && minutesImageInsertInput) {
-        minutesImageInsertBtn.addEventListener('click', function() { minutesImageInsertInput.click(); });
-        minutesImageInsertInput.addEventListener('change', async function(ev) {
-          var f = ev.target.files && ev.target.files[0];
-          if (!f) return;
-          var data = await uploadMinutesFile(f, true);
-          if (data && data.url) {
-            var ta = document.getElementById('minutes_content');
-            insertAtCursor(ta, '\\n![이미지](' + data.url + ')\\n');
-          }
-          ev.target.value = '';
-        });
+        minutesImageInsertBtn.addEventListener('click', function() { openNcsPlanImageInsertModal('minutes_content', 'minutes'); });
       }
 
       function bindMinutesSignatureInput(btnId, inputId, previewId) {
@@ -3890,18 +3896,54 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       var questionsImageInsertBtn = document.getElementById('questionsImageInsertBtn');
       var questionsImageInsertInput = document.getElementById('questionsImageInsertInput');
       if (questionsImageInsertBtn && questionsImageInsertInput) {
-        questionsImageInsertBtn.addEventListener('click', function() { questionsImageInsertInput.click(); });
-        questionsImageInsertInput.addEventListener('change', async function(ev) {
-          var qf = ev.target.files && ev.target.files[0];
-          if (!qf) return;
-          var qimg = await uploadNcsEvalPlanFile(qf, true, 'questions');
-          if (qimg && qimg.url) {
-            var qta = document.getElementById('questionInputText');
-            insertAtCursor(qta, '\\n![이미지](' + qimg.url + ')\\n');
+        questionsImageInsertBtn.addEventListener('click', function() { openNcsPlanImageInsertModal('questionInputText', 'questions'); });
+      }
+
+      var ncsImageModalInput = document.getElementById('ncsPlanImageInsertModalInput');
+      var ncsImageModalPreview = document.getElementById('ncsPlanImageInsertPreview');
+      var ncsImageModalPreviewEmpty = document.getElementById('ncsPlanImageInsertPreviewEmpty');
+      var ncsImageModalApplyBtn = document.getElementById('ncsPlanImageInsertApplyBtn');
+      var ncsImageModalCloseBtn = document.getElementById('ncsPlanImageInsertCloseBtn');
+      var ncsImageModalCancelBtn = document.getElementById('ncsPlanImageInsertCancelBtn');
+      if (ncsImageModalInput) {
+        ncsImageModalInput.addEventListener('change', function(ev) {
+          var f = ev.target.files && ev.target.files[0];
+          imageInsertContext.file = f || null;
+          if (!f) return;
+          if (ncsImageModalPreview && window.URL && window.URL.createObjectURL) {
+            ncsImageModalPreview.src = window.URL.createObjectURL(f);
+            ncsImageModalPreview.classList.remove('hidden');
+            if (ncsImageModalPreviewEmpty) ncsImageModalPreviewEmpty.classList.add('hidden');
           }
-          ev.target.value = '';
         });
       }
+      if (ncsImageModalApplyBtn) {
+        ncsImageModalApplyBtn.addEventListener('click', async function() {
+          var f = imageInsertContext.file;
+          if (!f) {
+            alert('삽입할 이미지를 선택해 주세요.');
+            return;
+          }
+          var folder = imageInsertContext.folder || 'minutes';
+          var data = folder === 'minutes'
+            ? await uploadMinutesFile(f, true)
+            : await uploadNcsEvalPlanFile(f, true, folder);
+          if (data && data.url) {
+            var targetId = lastFocusedEditableId || imageInsertContext.targetId || '';
+            var targetEl = targetId ? document.getElementById(targetId) : null;
+            if (!insertImageIntoEditable(targetEl, data.url)) {
+              var fallbackEl = document.getElementById(imageInsertContext.targetId || '');
+              if (!insertImageIntoEditable(fallbackEl, data.url)) {
+                alert('이미지를 넣을 셀(입력칸)을 먼저 클릭해 주세요.');
+                return;
+              }
+            }
+            closeNcsPlanImageInsertModal();
+          }
+        });
+      }
+      if (ncsImageModalCloseBtn) ncsImageModalCloseBtn.addEventListener('click', function() { closeNcsPlanImageInsertModal(); });
+      if (ncsImageModalCancelBtn) ncsImageModalCancelBtn.addEventListener('click', function() { closeNcsPlanImageInsertModal(); });
     });
   </script>
   `;
