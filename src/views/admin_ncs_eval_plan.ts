@@ -411,11 +411,10 @@ function reviewPrintSheetHtml() {
             <table class="w-full border-collapse text-[10pt]">
               <thead>
                 <tr class="bg-slate-50">
-                  <th class="border border-black px-2 py-2 w-14 text-center">완료</th>
-                  <th class="border border-black px-2 py-2 text-left">검토항목</th>
-                  <th class="border border-black px-2 py-2 text-left">의견</th>
-                  <th class="border border-black px-2 py-2 w-20 text-center">담당자</th>
-                  <th class="border border-black px-2 py-2 w-24 text-center">검토일</th>
+                  <th class="border border-black px-2 py-2 text-left w-[26%]">검토항목</th>
+                  <th class="border border-black px-2 py-2 text-left">1안 검토사항</th>
+                  <th class="border border-black px-2 py-2 w-16 text-center">적절</th>
+                  <th class="border border-black px-2 py-2 w-24 text-center">수정 필요</th>
                 </tr>
               </thead>
               <tbody id="reviewPrintRowsBody"></tbody>
@@ -1157,17 +1156,6 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                         </div>
                       </div>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-5 gap-3 mt-3">
-                      <input id="reviewInputItem" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white md:col-span-2" placeholder="검토항목" />
-                      <input id="reviewInputOwner" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="담당자" />
-                      <input id="reviewInputDate" type="date" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" />
-                      <button type="button" id="reviewAddRowBtn" class="px-3 py-2 rounded-xl bg-sky-600 text-white text-sm font-black hover:bg-sky-700 transition">
-                        <i class="fas fa-plus mr-1"></i>검토항목 추가
-                      </button>
-                    </div>
-                    <div class="mt-3">
-                      <textarea id="reviewInputComment" class="w-full h-20 px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="검토 의견"></textarea>
-                    </div>
                     <div class="mt-3 rounded-xl border border-slate-200/80 bg-white p-3">
                       <div class="flex flex-wrap items-center gap-2 mb-2">
                         <input type="file" id="reviewFileAttachInput" multiple class="hidden" />
@@ -1189,12 +1177,10 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                       <table class="w-full text-left">
                         <thead class="bg-slate-50 border-b border-slate-100">
                           <tr>
-                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider w-20 text-center">완료</th>
-                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider">검토항목</th>
-                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider">의견</th>
-                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider w-28">담당자</th>
-                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider w-28">검토일</th>
-                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider w-32 text-center">작업</th>
+                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider w-44">검토항목</th>
+                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider">1안 검토사항</th>
+                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider w-20 text-center">적절</th>
+                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider w-24 text-center">수정 필요</th>
                           </tr>
                         </thead>
                         <tbody id="reviewRowsBody" class="divide-y divide-slate-100 bg-white"></tbody>
@@ -2306,9 +2292,9 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
 
       var rows = readReviewRowsFromTable();
       var total = rows.length;
-      var done = rows.filter(function(r) { return !!(r && r.done); }).length;
-      var rate = total > 0 ? Math.round((done / total) * 100) : 0;
-      setMinutesPrintText('reviewPrintCompletion', rate + '% (' + done + '/' + total + ')');
+      var judged = rows.filter(function(r) { return !!(r && (r.adequate || r.needs_revision)); }).length;
+      var rate = total > 0 ? Math.round((judged / total) * 100) : 0;
+      setMinutesPrintText('reviewPrintCompletion', rate + '% (' + judged + '/' + total + ')');
 
       var rvAtt = readReviewAttachmentsFromDom();
       var rvAttPrint = document.getElementById('reviewPrintAttachments');
@@ -2327,20 +2313,18 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       var tbody = document.getElementById('reviewPrintRowsBody');
       if (tbody) {
         if (!rows.length) {
-          tbody.innerHTML = '<tr><td colspan="5" class="border border-black px-2 py-3 text-center text-slate-500 text-[10pt]">등록된 검토항목이 없습니다.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="4" class="border border-black px-2 py-3 text-center text-slate-500 text-[10pt]">등록된 검토항목이 없습니다.</td></tr>';
         } else {
           tbody.innerHTML = rows.map(function(row) {
-            var doneTxt = row && row.done ? '완료' : '';
             var item = escapeHtml(String(row && row.item != null ? row.item : '-'));
-            var comment = escapeHtml(String(row && row.comment != null ? row.comment : '-'));
-            var owner = escapeHtml(String(row && row.owner != null ? row.owner : '-'));
-            var reviewedAt = escapeHtml(String(row && row.reviewed_at != null ? row.reviewed_at : '-'));
+            var comment = escapeHtml(String(row && row.comment != null ? row.comment : ''));
+            var okTxt = row && row.adequate ? 'O' : '';
+            var fixTxt = row && row.needs_revision ? 'O' : '';
             return '<tr>' +
-              '<td class="border border-black px-2 py-2 text-center align-top">' + doneTxt + '</td>' +
               '<td class="border border-black px-2 py-2 text-left align-top whitespace-pre-wrap text-[10pt]">' + item + '</td>' +
               '<td class="border border-black px-2 py-2 text-left align-top whitespace-pre-wrap text-[10pt]">' + comment + '</td>' +
-              '<td class="border border-black px-2 py-2 text-center align-top">' + owner + '</td>' +
-              '<td class="border border-black px-2 py-2 text-center align-top">' + reviewedAt + '</td>' +
+              '<td class="border border-black px-2 py-2 text-center align-top">' + okTxt + '</td>' +
+              '<td class="border border-black px-2 py-2 text-center align-top">' + fixTxt + '</td>' +
               '</tr>';
           }).join('');
         }
@@ -2892,6 +2876,32 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       updateAchievementRateSum(safeRows);
     }
 
+    function defaultReviewRows() {
+      return [
+        { item: '훈련 목표 반영도', comment: '', adequate: false, needs_revision: false },
+        { item: '수행 능력의 평가', comment: '', adequate: false, needs_revision: false },
+        { item: '평가항목의 공정성', comment: '', adequate: false, needs_revision: false },
+        { item: '교과내용과의 관련성', comment: '', adequate: false, needs_revision: false },
+        { item: '학습자의 참여유도 정도', comment: '', adequate: false, needs_revision: false },
+        { item: '과제의 실행 가능성', comment: '', adequate: false, needs_revision: false },
+        { item: '산업안전(실기교과)', comment: '', adequate: false, needs_revision: false },
+        { item: '기타의견', comment: '', adequate: false, needs_revision: false }
+      ];
+    }
+
+    function normalizeReviewRows(rows) {
+      const list = Array.isArray(rows) ? rows : [];
+      if (!list.length) return defaultReviewRows();
+      return list.map(function(row, idx) {
+        return {
+          item: String(row && row.item != null ? row.item : ('검토항목 ' + (idx + 1))),
+          comment: String(row && row.comment != null ? row.comment : ''),
+          adequate: !!(row && (row.adequate || row.done)),
+          needs_revision: !!(row && row.needs_revision)
+        };
+      });
+    }
+
     function addAchievementRowFromInputs() {
       const levelEl = document.getElementById('achievementInputLevel');
       const minEl = document.getElementById('achievementInputMin');
@@ -2923,12 +2933,17 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       if (!body) return [];
       const rows = [];
       body.querySelectorAll('tr[data-review-row]').forEach(function(tr) {
+        var itemCell = tr.querySelector('[data-review-cell="item"]');
+        var commentCell = tr.querySelector('[data-review-cell="comment"]');
+        var okInput = tr.querySelector('input[data-review-check="adequate"]');
+        var fixInput = tr.querySelector('input[data-review-check="needs_revision"]');
+        var itemText = itemCell ? String(itemCell.textContent || '').trim() : (tr.getAttribute('data-item') || '');
+        var commentText = commentCell ? String(commentCell.textContent || '').trim() : (tr.getAttribute('data-comment') || '');
         rows.push({
-          done: tr.getAttribute('data-done') === '1',
-          item: tr.getAttribute('data-item') || '',
-          comment: tr.getAttribute('data-comment') || '',
-          owner: tr.getAttribute('data-owner') || '',
-          reviewed_at: tr.getAttribute('data-reviewed-at') || ''
+          item: itemText,
+          comment: commentText,
+          adequate: !!(okInput && okInput.checked),
+          needs_revision: !!(fixInput && fixInput.checked)
         });
       });
       return rows;
@@ -2938,9 +2953,9 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       const label = document.getElementById('reviewCompletionLabel');
       if (!label) return;
       const total = Array.isArray(rows) ? rows.length : 0;
-      const done = (Array.isArray(rows) ? rows : []).filter(function(r) { return !!r?.done; }).length;
-      const rate = total > 0 ? Math.round((done / total) * 100) : 0;
-      label.textContent = rate + '% (' + done + '/' + total + ')';
+      const judged = (Array.isArray(rows) ? rows : []).filter(function(r) { return !!(r?.adequate || r?.needs_revision); }).length;
+      const rate = total > 0 ? Math.round((judged / total) * 100) : 0;
+      label.textContent = rate + '% (' + judged + '/' + total + ')';
       label.classList.toggle('text-emerald-700', rate === 100 && total > 0);
       label.classList.toggle('text-slate-900', !(rate === 100 && total > 0));
     }
@@ -2950,51 +2965,23 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       if (!body) return;
       const safeRows = Array.isArray(rows) ? rows : [];
       if (!safeRows.length) {
-        body.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-sm text-slate-400">등록된 검토항목이 없습니다.</td></tr>';
+        body.innerHTML = '<tr><td colspan="4" class="px-4 py-8 text-center text-sm text-slate-400">등록된 검토항목이 없습니다.</td></tr>';
         updateReviewCompletion([]);
         return;
       }
       body.innerHTML = safeRows.map(function(row, idx) {
-        const done = !!row?.done;
         const item = String(row?.item || '');
         const comment = String(row?.comment || '');
-        const owner = String(row?.owner || '');
-        const reviewedAt = String(row?.reviewed_at || '');
-        return '<tr data-review-row data-done="' + (done ? '1' : '0') + '" data-item="' + escapeHtml(item) + '" data-comment="' + escapeHtml(comment) + '" data-owner="' + escapeHtml(owner) + '" data-reviewed-at="' + escapeHtml(reviewedAt) + '">' +
-          '<td class="px-4 py-3 text-center"><input type="checkbox" data-toggle-review-done="' + idx + '" ' + (done ? 'checked' : '') + ' /></td>' +
-          '<td class="px-4 py-3 text-sm font-semibold text-slate-700">' + escapeHtml(item || '-') + '</td>' +
-          '<td class="px-4 py-3 text-sm text-slate-700">' + escapeHtml(comment || '-') + '</td>' +
-          '<td class="px-4 py-3 text-sm text-slate-700">' + escapeHtml(owner || '-') + '</td>' +
-          '<td class="px-4 py-3 text-sm text-slate-700">' + escapeHtml(reviewedAt || '-') + '</td>' +
-          '<td class="px-4 py-3 text-center space-x-1">' +
-            '<button type="button" data-edit-review-row="' + idx + '" class="px-2.5 py-1.5 rounded-lg border border-amber-200 bg-amber-50 text-amber-700 text-xs font-black hover:bg-amber-100 transition">수정</button>' +
-            '<button type="button" data-remove-review-row="' + idx + '" class="px-2.5 py-1.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 text-xs font-black hover:bg-rose-100 transition">삭제</button>' +
-          '</td>' +
+        const adequate = !!row?.adequate;
+        const needsRevision = !!row?.needs_revision;
+        return '<tr data-review-row data-item="' + escapeHtml(item) + '" data-comment="' + escapeHtml(comment) + '">' +
+          '<td class="px-4 py-3 text-sm font-semibold text-slate-700 align-top"><div data-review-cell="item" contenteditable="true" class="min-h-[2.2rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(item) + '</div></td>' +
+          '<td class="px-4 py-3 text-sm text-slate-700 align-top"><div data-review-cell="comment" contenteditable="true" class="min-h-[2.2rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(comment) + '</div></td>' +
+          '<td class="px-4 py-3 text-center align-top"><input type="checkbox" data-review-check="adequate" data-review-index="' + idx + '" ' + (adequate ? 'checked' : '') + ' /></td>' +
+          '<td class="px-4 py-3 text-center align-top"><input type="checkbox" data-review-check="needs_revision" data-review-index="' + idx + '" ' + (needsRevision ? 'checked' : '') + ' /></td>' +
         '</tr>';
       }).join('');
       updateReviewCompletion(safeRows);
-    }
-
-    function addReviewRowFromInputs() {
-      const itemEl = document.getElementById('reviewInputItem');
-      const ownerEl = document.getElementById('reviewInputOwner');
-      const dateEl = document.getElementById('reviewInputDate');
-      const commentEl = document.getElementById('reviewInputComment');
-      const item = (itemEl?.value || '').trim();
-      const owner = (ownerEl?.value || '').trim();
-      const reviewedAt = (dateEl?.value || '').trim();
-      const comment = (commentEl?.value || '').trim();
-      if (!item) {
-        alert('검토항목을 입력해 주세요.');
-        return;
-      }
-      const rows = readReviewRowsFromTable();
-      rows.push({ done: false, item, owner, reviewed_at: reviewedAt, comment });
-      renderReviewRows(rows);
-      if (itemEl) itemEl.value = '';
-      if (ownerEl) ownerEl.value = '';
-      if (dateEl) dateEl.value = '';
-      if (commentEl) commentEl.value = '';
     }
 
     function applyDocForm(tabId, data) {
@@ -3104,7 +3091,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         if (notesEl) notesEl.value = payload.notes || '';
         renderReviewAttachments(payload.attachments || []);
         renderReviewSignatures(payload.signatures || {});
-        renderReviewRows(payload.rows || []);
+        renderReviewRows(normalizeReviewRows(payload.rows || []));
         return;
       }
       const titleEl = document.getElementById(tabId + '_doc_title');
@@ -3448,10 +3435,6 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           addAchievementRowFromInputs();
           return;
         }
-        if (target.id === 'reviewAddRowBtn') {
-          addReviewRowFromInputs();
-          return;
-        }
         const removeIdx = target.getAttribute('data-remove-schedule-row');
         if (removeIdx != null) {
           const rows = readScheduleRowsFromTable();
@@ -3582,42 +3565,16 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           renderAchievementRows(rows);
           return;
         }
-        const removeReviewIdx = target.getAttribute('data-remove-review-row');
-        if (removeReviewIdx != null) {
-          const rows = readReviewRowsFromTable();
-          const index = parseInt(removeReviewIdx, 10);
-          if (Number.isFinite(index) && index >= 0 && index < rows.length) {
-            rows.splice(index, 1);
-            renderReviewRows(rows);
+        const reviewCheckType = target.getAttribute('data-review-check');
+        if (reviewCheckType) {
+          const rowEl = target.closest('tr[data-review-row]');
+          if (rowEl) {
+            const okEl = rowEl.querySelector('input[data-review-check="adequate"]');
+            const fixEl = rowEl.querySelector('input[data-review-check="needs_revision"]');
+            if (reviewCheckType === 'adequate' && okEl && okEl.checked && fixEl) fixEl.checked = false;
+            if (reviewCheckType === 'needs_revision' && fixEl && fixEl.checked && okEl) okEl.checked = false;
           }
-          return;
-        }
-        const editReviewIdx = target.getAttribute('data-edit-review-row');
-        if (editReviewIdx != null) {
-          const rows = readReviewRowsFromTable();
-          const index = parseInt(editReviewIdx, 10);
-          const row = rows[index];
-          if (!row) return;
-          const itemEl = document.getElementById('reviewInputItem');
-          const ownerEl = document.getElementById('reviewInputOwner');
-          const dateEl = document.getElementById('reviewInputDate');
-          const commentEl = document.getElementById('reviewInputComment');
-          if (itemEl) itemEl.value = row.item || '';
-          if (ownerEl) ownerEl.value = row.owner || '';
-          if (dateEl) dateEl.value = row.reviewed_at || '';
-          if (commentEl) commentEl.value = row.comment || '';
-          rows.splice(index, 1);
-          renderReviewRows(rows);
-          return;
-        }
-        const toggleReviewDoneIdx = target.getAttribute('data-toggle-review-done');
-        if (toggleReviewDoneIdx != null) {
-          const rows = readReviewRowsFromTable();
-          const index = parseInt(toggleReviewDoneIdx, 10);
-          if (Number.isFinite(index) && index >= 0 && index < rows.length) {
-            rows[index].done = !rows[index].done;
-            renderReviewRows(rows);
-          }
+          updateReviewCompletion(readReviewRowsFromTable());
           return;
         }
       });
