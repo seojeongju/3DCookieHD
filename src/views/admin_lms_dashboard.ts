@@ -168,11 +168,31 @@ export const adminLmsDashboardHtml = (sidebar: string = hrdSidebar('courses')) =
         const courseId = window.location.pathname.split('/')[3];
         const token = localStorage.getItem('token');
         const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
+        let resolvedSessionIdPromise = null;
 
         // 오늘 날짜
         const today = new Date();
         const todayStr = today.toISOString().split('T')[0];
         const todayLabel = today.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
+
+        // LMS URL의 courseId를 시간표용 sessionId로 해석한다.
+        async function resolveSessionIdForTimetable() {
+            if (resolvedSessionIdPromise) return resolvedSessionIdPromise;
+            resolvedSessionIdPromise = (async function() {
+                try {
+                    var res = await fetch('/api/course-sessions?lms_course_id=' + encodeURIComponent(String(courseId)) + '&limit=100&page=1', { headers });
+                    var result = await res.json();
+                    var sessions = Array.isArray(result && result.data) ? result.data : [];
+                    if (sessions.length > 0 && sessions[0] && sessions[0].id != null) {
+                        return String(sessions[0].id);
+                    }
+                } catch (e) {
+                    console.error('회차 조회 실패:', e);
+                }
+                return '';
+            })();
+            return resolvedSessionIdPromise;
+        }
 
         document.addEventListener('DOMContentLoaded', () => {
             const todayDateEl = document.getElementById('todayDateLabel');
@@ -378,16 +398,21 @@ export const adminLmsDashboardHtml = (sidebar: string = hrdSidebar('courses')) =
         async function loadTodaySchedule() {
             var container = document.getElementById('todayScheduleContainer');
             try {
+                var sessionId = await resolveSessionIdForTimetable();
+                if (!sessionId) {
+                    container.innerHTML = '<div class="text-center py-6 text-gray-400 text-sm fade-in"><i class="fas fa-calendar-times text-2xl mb-2 block"></i>연결된 개설 회차가 없어 시간표를 표시할 수 없습니다.</div>';
+                    return;
+                }
                 // 1) 교시 시간 설정 가져오기
-                var configRes = await fetch('/api/course-sessions/' + courseId + '/timetable/config', { headers });
+                var configRes = await fetch('/api/course-sessions/' + sessionId + '/timetable/config', { headers });
                 var configResult = await configRes.json();
 
                 // 2) 시간표 데이터 가져오기 (오늘 날짜 범위)
-                var scheduleRes = await fetch('/api/course-sessions/' + courseId + '/timetable?start_date=' + todayStr + '&end_date=' + todayStr, { headers });
+                var scheduleRes = await fetch('/api/course-sessions/' + sessionId + '/timetable?start_date=' + todayStr + '&end_date=' + todayStr, { headers });
                 var scheduleResult = await scheduleRes.json();
 
                 // 3) 교과목/강사 리소스 가져오기 (subject_id → 이름 변환용)
-                var resourceRes = await fetch('/api/course-sessions/' + courseId + '/timetable/resources', { headers });
+                var resourceRes = await fetch('/api/course-sessions/' + sessionId + '/timetable/resources', { headers });
                 var resourceResult = await resourceRes.json();
 
                 var configs = (configResult.success && configResult.data) ? configResult.data : [];
