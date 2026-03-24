@@ -326,11 +326,10 @@ function achievementPrintSheetHtml() {
             <table class="w-full border-collapse text-[10pt]">
               <thead>
                 <tr class="bg-slate-50">
-                  <th class="border border-black px-2 py-2 w-16 text-center">수준</th>
-                  <th class="border border-black px-2 py-2 w-16 text-center">최소</th>
-                  <th class="border border-black px-2 py-2 w-16 text-center">최대</th>
-                  <th class="border border-black px-2 py-2 w-16 text-center">비율(%)</th>
-                  <th class="border border-black px-2 py-2 text-left">성취기준</th>
+                  <th class="border border-black px-2 py-2 w-16 text-center">성취수준</th>
+                  <th class="border border-black px-2 py-2 text-left">종합 성취기준</th>
+                  <th class="border border-black px-2 py-2 w-20 text-center">점수분배</th>
+                  <th class="border border-black px-2 py-2 w-16 text-center">Fail</th>
                 </tr>
               </thead>
               <tbody id="achievementPrintRowsBody"></tbody>
@@ -1059,18 +1058,6 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                       <input id="achievement_writer" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="작성자" />
                       <input id="achievement_target_score" type="number" min="0" step="1" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="만점(기준점수)" />
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-6 gap-3 mt-3">
-                      <input id="achievementInputLevel" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="수준(예: A/우수)" />
-                      <input id="achievementInputMin" type="number" min="0" step="1" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="최소점수" />
-                      <input id="achievementInputMax" type="number" min="0" step="1" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="최대점수" />
-                      <input id="achievementInputRate" type="number" min="0" max="100" step="1" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="비율(%)" />
-                      <input id="achievementInputCriteria" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white md:col-span-2" placeholder="성취수준 설명" />
-                    </div>
-                    <div class="mt-3 flex justify-end">
-                      <button type="button" id="achievementAddRowBtn" class="px-3 py-2 rounded-xl bg-sky-600 text-white text-sm font-black hover:bg-sky-700 transition">
-                        <i class="fas fa-plus mr-1"></i>성취수준 추가
-                      </button>
-                    </div>
                     <div class="mt-3 rounded-xl border border-slate-200/80 bg-white p-3">
                       <div class="flex flex-wrap items-center gap-2 mb-2">
                         <input type="file" id="achievementFileAttachInput" multiple class="hidden" />
@@ -1093,12 +1080,10 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                       <table class="w-full text-left">
                         <thead class="bg-slate-50 border-b border-slate-100">
                           <tr>
-                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider w-24">수준</th>
-                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider w-24 text-center">최소</th>
-                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider w-24 text-center">최대</th>
-                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider w-24 text-center">비율</th>
-                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider">성취기준</th>
-                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider w-32 text-center">작업</th>
+                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider w-20 text-center">성취수준</th>
+                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider">종합 성취기준</th>
+                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider w-24 text-center">점수분배</th>
+                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider w-16 text-center">Fail</th>
                           </tr>
                         </thead>
                         <tbody id="achievementRowsBody" class="divide-y divide-slate-100 bg-white"></tbody>
@@ -1106,8 +1091,8 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                     </div>
                   </div>
                   <div class="flex items-center justify-between rounded-2xl border border-slate-200/70 bg-white px-4 py-3">
-                    <p class="text-sm text-slate-600">합계 비율</p>
-                    <p id="achievementRateSumLabel" class="text-sm font-black text-slate-900">0%</p>
+                    <p class="text-sm text-slate-600">점수분배 합계</p>
+                    <p id="achievementRateSumLabel" class="text-sm font-black text-slate-900">0점</p>
                   </div>
                   <div>
                     <label class="block text-xs font-black text-slate-600 mb-1.5">비고</label>
@@ -2196,29 +2181,27 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       }
 
       var rows = readAchievementRowsFromTable();
-      var sumRate = rows.reduce(function(acc, r) { return acc + Number(r && r.rate != null ? r.rate : 0); }, 0);
+      var sumScore = rows.reduce(function(acc, r) { return acc + Number(r && r.score_distribution != null ? r.score_distribution : (r && r.max_score != null ? r.max_score : 0)); }, 0);
       var targetScore = Number((document.getElementById('achievement_target_score') || {}).value || 0);
-      var summary = '합계비율 ' + sumRate + '%';
+      var summary = '점수분배 합계 ' + sumScore + '점';
       if (targetScore > 0) summary = '만점 ' + targetScore + '점 / ' + summary;
       setMinutesPrintText('achievementPrintSummary', summary);
 
       var tbody = document.getElementById('achievementPrintRowsBody');
       if (tbody) {
         if (!rows.length) {
-          tbody.innerHTML = '<tr><td colspan="5" class="border border-black px-2 py-3 text-center text-slate-500 text-[10pt]">등록된 성취수준 항목이 없습니다.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="4" class="border border-black px-2 py-3 text-center text-slate-500 text-[10pt]">등록된 성취수준 항목이 없습니다.</td></tr>';
         } else {
           tbody.innerHTML = rows.map(function(row) {
             var level = escapeHtml(String(row && row.level != null ? row.level : '-'));
-            var minScore = Number(row && row.min_score != null ? row.min_score : 0);
-            var maxScore = Number(row && row.max_score != null ? row.max_score : 0);
-            var rate = Number(row && row.rate != null ? row.rate : 0);
-            var criteria = escapeHtml(String(row && row.criteria != null ? row.criteria : '-'));
+            var criteria = escapeHtml(String(row && row.criteria != null ? row.criteria : ''));
+            var scoreDistribution = Number(row && row.score_distribution != null ? row.score_distribution : (row && row.max_score != null ? row.max_score : 0));
+            var fail = escapeHtml(String(row && row.fail != null ? row.fail : ''));
             return '<tr>' +
               '<td class="border border-black px-2 py-2 text-center align-top">' + level + '</td>' +
-              '<td class="border border-black px-2 py-2 text-center align-top">' + minScore + '</td>' +
-              '<td class="border border-black px-2 py-2 text-center align-top">' + maxScore + '</td>' +
-              '<td class="border border-black px-2 py-2 text-center align-top">' + rate + '</td>' +
               '<td class="border border-black px-2 py-2 text-left align-top whitespace-pre-wrap text-[10pt]">' + criteria + '</td>' +
+              '<td class="border border-black px-2 py-2 text-center align-top">' + scoreDistribution + '</td>' +
+              '<td class="border border-black px-2 py-2 text-center align-top">' + fail + '</td>' +
               '</tr>';
           }).join('');
         }
@@ -2825,12 +2808,23 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       if (!body) return [];
       const rows = [];
       body.querySelectorAll('tr[data-achievement-row]').forEach(function(tr) {
+        var levelCell = tr.querySelector('[data-achievement-cell="level"]');
+        var criteriaCell = tr.querySelector('[data-achievement-cell="criteria"]');
+        var scoreCell = tr.querySelector('[data-achievement-cell="score_distribution"]');
+        var failCell = tr.querySelector('[data-achievement-cell="fail"]');
+        var levelText = levelCell ? String(levelCell.textContent || '').trim() : (tr.getAttribute('data-level') || '');
+        var criteriaText = criteriaCell ? String(criteriaCell.textContent || '').trim() : (tr.getAttribute('data-criteria') || '');
+        var scoreText = scoreCell ? String(scoreCell.textContent || '').trim() : (tr.getAttribute('data-score-distribution') || '');
+        var failText = failCell ? String(failCell.textContent || '').trim() : (tr.getAttribute('data-fail') || '');
+        var scoreNum = Number(scoreText || 0);
         rows.push({
-          level: tr.getAttribute('data-level') || '',
-          min_score: Number(tr.getAttribute('data-min') || 0),
-          max_score: Number(tr.getAttribute('data-max') || 0),
-          rate: Number(tr.getAttribute('data-rate') || 0),
-          criteria: tr.getAttribute('data-criteria') || ''
+          level: levelText,
+          criteria: criteriaText,
+          score_distribution: Number.isFinite(scoreNum) ? scoreNum : 0,
+          fail: failText,
+          min_score: 0,
+          max_score: Number.isFinite(scoreNum) ? scoreNum : 0,
+          rate: 0
         });
       });
       return rows;
@@ -2839,11 +2833,13 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
     function updateAchievementRateSum(rows) {
       const label = document.getElementById('achievementRateSumLabel');
       if (!label) return;
-      const sum = (Array.isArray(rows) ? rows : []).reduce(function(acc, row) { return acc + Number(row?.rate || 0); }, 0);
-      label.textContent = sum + '%';
-      label.classList.toggle('text-rose-600', sum > 100);
-      label.classList.toggle('text-emerald-700', sum === 100);
-      label.classList.toggle('text-slate-900', sum < 100);
+      const sum = (Array.isArray(rows) ? rows : []).reduce(function(acc, row) {
+        return acc + Number(row?.score_distribution ?? row?.max_score ?? 0);
+      }, 0);
+      label.textContent = sum + '점';
+      label.classList.toggle('text-slate-900', true);
+      label.classList.remove('text-rose-600');
+      label.classList.remove('text-emerald-700');
     }
 
     function renderAchievementRows(rows) {
@@ -2851,29 +2847,50 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       if (!body) return;
       const safeRows = Array.isArray(rows) ? rows : [];
       if (!safeRows.length) {
-        body.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-sm text-slate-400">등록된 성취수준이 없습니다.</td></tr>';
+        body.innerHTML = '<tr><td colspan="4" class="px-4 py-8 text-center text-sm text-slate-400">등록된 성취수준이 없습니다.</td></tr>';
         updateAchievementRateSum([]);
         return;
       }
-      body.innerHTML = safeRows.map(function(row, idx) {
+      body.innerHTML = safeRows.map(function(row) {
         const level = String(row?.level || '');
-        const minScore = Number(row?.min_score || 0);
-        const maxScore = Number(row?.max_score || 0);
-        const rate = Number(row?.rate || 0);
         const criteria = String(row?.criteria || '');
-        return '<tr data-achievement-row data-level="' + escapeHtml(level) + '" data-min="' + minScore + '" data-max="' + maxScore + '" data-rate="' + rate + '" data-criteria="' + escapeHtml(criteria) + '">' +
-          '<td class="px-4 py-3 text-sm font-semibold text-slate-700">' + escapeHtml(level || '-') + '</td>' +
-          '<td class="px-4 py-3 text-sm text-slate-700 text-center">' + minScore + '</td>' +
-          '<td class="px-4 py-3 text-sm text-slate-700 text-center">' + maxScore + '</td>' +
-          '<td class="px-4 py-3 text-sm text-center font-semibold text-slate-800">' + rate + '%</td>' +
-          '<td class="px-4 py-3 text-sm text-slate-700">' + escapeHtml(criteria || '-') + '</td>' +
-          '<td class="px-4 py-3 text-center space-x-1">' +
-            '<button type="button" data-edit-achievement-row="' + idx + '" class="px-2.5 py-1.5 rounded-lg border border-amber-200 bg-amber-50 text-amber-700 text-xs font-black hover:bg-amber-100 transition">수정</button>' +
-            '<button type="button" data-remove-achievement-row="' + idx + '" class="px-2.5 py-1.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 text-xs font-black hover:bg-rose-100 transition">삭제</button>' +
-          '</td>' +
+        const score = Number(row?.score_distribution ?? row?.max_score ?? 0);
+        const fail = String(row?.fail || '');
+        return '<tr data-achievement-row data-level="' + escapeHtml(level) + '" data-criteria="' + escapeHtml(criteria) + '" data-score-distribution="' + escapeHtml(String(score)) + '" data-fail="' + escapeHtml(fail) + '">' +
+          '<td class="px-4 py-3 text-sm text-center font-semibold text-slate-700 align-top"><div data-achievement-cell="level" contenteditable="true" class="min-h-[2.2rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(level) + '</div></td>' +
+          '<td class="px-4 py-3 text-sm text-slate-700 align-top"><div data-achievement-cell="criteria" contenteditable="true" class="min-h-[2.2rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(criteria) + '</div></td>' +
+          '<td class="px-4 py-3 text-sm text-center font-semibold text-slate-800 align-top"><div data-achievement-cell="score_distribution" contenteditable="true" class="min-h-[2.2rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(String(score)) + '</div></td>' +
+          '<td class="px-4 py-3 text-sm text-center text-slate-700 align-top"><div data-achievement-cell="fail" contenteditable="true" class="min-h-[2.2rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(fail) + '</div></td>' +
         '</tr>';
       }).join('');
       updateAchievementRateSum(safeRows);
+    }
+
+    function defaultAchievementRows() {
+      return [
+        { level: '5', criteria: '', score_distribution: 100, fail: '', min_score: 0, max_score: 100, rate: 0 },
+        { level: '4', criteria: '', score_distribution: 90, fail: '', min_score: 0, max_score: 90, rate: 0 },
+        { level: '3', criteria: '', score_distribution: 80, fail: '', min_score: 0, max_score: 80, rate: 0 },
+        { level: '2', criteria: '', score_distribution: 70, fail: '', min_score: 0, max_score: 70, rate: 0 },
+        { level: 'fail', criteria: '', score_distribution: 59, fail: 'fail', min_score: 0, max_score: 59, rate: 0 }
+      ];
+    }
+
+    function normalizeAchievementRows(rows) {
+      const list = Array.isArray(rows) ? rows : [];
+      if (!list.length) return defaultAchievementRows();
+      return list.map(function(row, idx) {
+        const score = Number(row?.score_distribution ?? row?.max_score ?? row?.rate ?? 0);
+        return {
+          level: String(row?.level ?? (idx + 1)),
+          criteria: String(row?.criteria ?? ''),
+          score_distribution: Number.isFinite(score) ? score : 0,
+          fail: String(row?.fail ?? ''),
+          min_score: 0,
+          max_score: Number.isFinite(score) ? score : 0,
+          rate: 0
+        };
+      });
     }
 
     function defaultReviewRows() {
@@ -2900,32 +2917,6 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           needs_revision: !!(row && row.needs_revision)
         };
       });
-    }
-
-    function addAchievementRowFromInputs() {
-      const levelEl = document.getElementById('achievementInputLevel');
-      const minEl = document.getElementById('achievementInputMin');
-      const maxEl = document.getElementById('achievementInputMax');
-      const rateEl = document.getElementById('achievementInputRate');
-      const criteriaEl = document.getElementById('achievementInputCriteria');
-      const level = (levelEl?.value || '').trim();
-      const minScore = Number((minEl?.value || '').trim() || 0);
-      const maxScore = Number((maxEl?.value || '').trim() || 0);
-      const rate = Number((rateEl?.value || '').trim() || 0);
-      const criteria = (criteriaEl?.value || '').trim();
-      if (!level) {
-        alert('성취수준을 입력해 주세요.');
-        return;
-      }
-      const rows = readAchievementRowsFromTable();
-      rows.push({ level, min_score: minScore, max_score: maxScore, rate, criteria });
-      renderAchievementRows(rows);
-
-      if (levelEl) levelEl.value = '';
-      if (minEl) minEl.value = '';
-      if (maxEl) maxEl.value = '';
-      if (rateEl) rateEl.value = '';
-      if (criteriaEl) criteriaEl.value = '';
     }
 
     function readReviewRowsFromTable() {
@@ -3071,7 +3062,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         if (targetEl) targetEl.value = payload.target_score || '';
         if (notesEl) notesEl.value = payload.notes || '';
         renderAchievementAttachments(payload.attachments || []);
-        renderAchievementRows(payload.rows || []);
+        renderAchievementRows(normalizeAchievementRows(payload.rows || []));
         return;
       }
       if (tabId === 'review') {
@@ -3431,10 +3422,6 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           addRubricRowFromInputs();
           return;
         }
-        if (target.id === 'achievementAddRowBtn') {
-          addAchievementRowFromInputs();
-          return;
-        }
         const removeIdx = target.getAttribute('data-remove-schedule-row');
         if (removeIdx != null) {
           const rows = readScheduleRowsFromTable();
@@ -3533,36 +3520,6 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           if (lowEl) lowEl.value = row.low || '';
           rows.splice(index, 1);
           renderRubricRows(rows);
-          return;
-        }
-        const removeAchievementIdx = target.getAttribute('data-remove-achievement-row');
-        if (removeAchievementIdx != null) {
-          const rows = readAchievementRowsFromTable();
-          const index = parseInt(removeAchievementIdx, 10);
-          if (Number.isFinite(index) && index >= 0 && index < rows.length) {
-            rows.splice(index, 1);
-            renderAchievementRows(rows);
-          }
-          return;
-        }
-        const editAchievementIdx = target.getAttribute('data-edit-achievement-row');
-        if (editAchievementIdx != null) {
-          const rows = readAchievementRowsFromTable();
-          const index = parseInt(editAchievementIdx, 10);
-          const row = rows[index];
-          if (!row) return;
-          const levelEl = document.getElementById('achievementInputLevel');
-          const minEl = document.getElementById('achievementInputMin');
-          const maxEl = document.getElementById('achievementInputMax');
-          const rateEl = document.getElementById('achievementInputRate');
-          const criteriaEl = document.getElementById('achievementInputCriteria');
-          if (levelEl) levelEl.value = row.level || '';
-          if (minEl) minEl.value = String(row.min_score || 0);
-          if (maxEl) maxEl.value = String(row.max_score || 0);
-          if (rateEl) rateEl.value = String(row.rate || 0);
-          if (criteriaEl) criteriaEl.value = row.criteria || '';
-          rows.splice(index, 1);
-          renderAchievementRows(rows);
           return;
         }
         const reviewCheckType = target.getAttribute('data-review-check');
