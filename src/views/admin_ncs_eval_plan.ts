@@ -701,26 +701,56 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
               </div>
               ${item.id === 'minutes' ? `
                 <div class="rounded-2xl border border-slate-200/70 overflow-hidden">
-                  <div class="p-4 bg-slate-50 border-b border-slate-200/70 grid grid-cols-1 md:grid-cols-4 gap-3">
-                    <input id="minutes_doc_title" class="md:col-span-2 px-3 py-2 rounded-xl border border-slate-200 text-sm" placeholder="문서 제목 (예: 1차 평가 계획 회의록)" />
-                    <input id="minutes_meeting_date" type="date" class="px-3 py-2 rounded-xl border border-slate-200 text-sm" />
-                    <input id="minutes_meeting_location" class="px-3 py-2 rounded-xl border border-slate-200 text-sm" placeholder="회의장소" />
+                  <div class="p-4 border-b border-slate-200/70 bg-sky-50/60">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <span class="text-xs font-black text-sky-700">빠른 작성</span>
+                      <button type="button" id="minutesQuickTodayBtn" class="px-2.5 py-1.5 rounded-lg border border-sky-200 bg-white text-xs font-black text-sky-700 hover:bg-sky-50 transition">오늘 날짜</button>
+                      <button type="button" id="minutesQuickTitleBtn" class="px-2.5 py-1.5 rounded-lg border border-sky-200 bg-white text-xs font-black text-sky-700 hover:bg-sky-50 transition">제목 자동입력</button>
+                      <button type="button" id="minutesQuickAttendeesBtn" class="px-2.5 py-1.5 rounded-lg border border-sky-200 bg-white text-xs font-black text-sky-700 hover:bg-sky-50 transition">참석자 초안</button>
+                    </div>
+                    <p class="text-[11px] text-slate-500 mt-2">자주 쓰는 항목을 빠르게 채워 작성 시간을 줄일 수 있습니다.</p>
                   </div>
-                  <div class="p-4 bg-slate-50 border-b border-slate-200/70">
-                    <label class="block text-xs font-black text-slate-600 mb-1.5">개설회차 (인쇄·문서 표시용)</label>
-                    <input id="minutes_session" class="w-full max-w-md px-3 py-2 rounded-xl border border-slate-200 text-sm" placeholder="예: 4회차" />
+
+                  <div class="p-4 grid grid-cols-1 md:grid-cols-5 gap-3 bg-slate-50 border-b border-slate-200/70">
+                    <div class="md:col-span-3">
+                      <label class="block text-xs font-black text-slate-600 mb-1.5">문서 제목</label>
+                      <input id="minutes_doc_title" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm" placeholder="문서 제목 (예: 1차 평가 계획 회의록)" />
+                    </div>
+                    <div>
+                      <label class="block text-xs font-black text-slate-600 mb-1.5">회의일자</label>
+                      <input id="minutes_meeting_date" type="date" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm" />
+                    </div>
+                    <div>
+                      <label class="block text-xs font-black text-slate-600 mb-1.5">회의장소</label>
+                      <input id="minutes_meeting_location" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm" placeholder="회의장소" />
+                    </div>
                   </div>
-                  <div class="p-4 grid grid-cols-1 md:grid-cols-3 gap-3 border-b border-slate-200/70">
-                    <input id="minutes_chairperson" class="px-3 py-2 rounded-xl border border-slate-200 text-sm" placeholder="회의장" />
-                    <input id="minutes_writer" class="px-3 py-2 rounded-xl border border-slate-200 text-sm" placeholder="작성자" />
-                    <input id="minutes_reviewer" class="px-3 py-2 rounded-xl border border-slate-200 text-sm" placeholder="검토자" />
+
+                  <div class="p-4 grid grid-cols-1 md:grid-cols-4 gap-3 border-b border-slate-200/70">
+                    <div>
+                      <label class="block text-xs font-black text-slate-600 mb-1.5">개설회차 (표시용)</label>
+                      <input id="minutes_session" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm" placeholder="예: 4회차" />
+                    </div>
+                    <div>
+                      <label class="block text-xs font-black text-slate-600 mb-1.5">회의장</label>
+                      <input id="minutes_chairperson" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm" placeholder="회의장" />
+                    </div>
+                    <div>
+                      <label class="block text-xs font-black text-slate-600 mb-1.5">작성자</label>
+                      <input id="minutes_writer" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm" placeholder="작성자" />
+                    </div>
+                    <div>
+                      <label class="block text-xs font-black text-slate-600 mb-1.5">검토자</label>
+                      <input id="minutes_reviewer" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm" placeholder="검토자" />
+                    </div>
                   </div>
-                  <div class="p-4 border-b border-slate-200/70">
+
+                  <div class="p-4 border-b border-slate-200/70 bg-slate-50/60">
                     <label class="block text-xs font-black text-slate-600 mb-2">결재 직함 (인쇄 표기)</label>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      <input id="minutes_approval_role_chair" class="px-3 py-2 rounded-xl border border-slate-200 text-sm" placeholder="예: 담당" />
-                      <input id="minutes_approval_role_writer" class="px-3 py-2 rounded-xl border border-slate-200 text-sm" placeholder="예: 팀장" />
-                      <input id="minutes_approval_role_reviewer" class="px-3 py-2 rounded-xl border border-slate-200 text-sm" placeholder="예: 원장" />
+                      <input id="minutes_approval_role_chair" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="예: 담당" />
+                      <input id="minutes_approval_role_writer" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="예: 팀장" />
+                      <input id="minutes_approval_role_reviewer" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="예: 원장" />
                     </div>
                   </div>
                   <div class="p-4 border-b border-slate-200/70 bg-slate-50/80">
@@ -761,7 +791,7 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                   </div>
                   <div class="p-4 border-b border-slate-200/70">
                     <label class="block text-xs font-black text-slate-600 mb-1.5">회의 안건</label>
-                    <textarea id="minutes_agenda" class="w-full h-20 px-3 py-2 rounded-xl border border-slate-200 text-sm"></textarea>
+                    <textarea id="minutes_agenda" class="w-full h-20 px-3 py-2 rounded-xl border border-slate-200 text-sm" placeholder="이번 회의에서 결정/논의할 핵심 안건을 항목 단위로 작성해 주세요."></textarea>
                   </div>
                   <div class="p-4 border-b border-slate-200/70 bg-slate-50/80">
                     <div class="flex flex-wrap items-center gap-2 mb-3">
@@ -779,11 +809,18 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                     <div id="minutesAttachmentsList" class="flex flex-wrap gap-2 min-h-[2.5rem]"></div>
                   </div>
                   <div class="p-4 border-b border-slate-200/70">
-                    <label class="block text-xs font-black text-slate-600 mb-1.5">회의 내용</label>
+                    <div class="flex items-center justify-between gap-3 mb-1.5">
+                      <label class="block text-xs font-black text-slate-600">회의 내용</label>
+                      <span id="minutesContentCount" class="text-[11px] text-slate-500">0자</span>
+                    </div>
                     <textarea id="minutes_content" class="w-full h-72 px-3 py-2 rounded-xl border border-slate-200 font-mono text-sm" placeholder="회의 내용을 입력하세요. 이미지 삽입 시 본문에 자동으로 반영됩니다."></textarea>
+                    <p class="text-[11px] text-slate-500 mt-2">권장: 논의사항 → 결정사항 → 후속조치 순서로 작성하면 인쇄본 가독성이 좋아집니다.</p>
                   </div>
                   <div class="p-4">
-                    <label class="block text-xs font-black text-slate-600 mb-1.5">비고</label>
+                    <div class="flex items-center justify-between gap-3 mb-1.5">
+                      <label class="block text-xs font-black text-slate-600">비고</label>
+                      <span id="minutesNotesCount" class="text-[11px] text-slate-500">0자</span>
+                    </div>
                     <textarea id="minutes_notes" class="w-full h-24 px-3 py-2 rounded-xl border border-slate-200 text-sm"></textarea>
                   </div>
                 </div>
@@ -3550,6 +3587,60 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       bindMinutesSignatureInput('minutesSignChairBtn', 'minutesSignChairInput', 'minutesSignChairPreview');
       bindMinutesSignatureInput('minutesSignWriterBtn', 'minutesSignWriterInput', 'minutesSignWriterPreview');
       bindMinutesSignatureInput('minutesSignReviewerBtn', 'minutesSignReviewerInput', 'minutesSignReviewerPreview');
+
+      function updateMinutesTextCount(id, outputId) {
+        var input = document.getElementById(id);
+        var out = document.getElementById(outputId);
+        if (!input || !out) return;
+        out.textContent = String((input.value || '').length) + '자';
+      }
+
+      ['minutes_content', 'minutes_notes'].forEach(function(id) {
+        var outId = id === 'minutes_content' ? 'minutesContentCount' : 'minutesNotesCount';
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('input', function() { updateMinutesTextCount(id, outId); });
+        updateMinutesTextCount(id, outId);
+      });
+
+      var minutesQuickTodayBtn = document.getElementById('minutesQuickTodayBtn');
+      if (minutesQuickTodayBtn) {
+        minutesQuickTodayBtn.addEventListener('click', function() {
+          var d = document.getElementById('minutes_meeting_date');
+          if (!d || d.value) return;
+          var now = new Date();
+          var y = now.getFullYear();
+          var m = String(now.getMonth() + 1).padStart(2, '0');
+          var dd = String(now.getDate()).padStart(2, '0');
+          d.value = y + '-' + m + '-' + dd;
+        });
+      }
+
+      var minutesQuickTitleBtn = document.getElementById('minutesQuickTitleBtn');
+      if (minutesQuickTitleBtn) {
+        minutesQuickTitleBtn.addEventListener('click', function() {
+          var titleEl = document.getElementById('minutes_doc_title');
+          if (!titleEl) return;
+          var prefixTitle = roundLabel(selectedRound) + ' 평가계획 회의록';
+          var dateEl = document.getElementById('minutes_meeting_date');
+          var datePart = dateEl && dateEl.value ? (' (' + dateEl.value + ')') : '';
+          titleEl.value = prefixTitle + datePart;
+        });
+      }
+
+      var minutesQuickAttendeesBtn = document.getElementById('minutesQuickAttendeesBtn');
+      if (minutesQuickAttendeesBtn) {
+        minutesQuickAttendeesBtn.addEventListener('click', function() {
+          var at = document.getElementById('minutes_attendees');
+          if (!at) return;
+          var chair = (document.getElementById('minutes_chairperson') || {}).value || '';
+          var writer = (document.getElementById('minutes_writer') || {}).value || '';
+          var reviewer = (document.getElementById('minutes_reviewer') || {}).value || '';
+          var names = [chair, writer, reviewer].map(function(v) { return String(v || '').trim(); }).filter(Boolean);
+          if (!names.length) return;
+          at.value = Array.from(new Set(names)).join(', ');
+        });
+      }
 
       var questionsFileAttachBtn = document.getElementById('questionsFileAttachBtn');
       var questionsFileAttachInput = document.getElementById('questionsFileAttachInput');
