@@ -11,6 +11,107 @@ const NCS_PLAN_TAB_ITEMS = [
   { id: 'review', label: '평가도구검토', icon: 'fa-magnifying-glass-chart' },
 ] as const;
 
+/** 인쇄 전용: 평가 계획 회의록 양식 (화면에서는 숨김, @media print 에서만 표시) */
+function minutesPrintSheetHtml() {
+  return `
+    <div id="minutesPrintRoot" class="ncs-minutes-print-root" aria-hidden="true">
+      <div class="minutes-print-doc max-w-[210mm] mx-auto text-black text-[11pt] leading-relaxed print:p-0">
+        <div class="flex items-start justify-between gap-4 border border-black mb-0">
+          <div class="flex-1 py-4 px-3 text-center">
+            <h1 class="text-xl font-black tracking-tight">평가 계획 회의록</h1>
+            <p id="minutesPrintSubtitle" class="text-sm mt-1 text-slate-700"></p>
+          </div>
+          <table class="border-collapse border-l border-black text-center text-[10pt] shrink-0">
+            <tbody>
+              <tr>
+                <td class="border border-black px-1 py-1 w-8 align-middle bg-slate-100 font-bold" rowspan="2">결<br/>재</td>
+                <td class="border border-black px-3 py-1 w-16 bg-slate-50">담당</td>
+                <td class="border border-black px-3 py-1 w-16 bg-slate-50">팀장</td>
+                <td class="border border-black px-3 py-1 w-16 bg-slate-50">원장</td>
+              </tr>
+              <tr>
+                <td class="border border-black h-14 align-bottom text-[9pt] text-slate-400">(서명)</td>
+                <td class="border border-black h-14 align-bottom text-[9pt] text-slate-400">(서명)</td>
+                <td class="border border-black h-14 align-bottom text-[9pt] text-slate-400">(서명)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <table class="w-full border-collapse border border-t-0 border-black">
+          <tbody>
+            <tr>
+              <td class="border border-black w-[14%] bg-slate-100 px-2 py-2 font-bold text-center">과정명</td>
+              <td class="border border-black px-2 py-2" colspan="3" id="minutesPrintCourseName"></td>
+            </tr>
+            <tr>
+              <td class="border border-black bg-slate-100 px-2 py-2 font-bold text-center">개설회차</td>
+              <td class="border border-black px-2 py-2 w-[36%]" id="minutesPrintSession"></td>
+              <td class="border border-black w-[14%] bg-slate-100 px-2 py-2 font-bold text-center">평가회차</td>
+              <td class="border border-black px-2 py-2" id="minutesPrintEvalRound"></td>
+            </tr>
+            <tr>
+              <td class="border border-black bg-slate-100 px-2 py-2 font-bold text-center">회의일시</td>
+              <td class="border border-black px-2 py-2" id="minutesPrintMeetingWhen"></td>
+              <td class="border border-black bg-slate-100 px-2 py-2 font-bold text-center">회의장소</td>
+              <td class="border border-black px-2 py-2" id="minutesPrintPlace"></td>
+            </tr>
+            <tr>
+              <td class="border border-black bg-slate-100 px-2 py-2 font-bold text-center align-top">참석자</td>
+              <td class="border border-black px-2 py-2" colspan="3" id="minutesPrintAttendees"></td>
+            </tr>
+            <tr>
+              <td class="border border-black bg-slate-100 px-2 py-2 font-bold text-center align-top">회의 안건</td>
+              <td class="border border-black px-2 py-2 whitespace-pre-wrap min-h-[3rem]" colspan="3" id="minutesPrintAgenda"></td>
+            </tr>
+            <tr>
+              <td class="border border-black bg-slate-100 px-2 py-2 font-bold text-center align-top">회의록 내용</td>
+              <td class="border border-black px-3 py-3 text-left align-top min-h-[200mm]" colspan="3" id="minutesPrintContent"></td>
+            </tr>
+            <tr>
+              <td class="border border-black bg-slate-100 px-2 py-2 font-bold text-center align-top">첨부파일</td>
+              <td class="border border-black px-2 py-2 text-sm align-top" colspan="3" id="minutesPrintAttachments"></td>
+            </tr>
+            <tr>
+              <td class="border border-black bg-slate-100 px-2 py-2 font-bold text-center align-top">비고</td>
+              <td class="border border-black px-2 py-2 whitespace-pre-wrap min-h-[2.5rem]" colspan="3" id="minutesPrintNotes"></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+const NCS_PLAN_PRINT_STYLES = `
+<style>
+.ncs-minutes-print-root {
+  position: fixed;
+  left: -200vw;
+  top: 0;
+  width: 210mm;
+  max-height: 100vh;
+  overflow: auto;
+  background: #fff;
+  z-index: 999999;
+  padding: 0;
+}
+@media print {
+  @page { size: A4; margin: 12mm; }
+  .ncs-minutes-print-root {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-height: none !important;
+    overflow: visible !important;
+    z-index: 0 !important;
+  }
+  body * { visibility: hidden !important; }
+  .ncs-minutes-print-root, .ncs-minutes-print-root * { visibility: visible !important; }
+}
+</style>
+`;
+
 function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
   const nav = NCS_PLAN_TAB_ITEMS.map((item, idx) => `
       <button type="button"
@@ -26,8 +127,13 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
           <div class="rounded-[2rem] border border-slate-200/60 shadow-sm bg-white p-6">
               <div class="flex items-center justify-between mb-4 gap-2">
                   <h3 class="text-lg font-black text-slate-900 tracking-tight">${item.label}</h3>
-                  <div class="flex items-center gap-2">
+                  <div class="flex items-center gap-2 flex-wrap justify-end">
                       <span class="text-xs font-bold text-slate-400" id="activeRoundBadge-${item.id}">1차평가(본평가)</span>
+                      ${item.id === 'minutes' ? `
+                      <button type="button" id="minutesPrintBtn" class="px-3 py-2 rounded-xl bg-amber-500 text-white text-xs font-black hover:bg-amber-600 transition">
+                        <i class="fas fa-print mr-1"></i>인쇄
+                      </button>
+                      ` : ''}
                       <button type="button" data-plan-save-btn="${item.id}" class="px-3 py-2 rounded-xl bg-emerald-500 text-white text-xs font-black hover:bg-emerald-600 transition">
                         <i class="fas fa-floppy-disk mr-1"></i>문서 저장
                       </button>
@@ -39,6 +145,10 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                     <input id="minutes_doc_title" class="md:col-span-2 px-3 py-2 rounded-xl border border-slate-200 text-sm" placeholder="문서 제목 (예: 1차 평가 계획 회의록)" />
                     <input id="minutes_meeting_date" type="date" class="px-3 py-2 rounded-xl border border-slate-200 text-sm" />
                     <input id="minutes_meeting_location" class="px-3 py-2 rounded-xl border border-slate-200 text-sm" placeholder="회의장소" />
+                  </div>
+                  <div class="p-4 bg-slate-50 border-b border-slate-200/70">
+                    <label class="block text-xs font-black text-slate-600 mb-1.5">개설회차 (인쇄·문서 표시용)</label>
+                    <input id="minutes_session" class="w-full max-w-md px-3 py-2 rounded-xl border border-slate-200 text-sm" placeholder="예: 4회차" />
                   </div>
                   <div class="p-4 grid grid-cols-1 md:grid-cols-3 gap-3 border-b border-slate-200/70">
                     <input id="minutes_chairperson" class="px-3 py-2 rounded-xl border border-slate-200 text-sm" placeholder="회의장" />
@@ -53,9 +163,24 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                     <label class="block text-xs font-black text-slate-600 mb-1.5">회의 안건</label>
                     <textarea id="minutes_agenda" class="w-full h-20 px-3 py-2 rounded-xl border border-slate-200 text-sm"></textarea>
                   </div>
+                  <div class="p-4 border-b border-slate-200/70 bg-slate-50/80">
+                    <div class="flex flex-wrap items-center gap-2 mb-3">
+                      <input type="file" id="minutesFileAttachInput" multiple class="hidden" />
+                      <button type="button" id="minutesFileAttachBtn" class="px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-black text-slate-700 hover:bg-slate-50 transition">
+                        <i class="fas fa-paperclip mr-1"></i>파일 첨부
+                      </button>
+                      <input type="file" id="minutesImageInsertInput" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden" />
+                      <button type="button" id="minutesImageInsertBtn" class="px-3 py-2 rounded-xl border border-sky-200 bg-sky-50 text-xs font-black text-sky-800 hover:bg-sky-100 transition">
+                        <i class="fas fa-image mr-1"></i>이미지 삽입
+                      </button>
+                      <span class="text-[11px] text-slate-500">이미지는 커서 위치에 <code class="text-slate-600">![설명](URL)</code> 형식으로 삽입됩니다.</span>
+                    </div>
+                    <label class="block text-xs font-black text-slate-600 mb-1.5">첨부파일</label>
+                    <div id="minutesAttachmentsList" class="flex flex-wrap gap-2 min-h-[2.5rem]"></div>
+                  </div>
                   <div class="p-4 border-b border-slate-200/70">
                     <label class="block text-xs font-black text-slate-600 mb-1.5">회의 내용</label>
-                    <textarea id="minutes_content" class="w-full h-72 px-3 py-2 rounded-xl border border-slate-200 text-sm"></textarea>
+                    <textarea id="minutes_content" class="w-full h-72 px-3 py-2 rounded-xl border border-slate-200 font-mono text-sm" placeholder="회의 내용을 입력하세요. 이미지 삽입 시 본문에 자동으로 반영됩니다."></textarea>
                   </div>
                   <div class="p-4">
                     <label class="block text-xs font-black text-slate-600 mb-1.5">비고</label>
@@ -404,6 +529,7 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
     <div class="space-y-4 mt-4">
         ${panels}
     </div>
+    ${minutesPrintSheetHtml()}
   `;
 }
 
@@ -448,6 +574,176 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         .replace(/'/g, '&#39;');
     }
 
+    function formatMinutesDateKorean(iso) {
+      if (!iso) return '';
+      var p = String(iso).split('-');
+      if (p.length !== 3) return String(iso);
+      return p[0] + '년 ' + Number(p[1]) + '월 ' + Number(p[2]) + '일';
+    }
+
+    function setMinutesPrintText(id, text) {
+      var el = document.getElementById(id);
+      if (el) el.textContent = text != null ? String(text) : '';
+    }
+
+    function setMinutesPrintHtml(id, html) {
+      var el = document.getElementById(id);
+      if (el) el.innerHTML = html != null ? String(html) : '';
+    }
+
+    function isSafeMinutesAssetUrl(url) {
+      var u = String(url || '').trim();
+      return u.indexOf('/api/upload/files/') === 0;
+    }
+
+    function minutesContentToPrintHtml(text) {
+      if (!text) return '';
+      var lines = String(text).split('\\n');
+      var parts = [];
+      for (var i = 0; i < lines.length; i++) {
+        var line = lines[i];
+        var m = line.match(/^!\\[([^\\]]*)\\]\\(([^)]+)\\)\\s*$/);
+        if (m && isSafeMinutesAssetUrl(m[2])) {
+          var src = m[2].trim();
+          parts.push('<p style="margin:8px 0"><img src="' + escapeHtml(src) + '" alt="' + escapeHtml(m[1]) + '" style="max-width:100%;height:auto;display:block;border:1px solid #ccc" /></p>');
+        } else if (line.trim() === '') {
+          parts.push('<br/>');
+        } else {
+          parts.push('<p style="margin:4px 0">' + escapeHtml(line) + '</p>');
+        }
+      }
+      return parts.join('');
+    }
+
+    function readMinutesAttachmentsFromDom() {
+      var box = document.getElementById('minutesAttachmentsList');
+      if (!box) return [];
+      var out = [];
+      box.querySelectorAll('[data-minutes-attachment-url]').forEach(function(el) {
+        out.push({
+          url: el.getAttribute('data-minutes-attachment-url') || '',
+          name: el.getAttribute('data-minutes-attachment-name') || 'file'
+        });
+      });
+      return out;
+    }
+
+    function renderMinutesAttachments(items) {
+      var box = document.getElementById('minutesAttachmentsList');
+      if (!box) return;
+      var list = Array.isArray(items) ? items : [];
+      if (!list.length) {
+        box.innerHTML = '<p class="text-xs text-slate-400 py-1">첨부된 파일이 없습니다.</p>';
+        return;
+      }
+      box.innerHTML = list.map(function(it, idx) {
+        var u = escapeHtml(it.url || '');
+        var n = escapeHtml(it.name || 'file');
+        return '<div class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm max-w-full" data-minutes-attachment-url="' + u + '" data-minutes-attachment-name="' + n + '">' +
+          '<a href="' + u + '" target="_blank" rel="noopener noreferrer" class="text-sky-700 font-semibold truncate flex-1 min-w-0">' + n + '</a>' +
+          '<button type="button" class="text-rose-600 text-xs font-black shrink-0" data-remove-minutes-attachment="' + idx + '">삭제</button></div>';
+      }).join('');
+    }
+
+    function removeMinutesAttachment(index) {
+      var items = readMinutesAttachmentsFromDom();
+      if (index >= 0 && index < items.length) items.splice(index, 1);
+      renderMinutesAttachments(items);
+    }
+
+    function insertAtCursor(textarea, text) {
+      if (!textarea) return;
+      var start = textarea.selectionStart != null ? textarea.selectionStart : 0;
+      var end = textarea.selectionEnd != null ? textarea.selectionEnd : 0;
+      var v = textarea.value;
+      textarea.value = v.substring(0, start) + text + v.substring(end);
+      var pos = start + text.length;
+      textarea.selectionStart = textarea.selectionEnd = pos;
+      textarea.focus();
+    }
+
+    async function uploadMinutesFile(file, isImage) {
+      if (!selectedCourseId) {
+        alert('과정을 선택해 주세요.');
+        return null;
+      }
+      var fd = new FormData();
+      fd.append('file', file);
+      fd.append('category', isImage ? 'images' : 'documents');
+      fd.append('folder', 'ncs-plan-minutes/' + String(selectedCourseId));
+      var token = localStorage.getItem('token');
+      var res = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token },
+        body: fd
+      });
+      var json = await res.json();
+      if (!json || !json.success) {
+        alert((json && json.error) || '파일 업로드에 실패했습니다.');
+        return null;
+      }
+      return json.data;
+    }
+
+    async function resolveCourseTitleForPrint() {
+      if (!useFixedCourseId) {
+        var sel = document.getElementById('ncsPlanCourseSelect');
+        if (!sel || !sel.value) return '';
+        var opt = sel.options[sel.selectedIndex];
+        return opt ? opt.textContent : '';
+      }
+      if (window.__ncsEvalPlanCourseTitle) return window.__ncsEvalPlanCourseTitle;
+      try {
+        var res = await authFetch('/api/courses/' + encodeURIComponent(fixedCourseId));
+        var json = await res.json();
+        var d = json && json.data;
+        if (d && (d.title || d.name)) {
+          window.__ncsEvalPlanCourseTitle = d.title || d.name;
+          return window.__ncsEvalPlanCourseTitle;
+        }
+      } catch (e) {}
+      var hint = document.getElementById('fixedCourseHint');
+      return hint ? hint.textContent : '';
+    }
+
+    async function printMinutesDocument() {
+      if (!selectedCourseId) {
+        alert('과정을 선택해 주세요.');
+        return;
+      }
+      var courseTitle = await resolveCourseTitleForPrint();
+      var subEl = document.getElementById('minutesPrintSubtitle');
+      var docTitle = (document.getElementById('minutes_doc_title') || {}).value || '';
+      if (subEl) subEl.textContent = docTitle ? ('(' + docTitle + ')') : '';
+
+      setMinutesPrintText('minutesPrintCourseName', courseTitle);
+      setMinutesPrintText('minutesPrintSession', (document.getElementById('minutes_session') || {}).value || '');
+      setMinutesPrintText('minutesPrintEvalRound', roundLabel(selectedRound));
+      setMinutesPrintText('minutesPrintMeetingWhen', formatMinutesDateKorean((document.getElementById('minutes_meeting_date') || {}).value || ''));
+      setMinutesPrintText('minutesPrintPlace', (document.getElementById('minutes_meeting_location') || {}).value || '');
+      setMinutesPrintText('minutesPrintAttendees', (document.getElementById('minutes_attendees') || {}).value || '');
+      setMinutesPrintText('minutesPrintAgenda', (document.getElementById('minutes_agenda') || {}).value || '');
+      var rawContent = (document.getElementById('minutes_content') || {}).value || '';
+      setMinutesPrintHtml('minutesPrintContent', minutesContentToPrintHtml(rawContent));
+      setMinutesPrintText('minutesPrintNotes', (document.getElementById('minutes_notes') || {}).value || '');
+
+      var att = readMinutesAttachmentsFromDom();
+      var attPrint = document.getElementById('minutesPrintAttachments');
+      if (attPrint) {
+        if (!att.length) {
+          attPrint.innerHTML = '<span class="text-slate-500">없음</span>';
+        } else {
+          attPrint.innerHTML = att.map(function(a) {
+            var u = escapeHtml(a.url || '');
+            var n = escapeHtml(a.name || 'file');
+            return '<div class="mb-1"><a href="' + u + '" class="text-sky-800 underline">' + n + '</a></div>';
+          }).join('');
+        }
+      }
+
+      window.setTimeout(function() { window.print(); }, 50);
+    }
+
     function setStatus(tabId, text, isError) {
       const el = document.getElementById('planDocStatus-' + tabId);
       if (!el) return;
@@ -467,6 +763,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         return {
           title: document.getElementById('minutes_doc_title').value || '',
           payload: {
+            opening_session: (document.getElementById('minutes_session') || {}).value || '',
             meeting_date: document.getElementById('minutes_meeting_date').value || '',
             meeting_location: document.getElementById('minutes_meeting_location').value || '',
             chairperson: document.getElementById('minutes_chairperson').value || '',
@@ -475,7 +772,8 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
             attendees: document.getElementById('minutes_attendees').value || '',
             agenda: document.getElementById('minutes_agenda').value || '',
             content: document.getElementById('minutes_content').value || '',
-            notes: document.getElementById('minutes_notes').value || ''
+            notes: document.getElementById('minutes_notes').value || '',
+            attachments: readMinutesAttachmentsFromDom()
           }
         };
       }
@@ -1038,6 +1336,8 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       const payload = data && data.payload ? data.payload : {};
       if (tabId === 'minutes') {
         document.getElementById('minutes_doc_title').value = data?.title || '';
+        var sessionEl = document.getElementById('minutes_session');
+        if (sessionEl) sessionEl.value = payload.opening_session || '';
         document.getElementById('minutes_meeting_date').value = payload.meeting_date || '';
         document.getElementById('minutes_meeting_location').value = payload.meeting_location || '';
         document.getElementById('minutes_chairperson').value = payload.chairperson || '';
@@ -1047,6 +1347,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         document.getElementById('minutes_agenda').value = payload.agenda || '';
         document.getElementById('minutes_content').value = payload.content || '';
         document.getElementById('minutes_notes').value = payload.notes || '';
+        renderMinutesAttachments(payload.attachments || []);
         return;
       }
       if (tabId === 'schedule') {
@@ -1271,6 +1572,11 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       document.addEventListener('click', function(e) {
         const target = e.target;
         if (!(target instanceof Element)) return;
+        const rmMinutesAtt = target.getAttribute('data-remove-minutes-attachment');
+        if (rmMinutesAtt != null) {
+          removeMinutesAttachment(parseInt(rmMinutesAtt, 10));
+          return;
+        }
         if (target.id === 'scheduleAddRowBtn') {
           addScheduleRowFromInputs();
           return;
@@ -1488,7 +1794,52 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       switchNcsPlanTab('minutes');
       if (useFixedCourseId) {
         selectedCourseId = fixedCourseId;
+        try {
+          var cr = await authFetch('/api/courses/' + encodeURIComponent(fixedCourseId));
+          var cj = await cr.json();
+          var cd = cj && cj.data;
+          if (cd && (cd.title || cd.name)) window.__ncsEvalPlanCourseTitle = cd.title || cd.name;
+        } catch (e) {}
         await loadDocument('minutes');
+      }
+
+      var minutesPrintBtn = document.getElementById('minutesPrintBtn');
+      if (minutesPrintBtn) {
+        minutesPrintBtn.addEventListener('click', function() { printMinutesDocument(); });
+      }
+
+      var minutesFileAttachBtn = document.getElementById('minutesFileAttachBtn');
+      var minutesFileAttachInput = document.getElementById('minutesFileAttachInput');
+      if (minutesFileAttachBtn && minutesFileAttachInput) {
+        minutesFileAttachBtn.addEventListener('click', function() { minutesFileAttachInput.click(); });
+        minutesFileAttachInput.addEventListener('change', async function(ev) {
+          var files = ev.target.files;
+          if (!files || !files.length) return;
+          var items = readMinutesAttachmentsFromDom();
+          for (var i = 0; i < files.length; i++) {
+            var data = await uploadMinutesFile(files[i], false);
+            if (data && data.url) {
+              items.push({ url: data.url, name: data.originalName || data.fileName || files[i].name });
+            }
+          }
+          renderMinutesAttachments(items);
+          ev.target.value = '';
+        });
+      }
+      var minutesImageInsertBtn = document.getElementById('minutesImageInsertBtn');
+      var minutesImageInsertInput = document.getElementById('minutesImageInsertInput');
+      if (minutesImageInsertBtn && minutesImageInsertInput) {
+        minutesImageInsertBtn.addEventListener('click', function() { minutesImageInsertInput.click(); });
+        minutesImageInsertInput.addEventListener('change', async function(ev) {
+          var f = ev.target.files && ev.target.files[0];
+          if (!f) return;
+          var data = await uploadMinutesFile(f, true);
+          if (data && data.url) {
+            var ta = document.getElementById('minutes_content');
+            insertAtCursor(ta, '\\n![이미지](' + data.url + ')\\n');
+          }
+          ev.target.value = '';
+        });
       }
     });
   </script>
@@ -1504,6 +1855,7 @@ export const adminNcsEvalPlanHtml = (sidebar = hrdSidebar('ncs-eval-plan')) => `
   <title>NCS평가계획 - 교육행정 시스템</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+  ${NCS_PLAN_PRINT_STYLES}
 </head>
 <body class="bg-slate-50">
   <div class="flex h-screen overflow-hidden">
@@ -1534,6 +1886,7 @@ export const adminLmsNcsEvalPlanHtml = (sidebar: string = hrdSidebar('courses'))
   <title>LMS NCS평가계획</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+  ${NCS_PLAN_PRINT_STYLES}
 </head>
 <body class="bg-slate-50 overflow-hidden">
   <div class="flex h-screen overflow-hidden">
