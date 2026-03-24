@@ -50,6 +50,38 @@ function isImageMime(mimeType: string): boolean {
   return mimeType.startsWith('image/');
 }
 
+function firstExtensionFromMime(mimeType: string): string {
+  const exts = ALLOWED_MIME_TYPES[mimeType as keyof typeof ALLOWED_MIME_TYPES];
+  if (!exts || !exts.length) return '.bin';
+  return exts[0];
+}
+
+function safeRemoteImageName(urlText: string, mimeType: string): string {
+  let base = 'remote_image';
+  try {
+    const parsed = new URL(urlText);
+    const raw = parsed.pathname.split('/').pop() || '';
+    const noExt = raw.replace(/\.[a-zA-Z0-9]+$/, '');
+    if (noExt) base = noExt;
+  } catch {}
+  const clean = base.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 80) || 'remote_image';
+  return clean + firstExtensionFromMime(mimeType);
+}
+
+function isBlockedRemoteHost(hostname: string): boolean {
+  const h = hostname.toLowerCase();
+  if (h === 'localhost' || h === '127.0.0.1' || h === '0.0.0.0' || h === '::1') return true;
+  if (/^\d+\.\d+\.\d+\.\d+$/.test(h)) {
+    const p = h.split('.').map((v) => parseInt(v, 10));
+    if (p[0] === 10) return true;
+    if (p[0] === 127) return true;
+    if (p[0] === 169 && p[1] === 254) return true;
+    if (p[0] === 192 && p[1] === 168) return true;
+    if (p[0] === 172 && p[1] >= 16 && p[1] <= 31) return true;
+  }
+  return false;
+}
+
 function buildStoragePath(basePath: string, folder: string | null, fileName: string): string {
   return folder ? `${basePath}/${folder}/${fileName}` : `${basePath}/${fileName}`;
 }
@@ -323,6 +355,161 @@ app.post('/', authMiddleware, async (c) => {
   } catch (error) {
     console.error('File upload error:', error);
     return c.json({ success: false, error: '파일 업로드 중 오류가 발생했습니다' }, 500);
+  }
+});
+
+/**
+ * 원격 이미지 URL 가져오기(다운로드 후 R2 저장)
+ * POST /api/upload/import-url
+ * body(JSON): { url: string, category?: 'images', folder?: string }
+ */
+app.post('/import-url', authMiddleware, async (c) => {
+  try {
+    const { R2, DB } = c.env;
+    const user = c.get('user');
+    if (!R2) {
+      return c.json({ success: false, error: 'R2 스토리지가 설정되지 않았습니다' }, 500);
+    }
+
+    const body = await c.req.json().catch(() => ({} as any));
+    const urlText = String(body?.url || '').trim();
+    const category = (String(body?.category || 'images') as FileCategory);
+    const folder = body?.folder ? String(body.folder) : null;
+    const maskLevel = normalizeMaskLevel(String(body?.mask_level || 'soft'));
+
+    if (!urlText) return c.json({ success: false, error: '이미지 URL이 필요합니다' }, 400);
+    if (!category || !FILE_CATEGORIES[category]) {
+      return c.json({ success: false, error: '유효한 카테고리가 필요합니다' }, 400);
+    }
+    if (category !== 'images' && category !== 'profile') {
+      return c.json({ success: false, error: '이미지 카테고리만 지원합니다' }, 400);
+    }
+
+    let remoteUrl: URL;
+    try {
+      remoteUrl = new URL(urlText);
+    } catch {
+      return c.json({ success: false, error: '유효하지 않은 URL입니다' }, 400);
+    }
+    if (remoteUrl.protocol !== 'http:' && remoteUrl.protocol !== 'https:') {
+      return c.json({ success: false, error: 'http/https URL만 허용됩니다' }, 400);
+    }
+    if (isBlockedRemoteHost(remoteUrl.hostname)) {
+      return c.json({ success: false, error: '허용되지 않은 호스트입니다' }, 400);
+    }
+
+    const remoteRes = await fetch(remoteUrl.toString(), { redirect: 'follow' });
+    if (!remoteRes.ok) {
+      return c.json({ success: false, error: `원격 이미지 다운로드 실패 (${remoteRes.status})` }, 400);
+    }
+    const mimeType = (remoteRes.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+    if (!isImageMime(mimeType)) {
+      return c.json({ success: false, error: '이미지 URL이 아닙니다' }, 400);
+    }
+    if (!ALLOWED_MIME_TYPES[mimeType as keyof typeof ALLOWED_MIME_TYPES]) {
+      return c.json({ success: false, error: '허용되지 않은 이미지 형식입니다' }, 400);
+    }
+
+    const fileBuffer = await remoteRes.arrayBuffer();
+    if (fileBuffer.byteLength > MAX_FILE_SIZE) {
+      return c.json({ success: false, error: `파일 크기는 ${MAX_FILE_SIZE / 1024 / 1024}MB를 초과할 수 없습니다` }, 400);
+    }
+
+    const originalName = safeRemoteImageName(remoteUrl.toString(), mimeType);
+    const timestamp = Date.now();
+    const randomStr = Math.random().toString(36).substring(2, 8);
+    const sanitizedFileName = originalName.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const newFileName = `${timestamp}_${randomStr}_${sanitizedFileName}`;
+
+    const basePath = FILE_CATEGORIES[category];
+    const filePath = folder ? `${basePath}/${folder}/${newFileName}` : `${basePath}/${newFileName}`;
+
+    const originalPath = buildStoragePath(`private/originals/${basePath}`, folder, newFileName);
+    await R2.put(originalPath, fileBuffer, {
+      httpMetadata: {
+        contentType: mimeType,
+        cacheControl: 'private, max-age=0, no-store',
+      },
+      customMetadata: {
+        originalName,
+        uploadedBy: user.userId.toString(),
+        uploadedAt: new Date().toISOString(),
+        category,
+        visibility: 'private-original',
+        sourceUrl: remoteUrl.toString(),
+      },
+    });
+
+    const origin = new URL(c.req.url).origin;
+    const encodedOriginalPath = originalPath.split('/').map(encodeURIComponent).join('/');
+    const sourceUrl = `${origin}/api/upload/files/${encodedOriginalPath}`;
+    const maskedBuffer = await createMaskedImageFromR2Object(sourceUrl, mimeType, maskLevel);
+    const publicBuffer = maskedBuffer ?? fileBuffer;
+    const maskApplied = maskedBuffer != null;
+
+    await R2.put(filePath, publicBuffer, {
+      httpMetadata: {
+        contentType: mimeType,
+        cacheControl: 'public, max-age=31536000',
+      },
+      customMetadata: {
+        originalName,
+        uploadedBy: user.userId.toString(),
+        uploadedAt: new Date().toISOString(),
+        category,
+        visibility: 'public-masked',
+        maskApplied: String(maskApplied),
+        maskLevel,
+        maskMode: 'auto',
+        faceBoxesJson: '',
+        originalPath,
+        sourceUrl: remoteUrl.toString(),
+      },
+    });
+
+    try {
+      await DB.prepare(`
+        INSERT INTO file_metadata (
+          file_path, file_name, file_size, mime_type, category, folder,
+          uploaded_by, related_id, related_type
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).bind(
+        filePath,
+        originalName,
+        fileBuffer.byteLength,
+        mimeType,
+        category,
+        folder,
+        user.userId,
+        null,
+        'remote-import'
+      ).run();
+    } catch (dbError) {
+      console.error('Failed to save remote-import metadata:', dbError);
+    }
+
+    const publicUrl = `/api/upload/files/${filePath}`;
+    return c.json({
+      success: true,
+      data: {
+        url: publicUrl,
+        path: filePath,
+        fileName: newFileName,
+        originalName,
+        size: fileBuffer.byteLength,
+        mimeType,
+        category,
+        maskApplied,
+        maskLevel,
+        maskMode: 'auto',
+        faceBoxesCount: 0,
+        originalPath,
+        sourceUrl: remoteUrl.toString(),
+      },
+    }, 201);
+  } catch (error) {
+    console.error('Remote image import error:', error);
+    return c.json({ success: false, error: '원격 이미지 가져오기 중 오류가 발생했습니다' }, 500);
   }
 });
 

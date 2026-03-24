@@ -25,14 +25,14 @@ function minutesPrintSheetHtml() {
             <tbody>
               <tr>
                 <td class="border border-black px-1 py-1 w-8 align-middle bg-slate-100 font-bold" rowspan="2">결<br/>재</td>
-                <td class="border border-black px-3 py-1 w-16 bg-slate-50">담당</td>
-                <td class="border border-black px-3 py-1 w-16 bg-slate-50">팀장</td>
-                <td class="border border-black px-3 py-1 w-16 bg-slate-50">원장</td>
+                <td class="border border-black px-3 py-1 w-16 bg-slate-50" id="minutesPrintApprovalRoleChair">담당</td>
+                <td class="border border-black px-3 py-1 w-16 bg-slate-50" id="minutesPrintApprovalRoleWriter">팀장</td>
+                <td class="border border-black px-3 py-1 w-16 bg-slate-50" id="minutesPrintApprovalRoleReviewer">원장</td>
               </tr>
               <tr>
-                <td class="border border-black h-14 align-bottom text-[9pt] text-slate-400">(서명)</td>
-                <td class="border border-black h-14 align-bottom text-[9pt] text-slate-400">(서명)</td>
-                <td class="border border-black h-14 align-bottom text-[9pt] text-slate-400">(서명)</td>
+                <td class="border border-black h-14 align-middle text-center text-[9pt] text-slate-400" id="minutesPrintSignChair">(서명)</td>
+                <td class="border border-black h-14 align-middle text-center text-[9pt] text-slate-400" id="minutesPrintSignWriter">(서명)</td>
+                <td class="border border-black h-14 align-middle text-center text-[9pt] text-slate-400" id="minutesPrintSignReviewer">(서명)</td>
               </tr>
             </tbody>
           </table>
@@ -154,6 +154,46 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                     <input id="minutes_chairperson" class="px-3 py-2 rounded-xl border border-slate-200 text-sm" placeholder="회의장" />
                     <input id="minutes_writer" class="px-3 py-2 rounded-xl border border-slate-200 text-sm" placeholder="작성자" />
                     <input id="minutes_reviewer" class="px-3 py-2 rounded-xl border border-slate-200 text-sm" placeholder="검토자" />
+                  </div>
+                  <div class="p-4 border-b border-slate-200/70">
+                    <label class="block text-xs font-black text-slate-600 mb-2">결재 직함 (인쇄 표기)</label>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <input id="minutes_approval_role_chair" class="px-3 py-2 rounded-xl border border-slate-200 text-sm" placeholder="예: 담당" />
+                      <input id="minutes_approval_role_writer" class="px-3 py-2 rounded-xl border border-slate-200 text-sm" placeholder="예: 팀장" />
+                      <input id="minutes_approval_role_reviewer" class="px-3 py-2 rounded-xl border border-slate-200 text-sm" placeholder="예: 원장" />
+                    </div>
+                  </div>
+                  <div class="p-4 border-b border-slate-200/70 bg-slate-50/80">
+                    <label class="block text-xs font-black text-slate-600 mb-2">결재 서명</label>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div class="rounded-xl border border-slate-200 bg-white p-3">
+                        <p class="text-xs font-black text-slate-600 mb-2">담당(회의장)</p>
+                        <input type="file" id="minutesSignChairInput" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden" />
+                        <div id="minutesSignChairPreview" class="h-16 rounded-lg border border-dashed border-slate-200 flex items-center justify-center text-xs text-slate-400 mb-2">(서명 없음)</div>
+                        <div class="flex items-center gap-2">
+                          <button type="button" id="minutesSignChairBtn" class="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-black text-slate-700 hover:bg-slate-50 transition">서명 삽입</button>
+                          <button type="button" class="px-2.5 py-1.5 rounded-lg border border-rose-200 text-xs font-black text-rose-700 hover:bg-rose-50 transition" data-remove-minutes-signature="chairperson">삭제</button>
+                        </div>
+                      </div>
+                      <div class="rounded-xl border border-slate-200 bg-white p-3">
+                        <p class="text-xs font-black text-slate-600 mb-2">팀장(작성자)</p>
+                        <input type="file" id="minutesSignWriterInput" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden" />
+                        <div id="minutesSignWriterPreview" class="h-16 rounded-lg border border-dashed border-slate-200 flex items-center justify-center text-xs text-slate-400 mb-2">(서명 없음)</div>
+                        <div class="flex items-center gap-2">
+                          <button type="button" id="minutesSignWriterBtn" class="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-black text-slate-700 hover:bg-slate-50 transition">서명 삽입</button>
+                          <button type="button" class="px-2.5 py-1.5 rounded-lg border border-rose-200 text-xs font-black text-rose-700 hover:bg-rose-50 transition" data-remove-minutes-signature="writer">삭제</button>
+                        </div>
+                      </div>
+                      <div class="rounded-xl border border-slate-200 bg-white p-3">
+                        <p class="text-xs font-black text-slate-600 mb-2">원장(검토자)</p>
+                        <input type="file" id="minutesSignReviewerInput" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden" />
+                        <div id="minutesSignReviewerPreview" class="h-16 rounded-lg border border-dashed border-slate-200 flex items-center justify-center text-xs text-slate-400 mb-2">(서명 없음)</div>
+                        <div class="flex items-center gap-2">
+                          <button type="button" id="minutesSignReviewerBtn" class="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-black text-slate-700 hover:bg-slate-50 transition">서명 삽입</button>
+                          <button type="button" class="px-2.5 py-1.5 rounded-lg border border-rose-200 text-xs font-black text-rose-700 hover:bg-rose-50 transition" data-remove-minutes-signature="reviewer">삭제</button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                   <div class="p-4 border-b border-slate-200/70">
                     <label class="block text-xs font-black text-slate-600 mb-1.5">참석자</label>
@@ -651,6 +691,60 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       renderMinutesAttachments(items);
     }
 
+    function readMinutesSignaturesFromDom() {
+      var chair = document.getElementById('minutesSignChairPreview');
+      var writer = document.getElementById('minutesSignWriterPreview');
+      var reviewer = document.getElementById('minutesSignReviewerPreview');
+      return {
+        chairperson: chair ? (chair.getAttribute('data-signature-url') || '') : '',
+        writer: writer ? (writer.getAttribute('data-signature-url') || '') : '',
+        reviewer: reviewer ? (reviewer.getAttribute('data-signature-url') || '') : ''
+      };
+    }
+
+    function renderMinutesSignaturePreview(previewId, url) {
+      var box = document.getElementById(previewId);
+      if (!box) return;
+      var safeUrl = isSafeMinutesAssetUrl(url) ? String(url) : '';
+      if (!safeUrl) {
+        box.removeAttribute('data-signature-url');
+        box.innerHTML = '<span class="text-xs text-slate-400">(서명 없음)</span>';
+        return;
+      }
+      box.setAttribute('data-signature-url', safeUrl);
+      box.innerHTML = '<img src="' + escapeHtml(safeUrl) + '" alt="서명" class="max-h-14 max-w-full object-contain" />';
+    }
+
+    function renderMinutesSignatures(signatures) {
+      var s = signatures || {};
+      renderMinutesSignaturePreview('minutesSignChairPreview', s.chairperson || '');
+      renderMinutesSignaturePreview('minutesSignWriterPreview', s.writer || '');
+      renderMinutesSignaturePreview('minutesSignReviewerPreview', s.reviewer || '');
+    }
+
+    function removeMinutesSignature(role) {
+      if (role === 'chairperson') renderMinutesSignaturePreview('minutesSignChairPreview', '');
+      if (role === 'writer') renderMinutesSignaturePreview('minutesSignWriterPreview', '');
+      if (role === 'reviewer') renderMinutesSignaturePreview('minutesSignReviewerPreview', '');
+    }
+
+    function setMinutesPrintSignature(cellId, url) {
+      var el = document.getElementById(cellId);
+      if (!el) return;
+      if (isSafeMinutesAssetUrl(url)) {
+        el.innerHTML = '<img src="' + escapeHtml(String(url)) + '" alt="서명" style="max-width:100%;max-height:46px;object-fit:contain;display:block;margin:0 auto;" />';
+      } else {
+        el.textContent = '(서명)';
+      }
+    }
+
+    function setMinutesPrintApprovalRole(id, value, fallback) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      var txt = String(value || '').trim();
+      el.textContent = txt || fallback;
+    }
+
     function insertAtCursor(textarea, text) {
       if (!textarea) return;
       var start = textarea.selectionStart != null ? textarea.selectionStart : 0;
@@ -726,6 +820,13 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       var rawContent = (document.getElementById('minutes_content') || {}).value || '';
       setMinutesPrintHtml('minutesPrintContent', minutesContentToPrintHtml(rawContent));
       setMinutesPrintText('minutesPrintNotes', (document.getElementById('minutes_notes') || {}).value || '');
+      setMinutesPrintApprovalRole('minutesPrintApprovalRoleChair', (document.getElementById('minutes_approval_role_chair') || {}).value || '', '담당');
+      setMinutesPrintApprovalRole('minutesPrintApprovalRoleWriter', (document.getElementById('minutes_approval_role_writer') || {}).value || '', '팀장');
+      setMinutesPrintApprovalRole('minutesPrintApprovalRoleReviewer', (document.getElementById('minutes_approval_role_reviewer') || {}).value || '', '원장');
+      var sig = readMinutesSignaturesFromDom();
+      setMinutesPrintSignature('minutesPrintSignChair', sig.chairperson);
+      setMinutesPrintSignature('minutesPrintSignWriter', sig.writer);
+      setMinutesPrintSignature('minutesPrintSignReviewer', sig.reviewer);
 
       var att = readMinutesAttachmentsFromDom();
       var attPrint = document.getElementById('minutesPrintAttachments');
@@ -769,11 +870,15 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
             chairperson: document.getElementById('minutes_chairperson').value || '',
             writer: document.getElementById('minutes_writer').value || '',
             reviewer: document.getElementById('minutes_reviewer').value || '',
+            approval_role_chair: (document.getElementById('minutes_approval_role_chair') || {}).value || '',
+            approval_role_writer: (document.getElementById('minutes_approval_role_writer') || {}).value || '',
+            approval_role_reviewer: (document.getElementById('minutes_approval_role_reviewer') || {}).value || '',
             attendees: document.getElementById('minutes_attendees').value || '',
             agenda: document.getElementById('minutes_agenda').value || '',
             content: document.getElementById('minutes_content').value || '',
             notes: document.getElementById('minutes_notes').value || '',
-            attachments: readMinutesAttachmentsFromDom()
+            attachments: readMinutesAttachmentsFromDom(),
+            signatures: readMinutesSignaturesFromDom()
           }
         };
       }
@@ -1343,11 +1448,18 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         document.getElementById('minutes_chairperson').value = payload.chairperson || '';
         document.getElementById('minutes_writer').value = payload.writer || '';
         document.getElementById('minutes_reviewer').value = payload.reviewer || '';
+        var roleChairEl = document.getElementById('minutes_approval_role_chair');
+        if (roleChairEl) roleChairEl.value = payload.approval_role_chair || '담당';
+        var roleWriterEl = document.getElementById('minutes_approval_role_writer');
+        if (roleWriterEl) roleWriterEl.value = payload.approval_role_writer || '팀장';
+        var roleReviewerEl = document.getElementById('minutes_approval_role_reviewer');
+        if (roleReviewerEl) roleReviewerEl.value = payload.approval_role_reviewer || '원장';
         document.getElementById('minutes_attendees').value = payload.attendees || '';
         document.getElementById('minutes_agenda').value = payload.agenda || '';
         document.getElementById('minutes_content').value = payload.content || '';
         document.getElementById('minutes_notes').value = payload.notes || '';
         renderMinutesAttachments(payload.attachments || []);
+        renderMinutesSignatures(payload.signatures || {});
         return;
       }
       if (tabId === 'schedule') {
@@ -1575,6 +1687,11 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         const rmMinutesAtt = target.getAttribute('data-remove-minutes-attachment');
         if (rmMinutesAtt != null) {
           removeMinutesAttachment(parseInt(rmMinutesAtt, 10));
+          return;
+        }
+        const rmMinutesSign = target.getAttribute('data-remove-minutes-signature');
+        if (rmMinutesSign != null) {
+          removeMinutesSignature(rmMinutesSign);
           return;
         }
         if (target.id === 'scheduleAddRowBtn') {
@@ -1841,6 +1958,25 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           ev.target.value = '';
         });
       }
+
+      function bindMinutesSignatureInput(btnId, inputId, previewId) {
+        var btn = document.getElementById(btnId);
+        var input = document.getElementById(inputId);
+        if (!btn || !input) return;
+        btn.addEventListener('click', function() { input.click(); });
+        input.addEventListener('change', async function(ev) {
+          var f = ev.target.files && ev.target.files[0];
+          if (!f) return;
+          var data = await uploadMinutesFile(f, true);
+          if (data && data.url) {
+            renderMinutesSignaturePreview(previewId, data.url);
+          }
+          ev.target.value = '';
+        });
+      }
+      bindMinutesSignatureInput('minutesSignChairBtn', 'minutesSignChairInput', 'minutesSignChairPreview');
+      bindMinutesSignatureInput('minutesSignWriterBtn', 'minutesSignWriterInput', 'minutesSignWriterPreview');
+      bindMinutesSignatureInput('minutesSignReviewerBtn', 'minutesSignReviewerInput', 'minutesSignReviewerPreview');
     });
   </script>
   `;

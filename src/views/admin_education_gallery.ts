@@ -459,6 +459,24 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
             if (!json.success) throw new Error(json.error || '업로드 실패');
             return json.data.url || json.data.file_url || '';
         }
+        function isLocalUploadedImageUrl(url) {
+            return String(url || '').indexOf('/api/upload/files/') === 0;
+        }
+        async function importRemoteImageUrl(remoteUrl) {
+            const token = localStorage.getItem('token');
+            if (!token) throw new Error('로그인이 필요합니다.');
+            const res = await fetch('/api/upload/import-url', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                },
+                body: JSON.stringify({ url: String(remoteUrl || '').trim(), category: 'images', folder: 'posts' })
+            });
+            const json = await res.json().catch(() => ({}));
+            if (!res.ok || !json.success) throw new Error((json && json.error) || '원격 이미지 가져오기 실패');
+            return (json.data && json.data.url) || '';
+        }
         function initTinyMCE(initialContent) {
             tinymce.init({
                 selector: '#postContent',
@@ -470,6 +488,42 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
                 images_upload_handler: (blobInfo, progress) => uploadPostImage(blobInfo.blob()),
                 setup: function(editor) {
                     editor.on('init', function() { editor.setContent(initialContent); });
+                    editor.on('paste', function(ev) {
+                        const c = ev.clipboardData;
+                        const html = c && c.getData ? c.getData('text/html') : '';
+                        if (!html) return;
+                        const doc = new DOMParser().parseFromString(html, 'text/html');
+                        const imgs = Array.from(doc.querySelectorAll('img'));
+                        const remoteImgs = imgs.filter(function(img) {
+                            const src = (img.getAttribute('src') || '').trim();
+                            return /^https?:\/\//i.test(src) && !isLocalUploadedImageUrl(src);
+                        });
+                        if (remoteImgs.length === 0) return;
+
+                        ev.preventDefault();
+                        editor.setProgressState(true);
+                        (async function() {
+                            for (let i = 0; i < remoteImgs.length; i++) {
+                                const img = remoteImgs[i];
+                                const src = (img.getAttribute('src') || '').trim();
+                                try {
+                                    const localUrl = await importRemoteImageUrl(src);
+                                    if (localUrl) {
+                                        img.setAttribute('src', localUrl);
+                                        img.removeAttribute('srcset');
+                                    }
+                                } catch (e) {
+                                    console.warn('paste remote image import failed:', e);
+                                }
+                            }
+                            editor.insertContent(doc.body.innerHTML || html);
+                            editor.setProgressState(false);
+                        })().catch(function(e) {
+                            console.error(e);
+                            editor.setProgressState(false);
+                            editor.insertContent(html);
+                        });
+                    });
                 }
             });
         }
@@ -857,8 +911,11 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
                 progressText.textContent = (i + 1) + ' / ' + total + ' 적용 중...';
                 progressBar.style.width = ((i + 1) / total * 100) + '%';
                 const post = bulkImagePostList[i];
-                const url = urls[i];
+                let url = urls[i];
                 try {
+                    if (/^https?:\/\//i.test(url) && !isLocalUploadedImageUrl(url)) {
+                        url = await importRemoteImageUrl(url);
+                    }
                     const res = await fetch('/api/posts/' + post.id, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
