@@ -119,6 +119,10 @@ function questionsPrintSheetHtml() {
           </tbody>
         </table>
         <div class="border border-black mb-2">
+          <div class="bg-slate-100 px-2 py-1.5 font-bold border-b border-black">첨부파일</div>
+          <div id="questionsPrintAttachments" class="px-3 py-2 text-[10pt] align-top"></div>
+        </div>
+        <div class="border border-black mb-2">
           <div class="bg-slate-100 px-2 py-1.5 font-bold text-center border-b border-black">평가문항</div>
           <div class="overflow-x-auto">
             <table class="w-full border-collapse text-[10pt]">
@@ -401,8 +405,24 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                         <i class="fas fa-plus mr-1"></i>문항 추가
                       </button>
                     </div>
+                    <div class="mt-3 rounded-xl border border-slate-200/80 bg-white p-3">
+                      <div class="flex flex-wrap items-center gap-2 mb-2">
+                        <input type="file" id="questionsFileAttachInput" multiple class="hidden" />
+                        <button type="button" id="questionsFileAttachBtn" class="px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-black text-slate-700 hover:bg-slate-50 transition">
+                          <i class="fas fa-paperclip mr-1"></i>파일 첨부
+                        </button>
+                        <input type="file" id="questionsImageInsertInput" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden" />
+                        <button type="button" id="questionsImageInsertBtn" class="px-3 py-2 rounded-xl border border-sky-200 bg-sky-50 text-xs font-black text-sky-800 hover:bg-sky-100 transition">
+                          <i class="fas fa-image mr-1"></i>이미지 삽입
+                        </button>
+                        <span class="text-[11px] text-slate-500">이미지는 문항 입력란 커서 위치에 <code class="text-slate-600">![설명](URL)</code> 형식으로 삽입됩니다.</span>
+                      </div>
+                      <label class="block text-xs font-black text-slate-600 mb-1.5">첨부파일</label>
+                      <div id="questionsAttachmentsList" class="flex flex-wrap gap-2 min-h-[2.5rem]"></div>
+                    </div>
                     <div class="mt-3">
-                      <textarea id="questionInputText" class="w-full h-24 px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="문항 내용을 입력하세요."></textarea>
+                      <label class="block text-xs font-black text-slate-600 mb-1.5">문항 내용</label>
+                      <textarea id="questionInputText" class="w-full h-24 px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white font-mono" placeholder="문항 내용을 입력하세요."></textarea>
                     </div>
                   </div>
 
@@ -821,6 +841,42 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       renderMinutesAttachments(items);
     }
 
+    function readQuestionsAttachmentsFromDom() {
+      var box = document.getElementById('questionsAttachmentsList');
+      if (!box) return [];
+      var out = [];
+      box.querySelectorAll('[data-questions-attachment-url]').forEach(function(el) {
+        out.push({
+          url: el.getAttribute('data-questions-attachment-url') || '',
+          name: el.getAttribute('data-questions-attachment-name') || 'file'
+        });
+      });
+      return out;
+    }
+
+    function renderQuestionsAttachments(items) {
+      var box = document.getElementById('questionsAttachmentsList');
+      if (!box) return;
+      var list = Array.isArray(items) ? items : [];
+      if (!list.length) {
+        box.innerHTML = '<p class="text-xs text-slate-400 py-1">첨부된 파일이 없습니다.</p>';
+        return;
+      }
+      box.innerHTML = list.map(function(it, idx) {
+        var u = escapeHtml(it.url || '');
+        var n = escapeHtml(it.name || 'file');
+        return '<div class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm max-w-full" data-questions-attachment-url="' + u + '" data-questions-attachment-name="' + n + '">' +
+          '<a href="' + u + '" target="_blank" rel="noopener noreferrer" class="text-sky-700 font-semibold truncate flex-1 min-w-0">' + n + '</a>' +
+          '<button type="button" class="text-rose-600 text-xs font-black shrink-0" data-remove-questions-attachment="' + idx + '">삭제</button></div>';
+      }).join('');
+    }
+
+    function removeQuestionsAttachment(index) {
+      var items = readQuestionsAttachmentsFromDom();
+      if (index >= 0 && index < items.length) items.splice(index, 1);
+      renderQuestionsAttachments(items);
+    }
+
     function readMinutesSignaturesFromDom() {
       var chair = document.getElementById('minutesSignChairPreview');
       var writer = document.getElementById('minutesSignWriterPreview');
@@ -886,15 +942,18 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       textarea.focus();
     }
 
-    async function uploadMinutesFile(file, isImage) {
+    async function uploadNcsEvalPlanFile(file, isImage, planDocFolder) {
       if (!selectedCourseId) {
         alert('과정을 선택해 주세요.');
         return null;
       }
+      var folder = planDocFolder === 'questions'
+        ? 'ncs-plan-questions/' + String(selectedCourseId)
+        : 'ncs-plan-minutes/' + String(selectedCourseId);
       var fd = new FormData();
       fd.append('file', file);
       fd.append('category', isImage ? 'images' : 'documents');
-      fd.append('folder', 'ncs-plan-minutes/' + String(selectedCourseId));
+      fd.append('folder', folder);
       var token = localStorage.getItem('token');
       var res = await fetch('/api/upload', {
         method: 'POST',
@@ -907,6 +966,10 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         return null;
       }
       return json.data;
+    }
+
+    async function uploadMinutesFile(file, isImage) {
+      return uploadNcsEvalPlanFile(file, isImage, 'minutes');
     }
 
     async function resolveCourseTitleForPrint() {
@@ -994,6 +1057,20 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       setMinutesPrintText('questionsPrintDocTitle', docTitle || '-');
       setMinutesPrintText('questionsPrintWriter', (document.getElementById('questions_writer') || {}).value || '-');
 
+      var qAtt = readQuestionsAttachmentsFromDom();
+      var qAttPrint = document.getElementById('questionsPrintAttachments');
+      if (qAttPrint) {
+        if (!qAtt.length) {
+          qAttPrint.innerHTML = '<span class="text-slate-500">없음</span>';
+        } else {
+          qAttPrint.innerHTML = qAtt.map(function(a) {
+            var u = escapeHtml(a.url || '');
+            var n = escapeHtml(a.name || 'file');
+            return '<div class="mb-1"><a href="' + u + '" class="text-sky-800 underline">' + n + '</a></div>';
+          }).join('');
+        }
+      }
+
       var rows = readQuestionRowsFromTable();
       var total = rows.reduce(function(acc, r) { return acc + Number(r && r.score != null ? r.score : 0); }, 0);
       var target = Number((document.getElementById('questions_total_target') || {}).value || 0);
@@ -1009,13 +1086,14 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           tbody.innerHTML = rows.map(function(row, idx) {
             var no = Number(row && row.no != null ? row.no : idx + 1);
             var typ = escapeHtml(String(row && row.type != null ? row.type : '-'));
-            var txt = escapeHtml(String(row && row.text != null ? row.text : ''));
+            var rawTxt = String(row && row.text != null ? row.text : '');
+            var txtHtml = minutesContentToPrintHtml(rawTxt);
             var sc = Number(row && row.score != null ? row.score : 0);
             var kw = escapeHtml(String(row && row.keyword != null ? row.keyword : '-'));
             return '<tr>' +
               '<td class="border border-black px-2 py-2 text-center align-top">' + no + '</td>' +
               '<td class="border border-black px-2 py-2 text-center align-top">' + typ + '</td>' +
-              '<td class="border border-black px-2 py-2 text-left align-top whitespace-pre-wrap text-[10pt]">' + (txt || '-') + '</td>' +
+              '<td class="border border-black px-2 py-2 text-left align-top text-[10pt]">' + (txtHtml || '<span class="text-slate-500">-</span>') + '</td>' +
               '<td class="border border-black px-2 py-2 text-center align-top">' + sc + '</td>' +
               '<td class="border border-black px-2 py-2 text-left align-top whitespace-pre-wrap text-[10pt]">' + kw + '</td>' +
               '</tr>';
@@ -1128,6 +1206,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
             writer: (document.getElementById('questions_writer') || {}).value || '',
             total_target: Number((document.getElementById('questions_total_target') || {}).value || 0),
             notes: (document.getElementById('questions_notes') || {}).value || '',
+            attachments: readQuestionsAttachmentsFromDom(),
             rows: readQuestionRowsFromTable()
           }
         };
@@ -1712,6 +1791,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         if (writerEl) writerEl.value = payload.writer || '';
         if (targetEl) targetEl.value = payload.total_target || '';
         if (notesEl) notesEl.value = payload.notes || '';
+        renderQuestionsAttachments(payload.attachments || []);
         renderQuestionRows(payload.rows || []);
         return;
       }
@@ -2029,6 +2109,11 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           removeMinutesAttachment(parseInt(rmMinutesAtt, 10));
           return;
         }
+        const rmQuestionsAtt = target.getAttribute('data-remove-questions-attachment');
+        if (rmQuestionsAtt != null) {
+          removeQuestionsAttachment(parseInt(rmQuestionsAtt, 10));
+          return;
+        }
         const rmMinutesSign = target.getAttribute('data-remove-minutes-signature');
         if (rmMinutesSign != null) {
           removeMinutesSignature(rmMinutesSign);
@@ -2331,6 +2416,40 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       bindMinutesSignatureInput('minutesSignChairBtn', 'minutesSignChairInput', 'minutesSignChairPreview');
       bindMinutesSignatureInput('minutesSignWriterBtn', 'minutesSignWriterInput', 'minutesSignWriterPreview');
       bindMinutesSignatureInput('minutesSignReviewerBtn', 'minutesSignReviewerInput', 'minutesSignReviewerPreview');
+
+      var questionsFileAttachBtn = document.getElementById('questionsFileAttachBtn');
+      var questionsFileAttachInput = document.getElementById('questionsFileAttachInput');
+      if (questionsFileAttachBtn && questionsFileAttachInput) {
+        questionsFileAttachBtn.addEventListener('click', function() { questionsFileAttachInput.click(); });
+        questionsFileAttachInput.addEventListener('change', async function(ev) {
+          var files = ev.target.files;
+          if (!files || !files.length) return;
+          var items = readQuestionsAttachmentsFromDom();
+          for (var qi = 0; qi < files.length; qi++) {
+            var qdata = await uploadNcsEvalPlanFile(files[qi], false, 'questions');
+            if (qdata && qdata.url) {
+              items.push({ url: qdata.url, name: qdata.originalName || qdata.fileName || files[qi].name });
+            }
+          }
+          renderQuestionsAttachments(items);
+          ev.target.value = '';
+        });
+      }
+      var questionsImageInsertBtn = document.getElementById('questionsImageInsertBtn');
+      var questionsImageInsertInput = document.getElementById('questionsImageInsertInput');
+      if (questionsImageInsertBtn && questionsImageInsertInput) {
+        questionsImageInsertBtn.addEventListener('click', function() { questionsImageInsertInput.click(); });
+        questionsImageInsertInput.addEventListener('change', async function(ev) {
+          var qf = ev.target.files && ev.target.files[0];
+          if (!qf) return;
+          var qimg = await uploadNcsEvalPlanFile(qf, true, 'questions');
+          if (qimg && qimg.url) {
+            var qta = document.getElementById('questionInputText');
+            insertAtCursor(qta, '\\n![이미지](' + qimg.url + ')\\n');
+          }
+          ev.target.value = '';
+        });
+      }
     });
   </script>
   `;
