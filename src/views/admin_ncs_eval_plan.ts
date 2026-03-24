@@ -925,23 +925,6 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                       <input id="tools_writer" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="작성자" />
                       <input id="tools_target_time" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="총 소요시간(예: 60분)" />
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-6 gap-3 mt-3">
-                      <input id="toolInputName" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="도구명" />
-                      <select id="toolInputType" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white">
-                        <option value="실습평가">실습평가</option>
-                        <option value="필답평가">필답평가</option>
-                        <option value="구두평가">구두평가</option>
-                        <option value="포트폴리오">포트폴리오</option>
-                      </select>
-                      <input id="toolInputDuration" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="시간(분)" />
-                      <input id="toolInputScore" type="number" min="0" step="1" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="배점" />
-                      <input id="toolInputMaterials" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white md:col-span-2" placeholder="준비물/평가도구 상세" />
-                    </div>
-                    <div class="mt-3 flex justify-end">
-                      <button type="button" id="toolAddRowBtn" class="px-3 py-2 rounded-xl bg-sky-600 text-white text-sm font-black hover:bg-sky-700 transition">
-                        <i class="fas fa-plus mr-1"></i>도구 항목 추가
-                      </button>
-                    </div>
                     <div class="mt-3 rounded-xl border border-slate-200/80 bg-white p-3">
                       <div class="flex flex-wrap items-center gap-2 mb-2">
                         <input type="file" id="toolsFileAttachInput" multiple class="hidden" />
@@ -969,7 +952,6 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                             <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider">준비물/상세</th>
                             <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider w-24 text-center">시간</th>
                             <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider w-20 text-center">배점</th>
-                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider w-32 text-center">작업</th>
                           </tr>
                         </thead>
                         <tbody id="toolsRowsBody" class="divide-y divide-slate-100 bg-white"></tbody>
@@ -993,18 +975,6 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                       <input id="rubric_doc_title" class="md:col-span-2 px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="문서 제목 (예: 평가도구 채점기준표)" />
                       <input id="rubric_writer" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="작성자" />
                       <input id="rubric_total_target" type="number" min="0" step="1" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="기준 총점(선택)" />
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-5 gap-3 mt-3">
-                      <input id="rubricInputItem" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="평가항목" />
-                      <input id="rubricInputScore" type="number" min="0" step="1" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="배점" />
-                      <input id="rubricInputHigh" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="상(우수) 기준" />
-                      <input id="rubricInputMid" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="중(보통) 기준" />
-                      <button type="button" id="rubricAddRowBtn" class="px-3 py-2 rounded-xl bg-sky-600 text-white text-sm font-black hover:bg-sky-700 transition">
-                        <i class="fas fa-plus mr-1"></i>기준 항목 추가
-                      </button>
-                    </div>
-                    <div class="mt-3">
-                      <input id="rubricInputLow" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="하(미흡) 기준" />
                     </div>
                     <div class="mt-3 rounded-xl border border-slate-200/80 bg-white p-3">
                       <div class="flex flex-wrap items-center gap-2 mb-2">
@@ -1033,7 +1003,6 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                             <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider">상(우수)</th>
                             <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider">중(보통)</th>
                             <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider">하(미흡)</th>
-                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider w-32 text-center">작업</th>
                           </tr>
                         </thead>
                         <tbody id="rubricRowsBody" class="divide-y divide-slate-100 bg-white"></tbody>
@@ -2641,12 +2610,23 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       if (!body) return [];
       const rows = [];
       body.querySelectorAll('tr[data-tool-row]').forEach(function(tr) {
+        var nameCell = tr.querySelector('[data-tool-cell="name"]');
+        var typeCell = tr.querySelector('[data-tool-cell="type"]');
+        var materialsCell = tr.querySelector('[data-tool-cell="materials"]');
+        var durationCell = tr.querySelector('[data-tool-cell="duration"]');
+        var scoreCell = tr.querySelector('[data-tool-cell="score"]');
+        var nameText = nameCell ? String(nameCell.textContent || '').trim() : (tr.getAttribute('data-name') || '');
+        var typeText = typeCell ? String(typeCell.textContent || '').trim() : (tr.getAttribute('data-type') || '');
+        var materialsText = materialsCell ? String(materialsCell.textContent || '').trim() : (tr.getAttribute('data-materials') || '');
+        var durationText = durationCell ? String(durationCell.textContent || '').trim() : (tr.getAttribute('data-duration') || '');
+        var scoreText = scoreCell ? String(scoreCell.textContent || '').trim() : (tr.getAttribute('data-score') || '0');
+        var scoreNum = Number(scoreText || 0);
         rows.push({
-          name: tr.getAttribute('data-name') || '',
-          type: tr.getAttribute('data-type') || '',
-          materials: tr.getAttribute('data-materials') || '',
-          duration: tr.getAttribute('data-duration') || '',
-          score: Number(tr.getAttribute('data-score') || 0)
+          name: nameText,
+          type: typeText,
+          materials: materialsText,
+          duration: durationText,
+          score: Number.isFinite(scoreNum) ? scoreNum : 0
         });
       });
       return rows;
@@ -2657,26 +2637,22 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       if (!body) return;
       const safeRows = Array.isArray(rows) ? rows : [];
       if (!safeRows.length) {
-        body.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-sm text-slate-400">등록된 도구 항목이 없습니다.</td></tr>';
+        body.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-sm text-slate-400">등록된 도구 항목이 없습니다.</td></tr>';
         updateToolsTotalScore([]);
         return;
       }
-      body.innerHTML = safeRows.map(function(row, idx) {
+      body.innerHTML = safeRows.map(function(row) {
         const name = String(row?.name || '');
         const type = String(row?.type || '');
         const materials = String(row?.materials || '');
         const duration = String(row?.duration || '');
         const score = Number(row?.score || 0);
         return '<tr data-tool-row data-name="' + escapeHtml(name) + '" data-type="' + escapeHtml(type) + '" data-materials="' + escapeHtml(materials) + '" data-duration="' + escapeHtml(duration) + '" data-score="' + score + '">' +
-          '<td class="px-4 py-3 text-sm font-semibold text-slate-700">' + escapeHtml(name || '-') + '</td>' +
-          '<td class="px-4 py-3 text-sm text-slate-700">' + escapeHtml(type || '-') + '</td>' +
-          '<td class="px-4 py-3 text-sm text-slate-700">' + escapeHtml(materials || '-') + '</td>' +
-          '<td class="px-4 py-3 text-sm text-slate-700 text-center">' + escapeHtml(duration || '-') + '</td>' +
-          '<td class="px-4 py-3 text-sm text-slate-800 text-center font-semibold">' + score + '</td>' +
-          '<td class="px-4 py-3 text-center space-x-1">' +
-            '<button type="button" data-edit-tool-row="' + idx + '" class="px-2.5 py-1.5 rounded-lg border border-amber-200 bg-amber-50 text-amber-700 text-xs font-black hover:bg-amber-100 transition">수정</button>' +
-            '<button type="button" data-remove-tool-row="' + idx + '" class="px-2.5 py-1.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 text-xs font-black hover:bg-rose-100 transition">삭제</button>' +
-          '</td>' +
+          '<td class="px-4 py-3 text-sm font-semibold text-slate-700 align-top"><div data-tool-cell="name" contenteditable="true" class="min-h-[2.2rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(name) + '</div></td>' +
+          '<td class="px-4 py-3 text-sm text-slate-700 align-top"><div data-tool-cell="type" contenteditable="true" class="min-h-[2.2rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(type) + '</div></td>' +
+          '<td class="px-4 py-3 text-sm text-slate-700 align-top"><div data-tool-cell="materials" contenteditable="true" class="min-h-[2.2rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(materials) + '</div></td>' +
+          '<td class="px-4 py-3 text-sm text-slate-700 text-center align-top"><div data-tool-cell="duration" contenteditable="true" class="min-h-[2.2rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(duration) + '</div></td>' +
+          '<td class="px-4 py-3 text-sm text-slate-800 text-center font-semibold align-top"><div data-tool-cell="score" contenteditable="true" class="min-h-[2.2rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(String(score)) + '</div></td>' +
         '</tr>';
       }).join('');
       updateToolsTotalScore(safeRows);
@@ -2689,36 +2665,29 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       label.textContent = total + '점';
     }
 
-    function addToolFromInputs() {
-      const nameEl = document.getElementById('toolInputName');
-      const typeEl = document.getElementById('toolInputType');
-      const durationEl = document.getElementById('toolInputDuration');
-      const scoreEl = document.getElementById('toolInputScore');
-      const materialsEl = document.getElementById('toolInputMaterials');
-      const name = (nameEl?.value || '').trim();
-      const type = (typeEl?.value || '').trim();
-      const duration = (durationEl?.value || '').trim();
-      const score = Number((scoreEl?.value || '').trim() || 0);
-      const materials = (materialsEl?.value || '').trim();
-      if (!name) {
-        alert('도구명을 입력해 주세요.');
-        return;
-      }
+    function defaultToolRows() {
+      return [
+        { name: '평가도구 1', type: '실습평가', materials: '', duration: '', score: 20 },
+        { name: '평가도구 2', type: '실습평가', materials: '', duration: '', score: 20 },
+        { name: '평가도구 3', type: '실습평가', materials: '', duration: '', score: 20 },
+        { name: '평가도구 4', type: '실습평가', materials: '', duration: '', score: 20 },
+        { name: '평가도구 5', type: '실습평가', materials: '', duration: '', score: 20 }
+      ];
+    }
 
-      const rows = readToolRowsFromTable();
-      rows.push({
-        name,
-        type: type || '실습평가',
-        duration,
-        score,
-        materials
+    function normalizeToolRows(rows) {
+      const list = Array.isArray(rows) ? rows : [];
+      if (!list.length) return defaultToolRows();
+      return list.map(function(row, idx) {
+        const score = Number(row?.score ?? 0);
+        return {
+          name: String(row?.name ?? ('평가도구 ' + (idx + 1))),
+          type: String(row?.type ?? '실습평가'),
+          materials: String(row?.materials ?? ''),
+          duration: String(row?.duration ?? ''),
+          score: Number.isFinite(score) ? score : 0
+        };
       });
-      renderToolRows(rows);
-
-      if (nameEl) nameEl.value = '';
-      if (durationEl) durationEl.value = '';
-      if (scoreEl) scoreEl.value = '';
-      if (materialsEl) materialsEl.value = '';
     }
 
     function readRubricRowsFromTable() {
@@ -2726,12 +2695,23 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       if (!body) return [];
       const rows = [];
       body.querySelectorAll('tr[data-rubric-row]').forEach(function(tr) {
+        var itemCell = tr.querySelector('[data-rubric-cell="item"]');
+        var scoreCell = tr.querySelector('[data-rubric-cell="score"]');
+        var highCell = tr.querySelector('[data-rubric-cell="high"]');
+        var midCell = tr.querySelector('[data-rubric-cell="mid"]');
+        var lowCell = tr.querySelector('[data-rubric-cell="low"]');
+        var itemText = itemCell ? String(itemCell.textContent || '').trim() : (tr.getAttribute('data-item') || '');
+        var scoreText = scoreCell ? String(scoreCell.textContent || '').trim() : (tr.getAttribute('data-score') || '0');
+        var highText = highCell ? String(highCell.textContent || '').trim() : (tr.getAttribute('data-high') || '');
+        var midText = midCell ? String(midCell.textContent || '').trim() : (tr.getAttribute('data-mid') || '');
+        var lowText = lowCell ? String(lowCell.textContent || '').trim() : (tr.getAttribute('data-low') || '');
+        var scoreNum = Number(scoreText || 0);
         rows.push({
-          item: tr.getAttribute('data-item') || '',
-          score: Number(tr.getAttribute('data-score') || 0),
-          high: tr.getAttribute('data-high') || '',
-          mid: tr.getAttribute('data-mid') || '',
-          low: tr.getAttribute('data-low') || ''
+          item: itemText,
+          score: Number.isFinite(scoreNum) ? scoreNum : 0,
+          high: highText,
+          mid: midText,
+          low: lowText
         });
       });
       return rows;
@@ -2742,26 +2722,22 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       if (!body) return;
       const safeRows = Array.isArray(rows) ? rows : [];
       if (!safeRows.length) {
-        body.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-sm text-slate-400">등록된 채점기준이 없습니다.</td></tr>';
+        body.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-sm text-slate-400">등록된 채점기준이 없습니다.</td></tr>';
         updateRubricTotalScore([]);
         return;
       }
-      body.innerHTML = safeRows.map(function(row, idx) {
+      body.innerHTML = safeRows.map(function(row) {
         const item = String(row?.item || '');
         const score = Number(row?.score || 0);
         const high = String(row?.high || '');
         const mid = String(row?.mid || '');
         const low = String(row?.low || '');
         return '<tr data-rubric-row data-item="' + escapeHtml(item) + '" data-score="' + score + '" data-high="' + escapeHtml(high) + '" data-mid="' + escapeHtml(mid) + '" data-low="' + escapeHtml(low) + '">' +
-          '<td class="px-4 py-3 text-sm font-semibold text-slate-700">' + escapeHtml(item || '-') + '</td>' +
-          '<td class="px-4 py-3 text-sm text-center font-semibold text-slate-800">' + score + '</td>' +
-          '<td class="px-4 py-3 text-sm text-slate-700">' + escapeHtml(high || '-') + '</td>' +
-          '<td class="px-4 py-3 text-sm text-slate-700">' + escapeHtml(mid || '-') + '</td>' +
-          '<td class="px-4 py-3 text-sm text-slate-700">' + escapeHtml(low || '-') + '</td>' +
-          '<td class="px-4 py-3 text-center space-x-1">' +
-            '<button type="button" data-edit-rubric-row="' + idx + '" class="px-2.5 py-1.5 rounded-lg border border-amber-200 bg-amber-50 text-amber-700 text-xs font-black hover:bg-amber-100 transition">수정</button>' +
-            '<button type="button" data-remove-rubric-row="' + idx + '" class="px-2.5 py-1.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 text-xs font-black hover:bg-rose-100 transition">삭제</button>' +
-          '</td>' +
+          '<td class="px-4 py-3 text-sm font-semibold text-slate-700 align-top"><div data-rubric-cell="item" contenteditable="true" class="min-h-[2.2rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(item) + '</div></td>' +
+          '<td class="px-4 py-3 text-sm text-center font-semibold text-slate-800 align-top"><div data-rubric-cell="score" contenteditable="true" class="min-h-[2.2rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(String(score)) + '</div></td>' +
+          '<td class="px-4 py-3 text-sm text-slate-700 align-top"><div data-rubric-cell="high" contenteditable="true" class="min-h-[2.2rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(high) + '</div></td>' +
+          '<td class="px-4 py-3 text-sm text-slate-700 align-top"><div data-rubric-cell="mid" contenteditable="true" class="min-h-[2.2rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(mid) + '</div></td>' +
+          '<td class="px-4 py-3 text-sm text-slate-700 align-top"><div data-rubric-cell="low" contenteditable="true" class="min-h-[2.2rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(low) + '</div></td>' +
         '</tr>';
       }).join('');
       updateRubricTotalScore(safeRows);
@@ -2777,30 +2753,29 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       label.classList.toggle('text-slate-900', !(target > 0 && total > target));
     }
 
-    function addRubricRowFromInputs() {
-      const itemEl = document.getElementById('rubricInputItem');
-      const scoreEl = document.getElementById('rubricInputScore');
-      const highEl = document.getElementById('rubricInputHigh');
-      const midEl = document.getElementById('rubricInputMid');
-      const lowEl = document.getElementById('rubricInputLow');
-      const item = (itemEl?.value || '').trim();
-      const score = Number((scoreEl?.value || '').trim() || 0);
-      const high = (highEl?.value || '').trim();
-      const mid = (midEl?.value || '').trim();
-      const low = (lowEl?.value || '').trim();
-      if (!item) {
-        alert('평가항목을 입력해 주세요.');
-        return;
-      }
-      const rows = readRubricRowsFromTable();
-      rows.push({ item, score, high, mid, low });
-      renderRubricRows(rows);
+    function defaultRubricRows() {
+      return [
+        { item: '평가항목 1', score: 20, high: '', mid: '', low: '' },
+        { item: '평가항목 2', score: 20, high: '', mid: '', low: '' },
+        { item: '평가항목 3', score: 20, high: '', mid: '', low: '' },
+        { item: '평가항목 4', score: 20, high: '', mid: '', low: '' },
+        { item: '평가항목 5', score: 20, high: '', mid: '', low: '' }
+      ];
+    }
 
-      if (itemEl) itemEl.value = '';
-      if (scoreEl) scoreEl.value = '';
-      if (highEl) highEl.value = '';
-      if (midEl) midEl.value = '';
-      if (lowEl) lowEl.value = '';
+    function normalizeRubricRows(rows) {
+      const list = Array.isArray(rows) ? rows : [];
+      if (!list.length) return defaultRubricRows();
+      return list.map(function(row, idx) {
+        const score = Number(row?.score ?? 0);
+        return {
+          item: String(row?.item ?? ('평가항목 ' + (idx + 1))),
+          score: Number.isFinite(score) ? score : 0,
+          high: String(row?.high ?? ''),
+          mid: String(row?.mid ?? ''),
+          low: String(row?.low ?? '')
+        };
+      });
     }
 
     function readAchievementRowsFromTable() {
@@ -3036,7 +3011,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         if (targetTimeEl) targetTimeEl.value = payload.target_time || '';
         if (notesEl) notesEl.value = payload.notes || '';
         renderToolsAttachments(payload.attachments || []);
-        renderToolRows(payload.rows || []);
+        renderToolRows(normalizeToolRows(payload.rows || []));
         return;
       }
       if (tabId === 'rubric') {
@@ -3049,7 +3024,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         if (targetEl) targetEl.value = payload.total_target || '';
         if (notesEl) notesEl.value = payload.notes || '';
         renderRubricAttachments(payload.attachments || []);
-        renderRubricRows(payload.rows || []);
+        renderRubricRows(normalizeRubricRows(payload.rows || []));
         return;
       }
       if (tabId === 'achievement') {
@@ -3414,14 +3389,6 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           addQuestionFromInputs();
           return;
         }
-        if (target.id === 'toolAddRowBtn') {
-          addToolFromInputs();
-          return;
-        }
-        if (target.id === 'rubricAddRowBtn') {
-          addRubricRowFromInputs();
-          return;
-        }
         const removeIdx = target.getAttribute('data-remove-schedule-row');
         if (removeIdx != null) {
           const rows = readScheduleRowsFromTable();
@@ -3460,66 +3427,6 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           if (keywordEl) keywordEl.value = row.keyword || '';
           rows.splice(index, 1);
           renderQuestionRows(rows);
-          return;
-        }
-        const removeToolIdx = target.getAttribute('data-remove-tool-row');
-        if (removeToolIdx != null) {
-          const rows = readToolRowsFromTable();
-          const index = parseInt(removeToolIdx, 10);
-          if (Number.isFinite(index) && index >= 0 && index < rows.length) {
-            rows.splice(index, 1);
-            renderToolRows(rows);
-          }
-          return;
-        }
-        const editToolIdx = target.getAttribute('data-edit-tool-row');
-        if (editToolIdx != null) {
-          const rows = readToolRowsFromTable();
-          const index = parseInt(editToolIdx, 10);
-          const row = rows[index];
-          if (!row) return;
-          const nameEl = document.getElementById('toolInputName');
-          const typeEl = document.getElementById('toolInputType');
-          const durationEl = document.getElementById('toolInputDuration');
-          const scoreEl = document.getElementById('toolInputScore');
-          const materialsEl = document.getElementById('toolInputMaterials');
-          if (nameEl) nameEl.value = row.name || '';
-          if (typeEl) typeEl.value = row.type || '실습평가';
-          if (durationEl) durationEl.value = row.duration || '';
-          if (scoreEl) scoreEl.value = String(row.score || 0);
-          if (materialsEl) materialsEl.value = row.materials || '';
-          rows.splice(index, 1);
-          renderToolRows(rows);
-          return;
-        }
-        const removeRubricIdx = target.getAttribute('data-remove-rubric-row');
-        if (removeRubricIdx != null) {
-          const rows = readRubricRowsFromTable();
-          const index = parseInt(removeRubricIdx, 10);
-          if (Number.isFinite(index) && index >= 0 && index < rows.length) {
-            rows.splice(index, 1);
-            renderRubricRows(rows);
-          }
-          return;
-        }
-        const editRubricIdx = target.getAttribute('data-edit-rubric-row');
-        if (editRubricIdx != null) {
-          const rows = readRubricRowsFromTable();
-          const index = parseInt(editRubricIdx, 10);
-          const row = rows[index];
-          if (!row) return;
-          const itemEl = document.getElementById('rubricInputItem');
-          const scoreEl = document.getElementById('rubricInputScore');
-          const highEl = document.getElementById('rubricInputHigh');
-          const midEl = document.getElementById('rubricInputMid');
-          const lowEl = document.getElementById('rubricInputLow');
-          if (itemEl) itemEl.value = row.item || '';
-          if (scoreEl) scoreEl.value = String(row.score || 0);
-          if (highEl) highEl.value = row.high || '';
-          if (midEl) midEl.value = row.mid || '';
-          if (lowEl) lowEl.value = row.low || '';
-          rows.splice(index, 1);
-          renderRubricRows(rows);
           return;
         }
         const reviewCheckType = target.getAttribute('data-review-check');
