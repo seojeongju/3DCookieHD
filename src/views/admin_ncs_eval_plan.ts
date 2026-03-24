@@ -453,8 +453,16 @@ const NCS_PLAN_PRINT_STYLES = `
   pointer-events: none;
   user-select: none;
 }
+.minutes-image-resizable.is-selected {
+  border: 2px solid #0ea5e9;
+  box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.2);
+}
 #minutes_content:empty::before {
   content: "회의 내용을 입력하세요.";
+  color: #94a3b8;
+}
+#questionInputText:empty::before {
+  content: "문항 내용을 입력하세요.";
   color: #94a3b8;
 }
 .ncs-questions-print-root.is-preview {
@@ -722,6 +730,12 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                       <button type="button" data-plan-save-btn="${item.id}" class="px-3 py-2 rounded-xl bg-emerald-500 text-white text-xs font-black hover:bg-emerald-600 transition">
                         <i class="fas fa-floppy-disk mr-1"></i>문서 저장
                       </button>
+                      <button type="button" id="planDocUpdateBtn-${item.id}" data-plan-update-btn="${item.id}" class="px-3 py-2 rounded-xl bg-blue-500 text-white text-xs font-black hover:bg-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        <i class="fas fa-pen-to-square mr-1"></i>저장문서 수정
+                      </button>
+                      <button type="button" id="planDocDeleteBtn-${item.id}" data-plan-delete-btn="${item.id}" class="px-3 py-2 rounded-xl bg-rose-500 text-white text-xs font-black hover:bg-rose-600 transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        <i class="fas fa-trash mr-1"></i>저장문서 삭제
+                      </button>
                   </div>
               </div>
               ${item.id === 'minutes' ? `
@@ -738,6 +752,7 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                   <div class="p-3 border-b border-slate-200/70 bg-slate-50/80 flex flex-wrap items-center justify-between gap-2">
                     <div class="flex flex-wrap items-center gap-2">
                       <button type="button" id="minutesImageInsertBtn" class="px-3 py-1.5 rounded-lg bg-sky-500 text-white text-xs font-black hover:bg-sky-600 transition"><i class="fas fa-image mr-1"></i>이미지 삽입</button>
+                      <button type="button" id="minutesImageDeleteBtn" class="px-3 py-1.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 text-xs font-black hover:bg-rose-100 transition"><i class="fas fa-trash mr-1"></i>이미지 삭제</button>
                       <button type="button" id="minutesPrintBtnInline" class="px-3 py-1.5 rounded-lg bg-amber-500 text-white text-xs font-black hover:bg-amber-600 transition"><i class="fas fa-print mr-1"></i>프린트</button>
                       <button type="button" id="minutesFileAttachBtn" class="px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-xs font-black text-slate-700 hover:bg-slate-100 transition">파일첨부</button>
                     </div>
@@ -911,14 +926,17 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                         <button type="button" id="questionsImageInsertBtn" class="px-3 py-2 rounded-xl border border-sky-200 bg-sky-50 text-xs font-black text-sky-800 hover:bg-sky-100 transition">
                           <i class="fas fa-image mr-1"></i>이미지 삽입
                         </button>
-                        <span class="text-[11px] text-slate-500">이미지는 문항 입력란 커서 위치에 <code class="text-slate-600">![설명](URL)</code> 형식으로 삽입됩니다.</span>
+                        <button type="button" id="questionsImageDeleteBtn" class="px-3 py-2 rounded-xl border border-rose-200 bg-rose-50 text-xs font-black text-rose-700 hover:bg-rose-100 transition">
+                          <i class="fas fa-trash mr-1"></i>이미지 삭제
+                        </button>
+                        <span class="text-[11px] text-slate-500">이미지는 문항 입력란에 즉시 표시되며, 드래그로 크기 조절/삭제할 수 있습니다.</span>
                       </div>
                       <label class="block text-xs font-black text-slate-600 mb-1.5">첨부파일</label>
                       <div id="questionsAttachmentsList" class="flex flex-wrap gap-2 min-h-[2.5rem]"></div>
                     </div>
                     <div class="mt-3">
                       <label class="block text-xs font-black text-slate-600 mb-1.5">문항 내용</label>
-                      <textarea id="questionInputText" class="w-full h-24 px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white font-mono" placeholder="문항 내용을 입력하세요."></textarea>
+                      <div id="questionInputText" contenteditable="true" class="w-full min-h-[120px] px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white whitespace-pre-wrap leading-relaxed"></div>
                     </div>
                   </div>
 
@@ -1405,6 +1423,51 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       if (!text.trim()) return '';
       if (/<[a-z][\\s\\S]*>/i.test(text)) return text;
       return minutesMarkdownToEditorHtml(text);
+    }
+
+    function questionMarkdownToEditorHtml(text) {
+      return minutesMarkdownToEditorHtml(text);
+    }
+
+    function normalizeQuestionContentForEditor(raw) {
+      var text = String(raw || '');
+      if (!text.trim()) return '';
+      if (/<[a-z][\\s\\S]*>/i.test(text)) return text;
+      return questionMarkdownToEditorHtml(text);
+    }
+
+    function getQuestionInputValue() {
+      var el = document.getElementById('questionInputText');
+      if (!el) return '';
+      if (el.isContentEditable) return String(el.innerHTML || '');
+      return String(el.value || '');
+    }
+
+    function setQuestionInputValue(value) {
+      var el = document.getElementById('questionInputText');
+      if (!el) return;
+      var next = value != null ? String(value) : '';
+      if (el.isContentEditable) {
+        el.innerHTML = normalizeQuestionContentForEditor(next);
+      } else {
+        el.value = next;
+      }
+    }
+
+    function questionInputHasContent() {
+      var el = document.getElementById('questionInputText');
+      if (!el) return false;
+      var plain = String(el.textContent || '').trim();
+      if (plain) return true;
+      return !!el.querySelector('img');
+    }
+
+    function questionContentToDisplayHtml(raw) {
+      var text = String(raw || '');
+      if (!text.trim()) return '-';
+      if (/<[a-z][\\s\\S]*>/i.test(text)) return text;
+      if (/!\[[^\]]*\]\([^)]+\)/.test(text)) return questionMarkdownToEditorHtml(text);
+      return '<div class="whitespace-pre-wrap">' + escapeHtml(text) + '</div>';
     }
 
     function minutesContentToPrintHtml(text) {
@@ -2512,7 +2575,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         return '<tr data-question-row data-no="' + no + '" data-type="' + escapeHtml(type) + '" data-text="' + escapeHtml(text) + '" data-score="' + score + '" data-keyword="' + escapeHtml(keyword) + '">' +
           '<td class="px-4 py-3 text-sm font-semibold text-slate-700">' + (no || (idx + 1)) + '</td>' +
           '<td class="px-4 py-3 text-sm text-slate-700">' + escapeHtml(type || '-') + '</td>' +
-          '<td class="px-4 py-3 text-sm text-slate-700"><div class="max-w-[520px] whitespace-pre-wrap">' + escapeHtml(text || '-') + '</div></td>' +
+          '<td class="px-4 py-3 text-sm text-slate-700"><div class="max-w-[520px]">' + questionContentToDisplayHtml(text) + '</div></td>' +
           '<td class="px-4 py-3 text-sm text-center font-semibold text-slate-800">' + score + '</td>' +
           '<td class="px-4 py-3 text-sm text-slate-700">' + escapeHtml(keyword || '-') + '</td>' +
           '<td class="px-4 py-3 text-center space-x-1">' +
@@ -2537,16 +2600,15 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
     function addQuestionFromInputs() {
       const noEl = document.getElementById('questionInputNo');
       const typeEl = document.getElementById('questionInputType');
-      const textEl = document.getElementById('questionInputText');
       const scoreEl = document.getElementById('questionInputScore');
       const keywordEl = document.getElementById('questionInputKeyword');
       const noVal = Number((noEl?.value || '').trim());
       const typeVal = (typeEl?.value || '').trim();
-      const textVal = (textEl?.value || '').trim();
+      const textVal = getQuestionInputValue();
       const scoreVal = Number((scoreEl?.value || '').trim() || 0);
       const keywordVal = (keywordEl?.value || '').trim();
 
-      if (!textVal) {
+      if (!questionInputHasContent()) {
         alert('문항 내용을 입력해 주세요.');
         return;
       }
@@ -2565,7 +2627,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       renderQuestionRows(rows);
 
       if (noEl) noEl.value = '';
-      if (textEl) textEl.value = '';
+      setQuestionInputValue('');
       if (scoreEl) scoreEl.value = '';
       if (keywordEl) keywordEl.value = '';
     }
@@ -3140,6 +3202,11 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       var selected = selectedId != null ? String(selectedId) : '';
       if (selected) sel.value = selected;
       if (selected && sel.value !== selected) sel.value = '';
+      var hasSelected = !!(sel.value || '').trim();
+      var updateBtn = document.getElementById('planDocUpdateBtn-' + tabId);
+      var deleteBtn = document.getElementById('planDocDeleteBtn-' + tabId);
+      if (updateBtn) updateBtn.disabled = !hasSelected;
+      if (deleteBtn) deleteBtn.disabled = !hasSelected;
     }
 
     async function loadDocumentList(tabId, selectedId) {
@@ -3246,6 +3313,86 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       }
     }
 
+    async function updateDocument(tabId) {
+      if (!selectedCourseId) {
+        alert('먼저 과정을 선택해 주세요.');
+        return;
+      }
+      var docId = String(selectedDocIdByTab[tabId] || '').trim();
+      if (!docId) {
+        alert('수정할 저장문서를 먼저 선택해 주세요.');
+        return;
+      }
+      const form = getDocForm(tabId);
+      setStatus(tabId, '수정 저장 중...', false);
+      try {
+        const res = await authFetch('/api/ncs/plan-documents/' + encodeURIComponent(docId), {
+          method: 'PUT',
+          headers: {
+            'Authorization': 'Bearer ' + localStorage.getItem('token'),
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            course_id: Number(selectedCourseId),
+            evaluation_round: Number(selectedRound),
+            doc_type: tabId,
+            title: form.title,
+            payload: form.payload
+          })
+        });
+        const json = await res.json();
+        if (!json?.success) throw new Error(json?.error || 'update failed');
+        setStatus(tabId, '수정 저장 완료', false);
+        await loadDocumentList(tabId, docId);
+        const now = new Date();
+        const stamp = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0') + ' ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+        setUpdatedAt(tabId, stamp);
+        var tabName = TAB_NAMES[tabId] || tabId;
+        alert('[' + tabName + '] 저장문서가 수정되었습니다.');
+      } catch (e) {
+        console.error(e);
+        setStatus(tabId, '수정 저장 실패', true);
+        var errMsg = (e && e.message) ? String(e.message) : '알 수 없는 오류';
+        alert('문서 수정에 실패했습니다.\\n' + errMsg);
+      }
+    }
+
+    async function deleteDocument(tabId) {
+      if (!selectedCourseId) {
+        alert('먼저 과정을 선택해 주세요.');
+        return;
+      }
+      var docId = String(selectedDocIdByTab[tabId] || '').trim();
+      if (!docId) {
+        alert('삭제할 저장문서를 먼저 선택해 주세요.');
+        return;
+      }
+      if (!confirm('선택한 저장문서를 삭제할까요?\\n삭제 후 복구할 수 없습니다.')) return;
+      setStatus(tabId, '문서 삭제 중...', false);
+      try {
+        const url = '/api/ncs/plan-documents/' + encodeURIComponent(docId) +
+          '?course_id=' + encodeURIComponent(String(selectedCourseId)) +
+          '&evaluation_round=' + encodeURIComponent(String(selectedRound)) +
+          '&doc_type=' + encodeURIComponent(tabId);
+        const res = await authFetch(url, {
+          method: 'DELETE',
+          headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+        });
+        const json = await res.json();
+        if (!json?.success) throw new Error(json?.error || 'delete failed');
+        selectedDocIdByTab[tabId] = '';
+        await loadDocument(tabId, '');
+        setStatus(tabId, '문서 삭제 완료', false);
+        var tabName = TAB_NAMES[tabId] || tabId;
+        alert('[' + tabName + '] 저장문서를 삭제했습니다.');
+      } catch (e) {
+        console.error(e);
+        setStatus(tabId, '문서 삭제 실패', true);
+        var errMsg = (e && e.message) ? String(e.message) : '알 수 없는 오류';
+        alert('문서 삭제에 실패했습니다.\\n' + errMsg);
+      }
+    }
+
     function applyRoundBadges() {
       const label = roundLabel(selectedRound);
       document.querySelectorAll('[id^="activeRoundBadge-"]').forEach(function(el) { el.textContent = label; });
@@ -3346,6 +3493,20 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           await saveDocument(tabId);
         });
       });
+      document.querySelectorAll('[data-plan-update-btn]').forEach(function(btn) {
+        btn.addEventListener('click', async function() {
+          const tabId = btn.getAttribute('data-plan-update-btn');
+          if (!tabId) return;
+          await updateDocument(tabId);
+        });
+      });
+      document.querySelectorAll('[data-plan-delete-btn]').forEach(function(btn) {
+        btn.addEventListener('click', async function() {
+          const tabId = btn.getAttribute('data-plan-delete-btn');
+          if (!tabId) return;
+          await deleteDocument(tabId);
+        });
+      });
 
       document.querySelectorAll('[data-plan-doc-select]').forEach(function(sel) {
         sel.addEventListener('change', async function() {
@@ -3444,12 +3605,11 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           if (!row) return;
           const noEl = document.getElementById('questionInputNo');
           const typeEl = document.getElementById('questionInputType');
-          const textEl = document.getElementById('questionInputText');
           const scoreEl = document.getElementById('questionInputScore');
           const keywordEl = document.getElementById('questionInputKeyword');
           if (noEl) noEl.value = String(row.no || '');
           if (typeEl) typeEl.value = row.type || '객관식';
-          if (textEl) textEl.value = row.text || '';
+          setQuestionInputValue(row.text || '');
           if (scoreEl) scoreEl.value = String(row.score || 0);
           if (keywordEl) keywordEl.value = row.keyword || '';
           rows.splice(index, 1);
@@ -3663,10 +3823,76 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         });
       }
       var minutesImageInsertBtn = document.getElementById('minutesImageInsertBtn');
+      var minutesImageDeleteBtn = document.getElementById('minutesImageDeleteBtn');
       var minutesImageInsertInput = document.getElementById('minutesImageInsertInput');
       if (minutesImageInsertBtn && minutesImageInsertInput) {
         minutesImageInsertBtn.addEventListener('click', function() { openNcsPlanImageInsertModal('minutes_content', 'minutes'); });
       }
+      var selectedMinutesImageBox = null;
+      function clearSelectedMinutesImage() {
+        if (selectedMinutesImageBox) selectedMinutesImageBox.classList.remove('is-selected');
+        selectedMinutesImageBox = null;
+      }
+      function removeSelectedMinutesImage() {
+        if (!selectedMinutesImageBox) return;
+        var nextFocus = selectedMinutesImageBox.nextSibling || selectedMinutesImageBox.previousSibling;
+        selectedMinutesImageBox.remove();
+        selectedMinutesImageBox = null;
+        var editor = document.getElementById('minutes_content');
+        if (editor) {
+          editor.focus();
+          if (nextFocus && window.getSelection) {
+            var sel = window.getSelection();
+            var range = document.createRange();
+            if (nextFocus.nodeType === Node.TEXT_NODE) {
+              range.setStart(nextFocus, Math.min(1, nextFocus.textContent ? nextFocus.textContent.length : 0));
+            } else {
+              range.selectNodeContents(nextFocus);
+              range.collapse(false);
+            }
+            range.collapse(false);
+            sel.removeAllRanges();
+            sel.addRange(range);
+          }
+        }
+      }
+      if (minutesImageDeleteBtn) {
+        minutesImageDeleteBtn.addEventListener('click', function() {
+          if (!selectedMinutesImageBox) {
+            alert('삭제할 이미지를 먼저 클릭해 선택해 주세요.');
+            return;
+          }
+          removeSelectedMinutesImage();
+        });
+      }
+      var minutesContentEditor = document.getElementById('minutes_content');
+      if (minutesContentEditor) {
+        minutesContentEditor.addEventListener('click', function(ev) {
+          var target = ev.target;
+          var box = target && target.closest ? target.closest('.minutes-image-resizable') : null;
+          if (box) {
+            if (selectedMinutesImageBox && selectedMinutesImageBox !== box) selectedMinutesImageBox.classList.remove('is-selected');
+            selectedMinutesImageBox = box;
+            selectedMinutesImageBox.classList.add('is-selected');
+            return;
+          }
+          clearSelectedMinutesImage();
+        });
+        minutesContentEditor.addEventListener('keydown', function(ev) {
+          var key = String(ev.key || '').toLowerCase();
+          if (!selectedMinutesImageBox) return;
+          if (key === 'delete' || key === 'backspace') {
+            ev.preventDefault();
+            removeSelectedMinutesImage();
+          }
+        });
+      }
+      document.addEventListener('click', function(ev) {
+        var target = ev.target;
+        if (!selectedMinutesImageBox) return;
+        if (target && target.closest && (target.closest('#minutes_content') || target.closest('#minutesImageDeleteBtn'))) return;
+        clearSelectedMinutesImage();
+      });
 
       function bindMinutesSignatureInput(btnId, inputId, previewId) {
         var btn = document.getElementById(btnId);
@@ -3759,10 +3985,60 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         });
       }
       var questionsImageInsertBtn = document.getElementById('questionsImageInsertBtn');
+      var questionsImageDeleteBtn = document.getElementById('questionsImageDeleteBtn');
       var questionsImageInsertInput = document.getElementById('questionsImageInsertInput');
       if (questionsImageInsertBtn && questionsImageInsertInput) {
         questionsImageInsertBtn.addEventListener('click', function() { openNcsPlanImageInsertModal('questionInputText', 'questions'); });
       }
+      var selectedQuestionImageBox = null;
+      function clearSelectedQuestionImage() {
+        if (selectedQuestionImageBox) selectedQuestionImageBox.classList.remove('is-selected');
+        selectedQuestionImageBox = null;
+      }
+      function removeSelectedQuestionImage() {
+        if (!selectedQuestionImageBox) return;
+        selectedQuestionImageBox.remove();
+        selectedQuestionImageBox = null;
+        var editor = document.getElementById('questionInputText');
+        if (editor) editor.focus();
+      }
+      if (questionsImageDeleteBtn) {
+        questionsImageDeleteBtn.addEventListener('click', function() {
+          if (!selectedQuestionImageBox) {
+            alert('삭제할 이미지를 먼저 클릭해 선택해 주세요.');
+            return;
+          }
+          removeSelectedQuestionImage();
+        });
+      }
+      var questionInputEditor = document.getElementById('questionInputText');
+      if (questionInputEditor) {
+        questionInputEditor.addEventListener('click', function(ev) {
+          var target = ev.target;
+          var box = target && target.closest ? target.closest('.minutes-image-resizable') : null;
+          if (box) {
+            if (selectedQuestionImageBox && selectedQuestionImageBox !== box) selectedQuestionImageBox.classList.remove('is-selected');
+            selectedQuestionImageBox = box;
+            selectedQuestionImageBox.classList.add('is-selected');
+            return;
+          }
+          clearSelectedQuestionImage();
+        });
+        questionInputEditor.addEventListener('keydown', function(ev) {
+          var key = String(ev.key || '').toLowerCase();
+          if (!selectedQuestionImageBox) return;
+          if (key === 'delete' || key === 'backspace') {
+            ev.preventDefault();
+            removeSelectedQuestionImage();
+          }
+        });
+      }
+      document.addEventListener('click', function(ev) {
+        var target = ev.target;
+        if (!selectedQuestionImageBox) return;
+        if (target && target.closest && (target.closest('#questionInputText') || target.closest('#questionsImageDeleteBtn'))) return;
+        clearSelectedQuestionImage();
+      });
 
       var ncsImageModalInput = document.getElementById('ncsPlanImageInsertModalInput');
       var ncsImageModalPreview = document.getElementById('ncsPlanImageInsertPreview');

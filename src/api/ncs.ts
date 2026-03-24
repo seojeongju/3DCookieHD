@@ -3624,6 +3624,104 @@ app.post('/plan-documents', authMiddleware, async (c) => {
     }
 });
 
+// NCS 평가계획 문서 수정(선택 문서 업데이트)
+app.put('/plan-documents/:id', authMiddleware, async (c) => {
+    try {
+        const user = c.get('user') as JWTPayload;
+        const docIdRaw = c.req.param('id');
+        const body = await c.req.json();
+        const courseIdRaw = body.course_id;
+        const roundRaw = body.evaluation_round ?? body.round;
+        const docType = String(body.doc_type || '').trim();
+        const title = String(body.title || '').trim();
+        const payload = body.payload ?? {};
+
+        const docId = parseInt(String(docIdRaw), 10);
+        if (!Number.isFinite(docId) || docId < 1) {
+            return c.json({ success: false, error: 'Invalid document id' }, 400);
+        }
+        if (!courseIdRaw || !docType) {
+            return c.json({ success: false, error: 'course_id and doc_type are required' }, 400);
+        }
+        if (!ALLOWED_PLAN_DOC_TYPES.has(docType)) {
+            return c.json({ success: false, error: 'Invalid doc_type' }, 400);
+        }
+        const courseId = parseInt(String(courseIdRaw), 10);
+        const round = roundRaw != null && String(roundRaw).trim() !== '' ? parseInt(String(roundRaw), 10) : 1;
+        if (!Number.isFinite(courseId) || courseId < 1 || !Number.isFinite(round) || round < 1 || round > 3) {
+            return c.json({ success: false, error: 'Invalid course_id or evaluation_round' }, 400);
+        }
+
+        const allowed = await ensureNcsCoursePermission(c, courseId);
+        if (!allowed) return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
+
+        const existing: any = await c.env.DB.prepare(`
+            SELECT id FROM ncs_plan_documents
+            WHERE id = ? AND course_id = ? AND evaluation_round = ? AND doc_type = ?
+            LIMIT 1
+        `).bind(docId, courseId, round, docType).first();
+        if (!existing) {
+            return c.json({ success: false, error: 'Document not found' }, 404);
+        }
+
+        const payloadJson = JSON.stringify(payload ?? {});
+        await c.env.DB.prepare(`
+            UPDATE ncs_plan_documents
+            SET title = ?, payload_json = ?, updated_by = ?, updated_at = datetime('now')
+            WHERE id = ?
+        `).bind(title || null, payloadJson, user.userId ?? null, docId).run();
+
+        return c.json({ success: true, data: { id: docId, mode: 'updated' } });
+    } catch (e) {
+        console.error('Failed to update NCS plan document:', e);
+        return c.json({ success: false, error: 'Failed to update plan document' }, 500);
+    }
+});
+
+// NCS 평가계획 문서 삭제
+app.delete('/plan-documents/:id', authMiddleware, async (c) => {
+    try {
+        const docIdRaw = c.req.param('id');
+        const courseIdRaw = c.req.query('course_id');
+        const roundRaw = c.req.query('evaluation_round') ?? c.req.query('round');
+        const docType = String(c.req.query('doc_type') || '').trim();
+
+        const docId = parseInt(String(docIdRaw), 10);
+        if (!Number.isFinite(docId) || docId < 1) {
+            return c.json({ success: false, error: 'Invalid document id' }, 400);
+        }
+        if (!courseIdRaw || !docType) {
+            return c.json({ success: false, error: 'course_id and doc_type are required' }, 400);
+        }
+        if (!ALLOWED_PLAN_DOC_TYPES.has(docType)) {
+            return c.json({ success: false, error: 'Invalid doc_type' }, 400);
+        }
+        const courseId = parseInt(String(courseIdRaw), 10);
+        const round = roundRaw != null && String(roundRaw).trim() !== '' ? parseInt(String(roundRaw), 10) : 1;
+        if (!Number.isFinite(courseId) || courseId < 1 || !Number.isFinite(round) || round < 1 || round > 3) {
+            return c.json({ success: false, error: 'Invalid course_id or evaluation_round' }, 400);
+        }
+
+        const allowed = await ensureNcsCoursePermission(c, courseId);
+        if (!allowed) return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
+
+        const existing: any = await c.env.DB.prepare(`
+            SELECT id FROM ncs_plan_documents
+            WHERE id = ? AND course_id = ? AND evaluation_round = ? AND doc_type = ?
+            LIMIT 1
+        `).bind(docId, courseId, round, docType).first();
+        if (!existing) {
+            return c.json({ success: false, error: 'Document not found' }, 404);
+        }
+
+        await c.env.DB.prepare('DELETE FROM ncs_plan_documents WHERE id = ?').bind(docId).run();
+        return c.json({ success: true, data: { id: docId, mode: 'deleted' } });
+    } catch (e) {
+        console.error('Failed to delete NCS plan document:', e);
+        return c.json({ success: false, error: 'Failed to delete plan document' }, 500);
+    }
+});
+
 // 평가 계획 조회
 app.get('/plans', authMiddleware, async (c) => {
     try {
