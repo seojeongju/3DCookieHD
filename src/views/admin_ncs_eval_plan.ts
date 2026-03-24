@@ -354,11 +354,28 @@ function reviewPrintSheetHtml() {
         닫기
       </button>
       <div class="review-print-doc max-w-[210mm] mx-auto text-black text-[11pt] leading-relaxed bg-white print:p-0">
-        <div class="text-center border-b-2 border-black pb-3 mb-3">
-          <h1 class="text-xl font-black tracking-tight">평가도구 검토</h1>
-          <p id="reviewPrintSubtitle" class="text-sm mt-1 text-slate-700"></p>
+        <div class="flex items-start justify-between gap-4 border border-black mb-0">
+          <div class="flex-1 py-4 px-3 text-center">
+            <h1 class="text-xl font-black tracking-tight">평가도구 검토</h1>
+            <p id="reviewPrintSubtitle" class="text-sm mt-1 text-slate-700"></p>
+          </div>
+          <table class="border-collapse border-l border-black text-center text-[10pt] shrink-0">
+            <tbody>
+              <tr>
+                <td class="border border-black px-1 py-1 w-8 align-middle bg-slate-100 font-bold" rowspan="2">결<br/>재</td>
+                <td class="border border-black px-3 py-1 w-16 bg-slate-50" id="reviewPrintApprovalRoleChair">팀장</td>
+                <td class="border border-black px-3 py-1 w-16 bg-slate-50" id="reviewPrintApprovalRoleWriter">실장</td>
+                <td class="border border-black px-3 py-1 w-16 bg-slate-50" id="reviewPrintApprovalRoleReviewer">원장</td>
+              </tr>
+              <tr>
+                <td class="border border-black h-14 align-middle text-center text-[9pt] text-slate-400" id="reviewPrintSignChair">(서명)</td>
+                <td class="border border-black h-14 align-middle text-center text-[9pt] text-slate-400" id="reviewPrintSignWriter">(서명)</td>
+                <td class="border border-black h-14 align-middle text-center text-[9pt] text-slate-400" id="reviewPrintSignReviewer">(서명)</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-        <table class="w-full border-collapse border border-black text-[10pt] mb-4">
+        <table class="w-full border-collapse border border-t-0 border-black text-[10pt] mb-4">
           <tbody>
             <tr>
               <td class="border border-black w-[18%] bg-slate-100 px-2 py-2 font-bold text-center">과정명</td>
@@ -373,12 +390,14 @@ function reviewPrintSheetHtml() {
             <tr>
               <td class="border border-black bg-slate-100 px-2 py-2 font-bold text-center">문서제목</td>
               <td class="border border-black px-2 py-2" id="reviewPrintDocTitle"></td>
-              <td class="border border-black bg-slate-100 px-2 py-2 font-bold text-center">작성/검토</td>
-              <td class="border border-black px-2 py-2" id="reviewPrintWriterReviewer"></td>
+              <td class="border border-black bg-slate-100 px-2 py-2 font-bold text-center">작성자</td>
+              <td class="border border-black px-2 py-2" id="reviewPrintWriter"></td>
             </tr>
             <tr>
+              <td class="border border-black bg-slate-100 px-2 py-2 font-bold text-center">검토자</td>
+              <td class="border border-black px-2 py-2" id="reviewPrintReviewer"></td>
               <td class="border border-black bg-slate-100 px-2 py-2 font-bold text-center">완료율</td>
-              <td class="border border-black px-2 py-2" colspan="3" id="reviewPrintCompletion"></td>
+              <td class="border border-black px-2 py-2" id="reviewPrintCompletion"></td>
             </tr>
           </tbody>
         </table>
@@ -1104,6 +1123,40 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                       <input id="review_writer" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="작성자" />
                       <input id="review_reviewer" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="검토자" />
                     </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
+                      <input id="review_approval_role_chair" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="결재직함(예: 팀장)" />
+                      <input id="review_approval_role_writer" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="결재직함(예: 실장)" />
+                      <input id="review_approval_role_reviewer" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="결재직함(예: 원장)" />
+                    </div>
+                    <div class="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div class="rounded-xl border border-slate-200 bg-white p-3">
+                        <p class="text-xs font-black text-slate-600 mb-2">결재 서명(1)</p>
+                        <input type="file" id="reviewSignChairInput" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden" />
+                        <div id="reviewSignChairPreview" class="h-16 rounded-lg border border-dashed border-slate-200 flex items-center justify-center text-xs text-slate-400 mb-2">(서명 없음)</div>
+                        <div class="flex items-center gap-2">
+                          <button type="button" id="reviewSignChairBtn" class="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-black text-slate-700 hover:bg-slate-50 transition">서명 삽입</button>
+                          <button type="button" class="px-2.5 py-1.5 rounded-lg border border-rose-200 text-xs font-black text-rose-700 hover:bg-rose-50 transition" data-remove-review-signature="chairperson">삭제</button>
+                        </div>
+                      </div>
+                      <div class="rounded-xl border border-slate-200 bg-white p-3">
+                        <p class="text-xs font-black text-slate-600 mb-2">결재 서명(2)</p>
+                        <input type="file" id="reviewSignWriterInput" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden" />
+                        <div id="reviewSignWriterPreview" class="h-16 rounded-lg border border-dashed border-slate-200 flex items-center justify-center text-xs text-slate-400 mb-2">(서명 없음)</div>
+                        <div class="flex items-center gap-2">
+                          <button type="button" id="reviewSignWriterBtn" class="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-black text-slate-700 hover:bg-slate-50 transition">서명 삽입</button>
+                          <button type="button" class="px-2.5 py-1.5 rounded-lg border border-rose-200 text-xs font-black text-rose-700 hover:bg-rose-50 transition" data-remove-review-signature="writer">삭제</button>
+                        </div>
+                      </div>
+                      <div class="rounded-xl border border-slate-200 bg-white p-3">
+                        <p class="text-xs font-black text-slate-600 mb-2">결재 서명(3)</p>
+                        <input type="file" id="reviewSignReviewerInput" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden" />
+                        <div id="reviewSignReviewerPreview" class="h-16 rounded-lg border border-dashed border-slate-200 flex items-center justify-center text-xs text-slate-400 mb-2">(서명 없음)</div>
+                        <div class="flex items-center gap-2">
+                          <button type="button" id="reviewSignReviewerBtn" class="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-black text-slate-700 hover:bg-slate-50 transition">서명 삽입</button>
+                          <button type="button" class="px-2.5 py-1.5 rounded-lg border border-rose-200 text-xs font-black text-rose-700 hover:bg-rose-50 transition" data-remove-review-signature="reviewer">삭제</button>
+                        </div>
+                      </div>
+                    </div>
                     <div class="grid grid-cols-1 md:grid-cols-5 gap-3 mt-3">
                       <input id="reviewInputItem" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white md:col-span-2" placeholder="검토항목" />
                       <input id="reviewInputOwner" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="담당자" />
@@ -1568,6 +1621,43 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       if (role === 'chairperson') renderMinutesSignaturePreview('minutesSignChairPreview', '');
       if (role === 'writer') renderMinutesSignaturePreview('minutesSignWriterPreview', '');
       if (role === 'reviewer') renderMinutesSignaturePreview('minutesSignReviewerPreview', '');
+    }
+
+    function readReviewSignaturesFromDom() {
+      var chair = document.getElementById('reviewSignChairPreview');
+      var writer = document.getElementById('reviewSignWriterPreview');
+      var reviewer = document.getElementById('reviewSignReviewerPreview');
+      return {
+        chairperson: chair ? (chair.getAttribute('data-signature-url') || '') : '',
+        writer: writer ? (writer.getAttribute('data-signature-url') || '') : '',
+        reviewer: reviewer ? (reviewer.getAttribute('data-signature-url') || '') : ''
+      };
+    }
+
+    function renderReviewSignaturePreview(previewId, url) {
+      var box = document.getElementById(previewId);
+      if (!box) return;
+      var safeUrl = isSafeMinutesAssetUrl(url) ? String(url) : '';
+      if (!safeUrl) {
+        box.removeAttribute('data-signature-url');
+        box.innerHTML = '<span class="text-xs text-slate-400">(서명 없음)</span>';
+        return;
+      }
+      box.setAttribute('data-signature-url', safeUrl);
+      box.innerHTML = '<img src="' + escapeHtml(safeUrl) + '" alt="서명" class="max-h-14 max-w-full object-contain" />';
+    }
+
+    function renderReviewSignatures(signatures) {
+      var s = signatures || {};
+      renderReviewSignaturePreview('reviewSignChairPreview', s.chairperson || '');
+      renderReviewSignaturePreview('reviewSignWriterPreview', s.writer || '');
+      renderReviewSignaturePreview('reviewSignReviewerPreview', s.reviewer || '');
+    }
+
+    function removeReviewSignature(role) {
+      if (role === 'chairperson') renderReviewSignaturePreview('reviewSignChairPreview', '');
+      if (role === 'writer') renderReviewSignaturePreview('reviewSignWriterPreview', '');
+      if (role === 'reviewer') renderReviewSignaturePreview('reviewSignReviewerPreview', '');
     }
 
     function setMinutesPrintSignature(cellId, url) {
@@ -2116,9 +2206,15 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       setMinutesPrintText('reviewPrintRound', roundLabel(selectedRound));
       setMinutesPrintText('reviewPrintDocTitle', docTitle || '-');
 
-      var writer = (document.getElementById('review_writer') || {}).value || '-';
-      var reviewer = (document.getElementById('review_reviewer') || {}).value || '-';
-      setMinutesPrintText('reviewPrintWriterReviewer', '작성자: ' + writer + ' / 검토자: ' + reviewer);
+      setMinutesPrintText('reviewPrintWriter', (document.getElementById('review_writer') || {}).value || '-');
+      setMinutesPrintText('reviewPrintReviewer', (document.getElementById('review_reviewer') || {}).value || '-');
+      setMinutesPrintApprovalRole('reviewPrintApprovalRoleChair', (document.getElementById('review_approval_role_chair') || {}).value || '', '팀장');
+      setMinutesPrintApprovalRole('reviewPrintApprovalRoleWriter', (document.getElementById('review_approval_role_writer') || {}).value || '', '실장');
+      setMinutesPrintApprovalRole('reviewPrintApprovalRoleReviewer', (document.getElementById('review_approval_role_reviewer') || {}).value || '', '원장');
+      var rsig = readReviewSignaturesFromDom();
+      setMinutesPrintSignature('reviewPrintSignChair', rsig.chairperson);
+      setMinutesPrintSignature('reviewPrintSignWriter', rsig.writer);
+      setMinutesPrintSignature('reviewPrintSignReviewer', rsig.reviewer);
 
       var rows = readReviewRowsFromTable();
       var total = rows.length;
@@ -2314,8 +2410,12 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           payload: {
             writer: (document.getElementById('review_writer') || {}).value || '',
             reviewer: (document.getElementById('review_reviewer') || {}).value || '',
+            approval_role_chair: (document.getElementById('review_approval_role_chair') || {}).value || '',
+            approval_role_writer: (document.getElementById('review_approval_role_writer') || {}).value || '',
+            approval_role_reviewer: (document.getElementById('review_approval_role_reviewer') || {}).value || '',
             notes: (document.getElementById('review_notes') || {}).value || '',
             attachments: readReviewAttachmentsFromDom(),
+            signatures: readReviewSignaturesFromDom(),
             rows: readReviewRowsFromTable()
           }
         };
@@ -2903,12 +3003,19 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         const titleEl = document.getElementById('review_doc_title');
         const writerEl = document.getElementById('review_writer');
         const reviewerEl = document.getElementById('review_reviewer');
+        const roleChairEl = document.getElementById('review_approval_role_chair');
+        const roleWriterEl = document.getElementById('review_approval_role_writer');
+        const roleReviewerEl = document.getElementById('review_approval_role_reviewer');
         const notesEl = document.getElementById('review_notes');
         if (titleEl) titleEl.value = data?.title || '';
         if (writerEl) writerEl.value = payload.writer || '';
         if (reviewerEl) reviewerEl.value = payload.reviewer || '';
+        if (roleChairEl) roleChairEl.value = payload.approval_role_chair || '팀장';
+        if (roleWriterEl) roleWriterEl.value = payload.approval_role_writer || '실장';
+        if (roleReviewerEl) roleReviewerEl.value = payload.approval_role_reviewer || '원장';
         if (notesEl) notesEl.value = payload.notes || '';
         renderReviewAttachments(payload.attachments || []);
+        renderReviewSignatures(payload.signatures || {});
         renderReviewRows(payload.rows || []);
         return;
       }
@@ -3201,6 +3308,11 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         const rmReviewAtt = target.getAttribute('data-remove-review-attachment');
         if (rmReviewAtt != null) {
           removeReviewAttachment(parseInt(rmReviewAtt, 10));
+          return;
+        }
+        const rmReviewSign = target.getAttribute('data-remove-review-signature');
+        if (rmReviewSign != null) {
+          removeReviewSignature(rmReviewSign);
           return;
         }
         const rmMinutesSign = target.getAttribute('data-remove-minutes-signature');
@@ -3632,6 +3744,25 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           ev.target.value = '';
         });
       }
+
+      function bindReviewSignatureInput(btnId, inputId, previewId) {
+        var btn = document.getElementById(btnId);
+        var input = document.getElementById(inputId);
+        if (!btn || !input) return;
+        btn.addEventListener('click', function() { input.click(); });
+        input.addEventListener('change', async function(ev) {
+          var f = ev.target.files && ev.target.files[0];
+          if (!f) return;
+          var data = await uploadNcsEvalPlanFile(f, true, 'review');
+          if (data && data.url) {
+            renderReviewSignaturePreview(previewId, data.url);
+          }
+          ev.target.value = '';
+        });
+      }
+      bindReviewSignatureInput('reviewSignChairBtn', 'reviewSignChairInput', 'reviewSignChairPreview');
+      bindReviewSignatureInput('reviewSignWriterBtn', 'reviewSignWriterInput', 'reviewSignWriterPreview');
+      bindReviewSignatureInput('reviewSignReviewerBtn', 'reviewSignReviewerInput', 'reviewSignReviewerPreview');
 
       var minutesFileAttachBtn = document.getElementById('minutesFileAttachBtn');
       var minutesFileAttachInput = document.getElementById('minutesFileAttachInput');
