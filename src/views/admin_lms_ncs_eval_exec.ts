@@ -19,11 +19,11 @@ export const adminLmsNcsEvalExecHtml = (sidebar: string = hrdSidebar('courses'))
         ${lmsHeaderHtml('ncs-eval', 'hrd')}
 
         <div class="bg-white border-b border-gray-200">
-          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <div class="flex justify-between items-end gap-4 flex-wrap">
               <div>
                 <h1 class="text-2xl font-bold text-gray-800">NCS 평가실행</h1>
-                <p class="text-gray-600 mt-1 text-sm" id="roundTitle">차수: 1차평가(본평가)</p>
+                <p class="text-gray-600 mt-1 text-sm">HRDMARKET 방식과 동일한 목록형 실행 화면입니다.</p>
               </div>
               <div class="flex gap-2 flex-wrap">
                 <button type="button" data-round="1" onclick="switchRound(1)" class="px-4 py-2 rounded-xl border border-slate-200 bg-slate-900 text-white text-xs font-black hover:bg-slate-800 transition">1차평가(본평가)</button>
@@ -31,70 +31,90 @@ export const adminLmsNcsEvalExecHtml = (sidebar: string = hrdSidebar('courses'))
                 <button type="button" data-round="3" onclick="switchRound(3)" class="px-4 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 text-xs font-black hover:bg-slate-50 transition">3차평가(재평가)</button>
               </div>
             </div>
+
+            <div class="mt-4 grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3">
+              <div class="flex items-center rounded-xl border border-gray-200 bg-white px-3 py-2">
+                <i class="fas fa-search text-gray-400 text-sm mr-2"></i>
+                <input id="unitSearchInput" type="text" placeholder="능력단위명/코드/평가방법 검색" class="w-full text-sm outline-none text-gray-700" />
+              </div>
+              <button type="button" onclick="reloadCurrentRound()" class="px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 transition">
+                <i class="fas fa-rotate-right mr-1.5"></i>새로고침
+              </button>
+            </div>
+            <p class="text-xs text-gray-500 mt-2" id="roundTitle">현재 차수: 1차평가(본평가)</p>
           </div>
         </div>
 
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            <div class="lg:col-span-1 space-y-6">
-              <section class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
-                  <h3 class="font-bold text-gray-800 text-sm">평가 계획 목록</h3>
-                  <span class="text-xs text-gray-400" id="planCount">0건</span>
-                </div>
-                <div id="planList" class="divide-y divide-gray-100 max-h-[500px] overflow-y-auto">
-                  <div class="p-6 text-center text-gray-400 text-xs">계획을 불러오는 중...</div>
-                </div>
-              </section>
+          <section class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-5 py-3 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
+              <h2 class="font-bold text-gray-800 text-sm">[NCS] 능력단위 실행 목록</h2>
+              <span id="planCount" class="text-xs text-gray-500">0건</span>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left min-w-[980px]">
+                <thead class="bg-white border-b border-gray-100">
+                  <tr>
+                    <th class="px-4 py-3 text-xs font-semibold text-gray-500">능력단위</th>
+                    <th class="px-4 py-3 text-xs font-semibold text-gray-500">평가방법</th>
+                    <th class="px-4 py-3 text-xs font-semibold text-gray-500">평가예정일</th>
+                    <th class="px-4 py-3 text-xs font-semibold text-gray-500 text-center">계획 상태</th>
+                    <th class="px-4 py-3 text-xs font-semibold text-gray-500 text-center">평가 진행</th>
+                    <th class="px-4 py-3 text-xs font-semibold text-gray-500 text-center">이수 현황</th>
+                    <th class="px-4 py-3 text-xs font-semibold text-gray-500 text-center">바로가기</th>
+                  </tr>
+                </thead>
+                <tbody id="execListBody" class="divide-y divide-gray-100">
+                  <tr><td colspan="7" class="px-4 py-8 text-center text-sm text-gray-400">데이터를 불러오는 중...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="mt-6 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden p-6">
+            <div class="flex items-start justify-between gap-4 flex-wrap">
+              <div>
+                <h3 class="text-lg font-black text-gray-800" id="selectedPlanTitle">계획을 선택해 주세요</h3>
+                <p class="text-sm text-gray-500 mt-1" id="selectedPlanInfo">-</p>
+              </div>
+              <button onclick="saveResults()" id="btnSaveResults" disabled class="px-5 py-2 bg-green-600 text-white rounded-xl font-black text-sm opacity-50 cursor-not-allowed hover:bg-green-700 transition">
+                <i class="fas fa-check-circle mr-2"></i>평가 결과 저장
+              </button>
             </div>
 
-            <div class="lg:col-span-3">
-              <section class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden p-6">
-                <div class="flex items-start justify-between gap-4 flex-wrap">
-                  <div>
-                    <h3 class="text-lg font-black text-gray-800" id="selectedPlanTitle">계획을 선택해 주세요</h3>
-                    <p class="text-sm text-gray-500 mt-1" id="selectedPlanInfo">-</p>
-                  </div>
-                  <button onclick="saveResults()" id="btnSaveResults" disabled class="px-5 py-2 bg-green-600 text-white rounded-xl font-black text-sm opacity-50 cursor-not-allowed hover:bg-green-700 transition">
-                    <i class="fas fa-check-circle mr-2"></i>평가 결과 저장
-                  </button>
-                </div>
-
-                <div id="noSelection" class="mt-6 bg-gray-50 rounded-xl border border-gray-100 p-10 text-center text-gray-500 text-sm">
-                  계획을 선택하면 수강생들의 점수/이수여부/평가의견을 입력할 수 있습니다.
-                </div>
-
-                <div id="evaluationSection" class="hidden mt-6 space-y-6">
-                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="bg-gray-50 rounded-xl border border-gray-100 p-4">
-                      <div class="text-xs font-bold text-gray-500 uppercase tracking-widest">통과 기준</div>
-                      <div class="text-2xl font-black text-gray-800 mt-1" id="selectedTargetScore">0점</div>
-                    </div>
-                    <div class="bg-gray-50 rounded-xl border border-gray-100 p-4 md:col-span-2">
-                      <div class="text-xs font-bold text-gray-500 uppercase tracking-widest">평가방법 / 평가일자</div>
-                      <div class="text-sm text-gray-800 mt-1" id="selectedMethodPlan">-</div>
-                    </div>
-                  </div>
-
-                  <div class="bg-white rounded-xl border border-gray-100 overflow-hidden">
-                    <table class="w-full text-left">
-                      <thead class="bg-gray-50 border-b border-gray-100">
-                        <tr>
-                          <th class="px-6 py-3 text-xs font-semibold text-gray-500">성명</th>
-                          <th class="px-6 py-3 text-xs font-semibold text-gray-500 text-center">점수</th>
-                          <th class="px-6 py-3 text-xs font-semibold text-gray-500 text-center">이수여부</th>
-                          <th class="px-6 py-3 text-xs font-semibold text-gray-500">평가 의견</th>
-                        </tr>
-                      </thead>
-                      <tbody id="resultTableBody" class="divide-y divide-gray-100">
-                        <!-- JS -->
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </section>
+            <div id="noSelection" class="mt-6 bg-gray-50 rounded-xl border border-gray-100 p-10 text-center text-gray-500 text-sm">
+              목록에서 <strong>평가입력</strong>을 눌러 수강생 점수/의견을 입력해 주세요.
             </div>
-          </div>
+
+            <div id="evaluationSection" class="hidden mt-6 space-y-6">
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-gray-50 rounded-xl border border-gray-100 p-4">
+                  <div class="text-xs font-bold text-gray-500 uppercase tracking-widest">통과 기준</div>
+                  <div class="text-2xl font-black text-gray-800 mt-1" id="selectedTargetScore">0점</div>
+                </div>
+                <div class="bg-gray-50 rounded-xl border border-gray-100 p-4 md:col-span-2">
+                  <div class="text-xs font-bold text-gray-500 uppercase tracking-widest">평가방법 / 평가일자</div>
+                  <div class="text-sm text-gray-800 mt-1" id="selectedMethodPlan">-</div>
+                </div>
+              </div>
+
+              <div class="bg-white rounded-xl border border-gray-100 overflow-hidden">
+                <table class="w-full text-left">
+                  <thead class="bg-gray-50 border-b border-gray-100">
+                    <tr>
+                      <th class="px-6 py-3 text-xs font-semibold text-gray-500">성명</th>
+                      <th class="px-6 py-3 text-xs font-semibold text-gray-500 text-center">점수</th>
+                      <th class="px-6 py-3 text-xs font-semibold text-gray-500 text-center">이수여부</th>
+                      <th class="px-6 py-3 text-xs font-semibold text-gray-500">평가 의견</th>
+                    </tr>
+                  </thead>
+                  <tbody id="resultTableBody" class="divide-y divide-gray-100">
+                    <!-- JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
     </div>
@@ -102,16 +122,20 @@ export const adminLmsNcsEvalExecHtml = (sidebar: string = hrdSidebar('courses'))
 
   <script>
     const courseId = window.location.pathname.split('/')[3];
+    const isTeacherPath = window.location.pathname.startsWith('/teacher/');
+    const basePrefix = isTeacherPath ? '/teacher' : '/admin';
     let activeRound = 1;
     let currentPlan = null;
     let studentResults = [];
+    let plans = [];
+    let planStatsCache = {};
 
     function setRoundTitle() {
       const titleEl = document.getElementById('roundTitle');
       if (!titleEl) return;
-      if (activeRound === 1) titleEl.textContent = '차수: 1차평가(본평가)';
-      else if (activeRound === 2) titleEl.textContent = '차수: 2차평가(재평가)';
-      else titleEl.textContent = '차수: 3차평가(재평가)';
+      if (activeRound === 1) titleEl.textContent = '현재 차수: 1차평가(본평가)';
+      else if (activeRound === 2) titleEl.textContent = '현재 차수: 2차평가(재평가)';
+      else titleEl.textContent = '현재 차수: 3차평가(재평가)';
     }
 
     function updateRoundTabUI() {
@@ -136,7 +160,103 @@ export const adminLmsNcsEvalExecHtml = (sidebar: string = hrdSidebar('courses'))
       document.getElementById('evaluationSection').classList.add('hidden');
       document.getElementById('btnSaveResults').disabled = true;
       document.getElementById('btnSaveResults').classList.add('opacity-50', 'cursor-not-allowed');
+      document.getElementById('selectedPlanTitle').textContent = '계획을 선택해 주세요';
+      document.getElementById('selectedPlanInfo').textContent = '-';
       loadPlans();
+    }
+
+    function statusDot(ok) {
+      return ok
+        ? '<span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-100 text-emerald-600"><i class="fas fa-check text-[10px]"></i></span>'
+        : '<span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-rose-100 text-rose-500"><i class="fas fa-xmark text-[10px]"></i></span>';
+    }
+
+    function escapeHtml(value) {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    async function ensurePlanStats(planId) {
+      if (planStatsCache[planId]) return planStatsCache[planId];
+      try {
+        const res = await fetch('/api/ncs/evaluations/' + planId, {
+          headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+        });
+        const json = await res.json();
+        const rows = Array.isArray(json?.data) ? json.data : [];
+        const total = rows.length;
+        const graded = rows.filter(r => r && r.score != null && String(r.score).trim() !== '').length;
+        const passed = rows.filter(r => Number(r?.is_passed) === 1).length;
+        planStatsCache[planId] = { total, graded, passed };
+      } catch (e) {
+        planStatsCache[planId] = { total: 0, graded: 0, passed: 0 };
+      }
+      return planStatsCache[planId];
+    }
+
+    async function hydrateVisibleStats(list) {
+      await Promise.all(list.map(p => ensurePlanStats(p.id)));
+    }
+
+    function getFilteredPlans() {
+      const keyword = (document.getElementById('unitSearchInput')?.value || '').trim().toLowerCase();
+      if (!keyword) return plans;
+      return plans.filter(p => {
+        const unit = String(p.unit_name || '').toLowerCase();
+        const code = String(p.unit_code || '').toLowerCase();
+        const method = String(p.method || '').toLowerCase();
+        return unit.includes(keyword) || code.includes(keyword) || method.includes(keyword);
+      });
+    }
+
+    function renderExecList() {
+      const body = document.getElementById('execListBody');
+      const count = document.getElementById('planCount');
+      if (!body) return;
+      const list = getFilteredPlans();
+      if (count) count.textContent = list.length + '건';
+      if (list.length === 0) {
+        body.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-sm text-gray-400">표시할 능력단위가 없습니다.</td></tr>';
+        return;
+      }
+
+      body.innerHTML = list.map(plan => {
+        const stats = planStatsCache[plan.id] || { total: 0, graded: 0, passed: 0 };
+        const passRate = stats.total > 0 ? Math.round((stats.passed / stats.total) * 100) : 0;
+        const planDone = plan.status === 'confirmed' || plan.status === 'completed';
+        const evalDone = stats.graded > 0;
+        return \`
+          <tr class="hover:bg-gray-50 transition">
+            <td class="px-4 py-3">
+              <div class="font-semibold text-gray-800">\${escapeHtml(plan.unit_name)}</div>
+              <div class="text-xs text-gray-400 mt-0.5">\${escapeHtml(plan.unit_code || '')}</div>
+            </td>
+            <td class="px-4 py-3 text-sm text-gray-700">\${escapeHtml(plan.method || '-')}</td>
+            <td class="px-4 py-3 text-sm text-gray-700">\${escapeHtml(plan.planned_date || '-')}</td>
+            <td class="px-4 py-3 text-center">\${statusDot(planDone)}</td>
+            <td class="px-4 py-3 text-center">
+              \${statusDot(evalDone)}
+              <div class="text-[11px] text-gray-500 mt-1">\${stats.graded}/\${stats.total}</div>
+            </td>
+            <td class="px-4 py-3 text-center text-sm font-semibold \${passRate >= 60 ? 'text-emerald-600' : 'text-amber-600'}">\${passRate}%</td>
+            <td class="px-4 py-3 text-center">
+              <div class="flex items-center justify-center gap-1.5">
+                <button class="px-2.5 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 transition" onclick="selectPlan(\${plan.id})">평가입력</button>
+                <a class="px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 transition" href="\${basePrefix}/courses/\${courseId}/lms/ncs-eval-plan?evaluation_round=\${activeRound}">계획서</a>
+                <a class="px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 transition" href="\${basePrefix}/courses/\${courseId}/lms/ncs-eval-result?evaluation_round=\${activeRound}">결과</a>
+              </div>
+            </td>
+          </tr>
+        \`;
+      }).join('');
+    }
+
+    async function reloadCurrentRound() {
+      await loadPlans();
     }
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -146,51 +266,36 @@ export const adminLmsNcsEvalExecHtml = (sidebar: string = hrdSidebar('courses'))
       setRoundTitle();
       updateRoundTabUI();
       loadPlans();
+      const searchInput = document.getElementById('unitSearchInput');
+      if (searchInput) {
+        searchInput.addEventListener('input', function() {
+          renderExecList();
+        });
+      }
     });
 
     async function loadPlans() {
       try {
-        const planListEl = document.getElementById('planList');
-        const planCountEl = document.getElementById('planCount');
-        if (!planListEl) return;
-
-        planListEl.innerHTML = '<div class="p-6 text-center text-gray-400 text-xs">계획을 불러오는 중...</div>';
+        const body = document.getElementById('execListBody');
+        if (body) body.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-sm text-gray-400">데이터를 불러오는 중...</td></tr>';
 
         const res = await fetch(\`/api/ncs/plans?courseId=\${courseId}&evaluation_round=\${activeRound}\`, {
           headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
         });
         const json = await res.json();
         if (!json?.success) {
-          planListEl.innerHTML = '<div class="p-6 text-center text-red-500 text-xs">계획을 불러오지 못했습니다.</div>';
-          if (planCountEl) planCountEl.textContent = '0건';
+          if (body) body.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-sm text-red-500">계획을 불러오지 못했습니다.</td></tr>';
           return;
         }
 
-        const list = Array.isArray(json.data) ? json.data : [];
-        if (planCountEl) planCountEl.textContent = list.length + '건';
-
-        if (list.length === 0) {
-          planListEl.innerHTML = '<div class="p-6 text-center text-gray-400 text-xs">해당 차수의 평가 계획이 없습니다.</div>';
-          return;
-        }
-
-        planListEl.innerHTML = list.map(plan => \`
-          <div onclick="selectPlan(\${plan.id})" class="p-4 hover:bg-blue-50 cursor-pointer transition-colors \${currentPlan?.id === plan.id ? 'bg-blue-50 border-r-4 border-blue-500' : ''}">
-            <div class="flex justify-between items-start mb-1">
-              <span class="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[10px] font-bold rounded">\${plan.unit_code}</span>
-              <span class="text-xs \${plan.status === 'confirmed' ? 'text-green-500' : 'text-orange-500'} font-bold">\${plan.status === 'confirmed' ? '완료' : '진행중'}</span>
-            </div>
-            <h4 class="font-bold text-gray-800 text-sm mb-1">\${plan.unit_name}</h4>
-            <div class="flex justify-between text-xs text-gray-500">
-              <span>\${plan.method} | \${plan.planned_date || '일정 미정'}</span>
-            </div>
-          </div>
-        \`).join('');
+        plans = Array.isArray(json.data) ? json.data : [];
+        await hydrateVisibleStats(plans);
+        renderExecList();
 
       } catch (e) {
         console.error(e);
-        const planListEl = document.getElementById('planList');
-        if (planListEl) planListEl.innerHTML = '<div class="p-6 text-center text-red-500 text-xs">오류가 발생했습니다.</div>';
+        const body = document.getElementById('execListBody');
+        if (body) body.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-sm text-red-500">오류가 발생했습니다.</td></tr>';
       }
     }
 
@@ -216,7 +321,7 @@ export const adminLmsNcsEvalExecHtml = (sidebar: string = hrdSidebar('courses'))
         document.getElementById('selectedMethodPlan').textContent = \`\${currentPlan.method} / \${currentPlan.planned_date || '-'}\`;
 
         renderResultTable();
-        loadPlans();
+        renderExecList();
       } catch (e) {
         console.error(e);
       }
