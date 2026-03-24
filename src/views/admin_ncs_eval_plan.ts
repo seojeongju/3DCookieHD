@@ -432,6 +432,31 @@ const NCS_PLAN_PRINT_STYLES = `
   z-index: 999999;
   padding: 0;
 }
+.minutes-image-resizable {
+  display: inline-block;
+  vertical-align: top;
+  resize: both;
+  overflow: auto;
+  min-width: 120px;
+  min-height: 80px;
+  max-width: 100%;
+  border: 1px solid #d0d7de;
+  background: #fff;
+  padding: 2px;
+  margin: 4px 0;
+}
+.minutes-image-resizable img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  pointer-events: none;
+  user-select: none;
+}
+#minutes_content:empty::before {
+  content: "회의 내용을 입력하세요.";
+  color: #94a3b8;
+}
 .ncs-questions-print-root.is-preview {
   left: 0 !important;
   right: 0 !important;
@@ -788,7 +813,7 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                       <tr>
                         <td class="border border-black text-center bg-slate-50 font-bold align-top py-2">회의내용</td>
                         <td class="border border-black p-0" colspan="7">
-                          <textarea id="minutes_content" class="w-full min-h-[360px] px-3 py-2 outline-none resize-y border-0 text-sm" placeholder="회의 내용을 입력하세요."></textarea>
+                          <div id="minutes_content" contenteditable="true" class="w-full min-h-[360px] px-3 py-2 outline-none border-0 text-sm whitespace-pre-wrap leading-relaxed"></div>
                         </td>
                       </tr>
                       <tr>
@@ -1293,6 +1318,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       var el = document.getElementById(id);
       if (!el) return '';
       var tag = el.tagName ? String(el.tagName).toUpperCase() : '';
+      if (id === 'minutes_content' && el.isContentEditable) return String(el.innerHTML || '');
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return String(el.value || '');
       if (el.isContentEditable) return String(el.textContent || '');
       return String(el.textContent || '');
@@ -1305,6 +1331,10 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       var tag = el.tagName ? String(el.tagName).toUpperCase() : '';
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
         el.value = next;
+        return;
+      }
+      if (id === 'minutes_content' && el.isContentEditable) {
+        el.innerHTML = normalizeMinutesContentForEditor(next);
         return;
       }
       if (el.isContentEditable) {
@@ -1351,9 +1381,41 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       return u.indexOf('/api/upload/files/') === 0;
     }
 
-    function minutesContentToPrintHtml(text) {
+    function minutesMarkdownToEditorHtml(text) {
       if (!text) return '';
       var lines = String(text).split('\\n');
+      var parts = [];
+      for (var i = 0; i < lines.length; i++) {
+        var line = lines[i];
+        var m = line.match(/^!\\[([^\\]]*)\\]\\(([^)]+)\\)\\s*$/);
+        if (m && isSafeMinutesAssetUrl(m[2])) {
+          var src = m[2].trim();
+          parts.push('<div class="minutes-image-resizable" contenteditable="false"><img src="' + escapeHtml(src) + '" alt="' + escapeHtml(m[1] || '이미지') + '" /></div>');
+        } else if (line.trim() === '') {
+          parts.push('<div><br/></div>');
+        } else {
+          parts.push('<div>' + escapeHtml(line) + '</div>');
+        }
+      }
+      return parts.join('');
+    }
+
+    function normalizeMinutesContentForEditor(raw) {
+      var text = String(raw || '');
+      if (!text.trim()) return '';
+      if (/<[a-z][\\s\\S]*>/i.test(text)) return text;
+      return minutesMarkdownToEditorHtml(text);
+    }
+
+    function minutesContentToPrintHtml(text) {
+      if (!text) return '';
+      var raw = String(text);
+      if (/<[a-z][\\s\\S]*>/i.test(raw)) {
+        return raw
+          .replace(/class="minutes-image-resizable"[^>]*contenteditable="false"/g, 'style="display:inline-block;resize:both;overflow:auto;max-width:100%;min-width:120px;min-height:80px;border:1px solid #d0d7de;background:#fff;padding:2px"')
+          .replace(/<img([^>]*?)>/g, '<img$1 style="width:100%;height:100%;object-fit:contain;display:block;max-width:100%;border:1px solid #ccc" />');
+      }
+      var lines = raw.split('\\n');
       var parts = [];
       for (var i = 0; i < lines.length; i++) {
         var line = lines[i];
@@ -1708,14 +1770,20 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           range.selectNodeContents(targetEl);
           range.collapse(false);
         }
+        var wrap = document.createElement('div');
+        wrap.className = 'minutes-image-resizable';
+        wrap.setAttribute('contenteditable', 'false');
+        wrap.style.width = '320px';
         var img = document.createElement('img');
         img.src = url;
         img.alt = '이미지';
-        img.style.maxWidth = '100%';
-        img.style.height = 'auto';
-        range.insertNode(img);
-        range.setStartAfter(img);
-        range.setEndAfter(img);
+        wrap.appendChild(img);
+        var br = document.createElement('div');
+        br.appendChild(document.createElement('br'));
+        range.insertNode(br);
+        range.insertNode(wrap);
+        range.setStartAfter(br);
+        range.setEndAfter(br);
         sel.removeAllRanges();
         sel.addRange(range);
         return true;
@@ -3622,6 +3690,11 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       function updateMinutesTextCount(id, outputId) {
         var out = document.getElementById(outputId);
         if (!out) return;
+        if (id === 'minutes_content') {
+          var contentEl = document.getElementById('minutes_content');
+          out.textContent = String((contentEl && contentEl.textContent ? contentEl.textContent : '').length) + '자';
+          return;
+        }
         out.textContent = String(getMinutesFieldValue(id).length) + '자';
       }
 
