@@ -1482,6 +1482,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
     var autoEditableSeq = 1;
     var selectedDocIdByTab = {};
     var selectedSessionIdForSubject = '';
+    const isTeacherLmsPath = window.location.pathname.startsWith('/teacher/');
 
     const TAB_NAMES = {
       minutes: '평가계획회의록',
@@ -1498,6 +1499,44 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       if (Number(n) === 2) return '2차평가(재평가)';
       if (Number(n) === 3) return '3차평가(재평가)';
       return n + '차평가';
+    }
+
+    function isMinutesReadOnlyMode() {
+      return isTeacherLmsPath;
+    }
+
+    function blockIfMinutesAdminOnly(tabId) {
+      if (String(tabId || '') !== 'minutes') return false;
+      if (!isMinutesReadOnlyMode()) return false;
+      alert('관리자전용기능입니다');
+      return true;
+    }
+
+    function applyMinutesReadOnlyMode() {
+      if (!isMinutesReadOnlyMode()) return;
+      var panel = document.querySelector('[data-plan-tab-panel="minutes"]');
+      if (!panel) return;
+      panel.querySelectorAll('[contenteditable="true"]').forEach(function(el) {
+        el.setAttribute('contenteditable', 'false');
+      });
+      panel.querySelectorAll('input, textarea, select').forEach(function(el) {
+        var inputType = String(el.type || '').toLowerCase();
+        if (inputType === 'file') {
+          el.disabled = true;
+          return;
+        }
+        if (inputType === 'hidden') return;
+        if (String(el.tagName || '').toUpperCase() === 'SELECT') {
+          el.disabled = true;
+          return;
+        }
+        el.readOnly = true;
+      });
+      panel.querySelectorAll('[data-plan-save-btn="minutes"], [data-plan-update-btn="minutes"], [data-plan-new-btn="minutes"], [data-plan-delete-btn="minutes"], #minutesImageInsertBtn, #minutesImageDeleteBtn, #minutesFileAttachBtn, #minutesQuickTodayBtn, #minutesQuickTitleBtn, #minutesQuickAttendeesBtn, #minutesSignChairBtn, #minutesSignWriterBtn, #minutesSignReviewerBtn, [data-remove-minutes-signature], [data-remove-minutes-attachment]').forEach(function(btn) {
+        btn.disabled = true;
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
+        btn.setAttribute('title', '관리자전용기능입니다');
+      });
     }
 
     function getMinutesFieldValue(id) {
@@ -1534,6 +1573,49 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       const token = localStorage.getItem('token');
       const base = { headers: { 'Authorization': 'Bearer ' + token } };
       return fetch(url, Object.assign({}, base, options || {}));
+    }
+
+    /** LMS 상단 헤더와 동일: 회차 ID가 legacy courses.id와 겹칠 때는 ?type=hrd 로 course_sessions 기준 조회 */
+    function buildLmsCourseApiUrl(courseId) {
+      try {
+        var params = new URLSearchParams(window.location.search);
+        var type = params.get('type') || '';
+        if (typeof type !== 'string') type = '';
+        if (!type && window.location.pathname.indexOf('/lms') !== -1) type = 'hrd';
+        if (type && type.startsWith('hrd')) type = 'hrd';
+        if (type === 'undefined') type = 'hrd';
+        var base = '/api/courses/' + encodeURIComponent(courseId);
+        return type ? base + '?type=' + encodeURIComponent(type) : base;
+      } catch (e) {
+        return '/api/courses/' + encodeURIComponent(courseId) + '?type=hrd';
+      }
+    }
+
+    async function fetchLmsCourseDetail(courseId) {
+      var url = buildLmsCourseApiUrl(courseId);
+      var res = await authFetch(url);
+      if (res.status === 404) {
+        url = '/api/courses/' + encodeURIComponent(courseId) + '?type=hrd';
+        res = await authFetch(url);
+      }
+      var json = await res.json();
+      return json && json.success ? json.data : null;
+    }
+
+    async function refreshFixedCourseHint() {
+      if (!useFixedCourseId) return;
+      var hint = document.getElementById('fixedCourseHint');
+      if (!hint) return;
+      hint.textContent = '과정 정보를 불러오는 중…';
+      try {
+        var cd = await fetchLmsCourseDetail(fixedCourseId);
+        if (cd && (cd.title || cd.name)) {
+          window.__ncsEvalPlanCourseTitle = cd.title || cd.name;
+          hint.textContent = window.__ncsEvalPlanCourseTitle;
+          return;
+        }
+      } catch (e) {}
+      hint.textContent = '과정 정보를 불러올 수 없습니다. (회차 ID: ' + fixedCourseId + ')';
     }
 
     function escapeHtml(v) {
@@ -2258,9 +2340,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       }
       if (window.__ncsEvalPlanCourseTitle) return window.__ncsEvalPlanCourseTitle;
       try {
-        var res = await authFetch('/api/courses/' + encodeURIComponent(fixedCourseId));
-        var json = await res.json();
-        var d = json && json.data;
+        var d = await fetchLmsCourseDetail(fixedCourseId);
         if (d && (d.title || d.name)) {
           window.__ncsEvalPlanCourseTitle = d.title || d.name;
           return window.__ncsEvalPlanCourseTitle;
@@ -3626,6 +3706,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
     }
 
     async function saveDocument(tabId) {
+      if (blockIfMinutesAdminOnly(tabId)) return;
       if (!selectedCourseId) {
         alert('먼저 과정을 선택해 주세요.');
         return;
@@ -3670,6 +3751,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
     }
 
     async function startNewDocument(tabId) {
+      if (blockIfMinutesAdminOnly(tabId)) return;
       selectedDocIdByTab[tabId] = '';
       clearDocForm(tabId);
       await loadDocumentList(tabId, '');
@@ -3677,6 +3759,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
     }
 
     async function updateDocument(tabId) {
+      if (blockIfMinutesAdminOnly(tabId)) return;
       if (!selectedCourseId) {
         alert('먼저 과정을 선택해 주세요.');
         return;
@@ -3721,6 +3804,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
     }
 
     async function deleteDocument(tabId) {
+      if (blockIfMinutesAdminOnly(tabId)) return;
       if (!selectedCourseId) {
         alert('먼저 과정을 선택해 주세요.');
         return;
@@ -3820,9 +3904,10 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         }
       });
 
+      applyMinutesReadOnlyMode();
+
       if (useFixedCourseId) {
-        const hint = document.getElementById('fixedCourseHint');
-        if (hint) hint.textContent = '현재 과정 ID: ' + fixedCourseId;
+        await refreshFixedCourseHint();
       } else {
         await loadCourseOptions();
         const courseSel = document.getElementById('ncsPlanCourseSelect');
@@ -4023,12 +4108,6 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       switchNcsPlanTab('minutes');
       if (useFixedCourseId) {
         selectedCourseId = fixedCourseId;
-        try {
-          var cr = await authFetch('/api/courses/' + encodeURIComponent(fixedCourseId));
-          var cj = await cr.json();
-          var cd = cj && cj.data;
-          if (cd && (cd.title || cd.name)) window.__ncsEvalPlanCourseTitle = cd.title || cd.name;
-        } catch (e) {}
         await loadNcsPlanSubjectOptions(fixedCourseId);
         await loadDocument('minutes');
       }
