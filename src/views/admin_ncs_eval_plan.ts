@@ -2449,6 +2449,14 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       return hint ? hint.textContent : '';
     }
 
+    async function autoFillQuestionsCourseNameIfEmpty() {
+      const current = String(getQuestionsFieldValue('questions_doc_title') || '').trim();
+      if (current) return;
+      var courseTitle = await resolveCourseTitleForPrint();
+      if (!courseTitle) return;
+      setQuestionsFieldValue('questions_doc_title', courseTitle);
+    }
+
     async function printMinutesDocument() {
       if (!selectedCourseId) {
         alert('과정을 선택해 주세요.');
@@ -4037,10 +4045,16 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           selectedDocIdByTab[tabId] = '';
           await loadDocumentList(tabId, '');
           clearDocForm(tabId);
+          if (tabId === 'questions') {
+            await autoFillQuestionsCourseNameIfEmpty();
+          }
           setStatus(tabId, '새 문서', false);
           return;
         }
         applyDocForm(tabId, json.data);
+        if (tabId === 'questions') {
+          await autoFillQuestionsCourseNameIfEmpty();
+        }
         selectedDocIdByTab[tabId] = String(json.data.id || '');
         await loadDocumentList(tabId, selectedDocIdByTab[tabId]);
         setUpdatedAt(tabId, json.data.updated_at || null);
@@ -4100,6 +4114,9 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       if (blockIfMinutesAdminOnly(tabId)) return;
       selectedDocIdByTab[tabId] = '';
       clearDocForm(tabId);
+      if (tabId === 'questions') {
+        await autoFillQuestionsCourseNameIfEmpty();
+      }
       await loadDocumentList(tabId, '');
       setStatus(tabId, '새 문서 작성 중', false);
     }
