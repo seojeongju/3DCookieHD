@@ -4019,6 +4019,27 @@ app.get('/evaluation-dashboard', authMiddleware, async (c) => {
             }
         }
 
+        // course_ncs_units에 매칭되는 교과목이 없을 때(=과목명 미표시 문제)
+        // 최소한 evaluation_plans에 등장하는 능력단위(ncs_unit_id)라도 교과목 목록으로 노출한다.
+        const baseUnitRows = (Array.isArray(unitRows) && unitRows.length > 0)
+            ? unitRows
+            : (() => {
+                const seen = new Set<string>();
+                const out: any[] = [];
+                for (const p of (Array.isArray(planRows) ? planRows : [])) {
+                    const uid = String(p?.ncs_unit_id ?? '').trim();
+                    if (!uid || seen.has(uid)) continue;
+                    seen.add(uid);
+                    out.push({ ncs_unit_id: p.ncs_unit_id, unit_name: p.unit_name, unit_code: p.unit_code });
+                }
+                out.sort((a: any, b: any) => {
+                    const ca = String(a?.unit_code ?? '');
+                    const cb = String(b?.unit_code ?? '');
+                    return ca.localeCompare(cb);
+                });
+                return out;
+            })();
+
         const roundsOut = [1, 2, 3].map((round) => {
             const minutesRow = latestByRoundType.get(`${round}:minutes`);
             const minutesPayload = minutesRow ? dashParsePlanDocPayload(minutesRow.payload_json) : {};
@@ -4051,7 +4072,7 @@ app.get('/evaluation-dashboard', authMiddleware, async (c) => {
                 if (!planByUnitId.has(uid)) planByUnitId.set(uid, p);
             });
 
-            const rows = (Array.isArray(unitRows) ? unitRows : []).map((u: any) => {
+            const rows = (Array.isArray(baseUnitRows) ? baseUnitRows : []).map((u: any) => {
                 const uid = String(u?.ncs_unit_id ?? '').trim();
                 const plan = uid ? planByUnitId.get(uid) : null;
                 const planIdNum = plan?.id != null ? Number(plan.id) : 0;
