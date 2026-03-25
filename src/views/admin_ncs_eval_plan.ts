@@ -1527,12 +1527,19 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         }
         if (inputType === 'hidden') return;
         if (String(el.tagName || '').toUpperCase() === 'SELECT') {
+          // 저장문서 드롭다운은 열람(조회)용이므로 비활성화하지 않음
+          if (el.hasAttribute('data-plan-doc-select')) return;
           el.disabled = true;
           return;
         }
         el.readOnly = true;
       });
-      panel.querySelectorAll('[data-plan-save-btn="minutes"], [data-plan-update-btn="minutes"], [data-plan-new-btn="minutes"], [data-plan-delete-btn="minutes"], #minutesImageInsertBtn, #minutesImageDeleteBtn, #minutesFileAttachBtn, #minutesQuickTodayBtn, #minutesQuickTitleBtn, #minutesQuickAttendeesBtn, #minutesSignChairBtn, #minutesSignWriterBtn, #minutesSignReviewerBtn, [data-remove-minutes-signature], [data-remove-minutes-attachment]').forEach(function(btn) {
+      // 저장/수정/작성/삭제는 클릭 시 blockIfMinutesAdminOnly에서 알림만 띄움 (disabled 시 알림이 안 뜸)
+      panel.querySelectorAll('[data-plan-save-btn="minutes"], [data-plan-update-btn="minutes"], [data-plan-new-btn="minutes"], [data-plan-delete-btn="minutes"]').forEach(function(btn) {
+        btn.classList.add('opacity-60', 'cursor-not-allowed');
+        btn.setAttribute('title', '평가계획 회의록 수정에 대한 권한이 없습니다.');
+      });
+      panel.querySelectorAll('#minutesImageInsertBtn, #minutesImageDeleteBtn, #minutesFileAttachBtn, #minutesQuickTodayBtn, #minutesQuickTitleBtn, #minutesQuickAttendeesBtn, #minutesSignChairBtn, #minutesSignWriterBtn, #minutesSignReviewerBtn, [data-remove-minutes-signature], [data-remove-minutes-attachment]').forEach(function(btn) {
         btn.disabled = true;
         btn.classList.add('opacity-50', 'cursor-not-allowed');
         btn.setAttribute('title', '평가계획 회의록 수정에 대한 권한이 없습니다.');
