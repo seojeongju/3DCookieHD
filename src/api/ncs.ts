@@ -3732,11 +3732,14 @@ app.put('/plan-documents/:id', authMiddleware, async (c) => {
         const allowed = await ensureNcsCoursePermission(c, courseId);
         if (!allowed) return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
 
+        const courseIdsPut = await resolveNcsPlanDocumentCourseIds(c.env.DB, courseId);
+        const inListPut = courseIdsPut.length ? courseIdsPut : [courseId];
+        const inPhPut = inListPut.map(() => '?').join(', ');
         const existing: any = await c.env.DB.prepare(`
             SELECT id FROM ncs_plan_documents
-            WHERE id = ? AND course_id = ? AND evaluation_round = ? AND doc_type = ?
+            WHERE id = ? AND course_id IN (${inPhPut}) AND evaluation_round = ? AND doc_type = ?
             LIMIT 1
-        `).bind(docId, courseId, round, docType).first();
+        `).bind(docId, ...inListPut, round, docType).first();
         if (!existing) {
             return c.json({ success: false, error: 'Document not found' }, 404);
         }
@@ -3785,11 +3788,14 @@ app.delete('/plan-documents/:id', authMiddleware, async (c) => {
         const allowed = await ensureNcsCoursePermission(c, courseId);
         if (!allowed) return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
 
+        const courseIdsDel = await resolveNcsPlanDocumentCourseIds(c.env.DB, courseId);
+        const inListDel = courseIdsDel.length ? courseIdsDel : [courseId];
+        const inPhDel = inListDel.map(() => '?').join(', ');
         const existing: any = await c.env.DB.prepare(`
             SELECT id FROM ncs_plan_documents
-            WHERE id = ? AND course_id = ? AND evaluation_round = ? AND doc_type = ?
+            WHERE id = ? AND course_id IN (${inPhDel}) AND evaluation_round = ? AND doc_type = ?
             LIMIT 1
-        `).bind(docId, courseId, round, docType).first();
+        `).bind(docId, ...inListDel, round, docType).first();
         if (!existing) {
             return c.json({ success: false, error: 'Document not found' }, 404);
         }
