@@ -1508,7 +1508,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
     function blockIfMinutesAdminOnly(tabId) {
       if (String(tabId || '') !== 'minutes') return false;
       if (!isMinutesReadOnlyMode()) return false;
-      alert('관리자전용기능입니다');
+      alert('평가계획 회의록 수정에 대한 권한이 없습니다.');
       return true;
     }
 
@@ -1535,7 +1535,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       panel.querySelectorAll('[data-plan-save-btn="minutes"], [data-plan-update-btn="minutes"], [data-plan-new-btn="minutes"], [data-plan-delete-btn="minutes"], #minutesImageInsertBtn, #minutesImageDeleteBtn, #minutesFileAttachBtn, #minutesQuickTodayBtn, #minutesQuickTitleBtn, #minutesQuickAttendeesBtn, #minutesSignChairBtn, #minutesSignWriterBtn, #minutesSignReviewerBtn, [data-remove-minutes-signature], [data-remove-minutes-attachment]').forEach(function(btn) {
         btn.disabled = true;
         btn.classList.add('opacity-50', 'cursor-not-allowed');
-        btn.setAttribute('title', '관리자전용기능입니다');
+        btn.setAttribute('title', '평가계획 회의록 수정에 대한 권한이 없습니다.');
       });
     }
 

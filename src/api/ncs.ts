@@ -3470,12 +3470,39 @@ const ALLOWED_PLAN_DOC_TYPES = new Set([
     'review',
 ]);
 
+/** 강사: legacy courses 담당 또는 HRD 회차(session) 시간표·LMS 연결 기준 */
+async function teacherHasAccessToNcsPlanCourse(db: any, courseId: number, userId: number): Promise<boolean> {
+    const session: any = await db.prepare('SELECT id, lms_course_id FROM course_sessions WHERE id = ?').bind(courseId).first();
+    if (session) {
+        const tt = await db.prepare(
+            'SELECT 1 FROM session_timetable WHERE session_id = ? AND instructor_id = ? LIMIT 1'
+        ).bind(courseId, userId).first();
+        if (tt) return true;
+        if (session.lms_course_id) {
+            const c: any = await db.prepare('SELECT teacher_id FROM courses WHERE id = ?').bind(session.lms_course_id).first();
+            if (c && c.teacher_id === userId) return true;
+        }
+        return false;
+    }
+    const course: any = await db.prepare('SELECT teacher_id FROM courses WHERE id = ?').bind(courseId).first();
+    return !!(course && course.teacher_id === userId);
+}
+
 async function ensureNcsCoursePermission(c: any, courseIdRaw: string | number) {
     const user = c.get('user') as JWTPayload;
     if (user.role !== 'teacher') return true;
     const courseId = parseInt(String(courseIdRaw), 10);
-    const course: any = await c.env.DB.prepare("SELECT teacher_id FROM courses WHERE id = ?").bind(courseId).first();
-    return !!course && course.teacher_id === user.userId;
+    if (!Number.isFinite(courseId) || courseId < 1) return false;
+    return teacherHasAccessToNcsPlanCourse(c.env.DB, courseId, user.userId);
+}
+
+/** 강사는 평가계획 회의록(minutes) 저장·수정·삭제 불가 (열람만) */
+function forbidTeacherMinutesMutation(c: any, docType: string) {
+    const user = c.get('user') as JWTPayload;
+    if (user.role === 'teacher' && String(docType || '').trim() === 'minutes') {
+        return forbiddenResponse(c, '평가계획 회의록 수정에 대한 권한이 없습니다.');
+    }
+    return null;
 }
 
 // NCS 평가계획 문서 단건 조회
@@ -3609,6 +3636,9 @@ app.post('/plan-documents', authMiddleware, async (c) => {
             return c.json({ success: false, error: 'Invalid course_id or evaluation_round' }, 400);
         }
 
+        const deniedMinutes = forbidTeacherMinutesMutation(c, docType);
+        if (deniedMinutes) return deniedMinutes;
+
         const allowed = await ensureNcsCoursePermission(c, courseId);
         if (!allowed) return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
 
@@ -3651,6 +3681,9 @@ app.put('/plan-documents/:id', authMiddleware, async (c) => {
         if (!Number.isFinite(courseId) || courseId < 1 || !Number.isFinite(round) || round < 1 || round > 3) {
             return c.json({ success: false, error: 'Invalid course_id or evaluation_round' }, 400);
         }
+
+        const deniedMinutesPut = forbidTeacherMinutesMutation(c, docType);
+        if (deniedMinutesPut) return deniedMinutesPut;
 
         const allowed = await ensureNcsCoursePermission(c, courseId);
         if (!allowed) return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
@@ -3701,6 +3734,9 @@ app.delete('/plan-documents/:id', authMiddleware, async (c) => {
         if (!Number.isFinite(courseId) || courseId < 1 || !Number.isFinite(round) || round < 1 || round > 3) {
             return c.json({ success: false, error: 'Invalid course_id or evaluation_round' }, 400);
         }
+
+        const deniedMinutesDel = forbidTeacherMinutesMutation(c, docType);
+        if (deniedMinutesDel) return deniedMinutesDel;
 
         const allowed = await ensureNcsCoursePermission(c, courseId);
         if (!allowed) return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
