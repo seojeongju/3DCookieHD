@@ -9,6 +9,7 @@ export const lmsHeaderHtml = (activeTab = 'dashboard', defaultType = '') => {
                 const isNcsCluster =
                     item.tab === 'ncs' &&
                     (activeTab === 'ncs-eval' ||
+                        activeTab === 'ncs-eval-dashboard' ||
                         activeTab === 'ncs-eval-plan' ||
                         activeTab === 'ncs-eval-exec' ||
                         activeTab === 'ncs-eval-result');

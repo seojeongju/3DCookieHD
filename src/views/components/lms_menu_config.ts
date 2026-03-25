@@ -35,7 +35,7 @@ export const LMS_MENU_ITEMS: LmsMenuItem[] = [
   { tab: 'training-logs', path: 'training-logs', label: '훈련일지', icon: 'fa-book-open' },
   { tab: 'counseling', path: 'counseling', label: '상담관리', icon: 'fa-comments' },
   { tab: 'exams', path: 'cbt', label: '사전평가관리', icon: 'fa-file-contract' },
-  { tab: 'ncs', path: 'ncs-eval-plan', label: 'NCS평가(본평가)관리', icon: 'fa-certificate' },
+  { tab: 'ncs', path: 'ncs-eval-dashboard', label: 'NCS평가(본평가)관리', icon: 'fa-certificate' },
   { tab: 'surveys', path: 'surveys', label: '설문관리', icon: 'fa-poll-h' },
   { tab: 'instructor-eval', path: 'instructor-eval', label: '교강사직무능력평가', icon: 'fa-chalkboard-teacher' },
   { tab: 'grades', path: 'grades', label: '성적관리', icon: 'fa-chart-line' },

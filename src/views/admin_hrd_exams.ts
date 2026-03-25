@@ -761,7 +761,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
             if (type === 'ncs') {
                 if (titleEl) titleEl.innerHTML = '<i class=\"fas fa-certificate text-amber-500\"></i> 이 회차의 NCS평가(본평가)용 문제';
                 if (labelEl) labelEl.textContent = '문제은행에서 NCS평가(본평가)로 추가한 문제가 여기 표시됩니다.';
-                if (linkEl) { linkEl.href = mgmtSessionId ? '/admin/courses/' + mgmtSessionId + '/lms/ncs-eval-plan?type=hrd' : '#'; linkEl.classList.remove('hidden'); }
+                if (linkEl) { linkEl.href = mgmtSessionId ? '/admin/courses/' + mgmtSessionId + '/lms/ncs-eval-dashboard?type=hrd' : '#'; linkEl.classList.remove('hidden'); }
                 if (cbtLinkEl) cbtLinkEl.classList.add('hidden');
                 if (importLabel) importLabel.textContent = '선택 문제 NCS평가(본평가)에 추가';
                 if (importBtn) updateImportBtnStatus();
@@ -834,7 +834,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
             }
             const rightPanelLinkEl = document.getElementById('rightPanelLink');
             if (rightPanelLinkEl && mgmtSessionId && addTargetType === 'ncs') {
-                rightPanelLinkEl.href = '/admin/courses/' + mgmtSessionId + '/lms/ncs-eval-plan?type=hrd';
+                rightPanelLinkEl.href = '/admin/courses/' + mgmtSessionId + '/lms/ncs-eval-dashboard?type=hrd';
                 rightPanelLinkEl.classList.remove('hidden');
             } else if (rightPanelLinkEl && !mgmtSessionId) rightPanelLinkEl.classList.add('hidden');
             if (addExamBtn) {
@@ -857,7 +857,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
             await loadMgmtExams();
             if (addTargetType === 'ncs') {
                 await loadNcsCourseQuestions();
-                const linkEl = document.getElementById('rightPanelLink'); if (linkEl) { linkEl.href = '/admin/courses/' + mgmtSessionId + '/lms/ncs-eval-plan?type=hrd'; linkEl.classList.remove('hidden'); }
+                const linkEl = document.getElementById('rightPanelLink'); if (linkEl) { linkEl.href = '/admin/courses/' + mgmtSessionId + '/lms/ncs-eval-dashboard?type=hrd'; linkEl.classList.remove('hidden'); }
                 updateImportBtnStatus();
             }
             await loadQuestionBank();

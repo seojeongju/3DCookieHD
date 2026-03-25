@@ -4427,6 +4427,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         });
       }
 
+      var initialPlanTab = 'minutes';
       try {
         var urlParamsRound = new URLSearchParams(window.location.search);
         var erParam = urlParamsRound.get('evaluation_round') || urlParamsRound.get('round');
@@ -4438,10 +4439,15 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
             if (roundSelInit) roundSelInit.value = String(erNum);
           }
         }
+        var planTabParam = urlParamsRound.get('plan_tab') || urlParamsRound.get('planTab');
+        var allowedPlanTabs = ['minutes', 'schedule', 'questions', 'tools', 'rubric', 'achievement', 'review'];
+        if (planTabParam && allowedPlanTabs.indexOf(String(planTabParam)) >= 0) {
+          initialPlanTab = String(planTabParam);
+        }
       } catch (eRound) {}
 
       applyRoundBadges();
-      switchNcsPlanTab('minutes');
+      switchNcsPlanTab(initialPlanTab);
       if (useFixedCourseId) {
         selectedCourseId = fixedCourseId;
         await loadNcsPlanSubjectOptions(fixedCourseId, undefined, { preserveSelection: false });

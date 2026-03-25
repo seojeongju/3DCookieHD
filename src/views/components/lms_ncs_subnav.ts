@@ -1,9 +1,9 @@
 /**
- * LMS 과정 내 NCS 본평가 하위 탭 (평가계획 · 평가실행 · 평가결과)
+ * LMS 과정 내 NCS 본평가 하위 탭 (통합현황 · 평가계획 · 평가실행 · 평가결과)
  * 강사/관리자 `/.../courses/:id/lms/ncs-eval-*` 페이지에서 공통 사용.
  */
-export function lmsNcsSubnavTabsHtml(active: 'plan' | 'exec' | 'result'): string {
-  const item = (key: 'plan' | 'exec' | 'result', label: string, icon: string) => {
+export function lmsNcsSubnavTabsHtml(active: 'dashboard' | 'plan' | 'exec' | 'result'): string {
+  const item = (key: 'dashboard' | 'plan' | 'exec' | 'result', label: string, icon: string) => {
     const isOn = active === key;
     return `<a id="lms-ncs-tab-${key}" href="#" class="lms-ncs-subtab inline-flex items-center gap-2 px-4 sm:px-5 py-3 text-[13px] sm:text-sm font-bold border-b-2 -mb-px transition-colors whitespace-nowrap ${
       isOn
@@ -16,6 +16,7 @@ export function lmsNcsSubnavTabsHtml(active: 'plan' | 'exec' | 'result'): string
     <nav class="bg-slate-50/90 border-b border-slate-200/80 shadow-sm" aria-label="NCS 본평가 하위 메뉴">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex flex-wrap gap-0" role="tablist">
+          ${item('dashboard', '통합현황', 'fa-table-columns')}
           ${item('plan', '평가계획', 'fa-clipboard-list')}
           ${item('exec', '평가실행', 'fa-play-circle')}
           ${item('result', '평가결과', 'fa-poll')}
@@ -45,8 +46,8 @@ export function lmsNcsSubnavTabsHtml(active: 'plan' | 'exec' | 'result'): string
         var isAdmin = window.location.pathname.indexOf('/admin') === 0;
         var base = (isAdmin ? '/admin/courses/' : '/teacher/courses/') + courseId + '/lms/';
         var q = lmsNcsSubnavQuery();
-        var ids = ['plan', 'exec', 'result'];
-        var paths = ['ncs-eval-plan', 'ncs-eval-exec', 'ncs-eval-result'];
+        var ids = ['dashboard', 'plan', 'exec', 'result'];
+        var paths = ['ncs-eval-dashboard', 'ncs-eval-plan', 'ncs-eval-exec', 'ncs-eval-result'];
         for (var i = 0; i < ids.length; i++) {
           var el = document.getElementById('lms-ncs-tab-' + ids[i]);
           if (el) el.setAttribute('href', base + paths[i] + q);

@@ -124,6 +124,7 @@ import { adminNcsEvalPlanHtml, adminLmsNcsEvalPlanHtml } from './views/admin_ncs
 import { adminNcsEvalExecHtml } from './views/admin_ncs_eval_exec';
 import { adminLmsNcsEvalExecHtml } from './views/admin_lms_ncs_eval_exec';
 import { adminNcsEvalResultHtml, adminLmsNcsEvalResultHtml } from './views/admin_ncs_eval_result';
+import { adminLmsNcsEvalDashboardHtml } from './views/admin_lms_ncs_eval_dashboard';
 import { adminHrdSurveysHtml } from './views/admin_hrd_surveys';
 import { reviewsListHtml } from './views/reviews';
 import { loginHtml } from './views/login';
@@ -428,8 +429,9 @@ app.get('/admin/courses/:id/lms/ncs-eval', (c) => {
     } catch {
         search = '';
     }
-    return c.redirect(`/admin/courses/${id}/lms/ncs-eval-plan${search}`);
+    return c.redirect(`/admin/courses/${id}/lms/ncs-eval-dashboard${search}`);
 });
+app.get('/admin/courses/:id/lms/ncs-eval-dashboard', (c) => c.html(adminLmsNcsEvalDashboardHtml()));
 app.get('/admin/courses/:id/lms/ncs-eval-plan', (c) => c.html(adminLmsNcsEvalPlanHtml()));
 app.get('/admin/courses/:id/lms/ncs-eval-exec', (c) => c.html(adminLmsNcsEvalExecHtml()));
 app.get('/admin/courses/:id/lms/ncs-eval-result', (c) => c.html(adminLmsNcsEvalResultHtml()));
@@ -486,8 +488,11 @@ app.get('/teacher/courses/:id/lms/ncs-eval', (c) => {
     } catch {
         search = '';
     }
-    return c.redirect(`/teacher/courses/${id}/lms/ncs-eval-plan${search}`);
+    return c.redirect(`/teacher/courses/${id}/lms/ncs-eval-dashboard${search}`);
 });
+app.get('/teacher/courses/:id/lms/ncs-eval-dashboard', (c) =>
+    c.html(adminLmsNcsEvalDashboardHtml(teacherSidebar('courses', 'ncs')))
+);
 app.get('/teacher/courses/:id/lms/ncs-eval-plan', (c) => c.html(adminLmsNcsEvalPlanHtml(teacherSidebar('courses', 'ncs'))));
 app.get('/teacher/courses/:id/lms/ncs-eval-exec', (c) => c.html(adminLmsNcsEvalExecHtml(teacherSidebar('courses', 'ncs'))));
 app.get('/teacher/courses/:id/lms/ncs-eval-result', (c) => c.html(adminLmsNcsEvalResultHtml(teacherSidebar('courses', 'ncs'))));

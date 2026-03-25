@@ -3470,6 +3470,90 @@ const ALLOWED_PLAN_DOC_TYPES = new Set([
     'review',
 ]);
 
+const DASHBOARD_PLAN_DOC_TYPES = ['minutes', 'schedule', 'questions', 'tools', 'rubric', 'achievement', 'review'] as const;
+
+function dashNormalizeMatchStr(s: unknown): string {
+    return String(s ?? '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toLowerCase();
+}
+
+function dashNamesRoughlyMatch(a: unknown, b: unknown): boolean {
+    const x = dashNormalizeMatchStr(a);
+    const y = dashNormalizeMatchStr(b);
+    if (!x || !y) return false;
+    if (x === y) return true;
+    if (x.includes(y) || y.includes(x)) return true;
+    return false;
+}
+
+function dashParsePlanDocPayload(raw: unknown): Record<string, any> {
+    try {
+        return raw ? JSON.parse(String(raw)) : {};
+    } catch {
+        return {};
+    }
+}
+
+function dashMinutesLooksComplete(payload: Record<string, any>): boolean {
+    const p = payload || {};
+    if (String(p.content ?? '').trim().length >= 40) return true;
+    if (String(p.meeting_date ?? '').trim()) return true;
+    if (String(p.chairperson ?? '').trim()) return true;
+    if (String(p.writer ?? '').trim()) return true;
+    return false;
+}
+
+function dashPayloadMatchesPlan(payload: Record<string, any>, plan: Record<string, any>): boolean {
+    const p = payload || {};
+    const cur = p.curriculum_id != null && String(p.curriculum_id).trim() !== '' ? String(p.curriculum_id).trim() : '';
+    const uid = plan.ncs_unit_id != null ? String(plan.ncs_unit_id) : '';
+    if (cur && uid && cur === uid) return true;
+    const subj = String(p.subject_name ?? '').trim();
+    const uname = String(plan.unit_name ?? '').trim();
+    if (subj && uname && dashNamesRoughlyMatch(subj, uname)) return true;
+    return false;
+}
+
+function dashScheduleRowMatchesPlan(row: Record<string, any>, plan: Record<string, any>): boolean {
+    const rid = row.curriculum_id != null ? String(row.curriculum_id).trim() : '';
+    const uid = plan.ncs_unit_id != null ? String(plan.ncs_unit_id) : '';
+    if (rid && uid && rid === uid) return true;
+    const sub = String(row.subject ?? '').trim();
+    const uname = String(plan.unit_name ?? '').trim();
+    if (sub && uname && dashNamesRoughlyMatch(sub, uname)) return true;
+    return false;
+}
+
+function dashScheduleOkForPlan(schedulePayload: Record<string, any>, plan: Record<string, any>): boolean {
+    const rows = Array.isArray(schedulePayload?.rows) ? schedulePayload.rows : [];
+    return rows.some((r: any) => dashScheduleRowMatchesPlan(r, plan) && String(r?.date ?? '').trim() !== '');
+}
+
+function dashTypedDocOk(payload: Record<string, any>, plan: Record<string, any>): boolean {
+    const p = payload || {};
+    if (!dashPayloadMatchesPlan(p, plan)) return false;
+    const rows = p.rows;
+    return Array.isArray(rows) && rows.length > 0;
+}
+
+function dashProgressLabel(schedulePayload: Record<string, any>, plan: Record<string, any>, plannedDate: unknown): string {
+    const rows = Array.isArray(schedulePayload?.rows) ? schedulePayload.rows : [];
+    const hit = rows.find((r: any) => dashScheduleRowMatchesPlan(r, plan) && String(r?.date ?? '').trim());
+    if (hit) {
+        const d = String(hit.date || '').trim();
+        const t = String(hit.time || '').trim();
+        const place = String(hit.place || '').trim();
+        let s = d;
+        if (t) s += ' ' + t;
+        if (place) s += ' ~ ' + place;
+        return s;
+    }
+    if (plannedDate != null && String(plannedDate).trim() !== '') return String(plannedDate).trim();
+    return '-';
+}
+
 /** 강사: legacy courses 담당 또는 HRD 회차(session) 시간표·LMS 연결 기준 */
 async function teacherHasAccessToNcsPlanCourse(db: any, courseId: number, userId: number): Promise<boolean> {
     const session: any = await db.prepare('SELECT id, lms_course_id FROM course_sessions WHERE id = ?').bind(courseId).first();
@@ -3805,6 +3889,131 @@ app.delete('/plan-documents/:id', authMiddleware, async (c) => {
     } catch (e) {
         console.error('Failed to delete NCS plan document:', e);
         return c.json({ success: false, error: 'Failed to delete plan document' }, 500);
+    }
+});
+
+/** NCS 본평가 통합 현황 (차수별 계획서·실행·문서 완료 여부) */
+app.get('/evaluation-dashboard', authMiddleware, async (c) => {
+    try {
+        const courseIdRaw = c.req.query('course_id') ?? c.req.query('courseId');
+        if (!courseIdRaw) return c.json({ success: false, error: 'course_id is required' }, 400);
+        const courseId = parseInt(String(courseIdRaw), 10);
+        if (!Number.isFinite(courseId) || courseId < 1) {
+            return c.json({ success: false, error: 'Invalid course_id' }, 400);
+        }
+
+        const allowed = await ensureNcsCoursePermission(c, courseId);
+        if (!allowed) return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
+
+        const courseIds = await resolveNcsPlanDocumentCourseIds(c.env.DB, courseId);
+        const inList = courseIds.length ? courseIds : [courseId];
+        const inPh = inList.map(() => '?').join(', ');
+        const dtPh = DASHBOARD_PLAN_DOC_TYPES.map(() => '?').join(', ');
+
+        const { results: docRows } = await c.env.DB.prepare(`
+            SELECT evaluation_round, doc_type, payload_json, updated_at, id
+            FROM ncs_plan_documents
+            WHERE course_id IN (${inPh}) AND evaluation_round BETWEEN 1 AND 3
+            AND doc_type IN (${dtPh})
+            ORDER BY evaluation_round ASC, doc_type ASC, updated_at DESC, id DESC
+        `).bind(...inList, ...DASHBOARD_PLAN_DOC_TYPES).all();
+
+        const latestByRoundType = new Map<string, any>();
+        for (const r of docRows || []) {
+            const row = r as any;
+            const key = `${row.evaluation_round}:${row.doc_type}`;
+            if (!latestByRoundType.has(key)) {
+                latestByRoundType.set(key, row);
+            }
+        }
+
+        const { results: planRows } = await c.env.DB.prepare(`
+            SELECT p.*, u.name as unit_name, u.code as unit_code
+            FROM ncs_evaluation_plans p
+            JOIN ncs_units u ON p.ncs_unit_id = u.id
+            WHERE p.course_id = ? AND p.evaluation_round BETWEEN 1 AND 3
+            ORDER BY p.evaluation_round ASC, u.code ASC
+        `).bind(courseId).all();
+
+        const plans = Array.isArray(planRows) ? planRows : [];
+        const planIds = plans.map((p: any) => p.id).filter((id: any) => Number.isFinite(Number(id)) && Number(id) > 0);
+        const gradedMap = new Map<number, { total: number; graded: number }>();
+        if (planIds.length > 0) {
+            const ph = planIds.map(() => '?').join(', ');
+            const { results: statRows } = await c.env.DB.prepare(`
+                SELECT plan_id,
+                  COUNT(*) as total,
+                  SUM(CASE WHEN score IS NOT NULL THEN 1 ELSE 0 END) as graded
+                FROM ncs_evaluation_results
+                WHERE plan_id IN (${ph})
+                GROUP BY plan_id
+            `).bind(...planIds).all();
+            for (const s of statRows || []) {
+                const st = s as any;
+                gradedMap.set(Number(st.plan_id), { total: Number(st.total) || 0, graded: Number(st.graded) || 0 });
+            }
+        }
+
+        const roundsOut = [1, 2, 3].map((round) => {
+            const minutesRow = latestByRoundType.get(`${round}:minutes`);
+            const minutesPayload = minutesRow ? dashParsePlanDocPayload(minutesRow.payload_json) : {};
+            const plan_confirmed = dashMinutesLooksComplete(minutesPayload);
+
+            const schedulePayload = latestByRoundType.get(`${round}:schedule`)
+                ? dashParsePlanDocPayload(latestByRoundType.get(`${round}:schedule`).payload_json)
+                : {};
+            const questionsPayload = latestByRoundType.get(`${round}:questions`)
+                ? dashParsePlanDocPayload(latestByRoundType.get(`${round}:questions`).payload_json)
+                : {};
+            const toolsPayload = latestByRoundType.get(`${round}:tools`)
+                ? dashParsePlanDocPayload(latestByRoundType.get(`${round}:tools`).payload_json)
+                : {};
+            const rubricPayload = latestByRoundType.get(`${round}:rubric`)
+                ? dashParsePlanDocPayload(latestByRoundType.get(`${round}:rubric`).payload_json)
+                : {};
+            const achievementPayload = latestByRoundType.get(`${round}:achievement`)
+                ? dashParsePlanDocPayload(latestByRoundType.get(`${round}:achievement`).payload_json)
+                : {};
+            const reviewPayload = latestByRoundType.get(`${round}:review`)
+                ? dashParsePlanDocPayload(latestByRoundType.get(`${round}:review`).payload_json)
+                : {};
+
+            const roundPlans = plans.filter((p: any) => Number(p.evaluation_round) === round);
+
+            const rows = roundPlans.map((plan: any) => {
+                const stats = gradedMap.get(Number(plan.id)) || { total: 0, graded: 0 };
+                const scores_missing = stats.total > 0 && stats.graded < stats.total;
+                const unitName = String(plan.unit_name || '').trim();
+                const unitCode = String(plan.unit_code || '').trim();
+                const subject_label = unitCode ? `${unitName} (${unitCode})` : unitName;
+
+                return {
+                    plan_id: plan.id,
+                    ncs_unit_id: plan.ncs_unit_id,
+                    subject_label: subject_label || '-',
+                    method: String(plan.method || '-'),
+                    progress_label: dashProgressLabel(schedulePayload, plan, plan.planned_date),
+                    schedule: dashScheduleOkForPlan(schedulePayload, plan),
+                    questions: dashTypedDocOk(questionsPayload, plan),
+                    tools: dashTypedDocOk(toolsPayload, plan),
+                    rubric: dashTypedDocOk(rubricPayload, plan),
+                    achievement: dashTypedDocOk(achievementPayload, plan),
+                    review: dashTypedDocOk(reviewPayload, plan),
+                    scores_missing,
+                };
+            });
+
+            return {
+                round,
+                plan_confirmed,
+                rows,
+            };
+        });
+
+        return c.json({ success: true, data: { rounds: roundsOut } });
+    } catch (e) {
+        console.error('evaluation-dashboard:', e);
+        return c.json({ success: false, error: 'Failed to load evaluation dashboard' }, 500);
     }
 });
 
