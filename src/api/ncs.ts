@@ -3970,16 +3970,16 @@ app.get('/evaluation-dashboard', authMiddleware, async (c) => {
         const { results: unitRows } = await c.env.DB.prepare(`
             SELECT cnu.ncs_unit_id, u.name as unit_name, u.code as unit_code
             FROM course_ncs_units cnu
-            JOIN ncs_units u ON cnu.ncs_unit_id = u.id
-            WHERE cnu.course_id IN (${inPh})
+            JOIN ncs_units u ON CAST(cnu.ncs_unit_id AS INTEGER) = CAST(u.id AS INTEGER)
+            WHERE CAST(cnu.course_id AS INTEGER) IN (${inPh})
             ORDER BY u.code ASC, u.name ASC
         `).bind(...safeInList).all();
 
         const { results: planRows } = await c.env.DB.prepare(`
             SELECT p.*, u.name as unit_name, u.code as unit_code
             FROM ncs_evaluation_plans p
-            JOIN ncs_units u ON p.ncs_unit_id = u.id
-            WHERE p.course_id IN (${inPh}) AND p.evaluation_round BETWEEN 1 AND 3
+            JOIN ncs_units u ON CAST(p.ncs_unit_id AS INTEGER) = CAST(u.id AS INTEGER)
+            WHERE CAST(p.course_id AS INTEGER) IN (${inPh}) AND p.evaluation_round BETWEEN 1 AND 3
             -- D1 환경에서 ncs_evaluation_plans에 updated_at 컬럼이 없는 경우가 있어, id로만 정렬합니다.
             ORDER BY p.evaluation_round ASC, u.code ASC, p.id DESC
         `).bind(...safeInList).all();
