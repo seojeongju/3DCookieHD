@@ -86,6 +86,12 @@ export const adminNcsEvalDashboardHubHtml = (sidebar = hrdSidebar('ncs-eval-dash
         : '<span class="inline-flex items-center px-2 py-1 rounded-lg bg-rose-100 text-rose-700 border border-rose-200 text-xs font-black">미설정</span>';
     }
 
+    function statusLink(tab, round, ok) {
+      var href = lmsBase() + 'ncs-eval-plan' + Q + '&evaluation_round=' + encodeURIComponent(String(round)) + '&plan_tab=' + encodeURIComponent(String(tab));
+      var title = '평가계획 이동';
+      return '<a href="' + href + '" class="inline-flex items-center justify-center w-full" title="' + title + '">' + statusLabel(ok) + '</a>';
+    }
+
     function thRequired(label) {
       return '<span class="text-rose-500 font-black mr-0.5">!</span>' + label;
     }
@@ -128,7 +134,7 @@ export const adminNcsEvalDashboardHubHtml = (sidebar = hrdSidebar('ncs-eval-dash
         html += '<th class="px-3 py-3 text-center">' + thRequired('채점기준표') + '</th>';
         html += '<th class="px-3 py-3 text-center">' + thRequired('성취수준') + '</th>';
         html += '<th class="px-3 py-3 text-center">평가도구검토</th>';
-        html += '<th class="px-3 py-3 text-center">바로가기</th>';
+        html += '<th class="px-3 py-3 text-center">평가계획</th>';
         html += '</tr></thead><tbody class="divide-y divide-slate-100">';
 
         if (rows.length === 0) {
@@ -140,29 +146,23 @@ export const adminNcsEvalDashboardHubHtml = (sidebar = hrdSidebar('ncs-eval-dash
             var hasPlanId = row.plan_id != null && String(row.plan_id).trim() !== '' && String(row.plan_id).trim() !== 'null';
             var planQ = hasPlanId ? (rq + '&plan_id=' + encodeURIComponent(row.plan_id)) : '';
             html += '<tr class="hover:bg-slate-50/80">';
-            html += '<td class="px-3 py-3 text-sm font-semibold text-slate-800">' + escapeHtml(row.subject_label) + '</td>';
+            html += '<td class="px-3 py-3 text-sm font-semibold text-slate-800">' +
+              escapeHtml(row.subject_label) +
+              (!hasPlanDocs ? ' <span class="ml-1 align-middle px-2 py-0.5 rounded bg-rose-100 text-rose-700 text-[10px] font-black border border-rose-200">미등록</span>' : '') +
+              '</td>';
             html += '<td class="px-3 py-3 text-sm text-slate-700">' + escapeHtml(row.method) + '</td>';
             html += '<td class="px-3 py-3 text-sm text-slate-700 whitespace-nowrap">' + escapeHtml(row.progress_label) + '</td>';
-            html += '<td class="px-3 py-3 text-center">' + statusLabel(!!row.schedule) + '</td>';
-            html += '<td class="px-3 py-3 text-center">' + statusLabel(!!row.questions) + '</td>';
-            html += '<td class="px-3 py-3 text-center">' + statusLabel(!!row.tools) + '</td>';
-            html += '<td class="px-3 py-3 text-center">' + statusLabel(!!row.rubric) + '</td>';
-            html += '<td class="px-3 py-3 text-center">' + statusLabel(!!row.achievement) + '</td>';
-            html += '<td class="px-3 py-3 text-center">' + statusLabel(!!row.review) + '</td>';
+            html += '<td class="px-3 py-3 text-center">' + statusLink('schedule', r, !!row.schedule) + '</td>';
+            html += '<td class="px-3 py-3 text-center">' + statusLink('questions', r, !!row.questions) + '</td>';
+            html += '<td class="px-3 py-3 text-center">' + statusLink('tools', r, !!row.tools) + '</td>';
+            html += '<td class="px-3 py-3 text-center">' + statusLink('rubric', r, !!row.rubric) + '</td>';
+            html += '<td class="px-3 py-3 text-center">' + statusLink('achievement', r, !!row.achievement) + '</td>';
+            html += '<td class="px-3 py-3 text-center">' + statusLink('review', r, !!row.review) + '</td>';
             html += '<td class="px-3 py-3 text-center">';
             html += '<div class="flex flex-wrap justify-center gap-1">';
-            if (!hasPlanDocs) {
-              html += '<span class="w-full text-center mb-1 px-2 py-0.5 rounded bg-rose-100 text-rose-700 text-[10px] font-black border border-rose-200">평가계획 미등록</span>';
-            }
             if (row.scores_missing) {
               html += '<span class="w-full text-center mb-1 px-2 py-0.5 rounded bg-slate-200 text-slate-700 text-[10px] font-black">점수등록 누락</span>';
             }
-            html += '<a class="px-2 py-1 rounded-lg bg-sky-600 text-white text-[10px] font-black hover:bg-sky-700" href="' + base + 'ncs-eval-plan' + rq + '&plan_tab=schedule">일정</a>';
-            html += '<a class="px-2 py-1 rounded-lg bg-indigo-600 text-white text-[10px] font-black hover:bg-indigo-700" href="' + base + 'ncs-eval-plan' + rq + '&plan_tab=questions">문항</a>';
-            html += '<a class="px-2 py-1 rounded-lg bg-violet-600 text-white text-[10px] font-black hover:bg-violet-700" href="' + base + 'ncs-eval-plan' + rq + '&plan_tab=tools">도구</a>';
-            html += '<a class="px-2 py-1 rounded-lg bg-amber-600 text-white text-[10px] font-black hover:bg-amber-700" href="' + base + 'ncs-eval-plan' + rq + '&plan_tab=rubric">채점</a>';
-            html += '<a class="px-2 py-1 rounded-lg bg-teal-600 text-white text-[10px] font-black hover:bg-teal-700" href="' + base + 'ncs-eval-plan' + rq + '&plan_tab=achievement">성취</a>';
-            html += '<a class="px-2 py-1 rounded-lg bg-pink-600 text-white text-[10px] font-black hover:bg-pink-700" href="' + base + 'ncs-eval-plan' + rq + '&plan_tab=review">검토</a>';
             if (hasPlanId) {
               html += '<a class="px-2 py-1 rounded-lg bg-slate-800 text-white text-[10px] font-black hover:bg-slate-900" href="' + base + 'ncs-eval-exec' + planQ + '">실행</a>';
             }
