@@ -3906,8 +3906,11 @@ app.get('/evaluation-dashboard', authMiddleware, async (c) => {
         if (!allowed) return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
 
         const courseIds = await resolveNcsPlanDocumentCourseIds(c.env.DB, courseId);
-        const inList = courseIds.length ? courseIds : [courseId];
-        const inPh = inList.map(() => '?').join(', ');
+        // D1/SQL에서 IN () 형태가 되면 쿼리 예외가 발생할 수 있어 방어적으로 정리
+        const inListRaw = courseIds.length ? courseIds : [courseId];
+        const inList = (Array.isArray(inListRaw) ? inListRaw : [courseId]).filter((v) => Number.isFinite(Number(v)) && Number(v) >= 1).map((v) => Number(v));
+        const safeInList = inList.length ? inList : [courseId];
+        const inPh = safeInList.map(() => '?').join(', ');
         const dtPh = DASHBOARD_PLAN_DOC_TYPES.map(() => '?').join(', ');
 
         const { results: docRows } = await c.env.DB.prepare(`
@@ -3916,7 +3919,7 @@ app.get('/evaluation-dashboard', authMiddleware, async (c) => {
             WHERE course_id IN (${inPh}) AND evaluation_round BETWEEN 1 AND 3
             AND doc_type IN (${dtPh})
             ORDER BY evaluation_round ASC, doc_type ASC, updated_at DESC, id DESC
-        `).bind(...inList, ...DASHBOARD_PLAN_DOC_TYPES).all();
+        `).bind(...safeInList, ...DASHBOARD_PLAN_DOC_TYPES).all();
 
         const latestByRoundType = new Map<string, any>();
         for (const r of docRows || []) {
@@ -3933,7 +3936,7 @@ app.get('/evaluation-dashboard', authMiddleware, async (c) => {
             JOIN ncs_units u ON cnu.ncs_unit_id = u.id
             WHERE cnu.course_id IN (${inPh})
             ORDER BY u.code ASC, u.name ASC
-        `).bind(...inList).all();
+        `).bind(...safeInList).all();
 
         const { results: planRows } = await c.env.DB.prepare(`
             SELECT p.*, u.name as unit_name, u.code as unit_code
@@ -3941,7 +3944,7 @@ app.get('/evaluation-dashboard', authMiddleware, async (c) => {
             JOIN ncs_units u ON p.ncs_unit_id = u.id
             WHERE p.course_id IN (${inPh}) AND p.evaluation_round BETWEEN 1 AND 3
             ORDER BY p.evaluation_round ASC, u.code ASC, p.updated_at DESC, p.id DESC
-        `).bind(...inList).all();
+        `).bind(...safeInList).all();
 
         const plans = Array.isArray(planRows) ? planRows : [];
         const planIds = plans.map((p: any) => p.id).filter((id: any) => Number.isFinite(Number(id)) && Number(id) > 0);
@@ -4031,7 +4034,8 @@ app.get('/evaluation-dashboard', authMiddleware, async (c) => {
         return c.json({ success: true, data: { rounds: roundsOut } });
     } catch (e) {
         console.error('evaluation-dashboard:', e);
-        return c.json({ success: false, error: 'Failed to load evaluation dashboard' }, 500);
+        const detail = (e && (e as any).message) ? String((e as any).message) : String(e);
+        return c.json({ success: false, error: detail || 'Failed to load evaluation dashboard' }, 500);
     }
 });
 
