@@ -123,8 +123,17 @@ export const adminLmsNcsStudentReportHtml = `
             document.getElementById('todayDate').textContent = \`\${now.getFullYear()}년 \${now.getMonth() + 1}월 \${now.getDate()}일\`;
 
             try {
-                // 1. 과정 정보
-                const cRes = await fetch(\`/api/courses/\${courseId}\`);
+                // 1. 과정 정보 (LMS 회차는 type=hrd)
+                const urlParams = new URLSearchParams(window.location.search);
+                let qType = urlParams.get('type') || '';
+                if (!qType && window.location.pathname.includes('/lms')) qType = 'hrd';
+                if (qType && qType.startsWith('hrd')) qType = 'hrd';
+                let courseUrl = '/api/courses/' + courseId + (qType ? '?type=' + encodeURIComponent(qType) : '');
+                let cRes = await fetch(courseUrl);
+                if (cRes.status === 404) {
+                    courseUrl = '/api/courses/' + courseId + '?type=hrd';
+                    cRes = await fetch(courseUrl);
+                }
                 const cData = await cRes.json();
                 if (cData.success) {
                     document.getElementById('courseTitle').textContent = cData.data.title;

@@ -82,7 +82,6 @@ import { adminNcsApprovedHtml, adminNcsApprovedListHtml } from './views/admin_nc
 import { adminLmsDashboardHtml } from './views/admin_lms_dashboard';
 import { adminLmsStudentsHtml } from './views/admin_lms_students';
 import { adminLmsAttendanceHtml } from './views/admin_lms_attendance';
-import { adminLmsNcsHtml } from './views/admin_lms_ncs';
 import { adminLmsTrainingLogsHtml } from './views/admin_lms_training_logs';
 import { adminHrdTrainingLogsHtml } from './views/admin_hrd_training_logs';
 import { adminLmsNcsReportHtml } from './views/admin_lms_ncs_report';
@@ -421,7 +420,16 @@ app.get('/admin/instructor-eval', (c) => c.html(adminInstructorEvalEntryHtml()))
 app.get('/admin/courses/:id/lms', (c) => c.html(adminLmsDashboardHtml()));
 app.get('/admin/courses/:id/lms/students', (c) => c.html(adminLmsStudentsHtml()));
 app.get('/admin/courses/:id/lms/attendance', (c) => c.html(adminLmsAttendanceHtml()));
-app.get('/admin/courses/:id/lms/ncs-eval', (c) => c.html(adminLmsNcsHtml()));
+app.get('/admin/courses/:id/lms/ncs-eval', (c) => {
+    const id = c.req.param('id');
+    let search = '';
+    try {
+        search = new URL(c.req.url).search;
+    } catch {
+        search = '';
+    }
+    return c.redirect(`/admin/courses/${id}/lms/ncs-eval-plan${search}`);
+});
 app.get('/admin/courses/:id/lms/ncs-eval-plan', (c) => c.html(adminLmsNcsEvalPlanHtml()));
 app.get('/admin/courses/:id/lms/ncs-eval-exec', (c) => c.html(adminLmsNcsEvalExecHtml()));
 app.get('/admin/courses/:id/lms/ncs-eval-result', (c) => c.html(adminLmsNcsEvalResultHtml()));
@@ -470,7 +478,16 @@ app.get('/teacher/courses/:id/lms', (c) => c.html(adminLmsDashboardHtml(teacherS
 app.get('/teacher/courses/:id/lms/students', (c) => c.html(adminLmsStudentsHtml(teacherSidebar('courses', 'students'))));
 app.get('/teacher/courses/:courseId/lms/students/:studentId/consultation', (c) => c.html(teacherStudentConsultationHtml(c.req.param('courseId'), c.req.param('studentId'))));
 app.get('/teacher/courses/:id/lms/attendance', (c) => c.html(adminLmsAttendanceHtml(teacherSidebar('courses', 'attendance'))));
-app.get('/teacher/courses/:id/lms/ncs-eval', (c) => c.html(adminLmsNcsHtml(teacherSidebar('courses', 'ncs'))));
+app.get('/teacher/courses/:id/lms/ncs-eval', (c) => {
+    const id = c.req.param('id');
+    let search = '';
+    try {
+        search = new URL(c.req.url).search;
+    } catch {
+        search = '';
+    }
+    return c.redirect(`/teacher/courses/${id}/lms/ncs-eval-plan${search}`);
+});
 app.get('/teacher/courses/:id/lms/ncs-eval-plan', (c) => c.html(adminLmsNcsEvalPlanHtml(teacherSidebar('courses', 'ncs'))));
 app.get('/teacher/courses/:id/lms/ncs-eval-exec', (c) => c.html(adminLmsNcsEvalExecHtml(teacherSidebar('courses', 'ncs'))));
 app.get('/teacher/courses/:id/lms/ncs-eval-result', (c) => c.html(adminLmsNcsEvalResultHtml(teacherSidebar('courses', 'ncs'))));

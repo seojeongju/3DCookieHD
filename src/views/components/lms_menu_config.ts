@@ -6,7 +6,7 @@
 export type LmsMenuItem = {
   /** 사이드바 tab 파라미터 및 활성 메뉴 식별 */
   tab: string;
-  /** LMS 경로 세그먼트 (예: students, cbt, ncs-eval). null이면 LMS 탭에 미표시 */
+  /** LMS 경로 세그먼트 (예: students, cbt, ncs-eval-plan). null이면 LMS 탭에 미표시 */
   path: string | null;
   /** 통일된 메뉴 라벨 */
   label: string;
@@ -35,7 +35,7 @@ export const LMS_MENU_ITEMS: LmsMenuItem[] = [
   { tab: 'training-logs', path: 'training-logs', label: '훈련일지', icon: 'fa-book-open' },
   { tab: 'counseling', path: 'counseling', label: '상담관리', icon: 'fa-comments' },
   { tab: 'exams', path: 'cbt', label: '사전평가관리', icon: 'fa-file-contract' },
-  { tab: 'ncs', path: 'ncs-eval', label: 'NCS평가(본평가)관리', icon: 'fa-certificate' },
+  { tab: 'ncs', path: 'ncs-eval-plan', label: 'NCS평가(본평가)관리', icon: 'fa-certificate' },
   { tab: 'surveys', path: 'surveys', label: '설문관리', icon: 'fa-poll-h' },
   { tab: 'instructor-eval', path: 'instructor-eval', label: '교강사직무능력평가', icon: 'fa-chalkboard-teacher' },
   { tab: 'grades', path: 'grades', label: '성적관리', icon: 'fa-chart-line' },
@@ -61,6 +61,7 @@ export function getSidebarPerformanceItems(): LmsMenuItem[] {
 /** LMS path → tab (사이드바 활성 메뉴용) */
 export function pathToTab(path: string): string {
   if (path === '' || path === 'dashboard') return 'dashboard';
+  if (path.startsWith('ncs-eval')) return 'ncs';
   const item = LMS_MENU_ITEMS.find((m) => m.path === path);
   return item ? item.tab : path;
 }

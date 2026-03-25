@@ -342,7 +342,7 @@ export const adminHrdNcsEvalHtml = (sidebar = hrdSidebar('ncs-eval')) => `
                         </div>
                     </td>
                     <td class="px-8 py-5 text-right">
-                        <a href="/admin/courses/\${c.id}/lms/ncs-eval" class="inline-flex items-center px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-700 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm hover:shadow-md active:scale-95 transform whitespace-nowrap">
+                        <a href="/admin/courses/\${c.id}/lms/ncs-eval-plan?type=hrd" class="inline-flex items-center px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-700 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm hover:shadow-md active:scale-95 transform whitespace-nowrap">
                             평가 관리 <i class="fas fa-chevron-right ml-2 text-[9px] opacity-50 group-hover:opacity-100"></i>
                         </a>
                     </td>

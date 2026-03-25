@@ -1,5 +1,6 @@
 import { hrdSidebar } from './components/hrd_sidebar';
 import { lmsHeaderHtml } from './components/lms_header';
+import { lmsNcsSubnavTabsHtml } from './components/lms_ncs_subnav';
 
 const NCS_PLAN_TAB_ITEMS = [
   { id: 'minutes', label: '평가계획회의록', icon: 'fa-clipboard' },
@@ -4706,6 +4707,7 @@ export const adminLmsNcsEvalPlanHtml = (sidebar: string = hrdSidebar('courses'))
     ${sidebar}
     <div class="flex-1 overflow-y-auto custom-scrollbar">
       ${lmsHeaderHtml('ncs-eval', 'hrd')}
+      ${lmsNcsSubnavTabsHtml('plan')}
       <section class="px-6 py-6 border-b border-slate-200/60 bg-white">
         <h2 class="text-2xl font-black tracking-tight text-slate-900">NCS평가계획</h2>
         <p class="text-sm text-slate-500 mt-1">LMS 과정 단위에서 NCS 본평가 계획 문서를 탭으로 구분해 관리합니다.</p>

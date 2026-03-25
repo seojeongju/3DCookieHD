@@ -313,9 +313,21 @@ export const adminLmsNcsHtml = (sidebar: string = hrdSidebar('courses')) => `
 
         async function loadCourseInfo() {
             try {
-                const res = await fetch(\`/api/courses/\${courseId}\`, {
-                    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
-                });
+                const token = localStorage.getItem('token');
+                const urlParams = new URLSearchParams(window.location.search);
+                let type = urlParams.get('type') || '';
+                if (typeof type !== 'string') type = '';
+                // LMS 상단 헤더(lms_header)와 동일: 회차 ID가 courses 테이블 ID와 충돌할 때는 type=hrd로 course_sessions 기준 조회
+                if (!type && window.location.pathname.includes('/lms')) type = 'hrd';
+                if (type && type.startsWith('hrd')) type = 'hrd';
+                if (type === 'undefined') type = 'hrd';
+
+                let apiUrl = '/api/courses/' + courseId + (type ? '?type=' + encodeURIComponent(type) : '');
+                let res = await fetch(apiUrl, { headers: { 'Authorization': 'Bearer ' + token } });
+                if (res.status === 404) {
+                    apiUrl = '/api/courses/' + courseId + '?type=hrd';
+                    res = await fetch(apiUrl, { headers: { 'Authorization': 'Bearer ' + token } });
+                }
                 const result = await res.json();
                 if (result.success) {
                     document.getElementById('courseTitle').textContent = result.data.title;

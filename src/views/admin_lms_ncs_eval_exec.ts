@@ -1,4 +1,5 @@
 import { lmsHeaderHtml } from './components/lms_header';
+import { lmsNcsSubnavTabsHtml } from './components/lms_ncs_subnav';
 import { hrdSidebar } from './components/hrd_sidebar';
 
 export const adminLmsNcsEvalExecHtml = (sidebar: string = hrdSidebar('courses')) => `
@@ -17,6 +18,7 @@ export const adminLmsNcsEvalExecHtml = (sidebar: string = hrdSidebar('courses'))
     <div class="flex-1 flex flex-col overflow-hidden relative min-w-0">
       <div class="flex-1 overflow-y-auto custom-scrollbar">
         ${lmsHeaderHtml('ncs-eval', 'hrd')}
+        ${lmsNcsSubnavTabsHtml('exec')}
 
         <div class="bg-white border-b border-gray-200">
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">

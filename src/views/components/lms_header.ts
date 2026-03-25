@@ -6,7 +6,15 @@ export const lmsHeaderHtml = (activeTab = 'dashboard', defaultType = '') => {
         .map(
             (item) => {
                 const href = item.path === '' ? 'dashboard' : item.path;
-                const isActive = (item.path === '' && activeTab === 'dashboard') || (item.path !== '' && activeTab === item.path);
+                const isNcsCluster =
+                    item.tab === 'ncs' &&
+                    (activeTab === 'ncs-eval' ||
+                        activeTab === 'ncs-eval-plan' ||
+                        activeTab === 'ncs-eval-exec' ||
+                        activeTab === 'ncs-eval-result');
+                const isActive =
+                    (item.path === '' && activeTab === 'dashboard') ||
+                    (item.path !== '' && (activeTab === item.path || isNcsCluster));
                 return `<a href="${href}" class="px-4 md:px-6 py-4 transition whitespace-nowrap flex items-center gap-2 text-[13px] md:text-sm ${isActive ? 'bg-white text-indigo-700 font-bold rounded-t-xl' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
                             <i class="fas ${item.icon}"></i> ${item.label}
                         </a>`;
