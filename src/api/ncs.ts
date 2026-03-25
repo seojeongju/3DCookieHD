@@ -3943,7 +3943,8 @@ app.get('/evaluation-dashboard', authMiddleware, async (c) => {
             FROM ncs_evaluation_plans p
             JOIN ncs_units u ON p.ncs_unit_id = u.id
             WHERE p.course_id IN (${inPh}) AND p.evaluation_round BETWEEN 1 AND 3
-            ORDER BY p.evaluation_round ASC, u.code ASC, p.updated_at DESC, p.id DESC
+            -- D1 환경에서 ncs_evaluation_plans에 updated_at 컬럼이 없는 경우가 있어, id로만 정렬합니다.
+            ORDER BY p.evaluation_round ASC, u.code ASC, p.id DESC
         `).bind(...safeInList).all();
 
         const plans = Array.isArray(planRows) ? planRows : [];
