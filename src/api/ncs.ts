@@ -4205,7 +4205,8 @@ app.get('/evaluation-dashboard-hub', authMiddleware, async (c) => {
                   c.type,
                   c.classification as ncs_classification_code,
                   COALESCE(NULLIF(TRIM(c.job_name), ''), r.main_job_name) as main_job_name,
-                  r.main_job_code
+                  r.main_job_code,
+                  c.evaluation_methods_json
                 FROM ncs_approved_curriculum c
                 LEFT JOIN ncs_approved_registrations r ON r.id = c.registration_id
                 WHERE c.registration_id = ?
@@ -4239,7 +4240,8 @@ app.get('/evaluation-dashboard-hub', authMiddleware, async (c) => {
                       c.type,
                       c.classification as ncs_classification_code,
                       COALESCE(NULLIF(TRIM(c.job_name), ''), r.main_job_name) as main_job_name,
-                      r.main_job_code
+                      r.main_job_code,
+                      c.evaluation_methods_json
                     FROM ncs_approved_curriculum c
                     LEFT JOIN ncs_approved_registrations r ON r.id = c.registration_id
                     WHERE c.id IN (${placeholders})
@@ -4280,9 +4282,21 @@ app.get('/evaluation-dashboard-hub', authMiddleware, async (c) => {
         // subjects를 대시보드용 pseudo-plan으로 변환(대시보드 판정 함수 재사용)
         const subjectPlans = (Array.isArray(subjects) ? subjects : []).map((s: any) => {
             const unit_name = String(s?.name || s?.main_job_name || s?.job_name || '교과목').trim();
+            let methodText = '';
+            const rawMethods = s?.evaluation_methods_json;
+            if (rawMethods != null && String(rawMethods).trim() !== '') {
+                let parsed: any = null;
+                try { parsed = JSON.parse(String(rawMethods)); } catch { parsed = rawMethods; }
+                if (Array.isArray(parsed)) {
+                    methodText = String(parsed.find((x) => x != null && String(x).trim() !== '') || '').trim();
+                } else if (typeof parsed === 'string') {
+                    methodText = parsed.trim();
+                }
+            }
             return {
                 ncs_unit_id: Number(s?.id),
                 unit_name,
+                method: methodText
             };
         }).filter((p: any) => Number.isFinite(Number(p.ncs_unit_id)) && Number(p.ncs_unit_id) >= 1);
 
@@ -4329,7 +4343,7 @@ app.get('/evaluation-dashboard-hub', authMiddleware, async (c) => {
                     plan_id: null,
                     ncs_unit_id: plan.ncs_unit_id,
                     subject_label: plan.unit_name || '-',
-                    method: '-', // method는 evaluation_plans 기반이므로 timetable 기준에서는 기본값 처리
+                    method: plan.method && String(plan.method).trim() !== '' ? String(plan.method) : '-',
                     progress_label: dashProgressLabel(schedulePayload, plan, ''),
                     schedule: scheduleOk,
                     questions: questionsOk,
@@ -4416,10 +4430,32 @@ app.post('/plans', authMiddleware, async (c) => {
             return c.json({ success: false, error: 'Invalid evaluation_round' }, 400);
         }
 
+        // method가 비어있으면, 능력단위(ncs_units)에 저장된 권장 평가방법에서 자동 채움
+        let finalMethod = (method != null ? String(method) : '').trim();
+        if (!finalMethod) {
+            const unitRow: any = await c.env.DB.prepare(
+                'SELECT evaluation_methods_json FROM ncs_units WHERE id = ?'
+            ).bind(ncs_unit_id).first();
+
+            let parsed: any = null;
+            const raw = unitRow?.evaluation_methods_json;
+            if (raw != null && String(raw).trim() !== '') {
+                try { parsed = JSON.parse(String(raw)); } catch { parsed = raw; }
+            }
+
+            if (Array.isArray(parsed)) {
+                finalMethod = String(parsed.find((x) => x != null && String(x).trim() !== '') || '').trim();
+            } else if (typeof parsed === 'string') {
+                finalMethod = parsed.trim();
+            }
+        }
+
+        if (!finalMethod) finalMethod = '';
+
         const result = await c.env.DB.prepare(`
             INSERT INTO ncs_evaluation_plans (course_id, ncs_unit_id, method, target_score, planned_date, status, evaluation_round)
             VALUES (?, ?, ?, ?, ?, ?, ?)
-        `).bind(course_id, ncs_unit_id, method, target_score, planned_date, status || 'draft', roundNum).run();
+        `).bind(course_id, ncs_unit_id, finalMethod, target_score, planned_date, status || 'draft', roundNum).run();
 
         return c.json({ success: true, data: { id: result.meta.last_row_id } });
     } catch (e) {
