@@ -3932,6 +3932,7 @@ app.delete('/plan-documents/:id', authMiddleware, async (c) => {
 /** NCS 본평가 통합 현황 (차수별 계획서·실행·문서 완료 여부) */
 app.get('/evaluation-dashboard', authMiddleware, async (c) => {
     try {
+        const debug = String(c.req.query('debug') || '').toLowerCase() === '1';
         const courseIdRaw = c.req.query('course_id') ?? c.req.query('courseId');
         if (!courseIdRaw) return c.json({ success: false, error: 'course_id is required' }, 400);
         const courseId = parseInt(String(courseIdRaw), 10);
@@ -3965,6 +3966,20 @@ app.get('/evaluation-dashboard', authMiddleware, async (c) => {
             if (!latestByRoundType.has(key)) {
                 latestByRoundType.set(key, row);
             }
+        }
+
+        // course_ncs_units에 실제로 존재하는 course_id 후보가 무엇인지 디버깅용으로 집계합니다.
+        let unitCourseIdStats: any[] = [];
+        if (debug) {
+            try {
+                const { results } = await c.env.DB.prepare(`
+                    SELECT CAST(course_id AS INTEGER) as course_id, COUNT(*) as cnt
+                    FROM course_ncs_units
+                    WHERE CAST(course_id AS INTEGER) IN (${inPh})
+                    GROUP BY CAST(course_id AS INTEGER)
+                `).bind(...safeInList).all();
+                unitCourseIdStats = Array.isArray(results) ? results : [];
+            } catch (_) { /* ignore debug failures */ }
         }
 
         const { results: unitRows } = await c.env.DB.prepare(`
@@ -4068,6 +4083,19 @@ app.get('/evaluation-dashboard', authMiddleware, async (c) => {
                 rows,
             };
         });
+
+        if (debug) {
+            return c.json({
+                success: true,
+                data: { rounds: roundsOut },
+                debug: {
+                    requested_course_id: courseId,
+                    resolved_course_ids: safeInList,
+                    unit_course_id_stats: unitCourseIdStats,
+                    unit_rows_count: Array.isArray(unitRows) ? unitRows.length : 0
+                }
+            });
+        }
 
         return c.json({ success: true, data: { rounds: roundsOut } });
     } catch (e) {
