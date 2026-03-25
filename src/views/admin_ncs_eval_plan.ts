@@ -3128,11 +3128,11 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
 
       if (!curriculumId) {
         alert('일정 입력란의 교과목 · 하위 과목에서 과목을 선택해 주세요.');
-        return;
+        return false;
       }
       if (!date) {
         alert('평가일정(일자)를 입력해 주세요.');
-        return;
+        return false;
       }
 
       const newRow = {
@@ -3153,6 +3153,8 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       renderScheduleRows(rows);
       clearScheduleInputRow();
       updateScheduleAddButtonLabel();
+      alert('일정 추가완료');
+      return true;
     }
 
     function readQuestionRowsFromTable() {
@@ -4417,8 +4419,11 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           removeMinutesSignature(rmMinutesSign);
           return;
         }
-        if (target.id === 'scheduleAddRowBtn') {
-          addScheduleRowFromInputs();
+        if (target && target.closest && target.closest('#scheduleAddRowBtn')) {
+          const ok = addScheduleRowFromInputs();
+          if (!ok) {
+            // addScheduleRowFromInputs 내부에서 alert을 이미 띄움
+          }
           return;
         }
         const editScheduleIdx = target.getAttribute('data-edit-schedule-row');
