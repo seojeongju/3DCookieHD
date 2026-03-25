@@ -895,12 +895,8 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                       </tr>
                       <tr>
                         <td class="border border-black text-center bg-slate-50 font-bold w-24">문서제목</td>
-                        <td class="border border-black px-2 py-1" colspan="5">
-                          <input id="schedule_doc_title" class="w-full min-h-[1.25rem] px-1 py-0.5 border-0 outline-none bg-transparent text-sm" placeholder="예: 1차 평가 실시일정" />
-                        </td>
-                        <td class="border border-black text-center bg-slate-50 font-bold w-24">평가유형</td>
-                        <td class="border border-black px-2 py-1">
-                          <input id="schedule_eval_type" class="w-full min-h-[1.25rem] px-1 py-0.5 border-0 outline-none bg-transparent text-sm text-center" placeholder="본평가/재평가" />
+                        <td class="border border-black px-2 py-1" colspan="7">
+                          <input id="schedule_doc_title" class="w-full min-h-[1.25rem] px-1 py-0.5 border-0 outline-none bg-transparent text-sm" placeholder="평가차수 선택 시 자동 입력됩니다" />
                         </td>
                       </tr>
                       <tr>
@@ -912,8 +908,11 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                       <tr>
                         <td class="border border-black text-center bg-slate-50 font-bold align-top py-2">일정 입력</td>
                         <td class="border border-black p-2" colspan="7">
-                          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2 items-end">
-                            <label class="block text-[11px] font-bold text-slate-600 sm:col-span-1">평가일자
+                          <p class="text-[11px] text-slate-600 mb-2 leading-relaxed">
+                            위쪽 <strong class="text-slate-800">교과목 · 하위 과목 (선택)</strong> 드롭다운에서 과목을 고른 뒤, 아래에서 평가일정·시간·장소를 입력하고 <strong>일정 추가</strong>를 누르세요.
+                          </p>
+                          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 items-end">
+                            <label class="block text-[11px] font-bold text-slate-600 sm:col-span-1">평가일정
                               <input id="scheduleInputDate" type="date" class="mt-0.5 w-full px-2 py-1.5 border border-slate-200 rounded bg-white text-sm" />
                             </label>
                             <label class="block text-[11px] font-bold text-slate-600 sm:col-span-1">시간
@@ -922,12 +921,9 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                             <label class="block text-[11px] font-bold text-slate-600 sm:col-span-1">장소
                               <input id="scheduleInputPlace" class="mt-0.5 w-full px-2 py-1.5 border border-slate-200 rounded bg-white text-sm" placeholder="장소" />
                             </label>
-                            <label class="block text-[11px] font-bold text-slate-600 sm:col-span-1">대상자/반
-                              <input id="scheduleInputTarget" class="mt-0.5 w-full px-2 py-1.5 border border-slate-200 rounded bg-white text-sm" placeholder="대상자/반" />
-                            </label>
-                            <div class="sm:col-span-2 flex justify-end lg:justify-start pt-4 sm:pt-0">
+                            <div class="sm:col-span-2 lg:col-span-2 flex justify-end pt-4 sm:pt-0">
                               <button type="button" id="scheduleAddRowBtn" class="w-full sm:w-auto px-4 py-2 rounded-lg bg-sky-600 text-white text-sm font-black hover:bg-sky-700 transition whitespace-nowrap">
-                                <i class="fas fa-plus mr-1"></i>일정 추가
+                                <i class="fas fa-plus mr-1"></i><span id="scheduleAddRowBtnLabel">일정 추가</span>
                               </button>
                             </div>
                           </div>
@@ -937,14 +933,14 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                         <td class="border border-black text-center bg-slate-50 font-bold align-top py-2">평가일정</td>
                         <td class="border border-black p-0" colspan="7">
                           <div class="overflow-x-auto">
-                            <table class="w-full min-w-[720px] border-collapse">
+                            <table class="w-full min-w-[800px] border-collapse">
                               <thead>
                                 <tr>
-                                  <th class="border border-black px-2 py-2 text-center text-xs font-black text-slate-800 bg-slate-50 w-12">No</th>
-                                  <th class="border border-black px-2 py-2 text-center text-xs font-black text-slate-800 bg-slate-50">평가일자</th>
+                                  <th class="border border-black px-2 py-2 text-center text-xs font-black text-slate-800 bg-slate-50 min-w-[8rem]">과목</th>
+                                  <th class="border border-black px-2 py-2 text-center text-xs font-black text-slate-800 bg-slate-50">평가일정</th>
                                   <th class="border border-black px-2 py-2 text-center text-xs font-black text-slate-800 bg-slate-50 w-28">시간</th>
                                   <th class="border border-black px-2 py-2 text-center text-xs font-black text-slate-800 bg-slate-50">장소</th>
-                                  <th class="border border-black px-2 py-2 text-center text-xs font-black text-slate-800 bg-slate-50">대상자</th>
+                                  <th class="border border-black px-2 py-2 text-center text-xs font-black text-slate-800 bg-slate-50 w-24">수정</th>
                                   <th class="border border-black px-2 py-2 text-center text-xs font-black text-slate-800 bg-slate-50 w-24">삭제</th>
                                 </tr>
                               </thead>
@@ -1532,6 +1528,8 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
     var autoEditableSeq = 1;
     var selectedDocIdByTab = {};
     var selectedSessionIdForSubject = '';
+    /** 평가실시일자: 수정 중일 때 행 삽입 위치 (null이면 맨 뒤 추가) */
+    var schedulePendingEditIndex = null;
     const isTeacherLmsPath = window.location.pathname.startsWith('/teacher/');
 
     function hasTeacherLmsChrome() {
@@ -2910,7 +2908,6 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         return {
           title: (document.getElementById('schedule_doc_title') || {}).value || '',
           payload: {
-            eval_type: (document.getElementById('schedule_eval_type') || {}).value || '',
             writer: (document.getElementById('schedule_writer') || {}).value || '',
             notes: (document.getElementById('schedule_notes') || {}).value || '',
             rows: readScheduleRowsFromTable(),
@@ -3004,16 +3001,53 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       };
     }
 
+    function normalizeSchedulePayloadRows(rows) {
+      if (!Array.isArray(rows)) return [];
+      return rows.map(function(r) {
+        var subj = String(r.subject || r.subject_name || '').trim();
+        if (!subj && r.target != null && String(r.target).trim() !== '') subj = String(r.target).trim();
+        var cid = r.curriculum_id != null && String(r.curriculum_id).trim() !== '' ? String(r.curriculum_id).trim() : '';
+        return {
+          subject: subj || '-',
+          curriculum_id: cid,
+          date: String(r.date || '').trim(),
+          time: String(r.time || '').trim(),
+          place: String(r.place || '').trim()
+        };
+      });
+    }
+
+    function applyScheduleDocTitleAuto() {
+      var el = document.getElementById('schedule_doc_title');
+      if (!el) return;
+      el.value = roundLabel(selectedRound) + ' 평가 실시 일정';
+    }
+
+    function updateScheduleAddButtonLabel() {
+      var lbl = document.getElementById('scheduleAddRowBtnLabel');
+      if (lbl) lbl.textContent = schedulePendingEditIndex !== null ? '수정 반영' : '일정 추가';
+    }
+
+    function clearScheduleInputRow() {
+      var d = document.getElementById('scheduleInputDate');
+      var t = document.getElementById('scheduleInputTime');
+      var p = document.getElementById('scheduleInputPlace');
+      if (d) d.value = '';
+      if (t) t.value = '';
+      if (p) p.value = '';
+    }
+
     function readScheduleRowsFromTable() {
       const body = document.getElementById('scheduleRowsBody');
       if (!body) return [];
       const rows = [];
       body.querySelectorAll('tr[data-schedule-row]').forEach(function(tr) {
         rows.push({
+          subject: tr.getAttribute('data-subject') || '',
+          curriculum_id: tr.getAttribute('data-curriculum-id') || '',
           date: tr.getAttribute('data-date') || '',
           time: tr.getAttribute('data-time') || '',
-          place: tr.getAttribute('data-place') || '',
-          target: tr.getAttribute('data-target') || ''
+          place: tr.getAttribute('data-place') || ''
         });
       });
       return rows;
@@ -3028,43 +3062,63 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         return;
       }
       body.innerHTML = safeRows.map(function(row, idx) {
+        const subject = String(row?.subject || '');
+        const cid = String(row?.curriculum_id || '');
         const date = String(row?.date || '');
         const time = String(row?.time || '');
         const place = String(row?.place || '');
-        const target = String(row?.target || '');
-        return '<tr data-schedule-row data-date="' + escapeHtml(date) + '" data-time="' + escapeHtml(time) + '" data-place="' + escapeHtml(place) + '" data-target="' + escapeHtml(target) + '">' +
-          '<td class="border border-black px-2 py-2 text-sm font-semibold text-slate-800 text-center">' + (idx + 1) + '</td>' +
+        return '<tr data-schedule-row data-subject="' + escapeHtml(subject) + '" data-curriculum-id="' + escapeHtml(cid) + '" data-date="' + escapeHtml(date) + '" data-time="' + escapeHtml(time) + '" data-place="' + escapeHtml(place) + '">' +
+          '<td class="border border-black px-2 py-2 text-sm text-slate-800">' + escapeHtml(subject || '-') + '</td>' +
           '<td class="border border-black px-2 py-2 text-sm text-slate-800">' + escapeHtml(date || '-') + '</td>' +
           '<td class="border border-black px-2 py-2 text-sm text-slate-800">' + escapeHtml(time || '-') + '</td>' +
           '<td class="border border-black px-2 py-2 text-sm text-slate-800">' + escapeHtml(place || '-') + '</td>' +
-          '<td class="border border-black px-2 py-2 text-sm text-slate-800">' + escapeHtml(target || '-') + '</td>' +
+          '<td class="border border-black px-2 py-2 text-center align-middle"><button type="button" class="px-2.5 py-1.5 rounded-lg border border-amber-200 bg-amber-50 text-amber-700 text-xs font-black hover:bg-amber-100 transition" data-edit-schedule-row="' + idx + '">수정</button></td>' +
           '<td class="border border-black px-2 py-2 text-center align-middle"><button type="button" class="px-2.5 py-1.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 text-xs font-black hover:bg-rose-100 transition" data-remove-schedule-row="' + idx + '">삭제</button></td>' +
         '</tr>';
       }).join('');
     }
 
     function addScheduleRowFromInputs() {
+      const subSel = document.getElementById('ncsPlanSubjectSelect');
       const dateEl = document.getElementById('scheduleInputDate');
       const timeEl = document.getElementById('scheduleInputTime');
       const placeEl = document.getElementById('scheduleInputPlace');
-      const targetEl = document.getElementById('scheduleInputTarget');
+      const curriculumId = subSel ? String(subSel.value || '').trim() : '';
+      var subjectLabel = '';
+      if (subSel && subSel.selectedIndex >= 0 && subSel.options[subSel.selectedIndex]) {
+        subjectLabel = String(subSel.options[subSel.selectedIndex].textContent || '').trim();
+      }
       const date = (dateEl?.value || '').trim();
       const time = (timeEl?.value || '').trim();
       const place = (placeEl?.value || '').trim();
-      const target = (targetEl?.value || '').trim();
 
+      if (!curriculumId) {
+        alert('상단의 교과목 · 하위 과목 (선택)에서 과목을 선택해 주세요.');
+        return;
+      }
       if (!date) {
-        alert('평가일자를 입력해 주세요.');
+        alert('평가일정(일자)를 입력해 주세요.');
         return;
       }
 
+      const newRow = {
+        subject: subjectLabel || '-',
+        curriculum_id: curriculumId,
+        date: date,
+        time: time,
+        place: place
+      };
       const rows = readScheduleRowsFromTable();
-      rows.push({ date, time, place, target });
+      if (schedulePendingEditIndex !== null && Number.isFinite(schedulePendingEditIndex)) {
+        var insertAt = Math.max(0, Math.min(schedulePendingEditIndex, rows.length));
+        rows.splice(insertAt, 0, newRow);
+        schedulePendingEditIndex = null;
+      } else {
+        rows.push(newRow);
+      }
       renderScheduleRows(rows);
-      if (dateEl) dateEl.value = '';
-      if (timeEl) timeEl.value = '';
-      if (placeEl) placeEl.value = '';
-      if (targetEl) targetEl.value = '';
+      clearScheduleInputRow();
+      updateScheduleAddButtonLabel();
     }
 
     function readQuestionRowsFromTable() {
@@ -3536,14 +3590,15 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       }
       if (tabId === 'schedule') {
         const titleEl = document.getElementById('schedule_doc_title');
-        const typeEl = document.getElementById('schedule_eval_type');
         const writerEl = document.getElementById('schedule_writer');
         const notesEl = document.getElementById('schedule_notes');
         if (titleEl) titleEl.value = data?.title || '';
-        if (typeEl) typeEl.value = payload.eval_type || '';
+        if (!String((titleEl && titleEl.value) || '').trim()) applyScheduleDocTitleAuto();
         if (writerEl) writerEl.value = payload.writer || '';
         if (notesEl) notesEl.value = payload.notes || '';
-        renderScheduleRows(payload.rows || []);
+        schedulePendingEditIndex = null;
+        updateScheduleAddButtonLabel();
+        renderScheduleRows(normalizeSchedulePayloadRows(payload.rows || []));
         void applyScheduleSessionSubjectFromPayload(payload || {});
         return;
       }
@@ -4144,6 +4199,29 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           addScheduleRowFromInputs();
           return;
         }
+        const editScheduleIdx = target.getAttribute('data-edit-schedule-row');
+        if (editScheduleIdx != null) {
+          const rows = readScheduleRowsFromTable();
+          const index = parseInt(editScheduleIdx, 10);
+          if (!Number.isFinite(index) || index < 0 || index >= rows.length) return;
+          const row = rows[index];
+          rows.splice(index, 1);
+          renderScheduleRows(rows);
+          schedulePendingEditIndex = index;
+          var ss = document.getElementById('ncsPlanSubjectSelect');
+          if (ss && row.curriculum_id) {
+            ss.value = String(row.curriculum_id);
+            if (ss.value !== String(row.curriculum_id)) ss.value = '';
+          } else if (ss) ss.value = '';
+          var sde = document.getElementById('scheduleInputDate');
+          var ste = document.getElementById('scheduleInputTime');
+          var spe = document.getElementById('scheduleInputPlace');
+          if (sde) sde.value = row.date || '';
+          if (ste) ste.value = row.time || '';
+          if (spe) spe.value = row.place || '';
+          updateScheduleAddButtonLabel();
+          return;
+        }
         if (target.id === 'questionAddRowBtn') {
           addQuestionFromInputs();
           return;
@@ -4156,6 +4234,9 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
             rows.splice(index, 1);
             renderScheduleRows(rows);
           }
+          schedulePendingEditIndex = null;
+          clearScheduleInputRow();
+          updateScheduleAddButtonLabel();
           return;
         }
         const removeQuestionIdx = target.getAttribute('data-remove-question-row');
