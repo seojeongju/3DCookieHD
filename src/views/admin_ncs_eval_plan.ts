@@ -1466,6 +1466,14 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
         </div>
       </div>
     </div>
+    <div id="ncsTeacherMinutesNoticeModal" class="fixed inset-0 bg-black/50 hidden z-[260] flex items-center justify-center p-4" role="alertdialog" aria-modal="true" aria-labelledby="ncsTeacherMinutesNoticeText">
+      <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-200">
+        <p id="ncsTeacherMinutesNoticeText" class="text-slate-800 font-bold text-base leading-relaxed">평가계획 회의록 수정에 대한 권한이 없습니다.</p>
+        <div class="mt-5 flex justify-end">
+          <button type="button" id="ncsTeacherMinutesNoticeOk" class="px-5 py-2.5 rounded-xl bg-slate-900 text-white text-sm font-black hover:bg-slate-800">확인</button>
+        </div>
+      </div>
+    </div>
   `;
 }
 
@@ -1505,10 +1513,23 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       return isTeacherLmsPath;
     }
 
+    function showTeacherMinutesNoticeModal() {
+      var m = document.getElementById('ncsTeacherMinutesNoticeModal');
+      if (!m) {
+        try { window.alert('평가계획 회의록 수정에 대한 권한이 없습니다.'); } catch (e) {}
+        return;
+      }
+      m.classList.remove('hidden');
+    }
+    function hideTeacherMinutesNoticeModal() {
+      var m = document.getElementById('ncsTeacherMinutesNoticeModal');
+      if (m) m.classList.add('hidden');
+    }
+
     function blockIfMinutesAdminOnly(tabId) {
       if (String(tabId || '') !== 'minutes') return false;
       if (!isMinutesReadOnlyMode()) return false;
-      alert('평가계획 회의록 수정에 대한 권한이 없습니다.');
+      showTeacherMinutesNoticeModal();
       return true;
     }
 
@@ -3568,37 +3589,60 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         return;
       }
       try {
-        var sessRes = await authFetch('/api/course-sessions?lms_course_id=' + encodeURIComponent(String(courseId)) + '&limit=100&page=1');
-        var sessJson = await sessRes.json();
-        var sessions = Array.isArray(sessJson && sessJson.data) ? sessJson.data : [];
         var wantSessionId = preferredSessionId != null && String(preferredSessionId).trim() !== '' ? String(preferredSessionId).trim() : '';
-        var picked = null;
-        if (wantSessionId) {
-          picked = sessions.find(function(s) { return s && String(s.id) === wantSessionId; }) || null;
-        }
-        if (!picked) picked = sessions[0] || null;
-        if (!picked || picked.id == null) {
-          subSel.disabled = true;
-          return;
+        var json = null;
+        var sessionIdForApi = '';
+
+        if (useFixedCourseId) {
+          sessionIdForApi = wantSessionId || String(courseId).trim();
+        } else if (wantSessionId) {
+          sessionIdForApi = wantSessionId;
+        } else {
+          var probeRes = await authFetch('/api/course-sessions/' + encodeURIComponent(String(courseId)) + '/timetable/resources');
+          json = await probeRes.json();
+          if (probeRes.ok && json && json.success && json.data) {
+            sessionIdForApi = String(courseId);
+          }
         }
 
-        selectedSessionIdForSubject = String(picked.id);
-        var res = await authFetch('/api/course-sessions/' + encodeURIComponent(String(picked.id)) + '/timetable/resources');
-        var json = await res.json();
+        if (!sessionIdForApi) {
+          var sessRes = await authFetch('/api/course-sessions?lms_course_id=' + encodeURIComponent(String(courseId)) + '&limit=500&page=1');
+          var sessJson = await sessRes.json();
+          var sessions = Array.isArray(sessJson && sessJson.data) ? sessJson.data : [];
+          var picked = wantSessionId ? (sessions.find(function(s) { return s && String(s.id) === wantSessionId; }) || null) : null;
+          if (!picked) picked = sessions[0] || null;
+          if (!picked || picked.id == null) {
+            subSel.disabled = true;
+            return;
+          }
+          sessionIdForApi = String(picked.id);
+          json = null;
+        }
+
+        selectedSessionIdForSubject = sessionIdForApi;
+        if (!json || !json.data) {
+          var res = await authFetch('/api/course-sessions/' + encodeURIComponent(sessionIdForApi) + '/timetable/resources');
+          json = await res.json();
+        }
         var data = json && json.data;
         var subjects = data && Array.isArray(data.subjects) ? data.subjects : [];
         subSel.disabled = false;
+        var seen = {};
         subjects.forEach(function(sub) {
           if (!sub || sub.id == null) return;
+          var idKey = String(sub.id);
+          if (seen[idKey]) return;
+          seen[idKey] = true;
           var opt = document.createElement('option');
-          opt.value = String(sub.id);
-          var nm = String(sub.name || sub.job_name || '교과목');
-          if (nm.length > 96) nm = nm.substring(0, 96) + '…';
+          opt.value = idKey;
+          var nm = String(sub.name || sub.main_job_name || sub.job_name || '교과목');
           opt.textContent = nm;
+          opt.title = nm;
           subSel.appendChild(opt);
         });
       } catch (e) {
         console.error(e);
+        subSel.disabled = true;
       }
     }
 
@@ -3667,6 +3711,8 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       } catch (e) {
         console.error(e);
         setPlanDocSelectOptions(tabId, [], '');
+        var listErr = (e && e.message) ? String(e.message) : '저장문서 목록을 불러오지 못했습니다.';
+        setStatus(tabId, listErr, true);
         return [];
       }
     }
@@ -4111,6 +4157,19 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         });
       }
 
+      try {
+        var urlParamsRound = new URLSearchParams(window.location.search);
+        var erParam = urlParamsRound.get('evaluation_round') || urlParamsRound.get('round');
+        if (erParam) {
+          var erNum = parseInt(String(erParam), 10);
+          if (erNum >= 1 && erNum <= 3) {
+            selectedRound = erNum;
+            var roundSelInit = document.getElementById('ncsPlanRoundSelect');
+            if (roundSelInit) roundSelInit.value = String(erNum);
+          }
+        }
+      } catch (eRound) {}
+
       applyRoundBadges();
       switchNcsPlanTab('minutes');
       if (useFixedCourseId) {
@@ -4126,6 +4185,17 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       var minutesPrintBtnInline = document.getElementById('minutesPrintBtnInline');
       if (minutesPrintBtnInline) {
         minutesPrintBtnInline.addEventListener('click', function() { printMinutesDocument(); });
+      }
+
+      var teacherNoticeModal = document.getElementById('ncsTeacherMinutesNoticeModal');
+      var teacherNoticeOk = document.getElementById('ncsTeacherMinutesNoticeOk');
+      if (teacherNoticeOk) {
+        teacherNoticeOk.addEventListener('click', function() { hideTeacherMinutesNoticeModal(); });
+      }
+      if (teacherNoticeModal) {
+        teacherNoticeModal.addEventListener('click', function(ev) {
+          if (ev.target === teacherNoticeModal) hideTeacherMinutesNoticeModal();
+        });
       }
 
       var questionsPrintBtn = document.getElementById('questionsPrintBtn');

@@ -538,26 +538,69 @@ app.get('/:id/timetable/resources', authMiddleware, requireRole('admin', 'teache
 
     let subjects: any[] = [];
     if (registration) {
-      // 3. Curriculum + Hours — 과정개설 시 설정된 직종명·능력단위·요소단위 반영 (교과목별 job_name 우선)
+      // 교과목당 1행 + 시간은 training_hours 합계 (다중 시간 행 JOIN으로 중복 나오지 않게)
       const rows = await DB.prepare(
-        `SELECT 
-             c.id, 
-             c.name, 
-             c.type, 
-             c.classification as ncs_classification_code, 
-             COALESCE(h.theory_hours, 0) + COALESCE(h.practice_hours, 0) as total_time,
+        `SELECT
+             c.id,
+             c.name,
+             c.type,
+             c.classification as ncs_classification_code,
+             COALESCE(
+               (SELECT SUM(COALESCE(h.theory_hours, 0) + COALESCE(h.practice_hours, 0))
+                FROM ncs_approved_training_hours h WHERE h.curriculum_id = c.id),
+               0
+             ) as total_time,
              COALESCE(NULLIF(TRIM(c.job_name), ''), r.main_job_name) as main_job_name,
              r.main_job_code,
              c.ability_units_json,
              c.units_json
            FROM ncs_approved_curriculum c
-           LEFT JOIN ncs_approved_training_hours h ON h.curriculum_id = c.id
            LEFT JOIN ncs_approved_registrations r ON r.id = c.registration_id
-           WHERE c.registration_id = ?`
+           WHERE c.registration_id = ?
+           ORDER BY c.id`
       )
         .bind(registration.id)
         .all();
       subjects = rows.results || [];
+    }
+
+    // 시간표에만 있고 NCS 편성 목록에 빠진 교과목 보강
+    const ttDistinct = await DB.prepare(
+      `SELECT DISTINCT subject_id FROM session_timetable
+       WHERE session_id = ? AND subject_id IS NOT NULL AND (is_excluded IS NULL OR is_excluded = 0)`
+    )
+      .bind(sessionId)
+      .all();
+    const ttIds = (ttDistinct.results || [])
+      .map((r: any) => r.subject_id)
+      .filter((id: any) => id != null && Number.isFinite(Number(id)));
+    const haveIds = new Set(subjects.map((s: any) => Number(s.id)));
+    const missingIds = [...new Set(ttIds.map((id: any) => Number(id)))].filter((id) => !haveIds.has(id));
+    if (missingIds.length > 0) {
+      const placeholders = missingIds.map(() => '?').join(',');
+      const extra = await DB.prepare(
+        `SELECT
+             c.id,
+             c.name,
+             c.type,
+             c.classification as ncs_classification_code,
+             COALESCE(
+               (SELECT SUM(COALESCE(h.theory_hours, 0) + COALESCE(h.practice_hours, 0))
+                FROM ncs_approved_training_hours h WHERE h.curriculum_id = c.id),
+               0
+             ) as total_time,
+             COALESCE(NULLIF(TRIM(c.job_name), ''), r.main_job_name) as main_job_name,
+             r.main_job_code,
+             c.ability_units_json,
+             c.units_json
+           FROM ncs_approved_curriculum c
+           LEFT JOIN ncs_approved_registrations r ON r.id = c.registration_id
+           WHERE c.id IN (${placeholders})
+           ORDER BY c.id`
+      )
+        .bind(...missingIds)
+        .all();
+      subjects = [...subjects, ...((extra.results || []) as any[])];
     }
 
     // 3. Instructors (Filtered by assignment)

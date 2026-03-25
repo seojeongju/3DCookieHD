@@ -3505,6 +3505,42 @@ function forbidTeacherMinutesMutation(c: any, docType: string) {
     return null;
 }
 
+/**
+ * ncs_plan_documents.course_id에 회차(session) id 또는 연결된 lms_course_id(legacy)가 섞여 저장될 수 있음.
+ * LMS는 보통 session id로 조회하므로, 둘 다 포함해 목록·단건 조회한다.
+ */
+async function resolveNcsPlanDocumentCourseIds(db: any, courseId: number): Promise<number[]> {
+    const ids = new Set<number>();
+    if (Number.isFinite(courseId) && courseId >= 1) ids.add(courseId);
+
+    const session: any = await db
+        .prepare('SELECT id, lms_course_id, approved_course_id FROM course_sessions WHERE id = ?')
+        .bind(courseId)
+        .first();
+    if (session) {
+        if (session.lms_course_id != null && session.lms_course_id !== '') {
+            const lid = parseInt(String(session.lms_course_id), 10);
+            if (Number.isFinite(lid) && lid >= 1) ids.add(lid);
+        }
+        if (session.approved_course_id != null && session.approved_course_id !== '') {
+            const aid = parseInt(String(session.approved_course_id), 10);
+            if (Number.isFinite(aid) && aid >= 1) ids.add(aid);
+        }
+        return [...ids];
+    }
+
+    try {
+        const { results } = await db.prepare('SELECT id FROM course_sessions WHERE lms_course_id = ?').bind(courseId).all();
+        for (const r of results || []) {
+            const sid = parseInt(String((r as any).id), 10);
+            if (Number.isFinite(sid) && sid >= 1) ids.add(sid);
+        }
+    } catch {
+        /* ignore */
+    }
+    return [...ids];
+}
+
 // NCS 평가계획 문서 단건 조회
 app.get('/plan-documents', authMiddleware, async (c) => {
     try {
@@ -3527,6 +3563,10 @@ app.get('/plan-documents', authMiddleware, async (c) => {
         const allowed = await ensureNcsCoursePermission(c, courseId);
         if (!allowed) return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
 
+        const courseIds = await resolveNcsPlanDocumentCourseIds(c.env.DB, courseId);
+        const inList = courseIds.length ? courseIds : [courseId];
+        const inPh = inList.map(() => '?').join(', ');
+
         let row: any = null;
         if (docIdRaw) {
             const docId = parseInt(String(docIdRaw), 10);
@@ -3536,17 +3576,17 @@ app.get('/plan-documents', authMiddleware, async (c) => {
             row = await c.env.DB.prepare(`
                 SELECT id, course_id, evaluation_round, doc_type, title, payload_json, updated_at
                 FROM ncs_plan_documents
-                WHERE id = ? AND course_id = ? AND evaluation_round = ? AND doc_type = ?
+                WHERE id = ? AND course_id IN (${inPh}) AND evaluation_round = ? AND doc_type = ?
                 LIMIT 1
-            `).bind(docId, courseId, round, docType).first();
+            `).bind(docId, ...inList, round, docType).first();
         } else {
             row = await c.env.DB.prepare(`
                 SELECT id, course_id, evaluation_round, doc_type, title, payload_json, updated_at
                 FROM ncs_plan_documents
-                WHERE course_id = ? AND evaluation_round = ? AND doc_type = ?
+                WHERE course_id IN (${inPh}) AND evaluation_round = ? AND doc_type = ?
                 ORDER BY updated_at DESC, id DESC
                 LIMIT 1
-            `).bind(courseId, round, docType).first();
+            `).bind(...inList, round, docType).first();
         }
 
         if (!row) {
@@ -3599,12 +3639,16 @@ app.get('/plan-documents/list', authMiddleware, async (c) => {
         const allowed = await ensureNcsCoursePermission(c, courseId);
         if (!allowed) return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
 
+        const courseIds = await resolveNcsPlanDocumentCourseIds(c.env.DB, courseId);
+        const inList = courseIds.length ? courseIds : [courseId];
+        const inPh = inList.map(() => '?').join(', ');
+
         const { results } = await c.env.DB.prepare(`
             SELECT id, title, updated_at
             FROM ncs_plan_documents
-            WHERE course_id = ? AND evaluation_round = ? AND doc_type = ?
+            WHERE course_id IN (${inPh}) AND evaluation_round = ? AND doc_type = ?
             ORDER BY updated_at DESC, id DESC
-        `).bind(courseId, round, docType).all();
+        `).bind(...inList, round, docType).all();
 
         return c.json({ success: true, data: Array.isArray(results) ? results : [] });
     } catch (e) {
