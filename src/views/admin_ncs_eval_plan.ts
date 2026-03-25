@@ -4171,6 +4171,59 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
     });
 
     document.addEventListener('DOMContentLoaded', async function() {
+      function highlightAndScrollTo(el) {
+        if (!el) return;
+        try {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } catch (_) {
+          try { el.scrollIntoView(true); } catch (_) {}
+        }
+        try {
+          el.classList.add('ring-4', 'ring-indigo-200', 'ring-offset-2');
+          setTimeout(function() {
+            try { el.classList.remove('ring-4', 'ring-indigo-200', 'ring-offset-2'); } catch (_) {}
+          }, 1600);
+        } catch (_) {}
+      }
+
+      function getPlanFocusParams() {
+        try {
+          var p = new URLSearchParams(window.location.search);
+          var focus = String(p.get('focus') || '').trim();
+          var subjectId = String(p.get('subject_id') || p.get('subjectId') || '').trim();
+          var tab = String(p.get('plan_tab') || p.get('planTab') || '').trim();
+          return { focus: focus === '1', subjectId: subjectId, tab: tab };
+        } catch (_) {
+          return { focus: false, subjectId: '', tab: '' };
+        }
+      }
+
+      async function applyAutoFocusIfRequested() {
+        var fp = getPlanFocusParams();
+        if (!fp.focus) return;
+        var tabId = activeTab || fp.tab || 'minutes';
+        var selectIdByTab = {
+          schedule: 'scheduleSubjectSelect',
+          questions: 'questionsSubjectSelect',
+          tools: 'toolsSubjectSelect',
+          rubric: 'rubric_subject_name',
+          achievement: 'achievement_subject_name',
+          review: 'review_subject_name'
+        };
+        var targetSelectId = selectIdByTab[tabId] || '';
+        if (fp.subjectId && targetSelectId) {
+          applyNcsSubjectSelectValue(targetSelectId, fp.subjectId, '');
+        }
+        // 탭별 입력 영역으로 스크롤
+        var focusEl = null;
+        if (tabId === 'schedule') focusEl = document.getElementById('scheduleInputDate') || document.getElementById('scheduleSubjectSelect');
+        else if (tabId === 'questions') focusEl = document.getElementById('questionInputText') || document.getElementById('questionsSubjectSelect');
+        else if (tabId === 'tools') focusEl = document.getElementById('tools_notes') || document.getElementById('toolsSubjectSelect');
+        else if (tabId === 'rubric') focusEl = document.getElementById('rubric_subject_name');
+        else if (tabId === 'achievement') focusEl = document.getElementById('achievement_subject_name');
+        else if (tabId === 'review') focusEl = document.getElementById('review_subject_name');
+        highlightAndScrollTo(focusEl);
+      }
       function ensureEditableTargetId(el) {
         if (!el) return '';
         if (el.id) return String(el.id);
@@ -4447,6 +4500,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         selectedCourseId = fixedCourseId;
         await loadNcsPlanSubjectOptions(fixedCourseId, undefined, { preserveSelection: false });
         await loadDocument('minutes');
+        await applyAutoFocusIfRequested();
       }
 
       var minutesPrintBtn = document.getElementById('minutesPrintBtn');

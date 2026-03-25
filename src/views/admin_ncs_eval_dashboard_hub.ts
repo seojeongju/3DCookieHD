@@ -86,8 +86,12 @@ export const adminNcsEvalDashboardHubHtml = (sidebar = hrdSidebar('ncs-eval-dash
         : '<span class="inline-flex items-center px-2 py-1 rounded-lg bg-rose-100 text-rose-700 border border-rose-200 text-xs font-black">미설정</span>';
     }
 
-    function statusLink(tab, round, ok) {
-      var href = lmsBase() + 'ncs-eval-plan' + Q + '&evaluation_round=' + encodeURIComponent(String(round)) + '&plan_tab=' + encodeURIComponent(String(tab));
+    function statusLink(tab, round, ok, subjectId) {
+      var href = lmsBase() + 'ncs-eval-plan' + Q +
+        '&evaluation_round=' + encodeURIComponent(String(round)) +
+        '&plan_tab=' + encodeURIComponent(String(tab)) +
+        '&focus=1' +
+        (subjectId != null && String(subjectId).trim() !== '' ? ('&subject_id=' + encodeURIComponent(String(subjectId))) : '');
       var title = '평가계획 이동';
       return '<a href="' + href + '" class="inline-flex items-center justify-center w-full" title="' + title + '">' + statusLabel(ok) + '</a>';
     }
@@ -152,12 +156,12 @@ export const adminNcsEvalDashboardHubHtml = (sidebar = hrdSidebar('ncs-eval-dash
               '</td>';
             html += '<td class="px-3 py-3 text-sm text-slate-700">' + escapeHtml(row.method) + '</td>';
             html += '<td class="px-3 py-3 text-sm text-slate-700 whitespace-nowrap">' + escapeHtml(row.progress_label) + '</td>';
-            html += '<td class="px-3 py-3 text-center">' + statusLink('schedule', r, !!row.schedule) + '</td>';
-            html += '<td class="px-3 py-3 text-center">' + statusLink('questions', r, !!row.questions) + '</td>';
-            html += '<td class="px-3 py-3 text-center">' + statusLink('tools', r, !!row.tools) + '</td>';
-            html += '<td class="px-3 py-3 text-center">' + statusLink('rubric', r, !!row.rubric) + '</td>';
-            html += '<td class="px-3 py-3 text-center">' + statusLink('achievement', r, !!row.achievement) + '</td>';
-            html += '<td class="px-3 py-3 text-center">' + statusLink('review', r, !!row.review) + '</td>';
+            html += '<td class="px-3 py-3 text-center">' + statusLink('schedule', r, !!row.schedule, row.ncs_unit_id) + '</td>';
+            html += '<td class="px-3 py-3 text-center">' + statusLink('questions', r, !!row.questions, row.ncs_unit_id) + '</td>';
+            html += '<td class="px-3 py-3 text-center">' + statusLink('tools', r, !!row.tools, row.ncs_unit_id) + '</td>';
+            html += '<td class="px-3 py-3 text-center">' + statusLink('rubric', r, !!row.rubric, row.ncs_unit_id) + '</td>';
+            html += '<td class="px-3 py-3 text-center">' + statusLink('achievement', r, !!row.achievement, row.ncs_unit_id) + '</td>';
+            html += '<td class="px-3 py-3 text-center">' + statusLink('review', r, !!row.review, row.ncs_unit_id) + '</td>';
             html += '<td class="px-3 py-3 text-center">';
             html += '<div class="flex flex-wrap justify-center gap-1">';
             if (row.scores_missing) {
