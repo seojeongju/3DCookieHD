@@ -121,6 +121,7 @@ import { hrdSidebar } from './views/components/hrd_sidebar';
 import { adminHrdGradesHtml } from './views/admin_hrd_grades';
 import { adminHrdNcsEvalHtml } from './views/admin_hrd_ncs_eval';
 import { adminNcsEvalPlanHtml, adminLmsNcsEvalPlanHtml } from './views/admin_ncs_eval_plan';
+import { adminNcsEvalDashboardHubHtml } from './views/admin_ncs_eval_dashboard_hub';
 import { adminNcsEvalExecHtml } from './views/admin_ncs_eval_exec';
 import { adminLmsNcsEvalExecHtml } from './views/admin_lms_ncs_eval_exec';
 import { adminNcsEvalResultHtml, adminLmsNcsEvalResultHtml } from './views/admin_ncs_eval_result';
@@ -404,6 +405,7 @@ app.get('/admin/exams/question-bank', (c) => {
 app.get('/admin/exams/:id/results', (c) => c.html(adminExamResultsHtml()));
 app.get('/admin/grades', (c) => c.html(adminHrdGradesHtml()));
 app.get('/admin/ncs-eval', (c) => c.html(adminHrdNcsEvalHtml()));
+app.get('/admin/ncs-eval-dashboard-hub', (c) => c.html(adminNcsEvalDashboardHubHtml()));
 app.get('/admin/ncs-eval-plan', (c) => c.html(adminNcsEvalPlanHtml()));
 app.get('/admin/ncs-eval-exec', (c) => c.html(adminNcsEvalExecHtml()));
 app.get('/admin/ncs-eval-result', (c) => c.html(adminNcsEvalResultHtml()));

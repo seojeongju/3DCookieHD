@@ -5112,6 +5112,11 @@ export const adminNcsEvalPlanHtml = (sidebar = hrdSidebar('ncs-eval-plan')) => `
         <div class="px-6 py-5">
           <h1 class="text-2xl font-black tracking-tight text-slate-900">NCS평가계획</h1>
           <p class="text-sm text-slate-500 mt-1">본평가 준비를 위한 회의록/일정/문항/도구 관련 문서를 탭별로 관리합니다.</p>
+          <nav class="flex flex-wrap gap-2 mt-4 text-xs font-black" aria-label="NCS 본평가 바로가기">
+            <a href="/admin/ncs-eval-dashboard-hub" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm"><i class="fas fa-table-columns"></i> 과정별 통합현황</a>
+            <a href="/admin/ncs-eval-exec" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"><i class="fas fa-play-circle"></i> 평가실행</a>
+            <a href="/admin/ncs-eval-result" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"><i class="fas fa-poll"></i> 평가결과</a>
+          </nav>
         </div>
       </header>
       <main class="p-6">
