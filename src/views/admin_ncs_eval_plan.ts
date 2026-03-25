@@ -140,6 +140,7 @@ function questionsPrintSheetHtml() {
             <table class="w-full border-collapse text-[10pt]">
               <thead>
                 <tr class="bg-slate-50">
+                  <th class="border border-black px-2 py-2 w-24 text-left">과목</th>
                   <th class="border border-black px-2 py-2 w-12 text-center">번호</th>
                   <th class="border border-black px-2 py-2 w-20 text-center">유형</th>
                   <th class="border border-black px-2 py-2 text-left">문항</th>
@@ -2597,19 +2598,45 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       var tbody = document.getElementById('questionsPrintRowsBody');
       if (tbody) {
         if (!rows.length) {
-          tbody.innerHTML = '<tr><td colspan="5" class="border border-black px-2 py-3 text-center text-slate-500 text-[10pt]">등록된 문항이 없습니다.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="6" class="border border-black px-2 py-3 text-center text-slate-500 text-[10pt]">등록된 문항이 없습니다.</td></tr>';
         } else {
-          tbody.innerHTML = rows.map(function(row, idx) {
-            var no = Number(row && row.no != null ? row.no : idx + 1);
-            var typ = escapeHtml(String(row && row.type != null ? row.type : '-'));
-            var rawTxt = String(row && row.text != null ? row.text : '');
-            var txtHtml = minutesContentToPrintHtml(rawTxt);
-            var sc = Number(row && row.score != null ? row.score : 0);
-            var kw = escapeHtml(String(row && row.keyword != null ? row.keyword : '-'));
+          var trNodes = document.querySelectorAll('#questionsRowsBody tr[data-question-row]');
+          var qRowsForPrint = Array.prototype.slice.call(trNodes).map(function(tr) {
+            var subject = String((tr.querySelector('td:nth-child(1)') || {}).textContent || '').trim();
+            var noEl = tr.querySelector('td:nth-child(2)');
+            var noText = noEl ? String(noEl.textContent || '').trim() : '';
+            var typEl = tr.querySelector('td:nth-child(3)');
+            var typText = typEl ? String(typEl.textContent || '').trim() : '-';
+            var qDiv = tr.querySelector('td:nth-child(4) > div');
+            var qHtml = qDiv ? String(qDiv.innerHTML || '') : '';
+            var scEl = tr.querySelector('td:nth-child(5)');
+            var scText = scEl ? String(scEl.textContent || '').trim() : '0';
+            var kwEl = tr.querySelector('td:nth-child(6)');
+            var kwText = kwEl ? String(kwEl.textContent || '').trim() : '-';
+            return { subject: subject, noText: noText, typText: typText, qHtml: qHtml, scText: scText, kwText: kwText };
+          });
+
+          // 상단 교과목(하위) 표시도 문서에 포함된 과목 전체 기준으로 갱신
+          var subjSet = {};
+          qRowsForPrint.forEach(function(r) {
+            var s = String(r?.subject || '').trim();
+            if (s) subjSet[s] = true;
+          });
+          var allSubj = Object.keys(subjSet).join(', ');
+          if (allSubj) setMinutesPrintText('questionsPrintSubject', allSubj);
+
+          tbody.innerHTML = qRowsForPrint.map(function(r, idx) {
+            var noVal = r.noText ? escapeHtml(r.noText) : String(idx + 1);
+            var typ = escapeHtml(String(r.typText || '-'));
+            var subject = escapeHtml(String(r.subject || '-'));
+            var qHtml = r.qHtml ? String(r.qHtml) : '';
+            var sc = escapeHtml(String(r.scText || '0'));
+            var kw = escapeHtml(String(r.kwText || '-'));
             return '<tr>' +
-              '<td class="border border-black px-2 py-2 text-center align-top">' + no + '</td>' +
+              '<td class="border border-black px-2 py-2 text-left align-top whitespace-pre-wrap text-[10pt]">' + subject + '</td>' +
+              '<td class="border border-black px-2 py-2 text-center align-top">' + noVal + '</td>' +
               '<td class="border border-black px-2 py-2 text-center align-top">' + typ + '</td>' +
-              '<td class="border border-black px-2 py-2 text-left align-top text-[10pt]">' + (txtHtml || '<span class="text-slate-500">-</span>') + '</td>' +
+              '<td class="border border-black px-2 py-2 text-left align-top text-[10pt]">' + (qHtml || '<span class="text-slate-500">-</span>') + '</td>' +
               '<td class="border border-black px-2 py-2 text-center align-top">' + sc + '</td>' +
               '<td class="border border-black px-2 py-2 text-left align-top whitespace-pre-wrap text-[10pt]">' + kw + '</td>' +
               '</tr>';
