@@ -12,6 +12,20 @@ const NCS_PLAN_TAB_ITEMS = [
   { id: 'review', label: '평가도구검토', icon: 'fa-magnifying-glass-chart' },
 ] as const;
 
+/** 강사 읽기 전용 안내 — body 직하위에 두어 overflow/transform 조상에 가리지 않게 함 */
+function ncsTeacherMinutesNoticeModalHtml() {
+  return `
+    <div id="ncsTeacherMinutesNoticeModal" class="fixed inset-0 bg-black/50 hidden z-[9999] flex items-center justify-center p-4" role="alertdialog" aria-modal="true" aria-labelledby="ncsTeacherMinutesNoticeText">
+      <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-200">
+        <p id="ncsTeacherMinutesNoticeText" class="text-slate-800 font-bold text-base leading-relaxed">평가계획 회의록 수정에 대한 권한이 없습니다.</p>
+        <div class="mt-5 flex justify-end">
+          <button type="button" id="ncsTeacherMinutesNoticeOk" class="px-5 py-2.5 rounded-xl bg-slate-900 text-white text-sm font-black hover:bg-slate-800">확인</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 /** 인쇄 전용: 평가 계획 회의록 양식 (화면에서는 숨김, @media print 에서만 표시) */
 function minutesPrintSheetHtml() {
   return `
@@ -1466,14 +1480,6 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
         </div>
       </div>
     </div>
-    <div id="ncsTeacherMinutesNoticeModal" class="fixed inset-0 bg-black/50 hidden z-[260] flex items-center justify-center p-4" role="alertdialog" aria-modal="true" aria-labelledby="ncsTeacherMinutesNoticeText">
-      <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-200">
-        <p id="ncsTeacherMinutesNoticeText" class="text-slate-800 font-bold text-base leading-relaxed">평가계획 회의록 수정에 대한 권한이 없습니다.</p>
-        <div class="mt-5 flex justify-end">
-          <button type="button" id="ncsTeacherMinutesNoticeOk" class="px-5 py-2.5 rounded-xl bg-slate-900 text-white text-sm font-black hover:bg-slate-800">확인</button>
-        </div>
-      </div>
-    </div>
   `;
 }
 
@@ -1491,6 +1497,14 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
     var selectedDocIdByTab = {};
     var selectedSessionIdForSubject = '';
     const isTeacherLmsPath = window.location.pathname.startsWith('/teacher/');
+
+    function hasTeacherLmsChrome() {
+      try {
+        return !!document.getElementById('teacherSidebarWrap');
+      } catch (e) {
+        return false;
+      }
+    }
 
     const TAB_NAMES = {
       minutes: '평가계획회의록',
@@ -1510,7 +1524,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
     }
 
     function isMinutesReadOnlyMode() {
-      return isTeacherLmsPath;
+      return isTeacherLmsPath || hasTeacherLmsChrome();
     }
 
     function showTeacherMinutesNoticeModal() {
@@ -1520,10 +1534,22 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         return;
       }
       m.classList.remove('hidden');
+      m.style.display = 'flex';
+      m.style.zIndex = '99999';
+      try {
+        document.body.style.overflow = 'hidden';
+      } catch (e) {}
     }
     function hideTeacherMinutesNoticeModal() {
       var m = document.getElementById('ncsTeacherMinutesNoticeModal');
-      if (m) m.classList.add('hidden');
+      if (m) {
+        m.classList.add('hidden');
+        m.style.display = '';
+        m.style.zIndex = '';
+      }
+      try {
+        document.body.style.overflow = '';
+      } catch (e) {}
     }
 
     function blockIfMinutesAdminOnly(tabId) {
@@ -1571,7 +1597,8 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       var el = document.getElementById(id);
       if (!el) return '';
       var tag = el.tagName ? String(el.tagName).toUpperCase() : '';
-      if (id === 'minutes_content' && el.isContentEditable) return String(el.innerHTML || '');
+      // 읽기 전용( contenteditable=false )에서도 회의내용은 HTML로 저장·복원해야 이미지가 보임
+      if (id === 'minutes_content') return String(el.innerHTML || '');
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return String(el.value || '');
       if (el.isContentEditable) return String(el.textContent || '');
       return String(el.textContent || '');
@@ -1586,7 +1613,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         el.value = next;
         return;
       }
-      if (id === 'minutes_content' && el.isContentEditable) {
+      if (id === 'minutes_content') {
         el.innerHTML = normalizeMinutesContentForEditor(next);
         return;
       }
@@ -4828,6 +4855,7 @@ export const adminNcsEvalPlanHtml = (sidebar = hrdSidebar('ncs-eval-plan')) => `
   ${NCS_PLAN_PRINT_STYLES}
 </head>
 <body class="bg-slate-50">
+  ${ncsTeacherMinutesNoticeModalHtml()}
   <div class="flex h-screen overflow-hidden">
     ${sidebar}
     <div class="flex-1 overflow-y-auto custom-scrollbar">
@@ -4859,6 +4887,7 @@ export const adminLmsNcsEvalPlanHtml = (sidebar: string = hrdSidebar('courses'))
   ${NCS_PLAN_PRINT_STYLES}
 </head>
 <body class="bg-slate-50 overflow-hidden">
+  ${ncsTeacherMinutesNoticeModalHtml()}
   <div class="flex h-screen overflow-hidden">
     ${sidebar}
     <div class="flex-1 overflow-y-auto custom-scrollbar">
