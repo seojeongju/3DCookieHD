@@ -1438,12 +1438,7 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                     <div id="reviewAttachmentsList" class="flex flex-wrap gap-2 min-h-[2.5rem]"></div>
                   </div>
                 </div>
-              ` : `
-                <div class="space-y-3">
-                  <input id="${item.id}_doc_title" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm" placeholder="${item.label} 문서 제목" />
-                  <textarea id="${item.id}_body" class="w-full h-96 px-4 py-3 rounded-2xl border border-slate-200 text-sm" placeholder="${item.label} 내용을 입력하세요."></textarea>
-                </div>
-              `}
+              ` : ''}
               <div class="mt-3 text-xs text-slate-500 flex items-center justify-between">
                 <span id="planDocStatus-${item.id}">저장 대기</span>
                 <span id="planDocUpdatedAt-${item.id}">마지막 저장: -</span>
