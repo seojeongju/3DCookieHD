@@ -52,37 +52,9 @@ export const adminNcsEvalDashboardHubHtml = (sidebar = hrdSidebar('ncs-eval-dash
       </header>
 
       <main class="flex-1 px-4 sm:px-6 lg:px-8 py-6 max-w-[1600px] mx-auto w-full space-y-6">
-        <div id="hrdDashPreEval" class="hidden bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div class="px-4 sm:px-5 py-3 border-b border-slate-100 bg-slate-50 flex flex-wrap items-center justify-between gap-2">
-            <h2 class="text-sm font-black text-slate-900">사전평가 (CBT)</h2>
-            <span class="text-[11px] text-slate-500">문항·응시 현황은 LMS 사전평가 메뉴에서 관리됩니다.</span>
-          </div>
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm min-w-[720px]">
-              <thead>
-                <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-black text-slate-500 uppercase tracking-wider">
-                  <th class="px-4 py-3">구분</th>
-                  <th class="px-4 py-3">평가수행일</th>
-                  <th class="px-4 py-3 text-center">바로가기</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr class="border-b border-slate-100">
-                  <td class="px-4 py-3 font-semibold text-slate-800">사전평가</td>
-                  <td class="px-4 py-3 text-slate-500" id="hrdPreEvalDate">—</td>
-                  <td class="px-4 py-3 text-center">
-                    <a id="hrdPreEvalLink" href="#" class="inline-flex items-center px-3 py-1.5 rounded-lg bg-sky-600 text-white text-xs font-black hover:bg-sky-700">사전평가 관리</a>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
         <p id="hrdDashHint" class="text-sm text-slate-500 py-6 text-center">위에서 <strong>과정</strong>을 선택하면 본평가 계획 현황이 표시됩니다.</p>
         <p id="hrdDashLoading" class="hidden text-sm text-slate-500 py-4 text-center"><i class="fas fa-spinner fa-spin mr-2"></i>현황을 불러오는 중…</p>
         <p id="hrdDashError" class="hidden text-sm text-rose-600 py-4 text-center font-bold"></p>
-        <div id="hrdDashFilterWrap" class="hidden bg-white rounded-2xl border border-slate-200 p-4 shadow-sm"></div>
         <div id="hrdDashRounds" class="space-y-8"></div>
       </main>
     </div>
@@ -92,8 +64,6 @@ export const adminNcsEvalDashboardHubHtml = (sidebar = hrdSidebar('ncs-eval-dash
   (function() {
     var selectedCourseId = '';
     var dashboardData = null;
-    var filterSubject = '';
-    var filterSearch = '';
     var token = localStorage.getItem('token');
 
     function lmsBase() {
@@ -126,94 +96,17 @@ export const adminNcsEvalDashboardHubHtml = (sidebar = hrdSidebar('ncs-eval-dash
       return '3차 평가실시계획 (재평가)';
     }
 
-    function filteredRows(rows) {
-      if (!Array.isArray(rows)) return [];
-      return rows.filter(function(row) {
-        if (filterSubject && String(row.subject_label || '') !== filterSubject) return false;
-        if (filterSearch) {
-          var k = filterSearch.toLowerCase();
-          var blob = (row.subject_label + ' ' + row.method + ' ' + row.progress_label).toLowerCase();
-          if (blob.indexOf(k) === -1) return false;
-        }
-        return true;
-      });
-    }
-
-    function buildSubjectOptions(allRows) {
-      var seen = {};
-      var opts = [];
-      (allRows || []).forEach(function(r) {
-        var s = String(r.subject_label || '').trim();
-        if (s && !seen[s]) { seen[s] = true; opts.push(s); }
-      });
-      opts.sort();
-      return opts;
-    }
-
-    function renderFilterBar(subjectOpts) {
-      return '<div class="flex flex-wrap items-end gap-3">' +
-        '<label class="text-xs font-bold text-slate-500 uppercase tracking-wider flex flex-col gap-1">' +
-        '<span>교과목</span>' +
-        '<select id="hrdDashFilterSubject" class="min-w-[200px] px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm">' +
-        '<option value="">전체</option>' +
-        subjectOpts.map(function(s) {
-          return '<option value="' + escapeHtml(s) + '"' + (filterSubject === s ? ' selected' : '') + '>' + escapeHtml(s) + '</option>';
-        }).join('') +
-        '</select></label>' +
-        '<label class="flex-1 min-w-[180px] max-w-md text-xs font-bold text-slate-500 uppercase tracking-wider flex flex-col gap-1">' +
-        '<span>검색</span>' +
-        '<div class="flex rounded-xl border border-slate-200 bg-white overflow-hidden">' +
-        '<span class="pl-3 flex items-center text-slate-400"><i class="fas fa-search text-sm"></i></span>' +
-        '<input type="text" id="hrdDashSearch" class="flex-1 px-2 py-2 text-sm outline-none" placeholder="검색어 입력" value="' + escapeHtml(filterSearch) + '" />' +
-        '</div></label>' +
-        '<button type="button" id="hrdDashReset" class="px-4 py-2 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-700 hover:bg-slate-50">초기화</button>' +
-        '</div>';
-    }
-
-    function bindFilterEvents() {
-      var subSel = document.getElementById('hrdDashFilterSubject');
-      if (subSel) {
-        subSel.value = filterSubject;
-        subSel.onchange = function() {
-          filterSubject = subSel.value || '';
-          renderRounds();
-        };
-      }
-      var searchEl = document.getElementById('hrdDashSearch');
-      if (searchEl) {
-        searchEl.oninput = function() {
-          filterSearch = (searchEl.value || '').trim();
-          renderRounds();
-        };
-      }
-      var resetBtn = document.getElementById('hrdDashReset');
-      if (resetBtn) {
-        resetBtn.onclick = function() {
-          filterSubject = '';
-          filterSearch = '';
-          renderRounds();
-        };
-      }
-    }
-
     function renderRounds() {
-      var filterWrap = document.getElementById('hrdDashFilterWrap');
       var roundsEl = document.getElementById('hrdDashRounds');
-      if (!filterWrap || !roundsEl || !dashboardData) return;
+      if (!roundsEl || !dashboardData) return;
 
       var rounds = dashboardData.rounds || [];
-      var allRowsFlat = [];
-      rounds.forEach(function(block) {
-        (block.rows || []).forEach(function(r) { allRowsFlat.push(r); });
-      });
-      filterWrap.classList.remove('hidden');
-      filterWrap.innerHTML = renderFilterBar(buildSubjectOptions(allRowsFlat));
 
       var html = '';
       var base = lmsBase();
       rounds.forEach(function(block) {
         var r = block.round;
-        var rows = filteredRows(block.rows || []);
+        var rows = block.rows || [];
         var badge = block.plan_confirmed
           ? '<span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black bg-emerald-100 text-emerald-800 border border-emerald-200"><i class="fas fa-check"></i> 평가계획 완료</span>'
           : '<span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black bg-rose-100 text-rose-800 border border-rose-200"><i class="fas fa-xmark"></i> 평가계획 미완료</span>';
@@ -278,19 +171,6 @@ export const adminNcsEvalDashboardHubHtml = (sidebar = hrdSidebar('ncs-eval-dash
       });
 
       roundsEl.innerHTML = html;
-      bindFilterEvents();
-    }
-
-    function updatePreEvalSection() {
-      var pre = document.getElementById('hrdDashPreEval');
-      var link = document.getElementById('hrdPreEvalLink');
-      if (!pre || !link) return;
-      if (!selectedCourseId) {
-        pre.classList.add('hidden');
-        return;
-      }
-      pre.classList.remove('hidden');
-      link.href = lmsBase() + 'cbt' + Q;
     }
 
     async function loadCourseList() {
@@ -325,23 +205,19 @@ export const adminNcsEvalDashboardHubHtml = (sidebar = hrdSidebar('ncs-eval-dash
       var hint = document.getElementById('hrdDashHint');
       var loading = document.getElementById('hrdDashLoading');
       var errEl = document.getElementById('hrdDashError');
-      var filterWrap = document.getElementById('hrdDashFilterWrap');
       var roundsEl = document.getElementById('hrdDashRounds');
       if (!selectedCourseId) {
         if (hint) hint.classList.remove('hidden');
         if (loading) loading.classList.add('hidden');
         if (errEl) { errEl.classList.add('hidden'); errEl.textContent = ''; }
-        if (filterWrap) filterWrap.classList.add('hidden');
         if (roundsEl) roundsEl.innerHTML = '';
         dashboardData = null;
-        updatePreEvalSection();
         return;
       }
       try { localStorage.setItem('${LS_COURSE_KEY}', selectedCourseId); } catch (e) {}
       if (hint) hint.classList.add('hidden');
       if (errEl) { errEl.classList.add('hidden'); errEl.textContent = ''; }
       if (loading) loading.classList.remove('hidden');
-      updatePreEvalSection();
       try {
         var res = await fetch('/api/ncs/evaluation-dashboard?course_id=' + encodeURIComponent(selectedCourseId), {
           headers: { 'Authorization': 'Bearer ' + (token || '') }
@@ -354,7 +230,6 @@ export const adminNcsEvalDashboardHubHtml = (sidebar = hrdSidebar('ncs-eval-dash
             errEl.classList.remove('hidden');
           }
           dashboardData = null;
-          if (filterWrap) filterWrap.classList.add('hidden');
           if (roundsEl) roundsEl.innerHTML = '';
           return;
         }
@@ -375,8 +250,6 @@ export const adminNcsEvalDashboardHubHtml = (sidebar = hrdSidebar('ncs-eval-dash
       if (sel) {
         sel.addEventListener('change', function() {
           selectedCourseId = (sel.value || '').trim();
-          filterSubject = '';
-          filterSearch = '';
           loadDashboard();
         });
       }
