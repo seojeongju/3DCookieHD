@@ -1522,6 +1522,18 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
         </div>
       </div>
     </div>
+    <div id="ncsQuestionPreviewModal" class="fixed inset-0 bg-black/45 hidden z-[250] p-4" role="dialog" aria-modal="true" aria-labelledby="ncsQuestionPreviewTitle">
+      <div class="max-w-3xl mx-auto mt-8 bg-white rounded-xl border border-slate-200 shadow-2xl overflow-hidden">
+        <div class="px-5 py-3 border-b border-slate-200 flex items-center justify-between">
+          <h4 id="ncsQuestionPreviewTitle" class="text-lg font-black text-slate-800">문항 미리보기</h4>
+          <button type="button" id="ncsQuestionPreviewCloseBtn" class="text-slate-400 hover:text-slate-600 text-xl leading-none">&times;</button>
+        </div>
+        <div class="p-4">
+          <div class="text-xs text-slate-600 font-black mb-2" id="ncsQuestionPreviewMeta"></div>
+          <div id="ncsQuestionPreviewContent" class="border border-slate-200 rounded-lg p-3 max-h-[60vh] overflow-y-auto bg-white"></div>
+        </div>
+      </div>
+    </div>
   `;
 }
 
@@ -2397,6 +2409,50 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       imageInsertContext = { targetId: '', folder: 'minutes', file: null };
     }
 
+    function openQuestionsPreviewModal(rowEl) {
+      var modal = document.getElementById('ncsQuestionPreviewModal');
+      var meta = document.getElementById('ncsQuestionPreviewMeta');
+      var content = document.getElementById('ncsQuestionPreviewContent');
+      if (!modal || !rowEl) return;
+
+      var subject = String(rowEl.getAttribute('data-subject') || '');
+      var no = String(rowEl.getAttribute('data-no') || '');
+      var type = String(rowEl.getAttribute('data-type') || '');
+      var score = String(rowEl.getAttribute('data-score') || '');
+      var keyword = String(rowEl.getAttribute('data-keyword') || '');
+
+      if (meta) {
+        meta.textContent = [
+          subject ? ('과목: ' + subject) : '',
+          no ? ('번호: ' + no) : '',
+          type ? ('유형: ' + type) : '',
+          score ? ('배점: ' + score) : '',
+          keyword ? ('평가기준: ' + keyword) : ''
+        ].filter(Boolean).join(' | ');
+      }
+
+      // renderQuestionRows()에서 문항 내용은 4번째 td의 div 내부에 들어갑니다.
+      var qHtml = '';
+      try {
+        var td = rowEl.querySelector('td:nth-child(4)');
+        var div = td ? td.querySelector('div') : null;
+        qHtml = div ? String(div.innerHTML || '') : '';
+      } catch (e) {
+        qHtml = '';
+      }
+
+      if (content) {
+        content.innerHTML = qHtml || '<span class="text-slate-500 text-sm">내용 없음</span>';
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    function closeQuestionsPreviewModal() {
+      var modal = document.getElementById('ncsQuestionPreviewModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
     async function uploadNcsEvalPlanFile(file, isImage, planDocFolder) {
       if (!selectedCourseId) {
         alert('과정을 선택해 주세요.');
@@ -3213,6 +3269,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           '<td class="px-4 py-3 text-sm text-center font-semibold text-slate-800">' + score + '</td>' +
           '<td class="px-4 py-3 text-sm text-slate-700">' + escapeHtml(keyword || '-') + '</td>' +
           '<td class="px-4 py-3 text-center space-x-1">' +
+            '<button type="button" data-preview-question-row="' + idx + '" class="px-2.5 py-1.5 rounded-lg border border-sky-200 bg-sky-50 text-sky-700 text-xs font-black hover:bg-sky-100 transition">미리보기</button>' +
             '<button type="button" data-edit-question-row="' + idx + '" class="px-2.5 py-1.5 rounded-lg border border-amber-200 bg-amber-50 text-amber-700 text-xs font-black hover:bg-amber-100 transition">수정</button>' +
             '<button type="button" data-remove-question-row="' + idx + '" class="px-2.5 py-1.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 text-xs font-black hover:bg-rose-100 transition">삭제</button>' +
           '</td>' +
@@ -4466,6 +4523,12 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           addQuestionFromInputs();
           return;
         }
+        const previewBtn = target && target.closest ? target.closest('[data-preview-question-row]') : null;
+        if (previewBtn) {
+          const rowEl = previewBtn.closest && previewBtn.closest('tr[data-question-row]');
+          if (rowEl) openQuestionsPreviewModal(rowEl);
+          return;
+        }
         const removeIdx = target.getAttribute('data-remove-schedule-row');
         if (removeIdx != null) {
           const rows = readScheduleRowsFromTable();
@@ -5202,6 +5265,13 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       }
       if (ncsImageModalCloseBtn) ncsImageModalCloseBtn.addEventListener('click', function() { closeNcsPlanImageInsertModal(); });
       if (ncsImageModalCancelBtn) ncsImageModalCancelBtn.addEventListener('click', function() { closeNcsPlanImageInsertModal(); });
+
+      var qPreviewCloseBtn = document.getElementById('ncsQuestionPreviewCloseBtn');
+      var qPreviewModal = document.getElementById('ncsQuestionPreviewModal');
+      if (qPreviewCloseBtn) qPreviewCloseBtn.addEventListener('click', function() { closeQuestionsPreviewModal(); });
+      if (qPreviewModal) qPreviewModal.addEventListener('click', function(ev) {
+        if (!ev || !ev.target || ev.target === qPreviewModal) closeQuestionsPreviewModal();
+      });
     });
   </script>
   `;
