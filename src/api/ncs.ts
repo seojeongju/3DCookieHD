@@ -3927,6 +3927,14 @@ app.get('/evaluation-dashboard', authMiddleware, async (c) => {
             }
         }
 
+        const { results: unitRows } = await c.env.DB.prepare(`
+            SELECT cnu.ncs_unit_id, u.name as unit_name, u.code as unit_code
+            FROM course_ncs_units cnu
+            JOIN ncs_units u ON cnu.ncs_unit_id = u.id
+            WHERE cnu.course_id = ?
+            ORDER BY u.code ASC, u.name ASC
+        `).bind(courseId).all();
+
         const { results: planRows } = await c.env.DB.prepare(`
             SELECT p.*, u.name as unit_name, u.code as unit_code
             FROM ncs_evaluation_plans p
@@ -3979,27 +3987,37 @@ app.get('/evaluation-dashboard', authMiddleware, async (c) => {
                 : {};
 
             const roundPlans = plans.filter((p: any) => Number(p.evaluation_round) === round);
+            const planByUnitId = new Map<string, any>();
+            roundPlans.forEach((p: any) => {
+                const uid = String(p?.ncs_unit_id ?? '').trim();
+                if (!uid) return;
+                if (!planByUnitId.has(uid)) planByUnitId.set(uid, p);
+            });
 
-            const rows = roundPlans.map((plan: any) => {
-                const stats = gradedMap.get(Number(plan.id)) || { total: 0, graded: 0 };
-                const scores_missing = stats.total > 0 && stats.graded < stats.total;
-                const unitName = String(plan.unit_name || '').trim();
-                const unitCode = String(plan.unit_code || '').trim();
+            const rows = (Array.isArray(unitRows) ? unitRows : []).map((u: any) => {
+                const uid = String(u?.ncs_unit_id ?? '').trim();
+                const plan = uid ? planByUnitId.get(uid) : null;
+                const planIdNum = plan?.id != null ? Number(plan.id) : 0;
+                const stats = planIdNum > 0 ? (gradedMap.get(planIdNum) || { total: 0, graded: 0 }) : { total: 0, graded: 0 };
+                const scores_missing = planIdNum > 0 && stats.total > 0 && stats.graded < stats.total;
+                const unitName = String(u?.unit_name || '').trim();
+                const unitCode = String(u?.unit_code || '').trim();
                 const subject_label = unitCode ? `${unitName} (${unitCode})` : unitName;
 
                 return {
-                    plan_id: plan.id,
-                    ncs_unit_id: plan.ncs_unit_id,
+                    plan_id: plan?.id ?? null,
+                    ncs_unit_id: u?.ncs_unit_id ?? null,
                     subject_label: subject_label || '-',
-                    method: String(plan.method || '-'),
-                    progress_label: dashProgressLabel(schedulePayload, plan, plan.planned_date),
-                    schedule: dashScheduleOkForPlan(schedulePayload, plan),
-                    questions: dashTypedDocOk(questionsPayload, plan),
-                    tools: dashTypedDocOk(toolsPayload, plan),
-                    rubric: dashTypedDocOk(rubricPayload, plan),
-                    achievement: dashTypedDocOk(achievementPayload, plan),
-                    review: dashTypedDocOk(reviewPayload, plan),
+                    method: plan ? String(plan.method || '-') : '-',
+                    progress_label: plan ? dashProgressLabel(schedulePayload, plan, plan.planned_date) : '-',
+                    schedule: plan ? dashScheduleOkForPlan(schedulePayload, plan) : false,
+                    questions: plan ? dashTypedDocOk(questionsPayload, plan) : false,
+                    tools: plan ? dashTypedDocOk(toolsPayload, plan) : false,
+                    rubric: plan ? dashTypedDocOk(rubricPayload, plan) : false,
+                    achievement: plan ? dashTypedDocOk(achievementPayload, plan) : false,
+                    review: plan ? dashTypedDocOk(reviewPayload, plan) : false,
                     scores_missing,
+                    plan_registered: !!plan,
                 };
             });
 

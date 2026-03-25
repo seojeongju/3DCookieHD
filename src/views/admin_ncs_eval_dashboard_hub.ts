@@ -110,10 +110,10 @@ export const adminNcsEvalDashboardHubHtml = (sidebar = hrdSidebar('ncs-eval-dash
         .replace(/'/g, '&#39;');
     }
 
-    function statusIcon(ok) {
+    function statusLabel(ok) {
       return ok
-        ? '<span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-emerald-100 text-emerald-600" title="작성됨"><i class="fas fa-check text-xs"></i></span>'
-        : '<span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-rose-100 text-rose-500" title="미작성"><i class="fas fa-xmark text-xs"></i></span>';
+        ? '<span class="inline-flex items-center px-2 py-1 rounded-lg bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-black">설정완료</span>'
+        : '<span class="inline-flex items-center px-2 py-1 rounded-lg bg-rose-100 text-rose-700 border border-rose-200 text-xs font-black">미설정</span>';
     }
 
     function thRequired(label) {
@@ -239,24 +239,27 @@ export const adminNcsEvalDashboardHubHtml = (sidebar = hrdSidebar('ncs-eval-dash
         html += '</tr></thead><tbody class="divide-y divide-slate-100">';
 
         if (rows.length === 0) {
-          html += '<tr><td colspan="10" class="px-4 py-10 text-center text-sm text-slate-400">이 차수에 등록된 능력단위(평가계획)가 없습니다. ' +
-            '<a class="text-sky-600 font-bold underline" href="' + base + 'ncs-eval-exec' + Q + '&evaluation_round=' + r + '">평가실행</a>에서 추가해 주세요.</td></tr>';
+          html += '<tr><td colspan="10" class="px-4 py-10 text-center text-sm text-slate-400">과정에 등록된 교과목이 없습니다.</td></tr>';
         } else {
           rows.forEach(function(row) {
             var rq = Q + '&evaluation_round=' + r;
-            var planQ = rq + '&plan_id=' + encodeURIComponent(row.plan_id);
+            var hasPlan = !!row.plan_registered;
+            var planQ = hasPlan ? (rq + '&plan_id=' + encodeURIComponent(row.plan_id)) : rq;
             html += '<tr class="hover:bg-slate-50/80">';
             html += '<td class="px-3 py-3 text-sm font-semibold text-slate-800">' + escapeHtml(row.subject_label) + '</td>';
             html += '<td class="px-3 py-3 text-sm text-slate-700">' + escapeHtml(row.method) + '</td>';
             html += '<td class="px-3 py-3 text-sm text-slate-700 whitespace-nowrap">' + escapeHtml(row.progress_label) + '</td>';
-            html += '<td class="px-3 py-3 text-center">' + statusIcon(!!row.schedule) + '</td>';
-            html += '<td class="px-3 py-3 text-center">' + statusIcon(!!row.questions) + '</td>';
-            html += '<td class="px-3 py-3 text-center">' + statusIcon(!!row.tools) + '</td>';
-            html += '<td class="px-3 py-3 text-center">' + statusIcon(!!row.rubric) + '</td>';
-            html += '<td class="px-3 py-3 text-center">' + statusIcon(!!row.achievement) + '</td>';
-            html += '<td class="px-3 py-3 text-center">' + statusIcon(!!row.review) + '</td>';
+            html += '<td class="px-3 py-3 text-center">' + statusLabel(!!row.schedule) + '</td>';
+            html += '<td class="px-3 py-3 text-center">' + statusLabel(!!row.questions) + '</td>';
+            html += '<td class="px-3 py-3 text-center">' + statusLabel(!!row.tools) + '</td>';
+            html += '<td class="px-3 py-3 text-center">' + statusLabel(!!row.rubric) + '</td>';
+            html += '<td class="px-3 py-3 text-center">' + statusLabel(!!row.achievement) + '</td>';
+            html += '<td class="px-3 py-3 text-center">' + statusLabel(!!row.review) + '</td>';
             html += '<td class="px-3 py-3 text-center">';
             html += '<div class="flex flex-wrap justify-center gap-1">';
+            if (!hasPlan) {
+              html += '<span class="w-full text-center mb-1 px-2 py-0.5 rounded bg-rose-100 text-rose-700 text-[10px] font-black border border-rose-200">평가계획 미등록</span>';
+            }
             if (row.scores_missing) {
               html += '<span class="w-full text-center mb-1 px-2 py-0.5 rounded bg-slate-200 text-slate-700 text-[10px] font-black">점수등록 누락</span>';
             }
