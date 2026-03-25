@@ -3597,27 +3597,64 @@ async function resolveNcsPlanDocumentCourseIds(db: any, courseId: number): Promi
     const ids = new Set<number>();
     if (Number.isFinite(courseId) && courseId >= 1) ids.add(courseId);
 
-    const session: any = await db
+    // 1) course_sessions.id 기준
+    const sessionById: any = await db
         .prepare('SELECT id, lms_course_id, approved_course_id FROM course_sessions WHERE id = ?')
         .bind(courseId)
         .first();
-    if (session) {
-        if (session.lms_course_id != null && session.lms_course_id !== '') {
-            const lid = parseInt(String(session.lms_course_id), 10);
+    if (sessionById) {
+        // session id 자체는 ids에 이미 포함되어 있으므로, 연동된 course id만 추가로 수집
+        if (sessionById.lms_course_id != null && sessionById.lms_course_id !== '') {
+            const lid = parseInt(String(sessionById.lms_course_id), 10);
             if (Number.isFinite(lid) && lid >= 1) ids.add(lid);
         }
-        if (session.approved_course_id != null && session.approved_course_id !== '') {
-            const aid = parseInt(String(session.approved_course_id), 10);
+        if (sessionById.approved_course_id != null && sessionById.approved_course_id !== '') {
+            const aid = parseInt(String(sessionById.approved_course_id), 10);
             if (Number.isFinite(aid) && aid >= 1) ids.add(aid);
         }
-        return [...ids];
     }
 
+    // 2) course_sessions.lms_course_id 기준 (이 경우엔 approved_course_id까지 같이 포함해야 함)
     try {
-        const { results } = await db.prepare('SELECT id FROM course_sessions WHERE lms_course_id = ?').bind(courseId).all();
+        const { results } = await db
+            .prepare('SELECT id, lms_course_id, approved_course_id FROM course_sessions WHERE lms_course_id = ?')
+            .bind(courseId)
+            .all();
         for (const r of results || []) {
             const sid = parseInt(String((r as any).id), 10);
             if (Number.isFinite(sid) && sid >= 1) ids.add(sid);
+
+            const lid = parseInt(String((r as any).lms_course_id), 10);
+            if (Number.isFinite(lid) && lid >= 1) ids.add(lid);
+
+            const aidRaw = (r as any).approved_course_id;
+            if (aidRaw != null && aidRaw !== '') {
+                const aid = parseInt(String(aidRaw), 10);
+                if (Number.isFinite(aid) && aid >= 1) ids.add(aid);
+            }
+        }
+    } catch {
+        /* ignore */
+    }
+
+    // 3) course_sessions.approved_course_id 기준
+    try {
+        const { results } = await db
+            .prepare('SELECT id, lms_course_id, approved_course_id FROM course_sessions WHERE approved_course_id = ?')
+            .bind(courseId)
+            .all();
+        for (const r of results || []) {
+            const sid = parseInt(String((r as any).id), 10);
+            if (Number.isFinite(sid) && sid >= 1) ids.add(sid);
+
+            const lidRaw = (r as any).lms_course_id;
+            if (lidRaw != null && lidRaw !== '') {
+                const lid = parseInt(String(lidRaw), 10);
+                if (Number.isFinite(lid) && lid >= 1) ids.add(lid);
+            }
+
+            const aid = parseInt(String((r as any).approved_course_id), 10);
+            if (Number.isFinite(aid) && aid >= 1) ids.add(aid);
         }
     } catch {
         /* ignore */
