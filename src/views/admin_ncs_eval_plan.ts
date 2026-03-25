@@ -1032,6 +1032,7 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                           <table class="w-full text-left">
                             <thead class="bg-slate-50 border-b border-slate-200">
                               <tr>
+                                <th class="px-3 py-2 text-xs font-black text-slate-600 min-w-[12rem]">교과목</th>
                                 <th class="px-3 py-2 text-xs font-black text-slate-600 w-16">번호</th>
                                 <th class="px-3 py-2 text-xs font-black text-slate-600 w-24">유형</th>
                                 <th class="px-3 py-2 text-xs font-black text-slate-600">문항</th>
@@ -2905,8 +2906,15 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       }
       if (tabId === 'questions') {
         var qRawSess = selectedSessionIdForSubject ? parseInt(String(selectedSessionIdForSubject), 10) : NaN;
-        var qSubEl = document.getElementById('questionsSubjectSelect');
-        var qRawCur = qSubEl && qSubEl.value ? parseInt(qSubEl.value, 10) : NaN;
+        var qRows = readQuestionRowsFromTable();
+        var qCidSet = {};
+        (Array.isArray(qRows) ? qRows : []).forEach(function(r) {
+          var cid = r && r.curriculum_id != null ? String(r.curriculum_id).trim() : '';
+          if (cid) qCidSet[cid] = true;
+        });
+        var qCids = Object.keys(qCidSet);
+        var qSingleCid = (qCids.length === 1) ? parseInt(qCids[0], 10) : NaN;
+        var qSingleSubj = (qCids.length === 1) ? (String((qRows[0] && qRows[0].subject) || '')).trim() : '';
         return {
           title: getQuestionsFieldValue('questions_doc_title'),
           payload: {
@@ -2914,10 +2922,11 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
             total_target: Number(getQuestionsFieldValue('questions_total_target') || 0),
             notes: getQuestionsFieldValue('questions_notes'),
             attachments: readQuestionsAttachmentsFromDom(),
-            rows: readQuestionRowsFromTable(),
+            rows: qRows,
             session_id: Number.isFinite(qRawSess) && qRawSess > 0 ? qRawSess : '',
-            curriculum_id: Number.isFinite(qRawCur) && qRawCur > 0 ? qRawCur : '',
-            subject_name: getNcsSubjectSelectText('questionsSubjectSelect')
+            // 여러 교과목 문항을 한 문서에 저장할 수 있으므로, 단일 교과목일 때만 상단 필드에 채웁니다.
+            curriculum_id: Number.isFinite(qSingleCid) && qSingleCid > 0 ? qSingleCid : '',
+            subject_name: qSingleSubj
           }
         };
       }
@@ -3137,6 +3146,8 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       const rows = [];
       body.querySelectorAll('tr[data-question-row]').forEach(function(tr) {
         rows.push({
+          subject: tr.getAttribute('data-subject') || '',
+          curriculum_id: tr.getAttribute('data-curriculum-id') || '',
           no: Number(tr.getAttribute('data-no') || 0),
           type: tr.getAttribute('data-type') || '',
           text: tr.getAttribute('data-text') || '',
@@ -3150,19 +3161,27 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
     function renderQuestionRows(rows) {
       const body = document.getElementById('questionsRowsBody');
       if (!body) return;
-      const safeRows = (Array.isArray(rows) ? rows : []).slice().sort(function(a, b) { return Number(a?.no || 0) - Number(b?.no || 0); });
+      const safeRows = (Array.isArray(rows) ? rows : []).slice().sort(function(a, b) {
+        var sa = String(a?.subject || '');
+        var sb = String(b?.subject || '');
+        if (sa !== sb) return sa.localeCompare(sb);
+        return Number(a?.no || 0) - Number(b?.no || 0);
+      });
       if (!safeRows.length) {
-        body.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-sm text-slate-400">등록된 문항이 없습니다.</td></tr>';
+        body.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-sm text-slate-400">등록된 문항이 없습니다.</td></tr>';
         updateQuestionTotalScore([]);
         return;
       }
       body.innerHTML = safeRows.map(function(row, idx) {
+        const subject = String(row?.subject || '');
+        const cid = String(row?.curriculum_id || '');
         const no = Number(row?.no || 0);
         const type = String(row?.type || '');
         const text = String(row?.text || '');
         const score = Number(row?.score || 0);
         const keyword = String(row?.keyword || '');
-        return '<tr data-question-row data-no="' + no + '" data-type="' + escapeHtml(type) + '" data-text="' + escapeHtml(text) + '" data-score="' + score + '" data-keyword="' + escapeHtml(keyword) + '">' +
+        return '<tr data-question-row data-subject="' + escapeHtml(subject) + '" data-curriculum-id="' + escapeHtml(cid) + '" data-no="' + no + '" data-type="' + escapeHtml(type) + '" data-text="' + escapeHtml(text) + '" data-score="' + score + '" data-keyword="' + escapeHtml(keyword) + '">' +
+          '<td class="px-4 py-3 text-sm font-semibold text-slate-800">' + escapeHtml(subject || '-') + '</td>' +
           '<td class="px-4 py-3 text-sm font-semibold text-slate-700">' + (no || (idx + 1)) + '</td>' +
           '<td class="px-4 py-3 text-sm text-slate-700">' + escapeHtml(type || '-') + '</td>' +
           '<td class="px-4 py-3 text-sm text-slate-700"><div class="max-w-[520px]">' + questionContentToDisplayHtml(text) + '</div></td>' +
@@ -3188,6 +3207,9 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
     }
 
     function addQuestionFromInputs() {
+      var qSubEl = document.getElementById('questionsSubjectSelect');
+      var subjectLabel = getNcsSubjectSelectText('questionsSubjectSelect');
+      var curriculumId = qSubEl && qSubEl.value ? String(qSubEl.value).trim() : '';
       const noEl = document.getElementById('questionInputNo');
       const typeEl = document.getElementById('questionInputType');
       const scoreEl = document.getElementById('questionInputScore');
@@ -3202,17 +3224,21 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         alert('문항 내용을 입력해 주세요.');
         return;
       }
+      if (!subjectLabel || !curriculumId) {
+        alert('교과목을 선택해 주세요.');
+        return;
+      }
       if (!Number.isFinite(noVal) || noVal < 1) {
         alert('문항번호를 입력해 주세요.');
         return;
       }
 
       const rows = readQuestionRowsFromTable();
-      const duplicated = rows.findIndex(function(r) { return Number(r.no) === noVal; });
+      const duplicated = rows.findIndex(function(r) { return String(r.curriculum_id || '') === curriculumId && Number(r.no) === noVal; });
       if (duplicated >= 0) {
-        rows[duplicated] = { no: noVal, type: typeVal || '객관식', text: textVal, score: scoreVal, keyword: keywordVal };
+        rows[duplicated] = { subject: subjectLabel, curriculum_id: curriculumId, no: noVal, type: typeVal || '객관식', text: textVal, score: scoreVal, keyword: keywordVal };
       } else {
-        rows.push({ no: noVal, type: typeVal || '객관식', text: textVal, score: scoreVal, keyword: keywordVal });
+        rows.push({ subject: subjectLabel, curriculum_id: curriculumId, no: noVal, type: typeVal || '객관식', text: textVal, score: scoreVal, keyword: keywordVal });
       }
       renderQuestionRows(rows);
 
