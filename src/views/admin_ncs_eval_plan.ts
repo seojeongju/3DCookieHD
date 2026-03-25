@@ -908,10 +908,12 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                       <tr>
                         <td class="border border-black text-center bg-slate-50 font-bold align-top py-2">일정 입력</td>
                         <td class="border border-black p-2" colspan="7">
-                          <p class="text-[11px] text-slate-600 mb-2 leading-relaxed">
-                            위쪽 <strong class="text-slate-800">교과목 · 하위 과목 (선택)</strong> 드롭다운에서 과목을 고른 뒤, 아래에서 평가일정·시간·장소를 입력하고 <strong>일정 추가</strong>를 누르세요.
-                          </p>
-                          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 items-end">
+                          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2 items-end">
+                            <label class="block text-[11px] font-bold text-slate-600 lg:col-span-2">교과목 · 하위 과목
+                              <select id="scheduleSubjectSelect" class="mt-0.5 w-full px-2 py-1.5 border border-slate-200 rounded bg-white text-sm disabled:opacity-60" disabled>
+                                <option value="">과정 선택 후 교과목</option>
+                              </select>
+                            </label>
                             <label class="block text-[11px] font-bold text-slate-600 sm:col-span-1">평가일정
                               <input id="scheduleInputDate" type="date" class="mt-0.5 w-full px-2 py-1.5 border border-slate-200 rounded bg-white text-sm" />
                             </label>
@@ -921,7 +923,7 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                             <label class="block text-[11px] font-bold text-slate-600 sm:col-span-1">장소
                               <input id="scheduleInputPlace" class="mt-0.5 w-full px-2 py-1.5 border border-slate-200 rounded bg-white text-sm" placeholder="장소" />
                             </label>
-                            <div class="sm:col-span-2 lg:col-span-2 flex justify-end pt-4 sm:pt-0">
+                            <div class="sm:col-span-2 lg:col-span-1 flex justify-end pt-4 sm:pt-0">
                               <button type="button" id="scheduleAddRowBtn" class="w-full sm:w-auto px-4 py-2 rounded-lg bg-sky-600 text-white text-sm font-black hover:bg-sky-700 transition whitespace-nowrap">
                                 <i class="fas fa-plus mr-1"></i><span id="scheduleAddRowBtnLabel">일정 추가</span>
                               </button>
@@ -1004,7 +1006,12 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                       <tr>
                         <td class="border border-black text-center bg-slate-50 font-bold align-top py-2">문항작성</td>
                         <td class="border border-black p-2" colspan="7">
-                          <div class="grid grid-cols-1 md:grid-cols-6 gap-2 mb-2">
+                          <div class="grid grid-cols-1 md:grid-cols-8 gap-2 mb-2">
+                            <label class="block text-[11px] font-bold text-slate-600 md:col-span-2">교과목 · 하위 과목
+                              <select id="questionsSubjectSelect" class="mt-0.5 w-full px-2 py-1 border border-slate-200 rounded bg-white text-sm disabled:opacity-60" disabled>
+                                <option value="">과정 선택 후 교과목</option>
+                              </select>
+                            </label>
                             <input id="questionInputNo" type="number" min="1" step="1" class="px-2 py-1 border border-slate-200 rounded bg-white" placeholder="번호" />
                             <select id="questionInputType" class="px-2 py-1 border border-slate-200 rounded bg-white">
                               <option value="객관식">객관식</option>
@@ -1014,7 +1021,7 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                             </select>
                             <input id="questionInputScore" type="number" min="0" step="1" class="px-2 py-1 border border-slate-200 rounded bg-white" placeholder="배점" />
                             <input id="questionInputKeyword" class="px-2 py-1 border border-slate-200 rounded bg-white md:col-span-2" placeholder="평가기준/키워드" />
-                            <button type="button" id="questionAddRowBtn" class="px-2 py-1 rounded bg-sky-600 text-white font-black hover:bg-sky-700 transition">문항 추가</button>
+                            <button type="button" id="questionAddRowBtn" class="px-2 py-1 rounded bg-sky-600 text-white font-black hover:bg-sky-700 transition md:col-span-1">문항 추가</button>
                           </div>
                           <div id="questionInputText" contenteditable="true" class="w-full min-h-[120px] px-3 py-2 border border-slate-200 rounded bg-white whitespace-pre-wrap leading-relaxed"></div>
                         </td>
@@ -1077,6 +1084,14 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                         <td class="border border-black px-2 py-1" colspan="6"><div id="tools_target_time" contenteditable="true" class="outline-none min-h-[1.25rem]"></div></td>
                       </tr>
                       <tr>
+                        <td class="border border-black text-center bg-slate-50 font-bold">교과목 · 하위 과목</td>
+                        <td class="border border-black px-2 py-1" colspan="6">
+                          <select id="toolsSubjectSelect" class="w-full max-w-xl px-2 py-1.5 border border-slate-200 rounded bg-white text-sm disabled:opacity-60" disabled>
+                            <option value="">과정 선택 후 교과목</option>
+                          </select>
+                        </td>
+                      </tr>
+                      <tr>
                         <td class="border border-black text-center bg-slate-50 font-bold align-top py-2">첨부파일</td>
                         <td class="border border-black px-2 py-2" colspan="6">
                           <div id="toolsAttachmentsList" class="flex flex-wrap gap-2 min-h-[2.5rem]"></div>
@@ -1135,7 +1150,9 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                           <tr>
                             <td class="border border-black text-center bg-slate-50 font-bold py-1.5">교과목</td>
                             <td class="border border-black px-2 py-1.5" colspan="3">
-                              <div id="rubric_subject_name" contenteditable="true" class="min-h-[1.5rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1"></div>
+                              <select id="rubric_subject_name" class="w-full px-2 py-1.5 border border-slate-200 rounded bg-white text-sm disabled:opacity-60" disabled>
+                                <option value="">과정 선택 후 교과목</option>
+                              </select>
                             </td>
                             <td class="border border-black text-center bg-slate-50 font-bold py-1.5">훈련교사</td>
                             <td class="border border-black px-2 py-1.5">
@@ -1231,7 +1248,11 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                         </tr>
                         <tr>
                           <td class="border border-black text-center bg-slate-50 font-bold py-1">교과목</td>
-                          <td class="border border-black px-2 py-1" colspan="2"><div id="achievement_subject_name" contenteditable="true" class="outline-none min-h-[1.25rem] whitespace-pre-wrap"></div></td>
+                          <td class="border border-black px-2 py-1" colspan="2">
+                            <select id="achievement_subject_name" class="w-full px-2 py-1 border border-slate-200 rounded bg-white text-sm disabled:opacity-60" disabled>
+                              <option value="">과정 선택 후 교과목</option>
+                            </select>
+                          </td>
                           <td class="border border-black text-center bg-slate-50 font-bold py-1">훈련생</td>
                           <td class="border border-black px-2 py-1" colspan="2"><div id="achievement_trainee" contenteditable="true" class="outline-none min-h-[1.25rem] whitespace-pre-wrap"></div></td>
                         </tr>
@@ -1371,7 +1392,11 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                         </tr>
                         <tr>
                           <td class="border border-black text-center bg-slate-50 font-bold py-1">교과목명</td>
-                          <td class="border border-black px-2 py-1"><div id="review_subject_name" contenteditable="true" class="outline-none min-h-[1.25rem] whitespace-pre-wrap"></div></td>
+                          <td class="border border-black px-2 py-1">
+                            <select id="review_subject_name" class="w-full px-2 py-1 border border-slate-200 rounded bg-white text-sm disabled:opacity-60" disabled>
+                              <option value="">과정 선택 후 교과목</option>
+                            </select>
+                          </td>
                           <td class="border border-black text-center bg-slate-50 font-bold py-1">능력단위명/수준</td>
                           <td class="border border-black px-2 py-1"><div id="review_unit_level" contenteditable="true" class="outline-none min-h-[1.25rem] whitespace-pre-wrap"></div></td>
                         </tr>
@@ -1455,17 +1480,6 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
           <p class="text-xs text-slate-500 font-bold uppercase tracking-wider">현재문서</p>
           <p id="activeDocLabel" class="text-sm font-black text-slate-800 mt-1">${prefix ? '평가계획회의록' : '평가계획회의록'}</p>
         </div>
-      </div>
-      <div class="mt-3 pt-3 border-t border-slate-200/80">
-        <div class="grid grid-cols-1 gap-3">
-          <label class="block">
-            <span class="text-xs text-slate-500 font-bold uppercase tracking-wider">교과목 · 하위 과목 (선택)</span>
-            <select id="ncsPlanSubjectSelect" class="mt-1 w-full px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white disabled:opacity-60" disabled>
-              <option value="">과정 선택 후 교과목</option>
-            </select>
-          </label>
-        </div>
-        <p class="text-[11px] text-slate-500 mt-2">선택한 과정의 개설 정보를 기준으로 NCS 편성 <strong>교과목(하위 과목)</strong> 목록이 채워지며, 선택 값은 <strong>평가실시일자</strong> 문서 저장 시 함께 저장됩니다.</p>
       </div>
     </div>
     <div class="rounded-[2rem] border border-slate-200/60 shadow-sm bg-white/80 backdrop-blur-md p-4">
@@ -2491,11 +2505,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       var docTitle = getQuestionsFieldValue('questions_doc_title');
       if (subEl) subEl.textContent = docTitle ? ('(' + docTitle + ')') : '';
 
-      var subjLabel = '';
-      var subjEl = document.getElementById('ncsPlanSubjectSelect');
-      if (subjEl && subjEl.selectedIndex >= 0 && subjEl.options[subjEl.selectedIndex]) {
-        subjLabel = (subjEl.options[subjEl.selectedIndex].textContent || '').trim();
-      }
+      var subjLabel = getNcsSubjectSelectText('questionsSubjectSelect');
 
       setMinutesPrintText('questionsPrintCourseName', courseTitle || '-');
       setMinutesPrintText('questionsPrintSubject', subjLabel || '-');
@@ -2566,11 +2576,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       var docTitle = getToolsFieldValue('tools_doc_title');
       if (subEl) subEl.textContent = docTitle ? ('(' + docTitle + ')') : '';
 
-      var subjLabel = '';
-      var subjEl = document.getElementById('ncsPlanSubjectSelect');
-      if (subjEl && subjEl.selectedIndex >= 0 && subjEl.options[subjEl.selectedIndex]) {
-        subjLabel = (subjEl.options[subjEl.selectedIndex].textContent || '').trim();
-      }
+      var subjLabel = getNcsSubjectSelectText('toolsSubjectSelect');
 
       setMinutesPrintText('toolsPrintCourseName', courseTitle || '-');
       setMinutesPrintText('toolsPrintSubject', subjLabel || '-');
@@ -2640,11 +2646,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       var docTitle = getRubricFieldValue('rubric_doc_title');
       if (subEl) subEl.textContent = docTitle ? ('(' + docTitle + ')') : '';
 
-      var subjLabel = '';
-      var subjEl = document.getElementById('ncsPlanSubjectSelect');
-      if (subjEl && subjEl.selectedIndex >= 0 && subjEl.options[subjEl.selectedIndex]) {
-        subjLabel = (subjEl.options[subjEl.selectedIndex].textContent || '').trim();
-      }
+      var subjLabel = getNcsSubjectSelectText('rubric_subject_name');
 
       setMinutesPrintText('rubricPrintCourseName', courseTitle || '-');
       setMinutesPrintText('rubricPrintSubject', subjLabel || '-');
@@ -2714,11 +2716,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       var docTitle = getAchievementFieldValue('achievement_doc_title');
       if (subEl) subEl.textContent = docTitle ? ('(' + docTitle + ')') : '';
 
-      var subjLabel = '';
-      var subjEl = document.getElementById('ncsPlanSubjectSelect');
-      if (subjEl && subjEl.selectedIndex >= 0 && subjEl.options[subjEl.selectedIndex]) {
-        subjLabel = (subjEl.options[subjEl.selectedIndex].textContent || '').trim();
-      }
+      var subjLabel = getNcsSubjectSelectText('achievement_subject_name');
 
       setMinutesPrintText('achievementPrintCourseName', courseTitle || '-');
       setMinutesPrintText('achievementPrintSubject', subjLabel || '-');
@@ -2786,11 +2784,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       var docTitle = getReviewFieldValue('review_doc_title');
       if (subEl) subEl.textContent = docTitle ? ('(' + docTitle + ')') : '';
 
-      var subjLabel = '';
-      var subjEl = document.getElementById('ncsPlanSubjectSelect');
-      if (subjEl && subjEl.selectedIndex >= 0 && subjEl.options[subjEl.selectedIndex]) {
-        subjLabel = (subjEl.options[subjEl.selectedIndex].textContent || '').trim();
-      }
+      var subjLabel = getNcsSubjectSelectText('review_subject_name');
 
       setMinutesPrintText('reviewPrintCourseName', courseTitle || '-');
       setMinutesPrintText('reviewPrintSubject', subjLabel || '-');
@@ -2898,13 +2892,10 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         };
       }
       if (tabId === 'schedule') {
-        var subjEl = document.getElementById('ncsPlanSubjectSelect');
+        var subjEl = document.getElementById('scheduleSubjectSelect');
         var rawSess = selectedSessionIdForSubject ? parseInt(String(selectedSessionIdForSubject), 10) : NaN;
         var rawCur = subjEl && subjEl.value ? parseInt(subjEl.value, 10) : NaN;
-        var subjLabel = '';
-        if (subjEl && subjEl.selectedIndex >= 0 && subjEl.options[subjEl.selectedIndex]) {
-          subjLabel = subjEl.options[subjEl.selectedIndex].textContent || '';
-        }
+        var subjLabel = getNcsSubjectSelectText('scheduleSubjectSelect');
         return {
           title: (document.getElementById('schedule_doc_title') || {}).value || '',
           payload: {
@@ -2918,6 +2909,9 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         };
       }
       if (tabId === 'questions') {
+        var qRawSess = selectedSessionIdForSubject ? parseInt(String(selectedSessionIdForSubject), 10) : NaN;
+        var qSubEl = document.getElementById('questionsSubjectSelect');
+        var qRawCur = qSubEl && qSubEl.value ? parseInt(qSubEl.value, 10) : NaN;
         return {
           title: getQuestionsFieldValue('questions_doc_title'),
           payload: {
@@ -2925,11 +2919,17 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
             total_target: Number(getQuestionsFieldValue('questions_total_target') || 0),
             notes: getQuestionsFieldValue('questions_notes'),
             attachments: readQuestionsAttachmentsFromDom(),
-            rows: readQuestionRowsFromTable()
+            rows: readQuestionRowsFromTable(),
+            session_id: Number.isFinite(qRawSess) && qRawSess > 0 ? qRawSess : '',
+            curriculum_id: Number.isFinite(qRawCur) && qRawCur > 0 ? qRawCur : '',
+            subject_name: getNcsSubjectSelectText('questionsSubjectSelect')
           }
         };
       }
       if (tabId === 'tools') {
+        var tRawSess = selectedSessionIdForSubject ? parseInt(String(selectedSessionIdForSubject), 10) : NaN;
+        var tSubEl = document.getElementById('toolsSubjectSelect');
+        var tRawCur = tSubEl && tSubEl.value ? parseInt(tSubEl.value, 10) : NaN;
         return {
           title: getToolsFieldValue('tools_doc_title'),
           payload: {
@@ -2937,16 +2937,23 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
             target_time: getToolsFieldValue('tools_target_time'),
             notes: getToolsFieldValue('tools_notes'),
             attachments: readToolsAttachmentsFromDom(),
-            rows: readToolRowsFromTable()
+            rows: readToolRowsFromTable(),
+            session_id: Number.isFinite(tRawSess) && tRawSess > 0 ? tRawSess : '',
+            curriculum_id: Number.isFinite(tRawCur) && tRawCur > 0 ? tRawCur : '',
+            subject_name: getNcsSubjectSelectText('toolsSubjectSelect')
           }
         };
       }
       if (tabId === 'rubric') {
+        var ruRawCur = parseInt(String(getNcsSubjectSelectCurriculumValue('rubric_subject_name') || ''), 10);
+        var ruRawSess = selectedSessionIdForSubject ? parseInt(String(selectedSessionIdForSubject), 10) : NaN;
         return {
           title: getRubricFieldValue('rubric_doc_title'),
           payload: {
             writer: getRubricFieldValue('rubric_writer'),
-            subject_name: getRubricFieldValue('rubric_subject_name'),
+            subject_name: getNcsSubjectSelectText('rubric_subject_name'),
+            curriculum_id: Number.isFinite(ruRawCur) && ruRawCur > 0 ? ruRawCur : '',
+            session_id: Number.isFinite(ruRawSess) && ruRawSess > 0 ? ruRawSess : '',
             unit_name: getRubricFieldValue('rubric_unit_name'),
             total_target: Number(getRubricFieldValue('rubric_total_target') || 0),
             notes: getRubricFieldValue('rubric_notes'),
@@ -2956,12 +2963,16 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         };
       }
       if (tabId === 'achievement') {
+        var achRawCur = parseInt(String(getNcsSubjectSelectCurriculumValue('achievement_subject_name') || ''), 10);
+        var achRawSess = selectedSessionIdForSubject ? parseInt(String(selectedSessionIdForSubject), 10) : NaN;
         return {
           title: getAchievementFieldValue('achievement_doc_title'),
           payload: {
             writer: getAchievementFieldValue('achievement_writer'),
             eval_date: getAchievementFieldValue('achievement_eval_date'),
-            subject_name: getAchievementFieldValue('achievement_subject_name'),
+            subject_name: getNcsSubjectSelectText('achievement_subject_name'),
+            curriculum_id: Number.isFinite(achRawCur) && achRawCur > 0 ? achRawCur : '',
+            session_id: Number.isFinite(achRawSess) && achRawSess > 0 ? achRawSess : '',
             trainee: getAchievementFieldValue('achievement_trainee'),
             unit_level: getAchievementFieldValue('achievement_unit_level'),
             target_score: Number(getAchievementFieldValue('achievement_target_score') || 0),
@@ -2976,6 +2987,8 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         };
       }
       if (tabId === 'review') {
+        var revRawCur = parseInt(String(getNcsSubjectSelectCurriculumValue('review_subject_name') || ''), 10);
+        var revRawSess = selectedSessionIdForSubject ? parseInt(String(selectedSessionIdForSubject), 10) : NaN;
         return {
           title: getReviewFieldValue('review_doc_title'),
           payload: {
@@ -2984,7 +2997,9 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
             approval_role_chair: getReviewFieldValue('review_approval_role_chair'),
             approval_role_writer: getReviewFieldValue('review_approval_role_writer'),
             approval_role_reviewer: getReviewFieldValue('review_approval_role_reviewer'),
-            subject_name: getReviewFieldValue('review_subject_name'),
+            subject_name: getNcsSubjectSelectText('review_subject_name'),
+            curriculum_id: Number.isFinite(revRawCur) && revRawCur > 0 ? revRawCur : '',
+            session_id: Number.isFinite(revRawSess) && revRawSess > 0 ? revRawSess : '',
             unit_level: getReviewFieldValue('review_unit_level'),
             tool_name: getReviewFieldValue('review_tool_name'),
             review_date: getReviewFieldValue('review_review_date'),
@@ -3079,7 +3094,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
     }
 
     function addScheduleRowFromInputs() {
-      const subSel = document.getElementById('ncsPlanSubjectSelect');
+      const subSel = document.getElementById('scheduleSubjectSelect');
       const dateEl = document.getElementById('scheduleInputDate');
       const timeEl = document.getElementById('scheduleInputTime');
       const placeEl = document.getElementById('scheduleInputPlace');
@@ -3093,7 +3108,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       const place = (placeEl?.value || '').trim();
 
       if (!curriculumId) {
-        alert('상단의 교과목 · 하위 과목 (선택)에서 과목을 선택해 주세요.');
+        alert('일정 입력란의 교과목 · 하위 과목에서 과목을 선택해 주세요.');
         return;
       }
       if (!date) {
@@ -3609,6 +3624,15 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         setQuestionsFieldValue('questions_notes', payload.notes || '');
         renderQuestionsAttachments(payload.attachments || []);
         renderQuestionRows(payload.rows || []);
+        void (async function() {
+          var cid = selectedCourseId || (useFixedCourseId ? fixedCourseId : '');
+          if (!cid) {
+            resetAllNcsPlanSubjectSelects();
+            return;
+          }
+          await loadNcsPlanSubjectOptions(cid, payload.session_id || selectedSessionIdForSubject || '', { preserveSelection: true });
+          applyNcsSubjectSelectValue('questionsSubjectSelect', payload.curriculum_id, payload.subject_name);
+        })();
         return;
       }
       if (tabId === 'tools') {
@@ -3618,24 +3642,40 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         setToolsFieldValue('tools_notes', payload.notes || '');
         renderToolsAttachments(payload.attachments || []);
         renderToolRows(normalizeToolRows(payload.rows || []));
+        void (async function() {
+          var cid = selectedCourseId || (useFixedCourseId ? fixedCourseId : '');
+          if (!cid) {
+            resetAllNcsPlanSubjectSelects();
+            return;
+          }
+          await loadNcsPlanSubjectOptions(cid, payload.session_id || selectedSessionIdForSubject || '', { preserveSelection: true });
+          applyNcsSubjectSelectValue('toolsSubjectSelect', payload.curriculum_id, payload.subject_name);
+        })();
         return;
       }
       if (tabId === 'rubric') {
         setRubricFieldValue('rubric_doc_title', data?.title || '');
         setRubricFieldValue('rubric_writer', payload.writer || '');
-        setRubricFieldValue('rubric_subject_name', payload.subject_name || '');
         setRubricFieldValue('rubric_unit_name', payload.unit_name || '');
         setRubricFieldValue('rubric_total_target', payload.total_target || '');
         setRubricFieldValue('rubric_notes', payload.notes || '');
         renderRubricAttachments(payload.attachments || []);
         renderRubricRows(normalizeRubricRows(payload.rows || []));
+        void (async function() {
+          var cid = selectedCourseId || (useFixedCourseId ? fixedCourseId : '');
+          if (!cid) {
+            resetAllNcsPlanSubjectSelects();
+            return;
+          }
+          await loadNcsPlanSubjectOptions(cid, payload.session_id || selectedSessionIdForSubject || '', { preserveSelection: true });
+          applyNcsSubjectSelectValue('rubric_subject_name', payload.curriculum_id, payload.subject_name);
+        })();
         return;
       }
       if (tabId === 'achievement') {
         setAchievementFieldValue('achievement_doc_title', data?.title || '');
         setAchievementFieldValue('achievement_writer', payload.writer || '');
         setAchievementFieldValue('achievement_eval_date', payload.eval_date || '');
-        setAchievementFieldValue('achievement_subject_name', payload.subject_name || '');
         setAchievementFieldValue('achievement_trainee', payload.trainee || '');
         setAchievementFieldValue('achievement_unit_level', payload.unit_level || '');
         setAchievementFieldValue('achievement_target_score', payload.target_score || '');
@@ -3646,6 +3686,15 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         setAchievementFieldValue('achievement_score_comment', payload.score_comment || '');
         renderAchievementAttachments(payload.attachments || []);
         renderAchievementRows(normalizeAchievementRows(payload.rows || []));
+        void (async function() {
+          var cid = selectedCourseId || (useFixedCourseId ? fixedCourseId : '');
+          if (!cid) {
+            resetAllNcsPlanSubjectSelects();
+            return;
+          }
+          await loadNcsPlanSubjectOptions(cid, payload.session_id || selectedSessionIdForSubject || '', { preserveSelection: true });
+          applyNcsSubjectSelectValue('achievement_subject_name', payload.curriculum_id, payload.subject_name);
+        })();
         return;
       }
       if (tabId === 'review') {
@@ -3655,7 +3704,6 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         setReviewFieldValue('review_approval_role_chair', payload.approval_role_chair || '검토자');
         setReviewFieldValue('review_approval_role_writer', payload.approval_role_writer || '실장');
         setReviewFieldValue('review_approval_role_reviewer', payload.approval_role_reviewer || '원장');
-        setReviewFieldValue('review_subject_name', payload.subject_name || '');
         setReviewFieldValue('review_unit_level', payload.unit_level || '');
         setReviewFieldValue('review_tool_name', payload.tool_name || '평가지 체크리스트');
         setReviewFieldValue('review_review_date', payload.review_date || '');
@@ -3663,6 +3711,15 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         renderReviewAttachments(payload.attachments || []);
         renderReviewSignatures(payload.signatures || {});
         renderReviewRows(normalizeReviewRows(payload.rows || []));
+        void (async function() {
+          var cid = selectedCourseId || (useFixedCourseId ? fixedCourseId : '');
+          if (!cid) {
+            resetAllNcsPlanSubjectSelects();
+            return;
+          }
+          await loadNcsPlanSubjectOptions(cid, payload.session_id || selectedSessionIdForSubject || '', { preserveSelection: true });
+          applyNcsSubjectSelectValue('review_subject_name', payload.curriculum_id, payload.subject_name);
+        })();
         return;
       }
       const titleEl = document.getElementById(tabId + '_doc_title');
@@ -3697,15 +3754,104 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       }
     }
 
-    async function loadNcsPlanSubjectOptions(courseId, preferredSessionId) {
-      var subSel = document.getElementById('ncsPlanSubjectSelect');
-      if (!subSel) return;
-      subSel.innerHTML = '<option value="">교과목 선택 (선택사항)</option>';
-      selectedSessionIdForSubject = '';
-      if (!courseId) {
-        subSel.disabled = true;
+    var NCS_PLAN_SUBJECT_SELECT_IDS = [
+      'scheduleSubjectSelect',
+      'questionsSubjectSelect',
+      'toolsSubjectSelect',
+      'rubric_subject_name',
+      'achievement_subject_name',
+      'review_subject_name'
+    ];
+
+    function forEachNcsPlanSubjectSelect(fn) {
+      NCS_PLAN_SUBJECT_SELECT_IDS.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) fn(el, id);
+      });
+    }
+
+    function resetAllNcsPlanSubjectSelects() {
+      forEachNcsPlanSubjectSelect(function(el) {
+        el.innerHTML = '<option value="">과정 선택 후 교과목</option>';
+        el.disabled = true;
+      });
+    }
+
+    function getNcsSubjectSelectText(selectId) {
+      var el = document.getElementById(selectId);
+      if (!el || String(el.tagName).toUpperCase() !== 'SELECT') return '';
+      if (el.selectedIndex < 0 || !el.options[el.selectedIndex]) return '';
+      return String(el.options[el.selectedIndex].textContent || '').trim();
+    }
+
+    function getNcsSubjectSelectCurriculumValue(selectId) {
+      var el = document.getElementById(selectId);
+      if (!el || String(el.tagName).toUpperCase() !== 'SELECT') return '';
+      return String(el.value || '').trim();
+    }
+
+    function applyNcsSubjectSelectValue(selectId, curriculumIdRaw, subjectNameRaw) {
+      var el = document.getElementById(selectId);
+      if (!el || String(el.tagName).toUpperCase() !== 'SELECT') return;
+      var cid = curriculumIdRaw != null ? String(curriculumIdRaw).trim() : '';
+      if (cid) {
+        el.value = cid;
+        if (el.value === cid) return;
+      }
+      var name = String(subjectNameRaw || '').trim();
+      if (!name) {
+        el.value = '';
         return;
       }
+      for (var i = 0; i < el.options.length; i++) {
+        var o = el.options[i];
+        if (String(o.textContent || '').trim() === name) {
+          el.value = o.value;
+          return;
+        }
+      }
+      el.value = '';
+    }
+
+    function appendSubjectOptionsToSelect(el, subjects) {
+      var seen = {};
+      (Array.isArray(subjects) ? subjects : []).forEach(function(sub) {
+        if (!sub || sub.id == null) return;
+        var idKey = String(sub.id);
+        if (seen[idKey]) return;
+        seen[idKey] = true;
+        var opt = document.createElement('option');
+        opt.value = idKey;
+        var nm = String(sub.name || sub.main_job_name || sub.job_name || '교과목');
+        opt.textContent = nm;
+        opt.title = nm;
+        el.appendChild(opt);
+      });
+    }
+
+    async function loadNcsPlanSubjectOptions(courseId, preferredSessionId, loadOpts) {
+      loadOpts = loadOpts || {};
+      var preserveSelection = loadOpts.preserveSelection !== false;
+      var savedById = {};
+      if (preserveSelection) {
+        NCS_PLAN_SUBJECT_SELECT_IDS.forEach(function(sid) {
+          var el = document.getElementById(sid);
+          if (!el || String(el.tagName).toUpperCase() !== 'SELECT') return;
+          savedById[sid] = {
+            v: String(el.value || '').trim(),
+            n: getNcsSubjectSelectText(sid)
+          };
+        });
+      }
+      selectedSessionIdForSubject = '';
+      if (!courseId) {
+        resetAllNcsPlanSubjectSelects();
+        return;
+      }
+      forEachNcsPlanSubjectSelect(function(el) {
+        el.innerHTML = '<option value="">교과목 선택</option>';
+        el.disabled = true;
+      });
       try {
         var wantSessionId = preferredSessionId != null && String(preferredSessionId).trim() !== '' ? String(preferredSessionId).trim() : '';
         var json = null;
@@ -3730,7 +3876,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           var picked = wantSessionId ? (sessions.find(function(s) { return s && String(s.id) === wantSessionId; }) || null) : null;
           if (!picked) picked = sessions[0] || null;
           if (!picked || picked.id == null) {
-            subSel.disabled = true;
+            resetAllNcsPlanSubjectSelects();
             return;
           }
           sessionIdForApi = String(picked.id);
@@ -3744,45 +3890,33 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         }
         var data = json && json.data;
         var subjects = data && Array.isArray(data.subjects) ? data.subjects : [];
-        subSel.disabled = false;
-        var seen = {};
-        subjects.forEach(function(sub) {
-          if (!sub || sub.id == null) return;
-          var idKey = String(sub.id);
-          if (seen[idKey]) return;
-          seen[idKey] = true;
-          var opt = document.createElement('option');
-          opt.value = idKey;
-          var nm = String(sub.name || sub.main_job_name || sub.job_name || '교과목');
-          opt.textContent = nm;
-          opt.title = nm;
-          subSel.appendChild(opt);
+        forEachNcsPlanSubjectSelect(function(el) {
+          appendSubjectOptionsToSelect(el, subjects);
+          el.disabled = false;
         });
+        if (preserveSelection) {
+          NCS_PLAN_SUBJECT_SELECT_IDS.forEach(function(sid) {
+            var s = savedById[sid];
+            if (!s) return;
+            applyNcsSubjectSelectValue(sid, s.v, s.n);
+          });
+        }
       } catch (e) {
         console.error(e);
-        subSel.disabled = true;
+        resetAllNcsPlanSubjectSelects();
       }
     }
 
     async function applyScheduleSessionSubjectFromPayload(payload) {
       var p = payload || {};
-      var subSel = document.getElementById('ncsPlanSubjectSelect');
-      if (!subSel) return;
       var cid = selectedCourseId || (useFixedCourseId ? fixedCourseId : '');
       if (!cid) {
         selectedSessionIdForSubject = '';
-        subSel.innerHTML = '<option value="">과정 선택 후 교과목</option>';
-        subSel.disabled = true;
+        resetAllNcsPlanSubjectSelects();
         return;
       }
-      await loadNcsPlanSubjectOptions(cid, p.session_id);
-      var wantCur = p.curriculum_id != null && String(p.curriculum_id).trim() !== '' ? String(p.curriculum_id).trim() : '';
-      if (wantCur) {
-        subSel.value = wantCur;
-        if (subSel.value !== wantCur) subSel.value = '';
-      } else {
-        subSel.value = '';
-      }
+      await loadNcsPlanSubjectOptions(cid, p.session_id, { preserveSelection: true });
+      applyNcsSubjectSelectValue('scheduleSubjectSelect', p.curriculum_id, p.subject_name);
     }
 
     function formatPlanDocOptionText(row, index) {
@@ -4085,12 +4219,8 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         if (courseSel) {
           courseSel.addEventListener('change', async function() {
             selectedCourseId = courseSel.value || '';
-            var subSelReset = document.getElementById('ncsPlanSubjectSelect');
-            if (subSelReset) {
-              subSelReset.innerHTML = '<option value="">과정 선택 후 교과목</option>';
-              subSelReset.disabled = true;
-            }
-            await loadNcsPlanSubjectOptions(selectedCourseId);
+            resetAllNcsPlanSubjectSelects();
+            await loadNcsPlanSubjectOptions(selectedCourseId, undefined, { preserveSelection: false });
             await loadDocument(activeTab);
           });
         }
@@ -4208,11 +4338,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           rows.splice(index, 1);
           renderScheduleRows(rows);
           schedulePendingEditIndex = index;
-          var ss = document.getElementById('ncsPlanSubjectSelect');
-          if (ss && row.curriculum_id) {
-            ss.value = String(row.curriculum_id);
-            if (ss.value !== String(row.curriculum_id)) ss.value = '';
-          } else if (ss) ss.value = '';
+          applyNcsSubjectSelectValue('scheduleSubjectSelect', row.curriculum_id || '', row.subject || '');
           var sde = document.getElementById('scheduleInputDate');
           var ste = document.getElementById('scheduleInputTime');
           var spe = document.getElementById('scheduleInputPlace');
@@ -4318,7 +4444,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       switchNcsPlanTab('minutes');
       if (useFixedCourseId) {
         selectedCourseId = fixedCourseId;
-        await loadNcsPlanSubjectOptions(fixedCourseId);
+        await loadNcsPlanSubjectOptions(fixedCourseId, undefined, { preserveSelection: false });
         await loadDocument('minutes');
       }
 
