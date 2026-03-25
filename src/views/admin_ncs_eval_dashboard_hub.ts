@@ -136,8 +136,9 @@ export const adminNcsEvalDashboardHubHtml = (sidebar = hrdSidebar('ncs-eval-dash
         } else {
           rows.forEach(function(row) {
             var rq = Q + '&evaluation_round=' + r;
-            var hasPlan = !!row.plan_registered;
-            var planQ = hasPlan ? (rq + '&plan_id=' + encodeURIComponent(row.plan_id)) : rq;
+            var hasPlanDocs = !!row.plan_registered;
+            var hasPlanId = row.plan_id != null && String(row.plan_id).trim() !== '' && String(row.plan_id).trim() !== 'null';
+            var planQ = hasPlanId ? (rq + '&plan_id=' + encodeURIComponent(row.plan_id)) : '';
             html += '<tr class="hover:bg-slate-50/80">';
             html += '<td class="px-3 py-3 text-sm font-semibold text-slate-800">' + escapeHtml(row.subject_label) + '</td>';
             html += '<td class="px-3 py-3 text-sm text-slate-700">' + escapeHtml(row.method) + '</td>';
@@ -150,7 +151,7 @@ export const adminNcsEvalDashboardHubHtml = (sidebar = hrdSidebar('ncs-eval-dash
             html += '<td class="px-3 py-3 text-center">' + statusLabel(!!row.review) + '</td>';
             html += '<td class="px-3 py-3 text-center">';
             html += '<div class="flex flex-wrap justify-center gap-1">';
-            if (!hasPlan) {
+            if (!hasPlanDocs) {
               html += '<span class="w-full text-center mb-1 px-2 py-0.5 rounded bg-rose-100 text-rose-700 text-[10px] font-black border border-rose-200">평가계획 미등록</span>';
             }
             if (row.scores_missing) {
@@ -162,7 +163,9 @@ export const adminNcsEvalDashboardHubHtml = (sidebar = hrdSidebar('ncs-eval-dash
             html += '<a class="px-2 py-1 rounded-lg bg-amber-600 text-white text-[10px] font-black hover:bg-amber-700" href="' + base + 'ncs-eval-plan' + rq + '&plan_tab=rubric">채점</a>';
             html += '<a class="px-2 py-1 rounded-lg bg-teal-600 text-white text-[10px] font-black hover:bg-teal-700" href="' + base + 'ncs-eval-plan' + rq + '&plan_tab=achievement">성취</a>';
             html += '<a class="px-2 py-1 rounded-lg bg-pink-600 text-white text-[10px] font-black hover:bg-pink-700" href="' + base + 'ncs-eval-plan' + rq + '&plan_tab=review">검토</a>';
-            html += '<a class="px-2 py-1 rounded-lg bg-slate-800 text-white text-[10px] font-black hover:bg-slate-900" href="' + base + 'ncs-eval-exec' + planQ + '">실행</a>';
+            if (hasPlanId) {
+              html += '<a class="px-2 py-1 rounded-lg bg-slate-800 text-white text-[10px] font-black hover:bg-slate-900" href="' + base + 'ncs-eval-exec' + planQ + '">실행</a>';
+            }
             html += '<a class="px-2 py-1 rounded-lg bg-emerald-600 text-white text-[10px] font-black hover:bg-emerald-700" href="' + base + 'ncs-eval-result' + rq + '">결과</a>';
             html += '</div></td></tr>';
           });
@@ -219,7 +222,7 @@ export const adminNcsEvalDashboardHubHtml = (sidebar = hrdSidebar('ncs-eval-dash
       if (errEl) { errEl.classList.add('hidden'); errEl.textContent = ''; }
       if (loading) loading.classList.remove('hidden');
       try {
-        var res = await fetch('/api/ncs/evaluation-dashboard?course_id=' + encodeURIComponent(selectedCourseId), {
+        var res = await fetch('/api/ncs/evaluation-dashboard-hub?course_id=' + encodeURIComponent(selectedCourseId), {
           headers: { 'Authorization': 'Bearer ' + (token || '') }
         });
         var json = await res.json();
