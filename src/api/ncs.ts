@@ -3533,9 +3533,24 @@ function dashScheduleOkForPlan(schedulePayload: Record<string, any>, plan: Recor
 
 function dashTypedDocOk(payload: Record<string, any>, plan: Record<string, any>): boolean {
     const p = payload || {};
-    if (!dashPayloadMatchesPlan(p, plan)) return false;
-    const rows = p.rows;
-    return Array.isArray(rows) && rows.length > 0;
+    const rows = Array.isArray(p?.rows) ? p.rows : [];
+    if (!rows.length) return false;
+
+    // 1) 기존: payload 상단 필드(curriculum_id/subject_name)로 매칭
+    if (dashPayloadMatchesPlan(p, plan)) return true;
+
+    // 2) fallback: 문서가 여러 과목(다중 교과목 누적)일 수 있으므로,
+    //    rows 내부의 curriculum_id/subject로 plan 매칭을 다시 시도
+    const uid = plan?.ncs_unit_id != null ? String(plan.ncs_unit_id).trim() : '';
+    const uname = String(plan?.unit_name ?? '').trim();
+    const hit = rows.some((r: any) => {
+        const rid = r?.curriculum_id != null ? String(r.curriculum_id).trim() : '';
+        if (rid && uid && rid === uid) return true;
+        const subj = String(r?.subject ?? '').trim();
+        if (subj && uname && dashNamesRoughlyMatch(subj, uname)) return true;
+        return false;
+    });
+    return hit;
 }
 
 function dashProgressLabel(schedulePayload: Record<string, any>, plan: Record<string, any>, plannedDate: unknown): string {
