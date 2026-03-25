@@ -3931,17 +3931,17 @@ app.get('/evaluation-dashboard', authMiddleware, async (c) => {
             SELECT cnu.ncs_unit_id, u.name as unit_name, u.code as unit_code
             FROM course_ncs_units cnu
             JOIN ncs_units u ON cnu.ncs_unit_id = u.id
-            WHERE cnu.course_id = ?
+            WHERE cnu.course_id IN (${inPh})
             ORDER BY u.code ASC, u.name ASC
-        `).bind(courseId).all();
+        `).bind(...inList).all();
 
         const { results: planRows } = await c.env.DB.prepare(`
             SELECT p.*, u.name as unit_name, u.code as unit_code
             FROM ncs_evaluation_plans p
             JOIN ncs_units u ON p.ncs_unit_id = u.id
-            WHERE p.course_id = ? AND p.evaluation_round BETWEEN 1 AND 3
-            ORDER BY p.evaluation_round ASC, u.code ASC
-        `).bind(courseId).all();
+            WHERE p.course_id IN (${inPh}) AND p.evaluation_round BETWEEN 1 AND 3
+            ORDER BY p.evaluation_round ASC, u.code ASC, p.updated_at DESC, p.id DESC
+        `).bind(...inList).all();
 
         const plans = Array.isArray(planRows) ? planRows : [];
         const planIds = plans.map((p: any) => p.id).filter((id: any) => Number.isFinite(Number(id)) && Number(id) > 0);
