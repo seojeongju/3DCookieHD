@@ -887,43 +887,79 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                   </div>
                 </div>
               ` : item.id === 'schedule' ? `
-                <div class="space-y-4">
-                  <div class="rounded-2xl border border-slate-200/70 bg-slate-50 p-4">
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-                      <input id="schedule_doc_title" class="md:col-span-2 px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="문서 제목 (예: 1차 평가 실시일정)" />
-                      <input id="schedule_eval_type" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="평가유형 (예: 본평가/재평가)" />
-                      <input id="schedule_writer" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="작성자" />
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-5 gap-3 mt-3">
-                      <input id="scheduleInputDate" type="date" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" />
-                      <input id="scheduleInputTime" type="time" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" />
-                      <input id="scheduleInputPlace" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="장소" />
-                      <input id="scheduleInputTarget" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" placeholder="대상자/반" />
-                      <button type="button" id="scheduleAddRowBtn" class="px-3 py-2 rounded-xl bg-sky-600 text-white text-sm font-black hover:bg-sky-700 transition">
-                        <i class="fas fa-plus mr-1"></i>일정 추가
-                      </button>
-                    </div>
-                  </div>
-                  <div class="rounded-2xl border border-slate-200/70 overflow-hidden">
-                    <div class="overflow-x-auto">
-                      <table class="w-full text-left">
-                        <thead class="bg-slate-50 border-b border-slate-100">
-                          <tr>
-                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider w-16">No</th>
-                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider">평가일자</th>
-                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider">시간</th>
-                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider">장소</th>
-                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider">대상자</th>
-                            <th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider text-center w-24">삭제</th>
-                          </tr>
-                        </thead>
-                        <tbody id="scheduleRowsBody" class="divide-y divide-slate-100 bg-white"></tbody>
-                      </table>
-                    </div>
-                  </div>
-                  <div>
-                    <label class="block text-xs font-black text-slate-600 mb-1.5">비고</label>
-                    <textarea id="schedule_notes" class="w-full h-28 px-3 py-2 rounded-xl border border-slate-200 text-sm"></textarea>
+                <div class="rounded-2xl border border-slate-200/70 overflow-hidden">
+                  <div class="p-4 bg-white overflow-x-auto">
+                    <table class="w-full min-w-[980px] border border-black text-xs">
+                      <tr>
+                        <td class="border border-black text-center font-black text-3xl py-6" colspan="8">평가 실시 일자</td>
+                      </tr>
+                      <tr>
+                        <td class="border border-black text-center bg-slate-50 font-bold w-24">문서제목</td>
+                        <td class="border border-black px-2 py-1" colspan="5">
+                          <input id="schedule_doc_title" class="w-full min-h-[1.25rem] px-1 py-0.5 border-0 outline-none bg-transparent text-sm" placeholder="예: 1차 평가 실시일정" />
+                        </td>
+                        <td class="border border-black text-center bg-slate-50 font-bold w-24">평가유형</td>
+                        <td class="border border-black px-2 py-1">
+                          <input id="schedule_eval_type" class="w-full min-h-[1.25rem] px-1 py-0.5 border-0 outline-none bg-transparent text-sm text-center" placeholder="본평가/재평가" />
+                        </td>
+                      </tr>
+                      <tr>
+                        <td class="border border-black text-center bg-slate-50 font-bold">작성자</td>
+                        <td class="border border-black px-2 py-1" colspan="7">
+                          <input id="schedule_writer" class="w-full min-h-[1.25rem] px-1 py-0.5 border-0 outline-none bg-transparent text-sm" placeholder="작성자" />
+                        </td>
+                      </tr>
+                      <tr>
+                        <td class="border border-black text-center bg-slate-50 font-bold align-top py-2">일정 입력</td>
+                        <td class="border border-black p-2" colspan="7">
+                          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2 items-end">
+                            <label class="block text-[11px] font-bold text-slate-600 sm:col-span-1">평가일자
+                              <input id="scheduleInputDate" type="date" class="mt-0.5 w-full px-2 py-1.5 border border-slate-200 rounded bg-white text-sm" />
+                            </label>
+                            <label class="block text-[11px] font-bold text-slate-600 sm:col-span-1">시간
+                              <input id="scheduleInputTime" type="time" class="mt-0.5 w-full px-2 py-1.5 border border-slate-200 rounded bg-white text-sm" />
+                            </label>
+                            <label class="block text-[11px] font-bold text-slate-600 sm:col-span-1">장소
+                              <input id="scheduleInputPlace" class="mt-0.5 w-full px-2 py-1.5 border border-slate-200 rounded bg-white text-sm" placeholder="장소" />
+                            </label>
+                            <label class="block text-[11px] font-bold text-slate-600 sm:col-span-1">대상자/반
+                              <input id="scheduleInputTarget" class="mt-0.5 w-full px-2 py-1.5 border border-slate-200 rounded bg-white text-sm" placeholder="대상자/반" />
+                            </label>
+                            <div class="sm:col-span-2 flex justify-end lg:justify-start pt-4 sm:pt-0">
+                              <button type="button" id="scheduleAddRowBtn" class="w-full sm:w-auto px-4 py-2 rounded-lg bg-sky-600 text-white text-sm font-black hover:bg-sky-700 transition whitespace-nowrap">
+                                <i class="fas fa-plus mr-1"></i>일정 추가
+                              </button>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td class="border border-black text-center bg-slate-50 font-bold align-top py-2">평가일정</td>
+                        <td class="border border-black p-0" colspan="7">
+                          <div class="overflow-x-auto">
+                            <table class="w-full min-w-[720px] border-collapse">
+                              <thead>
+                                <tr>
+                                  <th class="border border-black px-2 py-2 text-center text-xs font-black text-slate-800 bg-slate-50 w-12">No</th>
+                                  <th class="border border-black px-2 py-2 text-center text-xs font-black text-slate-800 bg-slate-50">평가일자</th>
+                                  <th class="border border-black px-2 py-2 text-center text-xs font-black text-slate-800 bg-slate-50 w-28">시간</th>
+                                  <th class="border border-black px-2 py-2 text-center text-xs font-black text-slate-800 bg-slate-50">장소</th>
+                                  <th class="border border-black px-2 py-2 text-center text-xs font-black text-slate-800 bg-slate-50">대상자</th>
+                                  <th class="border border-black px-2 py-2 text-center text-xs font-black text-slate-800 bg-slate-50 w-24">삭제</th>
+                                </tr>
+                              </thead>
+                              <tbody id="scheduleRowsBody" class="bg-white"></tbody>
+                            </table>
+                          </div>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td class="border border-black text-center bg-slate-50 font-bold">비고</td>
+                        <td class="border border-black p-0" colspan="7">
+                          <textarea id="schedule_notes" class="w-full h-28 px-3 py-2 outline-none resize-y border-0 text-sm"></textarea>
+                        </td>
+                      </tr>
+                    </table>
                   </div>
                 </div>
               ` : item.id === 'questions' ? `
@@ -2988,7 +3024,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       if (!body) return;
       const safeRows = Array.isArray(rows) ? rows : [];
       if (!safeRows.length) {
-        body.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-sm text-slate-400">등록된 일정이 없습니다.</td></tr>';
+        body.innerHTML = '<tr><td colspan="6" class="border border-black px-3 py-8 text-center text-sm text-slate-400">등록된 일정이 없습니다.</td></tr>';
         return;
       }
       body.innerHTML = safeRows.map(function(row, idx) {
@@ -2997,12 +3033,12 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         const place = String(row?.place || '');
         const target = String(row?.target || '');
         return '<tr data-schedule-row data-date="' + escapeHtml(date) + '" data-time="' + escapeHtml(time) + '" data-place="' + escapeHtml(place) + '" data-target="' + escapeHtml(target) + '">' +
-          '<td class="px-4 py-3 text-sm font-semibold text-slate-700">' + (idx + 1) + '</td>' +
-          '<td class="px-4 py-3 text-sm text-slate-700">' + escapeHtml(date || '-') + '</td>' +
-          '<td class="px-4 py-3 text-sm text-slate-700">' + escapeHtml(time || '-') + '</td>' +
-          '<td class="px-4 py-3 text-sm text-slate-700">' + escapeHtml(place || '-') + '</td>' +
-          '<td class="px-4 py-3 text-sm text-slate-700">' + escapeHtml(target || '-') + '</td>' +
-          '<td class="px-4 py-3 text-center"><button type="button" class="px-2.5 py-1.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 text-xs font-black hover:bg-rose-100 transition" data-remove-schedule-row="' + idx + '">삭제</button></td>' +
+          '<td class="border border-black px-2 py-2 text-sm font-semibold text-slate-800 text-center">' + (idx + 1) + '</td>' +
+          '<td class="border border-black px-2 py-2 text-sm text-slate-800">' + escapeHtml(date || '-') + '</td>' +
+          '<td class="border border-black px-2 py-2 text-sm text-slate-800">' + escapeHtml(time || '-') + '</td>' +
+          '<td class="border border-black px-2 py-2 text-sm text-slate-800">' + escapeHtml(place || '-') + '</td>' +
+          '<td class="border border-black px-2 py-2 text-sm text-slate-800">' + escapeHtml(target || '-') + '</td>' +
+          '<td class="border border-black px-2 py-2 text-center align-middle"><button type="button" class="px-2.5 py-1.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 text-xs font-black hover:bg-rose-100 transition" data-remove-schedule-row="' + idx + '">삭제</button></td>' +
         '</tr>';
       }).join('');
     }
