@@ -3968,20 +3968,6 @@ app.get('/evaluation-dashboard', authMiddleware, async (c) => {
             }
         }
 
-        // course_ncs_units에 실제로 존재하는 course_id 후보가 무엇인지 디버깅용으로 집계합니다.
-        let unitCourseIdStats: any[] = [];
-        if (debug) {
-            try {
-                const { results } = await c.env.DB.prepare(`
-                    SELECT CAST(course_id AS INTEGER) as course_id, COUNT(*) as cnt
-                    FROM course_ncs_units
-                    WHERE CAST(course_id AS INTEGER) IN (${inPh})
-                    GROUP BY CAST(course_id AS INTEGER)
-                `).bind(...safeInList).all();
-                unitCourseIdStats = Array.isArray(results) ? results : [];
-            } catch (_) { /* ignore debug failures */ }
-        }
-
         const { results: unitRows } = await c.env.DB.prepare(`
             SELECT cnu.ncs_unit_id, u.name as unit_name, u.code as unit_code
             FROM course_ncs_units cnu
@@ -3998,6 +3984,21 @@ app.get('/evaluation-dashboard', authMiddleware, async (c) => {
             -- D1 환경에서 ncs_evaluation_plans에 updated_at 컬럼이 없는 경우가 있어, id로만 정렬합니다.
             ORDER BY p.evaluation_round ASC, u.code ASC, p.id DESC
         `).bind(...safeInList).all();
+
+        // unitRows가 비어있으면(=과목명이 안 보이면) 원인 파악을 위해 자동으로 최소 디버그 정보를 포함합니다.
+        const shouldDebug = debug || (Array.isArray(unitRows) ? unitRows.length === 0 : true);
+        let unitCourseIdStats: any[] = [];
+        if (shouldDebug) {
+            try {
+                const { results } = await c.env.DB.prepare(`
+                    SELECT CAST(course_id AS INTEGER) as course_id, COUNT(*) as cnt
+                    FROM course_ncs_units
+                    WHERE CAST(course_id AS INTEGER) IN (${inPh})
+                    GROUP BY CAST(course_id AS INTEGER)
+                `).bind(...safeInList).all();
+                unitCourseIdStats = Array.isArray(results) ? results : [];
+            } catch (_) { /* ignore debug failures */ }
+        }
 
         const plans = Array.isArray(planRows) ? planRows : [];
         const planIds = plans.map((p: any) => p.id).filter((id: any) => Number.isFinite(Number(id)) && Number(id) > 0);
@@ -4084,7 +4085,7 @@ app.get('/evaluation-dashboard', authMiddleware, async (c) => {
             };
         });
 
-        if (debug) {
+        if (shouldDebug) {
             return c.json({
                 success: true,
                 data: { rounds: roundsOut },
