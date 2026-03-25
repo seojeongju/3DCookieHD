@@ -1,104 +1,387 @@
 import { hrdSidebar } from './components/hrd_sidebar';
 
-/** HRD: 과정(LMS 연동 ID) 선택 후 LMS 통합현황 대시보드로 이동 */
+const LS_COURSE_KEY = 'hrdNcsEvalDashCourseId';
+
+/**
+ * HRD 전역: 과정 선택만으로 NCS 본평가 계획(일정·문항·도구 등) 생성 여부를 차수별로 표시
+ */
 export const adminNcsEvalDashboardHubHtml = (sidebar = hrdSidebar('ncs-eval-dashboard-hub')) => `
 <!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NCS 본평가 과정별 통합현황 - 교육행정</title>
+  <title>NCS 본평가 계획 현황 대시보드 - 교육행정</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
 </head>
-<body class="bg-slate-50">
+<body class="bg-slate-100 min-h-screen">
   <div class="flex min-h-screen">
     ${sidebar}
-    <div class="flex-1 overflow-y-auto">
-      <header class="sticky top-0 z-10 bg-white/90 backdrop-blur border-b border-slate-200">
-        <div class="px-6 py-5 max-w-5xl mx-auto">
-          <h1 class="text-2xl font-black text-slate-900">NCS 본평가 · 과정별 통합현황</h1>
-          <p class="text-sm text-slate-600 mt-1">개설 과정을 선택하면 <strong>차수별 계획·문항·실행·결과</strong>를 한 화면에서 확인하는 LMS 통합현황으로 이동합니다.</p>
-          <nav class="flex flex-wrap gap-2 mt-4 text-xs font-bold">
-            <a href="/admin/ncs-eval-plan" class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50">NCS평가계획(전역)</a>
-            <a href="/admin/ncs-eval-exec" class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50">NCS평가실행</a>
-            <a href="/admin/ncs-eval-result" class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50">NCS평가결과</a>
-            <a href="/admin/ncs-eval" class="px-3 py-1.5 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-800 hover:bg-indigo-100">종합 NCS 평가 현황</a>
-          </nav>
+    <div class="flex-1 flex flex-col min-w-0">
+      <header class="sticky top-0 z-20 bg-white border-b border-slate-200 shadow-sm">
+        <div class="px-4 sm:px-6 lg:px-8 py-4 max-w-[1600px] mx-auto w-full">
+          <div class="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">NCS 본평가 · 계획 생성 현황</h1>
+              <p class="text-slate-600 text-sm mt-1">과정을 선택하면 <strong>별도 메뉴 진입 없이</strong> 1~3차별 평가실시일자·문항·도구·채점기준 등 작성 여부를 확인할 수 있습니다.</p>
+            </div>
+            <nav class="flex flex-wrap gap-2 text-xs font-bold shrink-0">
+              <a href="/admin/ncs-eval-plan" class="px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50">전역 계획서</a>
+              <a href="/admin/ncs-eval-exec" class="px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50">평가실행</a>
+              <a href="/admin/ncs-eval-result" class="px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50">평가결과</a>
+              <a href="/admin/ncs-eval" class="px-3 py-2 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-800 hover:bg-indigo-100">종합 현황</a>
+            </nav>
+          </div>
+          <div class="mt-4 flex flex-col sm:flex-row sm:items-end gap-3">
+            <label class="flex-1 min-w-0 block">
+              <span class="text-xs font-black text-slate-500 uppercase tracking-wider">과정선택</span>
+              <select id="hrdNcsDashCourseSelect" class="mt-1 w-full max-w-4xl px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-800 shadow-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 outline-none">
+                <option value="">— 과정을 선택하세요 —</option>
+              </select>
+            </label>
+            <button type="button" id="hrdNcsDashRefresh" class="px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm font-black text-slate-700 hover:bg-slate-50 shrink-0">
+              <i class="fas fa-rotate-right mr-2"></i>새로고침
+            </button>
+          </div>
+          <p class="mt-3 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+            <i class="fas fa-triangle-exclamation mr-1"></i>
+            LMS URL의 <strong>과정 ID</strong>(<code class="text-[11px] bg-amber-100 px-1 rounded">/admin/courses/숫자/lms/…</code>)과 동일한 항목을 선택해야 합니다. 연결된 회차가 없으면 표가 비거나 API 오류가 날 수 있습니다.
+          </p>
         </div>
       </header>
-      <main class="p-6 max-w-5xl mx-auto">
-        <div class="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-900 mb-6">
-          <i class="fas fa-circle-info mr-1"></i>
-          HRD 메뉴의 <strong>NCS평가계획</strong>은 과정을 고르지 않는 <strong>전역 문서</strong> 화면입니다. 통합현황 표는 <strong>과정(회차) ID</strong>가 필요하므로 아래에서 과정을 고른 뒤 이동해 주세요.
+
+      <main class="flex-1 px-4 sm:px-6 lg:px-8 py-6 max-w-[1600px] mx-auto w-full space-y-6">
+        <div id="hrdDashPreEval" class="hidden bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="px-4 sm:px-5 py-3 border-b border-slate-100 bg-slate-50 flex flex-wrap items-center justify-between gap-2">
+            <h2 class="text-sm font-black text-slate-900">사전평가 (CBT)</h2>
+            <span class="text-[11px] text-slate-500">문항·응시 현황은 LMS 사전평가 메뉴에서 관리됩니다.</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm min-w-[720px]">
+              <thead>
+                <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-black text-slate-500 uppercase tracking-wider">
+                  <th class="px-4 py-3">구분</th>
+                  <th class="px-4 py-3">평가수행일</th>
+                  <th class="px-4 py-3 text-center">바로가기</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="border-b border-slate-100">
+                  <td class="px-4 py-3 font-semibold text-slate-800">사전평가</td>
+                  <td class="px-4 py-3 text-slate-500" id="hrdPreEvalDate">—</td>
+                  <td class="px-4 py-3 text-center">
+                    <a id="hrdPreEvalLink" href="#" class="inline-flex items-center px-3 py-1.5 rounded-lg bg-sky-600 text-white text-xs font-black hover:bg-sky-700">사전평가 관리</a>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
-        <div id="hubLoading" class="text-sm text-slate-500 py-10 text-center">목록을 불러오는 중…</div>
-        <div id="hubTableWrap" class="hidden bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <table class="w-full text-left text-sm">
-            <thead class="bg-slate-50 border-b border-slate-200 text-xs font-black text-slate-500 uppercase tracking-wider">
-              <tr>
-                <th class="px-4 py-3">과정</th>
-                <th class="px-4 py-3">담당</th>
-                <th class="px-4 py-3 text-right">이동</th>
-              </tr>
-            </thead>
-            <tbody id="hubBody" class="divide-y divide-slate-100"></tbody>
-          </table>
-        </div>
-        <p id="hubError" class="hidden text-sm text-rose-600 py-6"></p>
+
+        <p id="hrdDashHint" class="text-sm text-slate-500 py-6 text-center">위에서 <strong>과정</strong>을 선택하면 본평가 계획 현황이 표시됩니다.</p>
+        <p id="hrdDashLoading" class="hidden text-sm text-slate-500 py-4 text-center"><i class="fas fa-spinner fa-spin mr-2"></i>현황을 불러오는 중…</p>
+        <p id="hrdDashError" class="hidden text-sm text-rose-600 py-4 text-center font-bold"></p>
+        <div id="hrdDashFilterWrap" class="hidden bg-white rounded-2xl border border-slate-200 p-4 shadow-sm"></div>
+        <div id="hrdDashRounds" class="space-y-8"></div>
       </main>
     </div>
   </div>
+
   <script>
-    (function() {
-      var token = localStorage.getItem('token');
-      function esc(s) {
-        return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  (function() {
+    var selectedCourseId = '';
+    var dashboardData = null;
+    var filterSubject = '';
+    var filterSearch = '';
+    var token = localStorage.getItem('token');
+
+    function lmsBase() {
+      return '/admin/courses/' + encodeURIComponent(selectedCourseId) + '/lms/';
+    }
+    var Q = '?type=hrd';
+
+    function escapeHtml(v) {
+      return String(v ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function statusIcon(ok) {
+      return ok
+        ? '<span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-emerald-100 text-emerald-600" title="작성됨"><i class="fas fa-check text-xs"></i></span>'
+        : '<span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-rose-100 text-rose-500" title="미작성"><i class="fas fa-xmark text-xs"></i></span>';
+    }
+
+    function thRequired(label) {
+      return '<span class="text-rose-500 font-black mr-0.5">!</span>' + label;
+    }
+
+    function roundPlanTitle(r) {
+      if (r === 1) return '1차 평가실시계획 (본평가)';
+      if (r === 2) return '2차 평가실시계획 (재평가)';
+      return '3차 평가실시계획 (재평가)';
+    }
+
+    function filteredRows(rows) {
+      if (!Array.isArray(rows)) return [];
+      return rows.filter(function(row) {
+        if (filterSubject && String(row.subject_label || '') !== filterSubject) return false;
+        if (filterSearch) {
+          var k = filterSearch.toLowerCase();
+          var blob = (row.subject_label + ' ' + row.method + ' ' + row.progress_label).toLowerCase();
+          if (blob.indexOf(k) === -1) return false;
+        }
+        return true;
+      });
+    }
+
+    function buildSubjectOptions(allRows) {
+      var seen = {};
+      var opts = [];
+      (allRows || []).forEach(function(r) {
+        var s = String(r.subject_label || '').trim();
+        if (s && !seen[s]) { seen[s] = true; opts.push(s); }
+      });
+      opts.sort();
+      return opts;
+    }
+
+    function renderFilterBar(subjectOpts) {
+      return '<div class="flex flex-wrap items-end gap-3">' +
+        '<label class="text-xs font-bold text-slate-500 uppercase tracking-wider flex flex-col gap-1">' +
+        '<span>교과목</span>' +
+        '<select id="hrdDashFilterSubject" class="min-w-[200px] px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm">' +
+        '<option value="">전체</option>' +
+        subjectOpts.map(function(s) {
+          return '<option value="' + escapeHtml(s) + '"' + (filterSubject === s ? ' selected' : '') + '>' + escapeHtml(s) + '</option>';
+        }).join('') +
+        '</select></label>' +
+        '<label class="flex-1 min-w-[180px] max-w-md text-xs font-bold text-slate-500 uppercase tracking-wider flex flex-col gap-1">' +
+        '<span>검색</span>' +
+        '<div class="flex rounded-xl border border-slate-200 bg-white overflow-hidden">' +
+        '<span class="pl-3 flex items-center text-slate-400"><i class="fas fa-search text-sm"></i></span>' +
+        '<input type="text" id="hrdDashSearch" class="flex-1 px-2 py-2 text-sm outline-none" placeholder="검색어 입력" value="' + escapeHtml(filterSearch) + '" />' +
+        '</div></label>' +
+        '<button type="button" id="hrdDashReset" class="px-4 py-2 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-700 hover:bg-slate-50">초기화</button>' +
+        '</div>';
+    }
+
+    function bindFilterEvents() {
+      var subSel = document.getElementById('hrdDashFilterSubject');
+      if (subSel) {
+        subSel.value = filterSubject;
+        subSel.onchange = function() {
+          filterSubject = subSel.value || '';
+          renderRounds();
+        };
       }
-      async function load() {
-        var loading = document.getElementById('hubLoading');
-        var wrap = document.getElementById('hubTableWrap');
-        var body = document.getElementById('hubBody');
-        var errEl = document.getElementById('hubError');
-        try {
-          var res = await fetch('/api/hrd/ncs-eval/summary', {
-            headers: { 'Authorization': 'Bearer ' + (token || '') }
+      var searchEl = document.getElementById('hrdDashSearch');
+      if (searchEl) {
+        searchEl.oninput = function() {
+          filterSearch = (searchEl.value || '').trim();
+          renderRounds();
+        };
+      }
+      var resetBtn = document.getElementById('hrdDashReset');
+      if (resetBtn) {
+        resetBtn.onclick = function() {
+          filterSubject = '';
+          filterSearch = '';
+          renderRounds();
+        };
+      }
+    }
+
+    function renderRounds() {
+      var filterWrap = document.getElementById('hrdDashFilterWrap');
+      var roundsEl = document.getElementById('hrdDashRounds');
+      if (!filterWrap || !roundsEl || !dashboardData) return;
+
+      var rounds = dashboardData.rounds || [];
+      var allRowsFlat = [];
+      rounds.forEach(function(block) {
+        (block.rows || []).forEach(function(r) { allRowsFlat.push(r); });
+      });
+      filterWrap.classList.remove('hidden');
+      filterWrap.innerHTML = renderFilterBar(buildSubjectOptions(allRowsFlat));
+
+      var html = '';
+      var base = lmsBase();
+      rounds.forEach(function(block) {
+        var r = block.round;
+        var rows = filteredRows(block.rows || []);
+        var badge = block.plan_confirmed
+          ? '<span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black bg-emerald-100 text-emerald-800 border border-emerald-200"><i class="fas fa-check"></i> 평가계획 완료</span>'
+          : '<span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black bg-rose-100 text-rose-800 border border-rose-200"><i class="fas fa-xmark"></i> 평가계획 미완료</span>';
+
+        html += '<section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">';
+        html += '<div class="px-4 sm:px-5 py-4 border-b border-slate-100 bg-slate-50/90 flex flex-wrap items-center justify-between gap-3">';
+        html += '<h2 class="text-base sm:text-lg font-black text-slate-900">' + escapeHtml(roundPlanTitle(r)) + '</h2>';
+        html += '<div class="flex flex-wrap items-center gap-3">' + badge + '</div>';
+        html += '</div>';
+        html += '<div class="overflow-x-auto">';
+        html += '<table class="w-full text-left min-w-[1180px]">';
+        html += '<thead><tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-black text-slate-500 uppercase tracking-wider">';
+        html += '<th class="px-3 py-3">교과목명</th>';
+        html += '<th class="px-3 py-3">평가방법</th>';
+        html += '<th class="px-3 py-3">평가진행일</th>';
+        html += '<th class="px-3 py-3 text-center">평가실시일자</th>';
+        html += '<th class="px-3 py-3 text-center">' + thRequired('평가문항') + '</th>';
+        html += '<th class="px-3 py-3 text-center">' + thRequired('평가도구') + '</th>';
+        html += '<th class="px-3 py-3 text-center">' + thRequired('채점기준표') + '</th>';
+        html += '<th class="px-3 py-3 text-center">' + thRequired('성취수준') + '</th>';
+        html += '<th class="px-3 py-3 text-center">평가도구검토</th>';
+        html += '<th class="px-3 py-3 text-center">바로가기</th>';
+        html += '</tr></thead><tbody class="divide-y divide-slate-100">';
+
+        if (rows.length === 0) {
+          html += '<tr><td colspan="10" class="px-4 py-10 text-center text-sm text-slate-400">이 차수에 등록된 능력단위(평가계획)가 없습니다. ' +
+            '<a class="text-sky-600 font-bold underline" href="' + base + 'ncs-eval-exec' + Q + '&evaluation_round=' + r + '">평가실행</a>에서 추가해 주세요.</td></tr>';
+        } else {
+          rows.forEach(function(row) {
+            var rq = Q + '&evaluation_round=' + r;
+            var planQ = rq + '&plan_id=' + encodeURIComponent(row.plan_id);
+            html += '<tr class="hover:bg-slate-50/80">';
+            html += '<td class="px-3 py-3 text-sm font-semibold text-slate-800">' + escapeHtml(row.subject_label) + '</td>';
+            html += '<td class="px-3 py-3 text-sm text-slate-700">' + escapeHtml(row.method) + '</td>';
+            html += '<td class="px-3 py-3 text-sm text-slate-700 whitespace-nowrap">' + escapeHtml(row.progress_label) + '</td>';
+            html += '<td class="px-3 py-3 text-center">' + statusIcon(!!row.schedule) + '</td>';
+            html += '<td class="px-3 py-3 text-center">' + statusIcon(!!row.questions) + '</td>';
+            html += '<td class="px-3 py-3 text-center">' + statusIcon(!!row.tools) + '</td>';
+            html += '<td class="px-3 py-3 text-center">' + statusIcon(!!row.rubric) + '</td>';
+            html += '<td class="px-3 py-3 text-center">' + statusIcon(!!row.achievement) + '</td>';
+            html += '<td class="px-3 py-3 text-center">' + statusIcon(!!row.review) + '</td>';
+            html += '<td class="px-3 py-3 text-center">';
+            html += '<div class="flex flex-wrap justify-center gap-1">';
+            if (row.scores_missing) {
+              html += '<span class="w-full text-center mb-1 px-2 py-0.5 rounded bg-slate-200 text-slate-700 text-[10px] font-black">점수등록 누락</span>';
+            }
+            html += '<a class="px-2 py-1 rounded-lg bg-sky-600 text-white text-[10px] font-black hover:bg-sky-700" href="' + base + 'ncs-eval-plan' + rq + '&plan_tab=schedule">일정</a>';
+            html += '<a class="px-2 py-1 rounded-lg bg-indigo-600 text-white text-[10px] font-black hover:bg-indigo-700" href="' + base + 'ncs-eval-plan' + rq + '&plan_tab=questions">문항</a>';
+            html += '<a class="px-2 py-1 rounded-lg bg-violet-600 text-white text-[10px] font-black hover:bg-violet-700" href="' + base + 'ncs-eval-plan' + rq + '&plan_tab=tools">도구</a>';
+            html += '<a class="px-2 py-1 rounded-lg bg-amber-600 text-white text-[10px] font-black hover:bg-amber-700" href="' + base + 'ncs-eval-plan' + rq + '&plan_tab=rubric">채점</a>';
+            html += '<a class="px-2 py-1 rounded-lg bg-teal-600 text-white text-[10px] font-black hover:bg-teal-700" href="' + base + 'ncs-eval-plan' + rq + '&plan_tab=achievement">성취</a>';
+            html += '<a class="px-2 py-1 rounded-lg bg-pink-600 text-white text-[10px] font-black hover:bg-pink-700" href="' + base + 'ncs-eval-plan' + rq + '&plan_tab=review">검토</a>';
+            html += '<a class="px-2 py-1 rounded-lg bg-slate-800 text-white text-[10px] font-black hover:bg-slate-900" href="' + base + 'ncs-eval-exec' + planQ + '">실행</a>';
+            html += '<a class="px-2 py-1 rounded-lg bg-emerald-600 text-white text-[10px] font-black hover:bg-emerald-700" href="' + base + 'ncs-eval-result' + rq + '">결과</a>';
+            html += '</div></td></tr>';
           });
-          var json = await res.json();
-          if (!json || !json.success) {
-            if (loading) loading.classList.add('hidden');
-            if (errEl) { errEl.textContent = (json && json.error) ? json.error : '목록을 불러오지 못했습니다.'; errEl.classList.remove('hidden'); }
-            return;
+        }
+        html += '</tbody></table></div></section>';
+      });
+
+      roundsEl.innerHTML = html;
+      bindFilterEvents();
+    }
+
+    function updatePreEvalSection() {
+      var pre = document.getElementById('hrdDashPreEval');
+      var link = document.getElementById('hrdPreEvalLink');
+      if (!pre || !link) return;
+      if (!selectedCourseId) {
+        pre.classList.add('hidden');
+        return;
+      }
+      pre.classList.remove('hidden');
+      link.href = lmsBase() + 'cbt' + Q;
+    }
+
+    async function loadCourseList() {
+      var sel = document.getElementById('hrdNcsDashCourseSelect');
+      if (!sel) return;
+      try {
+        var res = await fetch('/api/hrd/ncs-eval/summary', {
+          headers: { 'Authorization': 'Bearer ' + (token || '') }
+        });
+        var json = await res.json();
+        if (!json || !json.success) return;
+        var list = Array.isArray(json.data) ? json.data : [];
+        var saved = '';
+        try { saved = localStorage.getItem('${LS_COURSE_KEY}') || ''; } catch (e) {}
+        sel.innerHTML = '<option value="">— 과정을 선택하세요 —</option>' +
+          list.map(function(c) {
+            var id = String(c.id);
+            var t = (c.title || '과정') + (c.teacher_name ? ' · ' + c.teacher_name : '');
+            return '<option value="' + escapeHtml(id) + '">[' + escapeHtml(id) + '] ' + escapeHtml(t) + '</option>';
+          }).join('');
+        if (saved && list.some(function(c) { return String(c.id) === saved; })) {
+          sel.value = saved;
+          selectedCourseId = saved;
+        }
+        if (selectedCourseId) await loadDashboard();
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function loadDashboard() {
+      var hint = document.getElementById('hrdDashHint');
+      var loading = document.getElementById('hrdDashLoading');
+      var errEl = document.getElementById('hrdDashError');
+      var filterWrap = document.getElementById('hrdDashFilterWrap');
+      var roundsEl = document.getElementById('hrdDashRounds');
+      if (!selectedCourseId) {
+        if (hint) hint.classList.remove('hidden');
+        if (loading) loading.classList.add('hidden');
+        if (errEl) { errEl.classList.add('hidden'); errEl.textContent = ''; }
+        if (filterWrap) filterWrap.classList.add('hidden');
+        if (roundsEl) roundsEl.innerHTML = '';
+        dashboardData = null;
+        updatePreEvalSection();
+        return;
+      }
+      try { localStorage.setItem('${LS_COURSE_KEY}', selectedCourseId); } catch (e) {}
+      if (hint) hint.classList.add('hidden');
+      if (errEl) { errEl.classList.add('hidden'); errEl.textContent = ''; }
+      if (loading) loading.classList.remove('hidden');
+      updatePreEvalSection();
+      try {
+        var res = await fetch('/api/ncs/evaluation-dashboard?course_id=' + encodeURIComponent(selectedCourseId), {
+          headers: { 'Authorization': 'Bearer ' + (token || '') }
+        });
+        var json = await res.json();
+        if (loading) loading.classList.add('hidden');
+        if (!json || !json.success) {
+          if (errEl) {
+            errEl.textContent = (json && json.error) ? String(json.error) : '현황을 불러오지 못했습니다.';
+            errEl.classList.remove('hidden');
           }
-          var rows = Array.isArray(json.data) ? json.data : [];
-          if (loading) loading.classList.add('hidden');
-          if (!rows.length) {
-            if (body) body.innerHTML = '<tr><td colspan="3" class="px-4 py-10 text-center text-slate-400">표시할 과정이 없습니다.</td></tr>';
-            if (wrap) wrap.classList.remove('hidden');
-            return;
-          }
-          if (body) {
-            body.innerHTML = rows.map(function(c) {
-              var id = c.id;
-              var href = '/admin/courses/' + encodeURIComponent(id) + '/lms/ncs-eval-dashboard?type=hrd';
-              return '<tr class="hover:bg-slate-50">' +
-                '<td class="px-4 py-3 font-semibold text-slate-800">' + esc(c.title) + '</td>' +
-                '<td class="px-4 py-3 text-slate-600">' + esc(c.teacher_name || '-') + '</td>' +
-                '<td class="px-4 py-3 text-right">' +
-                '<a href="' + href + '" class="inline-flex items-center px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-black hover:bg-indigo-700">통합현황 열기</a>' +
-                '</td></tr>';
-            }).join('');
-          }
-          if (wrap) wrap.classList.remove('hidden');
-        } catch (e) {
-          console.error(e);
-          if (loading) loading.classList.add('hidden');
-          if (errEl) { errEl.textContent = '오류가 발생했습니다.'; errEl.classList.remove('hidden'); }
+          dashboardData = null;
+          if (filterWrap) filterWrap.classList.add('hidden');
+          if (roundsEl) roundsEl.innerHTML = '';
+          return;
+        }
+        dashboardData = json.data;
+        renderRounds();
+      } catch (e) {
+        console.error(e);
+        if (loading) loading.classList.add('hidden');
+        if (errEl) {
+          errEl.textContent = '오류가 발생했습니다.';
+          errEl.classList.remove('hidden');
         }
       }
-      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', load);
-      else load();
-    })();
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      var sel = document.getElementById('hrdNcsDashCourseSelect');
+      if (sel) {
+        sel.addEventListener('change', function() {
+          selectedCourseId = (sel.value || '').trim();
+          filterSubject = '';
+          filterSearch = '';
+          loadDashboard();
+        });
+      }
+      var refBtn = document.getElementById('hrdNcsDashRefresh');
+      if (refBtn) refBtn.addEventListener('click', function() { loadDashboard(); });
+      loadCourseList();
+    });
+  })();
   </script>
 </body>
 </html>
