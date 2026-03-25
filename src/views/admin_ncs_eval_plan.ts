@@ -2888,19 +2888,26 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         };
       }
       if (tabId === 'schedule') {
-        var subjEl = document.getElementById('scheduleSubjectSelect');
         var rawSess = selectedSessionIdForSubject ? parseInt(String(selectedSessionIdForSubject), 10) : NaN;
-        var rawCur = subjEl && subjEl.value ? parseInt(subjEl.value, 10) : NaN;
-        var subjLabel = getNcsSubjectSelectText('scheduleSubjectSelect');
+        var sRows = readScheduleRowsFromTable();
+        var sCidSet = {};
+        (Array.isArray(sRows) ? sRows : []).forEach(function(r) {
+          var cid = r && r.curriculum_id != null ? String(r.curriculum_id).trim() : '';
+          if (cid) sCidSet[cid] = true;
+        });
+        var sCids = Object.keys(sCidSet);
+        var sSingleCid = (sCids.length === 1) ? parseInt(sCids[0], 10) : NaN;
+        var sSingleSubj = (sCids.length === 1) ? (String((sRows[0] && sRows[0].subject) || '')).trim() : '';
         return {
           title: (document.getElementById('schedule_doc_title') || {}).value || '',
           payload: {
             writer: (document.getElementById('schedule_writer') || {}).value || '',
             notes: (document.getElementById('schedule_notes') || {}).value || '',
-            rows: readScheduleRowsFromTable(),
+            rows: sRows,
             session_id: Number.isFinite(rawSess) && rawSess > 0 ? rawSess : '',
-            curriculum_id: Number.isFinite(rawCur) && rawCur > 0 ? rawCur : '',
-            subject_name: (subjLabel || '').trim()
+            // 여러 교과목 일정을 한 문서에 저장할 수 있으므로, 단일 교과목일 때만 상단 필드에 채웁니다.
+            curriculum_id: Number.isFinite(sSingleCid) && sSingleCid > 0 ? sSingleCid : '',
+            subject_name: sSingleSubj
           }
         };
       }
@@ -3075,7 +3082,15 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
     function renderScheduleRows(rows) {
       const body = document.getElementById('scheduleRowsBody');
       if (!body) return;
-      const safeRows = Array.isArray(rows) ? rows : [];
+      const safeRows = (Array.isArray(rows) ? rows : []).slice().sort(function(a, b) {
+        var sa = String(a?.subject || '');
+        var sb = String(b?.subject || '');
+        if (sa !== sb) return sa.localeCompare(sb);
+        var da = String(a?.date || '');
+        var db = String(b?.date || '');
+        if (da !== db) return da.localeCompare(db);
+        return String(a?.time || '').localeCompare(String(b?.time || ''));
+      });
       if (!safeRows.length) {
         body.innerHTML = '<tr><td colspan="6" class="border border-black px-3 py-8 text-center text-sm text-slate-400">등록된 일정이 없습니다.</td></tr>';
         return;
@@ -3937,7 +3952,10 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         return;
       }
       await loadNcsPlanSubjectOptions(cid, p.session_id, { preserveSelection: true });
-      applyNcsSubjectSelectValue('scheduleSubjectSelect', p.curriculum_id, p.subject_name);
+      // 다과목 문서일 수 있으므로, 상단 curriculum_id/subject_name이 있을 때만 선택값을 맞춥니다.
+      if ((p.curriculum_id != null && String(p.curriculum_id).trim() !== '') || (p.subject_name != null && String(p.subject_name).trim() !== '')) {
+        applyNcsSubjectSelectValue('scheduleSubjectSelect', p.curriculum_id, p.subject_name);
+      }
     }
 
     function formatPlanDocOptionText(row, index) {
