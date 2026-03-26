@@ -197,7 +197,7 @@ app.post('/', authMiddleware, async (c) => {
         const { DB } = c.env;
         const user = c.get('user');
         const body = await c.req.json();
-        const { title, description, course_id, student_id, category, content_url, thumbnail_url, is_featured, teacher_feedback, status } = body;
+        const { title, description, course_id, student_id, category, content_url, thumbnail_url, is_featured, teacher_feedback, status, created_at } = body;
 
         if (!title) return c.json({ success: false, error: '제목은 필수입니다' }, 400);
 
@@ -208,7 +208,7 @@ app.post('/', authMiddleware, async (c) => {
                 student_id, course_id, title, description, thumbnail_url, 
                 content_url, category, is_featured, teacher_feedback, status,
                 created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(datetime(?), datetime('now')), datetime('now'))
         `).bind(
             student_id || user.userId,
             course_id || null,
@@ -219,7 +219,8 @@ app.post('/', authMiddleware, async (c) => {
             category || 'other',
             is_featured ? 1 : 0,
             teacher_feedback || null,
-            st
+            st,
+            created_at || null
         ).run();
 
         return c.json({ success: true, data: { id: result.meta.last_row_id } });
@@ -236,7 +237,7 @@ app.put('/:id', authMiddleware, async (c) => {
         const { DB } = c.env;
         const id = c.req.param('id');
         const body = await c.req.json();
-        const { title, description, course_id, student_id, category, content_url, thumbnail_url, is_featured, teacher_feedback, status } = body;
+        const { title, description, course_id, student_id, category, content_url, thumbnail_url, is_featured, teacher_feedback, status, created_at } = body;
 
         const st = normalizePortfolioStatus(status);
 
@@ -245,12 +246,14 @@ app.put('/:id', authMiddleware, async (c) => {
             SET title=?, description=?, course_id=?, student_id=?, category=?, 
                 content_url=?, thumbnail_url=?, is_featured=?, teacher_feedback=?, 
                 status=?,
+                created_at=COALESCE(datetime(?), created_at),
                 updated_at=datetime('now')
             WHERE id=?
         `).bind(
             title, description, course_id || null, student_id, category,
             content_url, thumbnail_url, is_featured ? 1 : 0, teacher_feedback,
             st,
+            created_at || null,
             id
         ).run();
 

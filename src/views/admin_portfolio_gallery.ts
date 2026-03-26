@@ -167,6 +167,13 @@ export const adminPortfolioGalleryHtml = (sidebar: string) => `
                                 <input type="url" name="content_url" id="postContentUrl" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500" placeholder="https://...">
                             </div>
                         </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-gray-700 font-medium mb-2">작성일</label>
+                                <input type="date" name="created_at" id="postCreatedAt" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500">
+                            </div>
+                            <div></div>
+                        </div>
                         <div>
                             <label class="block text-gray-700 font-medium mb-2">내용 (이미지 첨부 가능)</label>
                             <textarea name="content" id="postContent" rows="15" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500"></textarea>
@@ -232,6 +239,17 @@ export const adminPortfolioGalleryHtml = (sidebar: string) => `
         }
 
         let multiUploadedUrls = [];
+
+        function toDateInputValue(v) {
+            if (!v) return '';
+            const d = new Date(v);
+            if (Number.isNaN(d.getTime())) return '';
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return y + '-' + m + '-' + day;
+        }
+
         function openModal(post) {
             document.getElementById('postCategory').value = 'portfolio';
             multiUploadedUrls = [];
@@ -251,6 +269,7 @@ export const adminPortfolioGalleryHtml = (sidebar: string) => `
                 document.getElementById('postSubCategory').value = post.sub_category || 'other';
                 document.getElementById('postContentUrl').value = post.content_url || '';
                 document.getElementById('postTeacherFeedback').value = post.teacher_feedback || '';
+                document.getElementById('postCreatedAt').value = toDateInputValue(post.created_at);
                 setTinyContent(post.content || post.description || '');
             } else {
                 document.getElementById('modalTitle').textContent = '포트폴리오 등록';
@@ -263,6 +282,7 @@ export const adminPortfolioGalleryHtml = (sidebar: string) => `
                 document.getElementById('postSubCategory').value = 'other';
                 document.getElementById('postContentUrl').value = '';
                 document.getElementById('postTeacherFeedback').value = '';
+                document.getElementById('postCreatedAt').value = toDateInputValue(new Date());
                 setTinyContent('');
             }
             document.getElementById('createPostModal').classList.remove('hidden');
@@ -517,7 +537,8 @@ export const adminPortfolioGalleryHtml = (sidebar: string) => `
                     teacher_feedback: document.getElementById('postTeacherFeedback').value || null,
                     description: data.content,
                     is_featured: data.pinned,
-                    thumbnail_url: data.images[0] || null
+                    thumbnail_url: data.images[0] || null,
+                    created_at: document.getElementById('postCreatedAt').value || null
                 };
 
                 const res = await fetch(url, {
