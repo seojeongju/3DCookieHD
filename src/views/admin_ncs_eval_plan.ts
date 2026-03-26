@@ -3177,11 +3177,40 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       var el = document.getElementById('scheduleInstructorSelect');
       if (!el || String(el.tagName).toUpperCase() !== 'SELECT') return;
       var iid = instructorIdRaw != null ? String(instructorIdRaw).trim() : '';
+      var name = String(instructorNameRaw || '').trim();
+      if (iid) {
+        var hasIdOption = false;
+        for (var k = 0; k < el.options.length; k++) {
+          if (String(el.options[k].value || '').trim() === iid) {
+            hasIdOption = true;
+            break;
+          }
+        }
+        if (!hasIdOption) {
+          var injected = document.createElement('option');
+          injected.value = iid;
+          injected.textContent = name || ('강사 #' + iid);
+          el.appendChild(injected);
+        }
+      } else if (name) {
+        var hasNameOption = false;
+        for (var n = 0; n < el.options.length; n++) {
+          if (String(el.options[n].textContent || '').trim() === name) {
+            hasNameOption = true;
+            break;
+          }
+        }
+        if (!hasNameOption) {
+          var injectedByName = document.createElement('option');
+          injectedByName.value = '';
+          injectedByName.textContent = name;
+          el.appendChild(injectedByName);
+        }
+      }
       if (iid) {
         el.value = iid;
         if (el.value === iid) return;
       }
-      var name = String(instructorNameRaw || '').trim();
       if (!name) {
         el.value = '';
         return;
@@ -3327,6 +3356,11 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       const rows = readScheduleRowsFromTable();
       if (schedulePendingEditIndex !== null && Number.isFinite(schedulePendingEditIndex)) {
         var editAt = Math.max(0, Math.min(schedulePendingEditIndex, rows.length - 1));
+        var prevRow = (rows.length > 0 && editAt >= 0 && editAt < rows.length) ? rows[editAt] : null;
+        if ((!newRow.instructor_id || !String(newRow.instructor_id).trim()) && prevRow) {
+          newRow.instructor_id = String(prevRow.instructor_id || '').trim();
+          newRow.instructor_name = String(prevRow.instructor_name || '').trim();
+        }
         if (rows.length > 0 && editAt >= 0 && editAt < rows.length) {
           rows[editAt] = newRow;
         } else {
