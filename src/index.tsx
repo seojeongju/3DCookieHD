@@ -137,6 +137,7 @@ import { adminPartnerUniversitiesHtml } from './views/admin_partner_universities
 import { adminEducationPerformanceHtml } from './views/admin_education_performance';
 // import { adminPortfoliosHtml } from './views/admin_portfolios'; // 게시판 관리에서 통합 관리
 import { portfoliosListHtml } from './views/portfolios';
+import { portfolioDetailHtml } from './views/portfolio_detail';
 import { postsListHtml } from './views/posts';
 import { prototypeGalleryHtml } from './views/prototype_gallery';
 import { adminPrototypeGalleryHtml } from './views/admin_prototype_gallery';
@@ -526,6 +527,7 @@ app.get('/courses/:id', (c) => c.html(courseSessionDetailHtml(c.req.param('id'),
 app.get('/course-sessions', (c) => c.html(courseSessionsListHtml));
 app.get('/course-sessions/:id', (c) => c.html(courseSessionDetailHtml(c.req.param('id'), 'session')));
 app.get('/portfolios', (c) => c.html(portfoliosListHtml));
+app.get('/portfolios/:id', (c) => c.html(portfolioDetailHtml(c.req.param('id'))));
 app.get('/posts', (c) => c.html(postsListHtml));
 app.get('/prototype-gallery', (c) => c.html(prototypeGalleryHtml));
 app.get('/schedule', (c) => c.html(scheduleHtml));

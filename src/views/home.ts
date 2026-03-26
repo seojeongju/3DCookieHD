@@ -96,7 +96,7 @@ export const homeHtml = `
         align-items: stretch;
         gap: 1rem;
         width: max-content;
-        animation: prototypeMarquee 48s linear infinite;
+        animation: prototypeMarquee 80s linear infinite;
         will-change: transform;
       }
       .prototype-marquee:hover .prototype-marquee-track {
@@ -117,7 +117,7 @@ export const homeHtml = `
         align-items: stretch;
         gap: 1rem;
         width: max-content;
-        animation: portfolioMarquee 52s linear infinite;
+        animation: portfolioMarquee 90s linear infinite;
         will-change: transform;
       }
       .portfolio-marquee:hover .portfolio-marquee-track {

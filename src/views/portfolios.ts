@@ -179,7 +179,7 @@ export const portfoliosListHtml = `
             }
 
             grid.innerHTML = currentPortfolios.map(p => {
-                return '<div class="group bg-white rounded-[2rem] shadow-sm hover:shadow-2xl border border-gray-100 overflow-hidden transition-all duration-700 cursor-pointer flex flex-col h-full" onclick="openModal(\\'' + p.id + '\\')">' +
+                return '<a href="/portfolios/' + encodeURIComponent(String(p.id)) + '" class="group bg-white rounded-[2rem] shadow-sm hover:shadow-2xl border border-gray-100 overflow-hidden transition-all duration-700 cursor-pointer flex flex-col h-full">' +
                     '<div class="relative overflow-hidden h-72">' +
                         '<img src="' + (p.thumbnail_url || 'https://images.unsplash.com/photo-1587586062323-836091e6006e?auto=format&fit=crop&q=80&w=800') + '" class="w-full h-full object-cover transition-transform duration-[1.5s] group-hover:scale-110">' +
                         '<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex flex-col justify-end p-8">' +
@@ -192,7 +192,7 @@ export const portfoliosListHtml = `
                         '</div>' +
                         (p.is_featured ? '<div class="absolute top-6 left-6 px-3 py-1 bg-yellow-400 text-white text-[10px] font-black rounded-full shadow-lg flex items-center gap-1.5 z-10"><i class="fas fa-star text-[8px]"></i> RECOMMENDED</div>' : '') +
                     '</div>' +
-                '</div>';
+                '</a>';
             }).join('');
         }
 
