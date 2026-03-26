@@ -29,7 +29,6 @@ export const adminLmsNcsEvalDashboardHtml = (sidebar: string = hrdSidebar('cours
 
         <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
           <p class="text-sm text-slate-500" id="ncsDashLoading">불러오는 중…</p>
-          <div id="ncsDashFilterWrap" class="hidden bg-white rounded-2xl border border-slate-200 p-4 shadow-sm"></div>
           <div id="ncsDashRounds" class="space-y-8"></div>
         </div>
       </div>
@@ -64,148 +63,98 @@ export const adminLmsNcsEvalDashboardHtml = (sidebar: string = hrdSidebar('cours
         .replace(/'/g, '&#39;');
     }
 
-    function statusIcon(ok) {
-      return ok
-        ? '<span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-emerald-100 text-emerald-600" title="완료"><i class="fas fa-check text-xs"></i></span>'
-        : '<span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-rose-100 text-rose-500" title="미완료"><i class="fas fa-xmark text-xs"></i></span>';
-    }
-
     var dashboardData = null;
-    var filterSubject = '';
-    var filterSearch = '';
-
-    function roundTitle(r) {
-      if (r === 1) return '1차평가(본평가)';
-      if (r === 2) return '2차평가(재평가)';
-      return '3차평가(재평가)';
+    function statusLabel(ok) {
+      return ok
+        ? '<span class="inline-flex items-center px-2 py-1 rounded-lg bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-black">설정완료</span>'
+        : '<span class="inline-flex items-center px-2 py-1 rounded-lg bg-rose-100 text-rose-700 border border-rose-200 text-xs font-black">미설정</span>';
     }
 
-    function roundSectionTitle(r) {
-      return roundTitle(r) + ' 구현 계획 · 실행 현황';
+    function statusLink(tab, round, ok, subjectId) {
+      var href = lmsBase + 'ncs-eval-plan' + Q +
+        '&evaluation_round=' + encodeURIComponent(String(round)) +
+        '&plan_tab=' + encodeURIComponent(String(tab)) +
+        '&focus=1' +
+        (subjectId != null && String(subjectId).trim() !== '' ? ('&subject_id=' + encodeURIComponent(String(subjectId))) : '');
+      return '<a href="' + href + '" class="inline-flex items-center justify-center w-full" title="평가계획 이동">' + statusLabel(ok) + '</a>';
     }
 
-    function filteredRows(rows) {
-      if (!Array.isArray(rows)) return [];
-      return rows.filter(function(row) {
-        if (filterSubject && String(row.subject_label || '') !== filterSubject) return false;
-        if (filterSearch) {
-          var k = filterSearch.toLowerCase();
-          var blob = (row.subject_label + ' ' + row.method + ' ' + row.progress_label).toLowerCase();
-          if (blob.indexOf(k) === -1) return false;
-        }
-        return true;
-      });
+    function thRequired(label) {
+      return '<span class="text-rose-500 font-black mr-0.5">!</span>' + label;
     }
 
-    function buildSubjectOptions(allRows) {
-      var seen = {};
-      var opts = [];
-      (allRows || []).forEach(function(r) {
-        var s = String(r.subject_label || '').trim();
-        if (s && !seen[s]) {
-          seen[s] = true;
-          opts.push(s);
-        }
-      });
-      opts.sort();
-      return opts;
-    }
-
-    function renderFilterBar(subjectOpts) {
-      return '<div class="flex flex-wrap items-end gap-3">' +
-        '<label class="text-xs font-bold text-slate-500 uppercase tracking-wider flex flex-col gap-1">' +
-        '<span>교과목</span>' +
-        '<select id="ncsDashFilterSubject" class="min-w-[200px] px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm">' +
-        '<option value="">전체</option>' +
-        subjectOpts.map(function(s) {
-          return '<option value="' + escapeHtml(s) + '"' + (filterSubject === s ? ' selected' : '') + '>' + escapeHtml(s) + '</option>';
-        }).join('') +
-        '</select></label>' +
-        '<label class="flex-1 min-w-[180px] max-w-md text-xs font-bold text-slate-500 uppercase tracking-wider flex flex-col gap-1">' +
-        '<span>검색</span>' +
-        '<div class="flex rounded-xl border border-slate-200 bg-white overflow-hidden">' +
-        '<span class="pl-3 flex items-center text-slate-400"><i class="fas fa-search text-sm"></i></span>' +
-        '<input type="text" id="ncsDashSearch" class="flex-1 px-2 py-2 text-sm outline-none" placeholder="검색어 입력" value="' + escapeHtml(filterSearch) + '" />' +
-        '</div></label>' +
-        '<button type="button" id="ncsDashReset" class="px-4 py-2 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-700 hover:bg-slate-50">초기화</button>' +
-        '</div>';
+    function roundPlanTitle(r) {
+      if (r === 1) return '1차 평가실시계획 (본평가)';
+      if (r === 2) return '2차 평가실시계획 (재평가)';
+      return '3차 평가실시계획 (재평가)';
     }
 
     function render() {
-      var filterWrap = document.getElementById('ncsDashFilterWrap');
       var roundsEl = document.getElementById('ncsDashRounds');
-      if (!filterWrap || !roundsEl || !dashboardData) return;
+      if (!roundsEl || !dashboardData) return;
 
       var rounds = dashboardData.rounds || [];
-      var allRowsFlat = [];
-      rounds.forEach(function(block) {
-        (block.rows || []).forEach(function(r) { allRowsFlat.push(r); });
-      });
-      var subjectOpts = buildSubjectOptions(allRowsFlat);
-
-      filterWrap.classList.remove('hidden');
-      filterWrap.innerHTML = renderFilterBar(subjectOpts);
 
       var html = '';
       rounds.forEach(function(block) {
         var r = block.round;
-        var rows = filteredRows(block.rows || []);
+        var rows = block.rows || [];
         var badge = block.plan_confirmed
           ? '<span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black bg-emerald-100 text-emerald-800 border border-emerald-200"><i class="fas fa-check"></i> 평가계획 확정</span>'
           : '<span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black bg-rose-100 text-rose-800 border border-rose-200"><i class="fas fa-xmark"></i> 평가계획 미확정</span>';
 
         html += '<section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">';
         html += '<div class="px-4 sm:px-5 py-4 border-b border-slate-100 bg-slate-50/80 flex flex-wrap items-center justify-between gap-3">';
-        html += '<h2 class="text-base sm:text-lg font-black text-slate-900">' + escapeHtml(roundSectionTitle(r)) + '</h2>';
+        html += '<h2 class="text-base sm:text-lg font-black text-slate-900">' + escapeHtml(roundPlanTitle(r)) + '</h2>';
         html += '<div class="flex flex-wrap items-center gap-3">' + badge + '</div>';
         html += '</div>';
 
         html += '<div class="overflow-x-auto">';
-        html += '<table class="w-full text-left min-w-[1100px]">';
+        html += '<table class="w-full text-left min-w-[1180px]">';
         html += '<thead><tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-black text-slate-500 uppercase tracking-wider">';
         html += '<th class="px-3 py-3">교과목명</th>';
         html += '<th class="px-3 py-3">평가방법</th>';
         html += '<th class="px-3 py-3">평가진행일</th>';
         html += '<th class="px-3 py-3 text-center">평가실시일자</th>';
-        html += '<th class="px-3 py-3 text-center">평가문항</th>';
-        html += '<th class="px-3 py-3 text-center">평가도구</th>';
-        html += '<th class="px-3 py-3 text-center">채점기준표</th>';
-        html += '<th class="px-3 py-3 text-center">성취수준</th>';
+        html += '<th class="px-3 py-3 text-center">' + thRequired('평가문항') + '</th>';
+        html += '<th class="px-3 py-3 text-center">' + thRequired('평가도구') + '</th>';
+        html += '<th class="px-3 py-3 text-center">' + thRequired('채점기준표') + '</th>';
+        html += '<th class="px-3 py-3 text-center">' + thRequired('성취수준') + '</th>';
         html += '<th class="px-3 py-3 text-center">평가도구검토</th>';
-        html += '<th class="px-3 py-3 text-center">바로가기</th>';
+        html += '<th class="px-3 py-3 text-center">평가계획</th>';
         html += '</tr></thead><tbody class="divide-y divide-slate-100">';
 
         if (rows.length === 0) {
-          html += '<tr><td colspan="10" class="px-4 py-10 text-center text-sm text-slate-400">표시할 평가 계획이 없습니다. <a class="text-sky-600 font-bold underline" href="' + lmsBase + 'ncs-eval-exec' + Q + '&evaluation_round=' + r + '">평가실행</a>에서 능력단위를 등록해 주세요.</td></tr>';
+          html += '<tr><td colspan="10" class="px-4 py-10 text-center text-sm text-slate-400">과정에 등록된 교과목이 없습니다.</td></tr>';
         } else {
           rows.forEach(function(row) {
-            var rq = Q + (Q.indexOf('?') >= 0 ? '&' : '?') + 'evaluation_round=' + r;
-            var planQ = rq + '&plan_id=' + encodeURIComponent(row.plan_id);
+            var rq = Q + '&evaluation_round=' + r;
+            var hasPlanDocs = !!row.plan_registered;
+            var hasPlanId = row.plan_id != null && String(row.plan_id).trim() !== '' && String(row.plan_id).trim() !== 'null';
+            var planQ = hasPlanId ? (rq + '&plan_id=' + encodeURIComponent(row.plan_id)) : '';
             html += '<tr class="hover:bg-slate-50/80">';
-            html += '<td class="px-3 py-3 text-sm font-semibold text-slate-800">' + escapeHtml(row.subject_label) + '</td>';
+            html += '<td class="px-3 py-3 text-sm font-semibold text-slate-800">' +
+              escapeHtml(row.subject_label) +
+              (!hasPlanDocs ? ' <span class="ml-1 align-middle px-2 py-0.5 rounded bg-rose-100 text-rose-700 text-[10px] font-black border border-rose-200">미등록</span>' : '') +
+              '</td>';
             html += '<td class="px-3 py-3 text-sm text-slate-700">' + escapeHtml(row.method) + '</td>';
             html += '<td class="px-3 py-3 text-sm text-slate-700 whitespace-nowrap">' + escapeHtml(row.progress_label) + '</td>';
-            html += '<td class="px-3 py-3 text-center">' + statusIcon(!!row.schedule) + '</td>';
-            html += '<td class="px-3 py-3 text-center">' + statusIcon(!!row.questions) + '</td>';
-            html += '<td class="px-3 py-3 text-center">' + statusIcon(!!row.tools) + '</td>';
-            html += '<td class="px-3 py-3 text-center">' + statusIcon(!!row.rubric) + '</td>';
-            html += '<td class="px-3 py-3 text-center">' + statusIcon(!!row.achievement) + '</td>';
-            html += '<td class="px-3 py-3 text-center">' + statusIcon(!!row.review) + '</td>';
+            html += '<td class="px-3 py-3 text-center">' + statusLink('schedule', r, !!row.schedule, row.ncs_unit_id) + '</td>';
+            html += '<td class="px-3 py-3 text-center">' + statusLink('questions', r, !!row.questions, row.ncs_unit_id) + '</td>';
+            html += '<td class="px-3 py-3 text-center">' + statusLink('tools', r, !!row.tools, row.ncs_unit_id) + '</td>';
+            html += '<td class="px-3 py-3 text-center">' + statusLink('rubric', r, !!row.rubric, row.ncs_unit_id) + '</td>';
+            html += '<td class="px-3 py-3 text-center">' + statusLink('achievement', r, !!row.achievement, row.ncs_unit_id) + '</td>';
+            html += '<td class="px-3 py-3 text-center">' + statusLink('review', r, !!row.review, row.ncs_unit_id) + '</td>';
             html += '<td class="px-3 py-3 text-center">';
-            html += '<div class="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-1.5">';
-            if (row.scores_missing) {
-              html += '<span class="px-2 py-1 rounded-lg bg-slate-200 text-slate-700 text-[10px] font-black whitespace-nowrap">점수등록 누락</span>';
-            }
             html += '<div class="flex flex-wrap justify-center gap-1">';
-            html += '<a class="px-2 py-1 rounded-lg bg-sky-600 text-white text-[10px] font-black hover:bg-sky-700" href="' + lmsBase + 'ncs-eval-plan' + rq + '&plan_tab=schedule">일정</a>';
-            html += '<a class="px-2 py-1 rounded-lg bg-indigo-600 text-white text-[10px] font-black hover:bg-indigo-700" href="' + lmsBase + 'ncs-eval-plan' + rq + '&plan_tab=questions">문항</a>';
-            html += '<a class="px-2 py-1 rounded-lg bg-violet-600 text-white text-[10px] font-black hover:bg-violet-700" href="' + lmsBase + 'ncs-eval-plan' + rq + '&plan_tab=tools">도구</a>';
-            html += '<a class="px-2 py-1 rounded-lg bg-amber-600 text-white text-[10px] font-black hover:bg-amber-700" href="' + lmsBase + 'ncs-eval-plan' + rq + '&plan_tab=rubric">채점</a>';
-            html += '<a class="px-2 py-1 rounded-lg bg-teal-600 text-white text-[10px] font-black hover:bg-teal-700" href="' + lmsBase + 'ncs-eval-plan' + rq + '&plan_tab=achievement">성취</a>';
-            html += '<a class="px-2 py-1 rounded-lg bg-pink-600 text-white text-[10px] font-black hover:bg-pink-700" href="' + lmsBase + 'ncs-eval-plan' + rq + '&plan_tab=review">검토</a>';
-            html += '<a class="px-2 py-1 rounded-lg bg-slate-800 text-white text-[10px] font-black hover:bg-slate-900" href="' + lmsBase + 'ncs-eval-exec' + planQ + '">실행</a>';
+            if (row.scores_missing) {
+              html += '<span class="w-full text-center mb-1 px-2 py-0.5 rounded bg-slate-200 text-slate-700 text-[10px] font-black">점수등록 누락</span>';
+            }
+            if (hasPlanId) {
+              html += '<a class="px-2 py-1 rounded-lg bg-slate-800 text-white text-[10px] font-black hover:bg-slate-900" href="' + lmsBase + 'ncs-eval-exec' + planQ + '">실행</a>';
+            }
             html += '<a class="px-2 py-1 rounded-lg bg-emerald-600 text-white text-[10px] font-black hover:bg-emerald-700" href="' + lmsBase + 'ncs-eval-result' + rq + '">결과</a>';
-            html += '</div></div></td>';
+            html += '</div></td>';
             html += '</tr>';
           });
         }
@@ -213,30 +162,6 @@ export const adminLmsNcsEvalDashboardHtml = (sidebar: string = hrdSidebar('cours
       });
 
       roundsEl.innerHTML = html;
-
-      var subSel = document.getElementById('ncsDashFilterSubject');
-      if (subSel) {
-        subSel.value = filterSubject;
-        subSel.addEventListener('change', function() {
-          filterSubject = subSel.value || '';
-          render();
-        });
-      }
-      var searchEl = document.getElementById('ncsDashSearch');
-      if (searchEl) {
-        searchEl.addEventListener('input', function() {
-          filterSearch = (searchEl.value || '').trim();
-          render();
-        });
-      }
-      var resetBtn = document.getElementById('ncsDashReset');
-      if (resetBtn) {
-        resetBtn.addEventListener('click', function() {
-          filterSubject = '';
-          filterSearch = '';
-          render();
-        });
-      }
     }
 
     async function load() {
