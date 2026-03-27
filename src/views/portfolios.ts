@@ -24,6 +24,30 @@ export const portfoliosListHtml = `
         }
       }
     </script>
+    <style>
+      /* 포트폴리오 상세 모달: 본문 영역만 스크롤 + 브랜드 톤 스크롤바 */
+      .portfolio-modal-body {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(74, 144, 226, 0.55) rgba(241, 245, 249, 0.9);
+      }
+      .portfolio-modal-body::-webkit-scrollbar {
+        width: 8px;
+      }
+      .portfolio-modal-body::-webkit-scrollbar-track {
+        background: linear-gradient(180deg, rgba(241, 245, 249, 0.95) 0%, rgba(248, 250, 252, 0.98) 100%);
+        border-radius: 999px;
+        margin: 6px 0;
+      }
+      .portfolio-modal-body::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, #7dbcfb 0%, #4a90e2 45%, #2d5fa3 100%);
+        border-radius: 999px;
+        border: 2px solid rgba(255, 255, 255, 0.85);
+        background-clip: padding-box;
+      }
+      .portfolio-modal-body::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(180deg, #4a90e2 0%, #2d5fa3 100%);
+      }
+    </style>
 </head>
 <body class="bg-gray-50 flex flex-col min-h-screen">
     <!-- 네비게이션 -->
@@ -74,49 +98,49 @@ export const portfoliosListHtml = `
         </div>
     </main>
 
-    <!-- 상세 모달 -->
-    <div id="detailModal" class="fixed inset-0 bg-black/90 hidden z-[70] flex items-center justify-center p-4 backdrop-blur-md">
-        <div class="bg-white rounded-[2rem] shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto transform transition-all group">
-            <div class="relative h-96">
-                <img id="modalThumbnail" src="" class="w-full h-full object-cover">
-                <div class="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent"></div>
-                <button onclick="closeModal()" class="absolute top-6 right-6 w-12 h-12 bg-white/20 hover:bg-white/40 text-white rounded-full flex items-center justify-center transition backdrop-blur-lg border border-white/30">
-                    <i class="fas fa-times text-xl"></i>
+    <!-- 상세 모달: 히어로 고정 + 본문만 스크롤(스크롤바 정돈) -->
+    <div id="detailModal" class="fixed inset-0 z-[70] hidden flex items-center justify-center p-4 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <div class="absolute inset-0 bg-slate-950/85 backdrop-blur-md" onclick="closeModal()" aria-hidden="true"></div>
+        <div class="relative w-full max-w-5xl max-h-[min(92vh,900px)] flex flex-col rounded-[1.75rem] sm:rounded-[2rem] bg-white shadow-[0_25px_80px_-12px_rgba(15,23,42,0.45)] ring-1 ring-white/10 overflow-hidden" onclick="event.stopPropagation()">
+            <div class="relative h-[min(42vh,22rem)] sm:h-96 flex-shrink-0">
+                <img id="modalThumbnail" src="" alt="" class="w-full h-full object-cover">
+                <div class="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-slate-900/25 pointer-events-none"></div>
+                <div class="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/35 to-transparent pointer-events-none"></div>
+                <button type="button" onclick="closeModal()" class="absolute top-4 right-4 sm:top-6 sm:right-6 w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-white bg-black/45 hover:bg-black/65 border border-white/25 shadow-lg backdrop-blur-md transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80" aria-label="닫기">
+                    <i class="fas fa-times text-lg"></i>
                 </button>
-                <div class="absolute bottom-0 left-0 p-10 w-full">
-                    <span id="modalCategory" class="px-4 py-1.5 bg-primary-600 text-white text-[10px] font-black rounded-full shadow-lg uppercase tracking-[0.2em] mb-4 inline-block">CATEGORY</span>
-                    <h3 id="modalTitle" class="text-4xl font-black text-gray-900 tracking-tight">TITLE</h3>
+                <div class="absolute bottom-0 left-0 right-0 p-6 sm:p-10 pt-16 sm:pt-20">
+                    <span id="modalCategory" class="px-3.5 py-1.5 bg-primary-600 text-white text-[10px] font-black rounded-full shadow-md uppercase tracking-[0.18em] mb-3 inline-block">CATEGORY</span>
+                    <h3 id="modalTitle" class="text-2xl sm:text-3xl md:text-4xl font-black text-gray-900 tracking-tight leading-tight drop-shadow-sm">TITLE</h3>
                 </div>
             </div>
-            <div class="p-10 -mt-6">
-                <div class="flex flex-col lg:flex-row gap-16">
-                    <div class="flex-1">
-                        <h4 class="text-[11px] font-black text-primary-600 uppercase tracking-[0.3em] mb-6 flex items-center">
-                            <span class="w-8 h-px bg-primary-200 mr-4"></span> Project Overview
-                        </h4>
-                        <div id="modalDescription" class="text-gray-600 leading-[1.8] text-lg font-medium whitespace-pre-wrap"></div>
-                    </div>
-                    <div class="w-full lg:w-80 space-y-8">
-                        <div class="p-8 bg-gray-50 rounded-[2rem] border border-gray-100 flex flex-col gap-6">
-                            <div class="flex items-center gap-4">
-                                <div class="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm text-primary-500 font-bold text-lg" id="studentInitial">S</div>
-                                <div>
-                                    <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Creator</p>
-                                    <p class="text-base font-black text-gray-800" id="modalStudentName">Student Name</p>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-4">
-                                <div class="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm text-primary-300 text-lg"><i class="fas fa-graduation-cap"></i></div>
-                                <div>
-                                    <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Course</p>
-                                    <p class="text-sm font-bold text-gray-700" id="modalCourseTitle">Course Title</p>
-                                </div>
+            <div class="flex-1 min-h-0 flex flex-col lg:flex-row gap-0 lg:gap-0 border-t border-slate-100/90 bg-gradient-to-b from-slate-50/80 to-white">
+                <div class="flex-1 min-h-0 overflow-y-auto portfolio-modal-body px-6 sm:px-10 py-8 sm:py-9">
+                    <h4 class="text-[11px] font-black text-primary-600 uppercase tracking-[0.28em] mb-5 flex items-center">
+                        <span class="w-8 h-px bg-primary-200 mr-3 shrink-0"></span> Project Overview
+                    </h4>
+                    <div id="modalDescription" class="text-slate-600 leading-relaxed text-base sm:text-[1.0625rem] font-medium whitespace-pre-wrap"></div>
+                </div>
+                <div class="w-full lg:w-[min(100%,20rem)] flex-shrink-0 lg:border-l border-slate-100 bg-white/90 px-6 sm:px-8 py-7 sm:py-9 space-y-6">
+                    <div class="rounded-2xl border border-slate-100/90 bg-gradient-to-br from-white to-slate-50/90 p-6 sm:p-7 shadow-sm flex flex-col gap-6">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 bg-primary-50 rounded-2xl flex items-center justify-center shadow-inner text-primary-600 font-black text-lg ring-1 ring-primary-100/80" id="studentInitial">S</div>
+                            <div class="min-w-0">
+                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Creator</p>
+                                <p class="text-base font-black text-slate-800 truncate" id="modalStudentName">Student Name</p>
                             </div>
                         </div>
-                        <a id="modalContentLink" href="#" target="_blank" class="w-full py-5 bg-gray-900 text-white font-black rounded-[1.5rem] hover:bg-black transition-all text-center flex items-center justify-center gap-3 shadow-xl hover:shadow-2xl hover:-translate-y-1">
-                            보러가기 <i class="fas fa-arrow-right text-xs"></i>
-                        </a>
+                        <div class="flex items-start gap-4">
+                            <div class="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center shadow-inner text-primary-500 text-lg shrink-0 ring-1 ring-slate-100"><i class="fas fa-graduation-cap"></i></div>
+                            <div class="min-w-0">
+                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Course</p>
+                                <p class="text-sm font-bold text-slate-700 leading-snug" id="modalCourseTitle">Course Title</p>
+                            </div>
+                        </div>
                     </div>
+                    <a id="modalContentLink" href="#" target="_blank" rel="noopener noreferrer" class="w-full py-4 sm:py-[1.125rem] bg-gradient-to-r from-slate-900 to-slate-800 text-white font-black rounded-2xl hover:from-primary-800 hover:to-slate-900 transition-all text-center flex items-center justify-center gap-3 shadow-lg shadow-slate-900/15 hover:shadow-xl hover:-translate-y-0.5 text-sm sm:text-base">
+                        보러가기 <i class="fas fa-arrow-right text-xs opacity-90"></i>
+                    </a>
                 </div>
             </div>
         </div>
@@ -132,6 +156,11 @@ export const portfoliosListHtml = `
         document.addEventListener('DOMContentLoaded', () => {
             loadPortfolios();
             updateAuthMenu();
+            document.addEventListener('keydown', function (e) {
+                if (e.key !== 'Escape') return;
+                const modal = document.getElementById('detailModal');
+                if (modal && !modal.classList.contains('hidden')) closeModal();
+            });
         });
 
         async function loadPortfolios() {
@@ -215,7 +244,9 @@ export const portfoliosListHtml = `
             });
             if (!p) return;
 
-            document.getElementById('modalThumbnail').src = p.thumbnail_url || 'https://images.unsplash.com/photo-1587586062323-836091e6006e?auto=format&fit=crop&q=80&w=800';
+            const thumb = document.getElementById('modalThumbnail');
+            thumb.src = p.thumbnail_url || 'https://images.unsplash.com/photo-1587586062323-836091e6006e?auto=format&fit=crop&q=80&w=800';
+            thumb.alt = p.title ? '포트폴리오 썸네일: ' + p.title : '';
             document.getElementById('modalCategory').textContent = p.category;
             document.getElementById('modalTitle').textContent = p.title;
             
