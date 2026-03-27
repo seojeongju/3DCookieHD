@@ -24,6 +24,27 @@ export const prototypeGalleryHtml = `
         }
       }
     </script>
+    <style>
+      .gallery-modal-body {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(74, 144, 226, 0.55) rgba(241, 245, 249, 0.9);
+      }
+      .gallery-modal-body::-webkit-scrollbar { width: 8px; }
+      .gallery-modal-body::-webkit-scrollbar-track {
+        background: linear-gradient(180deg, rgba(241, 245, 249, 0.95) 0%, rgba(248, 250, 252, 0.98) 100%);
+        border-radius: 999px;
+        margin: 6px 0;
+      }
+      .gallery-modal-body::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, #7dbcfb 0%, #4a90e2 45%, #2d5fa3 100%);
+        border-radius: 999px;
+        border: 2px solid rgba(255, 255, 255, 0.85);
+        background-clip: padding-box;
+      }
+      .gallery-modal-body::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(180deg, #4a90e2 0%, #2d5fa3 100%);
+      }
+    </style>
 </head>
 <body class="bg-gray-50 flex flex-col min-h-screen">
     ${navigationHtml('prototype')}
@@ -64,22 +85,44 @@ export const prototypeGalleryHtml = `
     </main>
 
     <!-- 상세 모달 -->
-    <div id="detailModal" class="fixed inset-0 bg-black/90 hidden z-[70] flex items-center justify-center p-4 backdrop-blur-md">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <div class="relative" id="modalImageWrap">
-                <img id="modalImage" src="" alt="" class="w-full h-80 object-cover rounded-t-2xl">
-                <button onclick="closeDetailModal()" class="absolute top-4 right-4 w-12 h-12 bg-white/90 hover:bg-white text-gray-800 rounded-full flex items-center justify-center transition">
-                    <i class="fas fa-times text-xl"></i>
+    <div id="detailModal" class="fixed inset-0 z-[70] hidden flex items-center justify-center p-4 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <div class="absolute inset-0 bg-slate-950/85 backdrop-blur-md" onclick="closeDetailModal()" aria-hidden="true"></div>
+        <div class="relative w-full max-w-5xl max-h-[min(92vh,900px)] flex flex-col rounded-[1.75rem] sm:rounded-[2rem] bg-white shadow-[0_25px_80px_-12px_rgba(15,23,42,0.45)] ring-1 ring-white/10 overflow-hidden" onclick="event.stopPropagation()">
+            <div class="relative h-[min(42vh,22rem)] sm:h-96 flex-shrink-0" id="modalImageWrap">
+                <img id="modalImage" src="" alt="" class="w-full h-full object-cover">
+                <div class="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-slate-900/25 pointer-events-none"></div>
+                <div class="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/35 to-transparent pointer-events-none"></div>
+                <button type="button" onclick="closeDetailModal()" class="absolute top-4 right-4 sm:top-6 sm:right-6 w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-white bg-black/45 hover:bg-black/65 border border-white/25 shadow-lg backdrop-blur-md transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80" aria-label="닫기">
+                    <i class="fas fa-times text-lg"></i>
                 </button>
-            </div>
-            <div class="p-8">
-                <h2 id="modalTitle" class="text-2xl font-bold text-gray-800 mb-2"></h2>
-                <div class="flex gap-4 text-sm text-gray-500 mb-6">
-                    <span id="modalAuthor"></span>
-                    <span id="modalDate"></span>
-                    <span><i class="far fa-eye mr-1"></i><span id="modalViews">0</span></span>
+                <div class="absolute bottom-0 left-0 right-0 p-6 sm:p-10 pt-16 sm:pt-20">
+                    <span class="px-3.5 py-1.5 bg-amber-500 text-gray-900 text-[10px] font-black rounded-full shadow-md uppercase tracking-[0.18em] mb-3 inline-block">PROTOTYPE</span>
+                    <h2 id="modalTitle" class="text-2xl sm:text-3xl md:text-4xl font-black text-gray-900 tracking-tight leading-tight drop-shadow-sm"></h2>
                 </div>
-                <div id="modalContent" class="prose max-w-none text-gray-700 leading-relaxed"></div>
+            </div>
+            <div class="flex-1 min-h-0 flex flex-col lg:flex-row border-t border-slate-100/90 bg-gradient-to-b from-slate-50/80 to-white">
+                <div class="flex-1 min-h-0 overflow-y-auto gallery-modal-body px-6 sm:px-10 py-8 sm:py-9">
+                    <h4 class="text-[11px] font-black text-primary-600 uppercase tracking-[0.28em] mb-5 flex items-center">
+                        <span class="w-8 h-px bg-primary-200 mr-3 shrink-0"></span> Project Overview
+                    </h4>
+                    <div id="modalContent" class="prose max-w-none text-slate-600 leading-relaxed text-base sm:text-[1.0625rem]"></div>
+                </div>
+                <div class="w-full lg:w-[min(100%,20rem)] flex-shrink-0 lg:border-l border-slate-100 bg-white/90 px-6 sm:px-8 py-7 sm:py-9 space-y-6">
+                    <div class="rounded-2xl border border-slate-100/90 bg-gradient-to-br from-white to-slate-50/90 p-6 sm:p-7 shadow-sm space-y-4">
+                        <div>
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Author</p>
+                            <p id="modalAuthor" class="text-base font-black text-slate-800"></p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</p>
+                            <p id="modalDate" class="text-sm font-bold text-slate-700"></p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Views</p>
+                            <p class="text-sm font-bold text-slate-700"><i class="far fa-eye mr-1.5 text-primary-500"></i><span id="modalViews">0</span></p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -95,6 +138,11 @@ export const prototypeGalleryHtml = `
         document.addEventListener('DOMContentLoaded', () => {
             loadAll();
             updateAuthMenu();
+            document.addEventListener('keydown', function (e) {
+                if (e.key !== 'Escape') return;
+                var modal = document.getElementById('detailModal');
+                if (modal && !modal.classList.contains('hidden')) closeDetailModal();
+            });
         });
 
         function updateAuthMenu() {
@@ -242,6 +290,7 @@ export const prototypeGalleryHtml = `
             var modalImgEl = document.getElementById('modalImage');
             var modalImgWrap = document.getElementById('modalImageWrap');
             if (modalImgEl) modalImgEl.src = img || '';
+            if (modalImgEl) modalImgEl.alt = item.title ? '시제품 이미지: ' + item.title : '';
             if (modalImgEl) modalImgEl.style.display = img ? 'block' : 'none';
             if (modalImgWrap) modalImgWrap.style.display = img ? 'block' : 'none';
             document.getElementById('modalTitle').textContent = item.title || '';
