@@ -209,7 +209,10 @@ export const portfoliosListHtml = `
         }
 
         function openModal(id) {
-            const p = currentPortfolios.find(item => item.id === id);
+            // API id는 숫자, onclick 인자는 문자열인 경우가 많아 === 로는 매칭 실패함
+            const p = currentPortfolios.find(function(item) {
+                return String(item.id) === String(id);
+            });
             if (!p) return;
 
             document.getElementById('modalThumbnail').src = p.thumbnail_url || 'https://images.unsplash.com/photo-1587586062323-836091e6006e?auto=format&fit=crop&q=80&w=800';
