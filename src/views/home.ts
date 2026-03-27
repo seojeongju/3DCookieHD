@@ -543,22 +543,6 @@ export const homeHtml = `
             var el = document.getElementById(id);
             if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
-        function optimizeImageUrl(url, width) {
-            if (!url || typeof url !== 'string') return '';
-            var raw = url.trim();
-            if (!raw || raw.indexOf('data:') === 0 || raw.indexOf('blob:') === 0) return raw;
-            if (raw.indexOf('/cdn-cgi/image/') === 0) return raw;
-            var safeWidth = Math.max(120, Math.min(1600, Number(width) || 480));
-            try {
-                if (raw.indexOf('/') === 0) {
-                    return '/cdn-cgi/image/width=' + safeWidth + ',quality=75,format=auto' + raw;
-                }
-                if (raw.indexOf('http://') === 0 || raw.indexOf('https://') === 0) {
-                    return '/cdn-cgi/image/width=' + safeWidth + ',quality=75,format=auto/' + raw;
-                }
-            } catch (e) { /* ignore */ }
-            return raw;
-        }
         async function loadHomeData() {
             try {
                 var res = await fetch('/api/home');
@@ -634,7 +618,7 @@ export const homeHtml = `
                     return { recruiting: '모집중', in_progress: '진행중', completed: '종료', always_open: '상시모집', closed: '폐강' }[s] || s;
                 }
                 container.innerHTML = list.map(function(s) {
-                    var imgUrl = optimizeImageUrl(((s.image_url || '').trim() || '/static/hero1.jpg'), 640);
+                    var imgUrl = ((s.image_url || '').trim() || '/static/hero1.jpg');
                     var start = (s.training_start_date || '').trim();
                     var end = (s.training_end_date || '').trim();
                     var dateStr = start && end ? (new Date(start).toLocaleDateString('ko-KR') + ' ~ ' + new Date(end).toLocaleDateString('ko-KR')) : (start ? new Date(start).toLocaleDateString('ko-KR') + '~' : '일정 미정');
@@ -696,7 +680,7 @@ export const homeHtml = `
                     return;
                 }
                 var cards = withImage.map(function(p) {
-                    var img = optimizeImageUrl(resolveItemFirstImage(p), 520);
+                    var img = resolveItemFirstImage(p);
                     var safeTitle = (p.title || '시제품').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                     var titleEsc = (p.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                     var rawPlain = (p.excerpt != null && String(p.excerpt).trim() !== '') ? String(p.excerpt) : stripHtml(p.content || '').trim();
@@ -777,7 +761,7 @@ export const homeHtml = `
                     
                     return '<a href="/portfolios" class="portfolio-marquee-item block rounded-xl overflow-hidden shadow-md hover:shadow-xl transition bg-white border border-gray-100">' +
                         '<div class="relative aspect-square bg-gray-200 group">' +
-                        '<img src="' + optimizeImageUrl(p.thumbnail_url, 520) + '" alt="' + safeTitle + '" loading="lazy" decoding="async" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">' +
+                        '<img src="' + p.thumbnail_url + '" alt="' + safeTitle + '" loading="lazy" decoding="async" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">' +
                         '<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-3">' +
                         '<span class="text-white text-sm font-bold truncate w-full">' + titleEsc + '</span>' +
                         '</div></div>' +
@@ -929,7 +913,7 @@ export const homeHtml = `
                     return;
                 }
                 var cards = withImage.map(function(p) {
-                    var img = optimizeImageUrl(resolveItemFirstImage(p), 520);
+                    var img = resolveItemFirstImage(p);
                     var safeTitle = (p.title || '교육사진').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                     var titleEsc = (p.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                     var rawPlain = (p.excerpt != null && String(p.excerpt).trim() !== '') ? String(p.excerpt) : stripHtml(p.content || '').trim();
