@@ -148,6 +148,28 @@ export const homeHtml = `
         width: 210px;
         flex: 0 0 210px;
       }
+      .review-marquee {
+        position: relative;
+        overflow: hidden;
+        border-radius: 1rem;
+        margin-bottom: 2rem;
+      }
+      .review-marquee-track {
+        display: flex;
+        align-items: stretch;
+        gap: 0.75rem;
+        width: max-content;
+        animation: reviewMarquee 56s linear infinite;
+        will-change: transform;
+      }
+      .review-marquee:hover .review-marquee-track {
+        animation-play-state: paused;
+      }
+      .review-marquee-item {
+        width: 460px;
+        max-width: min(92vw, 460px);
+        flex: 0 0 460px;
+      }
       .education-face-mask {
         filter: blur(1.2px) saturate(0.92) contrast(0.96);
       }
@@ -164,6 +186,10 @@ export const homeHtml = `
           width: 170px;
           flex-basis: 170px;
         }
+        .review-marquee-item {
+          width: min(90vw, 360px);
+          flex-basis: min(90vw, 360px);
+        }
       }
       @keyframes prototypeMarquee {
         from { transform: translateX(0); }
@@ -177,6 +203,10 @@ export const homeHtml = `
         from { transform: translateX(0); }
         to { transform: translateX(calc(-50% - 0.5rem)); }
       }
+      @keyframes reviewMarquee {
+        from { transform: translateX(0); }
+        to { transform: translateX(calc(-50% - 0.375rem)); }
+      }
       @media (prefers-reduced-motion: reduce) {
         .prototype-marquee-track {
           animation: none;
@@ -185,6 +215,9 @@ export const homeHtml = `
           animation: none;
         }
         .education-photo-marquee-track {
+          animation: none;
+        }
+        .review-marquee-track {
           animation: none;
         }
       }
@@ -444,8 +477,8 @@ export const homeHtml = `
                 <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-3 sm:mb-4 tracking-tight">수강후기</h2>
                 <p class="text-base sm:text-lg md:text-xl text-gray-600">승인된 수강생 후기를 누구나 확인할 수 있습니다.</p>
             </div>
-            <div id="homeReviewList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                <div class="col-span-1 md:col-span-2 lg:col-span-3 flex justify-center py-12">
+            <div id="homeReviewList" class="review-marquee mb-8">
+                <div class="flex justify-center py-12">
                     <div class="inline-block animate-spin rounded-full h-10 w-10 border-2 border-emerald-500 border-t-transparent"></div>
                 </div>
             </div>
@@ -728,42 +761,68 @@ export const homeHtml = `
             var container = document.getElementById('homeReviewList');
             if (!container) return;
             try {
-                var res = await fetch('/api/posts?category=review&status=published&limit=6&sort=created_at&order=DESC');
+                var res = await fetch('/api/posts?category=review&status=published&limit=20&sort=created_at&order=DESC');
                 var result = await res.json();
                 if (!result.success) {
-                    container.innerHTML = '<div class="col-span-1 md:col-span-2 lg:col-span-3 text-center py-12 text-gray-500">수강후기를 불러오지 못했습니다.</div>';
+                    container.innerHTML = '<div class="text-center py-12 text-gray-500">수강후기를 불러오지 못했습니다.</div>';
                     return;
                 }
                 var list = result.data || [];
                 if (list.length === 0) {
-                    container.innerHTML = '<div class="col-span-1 md:col-span-2 lg:col-span-3 text-center py-12 text-gray-500">' +
+                    container.innerHTML = '<div class="text-center py-12 text-gray-500">' +
                         '<p class="mb-4">아직 공개된 수강후기가 없습니다.</p>' +
                         '<a href="/reviews" class="text-emerald-600 font-bold hover:underline">수강후기 페이지</a>에서 확인해 주세요.</div>';
                     return;
                 }
-                container.innerHTML = list.map(function(r) {
-                    var titleEsc = (r.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+                var cards = list.map(function(r) {
+                    var titleEsc = (r.title || '수강후기').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
                     var plain = stripHtml(r.content || '').trim();
-                    var excerpt = plain.length > 120 ? plain.substring(0, 120) + '\u2026' : plain;
+                    var excerpt = plain.length > 92 ? plain.substring(0, 92) + '\u2026' : plain;
                     var excerptEsc = excerpt.replace(/</g, '&lt;').replace(/>/g, '&gt;');
                     var authorEsc = maskReviewName(r.author_name).replace(/</g, '&lt;');
                     var dateStr = r.created_at ? new Date(r.created_at).toLocaleDateString('ko-KR') : '';
-                    return '<article class="bg-white rounded-2xl border border-emerald-100/80 shadow-sm hover:shadow-md transition p-6 flex flex-col h-full">' +
-                        '<div class="flex items-start justify-between gap-2 mb-3">' +
-                        '<div class="flex items-center gap-2 min-w-0">' +
-                        '<div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center flex-shrink-0"><i class="fas fa-user"></i></div>' +
-                        '<div class="min-w-0"><p class="text-sm font-bold text-gray-800 truncate">' + authorEsc + '</p>' +
-                        '<p class="text-xs text-gray-400">' + dateStr + '</p></div></div>' +
-                        '<div class="text-amber-400 text-sm flex-shrink-0">' + reviewStarsHtml(r.rating) + '</div></div>' +
-                        '<h3 class="text-lg font-bold text-gray-900 mb-2 line-clamp-2">' + titleEsc + '</h3>' +
-                        '<p class="text-gray-600 text-sm leading-relaxed line-clamp-4 flex-1">' + excerptEsc + '</p>' +
-                        '<a href="/reviews" class="mt-4 inline-flex items-center gap-1 text-emerald-600 text-sm font-bold hover:text-emerald-800">더 보기 <i class="fas fa-chevron-right text-xs"></i></a>' +
-                        '</article>';
+                    return '<a href="/reviews" class="review-marquee-item block bg-white rounded-xl border border-emerald-100/80 shadow-sm hover:shadow-md transition px-4 py-3">' +
+                        '<div class="flex items-center gap-3 min-w-0">' +
+                        '<span class="w-9 h-9 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center flex-shrink-0"><i class="fas fa-user text-sm"></i></span>' +
+                        '<div class="min-w-0 flex-1">' +
+                        '<div class="flex items-center gap-2 text-[11px] text-gray-400 mb-1">' +
+                        '<span class="font-bold text-gray-700 truncate max-w-[120px]">' + authorEsc + '</span>' +
+                        '<span>·</span>' +
+                        '<span class="truncate">' + dateStr + '</span>' +
+                        '<span>·</span>' +
+                        '<span class="text-amber-400">' + reviewStarsHtml(r.rating) + '</span>' +
+                        '</div>' +
+                        '<p class="text-sm text-gray-700 leading-relaxed truncate"><span class="font-bold text-gray-900 mr-1">' + titleEsc + '</span>' + excerptEsc + '</p>' +
+                        '</div>' +
+                        '</div>' +
+                        '</a>';
                 }).join('');
+                if (list.length === 1) {
+                    container.innerHTML = '<div class="flex justify-center">' + cards + '</div>';
+                    return;
+                }
+                container.innerHTML =
+                    '<div class="review-marquee-track">' +
+                    cards +
+                    cards +
+                    '</div>';
+                requestAnimationFrame(function() {
+                    applyReviewMarqueeConstantSpeed(container);
+                });
             } catch (e) {
                 console.error('loadHomeReviews error:', e);
-                container.innerHTML = '<div class="col-span-1 md:col-span-2 lg:col-span-3 text-center py-12 text-gray-500">수강후기를 불러오지 못했습니다.</div>';
+                container.innerHTML = '<div class="text-center py-12 text-gray-500">수강후기를 불러오지 못했습니다.</div>';
             }
+        }
+        function applyReviewMarqueeConstantSpeed(container) {
+            if (!container) return;
+            var track = container.querySelector('.review-marquee-track');
+            if (!track) return;
+            var pxPerSec = 36;
+            var distance = (track.scrollWidth / 2) + 6;
+            var durationSec = distance / pxPerSec;
+            if (!Number.isFinite(durationSec) || durationSec <= 0) return;
+            track.style.animationDuration = Math.max(20, durationSec).toFixed(2) + 's';
         }
         async function fetchAllEducationPhotoPosts() {
             var all = [];
