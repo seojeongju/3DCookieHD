@@ -921,7 +921,7 @@ export const homeHtml = `
                     var contentEsc = contentPlain.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
                     return '<a href="/education-photos?filter=education_photo" class="education-photo-marquee-item block rounded-xl overflow-hidden shadow-md hover:shadow-xl transition bg-white border border-gray-100">' +
                         '<div class="relative aspect-square bg-gray-200 group">' +
-                        '<img src="' + img + '" alt="' + safeTitle + '" loading="lazy" decoding="async" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">' +
+                        '<img src="' + img + '" alt="' + safeTitle + '" loading="lazy" decoding="async" class="w-full h-full object-cover education-face-mask group-hover:scale-105 transition duration-500">' +
                         '<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-3">' +
                         '<span class="text-white text-sm font-bold truncate w-full">' + titleEsc + '</span>' +
                         '</div></div>' +
