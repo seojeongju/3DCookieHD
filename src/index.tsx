@@ -40,6 +40,7 @@ import partnerUniversities from './api/partner_universities';
 import educationPerformance from './api/education_performance';
 import { setupApi } from './api/setup';
 import analytics from './api/analytics';
+import homeApi from './api/home';
 import { adminDashboardHtml } from './views/admin';
 import { adminAnalyticsHtml } from './views/admin_analytics';
 import { adminJobsListHtml } from './views/admin_jobs';
@@ -347,6 +348,7 @@ app.route('/api/consultations', consultations);
 app.route('/api/ncs', ncs);
 app.route('/api/setup', setupApi);
 app.route('/api/analytics', analytics);
+app.route('/api/home', homeApi);
 
 app.get('/admin', (c) => c.html(adminDashboardHtml));
 app.get('/admin/analytics', (c) => c.html(adminAnalyticsHtml()));

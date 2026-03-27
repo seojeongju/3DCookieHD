@@ -255,8 +255,8 @@ export const homeHtml = `
                 </div>
             </div>
         </div>
-        <!-- 슬라이드 2 -->
-        <div class="hero-slide" style="background-image: url('/static/hero2.jpg'); background-color: #4a90e2;">
+        <!-- 슬라이드 2 (지연 로드) -->
+        <div class="hero-slide" data-bg="/static/hero2.jpg" style="background-color: #4a90e2;">
             <div class="hero-overlay bg-gradient-to-r from-black/60 via-black/40 to-transparent"></div>
             <div class="hero-content absolute inset-0 flex items-center">
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
@@ -270,8 +270,8 @@ export const homeHtml = `
                 </div>
             </div>
         </div>
-        <!-- 슬라이드 3 -->
-        <div class="hero-slide" style="background-image: url('/static/hero3.jpg'); background-color: #5b9bd5;">
+        <!-- 슬라이드 3 (지연 로드) -->
+        <div class="hero-slide" data-bg="/static/hero3.jpg" style="background-color: #5b9bd5;">
             <div class="hero-overlay bg-gradient-to-r from-black/60 via-black/40 to-transparent"></div>
             <div class="hero-content absolute inset-0 flex items-center">
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
@@ -522,12 +522,64 @@ export const homeHtml = `
             div.innerHTML = html;
             return (div.textContent || div.innerText || '').trim();
         }
+        function resolveItemFirstImage(item) {
+            if (!item) return '';
+            if (item.image_url) return String(item.image_url);
+            if (item.images && item.images.length) return item.images[0];
+            if (typeof item.images === 'string' && item.images.trim().startsWith('[')) {
+                try {
+                    var arr = JSON.parse(item.images);
+                    if (Array.isArray(arr) && arr.length) return arr[0];
+                } catch (e) { /* ignore */ }
+            }
+            if (item.thumbnail_url) return String(item.thumbnail_url);
+            if (item.content) {
+                var m = String(item.content).match(/<img[^>]+src=["']([^"']+)["']/i);
+                if (m && m[1]) return m[1];
+            }
+            return '';
+        }
         function scrollToSection(id) {
             var el = document.getElementById(id);
             if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
+        function optimizeImageUrl(url, width) {
+            if (!url || typeof url !== 'string') return '';
+            var raw = url.trim();
+            if (!raw || raw.indexOf('data:') === 0 || raw.indexOf('blob:') === 0) return raw;
+            if (raw.indexOf('/cdn-cgi/image/') === 0) return raw;
+            var safeWidth = Math.max(120, Math.min(1600, Number(width) || 480));
+            try {
+                if (raw.indexOf('/') === 0) {
+                    return '/cdn-cgi/image/width=' + safeWidth + ',quality=75,format=auto' + raw;
+                }
+                if (raw.indexOf('http://') === 0 || raw.indexOf('https://') === 0) {
+                    return '/cdn-cgi/image/width=' + safeWidth + ',quality=75,format=auto/' + raw;
+                }
+            } catch (e) { /* ignore */ }
+            return raw;
+        }
+        async function loadHomeData() {
+            try {
+                var res = await fetch('/api/home');
+                var result = await res.json();
+                if (!result || !result.success) return null;
+                return result.data || null;
+            } catch (e) {
+                console.error('loadHomeData error:', e);
+                return null;
+            }
+        }
         var currentSlide = 0;
         var slideInterval;
+        function ensureHeroSlideImage(slide) {
+            if (!slide) return;
+            var bg = slide.getAttribute('data-bg');
+            if (!bg) return;
+            if (slide.getAttribute('data-bg-loaded') === '1') return;
+            slide.style.backgroundImage = "url('" + bg.replace(/'/g, "\\'") + "')";
+            slide.setAttribute('data-bg-loaded', '1');
+        }
         function setSlide(index) {
             var slides = document.querySelectorAll('.hero-slide');
             var dots = document.querySelectorAll('.hero-dot');
@@ -540,9 +592,15 @@ export const homeHtml = `
             currentSlide = index;
             
             slides.forEach(function(slide, i) {
-                if (i === index) slide.classList.add('active');
-                else slide.classList.remove('active');
+                if (i === index) {
+                    ensureHeroSlideImage(slide);
+                    slide.classList.add('active');
+                } else {
+                    slide.classList.remove('active');
+                }
             });
+            var nextSlide = slides[(index + 1) % slides.length];
+            ensureHeroSlideImage(nextSlide);
             
             dots.forEach(function(dot, i) {
                 if (i === index) dot.classList.add('active');
@@ -554,17 +612,20 @@ export const homeHtml = `
             slideInterval = setInterval(function() { setSlide(currentSlide + 1); }, 5000);
         }
         
-        async function loadCourses() {
+        async function loadCourses(prefetchedList) {
             var container = document.getElementById('courseList');
             if (!container) return;
             try {
-                var res = await fetch('/api/course-sessions/public?limit=8&page=1');
-                var result = await res.json();
-                if (!result.success) {
-                    container.innerHTML = '<div class="col-span-1 sm:col-span-2 lg:col-span-4 text-center py-12"><p class="text-gray-500">과정 목록을 불러오지 못했습니다.</p><button onclick="loadCourses()" class="mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">다시 시도</button></div>';
-                    return;
+                var list = Array.isArray(prefetchedList) ? prefetchedList : null;
+                if (!list) {
+                    var res = await fetch('/api/course-sessions/public?limit=8&page=1');
+                    var result = await res.json();
+                    if (!result.success) {
+                        container.innerHTML = '<div class="col-span-1 sm:col-span-2 lg:col-span-4 text-center py-12"><p class="text-gray-500">과정 목록을 불러오지 못했습니다.</p><button onclick="loadCourses()" class="mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">다시 시도</button></div>';
+                        return;
+                    }
+                    list = result.data || [];
                 }
-                var list = result.data || [];
                 if (list.length === 0) {
                     container.innerHTML = '<div class="col-span-1 sm:col-span-2 lg:col-span-4 text-center py-12 text-gray-500">등록된 교육 과정이 없습니다.<br><span class="text-sm">관리자에서 회차별로 &#8216;홈페이지 등록&#8217;을 한 과정만 여기에 노출됩니다.</span></div>';
                     return;
@@ -573,7 +634,7 @@ export const homeHtml = `
                     return { recruiting: '모집중', in_progress: '진행중', completed: '종료', always_open: '상시모집', closed: '폐강' }[s] || s;
                 }
                 container.innerHTML = list.map(function(s) {
-                    var imgUrl = (s.image_url || '').trim() || '/static/hero1.jpg';
+                    var imgUrl = optimizeImageUrl(((s.image_url || '').trim() || '/static/hero1.jpg'), 640);
                     var start = (s.training_start_date || '').trim();
                     var end = (s.training_end_date || '').trim();
                     var dateStr = start && end ? (new Date(start).toLocaleDateString('ko-KR') + ' ~ ' + new Date(end).toLocaleDateString('ko-KR')) : (start ? new Date(start).toLocaleDateString('ko-KR') + '~' : '일정 미정');
@@ -592,7 +653,7 @@ export const homeHtml = `
                     var nameEsc = displayName.replace(/</g, '&lt;').replace(/"/g, '&quot;');
                     return '<a href="/course-sessions/' + s.id + '" class="bg-white rounded-xl shadow-sm hover:shadow-xl transition duration-300 border border-gray-100 overflow-hidden flex flex-col h-full group">' +
                         '<div class="relative h-48 overflow-hidden bg-slate-50 border-b border-gray-50">' +
-                        '<img src="' + imgUrl.replace(/"/g, '&quot;') + '" alt="" class="w-full h-full object-contain group-hover:scale-105 transition duration-500" onerror="this.src=\\'\/static\/hero1.jpg\\'">' +
+                        '<img src="' + imgUrl.replace(/"/g, '&quot;') + '" alt="" loading="lazy" decoding="async" class="w-full h-full object-contain group-hover:scale-105 transition duration-500" onerror="this.src=\\'\/static\/hero1.jpg\\'">' +
                         '<span class="absolute top-3 right-3 px-2.5 py-1 text-xs font-bold rounded-full text-white ' + statusClass + '">' + statusText(s.status) + '</span>' +
                         '<div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/60 to-transparent p-4">' +
                         '<span class="text-white text-xs font-medium bg-primary-600/80 px-2 py-1 rounded">' + (s.category_name || '과정') + '</span>' +
@@ -608,31 +669,26 @@ export const homeHtml = `
                 container.innerHTML = '<div class="col-span-1 sm:col-span-2 lg:col-span-4 text-center py-12"><p class="text-gray-500">연결에 실패했습니다. 잠시 후 다시 시도해 주세요.</p><button onclick="loadCourses()" class="mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">다시 시도</button></div>';
             }
         }
-        async function loadPrototypes() {
+        async function loadPrototypes(prefetchedList) {
             var container = document.getElementById('prototypeList');
             if (!container) return;
             try {
-                var res = await fetch('/api/posts?category=prototype&status=published&limit=20');
-                var result = await res.json();
-                if (!result.success) {
-                    container.innerHTML = '<div class="text-center py-12 text-gray-500">시제품 목록을 불러오지 못했습니다.</div>';
-                    return;
+                var list = Array.isArray(prefetchedList) ? prefetchedList.slice() : null;
+                if (!list) {
+                    var res = await fetch('/api/posts?category=prototype&status=published&limit=12');
+                    var result = await res.json();
+                    if (!result.success) {
+                        container.innerHTML = '<div class="text-center py-12 text-gray-500">시제품 목록을 불러오지 못했습니다.</div>';
+                        return;
+                    }
+                    list = (result.data || []).slice();
                 }
-                var list = (result.data || []).slice();
                 list.sort(function(a, b) {
                     var da = parseContentRegDate(a.content) || a.created_at || 0;
                     var db = parseContentRegDate(b.content) || b.created_at || 0;
                     return new Date(db) - new Date(da);
                 });
-                function getFirstImage(p) {
-                    var img = (p.images && p.images.length) ? p.images[0] : '';
-                    if (!img && p.content) {
-                        var m = p.content.match(/<img[^>]+src=["']([^"']+)["']/i);
-                        if (m && m[1]) img = m[1];
-                    }
-                    return img;
-                }
-                var withImage = list.filter(function(p) { return !!getFirstImage(p); });
+                var withImage = list.filter(function(p) { return !!resolveItemFirstImage(p); });
                 if (withImage.length === 0) {
                     container.innerHTML = '<div class="text-center py-12">' +
                         '<p class="text-gray-500 mb-6">등록된 시제품이 없습니다.</p>' +
@@ -640,15 +696,15 @@ export const homeHtml = `
                     return;
                 }
                 var cards = withImage.map(function(p) {
-                    var img = getFirstImage(p);
+                    var img = optimizeImageUrl(resolveItemFirstImage(p), 520);
                     var safeTitle = (p.title || '시제품').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                     var titleEsc = (p.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                    var contentPlain = stripHtml(p.content || '').trim().substring(0, 80);
-                    if (stripHtml(p.content || '').trim().length > 80) contentPlain += '\u2026';
+                    var rawPlain = (p.excerpt != null && String(p.excerpt).trim() !== '') ? String(p.excerpt) : stripHtml(p.content || '').trim();
+                    var contentPlain = rawPlain.length > 80 ? rawPlain.substring(0, 80) + '\u2026' : rawPlain;
                     var contentEsc = contentPlain.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
                     return '<a href="/prototype-gallery" class="prototype-marquee-item block rounded-xl overflow-hidden shadow-md hover:shadow-xl transition bg-white border border-gray-100">' +
                         '<div class="relative aspect-square bg-gray-200 group">' +
-                        '<img src="' + img + '" alt="' + safeTitle + '" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">' +
+                        '<img src="' + img + '" alt="' + safeTitle + '" loading="lazy" decoding="async" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">' +
                         '<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-3">' +
                         '<span class="text-white text-sm font-bold truncate w-full">' + titleEsc + '</span>' +
                         '</div></div>' +
@@ -680,20 +736,21 @@ export const homeHtml = `
             return y + '-' + mon + '-' + d;
         }
 
-        async function loadPortfolios() {
+        async function loadPortfolios(prefetchedList) {
             var container = document.getElementById('portfolioList');
             if (!container) return;
             try {
-                // 통합된 /api/portfolios 엔드포인트 사용 (student_portfolios + posts 통합본)
-                var res = await fetch('/api/portfolios?limit=24');
-                var result = await res.json();
-                
-                if (!result.success) {
-                    container.innerHTML = '<div class="text-center py-12 text-gray-500">포트폴리오 목록을 불러오지 못했습니다.</div>';
-                    return;
+                var list = Array.isArray(prefetchedList) ? prefetchedList : null;
+                if (!list) {
+                    // 통합된 /api/portfolios 엔드포인트 사용 (student_portfolios + posts 통합본)
+                    var res = await fetch('/api/portfolios?limit=12');
+                    var result = await res.json();
+                    if (!result.success) {
+                        container.innerHTML = '<div class="text-center py-12 text-gray-500">포트폴리오 목록을 불러오지 못했습니다.</div>';
+                        return;
+                    }
+                    list = result.data || [];
                 }
-                
-                var list = result.data || [];
                 
                 var withImage = list.filter(function(p) { return !!p.thumbnail_url; });
                 
@@ -720,7 +777,7 @@ export const homeHtml = `
                     
                     return '<a href="/portfolios" class="portfolio-marquee-item block rounded-xl overflow-hidden shadow-md hover:shadow-xl transition bg-white border border-gray-100">' +
                         '<div class="relative aspect-square bg-gray-200 group">' +
-                        '<img src="' + p.thumbnail_url + '" alt="' + safeTitle + '" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">' +
+                        '<img src="' + optimizeImageUrl(p.thumbnail_url, 520) + '" alt="' + safeTitle + '" loading="lazy" decoding="async" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">' +
                         '<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-3">' +
                         '<span class="text-white text-sm font-bold truncate w-full">' + titleEsc + '</span>' +
                         '</div></div>' +
@@ -757,17 +814,20 @@ export const homeHtml = `
             }
             return html;
         }
-        async function loadHomeReviews() {
+        async function loadHomeReviews(prefetchedList) {
             var container = document.getElementById('homeReviewList');
             if (!container) return;
             try {
-                var res = await fetch('/api/posts?category=review&status=published&limit=20&sort=created_at&order=DESC');
-                var result = await res.json();
-                if (!result.success) {
-                    container.innerHTML = '<div class="text-center py-12 text-gray-500">수강후기를 불러오지 못했습니다.</div>';
-                    return;
+                var list = Array.isArray(prefetchedList) ? prefetchedList : null;
+                if (!list) {
+                    var res = await fetch('/api/posts?category=review&status=published&limit=12&sort=created_at&order=DESC');
+                    var result = await res.json();
+                    if (!result.success) {
+                        container.innerHTML = '<div class="text-center py-12 text-gray-500">수강후기를 불러오지 못했습니다.</div>';
+                        return;
+                    }
+                    list = result.data || [];
                 }
-                var list = result.data || [];
                 if (list.length === 0) {
                     container.innerHTML = '<div class="text-center py-12 text-gray-500">' +
                         '<p class="mb-4">아직 공개된 수강후기가 없습니다.</p>' +
@@ -776,7 +836,7 @@ export const homeHtml = `
                 }
                 var cards = list.map(function(r) {
                     var titleEsc = (r.title || '수강후기').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-                    var plain = stripHtml(r.content || '').trim();
+                    var plain = (r.excerpt != null && String(r.excerpt).trim() !== '') ? String(r.excerpt) : stripHtml(r.content || '').trim();
                     var excerpt = plain.length > 92 ? plain.substring(0, 92) + '\u2026' : plain;
                     var excerptEsc = excerpt.replace(/</g, '&lt;').replace(/>/g, '&gt;');
                     var authorEsc = maskReviewName(r.author_name).replace(/</g, '&lt;');
@@ -825,24 +885,13 @@ export const homeHtml = `
             track.style.animationDuration = Math.max(20, durationSec).toFixed(2) + 's';
         }
         async function fetchAllEducationPhotoPosts() {
-            var all = [];
-            var page = 1;
-            var limit = 100;
-            var maxPages = 100; // 안전장치: 최대 10,000건
-            while (page <= maxPages) {
-                var res = await fetch('/api/posts?category=education_photo&status=published&page=' + page + '&limit=' + limit + '&sort=created_at&order=DESC');
-                var result = await res.json();
-                if (!result.success) {
-                    throw new Error(result.error || '교육사진 목록 조회 실패');
-                }
-                var list = Array.isArray(result.data) ? result.data : [];
-                if (list.length === 0) break;
-                all = all.concat(list);
-                // pagination 메타값에 의존하지 않고, 페이지가 limit보다 작아질 때까지 끝까지 순회
-                if (list.length < limit) break;
-                page++;
+            // 홈 화면은 최신 일부만 사용해 초기 API/파싱 비용을 줄임
+            var res = await fetch('/api/posts?category=education_photo&status=published&page=1&limit=24&sort=created_at&order=DESC');
+            var result = await res.json();
+            if (!result.success) {
+                throw new Error(result.error || '교육사진 목록 조회 실패');
             }
-            return all;
+            return Array.isArray(result.data) ? result.data : [];
         }
 
         function applyEducationMarqueeConstantSpeed(container) {
@@ -857,36 +906,22 @@ export const homeHtml = `
             track.style.animationDuration = Math.max(18, durationSec).toFixed(2) + 's';
         }
 
-        async function loadEducationPhotos() {
+        async function loadEducationPhotos(prefetchedList) {
             var container = document.getElementById('educationPhotoList');
             if (!container) return;
             try {
                 // 전체 공개 교육사진을 조회한 뒤, 사진이 있는 항목만 메인에 노출
-                var list = await fetchAllEducationPhotoPosts();
-                function getFirstImage(p) {
-                    var img = (p.images && p.images.length) ? p.images[0] : '';
-                    if (typeof p.images === 'string' && p.images.trim().startsWith('[')) {
-                        try {
-                            var arr = JSON.parse(p.images);
-                            if (Array.isArray(arr) && arr.length) img = arr[0];
-                        } catch (e) { /* ignore */ }
-                    }
-                    if (!img && p.content) {
-                        var m = p.content.match(/<img[^>]+src=["']([^"']+)["']/i);
-                        if (m && m[1]) img = m[1];
-                    }
-                    return img;
-                }
+                var list = Array.isArray(prefetchedList) ? prefetchedList : await fetchAllEducationPhotoPosts();
                 // 1) 사진이 있는 글을 먼저  2) 그 안에서는 최신순 (등록일 또는 created_at)
                 list.sort(function(a, b) {
-                    var ia = getFirstImage(a) ? 1 : 0;
-                    var ib = getFirstImage(b) ? 1 : 0;
+                    var ia = resolveItemFirstImage(a) ? 1 : 0;
+                    var ib = resolveItemFirstImage(b) ? 1 : 0;
                     if (ib !== ia) return ib - ia;
                     var da = parseContentRegDate(a.content) || a.created_at || 0;
                     var db = parseContentRegDate(b.content) || b.created_at || 0;
                     return new Date(db) - new Date(da);
                 });
-                var withImage = list.filter(function(p) { return !!getFirstImage(p); });
+                var withImage = list.filter(function(p) { return !!resolveItemFirstImage(p); });
                 if (withImage.length === 0) {
                     container.innerHTML = '<div class="text-center py-12">' +
                         '<p class="text-gray-500 mb-6">등록된 교육사진이 없습니다.</p>' +
@@ -894,15 +929,15 @@ export const homeHtml = `
                     return;
                 }
                 var cards = withImage.map(function(p) {
-                    var img = getFirstImage(p);
+                    var img = optimizeImageUrl(resolveItemFirstImage(p), 520);
                     var safeTitle = (p.title || '교육사진').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                     var titleEsc = (p.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                    var contentPlain = stripHtml(p.content || '').trim().substring(0, 80);
-                    if (stripHtml(p.content || '').trim().length > 80) contentPlain += '\u2026';
+                    var rawPlain = (p.excerpt != null && String(p.excerpt).trim() !== '') ? String(p.excerpt) : stripHtml(p.content || '').trim();
+                    var contentPlain = rawPlain.length > 80 ? rawPlain.substring(0, 80) + '\u2026' : rawPlain;
                     var contentEsc = contentPlain.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
                     return '<a href="/education-photos?filter=education_photo" class="education-photo-marquee-item block rounded-xl overflow-hidden shadow-md hover:shadow-xl transition bg-white border border-gray-100">' +
                         '<div class="relative aspect-square bg-gray-200 group">' +
-                        '<img src="' + img + '" alt="' + safeTitle + '" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">' +
+                        '<img src="' + img + '" alt="' + safeTitle + '" loading="lazy" decoding="async" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">' +
                         '<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-3">' +
                         '<span class="text-white text-sm font-bold truncate w-full">' + titleEsc + '</span>' +
                         '</div></div>' +
@@ -929,16 +964,75 @@ export const homeHtml = `
             }
         }
         document.addEventListener('DOMContentLoaded', function() {
-            loadCourses();
-            loadEducationPhotos();
-            loadPortfolios();
-            loadPrototypes();
-            loadHomeReviews();
+            var homeDataPromise = loadHomeData();
+            homeDataPromise.then(function(data) {
+                loadCourses(data && data.courses);
+            }).catch(function() {
+                loadCourses();
+            });
+
+            lazyLoadSection('education-photos', function() {
+                homeDataPromise.then(function(data) {
+                    return loadEducationPhotos(data && data.educationPhotos);
+                }).catch(function() {
+                    return loadEducationPhotos();
+                });
+            });
+            lazyLoadSection('portfolios', function() {
+                homeDataPromise.then(function(data) {
+                    return loadPortfolios(data && data.portfolios);
+                }).catch(function() {
+                    return loadPortfolios();
+                });
+            });
+            lazyLoadSection('prototype-gallery', function() {
+                homeDataPromise.then(function(data) {
+                    return loadPrototypes(data && data.prototypes);
+                }).catch(function() {
+                    return loadPrototypes();
+                });
+            });
+            lazyLoadSection('reviews', function() {
+                homeDataPromise.then(function(data) {
+                    return loadHomeReviews(data && data.reviews);
+                }).catch(function() {
+                    return loadHomeReviews();
+                });
+            });
             
             // Init Hero Slider
             if (document.querySelector('.hero-slide')) {
                 setSlide(0);
             }
         });
+
+        var lazyLoadedSections = {};
+        function lazyLoadSection(sectionId, loader) {
+            if (!sectionId || typeof loader !== 'function') return;
+            var section = document.getElementById(sectionId);
+            if (!section) return;
+            if (lazyLoadedSections[sectionId]) return;
+
+            function runOnce() {
+                if (lazyLoadedSections[sectionId]) return;
+                lazyLoadedSections[sectionId] = true;
+                loader();
+            }
+
+            if (!('IntersectionObserver' in window)) {
+                runOnce();
+                return;
+            }
+
+            var io = new IntersectionObserver(function(entries, observer) {
+                entries.forEach(function(entry) {
+                    if (!entry.isIntersecting) return;
+                    runOnce();
+                    observer.unobserve(entry.target);
+                });
+            }, { rootMargin: '300px 0px' });
+
+            io.observe(section);
+        }
     </script>
 `;
