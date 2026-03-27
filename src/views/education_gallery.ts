@@ -31,6 +31,10 @@ export const educationGalleryHtml = `
       .education-face-mask-modal {
         filter: blur(0.9px) saturate(0.94) contrast(0.97);
       }
+      /* 상세 모달 본문에 에디터 HTML로 삽입된 이미지도 동일하게 얼굴 블러 적용 */
+      #modalContent img {
+        filter: blur(0.9px) saturate(0.94) contrast(0.97);
+      }
       .gallery-modal-body {
         scrollbar-width: thin;
         scrollbar-color: rgba(74, 144, 226, 0.55) rgba(241, 245, 249, 0.9);
