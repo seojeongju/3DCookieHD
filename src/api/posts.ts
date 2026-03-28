@@ -1015,10 +1015,18 @@ app.post('/dedupe-education-photo-titles', authMiddleware, requireAdmin, async (
   }
 });
 
+function parseOptionalPostCategoryFilter(raw: unknown): string | null {
+  if (raw == null || raw === '') return null;
+  const s = String(raw).trim();
+  if (!s) return null;
+  if (s.length > 64 || !/^[a-zA-Z0-9_-]+$/.test(s)) return null;
+  return s;
+}
+
 /**
  * POST /api/posts/admin/migrate-hrdmarket-images
  * hrdmarket.co.kr 이미지 URL을 다운로드해 R2에 저장하고, 게시글 content·images의 URL을 우리 서버 경로로 치환합니다.
- * body: { dry_run?: boolean, limit?: number (1~40, 기본 8), offset?: number }
+ * body: { dry_run?: boolean, limit?: number (1~40, 기본 8), offset?: number, category?: string (선택, 예: prototype, education_photo) }
  */
 app.post('/admin/migrate-hrdmarket-images', authMiddleware, requireAdmin, async (c) => {
   try {
@@ -1031,16 +1039,28 @@ app.post('/admin/migrate-hrdmarket-images', authMiddleware, requireAdmin, async 
     const dryRun = Boolean(body?.dry_run);
     const limit = Math.min(40, Math.max(1, Number(body?.limit) || 8));
     const offset = Math.max(0, Number(body?.offset) || 0);
+    const categoryFilter = parseOptionalPostCategoryFilter(body?.category);
+    if (body?.category != null && String(body.category).trim() !== '' && !categoryFilter) {
+      return c.json({ success: false, error: 'category는 영문·숫자·_- 만, 최대 64자여야 합니다' }, 400);
+    }
 
     const user = c.get('user');
     const origin = new URL(c.req.url).origin;
 
-    const totalRow = await DB.prepare(`SELECT COUNT(*) as total FROM posts`).first<{ total: number }>();
+    const totalRow = categoryFilter
+      ? await DB.prepare(`SELECT COUNT(*) as total FROM posts WHERE category = ?`)
+          .bind(categoryFilter)
+          .first<{ total: number }>()
+      : await DB.prepare(`SELECT COUNT(*) as total FROM posts`).first<{ total: number }>();
     const totalPosts = totalRow?.total ?? 0;
 
-    const { results: rows } = await DB.prepare(`SELECT * FROM posts ORDER BY id LIMIT ? OFFSET ?`)
-      .bind(limit, offset)
-      .all();
+    const { results: rows } = categoryFilter
+      ? await DB.prepare(`SELECT * FROM posts WHERE category = ? ORDER BY id LIMIT ? OFFSET ?`)
+          .bind(categoryFilter, limit, offset)
+          .all()
+      : await DB.prepare(`SELECT * FROM posts ORDER BY id LIMIT ? OFFSET ?`)
+          .bind(limit, offset)
+          .all();
 
     const list = Array.isArray(rows) ? rows : [];
     const reports: Array<Record<string, unknown>> = [];
@@ -1118,6 +1138,7 @@ app.post('/admin/migrate-hrdmarket-images', authMiddleware, requireAdmin, async 
           next_offset: nextOffset,
           has_more: hasMore,
           total_posts: totalPosts,
+          category: categoryFilter,
         },
         summary: {
           processed: rowCount,
@@ -1138,11 +1159,28 @@ app.post('/admin/migrate-hrdmarket-images', authMiddleware, requireAdmin, async 
 /**
  * GET /api/posts/admin/migrate-hrdmarket-images/status
  * DB의 content·images 컬럼 문자열에 'hrdmarket'이 남아 있는 글 수(빠른 확인). R2 전용 본문은 여기서 안 잡힐 수 있음.
+ * query: category (선택) — 지정 시 해당 카테고리 글만 집계
  */
 app.get('/admin/migrate-hrdmarket-images/status', authMiddleware, requireAdmin, async (c) => {
   try {
     const { DB } = c.env;
-    const row = await DB.prepare(`
+    const q = c.req.query('category');
+    const categoryFilter = parseOptionalPostCategoryFilter(q);
+    if (q != null && String(q).trim() !== '' && !categoryFilter) {
+      return c.json({ success: false, error: 'category 쿼리는 영문·숫자·_- 만, 최대 64자여야 합니다' }, 400);
+    }
+
+    const row = categoryFilter
+      ? await DB.prepare(
+          `
+      SELECT COUNT(*) as n FROM posts
+      WHERE category = ?
+        AND (IFNULL(content,'') LIKE '%hrdmarket%' OR IFNULL(images,'') LIKE '%hrdmarket%')
+    `,
+        )
+          .bind(categoryFilter)
+          .first<{ n: number }>()
+      : await DB.prepare(`
       SELECT COUNT(*) as n FROM posts
       WHERE IFNULL(content,'') LIKE '%hrdmarket%' OR IFNULL(images,'') LIKE '%hrdmarket%'
     `).first<{ n: number }>();
@@ -1150,6 +1188,7 @@ app.get('/admin/migrate-hrdmarket-images/status', authMiddleware, requireAdmin, 
       success: true,
       data: {
         posts_with_hrdmarket_in_db_columns: row?.n ?? 0,
+        category: categoryFilter,
         note:
           '본문이 DB가 아니라 R2([R2:...])에만 있는 글은 이 숫자에 안 잡힐 수 있습니다. 최종 확인은 「미리보기」로 전체 스캔해 대상 합이 0인지 보세요.',
       },

@@ -45,6 +45,15 @@ export const adminPrototypeGalleryHtml = (sidebar: string) => `
                         <button type="button" onclick="openCsvImportModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center text-sm font-medium shadow-sm">
                             <i class="fas fa-file-csv mr-2"></i> CSV 일괄 등록
                         </button>
+                        <button type="button" onclick="migrateHrdmarketImages(true)" class="px-4 py-2 bg-white text-violet-700 border border-violet-200 rounded-lg hover:bg-violet-50 transition flex items-center text-sm font-medium shadow-sm" title="시제품 글 중 hrdmarket.co.kr 링크가 있는 글만 집계(저장 안 함)">
+                            <i class="fas fa-eye mr-2"></i> HRD 이미지 이전 미리보기
+                        </button>
+                        <button type="button" onclick="migrateHrdmarketImages(false)" class="px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition flex items-center text-sm font-medium shadow-sm" title="원격 이미지를 R2로 받아 게시글의 URL을 /api/upload/files/ 로 치환합니다">
+                            <i class="fas fa-cloud-download-alt mr-2"></i> HRD 이미지 서버로 이전
+                        </button>
+                        <button type="button" onclick="checkHrdmarketMigrationStatus()" class="px-4 py-2 bg-white text-violet-800 border border-violet-200 rounded-lg hover:bg-violet-50 transition flex items-center text-sm font-medium shadow-sm" title="DB에 hrdmarket 문자열이 남은 시제품 글 수(빠름). R2 본문은 미리보기로 확인">
+                            <i class="fas fa-check-double mr-2"></i> 이전 여부 빠른 확인
+                        </button>
                         <button type="button" onclick="openModal(null)" class="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition flex items-center text-sm font-medium shadow-sm">
                             <i class="fas fa-plus mr-2"></i> 시제품 등록
                         </button>
@@ -430,6 +439,85 @@ export const adminPrototypeGalleryHtml = (sidebar: string) => `
             resultEl.classList.remove('hidden');
             document.getElementById('bulkImageApplyBtn').disabled = false;
             loadPosts(currentPage);
+        }
+
+        async function checkHrdmarketMigrationStatus() {
+            const token = localStorage.getItem('token');
+            if (!token) { alert('로그인이 필요합니다.'); return; }
+            try {
+                const res = await fetch('/api/posts/admin/migrate-hrdmarket-images/status?category=prototype', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const json = await res.json();
+                if (!json.success) {
+                    alert('오류: ' + (json.error || '실패'));
+                    return;
+                }
+                const d = json.data || {};
+                const n = d.posts_with_hrdmarket_in_db_columns != null ? d.posts_with_hrdmarket_in_db_columns : '-';
+                alert('시제품(prototype) 중 DB content/images에 hrdmarket이 남아 있는 글(추정): ' + n + '건\\n\\n' + (d.note || '') + '\\n\\n※ 최종 확인: 「미리보기」 실행 시 대상 합이 0이면 치환할 URL이 없습니다.');
+            } catch (e) {
+                console.error(e);
+                alert('처리 중 오류가 발생했습니다.');
+            }
+        }
+
+        async function migrateHrdmarketImages(dryRun) {
+            if (dryRun) {
+                if (!confirm('시제품 카테고리에서 hrdmarket 링크가 있는 글만 집계합니다(저장하지 않음). 계속할까요?')) return;
+            } else {
+                if (!confirm('시제품 글의 hrdmarket.co.kr 이미지를 다운로드해 R2에 저장하고, 본문·images 필드의 URL을 우리 서버 경로로 바꿉니다. 시간이 걸릴 수 있습니다. 진행할까요?')) return;
+            }
+            const token = localStorage.getItem('token');
+            if (!token) { alert('로그인이 필요합니다.'); return; }
+            let offset = 0;
+            const limit = 8;
+            let sumWould = 0;
+            let sumUpdated = 0;
+            let sumSkipped = 0;
+            let sumErr = 0;
+            let batches = 0;
+            try {
+                while (true) {
+                    const res = await fetch('/api/posts/admin/migrate-hrdmarket-images', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + token
+                        },
+                        body: JSON.stringify({ dry_run: dryRun, limit, offset, category: 'prototype' })
+                    });
+                    if (res.status === 401) {
+                        alert('로그인 세션이 만료되었습니다.');
+                        window.location.href = '/login';
+                        return;
+                    }
+                    const json = await res.json();
+                    if (!json.success) {
+                        alert('오류: ' + (json.error || '실패'));
+                        return;
+                    }
+                    const d = json.data;
+                    const s = d.summary || {};
+                    sumWould += Number(s.would_update) || 0;
+                    sumUpdated += Number(s.updated) || 0;
+                    sumSkipped += Number(s.skipped_no_hrd) || 0;
+                    sumErr += Number(s.errors) || 0;
+                    batches++;
+                    console.log('[HRD 이전·시제품] 배치 ' + batches + ':', d.summary, 'offset→' + (d.batch && d.batch.next_offset));
+                    if (!d.batch || !d.batch.has_more) break;
+                    offset = d.batch.next_offset;
+                }
+                if (dryRun) {
+                    alert('미리보기 완료(시제품만).\\n\\n이전 대상(건수 합): ' + sumWould + '\\n스킵(해당 URL 없음): ' + sumSkipped + '\\n오류: ' + sumErr + '\\n배치 수: ' + batches + '\\n\\n※ 대상 합이 0이면 더 이상 옮길 hrdmarket URL이 없습니다.');
+                } else {
+                    alert('이전 완료.\\n\\n갱신된 글: ' + sumUpdated + '\\n스킵: ' + sumSkipped + '\\n오류: ' + sumErr + '\\n배치 수: ' + batches + '\\n\\n확인: 「미리보기」를 다시 눌러 대상 합이 0인지 보세요. 오류가 있으면 해당 글은 수동 점검이 필요할 수 있습니다.');
+                }
+                loadPosts(currentPage);
+            } catch (e) {
+                console.error(e);
+                alert('처리 중 오류가 발생했습니다.');
+            }
         }
 
         function openModal(post) {

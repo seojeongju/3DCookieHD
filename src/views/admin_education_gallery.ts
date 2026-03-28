@@ -788,7 +788,7 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
             const token = localStorage.getItem('token');
             if (!token) { alert('로그인이 필요합니다.'); return; }
             try {
-                const res = await fetch('/api/posts/admin/migrate-hrdmarket-images/status', {
+                const res = await fetch('/api/posts/admin/migrate-hrdmarket-images/status?category=education_photo', {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
                 const json = await res.json();
@@ -798,7 +798,7 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
                 }
                 const d = json.data || {};
                 const n = d.posts_with_hrdmarket_in_db_columns != null ? d.posts_with_hrdmarket_in_db_columns : '-';
-                alert('DB content/images에 hrdmarket이 남아 있는 글(추정): ' + n + '건\\n\\n' + (d.note || '') + '\\n\\n※ 최종 확인: 「미리보기」 실행 시 대상 합이 0이면 치환할 URL이 없습니다.');
+                alert('교육사진(education_photo) 중 DB content/images에 hrdmarket이 남아 있는 글(추정): ' + n + '건\\n\\n' + (d.note || '') + '\\n\\n※ 최종 확인: 「미리보기」 실행 시 대상 합이 0이면 치환할 URL이 없습니다.');
             } catch (e) {
                 console.error(e);
                 alert('처리 중 오류가 발생했습니다.');
@@ -808,9 +808,9 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
         /** 전체 게시글을 페이지 단위로 순회하며 hrdmarket.co.kr 이미지를 우리 서버(R2)로 이전합니다. */
         async function migrateHrdmarketImages(dryRun) {
             if (dryRun) {
-                if (!confirm('hrdmarket 링크가 있는 글만 집계합니다(저장하지 않음). 계속할까요?')) return;
+                if (!confirm('교육사진 카테고리에서 hrdmarket 링크가 있는 글만 집계합니다(저장하지 않음). 계속할까요?')) return;
             } else {
-                if (!confirm('hrdmarket.co.kr 이미지를 다운로드해 R2에 저장하고, 게시글 본문·images 필드의 URL을 우리 서버 경로로 바꿉니다. 시간이 걸릴 수 있습니다. 진행할까요?')) return;
+                if (!confirm('교육사진 글의 hrdmarket.co.kr 이미지를 다운로드해 R2에 저장하고, 본문·images 필드의 URL을 우리 서버 경로로 바꿉니다. 시간이 걸릴 수 있습니다. 진행할까요?')) return;
             }
             const token = localStorage.getItem('token');
             if (!token) { alert('로그인이 필요합니다.'); return; }
@@ -829,7 +829,7 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
                             'Content-Type': 'application/json',
                             'Authorization': 'Bearer ' + token
                         },
-                        body: JSON.stringify({ dry_run: dryRun, limit, offset })
+                        body: JSON.stringify({ dry_run: dryRun, limit, offset, category: 'education_photo' })
                     });
                     if (res.status === 401) {
                         alert('로그인 세션이 만료되었습니다.');
@@ -853,7 +853,7 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
                     offset = d.batch.next_offset;
                 }
                 if (dryRun) {
-                    alert('미리보기 완료.\\n\\n이전 대상(건수 합): ' + sumWould + '\\n스킵(해당 URL 없음): ' + sumSkipped + '\\n오류: ' + sumErr + '\\n배치 수: ' + batches + '\\n\\n※ 대상 합이 0이면 더 이상 옮길 hrdmarket URL이 없습니다(전체 글 스캔 기준).');
+                    alert('미리보기 완료(교육사진만).\\n\\n이전 대상(건수 합): ' + sumWould + '\\n스킵(해당 URL 없음): ' + sumSkipped + '\\n오류: ' + sumErr + '\\n배치 수: ' + batches + '\\n\\n※ 대상 합이 0이면 더 이상 옮길 hrdmarket URL이 없습니다.');
                 } else {
                     alert('이전 완료.\\n\\n갱신된 글: ' + sumUpdated + '\\n스킵: ' + sumSkipped + '\\n오류: ' + sumErr + '\\n배치 수: ' + batches + '\\n\\n확인: 「미리보기」를 다시 눌러 대상 합이 0인지 보세요. 오류가 있으면 해당 글은 수동 점검이 필요할 수 있습니다.');
                 }
