@@ -39,6 +39,15 @@ export const adminPortfolioGalleryHtml = (sidebar: string) => `
                         <a href="/portfolios" target="_blank" rel="noopener" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition flex items-center text-sm font-medium shadow-sm border border-gray-200">
                             <i class="fas fa-external-link-alt mr-2"></i> 공개 갤러리 미리보기
                         </a>
+                        <button type="button" onclick="migrateExternalPortfolioImages(true)" class="px-4 py-2 bg-white text-violet-700 border border-violet-200 rounded-lg hover:bg-violet-50 transition flex items-center text-sm font-medium shadow-sm" title="본문·썸네일에 남아 있는 외부(http) 이미지 URL만 집계(저장 안 함)">
+                            <i class="fas fa-eye mr-2"></i> 외부 이미지 R2 이전 미리보기
+                        </button>
+                        <button type="button" onclick="migrateExternalPortfolioImages(false)" class="px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition flex items-center text-sm font-medium shadow-sm" title="외부 이미지를 다운로드해 R2에 저장하고 URL을 우리 서버 경로로 바꿉니다">
+                            <i class="fas fa-cloud-download-alt mr-2"></i> 외부 이미지 R2로 이전
+                        </button>
+                        <button type="button" onclick="checkExternalPortfolioMigrationStatus()" class="px-4 py-2 bg-white text-violet-800 border border-violet-200 rounded-lg hover:bg-violet-50 transition flex items-center text-sm font-medium shadow-sm" title="DB에 http 링크가 남아 있을 수 있는 건수(빠른 참고)">
+                            <i class="fas fa-check-double mr-2"></i> 이전 여부 빠른 확인
+                        </button>
                         <button type="button" onclick="openModal(null)" class="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition flex items-center text-sm font-medium shadow-sm">
                             <i class="fas fa-plus mr-2"></i> 포트폴리오 등록
                         </button>
@@ -501,6 +510,85 @@ export const adminPortfolioGalleryHtml = (sidebar: string) => `
         function editPostByIndex(idx) {
             const post = currentList[idx];
             if (post) openModal(post);
+        }
+
+        async function checkExternalPortfolioMigrationStatus() {
+            const token = localStorage.getItem('token');
+            if (!token) { alert('로그인이 필요합니다.'); return; }
+            try {
+                const res = await fetch('/api/portfolios/admin/migrate-external-images/status', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const json = await res.json();
+                if (!json.success) {
+                    alert('오류: ' + (json.error || '실패'));
+                    return;
+                }
+                const d = json.data || {};
+                const n = d.rows_with_http_in_db_columns != null ? d.rows_with_http_in_db_columns : '-';
+                alert('본문·썸네일에 http(s)가 포함된 포트폴리오(추정): ' + n + '건\\n\\n' + (d.note || '') + '\\n\\n※ 최종 확인: 「미리보기」로 이전 대상 합을 확인하세요.');
+            } catch (e) {
+                console.error(e);
+                alert('처리 중 오류가 발생했습니다.');
+            }
+        }
+
+        async function migrateExternalPortfolioImages(dryRun) {
+            if (dryRun) {
+                if (!confirm('외부 사이트 이미지 URL(http/https)이 본문·썸네일에 남아 있는 글만 집계합니다(저장하지 않음). 계속할까요?')) return;
+            } else {
+                if (!confirm('외부 이미지를 다운로드해 R2에 저장하고, 본문·썸네일의 URL을 우리 서버(/api/upload/files/) 경로로 바꿉니다. 시간이 걸릴 수 있습니다. 진행할까요?')) return;
+            }
+            const token = localStorage.getItem('token');
+            if (!token) { alert('로그인이 필요합니다.'); return; }
+            let offset = 0;
+            const limit = 8;
+            let sumWould = 0;
+            let sumUpdated = 0;
+            let sumSkipped = 0;
+            let sumErr = 0;
+            let batches = 0;
+            try {
+                while (true) {
+                    const res = await fetch('/api/portfolios/admin/migrate-external-images', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + token
+                        },
+                        body: JSON.stringify({ dry_run: dryRun, limit, offset })
+                    });
+                    if (res.status === 401) {
+                        alert('로그인 세션이 만료되었습니다.');
+                        window.location.href = '/login';
+                        return;
+                    }
+                    const json = await res.json();
+                    if (!json.success) {
+                        alert('오류: ' + (json.error || '실패'));
+                        return;
+                    }
+                    const d = json.data;
+                    const s = d.summary || {};
+                    sumWould += Number(s.would_update) || 0;
+                    sumUpdated += Number(s.updated) || 0;
+                    sumSkipped += Number(s.skipped_no_external) || 0;
+                    sumErr += Number(s.errors) || 0;
+                    batches++;
+                    console.log('[포트폴리오 외부이미지] 배치 ' + batches + ':', d.summary, 'offset→' + (d.batch && d.batch.next_offset));
+                    if (!d.batch || !d.batch.has_more) break;
+                    offset = d.batch.next_offset;
+                }
+                if (dryRun) {
+                    alert('미리보기 완료.\\n\\n이전 대상(건수 합): ' + sumWould + '\\n스킵(외부 이미지 URL 없음): ' + sumSkipped + '\\n오류: ' + sumErr + '\\n배치 수: ' + batches + '\\n\\n※ 대상 합이 0이면 더 이상 옮길 외부 이미지가 없습니다.');
+                } else {
+                    alert('이전 완료.\\n\\n갱신된 글: ' + sumUpdated + '\\n스킵: ' + sumSkipped + '\\n오류: ' + sumErr + '\\n배치 수: ' + batches + '\\n\\n확인: 「미리보기」를 다시 눌러 대상 합이 0인지 보세요.');
+                }
+                loadPosts(currentPage);
+            } catch (e) {
+                console.error(e);
+                alert('처리 중 오류가 발생했습니다.');
+            }
         }
 
         async function handleSavePost(e) {

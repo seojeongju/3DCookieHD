@@ -68,7 +68,8 @@ function safeRemoteImageName(urlText: string, mimeType: string): string {
   return clean + firstExtensionFromMime(mimeType);
 }
 
-function isBlockedRemoteHost(hostname: string): boolean {
+/** 원격 이미지 import 시 SSRF 방지 — 포트폴리오 마이그레이션 등에서 재사용 */
+export function isBlockedRemoteHost(hostname: string): boolean {
   const h = hostname.toLowerCase();
   if (h === 'localhost' || h === '127.0.0.1' || h === '0.0.0.0' || h === '::1') return true;
   if (/^\d+\.\d+\.\d+\.\d+$/.test(h)) {

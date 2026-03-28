@@ -1,7 +1,8 @@
 import { Hono } from 'hono';
 import type { Bindings, JWTPayload } from '../types';
-import { authMiddleware } from '../middleware/auth';
+import { authMiddleware, requireAdmin } from '../middleware/auth';
 import { verifyToken } from '../utils/jwt';
+import { importRemoteImageFromUrl, isBlockedRemoteHost } from './upload';
 
 const app = new Hono<{ Bindings: Bindings; Variables: { user: JWTPayload } }>();
 
@@ -47,6 +48,56 @@ function extractFirstImage(content: string): string {
     const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/i;
     const match = content.match(imgRegex);
     return match ? match[1] : '';
+}
+
+function replaceUrlsInString(s: string, map: Map<string, string>): string {
+    let out = s;
+    const pairs = [...map.entries()].sort((a, b) => b[0].length - a[0].length);
+    for (const [from, to] of pairs) {
+        if (from === to) continue;
+        out = out.split(from).join(to);
+        const fromAmp = from.replace(/&/g, '&amp;');
+        if (fromAmp !== from) {
+            out = out.split(fromAmp).join(to.replace(/&/g, '&amp;'));
+        }
+    }
+    return out;
+}
+
+function normalizeExternalImageUrlCandidate(raw: string): string | null {
+    let s = String(raw).trim();
+    if (!s || s.startsWith('data:')) return null;
+    if (s.startsWith('/api/upload/files/')) return null;
+    if (s.startsWith('//')) s = 'https:' + s;
+    try {
+        const u = new URL(s);
+        if (u.protocol !== 'http:' && u.protocol !== 'https:') return null;
+        if (u.pathname.includes('/api/upload/files/')) return null;
+        if (isBlockedRemoteHost(u.hostname)) return null;
+        return u.toString();
+    } catch {
+        return null;
+    }
+}
+
+/** 본문 HTML(img src) + 썸네일에 있는 http(s) 외부 이미지 URL 수집(이미 R2 경로는 제외) */
+function collectPortfolioExternalImageUrls(description: string | null, thumbnailUrl: string | null): string[] {
+    const set = new Set<string>();
+    const add = (raw: string) => {
+        const n = normalizeExternalImageUrlCandidate(raw);
+        if (n) set.add(n);
+    };
+    if (thumbnailUrl) add(thumbnailUrl);
+    const html = String(description || '');
+    const imgQuoted = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
+    let m: RegExpExecArray | null;
+    while ((m = imgQuoted.exec(html)) !== null) add(m[1]);
+    const imgBare = /<img[^>]+src=([^\s>]+)/gi;
+    while ((m = imgBare.exec(html)) !== null) {
+        let v = m[1].replace(/^["']|["']$/g, '');
+        add(v);
+    }
+    return [...set];
 }
 
 // ============================================
@@ -140,6 +191,164 @@ app.get('/', async (c) => {
     } catch (error: any) {
         console.error('Error fetching portfolios:', error);
         return c.json({ success: false, error: error.message }, 500);
+    }
+});
+
+/**
+ * GET /api/portfolios/admin/migrate-external-images/status
+ * 본문·썸네일에 아직 http(s) 문자열이 남아 있을 수 있는 건수(빠른 참고용).
+ */
+app.get('/admin/migrate-external-images/status', authMiddleware, requireAdmin, async (c) => {
+    try {
+        const { DB } = c.env;
+        const row = await DB.prepare(
+            `
+      SELECT COUNT(*) as n FROM student_portfolios
+      WHERE IFNULL(description,'') LIKE '%http://%'
+         OR IFNULL(description,'') LIKE '%https://%'
+         OR IFNULL(thumbnail_url,'') LIKE 'http%'
+    `,
+        ).first<{ n: number }>();
+        return c.json({
+            success: true,
+            data: {
+                rows_with_http_in_db_columns: row?.n ?? 0,
+                note: '본문에 외부 링크(비이미지)가 있으면 숫자에 포함될 수 있습니다. 최종 확인은 「미리보기」로 대상 합을 보세요.',
+            },
+        });
+    } catch (e: unknown) {
+        console.error('migrate-external-images/status:', e);
+        return c.json({ success: false, error: '조회 실패' }, 500);
+    }
+});
+
+/**
+ * POST /api/portfolios/admin/migrate-external-images
+ * 외부 http(s) 이미지 URL을 다운로드해 R2에 저장하고, description·thumbnail_url을 /api/upload/files/ 경로로 치환합니다.
+ * body: { dry_run?: boolean, limit?: number (1~40, 기본 8), offset?: number }
+ */
+app.post('/admin/migrate-external-images', authMiddleware, requireAdmin, async (c) => {
+    try {
+        const { DB, R2 } = c.env;
+        if (!R2) {
+            return c.json({ success: false, error: 'R2 스토리지가 설정되지 않았습니다' }, 500);
+        }
+
+        const body = await c.req.json().catch(() => ({} as Record<string, unknown>));
+        const dryRun = Boolean(body?.dry_run);
+        const limit = Math.min(40, Math.max(1, Number(body?.limit) || 8));
+        const offset = Math.max(0, Number(body?.offset) || 0);
+
+        const user = c.get('user');
+        const origin = new URL(c.req.url).origin;
+
+        const totalRow = await DB.prepare(`SELECT COUNT(*) as total FROM student_portfolios`).first<{ total: number }>();
+        const totalRows = totalRow?.total ?? 0;
+
+        const { results: rows } = await DB.prepare(`SELECT * FROM student_portfolios ORDER BY id LIMIT ? OFFSET ?`)
+            .bind(limit, offset)
+            .all();
+
+        const list = Array.isArray(rows) ? rows : [];
+        const reports: Array<Record<string, unknown>> = [];
+        let updated = 0;
+        let wouldUpdate = 0;
+        let skipped = 0;
+        let errors = 0;
+
+        for (const row of list) {
+            const p = row as Record<string, unknown>;
+            const id = p.id as number;
+            try {
+                const desc = p.description != null ? String(p.description) : '';
+                const thumb = p.thumbnail_url != null ? String(p.thumbnail_url) : '';
+                const urls = collectPortfolioExternalImageUrls(desc || null, thumb || null);
+                if (urls.length === 0) {
+                    skipped++;
+                    reports.push({ id, status: 'skipped', reason: 'no_external_image_urls' });
+                    continue;
+                }
+
+                const urlMap = new Map<string, string>();
+                let failReason: string | null = null;
+                for (const u of urls) {
+                    if (dryRun) {
+                        urlMap.set(u, u);
+                        continue;
+                    }
+                    const r = await importRemoteImageFromUrl(c.env, user, origin, u, {
+                        category: 'images',
+                        folder: 'portfolios',
+                    });
+                    if (!r.success) {
+                        failReason = r.error;
+                        break;
+                    }
+                    urlMap.set(u, r.data.url);
+                    await new Promise((res) => setTimeout(res, 100));
+                }
+
+                if (failReason) {
+                    errors++;
+                    reports.push({ id, status: 'error', error: failReason, urls_found: urls.length });
+                    continue;
+                }
+
+                if (dryRun) {
+                    wouldUpdate++;
+                    reports.push({ id, status: 'would_migrate', url_count: urls.length });
+                    continue;
+                }
+
+                const newDesc = replaceUrlsInString(desc, urlMap);
+                let thumbOut: string | null = null;
+                if (p.thumbnail_url != null && String(p.thumbnail_url).trim() !== '') {
+                    thumbOut = replaceUrlsInString(String(p.thumbnail_url), urlMap).trim() || null;
+                }
+
+                await DB.prepare(
+                    `UPDATE student_portfolios SET description = ?, thumbnail_url = ?, updated_at = datetime('now') WHERE id = ?`,
+                )
+                    .bind(newDesc, thumbOut, id)
+                    .run();
+
+                updated++;
+                reports.push({ id, status: 'migrated', urls_replaced: urls.length });
+            } catch (e: unknown) {
+                errors++;
+                const msg = e instanceof Error ? e.message : String(e);
+                reports.push({ id: (row as { id?: number }).id, status: 'error', error: msg });
+            }
+        }
+
+        const rowCount = list.length;
+        const nextOffset = offset + rowCount;
+        const hasMore = nextOffset < totalRows;
+
+        return c.json({
+            success: true,
+            data: {
+                dry_run: dryRun,
+                batch: {
+                    limit,
+                    offset,
+                    next_offset: nextOffset,
+                    has_more: hasMore,
+                    total_portfolios: totalRows,
+                },
+                summary: {
+                    processed: rowCount,
+                    skipped_no_external: skipped,
+                    updated: dryRun ? 0 : updated,
+                    would_update: dryRun ? wouldUpdate : 0,
+                    errors,
+                },
+                portfolios: reports,
+            },
+        });
+    } catch (e: unknown) {
+        console.error('migrate-external-images:', e);
+        return c.json({ success: false, error: '마이그레이션 처리 중 오류가 발생했습니다' }, 500);
     }
 });
 
