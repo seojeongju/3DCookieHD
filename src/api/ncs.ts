@@ -3182,6 +3182,143 @@ app.get('/approved/syllabus/objectives', authMiddleware, requireAdmin, async (c)
     }
 });
 
+/** 평가도구 제작: 교과목별 NCS 수행준거(능력단위요소·평가내용) — 양식 자동 채움 */
+app.get('/approved/curriculum/:curriculumId/evaluation-tool-form', authMiddleware, async (c) => {
+    try {
+        const curriculumId = parseInt(String(c.req.param('curriculumId') || ''), 10);
+        const courseIdRaw = c.req.query('course_id');
+        const courseId =
+            courseIdRaw != null && String(courseIdRaw).trim() !== '' ? parseInt(String(courseIdRaw), 10) : NaN;
+        if (!Number.isFinite(curriculumId) || curriculumId < 1) {
+            return c.json({ success: false, error: 'Invalid curriculum_id' }, 400);
+        }
+        if (!Number.isFinite(courseId) || courseId < 1) {
+            return c.json({ success: false, error: 'course_id is required' }, 400);
+        }
+        const allowed = await ensureNcsCoursePermission(c, courseId);
+        if (!allowed) return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
+
+        const link: any = await c.env.DB.prepare(
+            `SELECT c.id, c.name, c.job_name, c.ability_units_json, c.registration_id
+             FROM ncs_approved_curriculum c
+             INNER JOIN ncs_approved_registrations r ON r.id = c.registration_id
+             INNER JOIN course_sessions s ON s.approved_course_id = r.approved_course_id
+             WHERE c.id = ? AND (s.lms_course_id = ? OR s.id = ?)
+             LIMIT 1`
+        )
+            .bind(curriculumId, courseId, courseId)
+            .first();
+        if (!link) {
+            return c.json({ success: false, error: '해당 과정에 연결된 교과목이 아닙니다.' }, 404);
+        }
+
+        const courseRow: any = await c.env.DB.prepare('SELECT id, title FROM courses WHERE id = ?').bind(courseId).first();
+
+        let unitCodes: string[] = [];
+        try {
+            const parsed = JSON.parse(String(link.ability_units_json || '[]')) as (string | { code?: string })[];
+            if (Array.isArray(parsed)) {
+                unitCodes = parsed.map((u) => (typeof u === 'string' ? u : (u?.code || ''))).filter(Boolean);
+            }
+        } catch (_) {
+            unitCodes = [];
+        }
+
+        type CriteriaLine = { label: string; text: string };
+        type CriteriaGroup = { element_title: string; lines: CriteriaLine[] };
+
+        const extractLines = (el: any, majorIdx: number): CriteriaLine[] => {
+            const criteria = String(el?.criteria_text || el?.criteriaText || '').trim();
+            const knowledge = String(el?.knowledge_text || '').trim();
+            const skill = String(el?.skill_text || '').trim();
+            const attitude = String(el?.attitude_text || '').trim();
+            const ename = String(el?.name || '').trim();
+            if (criteria) {
+                const parts = criteria
+                    .split(/\r?\n+/)
+                    .map((s) => s.trim())
+                    .filter(Boolean);
+                if (parts.length <= 1) {
+                    return [{ label: `${majorIdx}.1`, text: parts[0] || criteria }];
+                }
+                return parts.map((p, i) => ({
+                    label: `${majorIdx}.${i + 1}`,
+                    text: p.replace(/^\d+(\.\d+)?\s*/, '').trim() || p,
+                }));
+            }
+            const chunks: string[] = [];
+            if (knowledge) chunks.push(knowledge);
+            if (skill) chunks.push(skill);
+            if (attitude) chunks.push(attitude);
+            if (chunks.length) {
+                return chunks.map((p, i) => ({ label: `${majorIdx}.${i + 1}`, text: p }));
+            }
+            if (ename) {
+                return [{ label: `${majorIdx}.1`, text: ename }];
+            }
+            return [];
+        };
+
+        const groups: CriteriaGroup[] = [];
+        let primaryUnitName = '';
+        let primaryLevel: string | number | null = null;
+
+        let majorCounter = 0;
+        for (const code of unitCodes) {
+            const u: any = await c.env.DB.prepare(
+                'SELECT code, name, level, elements_json FROM ncs_units WHERE code = ? LIMIT 1'
+            )
+                .bind(code)
+                .first();
+            if (!u) continue;
+            if (!primaryUnitName) {
+                primaryUnitName = String(u.name || '').trim();
+                primaryLevel = u.level != null && u.level !== '' ? u.level : null;
+            }
+            let elements: any[] = [];
+            try {
+                const parsed = JSON.parse(String(u.elements_json || '[]'));
+                elements = Array.isArray(parsed) ? parsed : [];
+            } catch (_) {
+                elements = [];
+            }
+            for (let ei = 0; ei < elements.length; ei++) {
+                majorCounter += 1;
+                const el = elements[ei];
+                const etitle = String(el?.name || '').trim() || '-';
+                const lines = extractLines(el, majorCounter);
+                if (!lines.length) continue;
+                groups.push({ element_title: etitle, lines });
+            }
+        }
+
+        const subjectName = String(link.name || '').trim();
+        const unitNameLevel =
+            primaryUnitName && primaryLevel !== null && primaryLevel !== ''
+                ? `${primaryUnitName} / ${primaryLevel}수준`
+                : primaryUnitName || subjectName;
+
+        return c.json({
+            success: true,
+            data: {
+                course_title: courseRow?.title ? String(courseRow.title) : '',
+                curriculum_id: curriculumId,
+                subject_name: subjectName,
+                job_name: String(link.job_name || '').trim(),
+                unit_name: primaryUnitName || subjectName,
+                unit_level: primaryLevel !== null && primaryLevel !== '' ? String(primaryLevel) : '',
+                unit_name_level: unitNameLevel,
+                ability_unit_codes: unitCodes,
+                criteria_groups: groups,
+            },
+        });
+    } catch (e) {
+        console.error('evaluation-tool-form:', e);
+        const detail = e && (e as any).message ? String((e as any).message) : String(e);
+        return c.json({ success: false, error: detail || 'Failed to load evaluation tool form data' }, 500);
+    }
+});
+
 /** 교수계획서 문서 조회 (회차·교과목별) */
 app.get('/approved/syllabus/document', authMiddleware, requireAdmin, async (c) => {
     try {

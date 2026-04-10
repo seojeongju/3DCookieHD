@@ -177,10 +177,32 @@ function toolsPrintSheetHtml() {
               <td class="border border-black px-2 py-2" colspan="3" id="toolsPrintCourseName"></td>
             </tr>
             <tr>
+              <td class="border border-black bg-slate-100 px-2 py-2 font-bold text-center">평가일시</td>
+              <td class="border border-black px-2 py-2" id="toolsPrintEvalDatetime"></td>
+              <td class="border border-black bg-slate-100 px-2 py-2 font-bold text-center">평가차수</td>
+              <td class="border border-black px-2 py-2" id="toolsPrintRound"></td>
+            </tr>
+            <tr>
               <td class="border border-black bg-slate-100 px-2 py-2 font-bold text-center">교과목(하위)</td>
               <td class="border border-black px-2 py-2" id="toolsPrintSubject"></td>
-              <td class="border border-black w-[18%] bg-slate-100 px-2 py-2 font-bold text-center">평가차수</td>
-              <td class="border border-black px-2 py-2" id="toolsPrintRound"></td>
+              <td class="border border-black bg-slate-100 px-2 py-2 font-bold text-center">훈련생</td>
+              <td class="border border-black px-2 py-2" id="toolsPrintTrainee"></td>
+            </tr>
+            <tr>
+              <td class="border border-black bg-slate-100 px-2 py-2 font-bold text-center leading-tight">능력단위명<br/>/ 수준</td>
+              <td class="border border-black px-2 py-2" id="toolsPrintUnitLevel"></td>
+              <td class="border border-black bg-slate-100 px-2 py-2 font-bold text-center">훈련교사</td>
+              <td class="border border-black px-2 py-2" id="toolsPrintInstructor"></td>
+            </tr>
+            <tr>
+              <td class="border border-black bg-slate-100 px-2 py-2 font-bold text-center leading-tight">능력단위<br/>요소명</td>
+              <td class="border border-black px-2 py-2" id="toolsPrintElementFocus"></td>
+              <td class="border border-black bg-slate-100 px-2 py-2 font-bold text-center">평가시간</td>
+              <td class="border border-black px-2 py-2" id="toolsPrintEvalDuration"></td>
+            </tr>
+            <tr>
+              <td class="border border-black bg-slate-100 px-2 py-2 font-bold text-center align-top">성취기준</td>
+              <td class="border border-black px-2 py-2" colspan="3" id="toolsPrintAchievement"></td>
             </tr>
             <tr>
               <td class="border border-black bg-slate-100 px-2 py-2 font-bold text-center">문서제목</td>
@@ -189,7 +211,7 @@ function toolsPrintSheetHtml() {
               <td class="border border-black px-2 py-2" id="toolsPrintWriter"></td>
             </tr>
             <tr>
-              <td class="border border-black bg-slate-100 px-2 py-2 font-bold text-center">시간·배점</td>
+              <td class="border border-black bg-slate-100 px-2 py-2 font-bold text-center">시간·배점(참고)</td>
               <td class="border border-black px-2 py-2" colspan="3" id="toolsPrintSummary"></td>
             </tr>
           </tbody>
@@ -199,19 +221,17 @@ function toolsPrintSheetHtml() {
           <div id="toolsPrintAttachments" class="px-3 py-2 text-[10pt] align-top"></div>
         </div>
         <div class="border border-black mb-2">
-          <div class="bg-slate-100 px-2 py-1.5 font-bold text-center border-b border-black">평가도구 목록</div>
+          <div class="bg-slate-100 px-2 py-1.5 font-bold text-center border-b border-black">평가내용 (NCS 수행준거)</div>
           <div class="overflow-x-auto">
             <table class="w-full border-collapse text-[10pt]">
               <thead>
                 <tr class="bg-slate-50">
-                  <th class="border border-black px-2 py-2 text-left">도구명</th>
-                  <th class="border border-black px-2 py-2 w-24 text-center">유형</th>
-                  <th class="border border-black px-2 py-2 text-left">준비물/상세</th>
-                  <th class="border border-black px-2 py-2 w-16 text-center">시간(분)</th>
-                  <th class="border border-black px-2 py-2 w-14 text-center">배점</th>
+                  <th class="border border-black px-2 py-2 text-center w-[22%]">능력단위요소</th>
+                  <th class="border border-black px-2 py-2 text-center">평가내용</th>
+                  <th class="border border-black px-2 py-2 text-center w-[12%]">성취 수준</th>
                 </tr>
               </thead>
-              <tbody id="toolsPrintRowsBody"></tbody>
+              <tbody id="toolsPrintCriteriaBody"></tbody>
             </table>
           </div>
         </div>
@@ -1086,56 +1106,90 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                   </div>
 
                   <div class="p-4 bg-white overflow-x-auto">
-                    <table class="w-full min-w-[980px] border border-black text-xs">
+                    <table class="w-full min-w-[900px] border border-black text-xs border-collapse">
                       <tr>
-                        <td class="border border-black text-center font-black text-3xl py-6" colspan="7">평가 도구제작</td>
+                        <td class="border border-black text-center font-black text-2xl sm:text-3xl py-5" colspan="4">평가 도구제작</td>
                       </tr>
                       <tr>
-                        <td class="border border-black text-center bg-slate-50 font-bold w-24">문서제목</td>
-                        <td class="border border-black px-2 py-1" colspan="3"><div id="tools_doc_title" contenteditable="true" class="outline-none min-h-[1.25rem]"></div></td>
-                        <td class="border border-black text-center bg-slate-50 font-bold w-20">작성자</td>
-                        <td class="border border-black px-2 py-1"><div id="tools_writer" contenteditable="true" class="outline-none min-h-[1.25rem]"></div></td>
-                        <td class="border border-black text-center bg-slate-50 font-bold"><span id="toolsTotalScoreLabel">0점</span></td>
+                        <td class="border border-black text-center bg-slate-50 font-bold w-[14%]">문서제목</td>
+                        <td class="border border-black px-2 py-1.5 w-[36%]"><div id="tools_doc_title" contenteditable="true" class="outline-none min-h-[1.25rem]"></div></td>
+                        <td class="border border-black text-center bg-slate-50 font-bold w-[14%]">작성자</td>
+                        <td class="border border-black px-2 py-1.5 w-[36%]"><div id="tools_writer" contenteditable="true" class="outline-none min-h-[1.25rem]"></div></td>
                       </tr>
                       <tr>
-                        <td class="border border-black text-center bg-slate-50 font-bold">총 소요시간</td>
-                        <td class="border border-black px-2 py-1" colspan="6"><div id="tools_target_time" contenteditable="true" class="outline-none min-h-[1.25rem]"></div></td>
+                        <td class="border border-black text-center bg-slate-50 font-bold">과정명</td>
+                        <td class="border border-black px-2 py-1.5"><div id="tools_display_course" contenteditable="true" class="outline-none min-h-[1.25rem] text-sm"></div></td>
+                        <td class="border border-black text-center bg-slate-50 font-bold">평가일시</td>
+                        <td class="border border-black px-2 py-1.5"><input type="text" id="tools_eval_datetime" class="w-full border-0 outline-none bg-transparent text-sm" placeholder="예: 2026-03-15 14:00" autocomplete="off" /></td>
                       </tr>
                       <tr>
-                        <td class="border border-black text-center bg-slate-50 font-bold">교과목 · 하위 과목</td>
-                        <td class="border border-black px-2 py-1" colspan="6">
-                          <select id="toolsSubjectSelect" class="w-full max-w-xl px-2 py-1.5 border border-slate-200 rounded bg-white text-sm disabled:opacity-60" disabled>
-                            <option value="">과정 선택 후 교과목</option>
-                          </select>
+                        <td class="border border-black text-center bg-slate-50 font-bold align-top py-2">교과목 · 하위 과목</td>
+                        <td class="border border-black px-2 py-2" colspan="3">
+                          <div class="flex flex-wrap items-center gap-2">
+                            <select id="toolsSubjectSelect" class="flex-1 min-w-[200px] max-w-xl px-2 py-1.5 border border-slate-200 rounded bg-white text-sm disabled:opacity-60" disabled>
+                              <option value="">과정 선택 후 교과목</option>
+                            </select>
+                            <button type="button" id="toolsLoadNcsCriteriaBtn" class="shrink-0 px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-black hover:bg-indigo-700 disabled:opacity-45 disabled:cursor-not-allowed" disabled>NCS 수행준거 불러오기</button>
+                          </div>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td class="border border-black text-center bg-slate-50 font-bold">교과목</td>
+                        <td class="border border-black px-2 py-1.5 text-sm text-slate-800"><div id="tools_display_subject" class="min-h-[1.25rem] font-semibold">-</div></td>
+                        <td class="border border-black text-center bg-slate-50 font-bold">훈련생</td>
+                        <td class="border border-black px-2 py-1.5"><input type="text" id="tools_trainee" class="w-full border-0 outline-none bg-transparent text-sm" autocomplete="off" /></td>
+                      </tr>
+                      <tr>
+                        <td class="border border-black text-center bg-slate-50 font-bold leading-tight">능력단위명<br/>/ 수준</td>
+                        <td class="border border-black px-2 py-1.5"><div id="tools_unit_name_level" contenteditable="true" class="outline-none min-h-[1.25rem] text-sm"></div></td>
+                        <td class="border border-black text-center bg-slate-50 font-bold">훈련교사</td>
+                        <td class="border border-black px-2 py-1.5"><input type="text" id="tools_instructor" class="w-full border-0 outline-none bg-transparent text-sm" autocomplete="off" /></td>
+                      </tr>
+                      <tr>
+                        <td class="border border-black text-center bg-slate-50 font-bold leading-tight">능력단위<br/>요소명</td>
+                        <td class="border border-black px-2 py-1.5"><div id="tools_element_focus" contenteditable="true" class="outline-none min-h-[1.25rem] text-sm" placeholder="- 세부 요소명"></div></td>
+                        <td class="border border-black text-center bg-slate-50 font-bold">평가시간</td>
+                        <td class="border border-black px-2 py-1.5"><input type="text" id="tools_eval_duration" class="w-full border-0 outline-none bg-transparent text-sm" placeholder="분 단위 등" autocomplete="off" /></td>
+                      </tr>
+                      <tr>
+                        <td class="border border-black text-center bg-slate-50 font-bold align-top py-2">성취기준</td>
+                        <td class="border border-black px-2 py-2" colspan="3">
+                          <textarea id="tools_achievement_note" rows="2" class="w-full border border-slate-200 rounded px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-indigo-200"></textarea>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td class="border border-black text-center bg-slate-50 font-bold align-top py-2">평가내용<br/><span class="text-[10px] font-normal text-slate-500">(NCS 수행준거)</span></td>
+                        <td class="border border-black p-0" colspan="3">
+                          <table class="w-full text-left border-collapse">
+                            <thead class="bg-slate-100 border-b border-black">
+                              <tr>
+                                <th class="border border-black px-2 py-2 text-center text-[11px] font-black text-slate-800 w-[22%]">능력단위요소</th>
+                                <th class="border border-black px-2 py-2 text-center text-[11px] font-black text-slate-800">평가내용</th>
+                                <th class="border border-black px-2 py-2 text-center text-[11px] font-black text-slate-800 w-[12%]">성취 수준</th>
+                              </tr>
+                            </thead>
+                            <tbody id="toolsCriteriaBody" class="bg-white"></tbody>
+                          </table>
+                          <p class="text-[10px] text-slate-500 px-2 py-1">교과목 선택 후 「NCS 수행준거 불러오기」로 능력단위 요소별 수행준거를 채웁니다. 셀을 직접 수정할 수 있습니다.</p>
                         </td>
                       </tr>
                       <tr>
                         <td class="border border-black text-center bg-slate-50 font-bold align-top py-2">첨부파일</td>
-                        <td class="border border-black px-2 py-2" colspan="6">
+                        <td class="border border-black px-2 py-2" colspan="3">
                           <div id="toolsAttachmentsList" class="flex flex-wrap gap-2 min-h-[2.5rem]"></div>
                         </td>
                       </tr>
                       <tr>
-                        <td class="border border-black text-center bg-slate-50 font-bold align-top py-2">평가도구</td>
-                        <td class="border border-black p-0" colspan="6">
-                          <table class="w-full text-left">
-                            <thead class="bg-slate-50 border-b border-slate-200">
-                              <tr>
-                                <th class="px-3 py-2 text-xs font-black text-slate-600">도구명</th>
-                                <th class="px-3 py-2 text-xs font-black text-slate-600 w-28">유형</th>
-                                <th class="px-3 py-2 text-xs font-black text-slate-600">준비물/상세</th>
-                                <th class="px-3 py-2 text-xs font-black text-slate-600 w-24 text-center">시간</th>
-                                <th class="px-3 py-2 text-xs font-black text-slate-600 w-20 text-center">배점</th>
-                              </tr>
-                            </thead>
-                            <tbody id="toolsRowsBody" class="divide-y divide-slate-100 bg-white"></tbody>
-                          </table>
+                        <td class="border border-black text-center bg-slate-50 font-bold">비고</td>
+                        <td class="border border-black p-2" colspan="3">
+                          <div id="tools_notes" contenteditable="true" class="w-full min-h-[120px] px-3 py-2 border border-slate-200 rounded bg-white whitespace-pre-wrap leading-relaxed"></div>
                         </td>
                       </tr>
-                      <tr>
-                        <td class="border border-black text-center bg-slate-50 font-bold">비고</td>
-                        <td class="border border-black p-2" colspan="6">
-                          <div id="tools_notes" contenteditable="true" class="w-full min-h-[120px] px-3 py-2 border border-slate-200 rounded bg-white whitespace-pre-wrap leading-relaxed"></div>
+                      <tr class="hidden" aria-hidden="true">
+                        <td colspan="4" class="p-0 border-0">
+                          <span id="toolsTotalScoreLabel" class="sr-only">0점</span>
+                          <div id="tools_target_time" class="hidden" contenteditable="true"></div>
+                          <table class="hidden"><tbody id="toolsRowsBody"></tbody></table>
                         </td>
                       </tr>
                     </table>
@@ -1570,6 +1624,10 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
     /** 평가실시일자: 수정 중일 때 행 삽입 위치 (null이면 맨 뒤 추가) */
     var schedulePendingEditIndex = null;
     var scheduleInstructorOptions = [];
+    /** 평가도구 제작: NCS 수행준거 그리드 상태 */
+    var toolsCriteriaGroupsState = [];
+    var toolsCriteriaInputBound = false;
+    var TOOLS_ACHIEVEMENT_DEFAULT = '5점(매우 우수), 4점(우수), 3점(보통), 2점(부족), 1점(매우부족) - 채점기준표 참고';
     /** NCS 평가문항 유형 기본값 (과정심사 참고 평가방법 목록과 동일) */
     var NCS_QUESTION_TYPE_DEFAULT = '포트폴리오';
     const isTeacherLmsPath = window.location.pathname.startsWith('/teacher/');
@@ -1743,6 +1801,12 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         if (cd && (cd.title || cd.name)) {
           window.__ncsEvalPlanCourseTitle = cd.title || cd.name;
           hint.textContent = window.__ncsEvalPlanCourseTitle;
+          try {
+            var tdc = document.getElementById('tools_display_course');
+            if (tdc && !String(getToolsFieldValue('tools_display_course') || '').trim()) {
+              setToolsFieldValue('tools_display_course', window.__ncsEvalPlanCourseTitle);
+            }
+          } catch (e2) {}
           return;
         }
       } catch (e) {}
@@ -2689,6 +2753,13 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       setMinutesPrintText('toolsPrintRound', roundLabel(selectedRound));
       setMinutesPrintText('toolsPrintDocTitle', docTitle || '-');
       setMinutesPrintText('toolsPrintWriter', getToolsFieldValue('tools_writer') || '-');
+      setMinutesPrintText('toolsPrintEvalDatetime', getToolsFieldValue('tools_eval_datetime') || '-');
+      setMinutesPrintText('toolsPrintTrainee', getToolsFieldValue('tools_trainee') || '-');
+      setMinutesPrintText('toolsPrintUnitLevel', getToolsFieldValue('tools_unit_name_level') || '-');
+      setMinutesPrintText('toolsPrintInstructor', getToolsFieldValue('tools_instructor') || '-');
+      setMinutesPrintText('toolsPrintElementFocus', getToolsFieldValue('tools_element_focus') || '-');
+      setMinutesPrintText('toolsPrintEvalDuration', getToolsFieldValue('tools_eval_duration') || '-');
+      setMinutesPrintText('toolsPrintAchievement', getToolsFieldValue('tools_achievement_note') || TOOLS_ACHIEVEMENT_DEFAULT);
 
       var tAtt = readToolsAttachmentsFromDom();
       var tAttPrint = document.getElementById('toolsPrintAttachments');
@@ -2704,34 +2775,42 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         }
       }
 
+      var critBody = document.getElementById('toolsPrintCriteriaBody');
+      if (critBody) {
+        var groups = toolsCriteriaGroupsState && toolsCriteriaGroupsState.length ? toolsCriteriaGroupsState : [];
+        if (!groups.length) {
+          critBody.innerHTML = '<tr><td colspan="3" class="border border-black px-2 py-3 text-center text-slate-500 text-[10pt]">평가내용 없음</td></tr>';
+        } else {
+          var html = '';
+          for (var g = 0; g < groups.length; g++) {
+            var grp = groups[g];
+            var lines = Array.isArray(grp.lines) ? grp.lines : [];
+            var rs = lines.length;
+            if (rs < 1) continue;
+            var title = escapeHtml(String(grp.element_title || '-'));
+            for (var ln = 0; ln < lines.length; ln++) {
+              var line = lines[ln] || {};
+              var isFirst = ln === 0;
+              html += '<tr>';
+              if (isFirst) {
+                html += '<td rowspan="' + rs + '" class="border border-black px-2 py-2 align-top text-[10pt] font-semibold whitespace-pre-wrap">' + title + '</td>';
+              }
+              var lineTxt = escapeHtml(String(line.label || '')) + ' ' + escapeHtml(String(line.text || ''));
+              html += '<td class="border border-black px-2 py-2 align-top text-[10pt] whitespace-pre-wrap">' + lineTxt.trim() + '</td>';
+              html += '<td class="border border-black px-2 py-2 w-20 bg-white">&nbsp;</td>';
+              html += '</tr>';
+            }
+          }
+          critBody.innerHTML = html || '<tr><td colspan="3" class="border border-black px-2 py-3 text-center text-slate-500 text-[10pt]">평가내용 없음</td></tr>';
+        }
+      }
+
       var rows = readToolRowsFromTable();
       var totalScore = rows.reduce(function(acc, r) { return acc + Number(r && r.score != null ? r.score : 0); }, 0);
       var targetTime = getToolsFieldValue('tools_target_time').toString().trim();
-      var summary = '총배점 ' + totalScore + '점';
+      var summary = '총배점(레거시) ' + totalScore + '점';
       if (targetTime) summary = '총시간 ' + targetTime + ' / ' + summary;
       setMinutesPrintText('toolsPrintSummary', summary);
-
-      var tbody = document.getElementById('toolsPrintRowsBody');
-      if (tbody) {
-        if (!rows.length) {
-          tbody.innerHTML = '<tr><td colspan="5" class="border border-black px-2 py-3 text-center text-slate-500 text-[10pt]">등록된 도구 항목이 없습니다.</td></tr>';
-        } else {
-          tbody.innerHTML = rows.map(function(row) {
-            var name = escapeHtml(String(row && row.name != null ? row.name : '-'));
-            var typ = escapeHtml(String(row && row.type != null ? row.type : '-'));
-            var materials = escapeHtml(String(row && row.materials != null ? row.materials : '-'));
-            var duration = escapeHtml(String(row && row.duration != null ? row.duration : '-'));
-            var score = Number(row && row.score != null ? row.score : 0);
-            return '<tr>' +
-              '<td class="border border-black px-2 py-2 text-left align-top whitespace-pre-wrap text-[10pt]">' + name + '</td>' +
-              '<td class="border border-black px-2 py-2 text-center align-top">' + typ + '</td>' +
-              '<td class="border border-black px-2 py-2 text-left align-top whitespace-pre-wrap text-[10pt]">' + materials + '</td>' +
-              '<td class="border border-black px-2 py-2 text-center align-top">' + duration + '</td>' +
-              '<td class="border border-black px-2 py-2 text-center align-top">' + score + '</td>' +
-              '</tr>';
-          }).join('');
-        }
-      }
 
       setMinutesPrintHtml('toolsPrintNotes', minutesContentToPrintHtml(getToolsFieldValue('tools_notes')));
     }
@@ -3058,6 +3137,15 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
             target_time: getToolsFieldValue('tools_target_time'),
             notes: getToolsFieldValue('tools_notes'),
             attachments: readToolsAttachmentsFromDom(),
+            criteria_groups: JSON.parse(JSON.stringify(toolsCriteriaGroupsState || [])),
+            tools_eval_datetime: getToolsFieldValue('tools_eval_datetime'),
+            tools_trainee: getToolsFieldValue('tools_trainee'),
+            tools_instructor: getToolsFieldValue('tools_instructor'),
+            tools_unit_name_level: getToolsFieldValue('tools_unit_name_level'),
+            tools_element_focus: getToolsFieldValue('tools_element_focus'),
+            tools_eval_duration: getToolsFieldValue('tools_eval_duration'),
+            tools_achievement_note: getToolsFieldValue('tools_achievement_note'),
+            tools_display_course: getToolsFieldValue('tools_display_course'),
             rows: readToolRowsFromTable(),
             session_id: Number.isFinite(tRawSess) && tRawSess > 0 ? tRawSess : '',
             curriculum_id: Number.isFinite(tRawCur) && tRawCur > 0 ? tRawCur : '',
@@ -3596,6 +3684,104 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       label.textContent = total + '점';
     }
 
+    function syncToolsSubjectDisplay() {
+      var el = document.getElementById('tools_display_subject');
+      if (!el) return;
+      var txt = getNcsSubjectSelectText('toolsSubjectSelect');
+      el.textContent = txt || '-';
+    }
+
+    function updateToolsLoadButtonState() {
+      var btn = document.getElementById('toolsLoadNcsCriteriaBtn');
+      var sel = document.getElementById('toolsSubjectSelect');
+      if (!btn || !sel) return;
+      var ok = !!(selectedCourseId && String(sel.value || '').trim() && !sel.disabled);
+      btn.disabled = !ok;
+    }
+
+    function wireToolsCriteriaEditDelegation() {
+      if (toolsCriteriaInputBound) return;
+      toolsCriteriaInputBound = true;
+      document.addEventListener('input', function(ev) {
+        var t = ev.target;
+        if (!t || !t.classList || !t.classList.contains('data-tools-crit-text')) return;
+        var g = parseInt(t.getAttribute('data-g') || '-1', 10);
+        var ln = parseInt(t.getAttribute('data-ln') || '-1', 10);
+        if (!Number.isFinite(g) || g < 0 || !toolsCriteriaGroupsState[g] || !toolsCriteriaGroupsState[g].lines) return;
+        if (!Number.isFinite(ln) || ln < 0 || !toolsCriteriaGroupsState[g].lines[ln]) return;
+        toolsCriteriaGroupsState[g].lines[ln].text = String(t.textContent || '').trim();
+      });
+    }
+
+    function renderToolsCriteriaBody(groups) {
+      wireToolsCriteriaEditDelegation();
+      toolsCriteriaGroupsState = Array.isArray(groups) ? JSON.parse(JSON.stringify(groups)) : [];
+      var tbody = document.getElementById('toolsCriteriaBody');
+      if (!tbody) return;
+      if (!toolsCriteriaGroupsState.length) {
+        tbody.innerHTML = '<tr><td colspan="3" class="border border-black px-3 py-8 text-center text-sm text-slate-400">교과목을 선택한 뒤 「NCS 수행준거 불러오기」를 눌러 평가내용을 채웁니다.</td></tr>';
+        return;
+      }
+      var html = '';
+      for (var g = 0; g < toolsCriteriaGroupsState.length; g++) {
+        var grp = toolsCriteriaGroupsState[g];
+        var lines = Array.isArray(grp.lines) ? grp.lines : [];
+        var rs = lines.length;
+        if (rs < 1) continue;
+        var title = String(grp.element_title || '-').trim();
+        for (var ln = 0; ln < lines.length; ln++) {
+          var line = lines[ln] || {};
+          var isFirst = ln === 0;
+          html += '<tr>';
+          if (isFirst) {
+            html += '<td rowspan="' + rs + '" class="border border-black px-2 py-2 align-top text-sm font-semibold text-slate-900 whitespace-pre-wrap" data-role="element" data-title="' + escapeHtml(title) + '">' + escapeHtml(title) + '</td>';
+          }
+          html += '<td class="border border-black px-2 py-2 align-top text-sm text-slate-800">';
+          html += '<span class="text-slate-500 font-mono text-[11px] mr-1">' + escapeHtml(String(line.label || '')) + '</span>';
+          html += '<span class="data-tools-crit-text inline-block min-w-[180px] outline-none align-top" contenteditable="true" data-g="' + g + '" data-ln="' + ln + '">' + escapeHtml(String(line.text || '')) + '</span>';
+          html += '</td>';
+          html += '<td class="border border-black px-1 py-1 align-middle w-24 text-center bg-white"><div class="h-12 min-h-[3rem] border border-black bg-white mx-auto max-w-[5.5rem] rounded-sm" title="성취수준 기입"></div></td>';
+          html += '</tr>';
+        }
+      }
+      if (!html) {
+        tbody.innerHTML = '<tr><td colspan="3" class="border border-black px-3 py-8 text-center text-sm text-slate-400">불러온 수행준거가 없습니다. NCS 능력단위·요소 데이터를 확인해 주세요.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = html;
+    }
+
+    async function loadNcsCriteriaIntoToolsForm() {
+      var cid = getNcsSubjectSelectCurriculumValue('toolsSubjectSelect');
+      var courseId = selectedCourseId || (useFixedCourseId ? fixedCourseId : '');
+      if (!cid || !courseId) {
+        alert('과정과 교과목(커리큘럼)을 선택해 주세요.');
+        return;
+      }
+      try {
+        var res = await authFetch('/api/ncs/approved/curriculum/' + encodeURIComponent(cid) + '/evaluation-tool-form?course_id=' + encodeURIComponent(String(courseId)));
+        var json = await res.json();
+        if (!json || !json.success) {
+          alert((json && json.error) ? String(json.error) : '불러오기에 실패했습니다.');
+          return;
+        }
+        var d = json.data || {};
+        setToolsFieldValue('tools_display_course', d.course_title || '');
+        syncToolsSubjectDisplay();
+        setToolsFieldValue('tools_unit_name_level', d.unit_name_level || '');
+        var groups = Array.isArray(d.criteria_groups) ? d.criteria_groups : [];
+        if (groups.length && groups[0] && groups[0].element_title) {
+          setToolsFieldValue('tools_element_focus', '- ' + String(groups[0].element_title));
+        } else {
+          setToolsFieldValue('tools_element_focus', '');
+        }
+        renderToolsCriteriaBody(groups);
+      } catch (e) {
+        console.error(e);
+        alert('NCS 수행준거를 불러오지 못했습니다.');
+      }
+    }
+
     function defaultToolRows() {
       return [
         { name: '평가도구 1', type: '실습평가', materials: '', duration: '', score: 20 },
@@ -3949,8 +4135,30 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         setToolsFieldValue('tools_writer', payload.writer || '');
         setToolsFieldValue('tools_target_time', payload.target_time || '');
         setToolsFieldValue('tools_notes', payload.notes || '');
+        setToolsFieldValue('tools_eval_datetime', payload.tools_eval_datetime || '');
+        setToolsFieldValue('tools_trainee', payload.tools_trainee || '');
+        setToolsFieldValue('tools_instructor', payload.tools_instructor || '');
+        setToolsFieldValue('tools_unit_name_level', payload.tools_unit_name_level || '');
+        setToolsFieldValue('tools_element_focus', payload.tools_element_focus || '');
+        setToolsFieldValue('tools_eval_duration', payload.tools_eval_duration || '');
+        setToolsFieldValue('tools_display_course', payload.tools_display_course || '');
+        var ach = String(payload.tools_achievement_note || '').trim();
+        setToolsFieldValue('tools_achievement_note', ach || TOOLS_ACHIEVEMENT_DEFAULT);
         renderToolsAttachments(payload.attachments || []);
-        renderToolRows(normalizeToolRows(payload.rows || []));
+        var crit = payload.criteria_groups;
+        if (Array.isArray(crit) && crit.length) {
+          toolsCriteriaGroupsState = JSON.parse(JSON.stringify(crit));
+          renderToolsCriteriaBody(toolsCriteriaGroupsState);
+        } else {
+          toolsCriteriaGroupsState = [];
+          renderToolsCriteriaBody([]);
+          if (Array.isArray(payload.rows) && payload.rows.length) {
+            var tb = document.getElementById('toolsCriteriaBody');
+            if (tb) {
+              tb.innerHTML = '<tr><td colspan="3" class="border border-black px-3 py-4 text-sm text-amber-900 bg-amber-50">이 문서는 이전 형식(도구명·유형 목록)으로 저장되었습니다. 필요 시 「NCS 수행준거 불러오기」로 양식을 다시 채우거나 비고에 기록을 남겨 주세요.</td></tr>';
+            }
+          }
+        }
         void (async function() {
           var cid = selectedCourseId || (useFixedCourseId ? fixedCourseId : '');
           if (!cid) {
@@ -3959,6 +4167,8 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           }
           await loadNcsPlanSubjectOptions(cid, payload.session_id || selectedSessionIdForSubject || '', { preserveSelection: true });
           applyNcsSubjectSelectValue('toolsSubjectSelect', payload.curriculum_id, payload.subject_name);
+          syncToolsSubjectDisplay();
+          updateToolsLoadButtonState();
         })();
         return;
       }
@@ -4212,6 +4422,8 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
             applyNcsSubjectSelectValue(sid, s.v, s.n);
           });
         }
+        syncToolsSubjectDisplay();
+        updateToolsLoadButtonState();
       } catch (e) {
         console.error(e);
         resetAllNcsPlanSubjectSelects();
@@ -4608,6 +4820,20 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           selectedRound = parseInt(roundSel.value, 10) || 1;
           applyRoundBadges();
           await loadDocument(activeTab);
+        });
+      }
+
+      var toolsSubSelInit = document.getElementById('toolsSubjectSelect');
+      if (toolsSubSelInit) {
+        toolsSubSelInit.addEventListener('change', function() {
+          syncToolsSubjectDisplay();
+          updateToolsLoadButtonState();
+        });
+      }
+      var toolsLoadBtnInit = document.getElementById('toolsLoadNcsCriteriaBtn');
+      if (toolsLoadBtnInit) {
+        toolsLoadBtnInit.addEventListener('click', function() {
+          void loadNcsCriteriaIntoToolsForm();
         });
       }
 
