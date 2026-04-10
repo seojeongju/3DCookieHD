@@ -221,7 +221,7 @@ function toolsPrintSheetHtml() {
           <div id="toolsPrintAttachments" class="px-3 py-2 text-[10pt] align-top"></div>
         </div>
         <div class="border border-black mb-2">
-          <div class="bg-slate-100 px-2 py-1.5 font-bold text-center border-b border-black">평가내용 (NCS 수행준거)</div>
+          <div class="bg-slate-100 px-2 py-1.5 font-bold text-center border-b border-black">평가내용 (NCS 평가준거)</div>
           <div class="overflow-x-auto">
             <table class="w-full border-collapse text-[10pt]">
               <thead>
@@ -1129,7 +1129,7 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                             <select id="toolsSubjectSelect" class="flex-1 min-w-[200px] max-w-xl px-2 py-1.5 border border-slate-200 rounded bg-white text-sm disabled:opacity-60" disabled>
                               <option value="">과정 선택 후 교과목</option>
                             </select>
-                            <button type="button" id="toolsLoadNcsCriteriaBtn" class="shrink-0 px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-black hover:bg-indigo-700 disabled:opacity-45 disabled:cursor-not-allowed" disabled>NCS 수행준거 불러오기</button>
+                            <button type="button" id="toolsLoadNcsCriteriaBtn" class="shrink-0 px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-black hover:bg-indigo-700 disabled:opacity-45 disabled:cursor-not-allowed" disabled>NCS 평가준거 불러오기</button>
                           </div>
                         </td>
                       </tr>
@@ -1158,7 +1158,7 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                         </td>
                       </tr>
                       <tr>
-                        <td class="border border-black text-center bg-slate-50 font-bold align-top py-2">평가내용<br/><span class="text-[10px] font-normal text-slate-500">(NCS 수행준거)</span></td>
+                        <td class="border border-black text-center bg-slate-50 font-bold align-top py-2">평가내용<br/><span class="text-[10px] font-normal text-slate-500">(NCS 평가준거)</span></td>
                         <td class="border border-black p-0" colspan="3">
                           <table class="w-full text-left border-collapse">
                             <thead class="bg-slate-100 border-b border-black">
@@ -1170,7 +1170,7 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                             </thead>
                             <tbody id="toolsCriteriaBody" class="bg-white"></tbody>
                           </table>
-                          <p class="text-[10px] text-slate-500 px-2 py-1">교과목 선택 후 「NCS 수행준거 불러오기」로 능력단위 요소별 수행준거를 채웁니다. 셀을 직접 수정할 수 있습니다.</p>
+                          <p class="text-[10px] text-slate-500 px-2 py-1">교과목 선택 후 「NCS 평가준거 불러오기」로 능력단위 요소별 평가준거를 채웁니다. 평가준거가 없으면 수행준거 문구가 사용됩니다. 셀을 직접 수정할 수 있습니다.</p>
                         </td>
                       </tr>
                       <tr>
@@ -1624,7 +1624,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
     /** 평가실시일자: 수정 중일 때 행 삽입 위치 (null이면 맨 뒤 추가) */
     var schedulePendingEditIndex = null;
     var scheduleInstructorOptions = [];
-    /** 평가도구 제작: NCS 수행준거 그리드 상태 */
+    /** 평가도구 제작: NCS 평가준거 그리드 상태 */
     var toolsCriteriaGroupsState = [];
     var toolsCriteriaInputBound = false;
     var TOOLS_ACHIEVEMENT_DEFAULT = '5점(매우 우수), 4점(우수), 3점(보통), 2점(부족), 1점(매우부족) - 채점기준표 참고';
@@ -3719,7 +3719,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       var tbody = document.getElementById('toolsCriteriaBody');
       if (!tbody) return;
       if (!toolsCriteriaGroupsState.length) {
-        tbody.innerHTML = '<tr><td colspan="3" class="border border-black px-3 py-8 text-center text-sm text-slate-400">교과목을 선택한 뒤 「NCS 수행준거 불러오기」를 눌러 평가내용을 채웁니다.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="3" class="border border-black px-3 py-8 text-center text-sm text-slate-400">교과목을 선택한 뒤 「NCS 평가준거 불러오기」를 눌러 평가내용을 채웁니다.</td></tr>';
         return;
       }
       var html = '';
@@ -3745,7 +3745,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         }
       }
       if (!html) {
-        tbody.innerHTML = '<tr><td colspan="3" class="border border-black px-3 py-8 text-center text-sm text-slate-400">불러온 수행준거가 없습니다. NCS 능력단위·요소 데이터를 확인해 주세요.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="3" class="border border-black px-3 py-8 text-center text-sm text-slate-400">불러온 평가준거가 없습니다. NCS 능력단위·요소 데이터를 확인해 주세요.</td></tr>';
         return;
       }
       tbody.innerHTML = html;
@@ -3778,7 +3778,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         renderToolsCriteriaBody(groups);
       } catch (e) {
         console.error(e);
-        alert('NCS 수행준거를 불러오지 못했습니다.');
+        alert('NCS 평가준거를 불러오지 못했습니다.');
       }
     }
 
@@ -4155,7 +4155,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           if (Array.isArray(payload.rows) && payload.rows.length) {
             var tb = document.getElementById('toolsCriteriaBody');
             if (tb) {
-              tb.innerHTML = '<tr><td colspan="3" class="border border-black px-3 py-4 text-sm text-amber-900 bg-amber-50">이 문서는 이전 형식(도구명·유형 목록)으로 저장되었습니다. 필요 시 「NCS 수행준거 불러오기」로 양식을 다시 채우거나 비고에 기록을 남겨 주세요.</td></tr>';
+              tb.innerHTML = '<tr><td colspan="3" class="border border-black px-3 py-4 text-sm text-amber-900 bg-amber-50">이 문서는 이전 형식(도구명·유형 목록)으로 저장되었습니다. 필요 시 「NCS 평가준거 불러오기」로 양식을 다시 채우거나 비고에 기록을 남겨 주세요.</td></tr>';
             }
           }
         }
@@ -5062,7 +5062,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       if (useFixedCourseId) {
         selectedCourseId = fixedCourseId;
         await loadNcsPlanSubjectOptions(fixedCourseId, undefined, { preserveSelection: false });
-        await loadDocument('minutes');
+        await loadDocument(initialPlanTab);
         await applyAutoFocusIfRequested();
       }
 

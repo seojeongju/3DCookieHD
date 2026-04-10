@@ -444,8 +444,19 @@ async function fetchNcsUnitElements(
     return [];
 }
 
-/** NCS008: 수행준거 조회 - 능력단위 요소별 수행준거, 지식, 기술, 태도 */
-async function fetchNcsPerformanceCriteria(apiKey: string, ncsClCd: string, baseUrl?: string): Promise<{ elemCode: string; criteriaText: string; knowledgeText: string; skillText: string; attitudeText: string }[]> {
+/** NCS008: 능력단위 요소별 평가준거·수행준거, 지식, 기술, 태도 (HRD 분류 API 필드명은 버전에 따라 다를 수 있음) */
+async function fetchNcsPerformanceCriteria(
+    apiKey: string,
+    ncsClCd: string,
+    baseUrl?: string
+): Promise<{
+    elemCode: string;
+    evaluationCriteriaText: string;
+    criteriaText: string;
+    knowledgeText: string;
+    skillText: string;
+    attitudeText: string;
+}[]> {
     const key = decodeServiceKey(apiKey);
     const base = (baseUrl || NCS_CLASSIFICATION_API_BASE_DEFAULT).replace(/\/$/, '');
 
@@ -458,6 +469,35 @@ async function fetchNcsPerformanceCriteria(apiKey: string, ncsClCd: string, base
         return '';
     };
 
+    const mapNcs008Row = (r: any) => ({
+        elemCode: getVal(r, 'COMPE_UNIT_ELEM_CD', 'NCS_CL_ELEM_CD', 'ELEM_CD'),
+        evaluationCriteriaText: getVal(
+            r,
+            'EVALUAT_CRIT_CONT',
+            'EVAL_CRITERIA_CONT',
+            'EVAL_CRIT_CONT',
+            'EVALUATION_CRIT_CONT',
+            'EVALUATION_CRITERIA_CONT',
+            'EVAL_CRITERIA',
+            'EVALUAT_CRITERIA',
+            'EVL_CRIT_CONT',
+            'EVL_CRITERIA_CONT'
+        ),
+        criteriaText: getVal(r, 'PERFORMAN_CRIT_CONT', 'PERFORM_CRITERIA', 'CRITERIA_CONT', 'CRITERIA'),
+        knowledgeText: getVal(r, 'KNOWLEDGE_CONT', 'KNOWLEDGE', 'KNOW_CONT'),
+        skillText: getVal(r, 'SKILL_CONT', 'SKILL', 'SKILL_CONT'),
+        attitudeText: getVal(r, 'ATTITUDE_CONT', 'ATTITUDE', 'ATTIT_CONT')
+    });
+
+    const keepRow = (e: {
+        elemCode: string;
+        evaluationCriteriaText: string;
+        criteriaText: string;
+        knowledgeText: string;
+    }) =>
+        !!e.elemCode &&
+        !!(e.evaluationCriteriaText || e.criteriaText || e.knowledgeText);
+
     const baseCode = ncsClCd.split('_')[0];
     const ops = ['NCS008', 'getNcsCompeUnitElemDtlList', 'getNcsCompeUnitElemList']; // 008 is standard for details
     const paramNames = ['ncsClCd', 'NCS_CL_CD', 'COMPE_UNIT_CD'];
@@ -468,13 +508,7 @@ async function fetchNcsPerformanceCriteria(apiKey: string, ncsClCd: string, base
                 const list = await fetchClassificationAllPages(base, key, op, { [pName]: ncsClCd });
                 if (list.length > 0) {
                     console.log(`[CRITERIA] Found ${list.length} via ${op}(${pName}=${ncsClCd})`);
-                    return list.map(r => ({
-                        elemCode: getVal(r, 'COMPE_UNIT_ELEM_CD', 'NCS_CL_ELEM_CD', 'ELEM_CD'),
-                        criteriaText: getVal(r, 'PERFORMAN_CRIT_CONT', 'PERFORM_CRITERIA', 'CRITERIA_CONT', 'CRITERIA'),
-                        knowledgeText: getVal(r, 'KNOWLEDGE_CONT', 'KNOWLEDGE', 'KNOW_CONT'),
-                        skillText: getVal(r, 'SKILL_CONT', 'SKILL', 'SKILL_CONT'),
-                        attitudeText: getVal(r, 'ATTITUDE_CONT', 'ATTITUDE', 'ATTIT_CONT')
-                    })).filter(e => e.elemCode && (e.criteriaText || e.knowledgeText));
+                    return list.map(mapNcs008Row).filter(keepRow);
                 }
             } catch (e) { /* ignore and try next */ }
         }
@@ -486,13 +520,7 @@ async function fetchNcsPerformanceCriteria(apiKey: string, ncsClCd: string, base
             try {
                 const list = await fetchClassificationAllPages(base, key, op, { [paramNames[0]]: baseCode });
                 if (list.length > 0) {
-                    return list.map(r => ({
-                        elemCode: getVal(r, 'COMPE_UNIT_ELEM_CD', 'NCS_CL_ELEM_CD', 'ELEM_CD'),
-                        criteriaText: getVal(r, 'PERFORMAN_CRIT_CONT', 'PERFORM_CRITERIA', 'CRITERIA_CONT', 'CRITERIA'),
-                        knowledgeText: getVal(r, 'KNOWLEDGE_CONT', 'KNOWLEDGE', 'KNOW_CONT'),
-                        skillText: getVal(r, 'SKILL_CONT', 'SKILL', 'SKILL_CONT'),
-                        attitudeText: getVal(r, 'ATTITUDE_CONT', 'ATTITUDE', 'ATTIT_CONT')
-                    })).filter(e => e.elemCode && (e.criteriaText || e.knowledgeText));
+                    return list.map(mapNcs008Row).filter(keepRow);
                 }
             } catch (e) { }
         }
@@ -2048,6 +2076,8 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
                                                         if (d) {
                                                             return {
                                                                 ...e,
+                                                                evaluationCriteriaText: d.evaluationCriteriaText,
+                                                                evaluation_criteria_text: d.evaluationCriteriaText || undefined,
                                                                 criteriaText: d.criteriaText,
                                                                 knowledgeText: d.knowledgeText,
                                                                 skillText: d.skillText,
@@ -2311,6 +2341,8 @@ app.post('/approved/sync', authMiddleware, requireAdmin, async (c) => {
                     elements.forEach((e: any) => {
                         const d = details.find(det => det.elemCode === e.code || det.elemCode === e.code.split('_')[0]);
                         if (d) {
+                            e.evaluationCriteriaText = d.evaluationCriteriaText;
+                            e.evaluation_criteria_text = d.evaluationCriteriaText || undefined;
                             e.criteriaText = d.criteriaText;
                             e.knowledgeText = d.knowledgeText;
                             e.skillText = d.skillText;
@@ -3182,7 +3214,7 @@ app.get('/approved/syllabus/objectives', authMiddleware, requireAdmin, async (c)
     }
 });
 
-/** 평가도구 제작: 교과목별 NCS 수행준거(능력단위요소·평가내용) — 양식 자동 채움 */
+/** 평가도구 제작: 교과목별 NCS 평가준거(우선)·수행준거(능력단위요소·평가내용) — 양식 자동 채움 */
 app.get('/approved/curriculum/:curriculumId/evaluation-tool-form', authMiddleware, async (c) => {
     try {
         const curriculumId = parseInt(String(c.req.param('curriculumId') || ''), 10);
@@ -3228,10 +3260,12 @@ app.get('/approved/curriculum/:curriculumId/evaluation-tool-form', authMiddlewar
         type CriteriaGroup = { element_title: string; lines: CriteriaLine[] };
 
         const extractLines = (el: any, majorIdx: number): CriteriaLine[] => {
-            const criteria = String(el?.criteria_text || el?.criteriaText || '').trim();
-            const knowledge = String(el?.knowledge_text || '').trim();
-            const skill = String(el?.skill_text || '').trim();
-            const attitude = String(el?.attitude_text || '').trim();
+            const evalCrit = String(el?.evaluation_criteria_text || el?.evaluationCriteriaText || '').trim();
+            const performCrit = String(el?.criteria_text || el?.criteriaText || '').trim();
+            const criteria = evalCrit || performCrit;
+            const knowledge = String(el?.knowledge_text || el?.knowledgeText || '').trim();
+            const skill = String(el?.skill_text || el?.skillText || '').trim();
+            const attitude = String(el?.attitude_text || el?.attitudeText || '').trim();
             const ename = String(el?.name || '').trim();
             if (criteria) {
                 const parts = criteria
@@ -3747,9 +3781,41 @@ function forbidTeacherMinutesMutation(c: any, docType: string) {
  */
 async function resolveNcsPlanDocumentCourseIds(db: any, courseId: number): Promise<number[]> {
     const ids = new Set<number>();
-    if (Number.isFinite(courseId) && courseId >= 1) ids.add(courseId);
+    if (!Number.isFinite(courseId) || courseId < 1) return [];
 
-    // 1) course_sessions.id 기준
+    // LMS `courses.id`로 조회하는 경우: `course_sessions.id`가 동일한 숫자여도 다른 과정일 수 있음(PK 충돌).
+    // 이 때 session.id로 먼저 조인하면 잘못된 lms_course_id가 IN 목록에 섞여 다른 과정 문서가 선택될 수 있다.
+    let courseRow: any = null;
+    try {
+        courseRow = await db.prepare('SELECT id FROM courses WHERE id = ?').bind(courseId).first();
+    } catch {
+        courseRow = null;
+    }
+    if (courseRow) {
+        ids.add(courseId);
+        try {
+            const { results } = await db
+                .prepare('SELECT id, approved_course_id FROM course_sessions WHERE lms_course_id = ?')
+                .bind(courseId)
+                .all();
+            for (const r of results || []) {
+                const sid = parseInt(String((r as any).id), 10);
+                if (Number.isFinite(sid) && sid >= 1) ids.add(sid);
+                const aidRaw = (r as any).approved_course_id;
+                if (aidRaw != null && aidRaw !== '') {
+                    const aid = parseInt(String(aidRaw), 10);
+                    if (Number.isFinite(aid) && aid >= 1) ids.add(aid);
+                }
+            }
+        } catch {
+            /* ignore */
+        }
+        return [...ids];
+    }
+
+    ids.add(courseId);
+
+    // 1) course_sessions.id 기준 (courses에 없는 id = 회차 PK 또는 레거시 id일 때)
     const sessionById: any = await db
         .prepare('SELECT id, lms_course_id, approved_course_id FROM course_sessions WHERE id = ?')
         .bind(courseId)
