@@ -348,7 +348,7 @@ app.get('/', authMiddleware, requireRole('admin', 'teacher', 'instructor'), asyn
     let rows: { results: Record<string, unknown>[] };
     try {
       rows = await DB.prepare(
-        `SELECT s.id, s.approved_course_id, s.session_number, s.session_name, s.status,
+        `SELECT s.id, s.approved_course_id, s.lms_course_id, s.session_number, s.session_name, s.status,
                 s.training_start_date, s.training_end_date, s.url_ncs, s.url_plan, s.url_detail_plan,
                 s.registered_at, s.created_at, s.homepage_exposed, s.instructor_name,
                 a.name as course_name, a.category_id, a.instructor_name as approved_instructor_name,
@@ -365,7 +365,7 @@ app.get('/', authMiddleware, requireRole('admin', 'teacher', 'instructor'), asyn
     } catch (e) {
       if (!/session_name|homepage_exposed|no such column/i.test(String((e as Error)?.message ?? e))) throw e;
       rows = await DB.prepare(
-        `SELECT s.id, s.approved_course_id, s.session_number, s.status,
+        `SELECT s.id, s.approved_course_id, s.lms_course_id, s.session_number, s.status,
                 s.training_start_date, s.training_end_date, s.url_ncs, s.url_plan, s.url_detail_plan,
                 s.registered_at, s.created_at, s.homepage_exposed, s.instructor_name,
                 a.name as course_name, a.category_id, a.instructor_name as approved_instructor_name,

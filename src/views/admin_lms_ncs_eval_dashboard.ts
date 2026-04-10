@@ -38,7 +38,7 @@ export const adminLmsNcsEvalDashboardHtml = (sidebar: string = hrdSidebar('cours
             <div class="mt-4 flex flex-col sm:flex-row sm:items-end gap-3">
               <label class="flex-1 min-w-0 block">
                 <span class="text-xs font-black text-slate-500 uppercase tracking-wider">과정선택</span>
-                <select id="ncsLmsDashCourseSelect" disabled class="mt-1 w-full max-w-4xl px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-800 shadow-sm opacity-100 cursor-default">
+                <select id="ncsLmsDashCourseSelect" class="mt-1 w-full max-w-4xl px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-800 shadow-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 outline-none disabled:opacity-60">
                   <option value="">불러오는 중…</option>
                 </select>
               </label>
@@ -102,25 +102,37 @@ export const adminLmsNcsEvalDashboardHtml = (sidebar: string = hrdSidebar('cours
       if (resA) resA.href = lmsBase + 'ncs-eval-result' + Q;
     }
 
-    async function hydrateCourseSelectLabel() {
+    async function loadCourseSelectOptions() {
       var sel = document.getElementById('ncsLmsDashCourseSelect');
       if (!sel) return;
-      var label = '[' + escapeHtml(courseId) + '] 과정';
+      sel.disabled = true;
       try {
         var res = await fetch('/api/hrd/ncs-eval/summary', {
           headers: { 'Authorization': 'Bearer ' + token }
         });
         var json = await res.json();
-        if (json && json.success && Array.isArray(json.data)) {
-          var found = json.data.find(function(c) { return String(c.id) === String(courseId); });
-          if (found) {
-            var t = (found.title || '과정') + (found.teacher_name ? ' · ' + found.teacher_name : '');
-            label = '[' + escapeHtml(String(courseId)) + '] ' + escapeHtml(t);
-          }
+        if (!json || !json.success || !Array.isArray(json.data)) {
+          sel.innerHTML = '<option value="">과정 목록을 불러오지 못했습니다</option>';
+          return;
         }
-      } catch (e) { /* ignore */ }
-      sel.innerHTML = '<option value="' + escapeHtml(String(courseId)) + '">' + label + '</option>';
-      sel.value = String(courseId);
+        var list = json.data;
+        sel.innerHTML = '<option value="">— 과정을 선택하세요 —</option>' +
+          list.map(function(c) {
+            var id = String(c.id);
+            var t = (c.title || '과정') + (c.teacher_name ? ' · ' + c.teacher_name : '');
+            return '<option value="' + escapeHtml(id) + '">[' + escapeHtml(id) + '] ' + escapeHtml(t) + '</option>';
+          }).join('');
+        if (list.some(function(c) { return String(c.id) === String(courseId); })) {
+          sel.value = String(courseId);
+        } else {
+          sel.value = '';
+        }
+      } catch (e) {
+        console.error(e);
+        sel.innerHTML = '<option value="">과정 목록 오류</option>';
+      } finally {
+        sel.disabled = false;
+      }
     }
 
     function statusLabel(ok) {
@@ -260,10 +272,25 @@ export const adminLmsNcsEvalDashboardHtml = (sidebar: string = hrdSidebar('cours
 
     document.addEventListener('DOMContentLoaded', function() {
       wireNavLinks();
-      void hydrateCourseSelectLabel();
+      var sel = document.getElementById('ncsLmsDashCourseSelect');
+      if (sel) {
+        sel.addEventListener('change', function() {
+          var nextId = String(sel.value || '').trim();
+          if (!nextId || nextId === String(courseId)) return;
+          try {
+            var p = new URLSearchParams(window.location.search);
+            if (!p.get('type')) p.set('type', 'hrd');
+            window.location.href = basePrefix + '/courses/' + encodeURIComponent(nextId) + '/lms/ncs-eval-dashboard?' + p.toString();
+          } catch (e) {
+            window.location.href = basePrefix + '/courses/' + encodeURIComponent(nextId) + '/lms/ncs-eval-dashboard?type=hrd';
+          }
+        });
+      }
+      void loadCourseSelectOptions().then(function() {
+        void loadDashboard();
+      });
       var refBtn = document.getElementById('ncsLmsDashRefresh');
       if (refBtn) refBtn.addEventListener('click', function() { void loadDashboard(); });
-      void loadDashboard();
     });
   })();
   </script>

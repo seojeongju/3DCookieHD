@@ -69,6 +69,21 @@ export const adminNcsEvalDashboardHubHtml = (sidebar = hrdSidebar('ncs-eval-dash
     function lmsBase() {
       return '/admin/courses/' + encodeURIComponent(selectedCourseId) + '/lms/';
     }
+
+    /** 사이드바 "운영 과정 바로가기" option value가 LMS courses.id와 맞을 때 현재 선택과 동기화 */
+    function syncSidebarCourseSelector(cid) {
+      try {
+        var side = document.getElementById('sidebarActiveCourseSelector');
+        if (!side || cid == null || String(cid).trim() === '') return;
+        var v = String(cid).trim();
+        for (var i = 0; i < side.options.length; i++) {
+          if (side.options[i].value === v) {
+            side.value = v;
+            return;
+          }
+        }
+      } catch (e) { /* ignore */ }
+    }
     var Q = '?type=hrd';
 
     function escapeHtml(v) {
@@ -202,6 +217,8 @@ export const adminNcsEvalDashboardHubHtml = (sidebar = hrdSidebar('ncs-eval-dash
           sel.value = saved;
           selectedCourseId = saved;
         }
+        setTimeout(function() { syncSidebarCourseSelector(selectedCourseId); }, 0);
+        setTimeout(function() { syncSidebarCourseSelector(selectedCourseId); }, 400);
         if (selectedCourseId) await loadDashboard();
       } catch (e) {
         console.error(e);
@@ -257,6 +274,7 @@ export const adminNcsEvalDashboardHubHtml = (sidebar = hrdSidebar('ncs-eval-dash
       if (sel) {
         sel.addEventListener('change', function() {
           selectedCourseId = (sel.value || '').trim();
+          syncSidebarCourseSelector(selectedCourseId);
           loadDashboard();
         });
       }

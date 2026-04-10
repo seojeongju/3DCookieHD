@@ -144,7 +144,9 @@ function initAdminSidebar() {
                     for (var j = 0; j < res.data.length; j++) {
                         var s = res.data[j];
                         var opt = document.createElement('option');
-                        opt.value = s.id;
+                        // URL /courses/{id}/lms 는 LMS courses.id 기준. 회차 PK(s.id)와 숫자가 겹치면 잘못된 과정이 선택됨 → lms_course_id 우선
+                        var lmsId = s.lms_course_id != null && String(s.lms_course_id).trim() !== '' ? String(s.lms_course_id) : String(s.id);
+                        opt.value = lmsId;
 
                         var courseName = s.course_name || '';
                         var sessionNum = s.session_number != null ? String(s.session_number) + '회차' : '';
@@ -157,7 +159,13 @@ function initAdminSidebar() {
                         courseSelector.appendChild(opt);
                     }
                     var match = location.pathname.match(/\/(admin|teacher)\/courses\/(\d+)\/lms/);
-                    if (match && match[2]) courseSelector.value = match[2];
+                    if (match && match[2]) {
+                        var urlCid = String(match[2]);
+                        var has = Array.prototype.some.call(courseSelector.options, function (o) {
+                            return o.value === urlCid;
+                        });
+                        if (has) courseSelector.value = urlCid;
+                    }
                 }
             })
             .catch(function (err) { console.error('Sidebar course load error:', err); });
