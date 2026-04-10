@@ -3163,6 +3163,10 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       if (d) d.value = '';
       if (t) t.value = '';
       if (p) p.value = '';
+      var ins = document.getElementById('scheduleInstructorSelect');
+      if (ins && String(ins.tagName).toUpperCase() === 'SELECT' && !ins.disabled && ins.options.length > 0) {
+        ins.selectedIndex = 0;
+      }
     }
 
     function resetScheduleInstructorSelect() {
@@ -3315,6 +3319,21 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       }).join('');
     }
 
+    function readScheduleInstructorFromSelect(instructorEl) {
+      if (!instructorEl || String(instructorEl.tagName).toUpperCase() !== 'SELECT') {
+        return { instructor_id: '', instructor_name: '' };
+      }
+      if (instructorEl.selectedIndex <= 0) {
+        return { instructor_id: '', instructor_name: '' };
+      }
+      var opt = instructorEl.options[instructorEl.selectedIndex];
+      if (!opt) return { instructor_id: '', instructor_name: '' };
+      var iid = String(opt.value || '').trim();
+      var iname = String(opt.textContent || '').trim();
+      if (iname === '강사 선택') iname = '';
+      return { instructor_id: iid, instructor_name: iname };
+    }
+
     function addScheduleRowFromInputs() {
       const subSel = document.getElementById('scheduleSubjectSelect');
       const dateEl = document.getElementById('scheduleInputDate');
@@ -3322,14 +3341,12 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       const placeEl = document.getElementById('scheduleInputPlace');
       const instructorEl = document.getElementById('scheduleInstructorSelect');
       const curriculumId = subSel ? String(subSel.value || '').trim() : '';
-      const instructorId = instructorEl ? String(instructorEl.value || '').trim() : '';
+      var instRead = readScheduleInstructorFromSelect(instructorEl);
+      var instructorId = instRead.instructor_id;
+      var instructorName = instRead.instructor_name;
       var subjectLabel = '';
-      var instructorName = '';
       if (subSel && subSel.selectedIndex >= 0 && subSel.options[subSel.selectedIndex]) {
         subjectLabel = String(subSel.options[subSel.selectedIndex].textContent || '').trim();
-      }
-      if (instructorEl && instructorEl.selectedIndex >= 0 && instructorEl.options[instructorEl.selectedIndex]) {
-        instructorName = String(instructorEl.options[instructorEl.selectedIndex].textContent || '').trim();
       }
       const date = (dateEl?.value || '').trim();
       const time = (timeEl?.value || '').trim();
@@ -3357,7 +3374,9 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       if (schedulePendingEditIndex !== null && Number.isFinite(schedulePendingEditIndex)) {
         var editAt = Math.max(0, Math.min(schedulePendingEditIndex, rows.length - 1));
         var prevRow = (rows.length > 0 && editAt >= 0 && editAt < rows.length) ? rows[editAt] : null;
-        if ((!newRow.instructor_id || !String(newRow.instructor_id).trim()) && prevRow) {
+        var newId = String(newRow.instructor_id || '').trim();
+        var newName = String(newRow.instructor_name || '').trim();
+        if (!newId && !newName && prevRow) {
           newRow.instructor_id = String(prevRow.instructor_id || '').trim();
           newRow.instructor_name = String(prevRow.instructor_name || '').trim();
         }
@@ -4667,6 +4686,8 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           schedulePendingEditIndex = index;
           applyNcsSubjectSelectValue('scheduleSubjectSelect', row.curriculum_id || '', row.subject || '');
           applyScheduleInstructorSelectValue(row.instructor_id || '', row.instructor_name || '');
+          var schInstEl = document.getElementById('scheduleInstructorSelect');
+          if (schInstEl && String(schInstEl.tagName).toUpperCase() === 'SELECT') schInstEl.disabled = false;
           var sde = document.getElementById('scheduleInputDate');
           var ste = document.getElementById('scheduleInputTime');
           var spe = document.getElementById('scheduleInputPlace');

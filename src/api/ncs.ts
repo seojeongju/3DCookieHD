@@ -4155,8 +4155,21 @@ app.get('/evaluation-dashboard-hub', authMiddleware, async (c) => {
         const allowed = await ensureNcsCoursePermission(c, courseId);
         if (!allowed) return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
 
-        // 1) HRD에서 넘기는 courseId(대개 courses.id)가 course_sessions id/approved_course_id/lms_course_id 중 무엇이든 해석
+        // 1) HRD 요약은 courses.id(LMS)를 넘김. course_sessions.id와 숫자가 겹치면 PK 우선 조회 시 엉뚱한 회차가 선택되므로,
+        //    courses에 존재하는 id는 lms_course_id로만 회차를 해석한다. 그 외에는 기존처럼 session/승인과정/lms 순으로 해석.
         const resolveCourseSessionForTimetable = async (DB: any, rawId: number) => {
+            const courseRow = await DB.prepare('SELECT id FROM courses WHERE id = ?').bind(rawId).first();
+            if (courseRow) {
+                const byLmsForCourse = await DB.prepare(
+                    `SELECT id, approved_course_id, instructor_name, lms_course_id, session_number
+                     FROM course_sessions
+                     WHERE lms_course_id = ?
+                     ORDER BY session_number DESC, id DESC
+                     LIMIT 1`
+                ).bind(rawId).first();
+                return byLmsForCourse || null;
+            }
+
             const byPk = await DB.prepare(
                 'SELECT id, approved_course_id, instructor_name, lms_course_id, session_number FROM course_sessions WHERE id = ?'
             ).bind(rawId).first();
