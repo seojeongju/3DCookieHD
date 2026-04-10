@@ -1021,10 +1021,20 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                             </label>
                             <input id="questionInputNo" type="number" min="1" step="1" class="px-2 py-1 border border-slate-200 rounded bg-white" placeholder="번호" />
                             <select id="questionInputType" class="px-2 py-1 border border-slate-200 rounded bg-white">
-                              <option value="객관식">객관식</option>
-                              <option value="주관식">주관식</option>
-                              <option value="실습형">실습형</option>
-                              <option value="서술형">서술형</option>
+                              <option value="포트폴리오">포트폴리오</option>
+                              <option value="문제해결시나리오">문제해결시나리오</option>
+                              <option value="서술형시험">서술형시험</option>
+                              <option value="논술형시험">논술형시험</option>
+                              <option value="사례연구">사례연구</option>
+                              <option value="평가자 질문">평가자 질문</option>
+                              <option value="평가자체크리스트">평가자체크리스트</option>
+                              <option value="피평가자 체크리스트">피평가자 체크리스트</option>
+                              <option value="일지/저널">일지/저널</option>
+                              <option value="역할연기">역할연기</option>
+                              <option value="구두발표">구두발표</option>
+                              <option value="작업장평가">작업장평가</option>
+                              <option value="기타(단일평가)">기타(단일평가)</option>
+                              <option value="혼합형(복수평가방법)">혼합형(복수평가방법)</option>
                             </select>
                             <input id="questionInputScore" type="number" min="0" step="1" class="px-2 py-1 border border-slate-200 rounded bg-white" placeholder="배점" />
                             <input id="questionInputKeyword" class="px-2 py-1 border border-slate-200 rounded bg-white md:col-span-2" placeholder="평가기준/키워드" />
@@ -1560,6 +1570,8 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
     /** 평가실시일자: 수정 중일 때 행 삽입 위치 (null이면 맨 뒤 추가) */
     var schedulePendingEditIndex = null;
     var scheduleInstructorOptions = [];
+    /** NCS 평가문항 유형 기본값 (과정심사 참고 평가방법 목록과 동일) */
+    var NCS_QUESTION_TYPE_DEFAULT = '포트폴리오';
     const isTeacherLmsPath = window.location.pathname.startsWith('/teacher/');
 
     function hasTeacherLmsChrome() {
@@ -3463,6 +3475,25 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       label.classList.toggle('text-slate-900', !(target > 0 && total > target));
     }
 
+    function applyQuestionTypeSelectValue(typeRaw) {
+      var el = document.getElementById('questionInputType');
+      if (!el || String(el.tagName).toUpperCase() !== 'SELECT') return;
+      var t = String(typeRaw || '').trim();
+      if (!t) t = NCS_QUESTION_TYPE_DEFAULT;
+      var has = false;
+      for (var i = 0; i < el.options.length; i++) {
+        if (String(el.options[i].value) === t) { has = true; break; }
+      }
+      if (!has) {
+        var opt = document.createElement('option');
+        opt.value = t;
+        opt.textContent = t;
+        el.appendChild(opt);
+      }
+      el.value = t;
+      if (el.value !== t) el.value = NCS_QUESTION_TYPE_DEFAULT;
+    }
+
     function addQuestionFromInputs() {
       var qSubEl = document.getElementById('questionsSubjectSelect');
       var subjectLabel = getNcsSubjectSelectText('questionsSubjectSelect');
@@ -3493,9 +3524,9 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       const rows = readQuestionRowsFromTable();
       const duplicated = rows.findIndex(function(r) { return String(r.curriculum_id || '') === curriculumId && Number(r.no) === noVal; });
       if (duplicated >= 0) {
-        rows[duplicated] = { subject: subjectLabel, curriculum_id: curriculumId, no: noVal, type: typeVal || '객관식', text: textVal, score: scoreVal, keyword: keywordVal };
+        rows[duplicated] = { subject: subjectLabel, curriculum_id: curriculumId, no: noVal, type: typeVal || NCS_QUESTION_TYPE_DEFAULT, text: textVal, score: scoreVal, keyword: keywordVal };
       } else {
-        rows.push({ subject: subjectLabel, curriculum_id: curriculumId, no: noVal, type: typeVal || '객관식', text: textVal, score: scoreVal, keyword: keywordVal });
+        rows.push({ subject: subjectLabel, curriculum_id: curriculumId, no: noVal, type: typeVal || NCS_QUESTION_TYPE_DEFAULT, text: textVal, score: scoreVal, keyword: keywordVal });
       }
       renderQuestionRows(rows);
 
@@ -4737,11 +4768,10 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           const row = rows[index];
           if (!row) return;
           const noEl = document.getElementById('questionInputNo');
-          const typeEl = document.getElementById('questionInputType');
           const scoreEl = document.getElementById('questionInputScore');
           const keywordEl = document.getElementById('questionInputKeyword');
           if (noEl) noEl.value = String(row.no || '');
-          if (typeEl) typeEl.value = row.type || '객관식';
+          applyQuestionTypeSelectValue(row.type);
           setQuestionInputValue(row.text || '');
           if (scoreEl) scoreEl.value = String(row.score || 0);
           if (keywordEl) keywordEl.value = row.keyword || '';
