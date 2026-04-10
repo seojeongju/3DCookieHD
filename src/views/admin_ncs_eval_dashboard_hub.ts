@@ -64,10 +64,14 @@ export const adminNcsEvalDashboardHubHtml = (sidebar = hrdSidebar('ncs-eval-dash
   (function() {
     var selectedCourseId = '';
     var dashboardData = null;
+    /** 마지막으로 성공 조회·표에 반영된 LMS courses.id (드롭다운과 비동기 경합 시 잘못된 링크 방지) */
+    var linkedLmsCourseId = '';
+    var dashboardLoadSeq = 0;
     var token = localStorage.getItem('token');
 
     function lmsBase() {
-      return '/admin/courses/' + encodeURIComponent(selectedCourseId) + '/lms/';
+      var cid = linkedLmsCourseId || selectedCourseId;
+      return '/admin/courses/' + encodeURIComponent(cid) + '/lms/';
     }
 
     /** 사이드바 "운영 과정 바로가기" option value가 LMS courses.id와 맞을 때 현재 선택과 동기화 */
@@ -124,6 +128,7 @@ export const adminNcsEvalDashboardHubHtml = (sidebar = hrdSidebar('ncs-eval-dash
     function renderRounds() {
       var roundsEl = document.getElementById('hrdDashRounds');
       if (!roundsEl || !dashboardData) return;
+      if (!linkedLmsCourseId) return;
 
       var rounds = dashboardData.rounds || [];
 
@@ -231,6 +236,7 @@ export const adminNcsEvalDashboardHubHtml = (sidebar = hrdSidebar('ncs-eval-dash
       var errEl = document.getElementById('hrdDashError');
       var roundsEl = document.getElementById('hrdDashRounds');
       if (!selectedCourseId) {
+        linkedLmsCourseId = '';
         if (hint) hint.classList.remove('hidden');
         if (loading) loading.classList.add('hidden');
         if (errEl) { errEl.classList.add('hidden'); errEl.textContent = ''; }
@@ -238,15 +244,22 @@ export const adminNcsEvalDashboardHubHtml = (sidebar = hrdSidebar('ncs-eval-dash
         dashboardData = null;
         return;
       }
+      var reqId = String(selectedCourseId).trim();
+      var mySeq = ++dashboardLoadSeq;
+      linkedLmsCourseId = '';
+      if (roundsEl) roundsEl.innerHTML = '';
+
       try { localStorage.setItem('${LS_COURSE_KEY}', selectedCourseId); } catch (e) {}
       if (hint) hint.classList.add('hidden');
       if (errEl) { errEl.classList.add('hidden'); errEl.textContent = ''; }
       if (loading) loading.classList.remove('hidden');
       try {
-        var res = await fetch('/api/ncs/evaluation-dashboard-hub?course_id=' + encodeURIComponent(selectedCourseId), {
+        var res = await fetch('/api/ncs/evaluation-dashboard-hub?course_id=' + encodeURIComponent(reqId), {
           headers: { 'Authorization': 'Bearer ' + (token || '') }
         });
         var json = await res.json();
+        if (mySeq !== dashboardLoadSeq) return;
+        if (String(selectedCourseId).trim() !== reqId) return;
         if (loading) loading.classList.add('hidden');
         if (!json || !json.success) {
           if (errEl) {
@@ -254,17 +267,27 @@ export const adminNcsEvalDashboardHubHtml = (sidebar = hrdSidebar('ncs-eval-dash
             errEl.classList.remove('hidden');
           }
           dashboardData = null;
+          linkedLmsCourseId = '';
           if (roundsEl) roundsEl.innerHTML = '';
           return;
         }
-        dashboardData = json.data;
+        var payload = json.data || {};
+        var resolvedId = payload.course_id != null ? String(payload.course_id).trim() : reqId;
+        if (resolvedId !== reqId) {
+          console.warn('[ncs-dash-hub] course_id mismatch', reqId, resolvedId);
+        }
+        linkedLmsCourseId = resolvedId;
+        dashboardData = payload;
         renderRounds();
       } catch (e) {
         console.error(e);
-        if (loading) loading.classList.add('hidden');
-        if (errEl) {
-          errEl.textContent = '오류가 발생했습니다.';
-          errEl.classList.remove('hidden');
+        if (mySeq === dashboardLoadSeq) {
+          if (loading) loading.classList.add('hidden');
+          linkedLmsCourseId = '';
+          if (errEl) {
+            errEl.textContent = '오류가 발생했습니다.';
+            errEl.classList.remove('hidden');
+          }
         }
       }
     }

@@ -4402,7 +4402,10 @@ app.get('/evaluation-dashboard-hub', authMiddleware, async (c) => {
         if (!session) {
             return c.json({
                 success: true,
-                data: { rounds: [1, 2, 3].map((round) => ({ round, plan_confirmed: false, rows: [] })) }
+                data: {
+                    course_id: courseId,
+                    rounds: [1, 2, 3].map((round) => ({ round, plan_confirmed: false, rows: [] })),
+                },
             });
         }
 
@@ -4575,7 +4578,13 @@ app.get('/evaluation-dashboard-hub', authMiddleware, async (c) => {
             return { round, plan_confirmed, rows };
         });
 
-        return c.json({ success: true, data: { rounds: roundsOut } });
+        return c.json({
+            success: true,
+            data: {
+                course_id: courseId,
+                rounds: roundsOut,
+            },
+        });
     } catch (e) {
         console.error('evaluation-dashboard-hub:', e);
         const detail = (e && (e as any).message) ? String((e as any).message) : String(e);

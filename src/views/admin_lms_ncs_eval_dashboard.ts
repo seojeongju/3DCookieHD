@@ -91,6 +91,7 @@ export const adminLmsNcsEvalDashboardHtml = (sidebar: string = hrdSidebar('cours
     }
 
     var dashboardData = null;
+    var dashboardLoadSeq = 0;
     var token = localStorage.getItem('token') || '';
 
     function wireNavLinks() {
@@ -240,6 +241,7 @@ export const adminLmsNcsEvalDashboardHtml = (sidebar: string = hrdSidebar('cours
       var loading = document.getElementById('ncsDashLoading');
       var errEl = document.getElementById('ncsDashError');
       var roundsEl = document.getElementById('ncsDashRounds');
+      var mySeq = ++dashboardLoadSeq;
       if (errEl) { errEl.classList.add('hidden'); errEl.textContent = ''; }
       if (loading) loading.classList.remove('hidden');
       if (roundsEl) roundsEl.innerHTML = '';
@@ -250,6 +252,7 @@ export const adminLmsNcsEvalDashboardHtml = (sidebar: string = hrdSidebar('cours
           headers: { 'Authorization': 'Bearer ' + token }
         });
         var json = await res.json();
+        if (mySeq !== dashboardLoadSeq) return;
         if (loading) loading.classList.add('hidden');
         if (!json || !json.success) {
           if (errEl) {
@@ -258,14 +261,25 @@ export const adminLmsNcsEvalDashboardHtml = (sidebar: string = hrdSidebar('cours
           }
           return;
         }
-        dashboardData = json.data;
+        var payload = json.data || {};
+        var apiCid = payload.course_id != null ? String(payload.course_id).trim() : String(courseId);
+        if (apiCid !== String(courseId)) {
+          if (errEl) {
+            errEl.textContent = '응답 과정 ID가 URL과 일치하지 않습니다. 새로고침 해 주세요.';
+            errEl.classList.remove('hidden');
+          }
+          return;
+        }
+        dashboardData = payload;
         render();
       } catch (e) {
         console.error(e);
-        if (loading) loading.classList.add('hidden');
-        if (errEl) {
-          errEl.textContent = '오류가 발생했습니다.';
-          errEl.classList.remove('hidden');
+        if (mySeq === dashboardLoadSeq) {
+          if (loading) loading.classList.add('hidden');
+          if (errEl) {
+            errEl.textContent = '오류가 발생했습니다.';
+            errEl.classList.remove('hidden');
+          }
         }
       }
     }
