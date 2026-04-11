@@ -117,21 +117,22 @@ export const adminLmsNcsStudentReportHtml = `
         const pathParts = window.location.pathname.split('/');
         const studentId = pathParts[pathParts.length - 1];
         const courseId = new URLSearchParams(window.location.search).get('session_id') || pathParts[3];
+        const _sid = new URLSearchParams(window.location.search).get('session_id') || '';
 
         document.addEventListener('DOMContentLoaded', async () => {
             const now = new Date();
             document.getElementById('todayDate').textContent = \`\${now.getFullYear()}년 \${now.getMonth() + 1}월 \${now.getDate()}일\`;
 
             try {
-                // 1. 과정 정보 (LMS 회차는 type=hrd)
                 const urlParams = new URLSearchParams(window.location.search);
                 let qType = urlParams.get('type') || '';
                 if (!qType && window.location.pathname.includes('/lms')) qType = 'hrd';
                 if (qType && qType.startsWith('hrd')) qType = 'hrd';
-                let courseUrl = '/api/courses/' + courseId + (qType ? '?type=' + encodeURIComponent(qType) : '');
+                const _sidQ = _sid ? '&session_id=' + encodeURIComponent(_sid) : '';
+                let courseUrl = '/api/courses/' + courseId + (qType ? '?type=' + encodeURIComponent(qType) + _sidQ : (_sid ? '?session_id=' + encodeURIComponent(_sid) : ''));
                 let cRes = await fetch(courseUrl);
                 if (cRes.status === 404) {
-                    courseUrl = '/api/courses/' + courseId + '?type=hrd';
+                    courseUrl = '/api/courses/' + courseId + '?type=hrd' + _sidQ;
                     cRes = await fetch(courseUrl);
                 }
                 const cData = await cRes.json();

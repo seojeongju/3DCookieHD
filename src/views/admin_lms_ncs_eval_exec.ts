@@ -124,6 +124,7 @@ export const adminLmsNcsEvalExecHtml = (sidebar: string = hrdSidebar('courses'))
 
   <script>
     const courseId = new URLSearchParams(window.location.search).get('session_id') || window.location.pathname.split('/')[3];
+    const _sid = new URLSearchParams(window.location.search).get('session_id') || '';
     const isTeacherPath = window.location.pathname.startsWith('/teacher/');
     const basePrefix = isTeacherPath ? '/teacher' : '/admin';
     let activeRound = 1;
@@ -281,7 +282,7 @@ export const adminLmsNcsEvalExecHtml = (sidebar: string = hrdSidebar('courses'))
         const body = document.getElementById('execListBody');
         if (body) body.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-sm text-gray-400">데이터를 불러오는 중...</td></tr>';
 
-        const res = await fetch(\`/api/ncs/plans?courseId=\${courseId}&evaluation_round=\${activeRound}\`, {
+        const res = await fetch(\`/api/ncs/plans?courseId=\${courseId}&evaluation_round=\${activeRound}\` + (_sid ? '&session_id=' + encodeURIComponent(_sid) : ''), {
           headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
         });
         const json = await res.json();

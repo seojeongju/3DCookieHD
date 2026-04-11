@@ -70,6 +70,7 @@ export const adminLmsNcsEvalDashboardHtml = (sidebar: string = hrdSidebar('cours
   <script>
   (function() {
     var courseId = new URLSearchParams(window.location.search).get('session_id') || window.location.pathname.split('/')[3];
+    var _sid = new URLSearchParams(window.location.search).get('session_id') || '';
     var isTeacherPath = window.location.pathname.indexOf('/teacher/') === 0;
     var basePrefix = isTeacherPath ? '/teacher' : '/admin';
     var lmsBase = basePrefix + '/courses/' + courseId + '/lms/';
@@ -116,11 +117,11 @@ export const adminLmsNcsEvalDashboardHtml = (sidebar: string = hrdSidebar('cours
       if (hubA && !isTeacherPath) hubA.classList.remove('hidden');
       if (!titleEl) return;
       try {
-        var res = await fetch('/api/courses/' + encodeURIComponent(courseId) + '?type=hrd', {
+        var res = await fetch('/api/courses/' + encodeURIComponent(courseId) + '?type=hrd' + (_sid ? '&session_id=' + encodeURIComponent(_sid) : ''), {
           headers: { 'Authorization': 'Bearer ' + token }
         });
         if (res.status === 404) {
-          res = await fetch('/api/courses/' + encodeURIComponent(courseId), {
+          res = await fetch('/api/courses/' + encodeURIComponent(courseId) + (_sid ? '?session_id=' + encodeURIComponent(_sid) : ''), {
             headers: { 'Authorization': 'Bearer ' + token }
           });
         }
@@ -248,7 +249,7 @@ export const adminLmsNcsEvalDashboardHtml = (sidebar: string = hrdSidebar('cours
       dashboardData = null;
 
       try {
-        var res = await fetch('/api/ncs/evaluation-dashboard-hub?course_id=' + encodeURIComponent(courseId), {
+        var res = await fetch('/api/ncs/evaluation-dashboard-hub?course_id=' + encodeURIComponent(courseId) + (_sid ? '&session_id=' + encodeURIComponent(_sid) : ''), {
           headers: { 'Authorization': 'Bearer ' + token }
         });
         var json = await res.json();

@@ -60,20 +60,21 @@ export const adminLmsNcsReportHtml = `
 
     <script>
         const courseId = new URLSearchParams(window.location.search).get('session_id') || window.location.pathname.split('/')[3];
+        const _sid = new URLSearchParams(window.location.search).get('session_id') || '';
         
         document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('printDate').textContent = new Date().toLocaleDateString('ko-KR', { year:'numeric', month:'long', day:'numeric' });
             
             try {
-                // 1. 과정 정보 (LMS 회차는 type=hrd로 헤더와 동일한 과정명)
                 const urlParams = new URLSearchParams(window.location.search);
                 let qType = urlParams.get('type') || '';
                 if (!qType && window.location.pathname.includes('/lms')) qType = 'hrd';
                 if (qType && qType.startsWith('hrd')) qType = 'hrd';
-                let courseUrl = '/api/courses/' + courseId + (qType ? '?type=' + encodeURIComponent(qType) : '');
+                const _sidQ = _sid ? '&session_id=' + encodeURIComponent(_sid) : '';
+                let courseUrl = '/api/courses/' + courseId + (qType ? '?type=' + encodeURIComponent(qType) + _sidQ : (_sid ? '?session_id=' + encodeURIComponent(_sid) : ''));
                 let cRes = await fetch(courseUrl);
                 if (cRes.status === 404) {
-                    courseUrl = '/api/courses/' + courseId + '?type=hrd';
+                    courseUrl = '/api/courses/' + courseId + '?type=hrd' + _sidQ;
                     cRes = await fetch(courseUrl);
                 }
                 const cData = await cRes.json();
@@ -83,7 +84,7 @@ export const adminLmsNcsReportHtml = `
                 }
 
                 // 2. 능력단위 정보
-                const uRes = await fetch(\`/api/ncs/plans?courseId=\${courseId}\`);
+                const uRes = await fetch(\`/api/ncs/plans?courseId=\${courseId}\` + (_sid ? '&session_id=' + encodeURIComponent(_sid) : ''));
                 const uData = await uRes.json();
                 const plans = uData.data || [];
                 

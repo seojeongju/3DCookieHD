@@ -208,6 +208,7 @@ export const adminLmsNcsHtml = (sidebar: string = hrdSidebar('courses')) => `
 
     <script>
         const courseId = new URLSearchParams(window.location.search).get('session_id') || window.location.pathname.split('/')[3];
+        const _sid = new URLSearchParams(window.location.search).get('session_id') || '';
         let currentPlan = null;
         let studentResults = [];
 
@@ -280,7 +281,7 @@ export const adminLmsNcsHtml = (sidebar: string = hrdSidebar('courses')) => `
 
         async function calculateNcsProgress() {
             try {
-                const res = await fetch(\`/api/hrd/courses/\${courseId}/ncs-summary\`, {
+                const res = await fetch(\`/api/hrd/courses/\${courseId}/ncs-summary\` + (_sid ? '?session_id=' + encodeURIComponent(_sid) : ''), {
                     headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
                 });
                 const result = await res.json();
@@ -322,10 +323,11 @@ export const adminLmsNcsHtml = (sidebar: string = hrdSidebar('courses')) => `
                 if (type && type.startsWith('hrd')) type = 'hrd';
                 if (type === 'undefined') type = 'hrd';
 
-                let apiUrl = '/api/courses/' + courseId + (type ? '?type=' + encodeURIComponent(type) : '');
+                const _sidQ = _sid ? '&session_id=' + encodeURIComponent(_sid) : '';
+                let apiUrl = '/api/courses/' + courseId + (type ? '?type=' + encodeURIComponent(type) + _sidQ : (_sid ? '?session_id=' + encodeURIComponent(_sid) : ''));
                 let res = await fetch(apiUrl, { headers: { 'Authorization': 'Bearer ' + token } });
                 if (res.status === 404) {
-                    apiUrl = '/api/courses/' + courseId + '?type=hrd';
+                    apiUrl = '/api/courses/' + courseId + '?type=hrd' + _sidQ;
                     res = await fetch(apiUrl, { headers: { 'Authorization': 'Bearer ' + token } });
                 }
                 const result = await res.json();
@@ -337,7 +339,7 @@ export const adminLmsNcsHtml = (sidebar: string = hrdSidebar('courses')) => `
 
         async function loadAssignedUnits() {
             try {
-                const res = await fetch(\`/api/ncs/courses/\${courseId}\`, {
+                const res = await fetch(\`/api/ncs/courses/\${courseId}\` + (_sid ? '?session_id=' + encodeURIComponent(_sid) : ''), {
                     headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
                 });
                 const result = await res.json();
@@ -355,7 +357,7 @@ export const adminLmsNcsHtml = (sidebar: string = hrdSidebar('courses')) => `
 
         async function loadPlans() {
             try {
-                const res = await fetch(\`/api/ncs/plans?courseId=\${courseId}\`, {
+                const res = await fetch(\`/api/ncs/plans?courseId=\${courseId}\` + (_sid ? '&session_id=' + encodeURIComponent(_sid) : ''), {
                     headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
                 });
                 const result = await res.json();

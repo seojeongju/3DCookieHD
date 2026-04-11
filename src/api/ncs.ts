@@ -17,6 +17,43 @@ function isD1SchemaError(e: unknown): boolean {
     return /no such column|no such table|syntax error|undefined/i.test(s);
 }
 
+/**
+ * `session_id` 쿼리가 명시된 경우, 해당 회차의 lms_course_id를 확정해
+ * isRegisteredLmsCourseId 와 course_id 숫자 충돌을 방지한다.
+ * 반환되는 effectiveCourseId 를 course_id 대신 사용하면 올바른 LMS 개설 과정 기준으로 조회할 수 있다.
+ */
+async function resolveExplicitSessionOverride(
+    db: any,
+    sessionIdRaw: string | null | undefined
+): Promise<{
+    sessionId: number;
+    lmsCourseId: number;
+    approvedCourseId: number | null;
+    instructorName: string | null;
+    sessionNumber: number | null;
+} | null> {
+    if (sessionIdRaw == null || String(sessionIdRaw).trim() === '') return null;
+    const sid = parseInt(String(sessionIdRaw), 10);
+    if (!Number.isFinite(sid) || sid < 1) return null;
+    try {
+        const row = await db.prepare(
+            'SELECT id, lms_course_id, approved_course_id, instructor_name, session_number FROM course_sessions WHERE id = ?'
+        ).bind(sid).first();
+        if (!row) return null;
+        const lms = row.lms_course_id != null ? parseInt(String(row.lms_course_id), 10) : NaN;
+        if (!Number.isFinite(lms) || lms < 1) return null;
+        return {
+            sessionId: row.id as number,
+            lmsCourseId: lms,
+            approvedCourseId: row.approved_course_id as number | null,
+            instructorName: row.instructor_name as string | null,
+            sessionNumber: row.session_number as number | null,
+        };
+    } catch {
+        return null;
+    }
+}
+
 // NCS 능력단위 목록 조회
 app.get('/', async (c) => {
     try {
@@ -4244,7 +4281,9 @@ app.delete('/:id', async (c) => {
 // 과정별 NCS 편성 조회
 app.get('/courses/:courseId', async (c) => {
     try {
-        const courseId = c.req.param('courseId');
+        const rawCid = c.req.param('courseId');
+        const sesOvrCourse = await resolveExplicitSessionOverride(c.env.DB, c.req.query('session_id'));
+        const courseId = sesOvrCourse ? String(sesOvrCourse.lmsCourseId) : rawCid;
         const { results } = await c.env.DB.prepare(`
             SELECT m.*, u.code, u.name, u.level, u.category
             FROM course_ncs_units m
@@ -4558,9 +4597,12 @@ app.get('/plan-documents', authMiddleware, async (c) => {
         if (!allowed) return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
 
         const db = c.env.DB;
-        const useLmsStrict = await isRegisteredLmsCourseId(db, courseId);
-        const courseIds = useLmsStrict ? [] : await resolveNcsPlanDocumentCourseIds(db, courseId);
-        const inList = courseIds.length ? courseIds : [courseId];
+        // session_id 명시 시 lms_course_id 로 override (PK 충돌 방지)
+        const sesOvr = await resolveExplicitSessionOverride(db, c.req.query('session_id'));
+        const effectiveCid = sesOvr ? sesOvr.lmsCourseId : courseId;
+        const useLmsStrict = await isRegisteredLmsCourseId(db, effectiveCid);
+        const courseIds = useLmsStrict ? [] : await resolveNcsPlanDocumentCourseIds(db, effectiveCid);
+        const inList = courseIds.length ? courseIds : [effectiveCid];
         const inPh = inList.map(() => '?').join(', ');
 
         let row: any = null;
@@ -4581,7 +4623,7 @@ app.get('/plan-documents', authMiddleware, async (c) => {
                     LIMIT 1
                 `
                     )
-                    .bind(docId, round, docType, curriculumId, courseId, courseId)
+                    .bind(docId, round, docType, curriculumId, effectiveCid, effectiveCid)
                     .first();
             } else {
                 row = await db
@@ -4616,7 +4658,7 @@ app.get('/plan-documents', authMiddleware, async (c) => {
                 LIMIT 1
             `
                 )
-                .bind(round, docType, curriculumId, courseId, courseId, courseId)
+                .bind(round, docType, curriculumId, effectiveCid, effectiveCid, effectiveCid)
                 .first();
         } else {
             row = await db
@@ -4630,7 +4672,7 @@ app.get('/plan-documents', authMiddleware, async (c) => {
                 LIMIT 1
             `
                 )
-                .bind(...inList, round, docType, curriculumId, courseId)
+                .bind(...inList, round, docType, curriculumId, effectiveCid)
                 .first();
         }
 
@@ -4688,7 +4730,9 @@ app.get('/plan-documents/list', authMiddleware, async (c) => {
         if (!allowed) return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
 
         const db = c.env.DB;
-        const useLmsStrict = await isRegisteredLmsCourseId(db, courseId);
+        const sesOvrList = await resolveExplicitSessionOverride(db, c.req.query('session_id'));
+        const effectiveCidList = sesOvrList ? sesOvrList.lmsCourseId : courseId;
+        const useLmsStrict = await isRegisteredLmsCourseId(db, effectiveCidList);
         let results: any[] = [];
         if (useLmsStrict) {
             const q = await db
@@ -4708,12 +4752,12 @@ app.get('/plan-documents/list', authMiddleware, async (c) => {
                   n.id DESC
             `
                 )
-                .bind(round, docType, curriculumId, courseId, courseId, courseId)
+                .bind(round, docType, curriculumId, effectiveCidList, effectiveCidList, effectiveCidList)
                 .all();
             results = Array.isArray(q?.results) ? q.results : [];
         } else {
-            const courseIds = await resolveNcsPlanDocumentCourseIds(db, courseId);
-            const inList = courseIds.length ? courseIds : [courseId];
+            const courseIds = await resolveNcsPlanDocumentCourseIds(db, effectiveCidList);
+            const inList = courseIds.length ? courseIds : [effectiveCidList];
             const inPh = inList.map(() => '?').join(', ');
             const q = await db
                 .prepare(
@@ -4725,7 +4769,7 @@ app.get('/plan-documents/list', authMiddleware, async (c) => {
                 ORDER BY CASE WHEN course_id = ? THEN 0 ELSE 1 END, updated_at DESC, id DESC
             `
                 )
-                .bind(...inList, round, docType, curriculumId, courseId)
+                .bind(...inList, round, docType, curriculumId, effectiveCidList)
                 .all();
             results = Array.isArray(q?.results) ? q.results : [];
         }
@@ -4840,7 +4884,9 @@ app.put('/plan-documents/:id', authMiddleware, async (c) => {
         if (!allowed) return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
 
         const dbPut = c.env.DB;
-        const useLmsStrictPut = await isRegisteredLmsCourseId(dbPut, courseId);
+        const sesOvrPut = await resolveExplicitSessionOverride(dbPut, c.req.query('session_id') ?? (body as any).session_id);
+        const effectiveCidPut = sesOvrPut ? sesOvrPut.lmsCourseId : courseId;
+        const useLmsStrictPut = await isRegisteredLmsCourseId(dbPut, effectiveCidPut);
         let existing: any = null;
         if (useLmsStrictPut) {
             existing = await dbPut
@@ -4853,11 +4899,11 @@ app.put('/plan-documents/:id', authMiddleware, async (c) => {
                 LIMIT 1
             `
                 )
-                .bind(docId, round, docType, curriculumId, courseId, courseId)
+                .bind(docId, round, docType, curriculumId, effectiveCidPut, effectiveCidPut)
                 .first();
         } else {
-            const courseIdsPut = await resolveNcsPlanDocumentCourseIds(dbPut, courseId);
-            const inListPut = courseIdsPut.length ? courseIdsPut : [courseId];
+            const courseIdsPut = await resolveNcsPlanDocumentCourseIds(dbPut, effectiveCidPut);
+            const inListPut = courseIdsPut.length ? courseIdsPut : [effectiveCidPut];
             const inPhPut = inListPut.map(() => '?').join(', ');
             existing = await dbPut
                 .prepare(
@@ -4944,7 +4990,9 @@ app.delete('/plan-documents/:id', authMiddleware, async (c) => {
         if (!allowed) return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
 
         const dbDel = c.env.DB;
-        const useLmsStrictDel = await isRegisteredLmsCourseId(dbDel, courseId);
+        const sesOvrDel = await resolveExplicitSessionOverride(dbDel, c.req.query('session_id'));
+        const effectiveCidDel = sesOvrDel ? sesOvrDel.lmsCourseId : courseId;
+        const useLmsStrictDel = await isRegisteredLmsCourseId(dbDel, effectiveCidDel);
         let existingDel: any = null;
         if (useLmsStrictDel) {
             existingDel = await dbDel
@@ -4957,11 +5005,11 @@ app.delete('/plan-documents/:id', authMiddleware, async (c) => {
                 LIMIT 1
             `
                 )
-                .bind(docId, round, docType, curriculumId, courseId, courseId)
+                .bind(docId, round, docType, curriculumId, effectiveCidDel, effectiveCidDel)
                 .first();
         } else {
-            const courseIdsDel = await resolveNcsPlanDocumentCourseIds(dbDel, courseId);
-            const inListDel = courseIdsDel.length ? courseIdsDel : [courseId];
+            const courseIdsDel = await resolveNcsPlanDocumentCourseIds(dbDel, effectiveCidDel);
+            const inListDel = courseIdsDel.length ? courseIdsDel : [effectiveCidDel];
             const inPhDel = inListDel.map(() => '?').join(', ');
             existingDel = await dbDel
                 .prepare(
@@ -5001,9 +5049,10 @@ app.get('/evaluation-dashboard', authMiddleware, async (c) => {
         const allowed = await ensureNcsCoursePermission(c, courseId);
         if (!allowed) return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
 
-        const courseIds = await resolveNcsPlanDocumentCourseIds(c.env.DB, courseId);
-        // D1/SQL에서 IN () 형태가 되면 쿼리 예외가 발생할 수 있어 방어적으로 정리
-        const inListRaw = courseIds.length ? courseIds : [courseId];
+        const sesOvrDash = await resolveExplicitSessionOverride(c.env.DB, c.req.query('session_id'));
+        const effectiveCidDash = sesOvrDash ? sesOvrDash.lmsCourseId : courseId;
+        const courseIds = await resolveNcsPlanDocumentCourseIds(c.env.DB, effectiveCidDash);
+        const inListRaw = courseIds.length ? courseIds : [effectiveCidDash];
         const inList = (Array.isArray(inListRaw) ? inListRaw : [courseId]).filter((v) => Number.isFinite(Number(v)) && Number(v) >= 1).map((v) => Number(v));
         const safeInList = inList.length ? inList : [courseId];
         const inPh = safeInList.map(() => '?').join(', ');
@@ -5198,7 +5247,9 @@ app.get('/evaluation-dashboard-hub', authMiddleware, async (c) => {
         const allowed = await ensureNcsCoursePermission(c, courseId);
         if (!allowed) return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
 
-        // 1) HRD 요약은 courses.id(LMS)를 넘김. 회차는 lms_course_id로만 확정 (제목 LIKE 금지 — lmsCourseContext).
+        // session_id 명시 시 직접 회차 확정 (PK 충돌 방지)
+        const sessionOverride = await resolveExplicitSessionOverride(c.env.DB, c.req.query('session_id'));
+
         const resolveCourseSessionForTimetable = async (DB: any, rawId: number) => {
             if (await isRegisteredLmsCourseId(DB, rawId)) {
                 return getLatestCourseSessionRowForLmsCourseId(DB, rawId);
@@ -5229,7 +5280,14 @@ app.get('/evaluation-dashboard-hub', authMiddleware, async (c) => {
             return byLms || null;
         };
 
-        const session = await resolveCourseSessionForTimetable(c.env.DB, courseId);
+        let session: any;
+        if (sessionOverride) {
+            session = await c.env.DB.prepare(
+                'SELECT id, approved_course_id, instructor_name, lms_course_id, session_number FROM course_sessions WHERE id = ?'
+            ).bind(sessionOverride.sessionId).first();
+        } else {
+            session = await resolveCourseSessionForTimetable(c.env.DB, courseId);
+        }
         if (!session) {
             return c.json({
                 success: true,
@@ -5427,9 +5485,12 @@ app.get('/evaluation-dashboard-hub', authMiddleware, async (c) => {
 app.get('/plans', authMiddleware, async (c) => {
     try {
         const user = c.get('user') as JWTPayload;
-        const courseId = c.req.query('courseId');
+        const rawCourseId = c.req.query('courseId');
         const evaluationRoundRaw = c.req.query('evaluation_round') ?? c.req.query('round');
-        if (!courseId) return c.json({ success: false, error: 'Course ID is required' }, 400);
+        if (!rawCourseId) return c.json({ success: false, error: 'Course ID is required' }, 400);
+
+        const sesOvrPlans = await resolveExplicitSessionOverride(c.env.DB, c.req.query('session_id'));
+        const courseId = sesOvrPlans ? String(sesOvrPlans.lmsCourseId) : rawCourseId;
 
         // 강사인 경우 권한 확인
         if (user.role === 'teacher') {
@@ -5439,8 +5500,6 @@ app.get('/plans', authMiddleware, async (c) => {
             }
         }
 
-        // 기존 화면은 본평가(1차)만 보여주는 흐름이었으므로 기본값을 1로 유지합니다.
-        // 평가실행 탭(2차/3차)에서는 evaluation_round 값을 명시해서 필터링합니다.
         const evaluationRound = evaluationRoundRaw != null && String(evaluationRoundRaw).trim() !== ''
             ? parseInt(String(evaluationRoundRaw), 10)
             : 1;

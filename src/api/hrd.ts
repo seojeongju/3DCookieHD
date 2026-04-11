@@ -3915,7 +3915,17 @@ app.get('/surveys/summary', authMiddleware, async (c) => {
 app.get('/courses/:courseId/ncs-summary', async (c) => {
     try {
         const courseIdParam = c.req.param('courseId');
-        const courseId = await resolveLmsCourseId(c.env.DB, courseIdParam);
+        // session_id 명시 시 해당 회차의 lms_course_id 로 직접 해석 (PK 충돌 방지)
+        const _sidRaw = c.req.query('session_id');
+        let courseId: number | null = null;
+        if (_sidRaw != null && String(_sidRaw).trim() !== '') {
+            const sid = parseInt(String(_sidRaw), 10);
+            if (Number.isFinite(sid) && sid >= 1) {
+                const sRow: any = await c.env.DB.prepare('SELECT lms_course_id FROM course_sessions WHERE id = ?').bind(sid).first();
+                if (sRow?.lms_course_id) courseId = Number(sRow.lms_course_id);
+            }
+        }
+        if (courseId == null) courseId = await resolveLmsCourseId(c.env.DB, courseIdParam);
 
         if (!courseId) {
             return c.json({ success: true, data: [] });
