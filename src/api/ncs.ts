@@ -5286,14 +5286,15 @@ app.get('/evaluation-dashboard-hub', authMiddleware, async (c) => {
             return byLms || null;
         };
 
-        let session: any;
-        if (sessionOverride) {
-            session = await c.env.DB.prepare(
+        // 교과목(curriculum) 해석은 항상 resolveCourseSessionForTimetable 으로 통일
+        // → Hub(session_id 없음)·LMS(session_id 있음) 모두 동일 curriculum 사용
+        // session_id override 는 timetable 보강에만 사용
+        let session: any = await resolveCourseSessionForTimetable(c.env.DB, courseId);
+        const overrideSession = sessionOverride
+            ? await c.env.DB.prepare(
                 'SELECT id, approved_course_id, instructor_name, lms_course_id, session_number FROM course_sessions WHERE id = ?'
-            ).bind(sessionOverride.sessionId).first();
-        } else {
-            session = await resolveCourseSessionForTimetable(c.env.DB, courseId);
-        }
+              ).bind(sessionOverride.sessionId).first()
+            : null;
         if (!session) {
             return c.json({
                 success: true,
@@ -5330,11 +5331,13 @@ app.get('/evaluation-dashboard-hub', authMiddleware, async (c) => {
         }
 
         // 시간표에만 존재하고 curriculum에 없는 교과목도 보이게 보강(평가계획 화면과 동일 전략)
+        // session_id override 가 있으면 해당 session 의 timetable 도 참조
+        const timetableSessionId = overrideSession ? overrideSession.id : session.id;
         try {
             const ttDistinct = await c.env.DB.prepare(`
                 SELECT DISTINCT subject_id FROM session_timetable
                 WHERE session_id = ? AND subject_id IS NOT NULL AND (is_excluded IS NULL OR is_excluded = 0)
-            `).bind(session.id).all();
+            `).bind(timetableSessionId).all();
 
             const ttIds = (ttDistinct?.results || [])
                 .map((r: any) => r.subject_id)
