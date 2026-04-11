@@ -849,6 +849,22 @@ const NCS_LARGE_CLASSES: { code: string; name: string }[] = [
     { code: '24', name: '농림·어업' },
 ];
 
+/** 대분류 코드(NCS_LCLAS_CD) 기준 중복 제거 — 기준정보 API·DB 결과에 동일 코드가 반복될 때 분류보기 셀렉트가 2배로 보이는 현상 방지 */
+function dedupeNcsLargeClasses(items: { code?: string; name?: string }[]): { code: string; name: string }[] {
+    const byCode = new Map<string, { code: string; name: string }>();
+    for (const it of items) {
+        const code = String(it?.code ?? '').trim();
+        if (!code) continue;
+        if (!byCode.has(code)) {
+            const name = String(it?.name ?? '').trim();
+            byCode.set(code, { code, name: name || code });
+        }
+    }
+    return Array.from(byCode.values()).sort((a, b) =>
+        a.code.localeCompare(b.code, undefined, { numeric: true })
+    );
+}
+
 /** 공공 API 상태 진단 (키·응답·항목 수 확인) — 훈련직종 리스트 문제 원인 확인용 */
 app.get('/approved/check', async (c) => {
     const rawKey = c.env.NCS_API_KEY?.trim();
@@ -976,10 +992,12 @@ app.get('/approved/large-classes', async (c) => {
             ).all();
             if (results && results.length > 0) {
                 // Fill missing names from standard list
-                const enhanced = results.map((r: any) => {
-                    const found = NCS_LARGE_CLASSES.find(lc => lc.code === r.code);
-                    return { code: r.code, name: r.name || (found ? found.name : r.code) };
-                });
+                const enhanced = dedupeNcsLargeClasses(
+                    results.map((r: any) => {
+                        const found = NCS_LARGE_CLASSES.find(lc => lc.code === r.code);
+                        return { code: r.code, name: r.name || (found ? found.name : r.code) };
+                    })
+                );
                 return c.json({ success: true, data: enhanced });
             }
         } catch (dbErr) {
@@ -988,17 +1006,17 @@ app.get('/approved/large-classes', async (c) => {
 
         if (rawKey) {
             const classificationBase = (c.env as { NCS_CLASSIFICATION_API_BASE?: string }).NCS_CLASSIFICATION_API_BASE?.trim();
-            const data = await fetchNcsLargeClasses(rawKey, classificationBase);
+            const data = dedupeNcsLargeClasses(await fetchNcsLargeClasses(rawKey, classificationBase));
             if (data && data.length > 0) {
                 return c.json({ success: true, data });
             }
         }
 
         // Fallback or No API Key
-        return c.json({ success: true, data: NCS_LARGE_CLASSES });
+        return c.json({ success: true, data: dedupeNcsLargeClasses(NCS_LARGE_CLASSES) });
     } catch (e) {
         console.error('NCS approved/large-classes error:', e);
-        return c.json({ success: true, data: NCS_LARGE_CLASSES });
+        return c.json({ success: true, data: dedupeNcsLargeClasses(NCS_LARGE_CLASSES) });
     }
 });
 
