@@ -4477,29 +4477,7 @@ async function resolveNcsPlanDocumentCourseIds(db: any, courseId: number): Promi
                 const sid = parseInt(String((r as any).id), 10);
                 if (Number.isFinite(sid) && sid >= 1) ids.add(sid);
             }
-            if (rows.length === 0) {
-                const co = await db.prepare('SELECT TRIM(title) AS t FROM courses WHERE id = ?').bind(courseId).first();
-                const lmsTitle = co?.t != null ? String((co as { t: string }).t).trim() : '';
-                if (lmsTitle) {
-                    const { results: tr } = await db
-                        .prepare(
-                            `SELECT s.id FROM course_sessions s
-                             INNER JOIN approved_courses a ON a.id = s.approved_course_id
-                             WHERE TRIM(COALESCE(a.name, '')) != ''
-                               AND (
-                                 ? LIKE '%' || TRIM(a.name) || '%'
-                                 OR TRIM(a.name) LIKE '%' || ? || '%'
-                               )
-                             ORDER BY LENGTH(TRIM(a.name)) DESC, s.session_number DESC, s.id DESC`
-                        )
-                        .bind(lmsTitle, lmsTitle)
-                        .all();
-                    for (const r of tr || []) {
-                        const sid = parseInt(String((r as any).id), 10);
-                        if (Number.isFinite(sid) && sid >= 1) ids.add(sid);
-                    }
-                }
-            }
+            // lms_course_id 미연결 시 제목 LIKE 로 회차를 추정하면 다른 과정 회차 PK가 IN 에 섞여 잘못된 저장문서가 조회된다.
         } catch {
             /* ignore */
         }

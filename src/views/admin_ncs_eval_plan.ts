@@ -4038,7 +4038,14 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           return;
         }
         var d = json.data || {};
-        setToolsFieldValue('tools_display_course', d.course_title || '');
+        var lmsTitleForTools = getSelectedLmsCourseDisplayTitle();
+        if (!lmsTitleForTools && courseId) {
+          try {
+            var cdx = await fetchLmsCourseDetail(courseId);
+            if (cdx && (cdx.title || cdx.name)) lmsTitleForTools = String(cdx.title || cdx.name).trim();
+          } catch (e) {}
+        }
+        setToolsFieldValue('tools_display_course', lmsTitleForTools || d.course_title || '');
         syncToolsSubjectDisplay();
         setToolsFieldValue('tools_unit_name_level', d.unit_name_level || '');
         var insDefault = String(d.default_tools_instructor || '').trim();
@@ -4446,6 +4453,19 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           }
           await loadNcsPlanSubjectOptions(cid, payload.session_id || selectedSessionIdForSubject || '', { preserveSelection: true });
           applyNcsSubjectSelectValue('toolsSubjectSelect', payload.curriculum_id, payload.subject_name);
+          var toolsSubEl = document.getElementById('toolsSubjectSelect');
+          if (toolsSubEl && payload.curriculum_id != null && String(payload.curriculum_id).trim() !== '') {
+            var wantC = String(payload.curriculum_id).trim();
+            if (toolsSubEl.value !== wantC) toolsSubEl.value = '';
+          }
+          var lmsCourseTitle = getSelectedLmsCourseDisplayTitle();
+          if (!lmsCourseTitle) {
+            try {
+              var cd = await fetchLmsCourseDetail(cid);
+              if (cd && (cd.title || cd.name)) lmsCourseTitle = String(cd.title || cd.name).trim();
+            } catch (e) {}
+          }
+          if (lmsCourseTitle) setToolsFieldValue('tools_display_course', lmsCourseTitle);
           syncToolsSubjectDisplay();
           updateToolsLoadButtonState();
           syncToolsInstructorSelectToSavedName(payload.tools_instructor || '');
@@ -4610,6 +4630,24 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       var el = document.getElementById(selectId);
       if (!el || String(el.tagName).toUpperCase() !== 'SELECT') return '';
       return String(el.value || '').trim();
+    }
+
+    /** 상단에서 선택한 LMS 개설 과정 표시용 과정명 ([id] 접두 제거) */
+    function getSelectedLmsCourseDisplayTitle() {
+      var cid = selectedCourseId || (useFixedCourseId ? fixedCourseId : '');
+      if (!cid) return '';
+      if (useFixedCourseId && window.__ncsEvalPlanCourseTitle) {
+        return String(window.__ncsEvalPlanCourseTitle).trim();
+      }
+      var sel = document.getElementById('ncsPlanCourseSelect');
+      if (sel && String(sel.value || '').trim() === String(cid).trim()) {
+        var opt = sel.options[sel.selectedIndex];
+        if (opt) {
+          var txt = String(opt.textContent || '').trim();
+          return txt.replace(/^\[[\d]+\]\s*/, '').trim();
+        }
+      }
+      return '';
     }
 
     function applyNcsSubjectSelectValue(selectId, curriculumIdRaw, subjectNameRaw) {
