@@ -4464,19 +4464,40 @@ async function resolveNcsPlanDocumentCourseIds(db: any, courseId: number): Promi
         courseRow = null;
     }
     if (courseRow) {
+        // LMS 개설 과정 ID로 조회할 때는 문서 키도 주로 courses.id 또는 해당 회차(session.id)이다.
+        // approved_courses.id 를 IN 에 넣으면 숫자만 같은 다른 과정(승인과정 PK) 문서까지 섞여 엉뚱한 저장문서가 선택된다.
         ids.add(courseId);
         try {
             const { results } = await db
-                .prepare('SELECT id, approved_course_id FROM course_sessions WHERE lms_course_id = ?')
+                .prepare('SELECT id FROM course_sessions WHERE lms_course_id = ?')
                 .bind(courseId)
                 .all();
-            for (const r of results || []) {
+            const rows = results || [];
+            for (const r of rows) {
                 const sid = parseInt(String((r as any).id), 10);
                 if (Number.isFinite(sid) && sid >= 1) ids.add(sid);
-                const aidRaw = (r as any).approved_course_id;
-                if (aidRaw != null && aidRaw !== '') {
-                    const aid = parseInt(String(aidRaw), 10);
-                    if (Number.isFinite(aid) && aid >= 1) ids.add(aid);
+            }
+            if (rows.length === 0) {
+                const co = await db.prepare('SELECT TRIM(title) AS t FROM courses WHERE id = ?').bind(courseId).first();
+                const lmsTitle = co?.t != null ? String((co as { t: string }).t).trim() : '';
+                if (lmsTitle) {
+                    const { results: tr } = await db
+                        .prepare(
+                            `SELECT s.id FROM course_sessions s
+                             INNER JOIN approved_courses a ON a.id = s.approved_course_id
+                             WHERE TRIM(COALESCE(a.name, '')) != ''
+                               AND (
+                                 ? LIKE '%' || TRIM(a.name) || '%'
+                                 OR TRIM(a.name) LIKE '%' || ? || '%'
+                               )
+                             ORDER BY LENGTH(TRIM(a.name)) DESC, s.session_number DESC, s.id DESC`
+                        )
+                        .bind(lmsTitle, lmsTitle)
+                        .all();
+                    for (const r of tr || []) {
+                        const sid = parseInt(String((r as any).id), 10);
+                        if (Number.isFinite(sid) && sid >= 1) ids.add(sid);
+                    }
                 }
             }
         } catch {
@@ -4595,9 +4616,9 @@ app.get('/plan-documents', authMiddleware, async (c) => {
                 SELECT id, course_id, evaluation_round, doc_type, title, payload_json, updated_at
                 FROM ncs_plan_documents
                 WHERE course_id IN (${inPh}) AND evaluation_round = ? AND doc_type = ?
-                ORDER BY updated_at DESC, id DESC
+                ORDER BY CASE WHEN course_id = ? THEN 0 ELSE 1 END, updated_at DESC, id DESC
                 LIMIT 1
-            `).bind(...inList, round, docType).first();
+            `).bind(...inList, round, docType, courseId).first();
         }
 
         if (!row) {
@@ -4658,8 +4679,8 @@ app.get('/plan-documents/list', authMiddleware, async (c) => {
             SELECT id, title, updated_at
             FROM ncs_plan_documents
             WHERE course_id IN (${inPh}) AND evaluation_round = ? AND doc_type = ?
-            ORDER BY updated_at DESC, id DESC
-        `).bind(...inList, round, docType).all();
+            ORDER BY CASE WHEN course_id = ? THEN 0 ELSE 1 END, updated_at DESC, id DESC
+        `).bind(...inList, round, docType, courseId).all();
 
         return c.json({ success: true, data: Array.isArray(results) ? results : [] });
     } catch (e) {
