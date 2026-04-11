@@ -733,6 +733,20 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
         let examQuestions = [];
         let mgmtSubjects = [];
 
+        /** LMS URL /admin/courses/:id 는 courses.id — 회차 PK(session_id)와 혼동 금지 */
+        function lmsCourseIdForMgmtSession() {
+            if (!mgmtSessionId) return '';
+            const row = (allData || []).find(function (c) {
+                return String(c.session_id) === String(mgmtSessionId);
+            });
+            if (!row || row.lms_course_id == null || String(row.lms_course_id).trim() === '') return '';
+            return String(row.lms_course_id).trim();
+        }
+        function ncsEvalDashboardHref() {
+            const lid = lmsCourseIdForMgmtSession();
+            return lid ? '/admin/courses/' + lid + '/lms/ncs-eval-dashboard?type=hrd' : '#';
+        }
+
         function getQuestionTypeLabel(type) {
             if (!type) return '';
             const t = String(type).toLowerCase();
@@ -761,7 +775,11 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
             if (type === 'ncs') {
                 if (titleEl) titleEl.innerHTML = '<i class=\"fas fa-certificate text-amber-500\"></i> 이 회차의 NCS평가(본평가)용 문제';
                 if (labelEl) labelEl.textContent = '문제은행에서 NCS평가(본평가)로 추가한 문제가 여기 표시됩니다.';
-                if (linkEl) { linkEl.href = mgmtSessionId ? '/admin/courses/' + mgmtSessionId + '/lms/ncs-eval-dashboard?type=hrd' : '#'; linkEl.classList.remove('hidden'); }
+                if (linkEl) {
+                    linkEl.href = ncsEvalDashboardHref();
+                    linkEl.title = linkEl.href === '#' ? 'LMS 개설 과정과 회차가 연결되지 않았습니다. course_sessions.lms_course_id를 확인하세요.' : '';
+                    linkEl.classList.remove('hidden');
+                }
                 if (cbtLinkEl) cbtLinkEl.classList.add('hidden');
                 if (importLabel) importLabel.textContent = '선택 문제 NCS평가(본평가)에 추가';
                 if (importBtn) updateImportBtnStatus();
@@ -834,7 +852,8 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
             }
             const rightPanelLinkEl = document.getElementById('rightPanelLink');
             if (rightPanelLinkEl && mgmtSessionId && addTargetType === 'ncs') {
-                rightPanelLinkEl.href = '/admin/courses/' + mgmtSessionId + '/lms/ncs-eval-dashboard?type=hrd';
+                rightPanelLinkEl.href = ncsEvalDashboardHref();
+                rightPanelLinkEl.title = rightPanelLinkEl.href === '#' ? 'LMS 개설 과정과 회차가 연결되지 않았습니다.' : '';
                 rightPanelLinkEl.classList.remove('hidden');
             } else if (rightPanelLinkEl && !mgmtSessionId) rightPanelLinkEl.classList.add('hidden');
             if (addExamBtn) {
@@ -857,7 +876,12 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
             await loadMgmtExams();
             if (addTargetType === 'ncs') {
                 await loadNcsCourseQuestions();
-                const linkEl = document.getElementById('rightPanelLink'); if (linkEl) { linkEl.href = '/admin/courses/' + mgmtSessionId + '/lms/ncs-eval-dashboard?type=hrd'; linkEl.classList.remove('hidden'); }
+                const linkEl = document.getElementById('rightPanelLink');
+                if (linkEl) {
+                    linkEl.href = ncsEvalDashboardHref();
+                    linkEl.title = linkEl.href === '#' ? 'LMS 개설 과정과 회차가 연결되지 않았습니다.' : '';
+                    linkEl.classList.remove('hidden');
+                }
                 updateImportBtnStatus();
             }
             await loadQuestionBank();

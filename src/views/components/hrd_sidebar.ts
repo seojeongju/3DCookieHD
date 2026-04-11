@@ -176,19 +176,19 @@ export const hrdSidebar = (activeMenu: string, options?: HrdSidebarOptions) => {
             <div class="sidebar-submenu-content overflow-hidden transition-all duration-300 ${(activeMenu.startsWith('ncs-eval')) ? 'max-h-[1000px] opacity-100 mt-1' : 'max-h-0 opacity-0'}">
                 <a href="/admin/ncs-eval-dashboard-hub" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'ncs-eval-dashboard-hub' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
                     <i class="fas fa-table-columns w-6 text-sm ${activeMenu === 'ncs-eval-dashboard-hub' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
-                    <span class="font-medium text-[13px]">본평가 계획현황</span>
+                    <span class="font-medium text-[13px]">본평가 · 전체 과정 현황</span>
                 </a>
                 <a href="/admin/ncs-eval-plan" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'ncs-eval-plan' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
                     <i class="fas fa-clipboard-list w-6 text-sm ${activeMenu === 'ncs-eval-plan' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
-                    <span class="font-medium text-[13px]">NCS평가계획</span>
+                    <span class="font-medium text-[13px]">NCS평가계획 <span class="text-slate-500 font-normal">(과정 선택)</span></span>
                 </a>
                 <a href="/admin/ncs-eval-exec" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'ncs-eval-exec' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
                     <i class="fas fa-play-circle w-6 text-sm ${activeMenu === 'ncs-eval-exec' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
-                    <span class="font-medium text-[13px]">NCS평가실행</span>
+                    <span class="font-medium text-[13px]">NCS평가실행 <span class="text-slate-500 font-normal">(과정 선택)</span></span>
                 </a>
                 <a href="/admin/ncs-eval-result" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'ncs-eval-result' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
                     <i class="fas fa-poll w-6 text-sm ${activeMenu === 'ncs-eval-result' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
-                    <span class="font-medium text-[13px]">NCS평가결과</span>
+                    <span class="font-medium text-[13px]">NCS평가결과 <span class="text-slate-500 font-normal">(과정 선택)</span></span>
                 </a>
             </div>
         </div>

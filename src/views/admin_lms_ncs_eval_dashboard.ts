@@ -25,8 +25,8 @@ export const adminLmsNcsEvalDashboardHtml = (sidebar: string = hrdSidebar('cours
           <div class="px-4 sm:px-6 lg:px-8 py-4 max-w-[1600px] mx-auto w-full">
             <div class="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">NCS 본평가 · 계획 생성 현황</h1>
-                <p class="text-slate-600 text-sm mt-1"><strong>별도 메뉴 진입 없이</strong> 1~3차별 평가실시일자·문항·도구·채점기준 등 작성 여부를 확인할 수 있습니다.</p>
+                <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">NCS 본평가 · 계획 생성 현황 <span class="text-indigo-600 text-base sm:text-lg font-extrabold">(이 과정 LMS)</span></h1>
+                <p class="text-slate-600 text-sm mt-1">현재 URL의 과정에 대해 <strong>1~3차</strong> 평가실시일자·문항·도구·채점기준 등 작성 여부를 확인합니다.</p>
               </div>
               <nav class="flex flex-wrap gap-2 text-xs font-bold shrink-0" aria-label="NCS 본평가 바로가기">
                 <a id="ncsLmsDashNavPlan" href="#" class="px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50">평가계획</a>
@@ -35,20 +35,25 @@ export const adminLmsNcsEvalDashboardHtml = (sidebar: string = hrdSidebar('cours
                 <span class="px-3 py-2 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-800 cursor-default">통합현황</span>
               </nav>
             </div>
-            <div class="mt-4 flex flex-col sm:flex-row sm:items-end gap-3">
-              <label class="flex-1 min-w-0 block">
-                <span class="text-xs font-black text-slate-500 uppercase tracking-wider">과정선택</span>
-                <select id="ncsLmsDashCourseSelect" class="mt-1 w-full max-w-4xl px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-800 shadow-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 outline-none disabled:opacity-60">
-                  <option value="">불러오는 중…</option>
-                </select>
-              </label>
-              <button type="button" id="ncsLmsDashRefresh" class="px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm font-black text-slate-700 hover:bg-slate-50 shrink-0">
-                <i class="fas fa-rotate-right mr-2"></i>새로고침
-              </button>
+            <div class="mt-4 flex flex-col lg:flex-row lg:items-end gap-3">
+              <div class="flex-1 min-w-0 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                <span class="text-xs font-black text-slate-500 uppercase tracking-wider">조회 중인 과정 (이 LMS만)</span>
+                <p class="mt-1 text-sm text-slate-900" id="ncsLmsDashCourseLabel">
+                  <span class="font-mono font-bold text-indigo-700" id="ncsLmsDashCourseIdDisplay"></span>
+                  <span class="mx-1.5 text-slate-300">|</span>
+                  <span id="ncsLmsDashCourseTitle" class="font-semibold">불러오는 중…</span>
+                </p>
+              </div>
+              <div class="flex flex-wrap items-center gap-2 shrink-0">
+                <a id="ncsLmsDashHubAllCourses" href="/admin/ncs-eval-dashboard-hub" class="hidden px-4 py-3 rounded-xl border border-indigo-200 bg-indigo-50 text-sm font-black text-indigo-900 hover:bg-indigo-100 whitespace-nowrap" title="모든 과정의 본평가 계획 현황">전체 과정 현황</a>
+                <button type="button" id="ncsLmsDashRefresh" class="px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm font-black text-slate-700 hover:bg-slate-50 whitespace-nowrap">
+                  <i class="fas fa-rotate-right mr-2"></i>새로고침
+                </button>
+              </div>
             </div>
-            <p class="mt-3 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-              <i class="fas fa-triangle-exclamation mr-1"></i>
-              이 화면은 URL의 <strong>과정 ID</strong>(<code class="text-[11px] bg-amber-100 px-1 rounded">/admin/courses/숫자/lms/…</code>)로 조회합니다. HRD 본평가 계획 현황과 동일한 교과목 목록을 쓰려면 해당 ID가 <strong>개설 회차·시간표</strong>와 연결되어 있어야 합니다. 연결이 없으면 표가 비거나 API 오류가 날 수 있습니다.
+            <p class="mt-3 text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+              <i class="fas fa-circle-info mr-1 text-slate-400"></i>
+              이 페이지는 URL의 <strong>과정 ID</strong> 한 건만 표시합니다. 다른 과정은 <strong>과정 목록</strong>에서 들어가거나, 관리자 메뉴 <strong>NCS평가(본평가)관리 → 본평가 · 전체 과정 현황</strong>에서 비교하세요. 회차·시간표와 연결이 없으면 표가 비거나 오류가 날 수 있습니다.
             </p>
           </div>
         </header>
@@ -103,36 +108,31 @@ export const adminLmsNcsEvalDashboardHtml = (sidebar: string = hrdSidebar('cours
       if (resA) resA.href = lmsBase + 'ncs-eval-result' + Q;
     }
 
-    async function loadCourseSelectOptions() {
-      var sel = document.getElementById('ncsLmsDashCourseSelect');
-      if (!sel) return;
-      sel.disabled = true;
+    async function loadCourseContextLabel() {
+      var idDisp = document.getElementById('ncsLmsDashCourseIdDisplay');
+      var titleEl = document.getElementById('ncsLmsDashCourseTitle');
+      var hubA = document.getElementById('ncsLmsDashHubAllCourses');
+      if (idDisp) idDisp.textContent = String(courseId || '—');
+      if (hubA && !isTeacherPath) hubA.classList.remove('hidden');
+      if (!titleEl) return;
       try {
-        var res = await fetch('/api/hrd/ncs-eval/summary', {
+        var res = await fetch('/api/courses/' + encodeURIComponent(courseId) + '?type=hrd', {
           headers: { 'Authorization': 'Bearer ' + token }
         });
+        if (res.status === 404) {
+          res = await fetch('/api/courses/' + encodeURIComponent(courseId), {
+            headers: { 'Authorization': 'Bearer ' + token }
+          });
+        }
         var json = await res.json();
-        if (!json || !json.success || !Array.isArray(json.data)) {
-          sel.innerHTML = '<option value="">과정 목록을 불러오지 못했습니다</option>';
-          return;
+        var t = '';
+        if (json && json.success && json.data) {
+          t = String(json.data.title || json.data.name || '').trim();
         }
-        var list = json.data;
-        sel.innerHTML = '<option value="">— 과정을 선택하세요 —</option>' +
-          list.map(function(c) {
-            var id = String(c.id);
-            var t = (c.title || '과정') + (c.teacher_name ? ' · ' + c.teacher_name : '');
-            return '<option value="' + escapeHtml(id) + '">[' + escapeHtml(id) + '] ' + escapeHtml(t) + '</option>';
-          }).join('');
-        if (list.some(function(c) { return String(c.id) === String(courseId); })) {
-          sel.value = String(courseId);
-        } else {
-          sel.value = '';
-        }
+        titleEl.textContent = t || '과정명을 불러오지 못했습니다';
       } catch (e) {
         console.error(e);
-        sel.innerHTML = '<option value="">과정 목록 오류</option>';
-      } finally {
-        sel.disabled = false;
+        titleEl.textContent = '과정명 조회 오류';
       }
     }
 
@@ -286,23 +286,8 @@ export const adminLmsNcsEvalDashboardHtml = (sidebar: string = hrdSidebar('cours
 
     document.addEventListener('DOMContentLoaded', function() {
       wireNavLinks();
-      var sel = document.getElementById('ncsLmsDashCourseSelect');
-      if (sel) {
-        sel.addEventListener('change', function() {
-          var nextId = String(sel.value || '').trim();
-          if (!nextId || nextId === String(courseId)) return;
-          try {
-            var p = new URLSearchParams(window.location.search);
-            if (!p.get('type')) p.set('type', 'hrd');
-            window.location.href = basePrefix + '/courses/' + encodeURIComponent(nextId) + '/lms/ncs-eval-dashboard?' + p.toString();
-          } catch (e) {
-            window.location.href = basePrefix + '/courses/' + encodeURIComponent(nextId) + '/lms/ncs-eval-dashboard?type=hrd';
-          }
-        });
-      }
-      void loadCourseSelectOptions().then(function() {
-        void loadDashboard();
-      });
+      void loadCourseContextLabel();
+      void loadDashboard();
       var refBtn = document.getElementById('ncsLmsDashRefresh');
       if (refBtn) refBtn.addEventListener('click', function() { void loadDashboard(); });
     });

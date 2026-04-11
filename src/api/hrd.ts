@@ -3575,6 +3575,7 @@ app.get('/exams/summary', authMiddleware, async (c) => {
                 return {
                     session_id: session.id,
                     id: session.id,
+                    lms_course_id: courseId,
                     title,
                     status: session.status,
                     status_label: statusLabels[session.status] || session.status || '-',
@@ -3590,6 +3591,7 @@ app.get('/exams/summary', authMiddleware, async (c) => {
                 return {
                     session_id: session?.id,
                     id: session?.id,
+                    lms_course_id: null,
                     title: (session?.course_name || '과정') + ' (오류)',
                     status: session?.status,
                     status_label: statusLabels[session?.status] || '-',

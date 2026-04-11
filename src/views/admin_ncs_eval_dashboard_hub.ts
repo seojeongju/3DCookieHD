@@ -23,8 +23,8 @@ export const adminNcsEvalDashboardHubHtml = (sidebar = hrdSidebar('ncs-eval-dash
         <div class="px-4 sm:px-6 lg:px-8 py-4 max-w-[1600px] mx-auto w-full">
           <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">NCS 본평가 · 계획 생성 현황</h1>
-              <p class="text-slate-600 text-sm mt-1">과정을 선택하면 <strong>별도 메뉴 진입 없이</strong> 1~3차별 평가실시일자·문항·도구·채점기준 등 작성 여부를 확인할 수 있습니다.</p>
+              <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">NCS 본평가 · 전체 과정 계획 현황</h1>
+              <p class="text-slate-600 text-sm mt-1">운영 중인 <strong>모든 과정</strong>을 선택해 1~3차별 평가실시일자·문항·도구·채점기준 등 작성 여부를 확인합니다. <span class="text-slate-500">특정 과정만 보려면 해당 과정 <strong class="text-slate-700">LMS → NCS평가(본평가)관리</strong>로 이동하세요.</span></p>
             </div>
             <nav class="flex flex-wrap gap-2 text-xs font-bold shrink-0">
               <a href="/admin/ncs-eval-plan" class="px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50">전역 계획서</a>
@@ -272,11 +272,12 @@ export const adminNcsEvalDashboardHubHtml = (sidebar = hrdSidebar('ncs-eval-dash
           return;
         }
         var payload = json.data || {};
-        var resolvedId = payload.course_id != null ? String(payload.course_id).trim() : reqId;
-        if (resolvedId !== reqId) {
-          console.warn('[ncs-dash-hub] course_id mismatch', reqId, resolvedId);
+        // 링크는 반드시 드롭다운에서 고른 LMS courses.id(reqId)만 사용한다.
+        // (응답의 course_id는 조회용 메타일 뿐이며, 세션/승인과정 PK와 숫자가 겹치면 혼동될 수 있음)
+        if (payload.course_id != null && String(payload.course_id).trim() !== reqId) {
+          console.warn('[ncs-dash-hub] 응답 course_id와 선택 ID 불일치 (링크는 선택 ID 유지)', reqId, payload.course_id);
         }
-        linkedLmsCourseId = resolvedId;
+        linkedLmsCourseId = reqId;
         dashboardData = payload;
         renderRounds();
       } catch (e) {
