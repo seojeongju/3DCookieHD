@@ -350,7 +350,14 @@ export const adminScheduleHtml = `
                 
                 btnViewCourse.style.display = 'block';
                 btnViewCourse.textContent = 'LMS 바로가기';
-                btnViewCourse.onclick = () => location.href = '/admin/courses/' + event.id.split('-')[1] + '/lms';
+                btnViewCourse.onclick = () => {
+                    const sid = props.sessionId;
+                    if (sid != null && sid !== '') {
+                        location.href = '/admin/courses/' + encodeURIComponent(String(sid)) + '/lms?type=hrd&session_id=' + encodeURIComponent(String(sid));
+                    } else {
+                        location.href = '/admin/courses/' + event.id.split('-')[1] + '/lms?type=hrd';
+                    }
+                };
             } else if (props.type === 'facility') {
                 badge.className = 'px-2 py-1 rounded text-xs font-bold bg-green-100 text-green-700 mb-2 inline-block';
                 badge.textContent = '시설예약';

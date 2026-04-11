@@ -246,6 +246,7 @@ export const lmsHeaderHtml = (activeTab = 'dashboard', defaultType = '') => {
                 let type = urlParams.get('type') || '';
                 if (type && type.startsWith('hrd')) type = 'hrd';
                 if (type === 'undefined' || !type) type = window.location.pathname.includes('/lms') ? 'hrd' : '';
+                const sessionIdKeep = urlParams.get('session_id');
                 
                 const basePath = isAdminPath ? '/admin/courses/' + courseId + '/lms' : 
                                (isTeacherPath ? '/teacher/courses/' + courseId + '/lms' : '/student/courses/' + courseId + '/lms');
@@ -260,7 +261,10 @@ export const lmsHeaderHtml = (activeTab = 'dashboard', defaultType = '') => {
                     }
 
                     if (newHref && type) {
-                        newHref += (newHref.includes('?') ? '&' : '?') + 'type=' + type;
+                        newHref += (newHref.includes('?') ? '&' : '?') + 'type=' + encodeURIComponent(type);
+                    }
+                    if (newHref && sessionIdKeep) {
+                        newHref += (newHref.includes('?') ? '&' : '?') + 'session_id=' + encodeURIComponent(sessionIdKeep);
                     }
                     if (newHref) link.setAttribute('href', newHref);
                 });
@@ -287,7 +291,12 @@ export const lmsHeaderHtml = (activeTab = 'dashboard', defaultType = '') => {
                     if (type === 'undefined') type = 'hrd';
 
                     let apiUrl = '/api/courses/' + courseId;
-                    if (type) apiUrl += '?type=' + encodeURIComponent(type);
+                    const apiQs = new URLSearchParams();
+                    if (type) apiQs.set('type', type);
+                    const sidQ = urlParams.get('session_id');
+                    if (sidQ) apiQs.set('session_id', sidQ);
+                    const qStr = apiQs.toString();
+                    if (qStr) apiUrl += '?' + qStr;
 
                     let response = await fetch(apiUrl, {
                         headers: { 'Authorization': 'Bearer ' + token }
@@ -295,7 +304,7 @@ export const lmsHeaderHtml = (activeTab = 'dashboard', defaultType = '') => {
                     
                     // 404인 경우 HRD 회차일 수 있으므로 type=hrd로 재시도
                     if (response.status === 404) {
-                        apiUrl = '/api/courses/' + courseId + '?type=hrd';
+                        apiUrl = '/api/courses/' + courseId + '?type=hrd' + (sidQ ? '&session_id=' + encodeURIComponent(sidQ) : '');
                         response = await fetch(apiUrl, {
                             headers: { 'Authorization': 'Bearer ' + token }
                         });

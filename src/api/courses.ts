@@ -296,10 +296,20 @@ courses.get('/:id', async (c) => {
 
         let session: any = null;
 
+        // 대시보드 등에서 /courses/{숫자}/lms?session_id=회차PK 로 넘기면 경로 숫자와 courses.id 충돌과 무관하게 해당 회차만 사용
+        const sessionIdQ = c.req.query('session_id');
+        const explicitSid =
+          sessionIdQ != null && String(sessionIdQ).trim() !== ''
+            ? parseInt(String(sessionIdQ), 10)
+            : NaN;
+        if (Number.isFinite(explicitSid) && explicitSid >= 1) {
+          session = await DB.prepare(`${selectSessionJoin} WHERE s.id = ?`).bind(explicitSid).first<any>();
+        }
+
         // LMS URL은 /admin/courses/{id}/lms … 에서 id가 대부분 courses.id(개설 과정 PK)이다.
         // course_sessions.id·approved_courses.id 와 숫자가 겹치면 s.id = ? 만 조회하면 엉뚱한 회차가 선택된다.
-        const isLmsCourse = await isRegisteredLmsCourseId(DB, rawId);
-        if (isLmsCourse) {
+        const isLmsCourse = !session && (await isRegisteredLmsCourseId(DB, rawId));
+        if (!session && isLmsCourse) {
           session = await DB.prepare(
             `${selectSessionJoin}
             WHERE s.lms_course_id = ?
@@ -357,9 +367,13 @@ courses.get('/:id', async (c) => {
           const fullTitle = `${courseName} (${sessionNum}회차)${sessionNameSuffix}`;
 
           let displayTitle = fullTitle;
-          if (isLmsCourse) {
+          const lmsIdForTitle =
+            session.lms_course_id != null && String(session.lms_course_id).trim() !== ''
+              ? Number(session.lms_course_id)
+              : NaN;
+          if (Number.isFinite(lmsIdForTitle) && lmsIdForTitle >= 1) {
             const ctr = await DB.prepare('SELECT TRIM(title) AS t FROM courses WHERE id = ?')
-              .bind(rawId)
+              .bind(lmsIdForTitle)
               .first<{ t: string }>();
             const t = ctr?.t != null ? String(ctr.t).trim() : '';
             if (t) displayTitle = t;

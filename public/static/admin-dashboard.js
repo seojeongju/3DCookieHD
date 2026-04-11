@@ -55,6 +55,9 @@ async function loadActiveSessions() {
                     ? (session.training_start_date.substring(5, 10) + ' ~ ' + session.training_end_date.substring(5, 10))
                     : '일정 미정';
                 var sid = session.id;
+                var lmsRaw = session.lms_course_id;
+                var pathId = (lmsRaw != null && String(lmsRaw).trim() !== '') ? lmsRaw : sid;
+                var hrdQs = 'type=hrd&session_id=' + encodeURIComponent(String(sid));
                 var name = esc(session.course_name);
                 var num = session.session_number || 1;
                 var instructor = esc(session.instructor_name || '강사 미배정');
@@ -69,13 +72,13 @@ async function loadActiveSessions() {
                     '<span class="w-1 h-1 rounded-full bg-slate-300"></span>' +
                     '<span class="text-xs font-medium text-slate-400">' + instructor + '</span></div></div>' +
                     '<div class="p-4 grid grid-cols-2 gap-2 bg-white">' +
-                    '<a href="/admin/courses/' + sid + '/lms/attendance?type=hrd" class="flex items-center justify-center gap-2 py-2.5 bg-slate-50 text-slate-700 rounded-xl text-xs font-bold hover:bg-primary-50 hover:text-primary-600 transition"><i class="fas fa-user-check text-[10px]"></i> 출석</a>' +
-                    '<a href="/admin/courses/' + sid + '/lms/counseling" class="flex items-center justify-center gap-2 py-2.5 bg-slate-50 text-slate-700 rounded-xl text-xs font-bold hover:bg-primary-50 hover:text-primary-600 transition"><i class="fas fa-comments text-[10px]"></i> 상담</a>' +
-                    '<a href="/admin/courses/' + sid + '/lms/assignments" class="flex items-center justify-center gap-2 py-2.5 bg-slate-50 text-slate-700 rounded-xl text-xs font-bold hover:bg-primary-50 hover:text-primary-600 transition"><i class="fas fa-tasks text-[10px]"></i> 과제</a>' +
+                    '<a href="/admin/courses/' + pathId + '/lms/attendance?' + hrdQs + '" class="flex items-center justify-center gap-2 py-2.5 bg-slate-50 text-slate-700 rounded-xl text-xs font-bold hover:bg-primary-50 hover:text-primary-600 transition"><i class="fas fa-user-check text-[10px]"></i> 출석</a>' +
+                    '<a href="/admin/courses/' + pathId + '/lms/counseling?' + hrdQs + '" class="flex items-center justify-center gap-2 py-2.5 bg-slate-50 text-slate-700 rounded-xl text-xs font-bold hover:bg-primary-50 hover:text-primary-600 transition"><i class="fas fa-comments text-[10px]"></i> 상담</a>' +
+                    '<a href="/admin/courses/' + pathId + '/lms/assignments?' + hrdQs + '" class="flex items-center justify-center gap-2 py-2.5 bg-slate-50 text-slate-700 rounded-xl text-xs font-bold hover:bg-primary-50 hover:text-primary-600 transition"><i class="fas fa-tasks text-[10px]"></i> 과제</a>' +
                     '<a href="/admin/courses/sessions/' + sid + '/timetable" class="flex items-center justify-center gap-2 py-2.5 bg-slate-50 text-slate-700 rounded-xl text-xs font-bold hover:bg-primary-50 hover:text-primary-600 transition"><i class="far fa-calendar-alt text-[10px]"></i> 시간표</a>' +
                     '</div>' +
                     '<div class="px-4 pb-4">' +
-                    '<a href="/admin/courses/' + sid + '/lms" class="w-full h-10 flex items-center justify-center gap-2 bg-slate-900 text-white rounded-xl text-xs font-black hover:bg-primary-700 transition shadow-sm">LMS 상세 관리 <i class="fas fa-arrow-right text-[10px]"></i></a>' +
+                    '<a href="/admin/courses/' + pathId + '/lms?' + hrdQs + '" class="w-full h-10 flex items-center justify-center gap-2 bg-slate-900 text-white rounded-xl text-xs font-black hover:bg-primary-700 transition shadow-sm">LMS 상세 관리 <i class="fas fa-arrow-right text-[10px]"></i></a>' +
                     '</div></div>';
             }).join('');
             grid.innerHTML = html;
@@ -423,7 +426,14 @@ function showEventDetail(event) {
         desc = '[상태] ' + sLabel + '\\n[장소] ' + (props.roomId || '미정') + '\\n' + desc;
         btnViewCourse.style.display = 'block';
         btnViewCourse.textContent = 'LMS 바로가기';
-        btnViewCourse.onclick = function() { location.href = '/admin/courses/' + event.id.split('-')[1] + '/lms'; };
+        btnViewCourse.onclick = function() {
+            var sid = props.sessionId;
+            if (sid != null && sid !== '') {
+                location.href = '/admin/courses/' + encodeURIComponent(String(sid)) + '/lms?type=hrd&session_id=' + encodeURIComponent(String(sid));
+            } else {
+                location.href = '/admin/courses/' + event.id.split('-')[1] + '/lms?type=hrd';
+            }
+        };
     } else if (props.type === 'facility') {
         document.getElementById('modalEventName').textContent = '[시설예약] ' + event.title;
         btnViewCourse.style.display = 'block';
