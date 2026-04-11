@@ -115,12 +115,58 @@ app.get('/', authMiddleware, async (c) => {
       });
     }
 
-    // HRD: course_id가 회차(session) ID이면 해당 회차 수강생만, 아니면 승인과정 기준 전체 회차 수강생
+    // HRD: LMS는 course_id=courses.id 인 경우가 대부분. session.id·approved_courses.id 와 숫자 충돌 시 엉뚱한 회차 방지 (courses.ts type=hrd 와 동일 순서)
     if (typeHrd && courseId && (user.role === 'admin' || user.role === 'teacher')) {
       const courseIdNum = parseInt(String(courseId), 10);
-      const asSession = await DB.prepare('SELECT id, approved_course_id FROM course_sessions WHERE id = ?').bind(courseIdNum).first<{ id: number; approved_course_id: number }>();
+      if (isNaN(courseIdNum)) {
+        return c.json({ success: true, data: [], pagination: { page, limit, total: 0, totalPages: 0 } });
+      }
       const search = (c.req.query('search') || '').trim();
-      const sessionOnly = true; // LMS 과정별 수강생 페이지는 해당 회차만 표시
+      const sessionOnly = true;
+
+      const courseRow = await DB.prepare('SELECT id, TRIM(title) AS title FROM courses WHERE id = ?')
+        .bind(courseIdNum)
+        .first<{ id: number; title: string }>();
+
+      let asSession: { id: number; approved_course_id: number } | null = null;
+
+      if (courseRow) {
+        let sid: number | null = null;
+        const byLms = await DB.prepare(
+          `SELECT id FROM course_sessions WHERE lms_course_id = ? ORDER BY session_number DESC, id DESC LIMIT 1`
+        )
+          .bind(courseIdNum)
+          .first<{ id: number }>();
+        if (byLms?.id != null) sid = byLms.id;
+        else if (courseRow.title) {
+          const t = String(courseRow.title).trim();
+          if (t) {
+            const byTitle = await DB.prepare(
+              `SELECT s.id FROM course_sessions s
+               INNER JOIN approved_courses a ON a.id = s.approved_course_id
+               WHERE TRIM(COALESCE(a.name, '')) != ''
+                 AND (
+                   ? LIKE '%' || TRIM(a.name) || '%'
+                   OR TRIM(a.name) LIKE '%' || ? || '%'
+                 )
+               ORDER BY LENGTH(TRIM(a.name)) DESC, s.session_number DESC, s.id DESC
+               LIMIT 1`
+            )
+              .bind(t, t)
+              .first<{ id: number }>();
+            if (byTitle?.id != null) sid = byTitle.id;
+          }
+        }
+        if (sid != null) {
+          asSession = await DB.prepare('SELECT id, approved_course_id FROM course_sessions WHERE id = ?')
+            .bind(sid)
+            .first<{ id: number; approved_course_id: number }>();
+        }
+      } else {
+        asSession = await DB.prepare('SELECT id, approved_course_id FROM course_sessions WHERE id = ?')
+          .bind(courseIdNum)
+          .first<{ id: number; approved_course_id: number }>();
+      }
 
       if (asSession?.id != null && sessionOnly) {
         // 해당 회차(session_id) 수강생만 조회 (approved, enrolled)
@@ -161,7 +207,7 @@ app.get('/', authMiddleware, async (c) => {
       }
 
       let approvedCourseId: number | null = asSession?.approved_course_id ?? null;
-      if (approvedCourseId == null) {
+      if (approvedCourseId == null && !courseRow) {
         const asApproved = await DB.prepare('SELECT id FROM approved_courses WHERE id = ?').bind(courseIdNum).first<{ id: number }>();
         if (asApproved?.id != null) approvedCourseId = asApproved.id;
       }

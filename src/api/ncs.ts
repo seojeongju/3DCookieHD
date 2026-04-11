@@ -5087,7 +5087,27 @@ app.get('/evaluation-dashboard-hub', authMiddleware, async (c) => {
                      ORDER BY session_number DESC, id DESC
                      LIMIT 1`
                 ).bind(rawId).first();
-                return byLmsForCourse || null;
+                if (byLmsForCourse) return byLmsForCourse;
+                const co = await DB.prepare('SELECT TRIM(title) AS t FROM courses WHERE id = ?').bind(rawId).first();
+                const lmsTitle = co?.t != null ? String(co.t).trim() : '';
+                if (lmsTitle) {
+                    const byTitle = await DB.prepare(
+                        `SELECT s.id, s.approved_course_id, s.instructor_name, s.lms_course_id, s.session_number
+                         FROM course_sessions s
+                         INNER JOIN approved_courses a ON a.id = s.approved_course_id
+                         WHERE TRIM(COALESCE(a.name, '')) != ''
+                           AND (
+                             ? LIKE '%' || TRIM(a.name) || '%'
+                             OR TRIM(a.name) LIKE '%' || ? || '%'
+                           )
+                         ORDER BY LENGTH(TRIM(a.name)) DESC, s.session_number DESC, s.id DESC
+                         LIMIT 1`
+                    )
+                        .bind(lmsTitle, lmsTitle)
+                        .first();
+                    if (byTitle) return byTitle;
+                }
+                return null;
             }
 
             const byPk = await DB.prepare(

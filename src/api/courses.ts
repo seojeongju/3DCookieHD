@@ -274,13 +274,12 @@ courses.get('/:id', async (c) => {
 
     if (type === 'hrd') {
       try {
-        const sessionId = parseInt(idParam, 10);
-        if (isNaN(sessionId)) return notFoundResponse(c, '잘못된 회차 ID입니다');
+        const rawId = parseInt(idParam, 10);
+        if (isNaN(rawId)) return notFoundResponse(c, '잘못된 회차 ID입니다');
 
         const { DB } = c.env;
 
-        // 1. 회차 정보 직접 조회
-        let session = await DB.prepare(`
+        const selectSessionJoin = `
           SELECT 
             s.*,
             a.name as approved_course_name,
@@ -292,27 +291,73 @@ courses.get('/:id', async (c) => {
           FROM course_sessions s
           LEFT JOIN approved_courses a ON s.approved_course_id = a.id
           LEFT JOIN course_categories cat ON a.category_id = cat.id
-          WHERE s.id = ?
-        `).bind(sessionId).first<any>();
+        `;
 
-        // 2. 실패 시 과정 ID(approved_course_id)로 최신 회차 조회
-        if (!session) {
-          session = await DB.prepare(`
-            SELECT 
-              s.*,
-              a.name as approved_course_name,
-              a.instructor_name as approved_instructor_name,
-              a.daily_hours,
-              a.total_hours,
-              a.total_days,
-              cat.name as category_name
-            FROM course_sessions s
-            LEFT JOIN approved_courses a ON s.approved_course_id = a.id
-            LEFT JOIN course_categories cat ON a.category_id = cat.id
+        let session: any = null;
+
+        // LMS URL은 /admin/courses/{id}/lms … 에서 id가 대부분 courses.id(개설 과정 PK)이다.
+        // course_sessions.id·approved_courses.id 와 숫자가 겹치면 s.id = ? 만 조회하면 엉뚱한 회차가 선택된다.
+        const courseRow = await DB.prepare('SELECT id FROM courses WHERE id = ?').bind(rawId).first<{ id: number }>();
+        if (courseRow) {
+          session = await DB.prepare(
+            `${selectSessionJoin}
+            WHERE s.lms_course_id = ?
+            ORDER BY s.session_number DESC, s.id DESC
+            LIMIT 1`
+          )
+            .bind(rawId)
+            .first<any>();
+        }
+
+        // courses 행이 없을 때만 회차 PK로 직접 조회
+        if (!session && !courseRow) {
+          session = await DB.prepare(`${selectSessionJoin} WHERE s.id = ?`).bind(rawId).first<any>();
+        }
+
+        // courses.id 인데 lms_course_id 미연결: 개설과정명 ↔ 승인과정명으로 회차 추정
+        if (courseRow && !session) {
+          const co = await DB.prepare('SELECT TRIM(title) AS t FROM courses WHERE id = ?')
+            .bind(rawId)
+            .first<{ t: string }>();
+          const lmsTitle = co?.t ? String(co.t).trim() : '';
+          if (lmsTitle) {
+            session = await DB.prepare(
+              `${selectSessionJoin}
+             WHERE TRIM(COALESCE(a.name, '')) != ''
+               AND (
+                 ? LIKE '%' || TRIM(a.name) || '%'
+                 OR TRIM(a.name) LIKE '%' || ? || '%'
+               )
+             ORDER BY LENGTH(TRIM(a.name)) DESC, s.session_number DESC, s.id DESC
+             LIMIT 1`
+            )
+              .bind(lmsTitle, lmsTitle)
+              .first<any>();
+          }
+        }
+
+        // courses 행이 없을 때만 approved_course_id(승인과정 PK)로 최신 회차
+        if (!session && !courseRow) {
+          session = await DB.prepare(
+            `${selectSessionJoin}
             WHERE s.approved_course_id = ?
             ORDER BY s.session_number DESC, s.id DESC
-            LIMIT 1
-          `).bind(sessionId).first<any>();
+            LIMIT 1`
+          )
+            .bind(rawId)
+            .first<any>();
+        }
+
+        // 레거시: lms_course_id 컬럼만 일치하는 경우(위에서 이미 처리했으나 이중 안전)
+        if (!session && !courseRow) {
+          session = await DB.prepare(
+            `${selectSessionJoin}
+            WHERE s.lms_course_id = ?
+            ORDER BY s.session_number DESC, s.id DESC
+            LIMIT 1`
+          )
+            .bind(rawId)
+            .first<any>();
         }
 
         // 회차가 있으면 HRD 회차 정보를 우선 반환하고,
@@ -324,25 +369,31 @@ courses.get('/:id', async (c) => {
               ? Math.round((Number(session.total_hours) / Number(session.total_days)) * 10) / 10
               : null);
 
-          // 3. 프론트엔드 호환 필드 구성
           const realSessionId = session.id;
           const courseName = session.approved_course_name || '미지정 과정';
           const sessionNum = session.session_number || '1';
           const sessionNameSuffix = session.session_name ? ` - ${session.session_name}` : '';
           const fullTitle = `${courseName} (${sessionNum}회차)${sessionNameSuffix}`;
 
-          // 4. 수강생 수 조회
+          let displayTitle = fullTitle;
+          if (courseRow) {
+            const ctr = await DB.prepare('SELECT TRIM(title) AS t FROM courses WHERE id = ?')
+              .bind(rawId)
+              .first<{ t: string }>();
+            const t = ctr?.t != null ? String(ctr.t).trim() : '';
+            if (t) displayTitle = t;
+          }
+
           const studentCountResult = await DB.prepare(
             'SELECT COUNT(*) as count FROM course_session_enrollments WHERE session_id = ? AND status IN ("approved", "enrolled")'
           ).bind(realSessionId).first<{ count: number }>();
 
-          // 5. 최종 데이터 반환 (daily_hours: 배정 훈련시간, 없으면 total_hours/total_days로 계산)
           return successResponse(c, {
             ...session,
-            id: realSessionId, // 매우 중요: 이후 모든 LMS API는 이 ID를 사용함
+            id: realSessionId,
             course_id: session.approved_course_id,
-            title: fullTitle,
-            name: fullTitle,
+            title: displayTitle,
+            name: displayTitle,
             teacher_name: session.instructor_name || session.approved_instructor_name,
             start_date: session.training_start_date,
             end_date: session.training_end_date,
